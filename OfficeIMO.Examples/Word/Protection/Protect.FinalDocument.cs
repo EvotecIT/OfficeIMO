@@ -13,10 +13,10 @@ internal static partial class Protect {
         string filePath = System.IO.Path.Combine(folderPath, "Basic Document with setting Word to Final Document.docx");
         using (WordDocument document = WordDocument.Create(filePath)) {
             var paragraph = document.AddParagraph("Basic paragraph - Page 1");
-            paragraph.ParagraphAlignment = JustificationValues.Center;
+            paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
             paragraph.Color = OfficeIMO.Drawing.OfficeColor.Blue;
             paragraph.AddText(" This is continutation in the same line");
-            paragraph.AddBreak(BreakValues.TextWrapping);
+            paragraph.AddBreak(WordBreakType.TextWrapping);
 
             Console.WriteLine("Final document: " + document.Settings.FinalDocument);
 

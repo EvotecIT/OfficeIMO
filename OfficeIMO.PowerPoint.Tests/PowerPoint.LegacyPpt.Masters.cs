@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_RoundTripsDocumentPageAndDisplaySettings() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
-            presentation.SlideSize.SetSizeEmus(9906000, 6858000, P.SlideSizeValues.A4);
+            presentation.SlideSize.SetSizeEmus(9906000, 6858000, PowerPointSlideSizeType.A4);
             P.Presentation root = presentation.OpenXmlDocument.PresentationPart!.Presentation;
             root.NotesSize = new P.NotesSize { Cx = 6858000, Cy = 9906000 };
             root.FirstSlideNum = 7;
@@ -326,7 +326,7 @@ namespace OfficeIMO.Tests {
                         new A.PresetGeometry(new A.AdjustValueList()) {
                             Preset = A.ShapeTypeValues.Rectangle
                         })));
-            presentation.AddSlide(P.SlideLayoutValues.Blank);
+            presentation.AddSlide(PowerPointSlideLayoutType.Blank);
 
             LegacyPptWritePreflightReport preflight = presentation
                 .AnalyzeLegacyPptWrite();
@@ -417,7 +417,7 @@ namespace OfficeIMO.Tests {
                                 new A.Run(new A.RunProperties {
                                     Language = "pl-PL"
                                 }, new A.Text("Język"))))));
-                source.AddSlide(P.SlideLayoutValues.Blank);
+                source.AddSlide(PowerPointSlideLayoutType.Blank);
                 LegacyPptWritePreflightReport preflight = source
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
@@ -501,7 +501,7 @@ namespace OfficeIMO.Tests {
                     new A.Level5ParagraphProperties()),
                 new P.BodyStyle(),
                 new P.OtherStyle());
-            presentation.AddSlide(P.SlideLayoutValues.Blank);
+            presentation.AddSlide(PowerPointSlideLayoutType.Blank);
 
             LegacyPptWritePreflightReport preflight = presentation
                 .AnalyzeLegacyPptWrite();
@@ -610,7 +610,7 @@ namespace OfficeIMO.Tests {
                 new P.TitleStyle(titleLevel),
                 new P.BodyStyle(),
                 new P.OtherStyle());
-            presentation.AddSlide(P.SlideLayoutValues.Blank);
+            presentation.AddSlide(PowerPointSlideLayoutType.Blank);
 
             LegacyPptWritePreflightReport preflight = presentation
                 .AnalyzeLegacyPptWrite();
@@ -623,11 +623,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_RoundTripsSolidGradientAndNoFillSlideBackgrounds() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
-            PowerPointSlide solid = presentation.AddSlide(P.SlideLayoutValues.Blank);
+            PowerPointSlide solid = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
             solid.BackgroundColor = "123456";
-            PowerPointSlide gradient = presentation.AddSlide(P.SlideLayoutValues.Blank);
+            PowerPointSlide gradient = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
             gradient.SetBackgroundGradient("112233", "AABBCC", 45D);
-            PowerPointSlide noFill = presentation.AddSlide(P.SlideLayoutValues.Blank);
+            PowerPointSlide noFill = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
             noFill.SlidePart.Slide!.CommonSlideData!.Background = new P.Background(
                 new P.BackgroundProperties(new A.NoFill()));
 
@@ -685,8 +685,8 @@ namespace OfficeIMO.Tests {
             masterPart.SlideMaster!.CommonSlideData!.Background = new P.Background(
                 new P.BackgroundProperties(
                     new A.SolidFill(new A.RgbColorModelHex { Val = "0A0B0C" })));
-            PowerPointSlide inherited = presentation.AddSlide(P.SlideLayoutValues.Title);
-            int blankIndex = presentation.GetLayoutIndex(P.SlideLayoutValues.Blank);
+            PowerPointSlide inherited = presentation.AddSlide(PowerPointSlideLayoutType.Title);
+            int blankIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.Blank);
             SlideLayoutPart blankLayout = masterPart.SlideLayoutParts
                 .ElementAt(blankIndex);
             blankLayout.SlideLayout!.CommonSlideData!.Background = new P.Background(
@@ -720,9 +720,9 @@ namespace OfficeIMO.Tests {
                 .PresentationPart!.SlideMasterParts.First();
             SetPictureBackground(masterPart,
                 masterPart.SlideMaster!.CommonSlideData!, imageBytes);
-            presentation.AddSlide(P.SlideLayoutValues.Title);
+            presentation.AddSlide(PowerPointSlideLayoutType.Title);
             int blankIndex = presentation.GetLayoutIndex(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             SlideLayoutPart blankLayout = masterPart.SlideLayoutParts
                 .ElementAt(blankIndex);
             SetPictureBackground(blankLayout,

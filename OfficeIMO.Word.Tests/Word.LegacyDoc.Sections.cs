@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("Section extended page numbering");
-                    document.Sections[0].AddPageNumbering(expectedNfc, format);
+                    document.Sections[0].AddPageNumbering(expectedNfc, format.ToOfficeEnum());
 
                     document.Save(docPath);
                 }
@@ -193,14 +193,14 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("Extended note numbering");
                     document.Sections[0].AddFootnoteProperties(
-                        NumberFormatValues.DecimalZero,
-                        FootnotePositionValues.BeneathText,
-                        RestartNumberValues.EachPage,
+                        WordNumberFormat.DecimalZero,
+                        WordFootnotePosition.BeneathText,
+                        WordNoteNumberRestart.EachPage,
                         startNumber: 3);
                     document.Sections[0].AddEndnoteProperties(
-                        numberingFormat: NumberFormatValues.NumberInDash,
+                        numberingFormat: WordNumberFormat.NumberInDash,
                         position: null,
-                        restartNumbering: RestartNumberValues.EachSection,
+                        restartNumbering: WordNoteNumberRestart.EachSection,
                         startNumber: 9);
 
                     document.Save(docPath);

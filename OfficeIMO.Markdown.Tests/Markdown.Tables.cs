@@ -18,9 +18,9 @@ namespace OfficeIMO.Tests {
             var centerParagraph = table.Rows[1].Cells[1].Paragraphs[0];
             var rightParagraph = table.Rows[1].Cells[2].Paragraphs[0];
 
-            Assert.Equal(JustificationValues.Left, leftParagraph.ParagraphAlignment);
-            Assert.Equal(JustificationValues.Center, centerParagraph.ParagraphAlignment);
-            Assert.Equal(JustificationValues.Right, rightParagraph.ParagraphAlignment);
+            Assert.Equal(WordParagraphAlignment.Left, leftParagraph.ParagraphAlignment);
+            Assert.Equal(WordParagraphAlignment.Center, centerParagraph.ParagraphAlignment);
+            Assert.Equal(WordParagraphAlignment.Right, rightParagraph.ParagraphAlignment);
 
             Assert.Contains(leftParagraph.GetRuns(), r => r.Bold);
             Assert.Contains(centerParagraph.GetRuns(), r => r.Italic);
@@ -132,9 +132,9 @@ Narrative body text.
             using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { Theme = theme });
 
             var cell = doc.Tables[0].Rows[0].Cells[0];
-            Assert.Equal(BorderValues.None, cell.Borders.TopStyle);
+            Assert.Equal(WordBorderStyle.None, cell.Borders.TopStyle);
             Assert.Equal(0U, cell.Borders.TopSize?.Value);
-            Assert.Equal(BorderValues.None, cell.Borders.BottomStyle);
+            Assert.Equal(WordBorderStyle.None, cell.Borders.BottomStyle);
             Assert.Equal(0U, cell.Borders.BottomSize?.Value);
         }
 
@@ -152,10 +152,10 @@ Narrative body text.
             using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { Theme = theme });
 
             var cell = doc.Tables[0].Rows[0].Cells[0];
-            Assert.Equal(BorderValues.None, cell.Borders.TopStyle);
+            Assert.Equal(WordBorderStyle.None, cell.Borders.TopStyle);
             Assert.Equal(0U, cell.Borders.TopSize?.Value);
             Assert.True(string.IsNullOrEmpty(cell.Borders.TopColorHex));
-            Assert.Equal(BorderValues.None, cell.Borders.BottomStyle);
+            Assert.Equal(WordBorderStyle.None, cell.Borders.BottomStyle);
             Assert.Equal(0U, cell.Borders.BottomSize?.Value);
             Assert.True(string.IsNullOrEmpty(cell.Borders.BottomColorHex));
         }
@@ -221,15 +221,15 @@ Console.WriteLine("ready");
 
             var left = table.Rows[0].Cells[0].Paragraphs[0];
             left.Text = "Left";
-            left.ParagraphAlignment = JustificationValues.Left;
+            left.ParagraphAlignment = WordParagraphAlignment.Left;
 
             var center = table.Rows[0].Cells[1].Paragraphs[0];
             center.Text = "Center";
-            center.ParagraphAlignment = JustificationValues.Center;
+            center.ParagraphAlignment = WordParagraphAlignment.Center;
 
             var right = table.Rows[0].Cells[2].Paragraphs[0];
             right.Text = "Right";
-            right.ParagraphAlignment = JustificationValues.Right;
+            right.ParagraphAlignment = WordParagraphAlignment.Right;
 
             table.Rows[1].Cells[0].Paragraphs[0].Text = "A";
             table.Rows[1].Cells[1].Paragraphs[0].Text = "B";

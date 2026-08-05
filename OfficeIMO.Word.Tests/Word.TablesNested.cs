@@ -12,9 +12,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithNestedTables.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Lets add table ");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Bold = true;
-                paragraph.Underline = UnderlineValues.DotDash;
+                paragraph.Underline = WordUnderlineStyle.DotDash;
 
                 WordTable wordTable = document.AddTable(4, 4, WordTableStyle.GridTable1LightAccent1);
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";

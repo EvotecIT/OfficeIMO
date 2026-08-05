@@ -279,7 +279,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                snapshot = new ExcelCellValueSnapshot(kind, text, rawValue, dataType, dateTimeValue);
+                snapshot = new ExcelCellValueSnapshot(kind, text, rawValue, dataType.ToOfficeEnum(), dateTimeValue);
                 return true;
             } catch {
                 return false;
@@ -499,7 +499,7 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index of the cell to align.</param>
         /// <param name="column">The 1-based column index of the cell to align.</param>
         /// <param name="alignment">The horizontal alignment value to apply.</param>
-        public void CellAlign(int row, int column, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues alignment) {
+        public void CellAlign(int row, int column, ExcelHorizontalAlignment alignment) {
             WriteLockConditional(() => {
                 var cell = GetCell(row, column);
                 var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
@@ -511,7 +511,7 @@ namespace OfficeIMO.Excel {
                     var existingAlignment = format.Alignment != null
                         ? (Alignment)format.Alignment.CloneNode(true)
                         : new Alignment();
-                    existingAlignment.Horizontal = alignment;
+                    existingAlignment.Horizontal = alignment.ToOpenXml();
                     format.Alignment = existingAlignment;
                     format.ApplyAlignment = true;
                 });
@@ -584,7 +584,7 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index of the cell to align.</param>
         /// <param name="column">The 1-based column index of the cell to align.</param>
         /// <param name="alignment">The vertical alignment value to apply.</param>
-        public void CellVerticalAlign(int row, int column, VerticalAlignmentValues alignment) {
+        public void CellVerticalAlign(int row, int column, ExcelVerticalAlignment alignment) {
             WriteLockConditional(() => {
                 var cell = GetCell(row, column);
                 var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
@@ -596,7 +596,7 @@ namespace OfficeIMO.Excel {
                     var existingAlignment = format.Alignment != null
                         ? (Alignment)format.Alignment.CloneNode(true)
                         : new Alignment();
-                    existingAlignment.Vertical = alignment;
+                    existingAlignment.Vertical = alignment.ToOpenXml();
                     format.Alignment = existingAlignment;
                     format.ApplyAlignment = true;
                 });
@@ -612,7 +612,7 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index of the cell to style.</param>
         /// <param name="style">The border style to apply on all four sides.</param>
         /// <param name="hexColor">Optional border color expressed as ARGB or RGB hex.</param>
-        public void CellBorder(int row, int column, BorderStyleValues style, string? hexColor = null) {
+        public void CellBorder(int row, int column, ExcelBorderStyle style, string? hexColor = null) {
             WriteLockConditional(() => {
                 var cell = GetCell(row, column);
                 var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
@@ -621,7 +621,7 @@ namespace OfficeIMO.Excel {
                 EnsureDefaultStylePrimitives(stylesheet);
 
                 var baseFormat = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
-                var borderId = GetOrCreateBorderVariant(stylesheet, GetOptionalValue(baseFormat.BorderId), border => SetUniformBorder(border, style, hexColor));
+                var borderId = GetOrCreateBorderVariant(stylesheet, GetOptionalValue(baseFormat.BorderId), border => SetUniformBorder(border, style.ToOpenXml(), hexColor));
                 ApplyCellFormatOverride(stylesheet, cell, format => {
                     format.BorderId = borderId;
                     format.ApplyBorder = true;
@@ -640,7 +640,7 @@ namespace OfficeIMO.Excel {
         /// <param name="hexColor">Optional border color expressed as ARGB or RGB hex.</param>
         /// <param name="diagonalUp">Whether to draw the bottom-left to top-right diagonal.</param>
         /// <param name="diagonalDown">Whether to draw the top-left to bottom-right diagonal.</param>
-        public void CellDiagonalBorder(int row, int column, BorderStyleValues style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) {
+        public void CellDiagonalBorder(int row, int column, ExcelBorderStyle style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) {
             WriteLockConditional(() => {
                 var cell = GetCell(row, column);
                 var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
@@ -649,7 +649,7 @@ namespace OfficeIMO.Excel {
                 EnsureDefaultStylePrimitives(stylesheet);
 
                 var baseFormat = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
-                var borderId = GetOrCreateBorderVariant(stylesheet, GetOptionalValue(baseFormat.BorderId), border => SetDiagonalBorder(border, style, hexColor, diagonalUp, diagonalDown));
+                var borderId = GetOrCreateBorderVariant(stylesheet, GetOptionalValue(baseFormat.BorderId), border => SetDiagonalBorder(border, style.ToOpenXml(), hexColor, diagonalUp, diagonalDown));
                 ApplyCellFormatOverride(stylesheet, cell, format => {
                     format.BorderId = borderId;
                     format.ApplyBorder = true;

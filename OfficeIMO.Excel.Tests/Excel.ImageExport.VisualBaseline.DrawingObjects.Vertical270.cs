@@ -78,12 +78,12 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, "Vertical270 DrawingML text");
             sheet.Range("A1:F1").Merge();
             sheet.Range("A1:F1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
-            sheet.CellAlign(1, 1, HorizontalAlignmentValues.Center);
-            sheet.CellVerticalAlign(1, 1, VerticalAlignmentValues.Center);
+            sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
+            sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Center);
             sheet.CellValue(7, 2, "Vertical270 shape text routes through shared rotated text layout.");
             sheet.Range("B7:E7").Merge();
             sheet.Range("B7:E7").SetFillColor("F8FAFC").SetFontColor("334155");
-            sheet.CellAlign(7, 2, HorizontalAlignmentValues.Center);
+            sheet.CellAlign(7, 2, ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 6; column++) {
                 sheet.SetColumnWidth(column, column == 1 || column == 6 ? 9 : 15);
@@ -99,8 +99,8 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(8, 22);
             for (int row = 1; row <= 8; row++) {
                 for (int column = 1; column <= 6; column++) {
-                    sheet.CellAt(row, column).SetBorder(BorderStyleValues.Thin, "CBD5E1");
-                    sheet.CellVerticalAlign(row, column, VerticalAlignmentValues.Center);
+                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
                 }
             }
 

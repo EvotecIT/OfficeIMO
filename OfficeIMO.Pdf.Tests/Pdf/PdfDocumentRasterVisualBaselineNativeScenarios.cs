@@ -30,7 +30,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddHeadersAndFooters();
                 WordParagraph headerLogo = document.Sections[0].Header.Default!.AddParagraph("OfficeIMO");
-                headerLogo.ParagraphAlignment = W.JustificationValues.Right;
+                headerLogo.ParagraphAlignment = WordParagraphAlignment.Right;
                 headerLogo.AddImage(logoPath, 48, 24);
 
                 document.AddTableOfContent();
@@ -45,15 +45,15 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 styled.AddText("Scoped runs: ");
                 styled.AddText("large blue").SetFontSize(15).ColorHex = "1f4e79";
                 styled.AddText(", ");
-                styled.AddText("highlighted").SetHighlight(W.HighlightColorValues.Yellow);
+                styled.AddText("highlighted").SetHighlight(WordHighlightColor.Yellow);
                 styled.AddText(", and restored default text.");
 
                 WordParagraph panel = document.AddParagraph("Shaded paragraph with uniform Word borders mapped through the native PDF path.");
                 panel.ShadingFillColorHex = "e6f2ff";
-                panel.Borders.TopStyle = W.BorderValues.Single;
-                panel.Borders.BottomStyle = W.BorderValues.Single;
-                panel.Borders.LeftStyle = W.BorderValues.Single;
-                panel.Borders.RightStyle = W.BorderValues.Single;
+                panel.Borders.TopStyle = WordBorderStyle.Single;
+                panel.Borders.BottomStyle = WordBorderStyle.Single;
+                panel.Borders.LeftStyle = WordBorderStyle.Single;
+                panel.Borders.RightStyle = WordBorderStyle.Single;
                 panel.Borders.TopColorHex = "336699";
                 panel.Borders.BottomColorHex = "336699";
                 panel.Borders.LeftColorHex = "336699";
@@ -129,7 +129,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
                 document.AddHeadersAndFooters();
                 WordParagraph header = document.Sections[0].Header.Default!.AddParagraph();
-                header.ParagraphAlignment = W.JustificationValues.Right;
+                header.ParagraphAlignment = WordParagraphAlignment.Right;
                 header.AddText("Daily layout gate");
                 header.AddImage(logoPath, 42, 20);
                 document.Sections[0].Footer.Default!.AddParagraph("OfficeIMO native Word layout proof");
@@ -157,10 +157,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
                 WordParagraph shaded = document.AddParagraph("Shaded paragraph and side borders protect report-style callouts.");
                 shaded.ShadingFillColorHex = "e6f2ff";
-                shaded.Borders.LeftStyle = W.BorderValues.Single;
+                shaded.Borders.LeftStyle = WordBorderStyle.Single;
                 shaded.Borders.LeftColorHex = "1f4e79";
                 shaded.Borders.LeftSize = 12;
-                shaded.Borders.BottomStyle = W.BorderValues.Single;
+                shaded.Borders.BottomStyle = WordBorderStyle.Single;
                 shaded.Borders.BottomColorHex = "b7c9d9";
                 shaded.Borders.BottomSize = 4;
 
@@ -175,7 +175,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
                 document.AddParagraph().AddImage(logoPath, 54, 26);
                 WordParagraph columnHandoff = document.AddParagraph("Inline column break keeps this text in the first column.");
-                columnHandoff.AddBreak(W.BreakValues.Column);
+                columnHandoff.AddBreak(OfficeIMO.Word.WordBreakType.Column);
                 columnHandoff.AddText("Right column starts here.");
 
                 WordParagraph rightHeading = document.AddParagraph("Column evidence");
@@ -232,7 +232,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "Picture content control";
                 WordParagraph pictureCell = table.Rows[1].Cells[1].Paragraphs[0];
                 pictureCell.Text = "Table-cell logo";
-                pictureCell.ParagraphAlignment = W.JustificationValues.Center;
+                pictureCell.ParagraphAlignment = WordParagraphAlignment.Center;
                 pictureCell.AddPictureControl(logoPath, 72, 36, "Table Cell Logo", "TableCellLogo");
 
                 document.Save();
@@ -298,11 +298,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.SetColumnHidden(4, true);
                 summary.Cell(2, 4, "HiddenColumnValue");
                 summary.SetRowHidden(8, true);
-                summary.CellBorder(2, 1, DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Thin, "445566");
-                summary.CellBorder(2, 2, DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Thin, "445566");
-                summary.CellBorder(2, 3, DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Thin, "445566");
-                summary.CellAlign(3, 2, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Right);
-                summary.CellAlign(4, 2, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Right);
+                summary.CellBorder(2, 1, OfficeIMO.Excel.ExcelBorderStyle.Thin, "445566");
+                summary.CellBorder(2, 2, OfficeIMO.Excel.ExcelBorderStyle.Thin, "445566");
+                summary.CellBorder(2, 3, OfficeIMO.Excel.ExcelBorderStyle.Thin, "445566");
+                summary.CellAlign(3, 2, OfficeIMO.Excel.ExcelHorizontalAlignment.Right);
+                summary.CellAlign(4, 2, OfficeIMO.Excel.ExcelHorizontalAlignment.Right);
                 summary.SetHeaderFooter(
                     headerLeft: "Daily Excel",
                     headerCenter: "Workbook &A",

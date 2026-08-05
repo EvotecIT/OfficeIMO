@@ -41,10 +41,10 @@ namespace OfficeIMO.Word.Markdown {
             var run = paragraph.AddText(text ?? string.Empty);
             if (fmt.Bold) run.SetBold();
             if (fmt.Italic) run.SetItalic();
-            if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) run.SetUnderline(fmt.Underline.Value);
+            if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) run.SetUnderline(fmt.Underline.Value.ToOfficeEnum());
             if (fmt.Strike) run.SetStrike();
-            if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) run.SetHighlight(fmt.Highlight.Value);
-            if (fmt.VerticalTextAlignment.HasValue) run.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value);
+            if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) run.SetHighlight(fmt.Highlight.Value.ToOfficeEnum());
+            if (fmt.VerticalTextAlignment.HasValue) run.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value.ToOfficeEnum());
             if (!string.IsNullOrEmpty(defaultFont)) run.SetFontFamily(defaultFont!);
             if (!string.IsNullOrEmpty(defaultTextColorHex)) run.SetColorHex(defaultTextColorHex!);
             return run;
@@ -60,10 +60,10 @@ namespace OfficeIMO.Word.Markdown {
             var wrapper = new WordParagraph(document, paragraph, run);
             if (fmt.Bold) wrapper.SetBold();
             if (fmt.Italic) wrapper.SetItalic();
-            if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) wrapper.SetUnderline(fmt.Underline.Value);
+            if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) wrapper.SetUnderline(fmt.Underline.Value.ToOfficeEnum());
             if (fmt.Strike) wrapper.SetStrike();
-            if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) wrapper.SetHighlight(fmt.Highlight.Value);
-            if (fmt.VerticalTextAlignment.HasValue) wrapper.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value);
+            if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) wrapper.SetHighlight(fmt.Highlight.Value.ToOfficeEnum());
+            if (fmt.VerticalTextAlignment.HasValue) wrapper.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value.ToOfficeEnum());
 
             if (forceMonospace) {
                 wrapper.SetFontFamily(FontResolver.Resolve("monospace") ?? "Consolas");
@@ -561,10 +561,10 @@ namespace OfficeIMO.Word.Markdown {
         private static void ApplyHyperlinkFormattingOmd(WordParagraph hyperlink, InlineFormatState fmt, string? defaultFont, MarkdownToWordOptions options) {
             if (fmt.Bold) hyperlink.SetBold();
             if (fmt.Italic) hyperlink.SetItalic();
-            if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) hyperlink.SetUnderline(fmt.Underline.Value);
+            if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) hyperlink.SetUnderline(fmt.Underline.Value.ToOfficeEnum());
             if (fmt.Strike) hyperlink.SetStrike();
-            if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) hyperlink.SetHighlight(fmt.Highlight.Value);
-            if (fmt.VerticalTextAlignment.HasValue) hyperlink.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value);
+            if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) hyperlink.SetHighlight(fmt.Highlight.Value.ToOfficeEnum());
+            if (fmt.VerticalTextAlignment.HasValue) hyperlink.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value.ToOfficeEnum());
             if (!string.IsNullOrEmpty(defaultFont)) hyperlink.SetFontFamily(defaultFont!);
             string? accentHex = ResolveTheme(options)?.PaletteSnapshot.Accent.ToRgbHex();
             if (!string.IsNullOrEmpty(accentHex)) hyperlink.SetColorHex(accentHex!);

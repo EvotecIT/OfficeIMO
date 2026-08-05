@@ -47,13 +47,13 @@ namespace OfficeIMO.Examples.Excel {
                 var comboChart = sheet.AddChart(comboData, row: 2, column: 6, widthPixels: 640, heightPixels: 360,
                     type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
                 comboChart.ApplyStylePreset()
-                          .SetSeriesMarker(1, C.MarkerStyleValues.Circle, size: 6, lineColor: "4472C4");
+                          .SetSeriesMarker(1, ExcelChartMarkerStyle.Circle, size: 6, lineColor: "4472C4");
                 comboChart.SetValueAxisNumberFormat("0.00", sourceLinked: false, axisGroup: ExcelChartAxisGroup.Secondary)
-                          .SetSeriesDataLabels(1, showValue: true, position: C.DataLabelPositionValues.Top, numberFormat: "0.0")
+                          .SetSeriesDataLabels(1, showValue: true, position: ExcelChartDataLabelPosition.Top, numberFormat: "0.0")
                           .SetSeriesDataLabelTextStyle(1, fontSizePoints: 9, color: "1F4E79")
                           .SetSeriesDataLabelShapeStyle(1, fillColor: "FFFFFF", lineColor: "1F4E79", lineWidthPoints: 0.5);
                 comboChart.SetSeriesDataLabelLeaderLines(1, showLeaderLines: true, lineColor: "1F4E79", lineWidthPoints: 0.5);
-                comboChart.SetLegend(C.LegendPositionValues.Right)
+                comboChart.SetLegend(ExcelChartLegendPosition.Right)
                           .SetTitleTextStyle(fontSizePoints: 14, bold: true, color: "1F4E79")
                           .SetLegendTextStyle(fontSizePoints: 9, color: "404040")
                           .SetCategoryAxisTitle("Quarter")
@@ -62,27 +62,27 @@ namespace OfficeIMO.Examples.Excel {
                           .SetValueAxisLabelTextStyle(fontSizePoints: 9, color: "404040")
                           .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "C0C0C0", lineWidthPoints: 0.75)
                           .SetCategoryAxisLabelRotation(45)
-                          .SetValueAxisTickLabelPosition(C.TickLabelPositionValues.Low);
+                          .SetValueAxisTickLabelPosition(ExcelChartTickLabelPosition.Low);
                 comboChart.SetCategoryAxisReverseOrder()
                           .SetValueAxisScale(minimum: 0, maximum: 40, majorUnit: 10, minorUnit: 5);
-                comboChart.SetValueAxisCrossing(C.CrossesValues.Maximum)
-                          .SetCategoryAxisCrossing(C.CrossesValues.Minimum)
-                          .SetValueAxisCrossBetween(C.CrossBetweenValues.Between)
-                          .SetValueAxisDisplayUnits(C.BuiltInUnitValues.Thousands, "Thousands USD", showLabel: true);
+                comboChart.SetValueAxisCrossing(ExcelChartAxisCrossing.Maximum)
+                          .SetCategoryAxisCrossing(ExcelChartAxisCrossing.Minimum)
+                          .SetValueAxisCrossBetween(ExcelChartAxisCrossBetween.Between)
+                          .SetValueAxisDisplayUnits(ExcelChartDisplayUnit.Thousands, "Thousands USD", showLabel: true);
                 comboChart.SetChartAreaStyle(fillColor: "F2F2F2", lineColor: "404040", lineWidthPoints: 1)
                           .SetPlotAreaStyle(fillColor: "FFFFFF", lineColor: "BFBFBF", lineWidthPoints: 0.75);
-                comboChart.SetSeriesTrendline(1, C.TrendlineValues.Linear, displayEquation: true, displayRSquared: true,
+                comboChart.SetSeriesTrendline(1, ExcelChartTrendlineType.Linear, displayEquation: true, displayRSquared: true,
                     lineColor: "A5A5A5", lineWidthPoints: 1);
                 var labelTemplate = new ExcelChartDataLabelTemplate {
                     ShowValue = true,
-                    Position = C.DataLabelPositionValues.Top,
+                    Position = ExcelChartDataLabelPosition.Top,
                     NumberFormat = "0.0",
                     FontSizePoints = 9,
                     TextColor = "404040",
                     Separator = " - "
                 };
                 comboChart.SetSeriesDataLabelTemplate(1, labelTemplate)
-                          .SetSeriesDataLabelForPoint(1, 2, showValue: true, position: C.DataLabelPositionValues.OutsideEnd,
+                          .SetSeriesDataLabelForPoint(1, 2, showValue: true, position: ExcelChartDataLabelPosition.OutsideEnd,
                             numberFormat: "0.00")
                           .SetSeriesDataLabelSeparatorForPoint(1, 2, " | ")
                           .SetSeriesDataLabelTextStyleForPoint(1, 2, fontSizePoints: 11, bold: true, color: "FF0000");
@@ -95,7 +95,7 @@ namespace OfficeIMO.Examples.Excel {
                     type: ExcelChartType.Scatter, title: "Scatter Sample");
                 scatterChart.SetScatterXAxisScale(minimum: 1, maximum: 10, majorUnit: 1, logScale: true);
                 scatterChart.SetScatterYAxisScale(minimum: 0, maximum: 6, majorUnit: 1);
-                scatterChart.SetScatterYAxisCrossing(C.CrossesValues.Minimum, crossesAt: 2d);
+                scatterChart.SetScatterYAxisCrossing(ExcelChartAxisCrossing.Minimum, crossesAt: 2d);
 
                 var rangeCells = new List<(int Row, int Column, object Value)> {
                     (30, 1, "X"), (30, 2, "Y1"), (30, 3, "Y2"), (30, 4, "Size"),

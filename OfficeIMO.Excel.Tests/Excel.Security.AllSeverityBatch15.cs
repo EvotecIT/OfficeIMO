@@ -77,9 +77,9 @@ public sealed class ExcelAllSeverityBatch15SecurityTests {
         sheet.CellValue(2, 1, "A");
         sheet.CellValue(2, 2, 1);
         sheet.AddTable("A1:B2", true, "DataTable", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
-        var totals = new Dictionary<string, TotalsRowFunctionValues>(StringComparer.Ordinal) {
-            ["Name"] = TotalsRowFunctionValues.Count,
-            ["NAME"] = TotalsRowFunctionValues.None
+        var totals = new Dictionary<string, ExcelTableTotalsFunction>(StringComparer.Ordinal) {
+            ["Name"] = ExcelTableTotalsFunction.Count,
+            ["NAME"] = ExcelTableTotalsFunction.None
         };
 
         Exception? exception = Record.Exception(() => sheet.SetTableTotals("A1:B2", totals));

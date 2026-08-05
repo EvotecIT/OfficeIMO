@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            WordHelpers.RemoveHeadersAndFooters(filePath, HeaderFooterValues.Default);
+            WordHelpers.RemoveHeadersAndFooters(filePath, WordHeaderFooterType.Default);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Null(document.Header?.Default);
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            WordHelpers.RemoveHeadersAndFooters(filePath, HeaderFooterValues.Even);
+            WordHelpers.RemoveHeadersAndFooters(filePath, WordHeaderFooterType.Even);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Null(document.Header?.Even);
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            WordHelpers.RemoveHeadersAndFooters(filePath, HeaderFooterValues.First);
+            WordHelpers.RemoveHeadersAndFooters(filePath, WordHeaderFooterType.First);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Null(document.Header?.First);

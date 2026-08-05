@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(hyperlinkRuns, r =>
                 string.Equals(r.Text, "highlighted", StringComparison.Ordinal) &&
-                r.Highlight == DocumentFormat.OpenXml.Wordprocessing.HighlightColorValues.Yellow &&
+                r.Highlight == WordHighlightColor.Yellow &&
                 string.Equals(r.Hyperlink?.Uri?.ToString(), "https://example.org/", StringComparison.Ordinal));
 
             string roundTrip = doc.ToMarkdown(new WordToMarkdownOptions { EnableHighlight = true });
@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
             Assert.False(boldRun.Italic);
             Assert.False(plainRun.Bold);
             Assert.Null(plainRun.Highlight);
-            Assert.Equal(DocumentFormat.OpenXml.Wordprocessing.HighlightColorValues.Yellow, highlightRun.Highlight);
+            Assert.Equal(WordHighlightColor.Yellow, highlightRun.Highlight);
             Assert.False(highlightRun.Bold);
 
             highlightRun.Italic = true;
@@ -100,10 +100,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, hyperlinkRuns.Count(r => string.Equals(r.Text, "\"", StringComparison.Ordinal)));
             Assert.Contains(hyperlinkRuns, r =>
                 string.Equals(r.Text, "2", StringComparison.Ordinal) &&
-                r.VerticalTextAlignment == DocumentFormat.OpenXml.Wordprocessing.VerticalPositionValues.Superscript);
+                r.VerticalTextAlignment == WordVerticalTextPosition.Superscript);
             Assert.Contains(hyperlinkRuns, r =>
                 string.Equals(r.Text, "2", StringComparison.Ordinal) &&
-                r.VerticalTextAlignment == DocumentFormat.OpenXml.Wordprocessing.VerticalPositionValues.Subscript);
+                r.VerticalTextAlignment == WordVerticalTextPosition.Subscript);
         }
 
         [Fact]

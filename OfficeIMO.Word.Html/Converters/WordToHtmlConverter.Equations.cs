@@ -93,11 +93,11 @@ namespace OfficeIMO.Word.Html {
                 underline.AppendChild(node);
                 node = underline;
             }
-            if (run.VerticalTextAlignment == VerticalPositionValues.Superscript) {
+            if (run.VerticalTextAlignment == WordVerticalTextPosition.Superscript) {
                 var superscript = CreateOutputElement(htmlDocument, "sup");
                 superscript.AppendChild(node);
                 node = superscript;
-            } else if (run.VerticalTextAlignment == VerticalPositionValues.Subscript) {
+            } else if (run.VerticalTextAlignment == WordVerticalTextPosition.Subscript) {
                 var subscript = CreateOutputElement(htmlDocument, "sub");
                 subscript.AppendChild(node);
                 node = subscript;
@@ -222,7 +222,7 @@ namespace OfficeIMO.Word.Html {
                     SetOutputAttribute(semanticNode, "style", $"background-color:{highlightCss}", "EquationSemanticFormatting:highlight");
                 } else if (normalizedRunBackground != null) {
                     SetOutputAttribute(semanticNode, "style", $"background-color:#{normalizedRunBackground}", "EquationSemanticFormatting:highlight");
-                } else if (run.Highlight == HighlightColorValues.None) {
+                } else if (run.Highlight == WordHighlightColor.None) {
                     SetOutputAttribute(semanticNode, "style", "background-color:transparent", "EquationSemanticFormatting:highlight");
                 }
             } else if (string.Equals(run.CharacterStyleId, "HtmlCite", StringComparison.OrdinalIgnoreCase)) {

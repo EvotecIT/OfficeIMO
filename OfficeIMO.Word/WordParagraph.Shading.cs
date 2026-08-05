@@ -45,15 +45,15 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set the paragraph shading pattern.
         /// </summary>
-        public ShadingPatternValues? ShadingPattern {
+        public WordShadingPattern? ShadingPattern {
             get {
-                return _paragraphProperties?.Shading?.Val?.Value;
+                return _paragraphProperties?.Shading?.Val?.Value.ToOfficeEnum();
             }
             set {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 if (value != null) {
                     props.Shading ??= new Shading();
-                    props.Shading.Val = value.Value;
+                    props.Shading.Val = value.Value.ToOpenXml();
                 } else {
                     props.Shading?.Remove();
                 }

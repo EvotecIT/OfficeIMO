@@ -1,9 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -16,13 +15,13 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test 1");
-                var section1 = document.AddSection(SectionMarkValues.NextPage);
+                var section1 = document.AddSection(WordSectionBreakType.NextPage);
 
                 document.AddParagraph("Test 2");
-                var section2 = document.AddSection(SectionMarkValues.Continuous);
+                var section2 = document.AddSection(WordSectionBreakType.Continuous);
 
                 document.AddParagraph("Test 3");
-                var section3 = document.AddSection(SectionMarkValues.NextPage);
+                var section3 = document.AddSection(WordSectionBreakType.NextPage);
                 section3.AddParagraph("Paragraph added to section number 3");
                 section3.AddParagraph("Continue adding paragraphs to section 3");
 

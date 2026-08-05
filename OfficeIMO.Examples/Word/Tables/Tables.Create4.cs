@@ -14,9 +14,9 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with Table Styles.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Lets add table with no borders at all, and then lets fix it with some random borders for given cells: ");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Bold = true;
-                paragraph.Underline = UnderlineValues.DotDash;
+                paragraph.Underline = WordUnderlineStyle.DotDash;
 
                 WordTable wordTable = document.AddTable(4, 4, WordTableStyle.TableNormal);
                 wordTable.RepeatHeaderRowAtTheTopOfEachPage = true;
@@ -27,10 +27,10 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Border Left Style: " + wordTable.Rows[1].Cells[0].Borders.LeftStyle);
 
-                wordTable.Rows[1].Cells[1].Borders.LeftStyle = BorderValues.Dotted;
+                wordTable.Rows[1].Cells[1].Borders.LeftStyle = WordBorderStyle.Dotted;
                 wordTable.Rows[1].Cells[1].Borders.LeftColorHex = OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex();
 
-                wordTable.Rows[2].Cells[1].Borders.LeftStyle = BorderValues.Double;
+                wordTable.Rows[2].Cells[1].Borders.LeftStyle = WordBorderStyle.Double;
                 wordTable.Rows[2].Cells[1].Borders.LeftColor = Color.Gold;
                 wordTable.Rows[2].Cells[1].Borders.LeftSize = 24;
 
@@ -39,14 +39,14 @@ namespace OfficeIMO.Examples.Word {
 
                 wordTable.Rows[2].Cells[1].Borders.TopLeftToBottomRightColor = Color.Aqua;
                 wordTable.Rows[2].Cells[1].Borders.TopLeftToBottomRightSize = 24;
-                wordTable.Rows[2].Cells[1].Borders.TopLeftToBottomRightStyle = BorderValues.Dotted;
+                wordTable.Rows[2].Cells[1].Borders.TopLeftToBottomRightStyle = WordBorderStyle.Dotted;
 
                 document.AddParagraph();
                 document.AddHorizontalLine();
                 paragraph = document.AddParagraph("Lets create new table with applied built-in style:");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Bold = true;
-                paragraph.Underline = UnderlineValues.DotDash;
+                paragraph.Underline = WordUnderlineStyle.DotDash;
 
 
                 var wordTable1 = document.AddTable(4, 4, WordTableStyle.GridTable5DarkAccent2);
@@ -58,9 +58,9 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph();
                 document.AddHorizontalLine();
                 paragraph = document.AddParagraph("Lets create new table with default style, but lets fix it right after creating:");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Bold = true;
-                paragraph.Underline = UnderlineValues.DotDash;
+                paragraph.Underline = WordUnderlineStyle.DotDash;
 
                 var wordTable2 = document.AddTable(4, 4);
                 wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";

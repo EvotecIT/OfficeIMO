@@ -25,9 +25,9 @@ namespace OfficeIMO.Word {
             OfficeFontInfo markerFont = CreateListMarkerFont(info, baseFont);
             var colorScheme = GetDocumentColorScheme(document);
             OfficeColor markerColor = ResolveListMarkerColor(info, ResolveParagraphTextColor(firstRun, colorScheme));
-            OfficeTextAlignment markerAlignment = info?.LevelJustification == LevelJustificationValues.Right
+            OfficeTextAlignment markerAlignment = info?.LevelJustification == WordListLevelAlignment.Right
                 ? OfficeTextAlignment.Right
-                : info?.LevelJustification == LevelJustificationValues.Center
+                : info?.LevelJustification == WordListLevelAlignment.Center
                     ? OfficeTextAlignment.Center
                     : OfficeTextAlignment.Left;
 

@@ -53,13 +53,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set left table cell border style
         /// </summary>
-        public BorderValues? LeftStyle {
+        public WordBorderStyle? LeftStyle {
             get {
-                return BordersOrNull?.LeftBorder?.Val?.Value;
+                return BordersOrNull?.LeftBorder?.Val?.Value.ToOfficeEnum();
             }
             set {
                 var lb = EnsureLeft();
-                lb.Val = value.HasValue ? value.Value : null;
+                lb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
             }
         }
 
@@ -117,13 +117,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set right table cell border style
         /// </summary>
-        public BorderValues? RightStyle {
+        public WordBorderStyle? RightStyle {
             get {
-                return BordersOrNull?.RightBorder?.Val?.Value;
+                return BordersOrNull?.RightBorder?.Val?.Value.ToOfficeEnum();
             }
             set {
                 var rb = EnsureRight();
-                rb.Val = value.HasValue ? value.Value : null;
+                rb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
             }
         }
 
@@ -183,13 +183,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set top table cell border style
         /// </summary>
-        public BorderValues? TopStyle {
+        public WordBorderStyle? TopStyle {
             get {
-                return BordersOrNull?.TopBorder?.Val?.Value;
+                return BordersOrNull?.TopBorder?.Val?.Value.ToOfficeEnum();
             }
             set {
                 var tb = EnsureTop();
-                tb.Val = value.HasValue ? value.Value : null;
+                tb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
             }
         }
 
@@ -252,13 +252,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set bottom table cell border style
         /// </summary>
-        public BorderValues? BottomStyle {
+        public WordBorderStyle? BottomStyle {
             get {
-                return BordersOrNull?.BottomBorder?.Val?.Value;
+                return BordersOrNull?.BottomBorder?.Val?.Value.ToOfficeEnum();
             }
             set {
                 var bb = EnsureBottom();
-                bb.Val = value.HasValue ? value.Value : null;
+                bb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
             }
         }
 
@@ -323,13 +323,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set inside horizontal table cell border style
         /// </summary>
-        public BorderValues? InsideHorizontalStyle {
+        public WordBorderStyle? InsideHorizontalStyle {
             get {
-                return BordersOrNull?.InsideHorizontalBorder?.Val?.Value;
+                return BordersOrNull?.InsideHorizontalBorder?.Val?.Value.ToOfficeEnum();
             }
             set {
                 var hb = EnsureInsideHorizontal();
-                hb.Val = value.HasValue ? value.Value : null;
+                hb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
             }
         }
 
@@ -394,13 +394,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set inside vertical table cell border style
         /// </summary>
-        public BorderValues? InsideVerticalStyle {
+        public WordBorderStyle? InsideVerticalStyle {
             get {
-                return BordersOrNull?.InsideVerticalBorder?.Val?.Value;
+                return BordersOrNull?.InsideVerticalBorder?.Val?.Value.ToOfficeEnum();
             }
             set {
                 var vb = EnsureInsideVertical();
-                vb.Val = value.HasValue ? value.Value : null;
+                vb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
             }
         }
 
@@ -462,13 +462,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set start table cell border style
         /// </summary>
-        public BorderValues? StartStyle {
+        public WordBorderStyle? StartStyle {
             get {
-                return BordersOrNull?.StartBorder?.Val?.Value;
+                return BordersOrNull?.StartBorder?.Val?.Value.ToOfficeEnum();
             }
             set {
                 var sb = EnsureStart();
-                sb.Val = value.HasValue ? value.Value : null;
+                sb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
             }
         }
 
@@ -530,13 +530,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set end table cell border style
         /// </summary>
-        public BorderValues? EndStyle {
+        public WordBorderStyle? EndStyle {
             get {
-                return BordersOrNull?.EndBorder?.Val?.Value;
+                return BordersOrNull?.EndBorder?.Val?.Value.ToOfficeEnum();
             }
             set {
                 var eb = EnsureEnd();
-                eb.Val = value.HasValue ? value.Value : null;
+                eb.Val = value.HasValue ? value.Value.ToOpenXml() : null;
             }
         }
 
@@ -605,13 +605,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set top left to bottom right table cell border style
         /// </summary>
-        public BorderValues? TopLeftToBottomRightStyle {
+        public WordBorderStyle? TopLeftToBottomRightStyle {
             get {
-                return BordersOrNull?.TopLeftToBottomRightCellBorder?.Val?.Value;
+                return BordersOrNull?.TopLeftToBottomRightCellBorder?.Val?.Value.ToOfficeEnum();
             }
             set {
                 var d = EnsureTLBR();
-                d.Val = value.HasValue ? value.Value : null;
+                d.Val = value.HasValue ? value.Value.ToOpenXml() : null;
             }
         }
 
@@ -671,13 +671,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set top right to bottom left table cell border style
         /// </summary>
-        public BorderValues? TopRightToBottomLeftStyle {
+        public WordBorderStyle? TopRightToBottomLeftStyle {
             get {
-                return BordersOrNull?.TopRightToBottomLeftCellBorder?.Val?.Value;
+                return BordersOrNull?.TopRightToBottomLeftCellBorder?.Val?.Value.ToOfficeEnum();
             }
             set {
                 var d = EnsureTRBL();
-                d.Val = value.HasValue ? value.Value : null;
+                d.Val = value.HasValue ? value.Value.ToOpenXml() : null;
             }
         }
 

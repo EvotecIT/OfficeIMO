@@ -272,7 +272,7 @@ namespace OfficeIMO.Word {
             foreach (WordTableCell cell in row.GetCells(readOnly: true)) {
                 context.ThrowIfCancellationRequested();
                 int columnSpan = Math.Max(1, cell.ColumnSpan);
-                if (cell.HorizontalMerge == MergedCellValues.Continue || cell.VerticalMerge == MergedCellValues.Continue) {
+                if (cell.HorizontalMerge == WordCellMerge.Continue || cell.VerticalMerge == WordCellMerge.Continue) {
                     columnIndex += columnSpan;
                     cellLeft += SumWidths(columnWidths, columnIndex - columnSpan, columnSpan);
                     continue;
@@ -363,9 +363,9 @@ namespace OfficeIMO.Word {
 
             WordParagraph? firstParagraph = cell.Paragraphs.FirstOrDefault(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text));
             OfficeFontInfo font = firstParagraph == null ? OfficeFontInfo.Default : CreateFont(firstParagraph);
-            OfficeTextVerticalAlignment verticalAlignment = cell.VerticalAlignment == TableVerticalAlignmentValues.Center
+            OfficeTextVerticalAlignment verticalAlignment = cell.VerticalAlignment == WordTableVerticalAlignment.Center
                 ? OfficeTextVerticalAlignment.Center
-                : cell.VerticalAlignment == TableVerticalAlignmentValues.Bottom
+                : cell.VerticalAlignment == WordTableVerticalAlignment.Bottom
                     ? OfficeTextVerticalAlignment.Bottom
                     : OfficeTextVerticalAlignment.Top;
             var padding = new OfficeTextPadding(marginLeft, marginTop, marginRight, marginBottom);
@@ -625,7 +625,7 @@ namespace OfficeIMO.Word {
             foreach (WordTableCell cell in row.GetCells(readOnly: true)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 int columnSpan = Math.Max(1, cell.ColumnSpan);
-                if (cell.HorizontalMerge == MergedCellValues.Continue || cell.VerticalMerge == MergedCellValues.Continue) {
+                if (cell.HorizontalMerge == WordCellMerge.Continue || cell.VerticalMerge == WordCellMerge.Continue) {
                     columnIndex += columnSpan;
                     continue;
                 }
@@ -720,11 +720,11 @@ namespace OfficeIMO.Word {
         }
 
         private static double ResolveTableLeft(WordTable table, double contentLeft, double contentWidth, double tableWidth) {
-            if (table.Alignment == TableRowAlignmentValues.Center) {
+            if (table.Alignment == WordTableAlignment.Center) {
                 return contentLeft + Math.Max(0D, (contentWidth - tableWidth) / 2D);
             }
 
-            if (table.Alignment == TableRowAlignmentValues.Right) {
+            if (table.Alignment == WordTableAlignment.Right) {
                 return contentLeft + Math.Max(0D, contentWidth - tableWidth);
             }
 
@@ -789,12 +789,12 @@ namespace OfficeIMO.Word {
             TableCellBorders? borders = cell._tableCellProperties?.TableCellBorders;
             if (borders != null) {
                 return new OfficeBorderBox(
-                    ResolveCellBorderSide(cell.Borders.LeftStyle, cell.Borders.LeftColorHex, cell.Borders.LeftSize, borders.LeftBorder, colorScheme),
-                    ResolveCellBorderSide(cell.Borders.TopStyle, cell.Borders.TopColorHex, cell.Borders.TopSize, borders.TopBorder, colorScheme),
-                    ResolveCellBorderSide(cell.Borders.RightStyle, cell.Borders.RightColorHex, cell.Borders.RightSize, borders.RightBorder, colorScheme),
-                    ResolveCellBorderSide(cell.Borders.BottomStyle, cell.Borders.BottomColorHex, cell.Borders.BottomSize, borders.BottomBorder, colorScheme),
-                    ResolveOptionalCellBorderSide(cell.Borders.TopLeftToBottomRightStyle, cell.Borders.TopLeftToBottomRightColorHex, cell.Borders.TopLeftToBottomRightSize, borders.TopLeftToBottomRightCellBorder, colorScheme),
-                    ResolveOptionalCellBorderSide(cell.Borders.TopRightToBottomLeftStyle, cell.Borders.TopRightToBottomLeftColorHex, cell.Borders.TopRightToBottomLeftSize, borders.TopRightToBottomLeftCellBorder, colorScheme));
+                    ResolveCellBorderSide(cell.Borders.LeftStyle?.ToOpenXml(), cell.Borders.LeftColorHex, cell.Borders.LeftSize, borders.LeftBorder, colorScheme),
+                    ResolveCellBorderSide(cell.Borders.TopStyle?.ToOpenXml(), cell.Borders.TopColorHex, cell.Borders.TopSize, borders.TopBorder, colorScheme),
+                    ResolveCellBorderSide(cell.Borders.RightStyle?.ToOpenXml(), cell.Borders.RightColorHex, cell.Borders.RightSize, borders.RightBorder, colorScheme),
+                    ResolveCellBorderSide(cell.Borders.BottomStyle?.ToOpenXml(), cell.Borders.BottomColorHex, cell.Borders.BottomSize, borders.BottomBorder, colorScheme),
+                    ResolveOptionalCellBorderSide(cell.Borders.TopLeftToBottomRightStyle?.ToOpenXml(), cell.Borders.TopLeftToBottomRightColorHex, cell.Borders.TopLeftToBottomRightSize, borders.TopLeftToBottomRightCellBorder, colorScheme),
+                    ResolveOptionalCellBorderSide(cell.Borders.TopRightToBottomLeftStyle?.ToOpenXml(), cell.Borders.TopRightToBottomLeftColorHex, cell.Borders.TopRightToBottomLeftSize, borders.TopRightToBottomLeftCellBorder, colorScheme));
             }
 
             List<TableCellBorders> conditionalBorders = EnumerateApplicableTableConditionalStyleProperties(table, rowIndex, columnIndex, rowCount, columnCount)
@@ -818,12 +818,12 @@ namespace OfficeIMO.Word {
             }
 
             return new OfficeBorderBox(
-                ResolveCellBorderSide(cell.Borders.LeftStyle, cell.Borders.LeftColorHex, cell.Borders.LeftSize, borders?.LeftBorder, colorScheme),
-                ResolveCellBorderSide(cell.Borders.TopStyle, cell.Borders.TopColorHex, cell.Borders.TopSize, borders?.TopBorder, colorScheme),
-                ResolveCellBorderSide(cell.Borders.RightStyle, cell.Borders.RightColorHex, cell.Borders.RightSize, borders?.RightBorder, colorScheme),
-                ResolveCellBorderSide(cell.Borders.BottomStyle, cell.Borders.BottomColorHex, cell.Borders.BottomSize, borders?.BottomBorder, colorScheme),
-                ResolveOptionalCellBorderSide(cell.Borders.TopLeftToBottomRightStyle, cell.Borders.TopLeftToBottomRightColorHex, cell.Borders.TopLeftToBottomRightSize, borders?.TopLeftToBottomRightCellBorder, colorScheme),
-                ResolveOptionalCellBorderSide(cell.Borders.TopRightToBottomLeftStyle, cell.Borders.TopRightToBottomLeftColorHex, cell.Borders.TopRightToBottomLeftSize, borders?.TopRightToBottomLeftCellBorder, colorScheme));
+                ResolveCellBorderSide(cell.Borders.LeftStyle?.ToOpenXml(), cell.Borders.LeftColorHex, cell.Borders.LeftSize, borders?.LeftBorder, colorScheme),
+                ResolveCellBorderSide(cell.Borders.TopStyle?.ToOpenXml(), cell.Borders.TopColorHex, cell.Borders.TopSize, borders?.TopBorder, colorScheme),
+                ResolveCellBorderSide(cell.Borders.RightStyle?.ToOpenXml(), cell.Borders.RightColorHex, cell.Borders.RightSize, borders?.RightBorder, colorScheme),
+                ResolveCellBorderSide(cell.Borders.BottomStyle?.ToOpenXml(), cell.Borders.BottomColorHex, cell.Borders.BottomSize, borders?.BottomBorder, colorScheme),
+                ResolveOptionalCellBorderSide(cell.Borders.TopLeftToBottomRightStyle?.ToOpenXml(), cell.Borders.TopLeftToBottomRightColorHex, cell.Borders.TopLeftToBottomRightSize, borders?.TopLeftToBottomRightCellBorder, colorScheme),
+                ResolveOptionalCellBorderSide(cell.Borders.TopRightToBottomLeftStyle?.ToOpenXml(), cell.Borders.TopRightToBottomLeftColorHex, cell.Borders.TopRightToBottomLeftSize, borders?.TopRightToBottomLeftCellBorder, colorScheme));
         }
 
         private enum TableCellBorderEdge {

@@ -318,7 +318,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_BibliographyAndCitation() {
             using (WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "DocumentWithCitation.docx"))) {
-                var src = new WordBibliographySource("S1", DataSourceValues.Book) {
+                var src = new WordBibliographySource("S1", WordBibliographySourceType.Book) {
                     Title = "Sample Book",
                     Author = "John Doe",
                     Year = "2024"

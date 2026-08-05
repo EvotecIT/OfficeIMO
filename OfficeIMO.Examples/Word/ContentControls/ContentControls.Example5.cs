@@ -15,21 +15,21 @@ namespace OfficeIMO.Examples.Word {
                 var sdt1 = para1.AddStructuredDocumentTag(text: "Property styled", alias: "AliasProps", tag: "TagProps");
                 sdt1.Bold = true;
                 sdt1.Italic = true;
-                sdt1.Underline = UnderlineValues.Single;
+                sdt1.Underline = WordUnderlineStyle.Single;
                 sdt1.FontFamily = "Calibri";
                 sdt1.FontSize = 12;
                 sdt1.ColorHex = "2F5597";
-                sdt1.Highlight = HighlightColorValues.Yellow;
+                sdt1.Highlight = WordHighlightColor.Yellow;
 
                 var para2 = document.AddParagraph("Formatted (fluent): ");
                 para2.AddStructuredDocumentTag(text: "Fluent styled", alias: "AliasFluent", tag: "TagFluent")
                     .SetBold()
                     .SetItalic()
-                    .SetUnderline(UnderlineValues.Single)
+                    .SetUnderline(WordUnderlineStyle.Single)
                     .SetFontFamily("Calibri")
                     .SetFontSize(14)
                     .SetColorHex("C00000")
-                    .SetHighlight(HighlightColorValues.LightGray);
+                    .SetHighlight(WordHighlightColor.LightGray);
 
                 document.Save();
                 if (openWord) document.OpenInApplication();
@@ -40,7 +40,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine($"Props control: {props.Text} bold={props.Bold} font={props.FontFamily} size={props.FontSize}");
 
                 var fluent = Guard.NotNull(document.GetStructuredDocumentTagByTag("TagFluent"), "Structured document tag 'TagFluent' was not found.");
-                fluent.SetUnderline(UnderlineValues.Double)
+                fluent.SetUnderline(WordUnderlineStyle.Double)
                     .SetColorHex("0070C0");
 
                 document.Save();

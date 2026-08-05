@@ -597,7 +597,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (options.FitTablesToPageWidth) {
-                table.WidthType = TableWidthUnitValues.Pct;
+                table.WidthType = WordTableWidthUnit.Pct;
                 table.Width = 5000;
                 table.DistributeColumnsEvenly();
             }
@@ -613,7 +613,7 @@ namespace OfficeIMO.Word.Pdf {
                 string value = columnIndex < values.Count ? values[columnIndex] : string.Empty;
                 WordParagraph paragraph = cells[columnIndex].AddParagraph(value ?? string.Empty, removeExistingParagraphs: true);
                 if (alignNumericColumns && data.IsNumericColumn(columnIndex)) {
-                    paragraph.ParagraphAlignment = JustificationValues.Right;
+                    paragraph.ParagraphAlignment = WordParagraphAlignment.Right;
                 }
             }
         }

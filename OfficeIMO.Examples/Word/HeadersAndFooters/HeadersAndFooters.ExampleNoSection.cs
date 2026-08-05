@@ -36,7 +36,7 @@ namespace OfficeIMO.Examples.Word {
 
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 var headers = RequireHeaders(document.Header, "Document headers");
@@ -52,13 +52,13 @@ namespace OfficeIMO.Examples.Word {
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 // 2 section, 9 paragraphs + 7 pagebreaks = 15 paragraphs, 7 pagebreaks

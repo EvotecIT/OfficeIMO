@@ -12,7 +12,7 @@ internal static partial class Paragraphs {
         string filePath = System.IO.Path.Combine(folderPath, "Paragraphs with borders and shading.docx");
         using (WordDocument document = WordDocument.Create(filePath)) {
             var bordered = document.AddParagraph("Bordered paragraph");
-            bordered.Borders.LeftStyle = BorderValues.Thick;
+            bordered.Borders.LeftStyle = WordBorderStyle.Thick;
             bordered.Borders.LeftColor = Color.Red;
             bordered.Borders.LeftSize = 24;
 

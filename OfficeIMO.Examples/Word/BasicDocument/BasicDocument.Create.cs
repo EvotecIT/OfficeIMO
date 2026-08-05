@@ -25,7 +25,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithParagraphs.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Adding paragraph with some text");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Blue.ToRgbHex());
                 Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Crimson.ToRgbHex());
                 Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Aquamarine.ToRgbHex());
@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph = document.AddParagraph("Adding another paragraph with some more text");
                 paragraph.Bold = true;
                 paragraph = paragraph.AddText(" , but now we also decided to add more text to this paragraph using different style");
-                paragraph.Underline = UnderlineValues.DashLong;
+                paragraph.Underline = WordUnderlineStyle.DashLong;
                 paragraph = paragraph.AddText(" , and we still continue adding more text to existing paragraph.");
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.CornflowerBlue;
 

@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                     name: "SalesPivot",
                     rowFields: new[] { "Region" },
                     columnFields: new[] { "Product" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum, "Total Sales") },
+                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") },
                     pivotStyleName: "PivotStyleMedium9");
 
                 document.Save();
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(pivot.DataFields);
                 var dataField = pivot.DataFields[0];
                 Assert.Equal("Sales", dataField.FieldName);
-                Assert.Equal(DataConsolidateFunctionValues.Sum, dataField.Function);
+                Assert.Equal(ExcelPivotDataFunction.Sum, dataField.Function);
                 Assert.Equal("Total Sales", dataField.DisplayName);
             }
 
@@ -99,10 +99,10 @@ namespace OfficeIMO.Tests {
                     name: "SalesPivot",
                     rowFields: new[] { "Region" },
                     columnFields: new[] { "Product" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum, "Total Sales") });
+                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") });
 
                 Assert.Equal("F3:G3", sheet.GetPivotTableRange("SalesPivot", ExcelPivotRangeTarget.DataBody));
-                sheet.AddPivotConditionalRule("SalesPivot", ConditionalFormattingOperatorValues.GreaterThan, "0");
+                sheet.AddPivotConditionalRule("SalesPivot", ExcelConditionalFormattingOperator.GreaterThan, "0");
                 document.Save();
             }
 
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
 
                 var dataField = pivot.DataFields.Single();
                 Assert.Equal("Sales", dataField.FieldName);
-                Assert.Equal(DataConsolidateFunctionValues.Sum, dataField.Function);
+                Assert.Equal(ExcelPivotDataFunction.Sum, dataField.Function);
                 Assert.Equal("Total Sales", dataField.DisplayName);
                 Assert.True(dataField.NumberFormatId >= 164);
             }
@@ -240,7 +240,7 @@ namespace OfficeIMO.Tests {
                     destinationCell: "E2",
                     name: "SalesPivot",
                     rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum, "Total Sales") },
+                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") },
                     calculatedFields: new[] { new ExcelPivotCalculatedField("DoubleSales", "'Sales' * 2") });
                 document.Save();
             }
@@ -278,7 +278,7 @@ namespace OfficeIMO.Tests {
 
                 sheet.Pivot("A1:C4")
                     .Rows("Region")
-                    .SortField("Region", FieldSortValues.Descending)
+                    .SortField("Region", ExcelPivotFieldSort.Descending)
                     .Subtotals("Region", false)
                     .SubtotalsAtTop("Region")
                     .FieldLayout("Region", compact: false, outline: true)
@@ -335,7 +335,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Product", pivot.PageFields);
 
                 var region = pivot.Fields.Single(field => field.FieldName == "Region");
-                Assert.Equal(FieldSortValues.Descending, region.SortType);
+                Assert.Equal(ExcelPivotFieldSort.Descending, region.SortType);
                 Assert.False(region.DefaultSubtotal);
                 Assert.True(region.SubtotalTop);
                 Assert.True(region.InsertBlankRow);
@@ -379,7 +379,7 @@ namespace OfficeIMO.Tests {
                 sheet.Pivot("A1:B3")
                     .Rows("Region")
                     .FieldNumberFormatId("Region", 49)
-                    .Value("Sales", DataConsolidateFunctionValues.Sum, "Total Sales", numberFormatId: 4)
+                    .Value("Sales", ExcelPivotDataFunction.Sum, "Total Sales", numberFormatId: 4)
                     .At("D2", "SalesPivot");
 
                 document.Save();
@@ -414,17 +414,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotPublicCompatibilityOverloadsRemainAvailable() {
+        public void Test_PivotPublicOfficeEnumOverloadsRemainAvailable() {
             Assert.NotNull(typeof(ExcelPivotDataField).GetConstructor(new[] {
                 typeof(string),
-                typeof(DataConsolidateFunctionValues?),
+                typeof(ExcelPivotDataFunction?),
                 typeof(string),
                 typeof(uint?)
             }));
 
             Assert.NotNull(typeof(ExcelPivotDataFieldInfo).GetConstructor(new[] {
                 typeof(string),
-                typeof(DataConsolidateFunctionValues),
+                typeof(ExcelPivotDataFunction),
                 typeof(string)
             }));
 
@@ -501,10 +501,10 @@ namespace OfficeIMO.Tests {
                     name: "SalesPivot",
                     rowFields: new[] { "Region" },
                     pageFields: new[] { "Product" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum, "Total Sales", numberFormat: "$#,##0.00") },
+                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales", numberFormat: "$#,##0.00") },
                     fieldOptions: new[] {
                         new ExcelPivotFieldOptions("Region",
-                            sortType: FieldSortValues.Ascending,
+                            sortType: ExcelPivotFieldSort.Ascending,
                             defaultSubtotal: false,
                             subtotalTop: true,
                             insertBlankRow: true,
@@ -601,7 +601,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Product", pivot.PageFields);
 
                 var region = pivot.Fields.Single(field => field.FieldName == "Region");
-                Assert.Equal(FieldSortValues.Ascending, region.SortType);
+                Assert.Equal(ExcelPivotFieldSort.Ascending, region.SortType);
                 Assert.False(region.DefaultSubtotal);
                 Assert.True(region.InsertPageBreak);
                 Assert.False(region.Compact);
@@ -663,7 +663,7 @@ namespace OfficeIMO.Tests {
                 var dataField = document.GetPivotTables().Single().DataFields.Single();
 
                 Assert.Equal("% Total Sales", dataField.DisplayName);
-                Assert.Equal(ShowDataAsValues.PercentOfTotal, dataField.ShowDataAs);
+                Assert.Equal(ExcelPivotShowDataAs.PercentOfTotal, dataField.ShowDataAs);
                 Assert.True(dataField.NumberFormatId >= 164);
             }
 
@@ -731,10 +731,10 @@ namespace OfficeIMO.Tests {
                 var pivot = document.GetPivotTables().Single();
                 Assert.Equal(2, pivot.Filters.Count);
                 Assert.Equal("Region", pivot.Filters[0].FieldName);
-                Assert.Equal(PivotFilterValues.CaptionContains, pivot.Filters[0].Type);
+                Assert.Equal(ExcelPivotFilterType.CaptionContains, pivot.Filters[0].Type);
                 Assert.Equal("Ea", pivot.Filters[0].Value1);
                 Assert.Equal("Total Sales", pivot.Filters[1].DataFieldName);
-                Assert.Equal(PivotFilterValues.ValueGreaterThan, pivot.Filters[1].Type);
+                Assert.Equal(ExcelPivotFilterType.ValueGreaterThan, pivot.Filters[1].Type);
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
@@ -819,14 +819,14 @@ namespace OfficeIMO.Tests {
                 var pivot = document.GetPivotTables().Single();
 
                 Assert.Equal(4, pivot.Filters.Count);
-                Assert.Equal(PivotFilterValues.CaptionNotContains, pivot.Filters[0].Type);
+                Assert.Equal(ExcelPivotFilterType.CaptionNotContains, pivot.Filters[0].Type);
                 Assert.Equal("East", pivot.Filters[0].Value1);
-                Assert.Equal(PivotFilterValues.CaptionNotBetween, pivot.Filters[1].Type);
+                Assert.Equal(ExcelPivotFilterType.CaptionNotBetween, pivot.Filters[1].Type);
                 Assert.Equal("M", pivot.Filters[1].Value1);
                 Assert.Equal("S", pivot.Filters[1].Value2);
-                Assert.Equal(PivotFilterValues.ValueLessThanOrEqual, pivot.Filters[2].Type);
+                Assert.Equal(ExcelPivotFilterType.ValueLessThanOrEqual, pivot.Filters[2].Type);
                 Assert.Equal("Total Sales", pivot.Filters[2].DataFieldName);
-                Assert.Equal(PivotFilterValues.ValueNotBetween, pivot.Filters[3].Type);
+                Assert.Equal(ExcelPivotFilterType.ValueNotBetween, pivot.Filters[3].Type);
                 Assert.Equal("15", pivot.Filters[3].Value1);
                 Assert.Equal("35", pivot.Filters[3].Value2);
             }
@@ -895,12 +895,12 @@ namespace OfficeIMO.Tests {
                 var pivot = document.GetPivotTables().Single();
 
                 Assert.Equal(4, pivot.Filters.Count);
-                Assert.Equal(PivotFilterValues.ThisMonth, pivot.Filters[0].Type);
+                Assert.Equal(ExcelPivotFilterType.ThisMonth, pivot.Filters[0].Type);
                 Assert.Equal("This month", pivot.Filters[0].Name);
                 Assert.Null(pivot.Filters[0].Value1);
-                Assert.Equal(PivotFilterValues.YearToDate, pivot.Filters[1].Type);
-                Assert.Equal(PivotFilterValues.Quarter1, pivot.Filters[2].Type);
-                Assert.Equal(PivotFilterValues.February, pivot.Filters[3].Type);
+                Assert.Equal(ExcelPivotFilterType.YearToDate, pivot.Filters[1].Type);
+                Assert.Equal(ExcelPivotFilterType.Quarter1, pivot.Filters[2].Type);
+                Assert.Equal(ExcelPivotFilterType.February, pivot.Filters[3].Type);
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
@@ -976,12 +976,12 @@ namespace OfficeIMO.Tests {
                 var pivot = document.GetPivotTables().Single();
 
                 Assert.Equal(4, pivot.Filters.Count);
-                Assert.Equal(PivotFilterValues.DateNewerThanOrEqual, pivot.Filters[0].Type);
+                Assert.Equal(ExcelPivotFilterType.DateNewerThanOrEqual, pivot.Filters[0].Type);
                 Assert.Equal(DateSerial(new DateTime(2026, 2, 1)), pivot.Filters[0].Value1);
-                Assert.Equal(PivotFilterValues.DateOlderThan, pivot.Filters[1].Type);
-                Assert.Equal(PivotFilterValues.DateBetween, pivot.Filters[2].Type);
+                Assert.Equal(ExcelPivotFilterType.DateOlderThan, pivot.Filters[1].Type);
+                Assert.Equal(ExcelPivotFilterType.DateBetween, pivot.Filters[2].Type);
                 Assert.Equal(DateSerial(new DateTime(2026, 3, 31)), pivot.Filters[2].Value2);
-                Assert.Equal(PivotFilterValues.DateNotBetween, pivot.Filters[3].Type);
+                Assert.Equal(ExcelPivotFilterType.DateNotBetween, pivot.Filters[3].Type);
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
@@ -1067,23 +1067,23 @@ namespace OfficeIMO.Tests {
                 var pivot = document.GetPivotTables().Single();
 
                 Assert.Equal(4, pivot.Filters.Count);
-                Assert.Equal(PivotFilterValues.Count, pivot.Filters[0].Type);
+                Assert.Equal(ExcelPivotFilterType.Count, pivot.Filters[0].Type);
                 Assert.True(pivot.Filters[0].IsTop);
                 Assert.False(pivot.Filters[0].IsPercent);
                 Assert.Equal("2", pivot.Filters[0].Value1);
                 Assert.Equal("Total Sales", pivot.Filters[0].DataFieldName);
 
-                Assert.Equal(PivotFilterValues.Percent, pivot.Filters[1].Type);
+                Assert.Equal(ExcelPivotFilterType.Percent, pivot.Filters[1].Type);
                 Assert.False(pivot.Filters[1].IsTop);
                 Assert.True(pivot.Filters[1].IsPercent);
                 Assert.Equal("25", pivot.Filters[1].Value1);
 
-                Assert.Equal(PivotFilterValues.Sum, pivot.Filters[2].Type);
+                Assert.Equal(ExcelPivotFilterType.Sum, pivot.Filters[2].Type);
                 Assert.True(pivot.Filters[2].IsTop);
                 Assert.False(pivot.Filters[2].IsPercent);
                 Assert.Equal("50", pivot.Filters[2].Value1);
 
-                Assert.Equal(PivotFilterValues.Sum, pivot.Filters[3].Type);
+                Assert.Equal(ExcelPivotFilterType.Sum, pivot.Filters[3].Type);
                 Assert.False(pivot.Filters[3].IsTop);
                 Assert.False(pivot.Filters[3].IsPercent);
                 Assert.Equal("30.5", pivot.Filters[3].Value1);
@@ -1184,7 +1184,7 @@ namespace OfficeIMO.Tests {
                 sheet.Pivot("A1:C4")
                     .Rows("OrderDate", "Quantity")
                     .Sum("Sales", "Total Sales")
-                    .DateGroup("OrderDate", GroupByValues.Months, new DateTime(2026, 1, 1), new DateTime(2026, 12, 31))
+                    .DateGroup("OrderDate", ExcelPivotGroupBy.Months, new DateTime(2026, 1, 1), new DateTime(2026, 12, 31))
                     .NumberGroup("Quantity", 10, 0, 30)
                     .At("E2", "SalesPivot");
 
@@ -1223,10 +1223,10 @@ namespace OfficeIMO.Tests {
                 var pivot = document.GetPivotTables().Single();
                 Assert.Equal(2, pivot.Groupings.Count);
                 Assert.Equal("OrderDate", pivot.Groupings[0].FieldName);
-                Assert.Equal(GroupByValues.Months, pivot.Groupings[0].GroupBy);
+                Assert.Equal(ExcelPivotGroupBy.Months, pivot.Groupings[0].GroupBy);
                 Assert.Equal(new DateTime(2026, 1, 1), pivot.Groupings[0].StartDate);
                 Assert.Equal("Quantity", pivot.Groupings[1].FieldName);
-                Assert.Equal(GroupByValues.Range, pivot.Groupings[1].GroupBy);
+                Assert.Equal(ExcelPivotGroupBy.Range, pivot.Groupings[1].GroupBy);
                 Assert.Equal(10d, pivot.Groupings[1].Interval);
             }
         }
@@ -1253,7 +1253,7 @@ namespace OfficeIMO.Tests {
                 sheet.Pivot("A1:C4")
                     .Rows("OrderDate")
                     .Sum("Sales", "Total Sales")
-                    .DateHierarchy("OrderDate", GroupByValues.Years, GroupByValues.Quarters, GroupByValues.Months)
+                    .DateHierarchy("OrderDate", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Quarters, ExcelPivotGroupBy.Months)
                     .At("E2", "SalesPivot");
 
                 document.Save();
@@ -1304,9 +1304,9 @@ namespace OfficeIMO.Tests {
                 var pivot = document.GetPivotTables().Single();
 
                 Assert.Equal(new[] { "OrderDate Years", "OrderDate Quarters", "OrderDate Months" }, pivot.RowFields);
-                Assert.Contains(pivot.Groupings, grouping => grouping.FieldName == "OrderDate Years" && grouping.GroupBy == GroupByValues.Years && grouping.BaseFieldIndex == 0U && grouping.ParentFieldIndex == null && grouping.GroupItems.Contains("2026"));
-                Assert.Contains(pivot.Groupings, grouping => grouping.FieldName == "OrderDate Quarters" && grouping.GroupBy == GroupByValues.Quarters && grouping.BaseFieldIndex == 0U && grouping.ParentFieldIndex == 3U && grouping.GroupItems.Contains("Q2"));
-                Assert.Contains(pivot.Groupings, grouping => grouping.FieldName == "OrderDate Months" && grouping.GroupBy == GroupByValues.Months && grouping.BaseFieldIndex == 0U && grouping.ParentFieldIndex == 4U && grouping.GroupItems.Contains("April"));
+                Assert.Contains(pivot.Groupings, grouping => grouping.FieldName == "OrderDate Years" && grouping.GroupBy == ExcelPivotGroupBy.Years && grouping.BaseFieldIndex == 0U && grouping.ParentFieldIndex == null && grouping.GroupItems.Contains("2026"));
+                Assert.Contains(pivot.Groupings, grouping => grouping.FieldName == "OrderDate Quarters" && grouping.GroupBy == ExcelPivotGroupBy.Quarters && grouping.BaseFieldIndex == 0U && grouping.ParentFieldIndex == 3U && grouping.GroupItems.Contains("Q2"));
+                Assert.Contains(pivot.Groupings, grouping => grouping.FieldName == "OrderDate Months" && grouping.GroupBy == ExcelPivotGroupBy.Months && grouping.BaseFieldIndex == 0U && grouping.ParentFieldIndex == 4U && grouping.GroupItems.Contains("April"));
             }
         }
 
@@ -1332,8 +1332,8 @@ namespace OfficeIMO.Tests {
                 sheet.Pivot("A1:C4")
                     .Rows("OrderDate")
                     .Sum("Sales", "Total Sales")
-                    .DateHierarchy("OrderDate", GroupByValues.Years, GroupByValues.Months)
-                    .SortField("OrderDate", FieldSortValues.Descending)
+                    .DateHierarchy("OrderDate", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Months)
+                    .SortField("OrderDate", ExcelPivotFieldSort.Descending)
                     .Subtotals("OrderDate", false)
                     .FieldLayout("OrderDate", compact: false, outline: true)
                     .HideItems("OrderDate", "2025")
@@ -1341,7 +1341,7 @@ namespace OfficeIMO.Tests {
 
                 sheet.Pivot("A1:C4")
                     .Sum("Sales", "Filtered Sales")
-                    .DateHierarchy("OrderDate", GroupByValues.Years, GroupByValues.Months)
+                    .DateHierarchy("OrderDate", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Months)
                     .SelectPageItem("OrderDate", "2026")
                     .At("E12", "FilterPivot");
 
@@ -1415,7 +1415,7 @@ namespace OfficeIMO.Tests {
                     name: "SalesPivot",
                     rowFields: new[] { "Region" },
                     columnFields: new[] { "Product" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum, "Total Sales") });
+                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") });
 
                 var chart = sheet.AddPivotChartFromRange("SalesPivot", "A1:C4", row: 7, column: 1, title: "Sales Pivot");
                 Assert.True(chart.IsPivotChart);

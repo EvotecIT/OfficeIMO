@@ -90,9 +90,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the style of the left border.
         /// </summary>
-        public BorderValues? LeftStyle {
+        public WordBorderStyle? LeftStyle {
             get {
-                return _section._sectionProperties.GetFirstChild<PageBorders>()?.LeftBorder?.Val?.Value;
+                return _section._sectionProperties.GetFirstChild<PageBorders>()?.LeftBorder?.Val?.Value.ToOfficeEnum();
             }
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -103,7 +103,7 @@ namespace OfficeIMO.Word {
 
                 var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
                 if (value.HasValue) {
-                    leftBorder.Val = value.Value;
+                    leftBorder.Val = value.Value.ToOpenXml();
                 } else {
                     leftBorder.Val = null;
                 }
@@ -224,9 +224,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the style of the right border.
         /// </summary>
-        public BorderValues? RightStyle {
+        public WordBorderStyle? RightStyle {
             get {
-                return _section._sectionProperties.GetFirstChild<PageBorders>()?.RightBorder?.Val?.Value;
+                return _section._sectionProperties.GetFirstChild<PageBorders>()?.RightBorder?.Val?.Value.ToOfficeEnum();
             }
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -237,7 +237,7 @@ namespace OfficeIMO.Word {
 
                 var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
                 if (value.HasValue) {
-                    rightBorder.Val = value.Value;
+                    rightBorder.Val = value.Value.ToOpenXml();
                 } else {
                     rightBorder.Val = null;
                 }
@@ -358,9 +358,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the style of the top border.
         /// </summary>
-        public BorderValues? TopStyle {
+        public WordBorderStyle? TopStyle {
             get {
-                return _section._sectionProperties.GetFirstChild<PageBorders>()?.TopBorder?.Val?.Value;
+                return _section._sectionProperties.GetFirstChild<PageBorders>()?.TopBorder?.Val?.Value.ToOfficeEnum();
             }
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -371,7 +371,7 @@ namespace OfficeIMO.Word {
 
                 var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
                 if (value.HasValue) {
-                    topBorder.Val = value.Value;
+                    topBorder.Val = value.Value.ToOpenXml();
                 } else {
                     topBorder.Val = null;
                 }
@@ -495,9 +495,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the style of the bottom border.
         /// </summary>
-        public BorderValues? BottomStyle {
+        public WordBorderStyle? BottomStyle {
             get {
-                return _section._sectionProperties.GetFirstChild<PageBorders>()?.BottomBorder?.Val?.Value;
+                return _section._sectionProperties.GetFirstChild<PageBorders>()?.BottomBorder?.Val?.Value.ToOfficeEnum();
             }
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -508,7 +508,7 @@ namespace OfficeIMO.Word {
 
                 var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
                 if (value.HasValue) {
-                    bottomBorder.Val = value.Value;
+                    bottomBorder.Val = value.Value.ToOpenXml();
                 } else {
                     bottomBorder.Val = null;
                 }

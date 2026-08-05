@@ -17,7 +17,7 @@ internal static partial class Paragraphs {
             var listOfStyles = (WordParagraphStyles[])Enum.GetValues(typeof(WordParagraphStyles));
             foreach (var style in listOfStyles) {
                 var paragraph = document.AddParagraph(style.ToString());
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Style = style;
             }
 

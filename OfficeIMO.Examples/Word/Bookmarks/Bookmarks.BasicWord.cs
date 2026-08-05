@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Word {
                     paragraph = paragraph.AddText(text);
                     paragraph.Bold = true;
                     paragraph.Italic = true;
-                    paragraph.Underline = UnderlineValues.DashDotDotHeavy;
+                    paragraph.Underline = WordUnderlineStyle.DashDotDotHeavy;
                 }
 
                 document.AddPageBreak();

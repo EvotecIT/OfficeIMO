@@ -68,7 +68,7 @@ namespace OfficeIMO.PowerPoint {
             TryGetPlaceholderSignature(shape, out _, out _);
 
         private static bool TryGetPlaceholderSignature(PowerPointShape shape, out PlaceholderValues? type, out uint? index) {
-            type = shape.ShapePlaceholderType;
+            type = shape.ShapePlaceholderType.ToOpenXml();
             index = shape.ShapePlaceholderIndex;
             return type.HasValue || index.HasValue;
         }

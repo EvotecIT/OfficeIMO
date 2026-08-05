@@ -16,15 +16,15 @@ public partial class Word {
     private static void ConfigureMarginTable(WordTable table, string label) {
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.Width = 2880;
-        cell.WidthType = TableWidthUnitValues.Dxa;
+        cell.WidthType = WordTableWidthUnit.Dxa;
         cell.Paragraphs[0].Text = label;
     }
 
-    private static void ConfigurePlacementTable(WordTable table, string label, TableRowAlignmentValues alignment) {
+    private static void ConfigurePlacementTable(WordTable table, string label, WordTableAlignment alignment) {
         table.Alignment = alignment;
         foreach (WordTableCell cell in table.Rows[0].Cells) {
             cell.Width = 1440;
-            cell.WidthType = TableWidthUnitValues.Dxa;
+            cell.WidthType = WordTableWidthUnit.Dxa;
         }
 
         table.Rows[0].Cells[0].Paragraphs[0].Text = label;
@@ -34,7 +34,7 @@ public partial class Word {
     private static void ConfigureCellSpacingTable(WordTable table, string left, string right) {
         foreach (WordTableCell cell in table.Rows[0].Cells) {
             cell.Width = 1440;
-            cell.WidthType = TableWidthUnitValues.Dxa;
+            cell.WidthType = WordTableWidthUnit.Dxa;
         }
 
         table.Rows[0].Cells[0].Paragraphs[0].Text = left;

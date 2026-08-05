@@ -89,7 +89,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static void CopyTabStops(WordParagraph source, RtfParagraph destination) {
         foreach (WordTabStop tabStop in source.TabStops) {
-            destination.AddTabStop(tabStop.Position, ToRtfTabAlignment(tabStop.Alignment), ToRtfTabLeader(tabStop.Leader));
+            destination.AddTabStop(tabStop.Position, ToRtfTabAlignment(tabStop.Alignment.ToOpenXml()), ToRtfTabLeader(tabStop.Leader.ToOpenXml()));
         }
     }
 
@@ -760,7 +760,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static bool AppendWordRun(WordParagraph wordRun, RtfParagraph paragraph, ref RtfRun? previousRun, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes, RtfRevisionKind revisionKind = RtfRevisionKind.None, int? revisionAuthorIndex = null) {
         if (wordRun.Break != null) {
-            paragraph.AddBreak(ToRtfBreakKind(wordRun.Break.BreakType));
+            paragraph.AddBreak(ToRtfBreakKind(wordRun.Break.BreakType.ToOpenXml()));
             previousRun = null;
             return true;
         }
@@ -882,7 +882,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static void ApplyTabStops(WordParagraph destination, RtfParagraph source) {
         foreach (RtfTabStop tabStop in source.TabStops) {
-            destination.AddTabStop(tabStop.PositionTwips, ToWordTabAlignment(tabStop.Alignment), ToWordTabLeader(tabStop.Leader));
+            destination.AddTabStop(tabStop.PositionTwips, ToWordTabAlignment(tabStop.Alignment).ToOfficeEnum(), ToWordTabLeader(tabStop.Leader).ToOfficeEnum());
         }
     }
 
@@ -939,7 +939,7 @@ public static partial class WordRtfConverterExtensions {
             }
 
             if (inline is RtfBreak rtfBreak) {
-                wordParagraph.AddBreak(ToWordBreakKind(rtfBreak.Kind));
+                wordParagraph.AddBreak(ToWordBreakKind(rtfBreak.Kind).ToOfficeEnum());
                 continue;
             }
 

@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyTrendline(OpenXmlCompositeElement series, C.TrendlineValues type, int? order, int? period,
+        private static void ApplyTrendline(OpenXmlCompositeElement series, ExcelChartTrendlineType type, int? order, int? period,
             double? forward, double? backward, double? intercept, bool displayEquation, bool displayRSquared,
             string? lineColor, double? lineWidthPoints) {
             if (!IsTrendlineSupportedSeries(series)) {
@@ -53,12 +53,12 @@ namespace OfficeIMO.Excel {
                 trendline.Append(props);
             }
 
-            trendline.Append(new C.TrendlineType { Val = type });
+            trendline.Append(new C.TrendlineType { Val = type.ToOpenXml() });
 
-            if (type.Equals(C.TrendlineValues.Polynomial) && order != null) {
+            if (type == ExcelChartTrendlineType.Polynomial && order != null) {
                 trendline.Append(new C.PolynomialOrder { Val = (byte)order.Value });
             }
-            if (type.Equals(C.TrendlineValues.MovingAverage) && period != null) {
+            if (type == ExcelChartTrendlineType.MovingAverage && period != null) {
                 trendline.Append(new C.Period { Val = (uint)period.Value });
             }
             if (forward != null) {
@@ -118,13 +118,13 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyAxisCrossing(OpenXmlCompositeElement axis, C.CrossesValues crosses, double? crossesAt) {
+        private static void ApplyAxisCrossing(OpenXmlCompositeElement axis, ExcelChartAxisCrossing crosses, double? crossesAt) {
             axis.GetFirstChild<C.Crosses>()?.Remove();
             axis.GetFirstChild<C.CrossesAt>()?.Remove();
 
             OpenXmlElement crossing = crossesAt != null
                 ? new C.CrossesAt { Val = crossesAt.Value }
-                : new C.Crosses { Val = crosses };
+                : new C.Crosses { Val = crosses.ToOpenXml() };
 
             C.CrossingAxis? crossAxis = axis.GetFirstChild<C.CrossingAxis>();
             if (crossAxis != null) {
@@ -375,8 +375,8 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyMarker(C.Marker marker, C.MarkerStyleValues style, int? size, string? fillColor, string? lineColor, double? lineWidthPoints) {
-            marker.Symbol = new C.Symbol { Val = style };
+        private static void ApplyMarker(C.Marker marker, ExcelChartMarkerStyle style, int? size, string? fillColor, string? lineColor, double? lineWidthPoints) {
+            marker.Symbol = new C.Symbol { Val = style.ToOpenXml() };
             if (size != null) {
                 marker.Size = new C.Size { Val = (byte)size.Value };
             }

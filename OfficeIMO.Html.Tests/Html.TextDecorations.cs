@@ -19,10 +19,10 @@ namespace OfficeIMO.Tests {
             Assert.True(delRun.Strike);
 
             var insRun = runs.First(r => r.Text == "insert");
-            Assert.Equal(UnderlineValues.Single, insRun.Underline);
+            Assert.Equal(OfficeIMO.Word.WordUnderlineStyle.Single, insRun.Underline);
 
             var markRun = runs.First(r => r.Text == "mark");
-            Assert.Equal(HighlightColorValues.Yellow, markRun.Highlight);
+            Assert.Equal(OfficeIMO.Word.WordHighlightColor.Yellow, markRun.Highlight);
         }
     }
 }

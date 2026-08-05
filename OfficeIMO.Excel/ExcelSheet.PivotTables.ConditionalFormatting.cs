@@ -33,7 +33,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds a cell-is conditional formatting rule to a pivot table output range.
         /// </summary>
-        public void AddPivotConditionalRule(string pivotTableName, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2 = null, ExcelPivotRangeTarget target = ExcelPivotRangeTarget.DataBody) {
+        public void AddPivotConditionalRule(string pivotTableName, ExcelConditionalFormattingOperator @operator, string formula1, string? formula2 = null, ExcelPivotRangeTarget target = ExcelPivotRangeTarget.DataBody) {
             AddConditionalRule(GetPivotTableRange(pivotTableName, target), @operator, formula1, formula2);
         }
 
@@ -54,7 +54,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds an icon set conditional format to a pivot table output range.
         /// </summary>
-        public void AddPivotConditionalIconSet(string pivotTableName, IconSetValues iconSet, bool showValue, bool reverseIconOrder, double[]? percentThresholds = null, double[]? numberThresholds = null, ExcelPivotRangeTarget target = ExcelPivotRangeTarget.DataBody) {
+        public void AddPivotConditionalIconSet(string pivotTableName, ExcelIconSet iconSet, bool showValue, bool reverseIconOrder, double[]? percentThresholds = null, double[]? numberThresholds = null, ExcelPivotRangeTarget target = ExcelPivotRangeTarget.DataBody) {
             AddConditionalIconSet(GetPivotTableRange(pivotTableName, target), iconSet, showValue, reverseIconOrder, percentThresholds, numberThresholds);
         }
 

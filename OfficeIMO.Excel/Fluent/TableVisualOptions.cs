@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.Fluent {
     /// </summary>
     public sealed class IconSetOptions {
         /// <summary>Icon set type (e.g., ThreeTrafficLights1).</summary>
-        public DocumentFormat.OpenXml.Spreadsheet.IconSetValues IconSet { get; set; } = DocumentFormat.OpenXml.Spreadsheet.IconSetValues.ThreeTrafficLights1;
+        public ExcelIconSet IconSet { get; set; } = ExcelIconSet.ThreeTrafficLights1;
         /// <summary>Whether to show the cell’s value alongside icons.</summary>
         public bool ShowValue { get; set; } = true;
         /// <summary>Reverse the icon order.</summary>

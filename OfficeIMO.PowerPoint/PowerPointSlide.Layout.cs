@@ -63,8 +63,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the slide layout using a layout type.
         /// </summary>
-        public void SetLayout(SlideLayoutValues layoutType, int masterIndex = 0) {
-            int layoutIndex = GetLayoutIndex(layoutType, masterIndex);
+        public void SetLayout(PowerPointSlideLayoutType layoutType, int masterIndex = 0) {
+            int layoutIndex = GetLayoutIndex(layoutType.ToOpenXml(), masterIndex);
             SetLayout(masterIndex, layoutIndex);
         }
 
@@ -126,7 +126,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Retrieves the first placeholder textbox matching the specified type.
         /// </summary>
-        public PowerPointTextBox? GetPlaceholder(PlaceholderValues placeholderType, uint? index = null) {
+        public PowerPointTextBox? GetPlaceholder(PowerPointPlaceholderType placeholderType, uint? index = null) {
             IEnumerable<PowerPointTextBox> matches = TextBoxes
                 .Where(tb => tb.PlaceholderType == placeholderType);
 
@@ -158,7 +158,7 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointLayoutBox? bounds = GetLayoutElementBounds(element);
                 placeholders.Add(new PowerPointLayoutPlaceholderInfo(
                     name,
-                    placeholder.Type?.Value,
+                    placeholder.Type?.Value.ToOfficeEnum(),
                     placeholder.Index?.Value,
                     bounds));
             }
@@ -169,7 +169,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Retrieves a layout placeholder by type and optional index.
         /// </summary>
-        public PowerPointLayoutPlaceholderInfo? GetLayoutPlaceholder(PlaceholderValues placeholderType, uint? index = null) {
+        public PowerPointLayoutPlaceholderInfo? GetLayoutPlaceholder(PowerPointPlaceholderType placeholderType, uint? index = null) {
             foreach (PowerPointLayoutPlaceholderInfo placeholder in GetLayoutPlaceholders()) {
                 if (placeholder.PlaceholderType != placeholderType) {
                     continue;
@@ -188,7 +188,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Retrieves layout placeholder bounds by type and optional index.
         /// </summary>
-        public PowerPointLayoutBox? GetLayoutPlaceholderBounds(PlaceholderValues placeholderType, uint? index = null) {
+        public PowerPointLayoutBox? GetLayoutPlaceholderBounds(PowerPointPlaceholderType placeholderType, uint? index = null) {
             PowerPointLayoutPlaceholderInfo? placeholder = GetLayoutPlaceholder(placeholderType, index);
             return placeholder?.Bounds;
         }

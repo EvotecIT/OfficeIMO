@@ -255,7 +255,7 @@ namespace OfficeIMO.Word.Html {
             if (parsed.LineHeight.HasValue) {
                 paragraph.LineSpacing = parsed.LineHeight.Value;
                 if (parsed.LineHeightRule.HasValue) {
-                    paragraph.LineSpacingRule = parsed.LineHeightRule.Value;
+                    paragraph.LineSpacingRule = parsed.LineHeightRule.Value.ToOfficeEnum();
                 }
             }
 
@@ -310,7 +310,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (alignment.HasValue) {
-                paragraph.ParagraphAlignment = alignment;
+                paragraph.ParagraphAlignment = alignment.Value.ToOfficeEnum();
             }
             if (applyVerticalBoxSpacing) {
                 int before = (marginTop ?? 0) + (paddingTop ?? 0);
@@ -427,7 +427,7 @@ namespace OfficeIMO.Word.Html {
                 if (string.IsNullOrEmpty(segment)) {
                     return;
                 }
-                var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting));
+                var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting)?.ToOfficeEnum());
                 ApplyFormatting(run, formatting, options);
                 return;
             }
@@ -437,12 +437,12 @@ namespace OfficeIMO.Word.Html {
                 if (match.Index > lastIndex) {
                     var segment = text.Substring(lastIndex, match.Index - lastIndex);
                     segment = ApplyTextTransform(segment, formatting.Transform);
-                    var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting));
+                    var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting)?.ToOfficeEnum());
                     ApplyFormatting(run, formatting, options);
                 }
                 var display = ApplyTextTransform(match.Value, formatting.Transform);
                 if (!Uri.TryCreate(match.Value, UriKind.Absolute, out var uri) || IsInvalidResolvedHref(uri, options)) {
-                    var run = paragraph.AddFormattedText(display, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting));
+                    var run = paragraph.AddFormattedText(display, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting)?.ToOfficeEnum());
                     ApplyFormatting(run, formatting, options);
                 } else {
                     var linkRun = paragraph.AddHyperLink(display, uri);
@@ -453,7 +453,7 @@ namespace OfficeIMO.Word.Html {
             if (lastIndex < text.Length) {
                 var segment = text.Substring(lastIndex);
                 segment = ApplyTextTransform(segment, formatting.Transform);
-                var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting));
+                var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting)?.ToOfficeEnum());
                 ApplyFormatting(run, formatting, options);
             }
         }
@@ -482,12 +482,12 @@ namespace OfficeIMO.Word.Html {
         private void ApplyFormatting(WordParagraph run, TextFormatting formatting, HtmlToWordOptions options) {
             if (formatting.Bold) run.SetBold();
             if (formatting.Italic) run.SetItalic();
-            if (formatting.Underline) run.SetUnderline(GetUnderlineValue(formatting) ?? UnderlineValues.Single);
+            if (formatting.Underline) run.SetUnderline((GetUnderlineValue(formatting) ?? UnderlineValues.Single).ToOfficeEnum());
             if (formatting.Strike) run.SetStrike();
             if (formatting.Superscript) run.SetSuperScript();
             if (formatting.Subscript) run.SetSubScript();
             if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColorHex(formatting.ColorHex!);
-            if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value);
+            if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value.ToOfficeEnum());
             ApplyTextBackground(run, formatting, options);
             if (formatting.FontSize.HasValue) run.SetFontSize(formatting.FontSize.Value);
             if (formatting.Caps.HasValue) run.SetCapsStyle(formatting.Caps.Value);

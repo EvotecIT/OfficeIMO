@@ -159,7 +159,7 @@ public class RtfParagraphLayoutTests {
         paragraph.LineSpacingBefore = 120;
         paragraph.LineSpacingAfter = 240;
         paragraph.LineSpacing = 360;
-        paragraph.LineSpacingRule = LineSpacingRuleValues.Exact;
+        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
         paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
         paragraph._paragraph.ParagraphProperties.SpacingBetweenLines ??= new SpacingBetweenLines();
         paragraph._paragraph.ParagraphProperties.SpacingBetweenLines.BeforeAutoSpacing = true;
@@ -226,7 +226,7 @@ public class RtfParagraphLayoutTests {
         Assert.True(roundTripParagraph._paragraphProperties?.SpacingBetweenLines?.BeforeAutoSpacing?.Value ?? false);
         Assert.False(roundTripParagraph._paragraphProperties?.SpacingBetweenLines?.AfterAutoSpacing?.Value ?? true);
         Assert.Equal(360, roundTripParagraph.LineSpacing);
-        Assert.Equal(LineSpacingRuleValues.Exact, roundTripParagraph.LineSpacingRule);
+        Assert.Equal(WordLineSpacingRule.Exact, roundTripParagraph.LineSpacingRule);
     }
 
     [Fact]
@@ -259,7 +259,7 @@ public class RtfParagraphLayoutTests {
         Assert.False(paragraph._paragraphProperties?.SpacingBetweenLines?.BeforeAutoSpacing?.Value ?? true);
         Assert.True(paragraph._paragraphProperties?.SpacingBetweenLines?.AfterAutoSpacing?.Value ?? false);
         Assert.Equal(480, paragraph.LineSpacing);
-        Assert.Equal(LineSpacingRuleValues.Auto, paragraph.LineSpacingRule);
+        Assert.Equal(WordLineSpacingRule.Auto, paragraph.LineSpacingRule);
     }
 
     [Fact]

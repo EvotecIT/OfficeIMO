@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
                     matchFillColorHex: "92d050",
                     noMatchFillColorHex: "ff0000",
                     matchTextFormat: p => p.SetBold(),
-                    noMatchTextFormat: p => p.SetUnderline(UnderlineValues.Single));
+                    noMatchTextFormat: p => p.SetUnderline(WordUnderlineStyle.Single));
 
                 table.ConditionalFormatting(
                     new[] {
@@ -36,7 +36,7 @@ namespace OfficeIMO.Examples.Word {
                     noMatchFillColorHex: "ff0000",
                     highlightColumns: new[] { "Name" },
                     matchTextFormat: p => p.SetBold(),
-                    noMatchTextFormat: p => p.SetUnderline(UnderlineValues.Single));
+                    noMatchTextFormat: p => p.SetUnderline(WordUnderlineStyle.Single));
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

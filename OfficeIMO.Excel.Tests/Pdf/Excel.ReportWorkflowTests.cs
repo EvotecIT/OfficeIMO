@@ -48,7 +48,7 @@ public partial class Excel {
                     destinationCell: "F2",
                     name: "RevenuePivot",
                     rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Revenue", DataConsolidateFunctionValues.Sum, "Total Revenue") },
+                    dataFields: new[] { new ExcelPivotDataField("Revenue", ExcelPivotDataFunction.Sum, "Total Revenue") },
                     pivotStyleName: "PivotStyleMedium9");
 
                 ExcelFeatureReport report = document.InspectFeatures();

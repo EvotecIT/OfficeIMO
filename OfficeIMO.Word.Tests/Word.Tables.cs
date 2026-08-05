@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Lists.Count == 0, "List count matches");
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 WordTable wordTable = document.AddTable(3, 4);
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Lists.Count == 0, "List count matches");
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 WordTable wordTable = document.AddTable(1, 4);
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
@@ -289,7 +289,7 @@ namespace OfficeIMO.Tests {
                 var listOfTablesStyles = (WordTableStyle[])Enum.GetValues(typeof(WordTableStyle));
                 foreach (var tableStyle in listOfTablesStyles) {
                     var paragraph = document.AddParagraph(tableStyle.ToString());
-                    paragraph.ParagraphAlignment = JustificationValues.Center;
+                    paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                     WordTable wordTable = document.AddTable(4, 4, tableStyle);
                     wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
@@ -420,9 +420,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Tables[0].Rows[0].Cells[2].Paragraphs[0].Text == "");
                 Assert.True(document.Tables[0].Rows[0].Cells[3].Paragraphs[0].Text == "");
 
-                Assert.True(wordTable.Rows[0].Cells[1].HorizontalMerge == MergedCellValues.Restart);
-                Assert.True(wordTable.Rows[0].Cells[2].HorizontalMerge == MergedCellValues.Continue);
-                Assert.True(wordTable.Rows[0].Cells[3].HorizontalMerge == MergedCellValues.Continue);
+                Assert.True(wordTable.Rows[0].Cells[1].HorizontalMerge == WordCellMerge.Restart);
+                Assert.True(wordTable.Rows[0].Cells[2].HorizontalMerge == WordCellMerge.Continue);
+                Assert.True(wordTable.Rows[0].Cells[3].HorizontalMerge == WordCellMerge.Continue);
 
                 WordTable wordTable2 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
 
@@ -478,9 +478,9 @@ namespace OfficeIMO.Tests {
                 wordTable.Rows[3].Cells[2].Paragraphs[0].Text = "Some test 3";
                 wordTable.Rows[0].Cells[2].MergeVertically(2, true);
 
-                Assert.True(wordTable.Rows[0].Cells[2].VerticalMerge == MergedCellValues.Restart);
-                Assert.True(wordTable.Rows[1].Cells[2].VerticalMerge == MergedCellValues.Continue);
-                Assert.True(wordTable.Rows[2].Cells[2].VerticalMerge == MergedCellValues.Continue);
+                Assert.True(wordTable.Rows[0].Cells[2].VerticalMerge == WordCellMerge.Restart);
+                Assert.True(wordTable.Rows[1].Cells[2].VerticalMerge == WordCellMerge.Continue);
+                Assert.True(wordTable.Rows[2].Cells[2].VerticalMerge == WordCellMerge.Continue);
                 Assert.True(wordTable.Rows[3].Cells[2].VerticalMerge == null);
                 Assert.True(wordTable.Rows[4].Cells[2].VerticalMerge == null);
                 Assert.True(wordTable.Rows[0].Cells[2].Paragraphs[0].Text == "Some test 0");
@@ -497,9 +497,9 @@ namespace OfficeIMO.Tests {
                 wordTable.Rows[3].Cells[2].Paragraphs[0].Text = "Some test 3";
                 wordTable.Rows[0].Cells[2].MergeVertically(2, false);
 
-                Assert.True(wordTable.Rows[0].Cells[2].VerticalMerge == MergedCellValues.Restart);
-                Assert.True(wordTable.Rows[1].Cells[2].VerticalMerge == MergedCellValues.Continue);
-                Assert.True(wordTable.Rows[2].Cells[2].VerticalMerge == MergedCellValues.Continue);
+                Assert.True(wordTable.Rows[0].Cells[2].VerticalMerge == WordCellMerge.Restart);
+                Assert.True(wordTable.Rows[1].Cells[2].VerticalMerge == WordCellMerge.Continue);
+                Assert.True(wordTable.Rows[2].Cells[2].VerticalMerge == WordCellMerge.Continue);
                 Assert.True(wordTable.Rows[3].Cells[2].VerticalMerge == null);
                 Assert.True(wordTable.Rows[4].Cells[2].VerticalMerge == null);
                 Assert.True(wordTable.Rows[0].Cells[2].Paragraphs[0].Text == "Some test 0");
@@ -546,8 +546,8 @@ namespace OfficeIMO.Tests {
 
                 wordTable.Rows[0].Cells[0].MergeVertically(1, true);
 
-                Assert.Equal(MergedCellValues.Restart, wordTable.Rows[0].Cells[0].VerticalMerge);
-                Assert.Equal(MergedCellValues.Continue, wordTable.Rows[1].Cells[0].VerticalMerge);
+                Assert.Equal(WordCellMerge.Restart, wordTable.Rows[0].Cells[0].VerticalMerge);
+                Assert.Equal(WordCellMerge.Continue, wordTable.Rows[1].Cells[0].VerticalMerge);
                 Assert.Null(wordTable.Rows[2].Cells[0].VerticalMerge);
                 Assert.Equal("Top", wordTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("Bottom", wordTable.Rows[0].Cells[0].Paragraphs[1].Text);
@@ -559,8 +559,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "VerticalMergeMissingProperties.docx"))) {
                 var wordTable = document.Tables[0];
 
-                Assert.True(wordTable.Rows[0].Cells[0].VerticalMerge == MergedCellValues.Restart);
-                Assert.True(wordTable.Rows[1].Cells[0].VerticalMerge == MergedCellValues.Continue);
+                Assert.True(wordTable.Rows[0].Cells[0].VerticalMerge == WordCellMerge.Restart);
+                Assert.True(wordTable.Rows[1].Cells[0].VerticalMerge == WordCellMerge.Continue);
                 Assert.True(wordTable.Rows[2].Cells[0].VerticalMerge == null);
                 Assert.True(wordTable.Rows[0].Cells[0].Paragraphs[0].Text == "Top");
                 Assert.True(wordTable.Rows[0].Cells[0].Paragraphs[1].Text == "Bottom");
@@ -589,8 +589,8 @@ namespace OfficeIMO.Tests {
 
                 wordTable.Rows[0].MergeVertically(0, 1, true);
 
-                Assert.Equal(MergedCellValues.Restart, wordTable.Rows[0].Cells[0].VerticalMerge);
-                Assert.Equal(MergedCellValues.Continue, wordTable.Rows[1].Cells[0].VerticalMerge);
+                Assert.Equal(WordCellMerge.Restart, wordTable.Rows[0].Cells[0].VerticalMerge);
+                Assert.Equal(WordCellMerge.Continue, wordTable.Rows[1].Cells[0].VerticalMerge);
                 Assert.Null(wordTable.Rows[2].Cells[0].VerticalMerge);
                 Assert.Equal("Top", wordTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("Bottom", wordTable.Rows[0].Cells[0].Paragraphs[1].Text);
@@ -602,8 +602,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "RowVerticalMerge.docx"))) {
                 var wordTable = document.Tables[0];
 
-                Assert.Equal(MergedCellValues.Restart, wordTable.Rows[0].Cells[0].VerticalMerge);
-                Assert.Equal(MergedCellValues.Continue, wordTable.Rows[1].Cells[0].VerticalMerge);
+                Assert.Equal(WordCellMerge.Restart, wordTable.Rows[0].Cells[0].VerticalMerge);
+                Assert.Equal(WordCellMerge.Continue, wordTable.Rows[1].Cells[0].VerticalMerge);
                 Assert.Null(wordTable.Rows[2].Cells[0].VerticalMerge);
 
                 document.Save();
@@ -786,9 +786,9 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.LastRow.FirstCell.ShadingPattern == null);
 
-                wordTable.LastRow.FirstCell.ShadingPattern = ShadingPatternValues.Percent20;
+                wordTable.LastRow.FirstCell.ShadingPattern = WordShadingPattern.Percent20;
 
-                Assert.True(wordTable.LastRow.FirstCell.ShadingPattern == ShadingPatternValues.Percent20);
+                Assert.True(wordTable.LastRow.FirstCell.ShadingPattern == WordShadingPattern.Percent20);
 
                 document.Save();
             }
@@ -798,7 +798,7 @@ namespace OfficeIMO.Tests {
                 var wordTable = document.Tables[0];
 
                 Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColor == Color.Red);
-                Assert.True(wordTable.LastRow.FirstCell.ShadingPattern == ShadingPatternValues.Percent20);
+                Assert.True(wordTable.LastRow.FirstCell.ShadingPattern == WordShadingPattern.Percent20);
 
                 wordTable.Rows[1].FirstCell.ShadingFillColorHex = "#0000FF";
 
@@ -830,11 +830,11 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable1.Alignment == null);
 
-                wordTable1.Alignment = TableRowAlignmentValues.Center;
+                wordTable1.Alignment = WordTableAlignment.Center;
 
-                Assert.True(wordTable1.Alignment == TableRowAlignmentValues.Center);
+                Assert.True(wordTable1.Alignment == WordTableAlignment.Center);
 
-                wordTable1.WidthType = TableWidthUnitValues.Pct;
+                wordTable1.WidthType = WordTableWidthUnit.Pct;
                 wordTable1.Width = 3000;
 
                 wordTable1.Title = "This is a title of the table";
@@ -849,7 +849,7 @@ namespace OfficeIMO.Tests {
                 wordTable1.AllowTextWrap = true;
 
                 Assert.True(wordTable1.AllowTextWrap == true);
-                Assert.True(wordTable1.Position.VerticalAnchor == VerticalAnchorValues.Text);
+                Assert.True(wordTable1.Position.VerticalAnchor == WordTableVerticalAnchor.Text);
 
                 Assert.True(wordTable1.AllowOverlap == false);
 
@@ -859,7 +859,7 @@ namespace OfficeIMO.Tests {
                 wordTable1.AllowOverlap = true;
 
                 Assert.True(wordTable1.AllowOverlap == true);
-                Assert.True(wordTable1.Position.TableOverlap == TableOverlapValues.Overlap);
+                Assert.True(wordTable1.Position.TableOverlap == WordTableOverlap.Overlap);
 
                 document.Save();
             }
@@ -870,24 +870,24 @@ namespace OfficeIMO.Tests {
                 // add a cell to 3rd row
                 WordTableCell cell = new WordTableCell(document, wordTable1, wordTable1.Rows[2]);
                 cell.Paragraphs[0].Text = "This cell is outside a bit";
-                cell.TextDirection = TextDirectionValues.TopToBottomLeftToRightRotated;
+                cell.TextDirection = WordTextDirection.TopToBottomLeftToRightRotated;
 
-                Assert.True(cell.TextDirection == TextDirectionValues.TopToBottomLeftToRightRotated);
+                Assert.True(cell.TextDirection == WordTextDirection.TopToBottomLeftToRightRotated);
                 Assert.True(cell.Paragraphs[0].Text == "This cell is outside a bit");
 
                 Assert.True(wordTable1.Rows[1].Cells.Count == 4);
                 Assert.True(wordTable1.Rows[2].Cells.Count == 5);
                 Assert.True(wordTable1.Rows[1].CellsCount == 4);
                 Assert.True(wordTable1.Rows[2].Cells[4].Paragraphs[0].Text == "This cell is outside a bit");
-                Assert.True(wordTable1.Rows[2].Cells[4].TextDirection == TextDirectionValues.TopToBottomLeftToRightRotated);
+                Assert.True(wordTable1.Rows[2].Cells[4].TextDirection == WordTextDirection.TopToBottomLeftToRightRotated);
 
-                Assert.True(wordTable1.Alignment == TableRowAlignmentValues.Center);
+                Assert.True(wordTable1.Alignment == WordTableAlignment.Center);
 
                 Assert.True(wordTable1.AllowTextWrap == true);
-                Assert.True(wordTable1.Position.VerticalAnchor == VerticalAnchorValues.Text);
+                Assert.True(wordTable1.Position.VerticalAnchor == WordTableVerticalAnchor.Text);
 
                 Assert.True(wordTable1.AllowOverlap == true);
-                Assert.True(wordTable1.Position.TableOverlap == TableOverlapValues.Overlap);
+                Assert.True(wordTable1.Position.TableOverlap == WordTableOverlap.Overlap);
 
                 Assert.True(wordTable1.Description == "This is a table showing some features");
                 Assert.True(wordTable1.Title == "This is a title of the table");
@@ -908,9 +908,9 @@ namespace OfficeIMO.Tests {
 
                 wordTable1.Position.BottomFromText = 130;
 
-                wordTable1.Position.TablePositionXAlignment = HorizontalAlignmentValues.Left;
+                wordTable1.Position.TablePositionXAlignment = WordTableHorizontalAlignment.Left;
 
-                wordTable1.Position.HorizontalAnchor = HorizontalAnchorValues.Margin;
+                wordTable1.Position.HorizontalAnchor = WordTableHorizontalAnchor.Margin;
 
                 wordTable1.Position.TablePositionY = 1;
 
@@ -921,13 +921,13 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndMoreOptions.docx"))) {
                 var wordTable1 = document.Tables[0];
 
-                Assert.True(wordTable1.Alignment == TableRowAlignmentValues.Center);
+                Assert.True(wordTable1.Alignment == WordTableAlignment.Center);
 
                 Assert.True(wordTable1.AllowTextWrap == true);
-                Assert.True(wordTable1.Position.VerticalAnchor == VerticalAnchorValues.Text);
+                Assert.True(wordTable1.Position.VerticalAnchor == WordTableVerticalAnchor.Text);
 
                 Assert.True(wordTable1.AllowOverlap == true);
-                Assert.True(wordTable1.Position.TableOverlap == TableOverlapValues.Overlap);
+                Assert.True(wordTable1.Position.TableOverlap == WordTableOverlap.Overlap);
 
                 Assert.True(wordTable1.Description == "This is a table showing some features");
                 Assert.True(wordTable1.Title == "This is a title of the table");
@@ -936,15 +936,15 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable1.Position.LeftFromText == 100);
                 Assert.True(wordTable1.Position.TopFromText == 50);
                 Assert.True(wordTable1.Position.BottomFromText == 130);
-                Assert.True(wordTable1.Position.TablePositionXAlignment == HorizontalAlignmentValues.Left);
+                Assert.True(wordTable1.Position.TablePositionXAlignment == WordTableHorizontalAlignment.Left);
                 Assert.True(wordTable1.Position.TablePositionY == 1);
-                Assert.True(wordTable1.Position.HorizontalAnchor == HorizontalAnchorValues.Margin);
+                Assert.True(wordTable1.Position.HorizontalAnchor == WordTableHorizontalAnchor.Margin);
 
                 Assert.True(wordTable1.Rows[1].Cells.Count == 4);
                 Assert.True(wordTable1.Rows[2].Cells.Count == 5);
                 Assert.True(wordTable1.Rows[1].CellsCount == 4);
                 Assert.True(wordTable1.Rows[2].Cells[4].Paragraphs[0].Text == "This cell is outside a bit");
-                Assert.True(wordTable1.Rows[2].Cells[4].TextDirection == TextDirectionValues.TopToBottomLeftToRightRotated);
+                Assert.True(wordTable1.Rows[2].Cells[4].TextDirection == WordTextDirection.TopToBottomLeftToRightRotated);
 
             }
         }
@@ -960,7 +960,7 @@ namespace OfficeIMO.Tests {
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
                 Assert.True(wordTable.Width == 0);
-                Assert.True(wordTable.WidthType == TableWidthUnitValues.Auto);
+                Assert.True(wordTable.WidthType == WordTableWidthUnit.Auto);
 
                 document.AddParagraph();
                 document.AddParagraph();
@@ -968,13 +968,13 @@ namespace OfficeIMO.Tests {
                 WordTable wordTable1 = document.AddTable(2, 6, WordTableStyle.PlainTable1);
                 wordTable1.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
                 wordTable1.Rows[1].Cells[0].Paragraphs[0].Text = "Test 1 - ok longer text, no autosize right?";
-                wordTable1.WidthType = TableWidthUnitValues.Pct;
+                wordTable1.WidthType = WordTableWidthUnit.Pct;
                 wordTable1.Width = 2000;
-                wordTable1.Alignment = TableRowAlignmentValues.Center;
+                wordTable1.Alignment = WordTableAlignment.Center;
 
                 Assert.True(wordTable1.Width == 2000);
-                Assert.True(wordTable1.WidthType == TableWidthUnitValues.Pct);
-                Assert.True(wordTable1.Alignment == TableRowAlignmentValues.Center);
+                Assert.True(wordTable1.WidthType == WordTableWidthUnit.Pct);
+                Assert.True(wordTable1.Alignment == WordTableAlignment.Center);
 
                 document.AddParagraph();
                 document.AddParagraph();
@@ -983,29 +983,29 @@ namespace OfficeIMO.Tests {
                 wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
                 Assert.True(wordTable2.Width == 0);
-                Assert.True(wordTable2.WidthType == TableWidthUnitValues.Auto);
+                Assert.True(wordTable2.WidthType == WordTableWidthUnit.Auto);
 
                 document.AddParagraph();
                 document.AddParagraph();
                 document.AddParagraph("Table 4 - Magic number 5000 (full width)");
                 WordTable wordTable3 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
-                wordTable3.WidthType = TableWidthUnitValues.Pct;
+                wordTable3.WidthType = WordTableWidthUnit.Pct;
                 wordTable3.Width = 5000;
                 wordTable3.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
                 Assert.True(wordTable3.Width == 5000);
-                Assert.True(wordTable3.WidthType == TableWidthUnitValues.Pct);
+                Assert.True(wordTable3.WidthType == WordTableWidthUnit.Pct);
 
                 document.AddParagraph();
                 document.AddParagraph();
                 document.AddParagraph("Table 5 - 50% by using 2500 width (pct)");
                 WordTable wordTable4 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
-                wordTable4.WidthType = TableWidthUnitValues.Pct;
+                wordTable4.WidthType = WordTableWidthUnit.Pct;
                 wordTable4.Width = 2500;
                 wordTable4.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
                 Assert.True(wordTable4.Width == 2500);
-                Assert.True(wordTable4.WidthType == TableWidthUnitValues.Pct);
+                Assert.True(wordTable4.WidthType == WordTableWidthUnit.Pct);
 
 
                 document.AddParagraph();
@@ -1013,7 +1013,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Table 6 - 50% by using 2500 width (pct), that we fix to full width");
                 WordTable wordTable5 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
                 // this data is temporary just to prove things work
-                wordTable5.WidthType = TableWidthUnitValues.Pct;
+                wordTable5.WidthType = WordTableWidthUnit.Pct;
                 wordTable5.Width = 2500;
                 // lets fix it for full width
                 wordTable5.DistributeColumnsEvenly();
@@ -1021,7 +1021,7 @@ namespace OfficeIMO.Tests {
                 // Verify the NEW behavior: DistributeColumnsEvenly distributes within the current width context.
                 // Since Width was set to 2500 (Pct), it should remain 2500.
                 Assert.True(wordTable5.Width == 2500, $"Width after DistributeColumnsEvenly should be 2500, but was {wordTable5.Width}");
-                Assert.True(wordTable5.WidthType == TableWidthUnitValues.Pct, $"WidthType after DistributeColumnsEvenly should be Pct, but was {wordTable5.WidthType}");
+                Assert.True(wordTable5.WidthType == WordTableWidthUnit.Pct, $"WidthType after DistributeColumnsEvenly should be Pct, but was {wordTable5.WidthType}");
 
                 document.AddParagraph();
                 document.AddParagraph();
@@ -1030,7 +1030,7 @@ namespace OfficeIMO.Tests {
                 wordTable6.SetWidthPercentage(50);
 
                 Assert.True(wordTable6.Width == 2500);
-                Assert.True(wordTable6.WidthType == TableWidthUnitValues.Pct);
+                Assert.True(wordTable6.WidthType == WordTableWidthUnit.Pct);
 
                 document.AddParagraph();
                 document.AddParagraph();
@@ -1039,36 +1039,36 @@ namespace OfficeIMO.Tests {
                 wordTable7.SetWidthPercentage(75);
 
                 Assert.True(wordTable7.Width == 3750);
-                Assert.True(wordTable7.WidthType == TableWidthUnitValues.Pct);
+                Assert.True(wordTable7.WidthType == WordTableWidthUnit.Pct);
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithTablesAndSizes.docx"))) {
                 Assert.True(document.Tables[0].Width == 0);
-                Assert.True(document.Tables[0].WidthType == TableWidthUnitValues.Auto);
+                Assert.True(document.Tables[0].WidthType == WordTableWidthUnit.Auto);
 
                 Assert.True(document.Tables[1].Width == 2000);
-                Assert.True(document.Tables[1].WidthType == TableWidthUnitValues.Pct);
+                Assert.True(document.Tables[1].WidthType == WordTableWidthUnit.Pct);
 
                 Assert.True(document.Tables[2].Width == 0);
-                Assert.True(document.Tables[2].WidthType == TableWidthUnitValues.Auto);
+                Assert.True(document.Tables[2].WidthType == WordTableWidthUnit.Auto);
 
                 Assert.True(document.Tables[3].Width == 5000);
-                Assert.True(document.Tables[3].WidthType == TableWidthUnitValues.Pct);
+                Assert.True(document.Tables[3].WidthType == WordTableWidthUnit.Pct);
 
                 Assert.True(document.Tables[4].Width == 2500);
-                Assert.True(document.Tables[4].WidthType == TableWidthUnitValues.Pct);
+                Assert.True(document.Tables[4].WidthType == WordTableWidthUnit.Pct);
 
                 // Verify loaded state for the table where DistributeColumnsEvenly was called
                 Assert.True(document.Tables[5].Width == 2500, $"[Load] Width after DistributeColumnsEvenly should be 2500, but was {document.Tables[5].Width}");
-                Assert.True(document.Tables[5].WidthType == TableWidthUnitValues.Pct, $"[Load] WidthType after DistributeColumnsEvenly should be Pct, but was {document.Tables[5].WidthType}");
+                Assert.True(document.Tables[5].WidthType == WordTableWidthUnit.Pct, $"[Load] WidthType after DistributeColumnsEvenly should be Pct, but was {document.Tables[5].WidthType}");
 
                 Assert.True(document.Tables[6].Width == 2500);
-                Assert.True(document.Tables[6].WidthType == TableWidthUnitValues.Pct);
+                Assert.True(document.Tables[6].WidthType == WordTableWidthUnit.Pct);
 
                 Assert.True(document.Tables[7].Width == 3750);
-                Assert.True(document.Tables[7].WidthType == TableWidthUnitValues.Pct);
+                Assert.True(document.Tables[7].WidthType == WordTableWidthUnit.Pct);
 
             }
         }
@@ -1110,25 +1110,25 @@ namespace OfficeIMO.Tests {
 
                 WordTable wordTable = document.AddTable(4, 3);
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "This is the normal vertical alignment";
-                wordTable.Rows[0].Cells[0].VerticalAlignment = TableVerticalAlignmentValues.Top;
+                wordTable.Rows[0].Cells[0].VerticalAlignment = WordTableVerticalAlignment.Top;
 
                 wordTable.Rows[0].Cells[1].Paragraphs[0].Text = "But it can be centered";
-                wordTable.Rows[0].Cells[1].VerticalAlignment = TableVerticalAlignmentValues.Center;
+                wordTable.Rows[0].Cells[1].VerticalAlignment = WordTableVerticalAlignment.Center;
 
                 wordTable.Rows[0].Cells[2].Paragraphs[0].Text = "Or at the bottom";
-                wordTable.Rows[0].Cells[2].VerticalAlignment = TableVerticalAlignmentValues.Bottom;
+                wordTable.Rows[0].Cells[2].VerticalAlignment = WordTableVerticalAlignment.Bottom;
 
-                Assert.True(wordTable.Rows[0].Cells[0].VerticalAlignment == TableVerticalAlignmentValues.Top);
-                Assert.True(wordTable.Rows[0].Cells[1].VerticalAlignment == TableVerticalAlignmentValues.Center);
-                Assert.True(wordTable.Rows[0].Cells[2].VerticalAlignment == TableVerticalAlignmentValues.Bottom);
+                Assert.True(wordTable.Rows[0].Cells[0].VerticalAlignment == WordTableVerticalAlignment.Top);
+                Assert.True(wordTable.Rows[0].Cells[1].VerticalAlignment == WordTableVerticalAlignment.Center);
+                Assert.True(wordTable.Rows[0].Cells[2].VerticalAlignment == WordTableVerticalAlignment.Bottom);
 
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var wordTable1 = document.Tables[0];
-                Assert.True(wordTable1.Rows[0].Cells[0].VerticalAlignment == TableVerticalAlignmentValues.Top);
-                Assert.True(wordTable1.Rows[0].Cells[1].VerticalAlignment == TableVerticalAlignmentValues.Center);
-                Assert.True(wordTable1.Rows[0].Cells[2].VerticalAlignment == TableVerticalAlignmentValues.Bottom);
+                Assert.True(wordTable1.Rows[0].Cells[0].VerticalAlignment == WordTableVerticalAlignment.Top);
+                Assert.True(wordTable1.Rows[0].Cells[1].VerticalAlignment == WordTableVerticalAlignment.Center);
+                Assert.True(wordTable1.Rows[0].Cells[2].VerticalAlignment == WordTableVerticalAlignment.Bottom);
 
                 document.Save();
             }
@@ -1217,7 +1217,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Lists.Count == 0, "List count matches");
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 WordTable wordTable = document.AddTable(3, 4);
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";

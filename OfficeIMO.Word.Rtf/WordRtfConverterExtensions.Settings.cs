@@ -10,7 +10,7 @@ public static partial class WordRtfConverterExtensions {
         }
 
         destination.Settings.ViewScale = source.Settings.ZoomPercentage;
-        CopyDocumentProtection(source.Settings.ProtectionType, destination.Settings);
+        CopyDocumentProtection(source.Settings.ProtectionType.ToOpenXml(), destination.Settings);
 
         if (source.Sections.Any(section => section.DifferentOddAndEvenPages)) {
             destination.Settings.FacingPages = true;

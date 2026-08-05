@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using System.IO;
 using Xunit;
@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentWithPageSize() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithSectionsPageSize.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                Assert.True(document.Sections[0].PageOrientation == PageOrientationValues.Portrait, "Page orientation should match");
+                Assert.True(document.Sections[0].PageOrientation == WordPageOrientation.Portrait, "Page orientation should match");
                 Assert.True(document.Paragraphs.Count == 0, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
 

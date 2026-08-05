@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 using var audio = new MemoryStream(wave,
                     writable: false);
                 PowerPointMedia media = slide.AddAudio(audio, "audio/wav",
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 using var audio = new MemoryStream(original,
                     writable: false);
                 slide.AddAudio(audio, "audio/wav", ".wav");
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation source =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = source.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             using var data = new MemoryStream(new byte[] { 1, 2, 3, 4 },
                 writable: false);
             if (video) {
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation source =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = source.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             using var audio = new MemoryStream(CreateMediaWavePayload(),
                 writable: false);
             slide.AddAudio(audio, "audio/wav", ".wav");
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 slide.Transition = SlideTransition.Fade;
                 using (var audio = new MemoryStream(wave,
                            writable: false)) {
@@ -248,7 +248,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 slide.AddTextBox("Editable companion");
                 slide.Transition = SlideTransition.Cut;
                 using (var audio = new MemoryStream(wave,
@@ -404,7 +404,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 slide.Transition = SlideTransition.Cut;
                 using (var audio = new MemoryStream(wave,
                            writable: false)) {

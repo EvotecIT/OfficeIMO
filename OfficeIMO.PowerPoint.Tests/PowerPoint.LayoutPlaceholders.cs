@@ -13,17 +13,17 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                PowerPointSlide slide = presentation.AddSlide(SlideLayoutValues.Text);
+                PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Text);
 
                 var placeholders = slide.GetLayoutPlaceholders();
                 Assert.NotEmpty(placeholders);
 
-                PowerPointLayoutPlaceholderInfo? title = slide.GetLayoutPlaceholder(PlaceholderValues.Title);
+                PowerPointLayoutPlaceholderInfo? title = slide.GetLayoutPlaceholder(PowerPointPlaceholderType.Title);
                 Assert.NotNull(title);
                 Assert.True(title.Value.Bounds.HasValue);
                 Assert.True(title.Value.Bounds.Value.Width > 0);
 
-                PowerPointLayoutBox? bodyBounds = slide.GetLayoutPlaceholderBounds(PlaceholderValues.Body);
+                PowerPointLayoutBox? bodyBounds = slide.GetLayoutPlaceholderBounds(PowerPointPlaceholderType.Body);
                 Assert.NotNull(bodyBounds);
                 Assert.True(bodyBounds!.Value.Height > 0);
             } finally {
@@ -38,8 +38,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                    int layoutIndex = presentation.GetLayoutIndex(SlideLayoutValues.Text);
-                    PowerPointSlide slide = presentation.AddSlide(SlideLayoutValues.Text);
+                    int layoutIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.Text);
+                    PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Text);
 
                     var placeholders = presentation.EnsureLayoutHeaderFooterPlaceholders(
                         layoutIndex: layoutIndex,
@@ -48,9 +48,9 @@ namespace OfficeIMO.Tests {
                         slideNumberText: "#");
 
                     Assert.Equal(3, placeholders.Count);
-                    Assert.NotNull(slide.GetLayoutPlaceholder(PlaceholderValues.Footer, 10U));
-                    Assert.NotNull(slide.GetLayoutPlaceholder(PlaceholderValues.DateAndTime, 11U));
-                    Assert.NotNull(slide.GetLayoutPlaceholder(PlaceholderValues.SlideNumber, 12U));
+                    Assert.NotNull(slide.GetLayoutPlaceholder(PowerPointPlaceholderType.Footer, 10U));
+                    Assert.NotNull(slide.GetLayoutPlaceholder(PowerPointPlaceholderType.DateAndTime, 11U));
+                    Assert.NotNull(slide.GetLayoutPlaceholder(PowerPointPlaceholderType.SlideNumber, 12U));
                     Assert.Equal("Confidential", placeholders[0].Text);
 
                     presentation.Save();
@@ -78,9 +78,9 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides[0];
 
-                    Assert.NotNull(slide.GetLayoutPlaceholder(PlaceholderValues.Footer, 10U));
-                    Assert.NotNull(slide.GetLayoutPlaceholder(PlaceholderValues.DateAndTime, 11U));
-                    Assert.NotNull(slide.GetLayoutPlaceholder(PlaceholderValues.SlideNumber, 12U));
+                    Assert.NotNull(slide.GetLayoutPlaceholder(PowerPointPlaceholderType.Footer, 10U));
+                    Assert.NotNull(slide.GetLayoutPlaceholder(PowerPointPlaceholderType.DateAndTime, 11U));
+                    Assert.NotNull(slide.GetLayoutPlaceholder(PowerPointPlaceholderType.SlideNumber, 12U));
                 }
             } finally {
                 if (File.Exists(filePath)) {

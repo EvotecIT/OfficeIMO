@@ -639,7 +639,7 @@ namespace OfficeIMO.Word {
                 ResolveParagraphTextColor(paragraph, colorScheme),
                 paragraph.Bold,
                 paragraph.Italic,
-                paragraph.Underline.HasValue && paragraph.Underline.Value != UnderlineValues.None,
+                paragraph.Underline.HasValue && paragraph.Underline.Value != WordUnderlineStyle.None,
                 paragraph.FontFamily ?? "Calibri",
                 paragraph.Strike || paragraph.DoubleStrike,
                 ResolveRunBackgroundColor(paragraph, colorScheme));
@@ -655,7 +655,7 @@ namespace OfficeIMO.Word {
                 style |= OfficeFontStyle.Italic;
             }
 
-            if (paragraph.Underline.HasValue && paragraph.Underline.Value != UnderlineValues.None) {
+            if (paragraph.Underline.HasValue && paragraph.Underline.Value != WordUnderlineStyle.None) {
                 style |= OfficeFontStyle.Underline;
             }
 
@@ -666,21 +666,21 @@ namespace OfficeIMO.Word {
             return new OfficeFontInfo(paragraph.FontFamily ?? "Calibri", paragraph.FontSize ?? 11, style);
         }
 
-        private static OfficeTextAlignment MapTextAlignment(JustificationValues? alignment) {
-            if (alignment == JustificationValues.Center) {
+        private static OfficeTextAlignment MapTextAlignment(WordParagraphAlignment? alignment) {
+            if (alignment == WordParagraphAlignment.Center) {
                 return OfficeTextAlignment.Center;
             }
 
-            if (alignment == JustificationValues.Right || alignment == JustificationValues.End) {
+            if (alignment == WordParagraphAlignment.Right || alignment == WordParagraphAlignment.End) {
                 return OfficeTextAlignment.Right;
             }
 
-            if (alignment == JustificationValues.Both ||
-                alignment == JustificationValues.Distribute ||
-                alignment == JustificationValues.ThaiDistribute ||
-                alignment == JustificationValues.HighKashida ||
-                alignment == JustificationValues.MediumKashida ||
-                alignment == JustificationValues.LowKashida) {
+            if (alignment == WordParagraphAlignment.Both ||
+                alignment == WordParagraphAlignment.Distribute ||
+                alignment == WordParagraphAlignment.ThaiDistribute ||
+                alignment == WordParagraphAlignment.HighKashida ||
+                alignment == WordParagraphAlignment.MediumKashida ||
+                alignment == WordParagraphAlignment.LowKashida) {
                 return OfficeTextAlignment.Justify;
             }
 

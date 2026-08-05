@@ -9,10 +9,10 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with advanced page numbers");
             string filePath = System.IO.Path.Combine(folderPath, "Document with PageNumbers6.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].AddPageNumbering(1, NumberFormatValues.UpperRoman);
+                document.Sections[0].AddPageNumbering(1, WordNumberFormat.UpperRoman);
 
                 var para = document.FooterDefaultOrCreate.AddParagraph();
-                para.ParagraphAlignment = JustificationValues.Right;
+                para.ParagraphAlignment = WordParagraphAlignment.Right;
                 para.AddText("Page ");
                 para.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.Roman, separator: " of ");
 

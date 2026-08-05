@@ -547,7 +547,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (shapeContext == LegacyPptWriterShapeContext.NotesMaster) {
                 return (uint)LegacyPptTextType.Notes;
             }
-            P.PlaceholderValues? type = shape.ShapePlaceholderType;
+            P.PlaceholderValues? type = shape.ShapePlaceholderType.ToOpenXml();
             if (type == P.PlaceholderValues.Title) {
                 return (uint)LegacyPptTextType.Title;
             }

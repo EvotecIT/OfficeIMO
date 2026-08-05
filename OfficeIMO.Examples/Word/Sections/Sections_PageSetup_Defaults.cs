@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
             using (var document = WordDocument.Create(filePath)) {
                 document.AsFluent()
                     .PageSetup(ps => ps
-                        .Orientation(PageOrientationValues.Landscape)
+                        .Orientation(WordPageOrientation.Landscape)
                         .Size(WordPageSize.A4)
                         .Margins(WordMargin.Normal)
                         .DifferentFirstPage()

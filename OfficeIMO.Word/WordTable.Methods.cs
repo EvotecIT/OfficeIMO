@@ -71,20 +71,20 @@ namespace OfficeIMO.Word {
             CheckTableProperties();
 
             // Determine the target total width and type to distribute
-            TableWidthUnitValues targetType = this.WidthType ?? TableWidthUnitValues.Pct; // Default to Pct if not set
+            WordTableWidthUnit targetType = this.WidthType ?? WordTableWidthUnit.Pct; // Default to Pct if not set
             int targetTotalWidth;
 
-            if (targetType == TableWidthUnitValues.Pct) {
+            if (targetType == WordTableWidthUnit.Pct) {
                 targetTotalWidth = this.Width ?? 5000; // Default to 100% (5000) if width not set
-            } else if (targetType == TableWidthUnitValues.Dxa) {
+            } else if (targetType == WordTableWidthUnit.Dxa) {
                 targetTotalWidth = this.Width ?? 0;
                 // If Dxa width is 0 or not set, it's ambiguous. Default to distributing 100% Pct.
                 if (targetTotalWidth <= 0) {
-                    targetType = TableWidthUnitValues.Pct;
+                    targetType = WordTableWidthUnit.Pct;
                     targetTotalWidth = 5000;
                 }
             } else { // Auto or unspecified - default to distributing 100% Pct
-                targetType = TableWidthUnitValues.Pct;
+                targetType = WordTableWidthUnit.Pct;
                 targetTotalWidth = 5000;
             }
 
@@ -120,7 +120,7 @@ namespace OfficeIMO.Word {
                         if (!tcPr.Elements<TableCellWidth>().Any()) tcPr.Append(tcW);
 
                         // Set the calculated type and width for the cell
-                        tcW.Type = targetType;
+                        tcW.Type = targetType.ToOpenXml();
                         tcW.Width = newColumnWidths[j].ToString();
                     }
                 }
@@ -146,8 +146,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void NormalizeForOnline() {
             try {
-                bool explicitTableWidth = (this.WidthType == TableWidthUnitValues.Dxa && (this.Width ?? 0) > 0)
-                                       || (this.WidthType == TableWidthUnitValues.Pct && (this.Width ?? 0) > 0);
+                bool explicitTableWidth = (this.WidthType == WordTableWidthUnit.Dxa && (this.Width ?? 0) > 0)
+                                       || (this.WidthType == WordTableWidthUnit.Pct && (this.Width ?? 0) > 0);
                 bool columnWidthTypeSet = this.ColumnWidthType != null;
 
                 // Treat the library's constructor default (DXA 2400) as non-explicit.
@@ -155,7 +155,7 @@ namespace OfficeIMO.Word {
                 foreach (var r in Rows) {
                     foreach (var c in r.Cells) {
                         if (c.Width.HasValue) {
-                            if (c.WidthType != TableWidthUnitValues.Dxa || c.Width!.Value != 2400) {
+                            if (c.WidthType != WordTableWidthUnit.Dxa || c.Width!.Value != 2400) {
                                 anyExplicitCellWidths = true; break;
                             }
                         }
@@ -195,7 +195,7 @@ namespace OfficeIMO.Word {
             foreach (var cell in first.Cells) {
                 // Do not overwrite if user already set something
                 if (cell.Borders.TopStyle == null) {
-                    cell.Borders.TopStyle = BorderValues.Single;
+                    cell.Borders.TopStyle = WordBorderStyle.Single;
                     cell.Borders.TopSize = 4;
                     // Let Word/consumers choose the default color; do not emit "auto" as an explicit hex.
                     cell.Borders.TopColorHex = null;
@@ -376,11 +376,11 @@ namespace OfficeIMO.Word {
 
                     if (percentage.HasValue) {
                         // For fixed width, set the width to the specified percentage
-                        this.WidthType = TableWidthUnitValues.Pct;
+                        this.WidthType = WordTableWidthUnit.Pct;
                         this.Width = percentage.Value * 50; // Convert percentage to Word's internal units (50 = 1%)
                     } else {
                         // Default to 100% if no percentage specified
-                        this.WidthType = TableWidthUnitValues.Pct;
+                        this.WidthType = WordTableWidthUnit.Pct;
                         this.Width = 5000; // 100% width
                     }
                     break;
@@ -393,7 +393,7 @@ namespace OfficeIMO.Word {
                     _tableProperties.TableLayout.Type = TableLayoutValues.Autofit;
 
                     // For AutoFit to Contents
-                    this.WidthType = TableWidthUnitValues.Auto;
+                    this.WidthType = WordTableWidthUnit.Auto;
                     this.Width = 0;
                     break;
 
@@ -405,7 +405,7 @@ namespace OfficeIMO.Word {
                     _tableProperties.TableLayout.Type = TableLayoutValues.Fixed;
 
                     // For AutoFit to Window
-                    this.WidthType = TableWidthUnitValues.Pct;
+                    this.WidthType = WordTableWidthUnit.Pct;
                     this.Width = 5000; // 100% width
                     break;
             }
@@ -526,12 +526,12 @@ namespace OfficeIMO.Word {
         private void ApplyCalculatedWidths(List<int> columnWidths) {
             // Set column widths
             this.ColumnWidth = columnWidths;
-            this.ColumnWidthType = TableWidthUnitValues.Dxa;
+            this.ColumnWidthType = WordTableWidthUnit.Dxa;
 
             // Ensure the overall table width is set appropriately
             if (columnWidths.Sum() > 0) {
                 this.Width = columnWidths.Sum();
-                this.WidthType = TableWidthUnitValues.Dxa;
+                this.WidthType = WordTableWidthUnit.Dxa;
             }
         }
 
@@ -787,7 +787,7 @@ namespace OfficeIMO.Word {
         public void SetWidthPercentage(int percentage) {
             if (percentage < 0) percentage = 0;
             if (percentage > 100) percentage = 100;
-            this.WidthType = TableWidthUnitValues.Pct;
+            this.WidthType = WordTableWidthUnit.Pct;
             this.Width = percentage * 50; // Convert percentage to Word's internal units (50 = 1%)
         }
 

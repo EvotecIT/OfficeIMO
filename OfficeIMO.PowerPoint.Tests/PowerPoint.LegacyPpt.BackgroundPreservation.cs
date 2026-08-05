@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation presentation =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = presentation.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 A.ThemeElements masterElements = slide.SlidePart
                     .SlideLayoutPart!.SlideMasterPart!.ThemePart!.Theme!
                     .ThemeElements!;
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             slide.SlidePart.Slide!.CommonSlideData!.Background =
                 new P.Background(new P.BackgroundStyleReference {
                     Index = uint.MaxValue
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
                    PowerPointPresentation.Create()) {
                 for (int index = 0; index < 2; index++) {
                     PowerPointSlide slide = created.AddSlide(
-                        P.SlideLayoutValues.Blank);
+                        PowerPointSlideLayoutType.Blank);
                     using var image = new MemoryStream(imageBytes,
                         writable: false);
                     slide.SetBackgroundImage(image,
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
         private static PowerPointSlide AddPictureBackgroundSlide(
             PowerPointPresentation presentation, byte[] imageBytes) {
             PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             using var image = new MemoryStream(imageBytes, writable: false);
             slide.SetBackgroundImage(image,
                 OfficeIMO.PowerPoint.ImagePartType.Png);
@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation created =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = created.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 slide.BackgroundColor = "112233";
                 sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
             }
@@ -226,7 +226,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointPresentation created =
                    PowerPointPresentation.Create()) {
-                created.AddSlide(P.SlideLayoutValues.Blank).BackgroundColor =
+                created.AddSlide(PowerPointSlideLayoutType.Blank).BackgroundColor =
                     "112233";
                 sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
             }
@@ -396,8 +396,8 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointPresentation created =
                    PowerPointPresentation.Create()) {
-                created.AddSlide(P.SlideLayoutValues.Blank);
-                created.AddSlide(P.SlideLayoutValues.Blank);
+                created.AddSlide(PowerPointSlideLayoutType.Blank);
+                created.AddSlide(PowerPointSlideLayoutType.Blank);
                 sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
@@ -456,8 +456,8 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointPresentation created =
                    PowerPointPresentation.Create()) {
-                created.AddSlide(P.SlideLayoutValues.Blank);
-                created.AddSlide(P.SlideLayoutValues.Blank);
+                created.AddSlide(PowerPointSlideLayoutType.Blank);
+                created.AddSlide(PowerPointSlideLayoutType.Blank);
                 sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(
@@ -506,14 +506,14 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide center = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             center.SlidePart.Slide!.CommonSlideData!.Background =
                 CreatePathGradientBackground(A.PathShadeValues.Circle,
                     ("112233", 0, 25000),
                     ("778899", 50000, 50000),
                     ("DDEEFF", 100000, 75000));
             PowerPointSlide shape = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             shape.SlidePart.Slide!.CommonSlideData!.Background =
                 CreatePathGradientBackground(A.PathShadeValues.Shape,
                     ("102030", 0, 100000),
@@ -570,7 +570,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             slide.SlidePart.Slide!.CommonSlideData!.Background =
                 CreatePathGradientBackground(A.PathShadeValues.Circle,
                     ("112233", 0, 20000),
@@ -592,7 +592,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointPresentation created =
                    PowerPointPresentation.Create()) {
-                created.AddSlide(P.SlideLayoutValues.Blank).BackgroundColor =
+                created.AddSlide(PowerPointSlideLayoutType.Blank).BackgroundColor =
                     "112233";
                 sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
             }

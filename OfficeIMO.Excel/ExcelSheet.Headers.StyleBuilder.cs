@@ -126,21 +126,21 @@ namespace OfficeIMO.Excel {
         /// <summary>Aligns text left in the column.</summary>
         public ColumnStyleByHeaderBuilder AlignLeft() {
             for (int r = _startRow; r <= _endRow; r++)
-                _sheet.CellAlign(r, _colIndex, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Left);
+                _sheet.CellAlign(r, _colIndex, ExcelHorizontalAlignment.Left);
             return this;
         }
 
         /// <summary>Centers text in the column.</summary>
         public ColumnStyleByHeaderBuilder AlignCenter() {
             for (int r = _startRow; r <= _endRow; r++)
-                _sheet.CellAlign(r, _colIndex, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Center);
+                _sheet.CellAlign(r, _colIndex, ExcelHorizontalAlignment.Center);
             return this;
         }
 
         /// <summary>Aligns text right in the column.</summary>
         public ColumnStyleByHeaderBuilder AlignRight() {
             for (int r = _startRow; r <= _endRow; r++)
-                _sheet.CellAlign(r, _colIndex, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Right);
+                _sheet.CellAlign(r, _colIndex, ExcelHorizontalAlignment.Right);
             return this;
         }
 

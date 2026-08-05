@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, new DateTime(2026, 6, 22));
-                sheet.AddConditionalTimePeriodRule("A1:A3", TimePeriodValues.Today);
+                sheet.AddConditionalTimePeriodRule("A1:A3", ExcelConditionalTimePeriod.Today);
                 document.Save();
             }
 

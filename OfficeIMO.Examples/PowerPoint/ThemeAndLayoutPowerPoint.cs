@@ -57,8 +57,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             }
 
             PowerPointSlide second = presentation.AddSlide(masterIndex: 0, layoutIndex: 1);
-            PowerPointTextBox? titlePlaceholder = second.GetPlaceholder(PlaceholderValues.Title)
-                                               ?? second.GetPlaceholder(PlaceholderValues.CenteredTitle);
+            PowerPointTextBox? titlePlaceholder = second.GetPlaceholder(PowerPointPlaceholderType.Title)
+                                               ?? second.GetPlaceholder(PowerPointPlaceholderType.CenteredTitle);
             if (titlePlaceholder != null) {
                 titlePlaceholder.Text = "Layout Placeholders";
                 titlePlaceholder.ApplyTextStyle(PowerPointTextStyle.Title.WithColor("1F4E79"));
@@ -66,7 +66,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 second.AddTitleCm("Layout Placeholders", marginCm, marginCm, content.WidthCm, titleHeightCm);
             }
 
-            PowerPointTextBox? bodyPlaceholder = second.GetPlaceholder(PlaceholderValues.Body);
+            PowerPointTextBox? bodyPlaceholder = second.GetPlaceholder(PowerPointPlaceholderType.Body);
             if (bodyPlaceholder != null) {
                 bodyPlaceholder.Clear();
                 bodyPlaceholder.AddBullets(new[] {
@@ -91,19 +91,19 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointTextBox leftCard = third.AddTextBox("Left column\n(overview)", topColumns[0]);
             leftCard.FillColor = "E7F7FF";
             leftCard.OutlineColor = "5B9BD5";
-            leftCard.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
+            leftCard.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
             leftCard.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("1F4E79"));
 
             PowerPointTextBox rightCard = third.AddTextBox("Right column\n(details)", topColumns[1]);
             rightCard.FillColor = "FFF4E5";
             rightCard.OutlineColor = "C48A00";
-            rightCard.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
+            rightCard.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
             rightCard.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("7F6000"));
 
             PowerPointTextBox footer = third.AddTextBox("Content boxes keep spacing consistent across slides.", rows[1]);
             footer.FillColor = "F3F3F3";
             footer.OutlineColor = "CCCCCC";
-            footer.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
+            footer.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
 
             presentation.Save();
             if (openPowerPoint) ExampleFileLauncher.Open(filePath);

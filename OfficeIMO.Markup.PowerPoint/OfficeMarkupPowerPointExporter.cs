@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Drawing.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Markup.PowerPoint;
 

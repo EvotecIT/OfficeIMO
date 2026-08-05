@@ -149,7 +149,7 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph("Name");
         paragraph.AddTabStop(1440);
-        paragraph.AddTabStop(2880, TabStopValues.Right, TabStopLeaderCharValues.Dot);
+        paragraph.AddTabStop(2880, WordTabAlignment.Right, WordTabLeader.Dot);
         paragraph.AddText("\tAmount");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
@@ -176,8 +176,8 @@ public partial class WordRtfConverterTests {
         WordParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs.GroupBy(item => item._paragraph).Select(group => group.First()));
         Assert.Equal(2, roundTripParagraph.TabStops.Count);
         Assert.Equal(1440, roundTripParagraph.TabStops[0].Position);
-        Assert.Equal(TabStopValues.Right, roundTripParagraph.TabStops[1].Alignment);
-        Assert.Equal(TabStopLeaderCharValues.Dot, roundTripParagraph.TabStops[1].Leader);
+        Assert.Equal(WordTabAlignment.Right, roundTripParagraph.TabStops[1].Alignment);
+        Assert.Equal(WordTabLeader.Dot, roundTripParagraph.TabStops[1].Leader);
     }
 
     [Fact]
@@ -186,9 +186,9 @@ public partial class WordRtfConverterTests {
         WordParagraph paragraph = word.AddParagraph("Before");
         paragraph.AddBreak();
         paragraph.AddText("Line");
-        paragraph.AddBreak(BreakValues.Page);
+        paragraph.AddBreak(WordBreakType.Page);
         paragraph.AddText("Page");
-        paragraph.AddBreak(BreakValues.Column);
+        paragraph.AddBreak(WordBreakType.Column);
         paragraph.AddText("Column");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
@@ -203,8 +203,8 @@ public partial class WordRtfConverterTests {
 
         List<WordBreak> breaks = roundTrip.Breaks;
         Assert.Contains(breaks, item => item.BreakType == null);
-        Assert.Contains(breaks, item => item.BreakType == BreakValues.Page);
-        Assert.Contains(breaks, item => item.BreakType == BreakValues.Column);
+        Assert.Contains(breaks, item => item.BreakType == WordBreakType.Page);
+        Assert.Contains(breaks, item => item.BreakType == WordBreakType.Column);
     }
 
     [Fact]
@@ -220,7 +220,7 @@ public partial class WordRtfConverterTests {
 
         List<WordBreak> breaks = word.Breaks;
         Assert.Contains(breaks, item => item.BreakType == null);
-        Assert.Contains(breaks, item => item.BreakType == BreakValues.Page);
+        Assert.Contains(breaks, item => item.BreakType == WordBreakType.Page);
     }
 
 

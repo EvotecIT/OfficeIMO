@@ -279,10 +279,10 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Enumerates non-empty cells as (Row, Column, Value). Values are typed when possible.
         /// </summary>
-        public IEnumerable<CellValueInfo> EnumerateCells() {
+        public IEnumerable<CellValueInfo> EnumerateCells(CancellationToken ct = default) {
             return CanUseEnumerateCellsXmlReader()
-                ? EnumerateCellsXmlFast(CancellationToken.None)
-                : EnumerateCellsDom(CancellationToken.None);
+                ? EnumerateCellsXmlFast(ct)
+                : EnumerateCellsDom(ct);
         }
 
         private IEnumerable<CellValueInfo> EnumerateCellsDom(CancellationToken ct) {
@@ -1091,7 +1091,7 @@ namespace OfficeIMO.Excel {
             // Custom converter hook (cell-level). If provided and handled, honor it.
             var hook = _opt.CellValueConverter;
             if (hook != null) {
-                var ctx = new ExcelCellContext(type, styleIndex, rawText, inlineText, _opt.Culture);
+                var ctx = new ExcelCellContext(type.ToOfficeEnum(), styleIndex, rawText, inlineText, _opt.Culture);
                 var res = hook(ctx);
                 if (res.Handled) return res.Value;
             }

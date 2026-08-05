@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
             var insideH = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.InsideHorizontal);
-            Assert.Equal(BorderValues.Single, insideH.Style);
+            Assert.Equal(WordBorderStyle.Single, insideH.Style);
             Assert.Equal((UInt32Value)12U, insideH.Size);
             Assert.Equal("FF0000", insideH.ColorHex);
             var cell = table.Rows[0].Cells[0];
@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
             var insideH = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.InsideHorizontal);
             Assert.Null(insideH.Style);
             var cell = table.Rows[0].Cells[0];
-            Assert.Equal(BorderValues.Single, cell.Borders.TopStyle);
+            Assert.Equal(WordBorderStyle.Single, cell.Borders.TopStyle);
             Assert.Equal((UInt32Value)12U, cell.Borders.TopSize);
             Assert.Equal("FF0000", cell.Borders.TopColorHex);
         }

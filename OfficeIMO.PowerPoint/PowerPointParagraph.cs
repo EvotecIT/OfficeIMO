@@ -57,7 +57,7 @@ namespace OfficeIMO.PowerPoint {
         /// Adds formatted text to the paragraph and returns the paragraph for chaining.
         /// </summary>
         public PowerPointParagraph AddFormattedText(string text, bool bold = false, bool italic = false,
-            A.TextUnderlineValues? underline = null, bool strikethrough = false) {
+            PowerPointUnderlineStyle? underline = null, bool strikethrough = false) {
             A.Run run = InsertRun(text);
             var wrapper = new PowerPointTextRun(run, _slidePart, _ownerPart);
             if (bold) {
@@ -69,7 +69,7 @@ namespace OfficeIMO.PowerPoint {
             if (underline != null) {
                 wrapper.Underline = true;
                 wrapper.Run.RunProperties ??= new A.RunProperties();
-                wrapper.Run.RunProperties.Underline = underline.Value;
+                wrapper.Run.RunProperties.Underline = underline.Value.ToOpenXml();
             }
             if (strikethrough) {
                 wrapper.Strikethrough = true;
@@ -126,18 +126,18 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Gets or sets paragraph alignment.
         /// </summary>
-        public A.TextAlignmentTypeValues? Alignment {
-            get => Paragraph.ParagraphProperties?.Alignment?.Value;
+        public PowerPointTextAlignment? Alignment {
+            get => Paragraph.ParagraphProperties?.Alignment?.Value.ToOfficeEnum();
             set {
                 A.ParagraphProperties props = EnsureParagraphProperties();
-                props.Alignment = value;
+                props.Alignment = value?.ToOpenXml();
             }
         }
 
         /// <summary>
         /// Sets paragraph alignment and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetAlignment(A.TextAlignmentTypeValues alignment) {
+        public PowerPointParagraph SetAlignment(PowerPointTextAlignment alignment) {
             Alignment = alignment;
             return this;
         }
@@ -174,8 +174,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Gets the PowerPoint automatic-numbering scheme assigned to this paragraph, when present.
         /// </summary>
-        public A.TextAutoNumberSchemeValues? NumberingScheme =>
-            Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>()?.Type?.Value;
+        public PowerPointNumberingScheme? NumberingScheme =>
+            Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>()?.Type?.Value.ToOfficeEnum();
 
         /// <summary>
         /// Gets the explicit PowerPoint numbering start value, when present.
@@ -529,26 +529,26 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Applies an auto-numbered bullet to the paragraph.
         /// </summary>
-        public void SetNumbered(A.TextAutoNumberSchemeValues style, int startAt = 1) {
+        public void SetNumbered(PowerPointNumberingScheme style, int startAt = 1) {
             A.ParagraphProperties props = EnsureParagraphProperties();
             ClearBulletInternal(props);
-            InsertParagraphPropertyChild(props, new A.AutoNumberedBullet { Type = style, StartAt = startAt });
+            InsertParagraphPropertyChild(props, new A.AutoNumberedBullet { Type = style.ToOpenXml(), StartAt = startAt });
         }
 
         /// <summary>
         /// Applies an auto-numbered bullet to the paragraph without resetting the start value.
         /// </summary>
-        public void SetNumbered(A.TextAutoNumberSchemeValues style) {
+        public void SetNumbered(PowerPointNumberingScheme style) {
             A.ParagraphProperties props = EnsureParagraphProperties();
             ClearBulletInternal(props);
-            InsertParagraphPropertyChild(props, new A.AutoNumberedBullet { Type = style });
+            InsertParagraphPropertyChild(props, new A.AutoNumberedBullet { Type = style.ToOpenXml() });
         }
 
         /// <summary>
         /// Applies a default auto-numbered bullet (Arabic period) to the paragraph.
         /// </summary>
         public void SetNumbered(int startAt = 1) {
-            SetNumbered(A.TextAutoNumberSchemeValues.ArabicPeriod, startAt);
+            SetNumbered(PowerPointNumberingScheme.ArabicPeriod, startAt);
         }
 
         /// <summary>

@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ParagraphBordersAndShading.docx");
             using (var document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Border and shading");
-                paragraph.Borders.LeftStyle = BorderValues.Thick;
+                paragraph.Borders.LeftStyle = WordBorderStyle.Thick;
                 paragraph.Borders.LeftColor = Color.Red;
                 paragraph.Borders.LeftSize = 24;
                 paragraph.ShadingFillColor = Color.LightGray;
@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = WordDocument.Load(filePath)) {
                 var paragraph = document.Paragraphs[0];
-                Assert.Equal(BorderValues.Thick, paragraph.Borders.LeftStyle);
+                Assert.Equal(WordBorderStyle.Thick, paragraph.Borders.LeftStyle);
                 Assert.Equal(Color.Red.ToRgbHex(), paragraph.Borders.LeftColor!.Value.ToRgbHex());
                 Assert.Equal(24U, paragraph.Borders.LeftSize!.Value);
                 Assert.Equal(Color.LightGray.ToRgbHex(), paragraph.ShadingFillColorHex);

@@ -36,8 +36,8 @@ namespace OfficeIMO.Examples.Word {
                 WordParagraph formatted = document.AddParagraph("Bold Italic Underlined Centered");
                 formatted.Bold = true;
                 formatted.Italic = true;
-                formatted.Underline = W.UnderlineValues.Single;
-                formatted.ParagraphAlignment = W.JustificationValues.Center;
+                formatted.Underline = WordUnderlineStyle.Single;
+                formatted.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 WordList list = document.AddList(WordListStyle.ArticleSections);
                 list.AddItem("First Item");

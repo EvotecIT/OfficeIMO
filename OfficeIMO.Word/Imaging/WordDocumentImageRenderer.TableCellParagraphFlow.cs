@@ -153,13 +153,13 @@ namespace OfficeIMO.Word {
             return paragraphs;
         }
 
-        private static double ResolveTableCellVerticalOffset(TableVerticalAlignmentValues? alignment, double contentHeight, double flowHeight) {
+        private static double ResolveTableCellVerticalOffset(WordTableVerticalAlignment? alignment, double contentHeight, double flowHeight) {
             double extraHeight = Math.Max(0D, contentHeight - flowHeight);
-            if (alignment == TableVerticalAlignmentValues.Center) {
+            if (alignment == WordTableVerticalAlignment.Center) {
                 return extraHeight / 2D;
             }
 
-            if (alignment == TableVerticalAlignmentValues.Bottom) {
+            if (alignment == WordTableVerticalAlignment.Bottom) {
                 return extraHeight;
             }
 

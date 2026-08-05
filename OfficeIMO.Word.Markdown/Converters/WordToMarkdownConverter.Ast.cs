@@ -1525,10 +1525,10 @@ namespace OfficeIMO.Word.Markdown {
             return run.Bold
                 || run.Italic
                 || run.Strike
-                || run.VerticalTextAlignment == VerticalPositionValues.Superscript
-                || run.VerticalTextAlignment == VerticalPositionValues.Subscript
-                || (options.EnableUnderline && run.Underline.HasValue && run.Underline.Value != UnderlineValues.None)
-                || (options.EnableHighlight && run.Highlight.HasValue && run.Highlight.Value != HighlightColorValues.None)
+                || run.VerticalTextAlignment == WordVerticalTextPosition.Superscript
+                || run.VerticalTextAlignment == WordVerticalTextPosition.Subscript
+                || (options.EnableUnderline && run.Underline.HasValue && run.Underline.Value != WordUnderlineStyle.None)
+                || (options.EnableHighlight && run.Highlight.HasValue && run.Highlight.Value != WordHighlightColor.None)
                 || IsCodeRun(run, preferredCodeFont, implicitCodeFont)
                 || (run.IsHyperLink && run.Hyperlink?.Uri != null);
         }
@@ -1543,13 +1543,13 @@ namespace OfficeIMO.Word.Markdown {
                 ? new CodeSpanInline(text)
                 : new TextRun(text);
 
-            if (run.VerticalTextAlignment == VerticalPositionValues.Superscript) {
+            if (run.VerticalTextAlignment == WordVerticalTextPosition.Superscript) {
                 node = WrapInline("sup", node);
-            } else if (run.VerticalTextAlignment == VerticalPositionValues.Subscript) {
+            } else if (run.VerticalTextAlignment == WordVerticalTextPosition.Subscript) {
                 node = WrapInline("sub", node);
             }
 
-            if (options.EnableUnderline && run.Underline.HasValue && run.Underline.Value != UnderlineValues.None) {
+            if (options.EnableUnderline && run.Underline.HasValue && run.Underline.Value != WordUnderlineStyle.None) {
                 node = WrapInline("u", node);
             }
 
@@ -1557,7 +1557,7 @@ namespace OfficeIMO.Word.Markdown {
                 node = new StrikethroughSequenceInline(WrapInlineSequence(node));
             }
 
-            if (options.EnableHighlight && run.Highlight.HasValue && run.Highlight.Value != HighlightColorValues.None) {
+            if (options.EnableHighlight && run.Highlight.HasValue && run.Highlight.Value != WordHighlightColor.None) {
                 node = new HighlightSequenceInline(WrapInlineSequence(node));
             }
 
@@ -1759,15 +1759,15 @@ namespace OfficeIMO.Word.Markdown {
 
         private static ColumnAlignment GetAlignment(WordTableCell cell) {
             var alignment = cell.Paragraphs.FirstOrDefault()?.ParagraphAlignment;
-            if (alignment == JustificationValues.Center) {
+            if (alignment == WordParagraphAlignment.Center) {
                 return ColumnAlignment.Center;
             }
 
-            if (alignment == JustificationValues.Right || alignment == JustificationValues.End) {
+            if (alignment == WordParagraphAlignment.Right || alignment == WordParagraphAlignment.End) {
                 return ColumnAlignment.Right;
             }
 
-            if (alignment == JustificationValues.Left || alignment == JustificationValues.Start) {
+            if (alignment == WordParagraphAlignment.Left || alignment == WordParagraphAlignment.Start) {
                 return ColumnAlignment.Left;
             }
 

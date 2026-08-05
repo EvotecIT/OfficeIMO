@@ -1980,10 +1980,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     projectedRun.Bold = font.Bold;
                     projectedRun.Italic = font.Italic;
                     projectedRun.Underline = font.Underline;
-                    projectedRun.UnderlineStyle = ToUnderlineStyle(font.UnderlineStyle);
+                    projectedRun.UnderlineStyle = ToUnderlineStyle(font.UnderlineStyle).ToOfficeEnum();
                     projectedRun.FontName = font.Name;
                     projectedRun.FontSize = font.Size;
-                    projectedRun.VerticalTextAlignment = ToVerticalTextAlignment(font.Escapement);
+                    projectedRun.VerticalTextAlignment = ToVerticalTextAlignment(font.Escapement).ToOfficeEnum();
                     projectedRun.Outline = font.Outline;
                     projectedRun.Shadow = font.Shadow;
                     projectedRun.Condense = font.Condense;

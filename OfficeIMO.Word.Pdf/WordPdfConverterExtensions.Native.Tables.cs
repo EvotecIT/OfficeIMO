@@ -775,7 +775,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
                     if (cell.Width.GetValueOrDefault() > 0 &&
-                        cell.WidthType == W.TableWidthUnitValues.Dxa &&
+                        cell.WidthType == WordTableWidthUnit.Dxa &&
                         cell.Width.GetValueOrDefault() != NativeOfficeImoScaffoldCellWidthTwips) {
                         return true;
                     }
@@ -1315,7 +1315,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static W.TableRowAlignmentValues? ResolveNativeTableAlignment(WordTable table, NativeTableStyleDefaults tableStyleDefaults) =>
             ResolveNativeTablePositionAlignment(table._tableProperties?.TablePositionProperties) ??
-            table.Alignment ??
+            table.Alignment.ToOpenXml() ??
             tableStyleDefaults.Alignment;
 
         private static W.TableRowAlignmentValues? ResolveNativeTablePositionAlignment(W.TablePositionProperties? position) {

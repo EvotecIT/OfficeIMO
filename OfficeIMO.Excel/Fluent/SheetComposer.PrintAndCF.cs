@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         /// <summary>Adds an icon set conditional formatting rule to the given range.</summary>
-        public SheetComposer ConditionalIconSet(string rangeA1, DocumentFormat.OpenXml.Spreadsheet.IconSetValues set, bool showValue = true, bool reverse = false, double[]? percentThresholds = null, double[]? numberThresholds = null) {
+        public SheetComposer ConditionalIconSet(string rangeA1, ExcelIconSet set, bool showValue = true, bool reverse = false, double[]? percentThresholds = null, double[]? numberThresholds = null) {
             Sheet.AddConditionalIconSet(rangeA1, set, showValue, reverse, percentThresholds, numberThresholds);
             return this;
         }

@@ -22,7 +22,7 @@ public partial class Word {
         WordTable nested = cell.AddTable(1, 2);
         foreach (WordTableCell nestedCell in nested.Rows[0].Cells) {
             nestedCell.Width = 2880;
-            nestedCell.WidthType = TableWidthUnitValues.Dxa;
+            nestedCell.WidthType = WordTableWidthUnit.Dxa;
         }
 
         nested._table.Remove();
@@ -43,17 +43,17 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable leftTable = document.AddTable(1, 2);
-            ConfigurePlacementTable(leftTable, "LeftTbl", TableRowAlignmentValues.Left);
+            ConfigurePlacementTable(leftTable, "LeftTbl", WordTableAlignment.Left);
 
             document.AddParagraph("between left and center");
 
             WordTable centerTable = document.AddTable(1, 2);
-            ConfigurePlacementTable(centerTable, "CenterTbl", TableRowAlignmentValues.Center);
+            ConfigurePlacementTable(centerTable, "CenterTbl", WordTableAlignment.Center);
 
             document.AddParagraph("between center and right");
 
             WordTable rightTable = document.AddTable(1, 2);
-            ConfigurePlacementTable(rightTable, "RightTbl", TableRowAlignmentValues.Right);
+            ConfigurePlacementTable(rightTable, "RightTbl", WordTableAlignment.Right);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
@@ -89,14 +89,14 @@ public partial class Word {
             { Type = StyleValues.Table, StyleId = "GenericCenteredTable" });
 
             WordTable leftTable = document.AddTable(1, 2);
-            ConfigurePlacementTable(leftTable, "StyleLeft", TableRowAlignmentValues.Left);
+            ConfigurePlacementTable(leftTable, "StyleLeft", WordTableAlignment.Left);
 
             document.AddParagraph("between styled alignment tables");
 
             WordTable styledTable = document.AddTable(1, 2);
             foreach (WordTableCell cell in styledTable.Rows[0].Cells) {
                 cell.Width = 1440;
-                cell.WidthType = TableWidthUnitValues.Dxa;
+                cell.WidthType = WordTableWidthUnit.Dxa;
             }
 
             styledTable.Rows[0].Cells[0].Paragraphs[0].Text = "StyleCenter";
@@ -128,15 +128,15 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable defaultTable = document.AddTable(1, 2);
-            ConfigurePlacementTable(defaultTable, "PosLeft", TableRowAlignmentValues.Left);
+            ConfigurePlacementTable(defaultTable, "PosLeft", WordTableAlignment.Left);
 
             document.AddParagraph("between positioned alignment tables");
 
             WordTable positionedTable = document.AddTable(1, 2);
-            ConfigurePlacementTable(positionedTable, "PosCenter", TableRowAlignmentValues.Left);
+            ConfigurePlacementTable(positionedTable, "PosCenter", WordTableAlignment.Left);
             positionedTable.Alignment = null;
-            positionedTable.Position.HorizontalAnchor = HorizontalAnchorValues.Margin;
-            positionedTable.Position.TablePositionXAlignment = HorizontalAlignmentValues.Center;
+            positionedTable.Position.HorizontalAnchor = WordTableHorizontalAnchor.Margin;
+            positionedTable.Position.TablePositionXAlignment = WordTableHorizontalAlignment.Center;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
@@ -169,7 +169,7 @@ public partial class Word {
 
             WordTable positionedTable = document.AddTable(1, 1);
             ConfigureMarginTable(positionedTable, "PositionOffset");
-            positionedTable.Position.HorizontalAnchor = HorizontalAnchorValues.Margin;
+            positionedTable.Position.HorizontalAnchor = WordTableHorizontalAnchor.Margin;
             positionedTable.Position.TablePositionX = 720;
 
             document.Save();
@@ -197,8 +197,8 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable preferred = document.AddTable(1, 2);
-            preferred.LayoutType = TableLayoutValues.Fixed;
-            preferred.WidthType = TableWidthUnitValues.Dxa;
+            preferred.LayoutType = WordTableLayoutMode.Fixed;
+            preferred.WidthType = WordTableWidthUnit.Dxa;
             preferred.Width = 2160;
             preferred.Rows[0].Cells[0].Paragraphs[0].Text = "NA";
             preferred.Rows[0].Cells[1].Paragraphs[0].Text = "NB";
@@ -237,13 +237,13 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 2);
-            table.LayoutType = TableLayoutValues.Fixed;
-            table.WidthType = TableWidthUnitValues.Pct;
+            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.WidthType = WordTableWidthUnit.Pct;
             table.Width = 5000;
             table.Rows[0].Cells[0].Width = 1000;
-            table.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Pct;
+            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Pct;
             table.Rows[0].Cells[1].Width = 4000;
-            table.Rows[0].Cells[1].WidthType = TableWidthUnitValues.Pct;
+            table.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Pct;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "PctLeft";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "PctWide";
 
@@ -369,11 +369,11 @@ public partial class Word {
             { Type = StyleValues.Table, StyleId = "GenericRenderedAutofitTable" });
 
             WordTable fixedTable = document.AddTable(1, 2);
-            fixedTable.LayoutType = TableLayoutValues.Fixed;
+            fixedTable.LayoutType = WordTableLayoutMode.Fixed;
             fixedTable.Rows[0].Cells[0].Width = 2880;
-            fixedTable.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            fixedTable.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
             fixedTable.Rows[0].Cells[1].Width = 2880;
-            fixedTable.Rows[0].Cells[1].WidthType = TableWidthUnitValues.Dxa;
+            fixedTable.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
             fixedTable.Rows[0].Cells[0].Paragraphs[0].Text = "FA";
             fixedTable.Rows[0].Cells[1].Paragraphs[0].Text = "FixedWide";
 
@@ -383,9 +383,9 @@ public partial class Word {
             styledTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericRenderedAutofitTable" };
             styledTable._tableProperties.TableLayout?.Remove();
             styledTable.Rows[0].Cells[0].Width = 2880;
-            styledTable.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            styledTable.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
             styledTable.Rows[0].Cells[1].Width = 2880;
-            styledTable.Rows[0].Cells[1].WidthType = TableWidthUnitValues.Dxa;
+            styledTable.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
             styledTable.Rows[0].Cells[0].Paragraphs[0].Text = "SA";
             styledTable.Rows[0].Cells[1].Paragraphs[0].Text = "StyledWide";
 

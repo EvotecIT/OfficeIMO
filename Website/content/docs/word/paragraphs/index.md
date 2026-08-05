@@ -37,7 +37,7 @@ var p2 = document.AddParagraph("Italic text");
 p2.Italic = true;
 
 var p3 = document.AddParagraph("Underlined text");
-p3.Underline = DocumentFormat.OpenXml.Wordprocessing.UnderlineValues.Single;
+p3.Underline = WordUnderlineStyle.Single;
 
 var p4 = document.AddParagraph("Struck through");
 p4.Strike = true;
@@ -63,7 +63,7 @@ var p = document.AddParagraph("Colored text");
 p.Color = OfficeIMO.Drawing.OfficeColor.DarkBlue;
 
 var p2 = document.AddParagraph("Highlighted text");
-p2.Highlight = DocumentFormat.OpenXml.Wordprocessing.HighlightColorValues.Yellow;
+p2.Highlight = WordHighlightColor.Yellow;
 ```
 
 ### Caps and Small Caps
@@ -82,7 +82,7 @@ p2.CapsStyle = CapsStyle.Caps;
 // Use VerticalTextAlignment for sub/superscript
 var p = document.AddParagraph("H");
 p.AddText("2").VerticalTextAlignment =
-    DocumentFormat.OpenXml.Wordprocessing.VerticalPositionValues.Subscript;
+    WordVerticalTextPosition.Subscript;
 p.AddText("O");
 ```
 
@@ -90,16 +90,16 @@ p.AddText("O");
 
 ```csharp
 var left = document.AddParagraph("Left aligned");
-left.ParagraphAlignment = JustificationValues.Left;
+left.ParagraphAlignment = WordParagraphAlignment.Left;
 
 var center = document.AddParagraph("Centered");
-center.ParagraphAlignment = JustificationValues.Center;
+center.ParagraphAlignment = WordParagraphAlignment.Center;
 
 var right = document.AddParagraph("Right aligned");
-right.ParagraphAlignment = JustificationValues.Right;
+right.ParagraphAlignment = WordParagraphAlignment.Right;
 
 var justify = document.AddParagraph("Justified text spans the full width...");
-justify.ParagraphAlignment = JustificationValues.Both;
+justify.ParagraphAlignment = WordParagraphAlignment.Both;
 ```
 
 ## Spacing and Indentation
@@ -109,7 +109,7 @@ justify.ParagraphAlignment = JustificationValues.Both;
 ```csharp
 var p = document.AddParagraph("Double-spaced paragraph");
 p.LineSpacing = 480;         // in twips; 240 = single, 480 = double
-p.LineSpacingRule = DocumentFormat.OpenXml.Wordprocessing.LineSpacingRuleValues.Auto;
+p.LineSpacingRule = WordLineSpacingRule.Auto;
 ```
 
 ### Spacing Before and After
@@ -171,7 +171,7 @@ document.AddParagraph("Content on next page");
 
 ```csharp
 document.AddHorizontalLine(
-    lineType: DocumentFormat.OpenXml.Wordprocessing.BorderValues.Single,
+    lineType: WordBorderStyle.Single,
     color: OfficeIMO.Drawing.OfficeColor.Gray,
     size: 12
 );
@@ -203,5 +203,5 @@ italicRun.Italic = true;
 ```csharp
 var p = document.AddParagraph("Shaded paragraph");
 p.ShadingFill = "FFFF00";     // Yellow background
-p.ShadingPattern = DocumentFormat.OpenXml.Wordprocessing.ShadingPatternValues.Clear;
+p.ShadingPattern = WordShadingPattern.Clear;
 ```

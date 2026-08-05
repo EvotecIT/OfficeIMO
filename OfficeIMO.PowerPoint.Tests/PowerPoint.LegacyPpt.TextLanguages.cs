@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation presentation =
                    PowerPointPresentation.Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
-                        P.SlideLayoutValues.Blank)
+                        PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints(string.Empty, 30, 30, 360, 120);
                 P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
                 shape.TextBody = new P.TextBody(
@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation presentation =
                        PowerPointPresentation.Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
-                        P.SlideLayoutValues.Blank)
+                        PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints("A", 30, 30, 240, 60);
                 P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
                 shape.TextBody = new P.TextBody(
@@ -199,7 +199,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
-                source.AddSlide(P.SlideLayoutValues.Blank)
+                source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints("Editable language", 30, 30, 240, 60)
                     .SetLanguage("en-US");
                 sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
@@ -274,7 +274,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointTextBox textBox = presentation.AddSlide(
-                    P.SlideLayoutValues.Blank)
+                    PowerPointSlideLayoutType.Blank)
                 .AddTextBoxPoints("Neutral language", 30, 30, 240, 60);
             Assert.Single(textBox.Paragraphs[0].Runs).Language = language;
 
@@ -308,7 +308,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
                 PowerPointTextBox textBox = source.AddSlide(
-                        P.SlideLayoutValues.Blank)
+                        PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints("Preserve grammar", 30, 30, 240, 60);
                 textBox.SetLanguage("en-US");
                 P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);

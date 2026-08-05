@@ -364,15 +364,15 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
 
             switch (format.HorizontalAlignment) {
-                case "LEFT": sheet.CellAlign(row, column, HorizontalAlignmentValues.Left); break;
-                case "CENTER": sheet.CellAlign(row, column, HorizontalAlignmentValues.Center); break;
-                case "RIGHT": sheet.CellAlign(row, column, HorizontalAlignmentValues.Right); break;
-                case "JUSTIFY": sheet.CellAlign(row, column, HorizontalAlignmentValues.Justify); break;
+                case "LEFT": sheet.CellAlign(row, column, ExcelHorizontalAlignment.Left); break;
+                case "CENTER": sheet.CellAlign(row, column, ExcelHorizontalAlignment.Center); break;
+                case "RIGHT": sheet.CellAlign(row, column, ExcelHorizontalAlignment.Right); break;
+                case "JUSTIFY": sheet.CellAlign(row, column, ExcelHorizontalAlignment.Justify); break;
             }
             switch (format.VerticalAlignment) {
-                case "TOP": sheet.CellVerticalAlign(row, column, VerticalAlignmentValues.Top); break;
-                case "MIDDLE": sheet.CellVerticalAlign(row, column, VerticalAlignmentValues.Center); break;
-                case "BOTTOM": sheet.CellVerticalAlign(row, column, VerticalAlignmentValues.Bottom); break;
+                case "TOP": sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Top); break;
+                case "MIDDLE": sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center); break;
+                case "BOTTOM": sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Bottom); break;
             }
             if (string.Equals(format.WrapStrategy, "WRAP", StringComparison.Ordinal)) sheet.CellWrapText(row, column);
             if (format.TextRotation?.Vertical == true) sheet.CellTextRotation(row, column, 255);

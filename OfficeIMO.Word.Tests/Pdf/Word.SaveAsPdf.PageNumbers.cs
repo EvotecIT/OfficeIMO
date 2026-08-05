@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeSectionPageNumbering.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.Sections[0].AddPageNumbering(3, NumberFormatValues.UpperRoman);
+                document.Sections[0].AddPageNumbering(3, WordNumberFormat.UpperRoman);
                 document.AddParagraph("Native section page numbering first page");
                 document.AddPageBreak();
                 document.AddParagraph("Native section page numbering second page");
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("First section second page");
 
                 WordSection secondSection = document.AddSection();
-                secondSection.AddPageNumbering(1, NumberFormatValues.Decimal);
+                secondSection.AddPageNumbering(1, WordNumberFormat.Decimal);
                 RequireSectionFooter(document, 1, HeaderFooterValues.Default)
                     .AddParagraph("Restart field footer ")
                     .AddPageNumber(includeTotalPages: true, separator: " / ");
@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("First section second page");
 
                 WordSection secondSection = document.AddSection();
-                secondSection.AddPageNumbering(1, NumberFormatValues.Decimal);
+                secondSection.AddPageNumbering(1, WordNumberFormat.Decimal);
                 WordParagraph secondFooter = RequireSectionFooter(document, 1, HeaderFooterValues.Default).AddParagraph("Second section ");
                 secondFooter.AddField(WordFieldType.Page);
                 secondFooter.AddText(" / ");

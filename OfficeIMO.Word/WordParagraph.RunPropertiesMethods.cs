@@ -28,7 +28,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="underline">Underline style.</param>
         /// <returns>The current paragraph instance.</returns>
-        public WordParagraph SetUnderline(UnderlineValues underline) {
+        public WordParagraph SetUnderline(WordUnderlineStyle underline) {
             this.Underline = underline;
             return this;
         }
@@ -149,7 +149,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="alignment">Alignment value.</param>
         /// <returns>The current paragraph instance.</returns>
-        public WordParagraph SetAlignment(JustificationValues alignment) {
+        public WordParagraph SetAlignment(WordParagraphAlignment alignment) {
             this.ParagraphAlignment = alignment;
             return this;
         }
@@ -159,7 +159,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="highlight">Highlight color.</param>
         /// <returns>The current paragraph instance.</returns>
-        public WordParagraph SetHighlight(HighlightColorValues highlight) {
+        public WordParagraph SetHighlight(WordHighlightColor highlight) {
             this.Highlight = highlight;
             return this;
         }
@@ -245,7 +245,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="verticalPositionValue"></param>
         /// <returns></returns>
-        public WordParagraph SetVerticalTextAlignment(VerticalPositionValues? verticalPositionValue) {
+        public WordParagraph SetVerticalTextAlignment(WordVerticalTextPosition? verticalPositionValue) {
             VerticalTextAlignment = verticalPositionValue;
             return this;
         }
@@ -255,7 +255,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns></returns>
         public WordParagraph SetSubScript() {
-            VerticalTextAlignment = VerticalPositionValues.Subscript;
+            VerticalTextAlignment = WordVerticalTextPosition.Subscript;
             return this;
         }
 
@@ -264,7 +264,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns></returns>
         public WordParagraph SetSuperScript() {
-            VerticalTextAlignment = VerticalPositionValues.Superscript;
+            VerticalTextAlignment = WordVerticalTextPosition.Superscript;
             return this;
         }
     }

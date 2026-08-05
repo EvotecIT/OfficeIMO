@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,13 +16,13 @@ internal static partial class PageSettings {
             Console.WriteLine("Default page orientation: " + document.PageSettings.Orientation);
             Console.WriteLine("Default page orientation: " + document.PageOrientation);
             // this sets the page orientation to proper value
-            document.PageOrientation = PageOrientationValues.Portrait;
+            document.PageOrientation = WordPageOrientation.Portrait;
 
             Console.WriteLine("Page orientation 1: " + document.PageSettings.Orientation);
             Console.WriteLine("Page orientation 1: " + document.PageOrientation);
 
             // this sets the page orientation to proper value, using PageSettings
-            document.PageSettings.Orientation = PageOrientationValues.Landscape;
+            document.PageSettings.Orientation = WordPageOrientation.Landscape;
 
             Console.WriteLine("Page orientation 2: " + document.PageSettings.Orientation);
             Console.WriteLine("Page orientation 2: " + document.PageOrientation);

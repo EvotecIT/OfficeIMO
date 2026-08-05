@@ -51,7 +51,7 @@ namespace OfficeIMO.Word.Markdown {
         /// <summary>
         /// Optional default page orientation applied when creating new documents.
         /// </summary>
-        public PageOrientationValues? DefaultOrientation { get; set; }
+        public WordPageOrientation? DefaultOrientation { get; set; }
 
         /// <summary>
         /// Applies default page settings to the provided document instance.

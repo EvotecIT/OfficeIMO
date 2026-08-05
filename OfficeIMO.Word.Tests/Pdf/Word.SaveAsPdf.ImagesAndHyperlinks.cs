@@ -41,15 +41,15 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordParagraph left = document.AddParagraph();
-            left.ParagraphAlignment = JustificationValues.Left;
+            left.ParagraphAlignment = WordParagraphAlignment.Left;
             left.AddImage(imagePath, 48, 48);
 
             WordParagraph center = document.AddParagraph();
-            center.ParagraphAlignment = JustificationValues.Center;
+            center.ParagraphAlignment = WordParagraphAlignment.Center;
             center.AddImage(imagePath, 48, 48);
 
             WordParagraph right = document.AddParagraph();
-            right.ParagraphAlignment = JustificationValues.Right;
+            right.ParagraphAlignment = WordParagraphAlignment.Right;
             right.AddImage(imagePath, 48, 48);
 
             document.Save();
@@ -152,7 +152,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Logo content control:");
             WordParagraph picture = document.AddParagraph();
-            picture.ParagraphAlignment = JustificationValues.Center;
+            picture.ParagraphAlignment = WordParagraphAlignment.Center;
             picture.AddPictureControl(imagePath, 48, 48, "Logo", "LogoTag");
 
             document.Save();
@@ -179,13 +179,13 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-            table.WidthType = TableWidthUnitValues.Dxa;
+            table.WidthType = WordTableWidthUnit.Dxa;
             table.Width = 7200;
             table.ColumnWidth = new[] { 7200 }.ToList();
-            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidthType = WordTableWidthUnit.Dxa;
             WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "Logo content control in a table";
-            paragraph.ParagraphAlignment = JustificationValues.Center;
+            paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
             paragraph.AddPictureControl(imagePath, 48, 48, "Cell Logo", "CellLogo");
 
             document.Save();

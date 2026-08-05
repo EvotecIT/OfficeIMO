@@ -130,7 +130,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the category axis tick label position.
         /// </summary>
-        public ExcelChart SetCategoryAxisTickLabelPosition(C.TickLabelPositionValues position,
+        public ExcelChart SetCategoryAxisTickLabelPosition(ExcelChartTickLabelPosition position,
             ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
             return SetAxisTickLabelPosition(axisGroup, AxisKind.Category, position);
         }
@@ -138,7 +138,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the value axis tick label position.
         /// </summary>
-        public ExcelChart SetValueAxisTickLabelPosition(C.TickLabelPositionValues position,
+        public ExcelChart SetValueAxisTickLabelPosition(ExcelChartTickLabelPosition position,
             ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
             return SetAxisTickLabelPosition(axisGroup, AxisKind.Value, position);
         }
@@ -146,7 +146,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets how the value axis crosses between categories.
         /// </summary>
-        public ExcelChart SetValueAxisCrossBetween(C.CrossBetweenValues between,
+        public ExcelChart SetValueAxisCrossBetween(ExcelChartAxisCrossBetween between,
             ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -159,7 +159,7 @@ namespace OfficeIMO.Excel {
                 return this;
             }
 
-            ReplaceChild(axis, new C.CrossBetween { Val = between });
+            ReplaceChild(axis, new C.CrossBetween { Val = between.ToOpenXml() });
             Save();
             return this;
         }
@@ -167,7 +167,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets where the category axis crosses the value axis.
         /// </summary>
-        public ExcelChart SetCategoryAxisCrossing(C.CrossesValues crosses, double? crossesAt = null,
+        public ExcelChart SetCategoryAxisCrossing(ExcelChartAxisCrossing crosses, double? crossesAt = null,
             ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
             if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
@@ -192,7 +192,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets where the value axis crosses the category axis.
         /// </summary>
-        public ExcelChart SetValueAxisCrossing(C.CrossesValues crosses, double? crossesAt = null,
+        public ExcelChart SetValueAxisCrossing(ExcelChartAxisCrossing crosses, double? crossesAt = null,
             ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
             if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
@@ -218,7 +218,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets where the scatter X-axis crosses the Y-axis.
         /// </summary>
-        public ExcelChart SetScatterXAxisCrossing(C.CrossesValues crosses, double? crossesAt = null) {
+        public ExcelChart SetScatterXAxisCrossing(ExcelChartAxisCrossing crosses, double? crossesAt = null) {
             if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
@@ -243,7 +243,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets where the scatter Y-axis crosses the X-axis.
         /// </summary>
-        public ExcelChart SetScatterYAxisCrossing(C.CrossesValues crosses, double? crossesAt = null) {
+        public ExcelChart SetScatterYAxisCrossing(ExcelChartAxisCrossing crosses, double? crossesAt = null) {
             if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
@@ -268,7 +268,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets display units for the value axis.
         /// </summary>
-        public ExcelChart SetValueAxisDisplayUnits(C.BuiltInUnitValues unit, bool showLabel = true,
+        public ExcelChart SetValueAxisDisplayUnits(ExcelChartDisplayUnit unit, bool showLabel = true,
             ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -284,7 +284,7 @@ namespace OfficeIMO.Excel {
             C.DisplayUnits displayUnits = axis.GetFirstChild<C.DisplayUnits>() ?? new C.DisplayUnits();
             displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
             displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-            displayUnits.Append(new C.BuiltInUnit { Val = unit });
+            displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
             ApplyDisplayUnitsLabel(displayUnits, showLabel);
             if (displayUnits.Parent == null) {
                 axis.Append(displayUnits);
@@ -297,7 +297,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets display units for the value axis with custom label text.
         /// </summary>
-        public ExcelChart SetValueAxisDisplayUnits(C.BuiltInUnitValues unit, string labelText, bool showLabel = true,
+        public ExcelChart SetValueAxisDisplayUnits(ExcelChartDisplayUnit unit, string labelText, bool showLabel = true,
             ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
             if (string.IsNullOrWhiteSpace(labelText)) {
                 throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
@@ -317,7 +317,7 @@ namespace OfficeIMO.Excel {
             C.DisplayUnits displayUnits = axis.GetFirstChild<C.DisplayUnits>() ?? new C.DisplayUnits();
             displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
             displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-            displayUnits.Append(new C.BuiltInUnit { Val = unit });
+            displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
             ApplyDisplayUnitsLabel(displayUnits, showLabel, labelText);
             if (displayUnits.Parent == null) {
                 axis.Append(displayUnits);
@@ -844,7 +844,7 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelChart SetAxisTickLabelPosition(ExcelChartAxisGroup axisGroup, AxisKind axisKind,
-            C.TickLabelPositionValues position) {
+            ExcelChartTickLabelPosition position) {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
             if (plotArea == null) {
@@ -863,7 +863,7 @@ namespace OfficeIMO.Excel {
                 return this;
             }
 
-            ReplaceChild(axis, new C.TickLabelPosition { Val = position });
+            ReplaceChild(axis, new C.TickLabelPosition { Val = position.ToOpenXml() });
             Save();
             return this;
         }

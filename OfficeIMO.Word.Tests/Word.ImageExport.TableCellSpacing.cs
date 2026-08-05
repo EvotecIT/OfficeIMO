@@ -17,9 +17,9 @@ namespace OfficeIMO.Tests {
             document.Margins.Type = WordMargin.Narrow;
             ClearDocumentDefaultParagraphSpacing(document);
             WordTable table = document.AddTable(1, 1);
-            table.WidthType = TableWidthUnitValues.Dxa;
+            table.WidthType = WordTableWidthUnit.Dxa;
             table.Width = 4200;
-            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidthType = WordTableWidthUnit.Dxa;
             table.ColumnWidth = new List<int> { 4200 };
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = "Cell spacing first";
@@ -75,9 +75,9 @@ namespace OfficeIMO.Tests {
                     CustomStyle = true
                 });
             WordTable table = document.AddTable(1, 1);
-            table.WidthType = TableWidthUnitValues.Dxa;
+            table.WidthType = WordTableWidthUnit.Dxa;
             table.Width = 4200;
-            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidthType = WordTableWidthUnit.Dxa;
             table.ColumnWidth = new List<int> { 4200 };
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = "Cell contextual first";
@@ -112,9 +112,9 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(stream);
             document.Margins.Type = WordMargin.Narrow;
             WordTable table = document.AddTable(1, 1);
-            table.WidthType = TableWidthUnitValues.Dxa;
+            table.WidthType = WordTableWidthUnit.Dxa;
             table.Width = 4200;
-            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidthType = WordTableWidthUnit.Dxa;
             table.ColumnWidth = new List<int> { 4200 };
             WordTableCell cell = table.Rows[0].Cells[0];
             WordList bullets = cell.AddList(WordListStyle.Bulleted);

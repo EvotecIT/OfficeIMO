@@ -220,7 +220,7 @@ public partial class Word {
 
             WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             WordParagraph footerParagraph = footer.AddParagraph();
-            footerParagraph.ParagraphAlignment = JustificationValues.Right;
+            footerParagraph.ParagraphAlignment = WordParagraphAlignment.Right;
             footerParagraph.AddShape(ShapeType.Rectangle, 34, 14, "#ffe699", "#663300", 1.25);
 
             document.AddParagraph("Native header footer shape body");
@@ -254,7 +254,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             WordParagraph headerParagraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native image header");
-            headerParagraph.ParagraphAlignment = JustificationValues.Center;
+            headerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
             headerParagraph.AddImage(imagePath, 32, 32);
 
             WordTable footerTable = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddTable(1, 3, WordTableStyle.TableNormal);
@@ -293,7 +293,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             WordParagraph headerParagraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native picture-control header");
-            headerParagraph.ParagraphAlignment = JustificationValues.Center;
+            headerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
             headerParagraph.AddPictureControl(imagePath, 32, 32, "Header Logo", "HeaderLogo");
 
             WordTable footerTable = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddTable(1, 3, WordTableStyle.TableNormal);

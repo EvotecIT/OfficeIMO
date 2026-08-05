@@ -32,7 +32,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
 
-                document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
+                document.Sections[0].PageOrientation = WordPageOrientation.Landscape;
 
                 var headers = RequireHeaders(document.Header, "Document headers");
                 var defaultHeader = RequireHeader(headers.Default, "Default header");
@@ -43,7 +43,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddPageBreak();
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 var section2 = document.AddSection();
@@ -56,7 +56,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraghInHeaderSection1.Text = "Weird shit? 1";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 var section3 = document.AddSection();
@@ -69,7 +69,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraghInHeaderSection3.Text = "Weird shit? 2";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 // 2 section, 9 paragraphs + 7 pagebreaks = 15 paragraphs, 7 pagebreaks

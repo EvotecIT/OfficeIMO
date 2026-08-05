@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with Custom Lists 2.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("This is 1st list");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 // create list with bulleted style
                 // we could have used CustomStyle, but we are using Bulleted to show removal of levels
@@ -139,7 +139,7 @@ namespace OfficeIMO.Examples.Word {
                 wordList3.Numbering.AddLevel(level33);
                 var level34 = new WordListLevel(WordListLevelKind.LowerRoman);
                 level34.StartNumberingValue = 4;
-                level34.LevelJustification = LevelJustificationValues.Right;
+                level34.LevelJustification = WordListLevelAlignment.Right;
                 wordList3.Numbering.AddLevel(level34);
                 var level35 = new WordListLevel(WordListLevelKind.LowerRomanBracket);
                 wordList3.Numbering.AddLevel(level35);

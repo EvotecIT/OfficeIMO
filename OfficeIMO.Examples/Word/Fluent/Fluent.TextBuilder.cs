@@ -14,8 +14,8 @@ namespace OfficeIMO.Examples.Word {
                     .Paragraph(p => p.Text("Hello")
                         .Text(" World", t => t.BoldOn().ItalicOn().Color("#ff0000"))
                         .Text(" Formatting", t => t
-                            .Underline(UnderlineValues.Single)
-                            .Highlight(HighlightColorValues.Yellow)
+                            .Underline(WordUnderlineStyle.Single)
+                            .Highlight(WordHighlightColor.Yellow)
                             .FontSize(18)
                             .FontFamily("Arial")
                             .CapsStyle(CapsStyle.SmallCaps)

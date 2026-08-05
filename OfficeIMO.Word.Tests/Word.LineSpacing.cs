@@ -29,7 +29,7 @@ public partial class Word {
 
             var par02 = document.AddParagraph("My declaration 3");
             par02.LineSpacing = 360;
-            par02.LineSpacingRule = LineSpacingRuleValues.Exact;
+            par02.LineSpacingRule = WordLineSpacingRule.Exact;
 
 
             Assert.Equal(0, par00.LineSpacingAfter);
@@ -39,7 +39,7 @@ public partial class Word {
             Assert.Equal(0, par01.LineSpacingBefore);
 
             Assert.Equal(360, par02.LineSpacing);
-            Assert.Equal(LineSpacingRuleValues.Exact, par02.LineSpacingRule);
+            Assert.Equal(WordLineSpacingRule.Exact, par02.LineSpacingRule);
 
             Assert.Equal(0, document.Paragraphs[0].LineSpacingAfter);
             Assert.Equal(0, document.Paragraphs[0].LineSpacingBefore);
@@ -48,7 +48,7 @@ public partial class Word {
             Assert.Equal(0, document.Paragraphs[1].LineSpacingBefore);
 
             Assert.Equal(360, document.Paragraphs[2].LineSpacing);
-            Assert.Equal(LineSpacingRuleValues.Exact, document.Paragraphs[2].LineSpacingRule);
+            Assert.Equal(WordLineSpacingRule.Exact, document.Paragraphs[2].LineSpacingRule);
             Assert.True(document.Paragraphs[2].Text == "My declaration 3");
 
             Assert.Equal(3, document.Paragraphs.Count);
@@ -64,12 +64,12 @@ public partial class Word {
             Assert.Equal(0, document.Paragraphs[1].LineSpacingBefore);
 
             Assert.Equal(360, document.Paragraphs[2].LineSpacing);
-            Assert.Equal(LineSpacingRuleValues.Exact, document.Paragraphs[2].LineSpacingRule);
+            Assert.Equal(WordLineSpacingRule.Exact, document.Paragraphs[2].LineSpacingRule);
             Assert.True(document.Paragraphs[2].Text == "My declaration 3");
 
             var par02 = document.AddParagraph("My declaration 4");
             par02.LineSpacing = 250;
-            par02.LineSpacingRule = LineSpacingRuleValues.AtLeast;
+            par02.LineSpacingRule = WordLineSpacingRule.AtLeast;
 
             document.Save();
         }
@@ -82,11 +82,11 @@ public partial class Word {
             Assert.Equal(0, document.Paragraphs[1].LineSpacingBefore);
 
             Assert.Equal(360, document.Paragraphs[2].LineSpacing);
-            Assert.Equal(LineSpacingRuleValues.Exact, document.Paragraphs[2].LineSpacingRule);
+            Assert.Equal(WordLineSpacingRule.Exact, document.Paragraphs[2].LineSpacingRule);
             Assert.True(document.Paragraphs[2].Text == "My declaration 3");
 
             Assert.Equal(250, document.Paragraphs[3].LineSpacing);
-            Assert.Equal(LineSpacingRuleValues.AtLeast, document.Paragraphs[3].LineSpacingRule);
+            Assert.Equal(WordLineSpacingRule.AtLeast, document.Paragraphs[3].LineSpacingRule);
             Assert.True(document.Paragraphs[3].Text == "My declaration 4");
 
         }

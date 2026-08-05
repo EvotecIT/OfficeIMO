@@ -24,8 +24,8 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(1, 3, "Code");
                     sheet.CellValue(2, 1, 5d);
 
-                    sheet.ValidationDate("B2:B5", OpenXmlDataValidationOperatorValues.Between, minimumDate, maximumDate, errorTitle: "Invalid date", errorMessage: "Use a date in 2024.");
-                    sheet.ValidationTextLength("C2:C5", OpenXmlDataValidationOperatorValues.LessThanOrEqual, 12, errorTitle: "Invalid code", errorMessage: "Use at most 12 characters.");
+                    sheet.ValidationDate("B2:B5", ExcelDataValidationOperator.Between, minimumDate, maximumDate, errorTitle: "Invalid date", errorMessage: "Use a date in 2024.");
+                    sheet.ValidationTextLength("C2:C5", ExcelDataValidationOperator.LessThanOrEqual, 12, errorTitle: "Invalid code", errorMessage: "Use at most 12 characters.");
                     sheet.ValidationCustomFormula("A2:A5", "A2>0", errorTitle: "Invalid amount", errorMessage: "Use a positive amount.");
 
                     document.Save(xlsOutputPath);
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorksheet("SingleDv");
                     sheet.CellValue(1, 1, 3d);
-                    sheet.ValidationWholeNumber("A1", OpenXmlDataValidationOperatorValues.Between, 1, 5);
+                    sheet.ValidationWholeNumber("A1", ExcelDataValidationOperator.Between, 1, 5);
 
                     document.Save(xlsOutputPath);
                 }

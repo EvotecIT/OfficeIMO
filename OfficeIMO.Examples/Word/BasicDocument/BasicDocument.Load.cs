@@ -18,11 +18,11 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine($"Footnotes start: {document.FootnoteProperties?.NumberingStart?.Val}");
                 Console.WriteLine($"Endnotes restart: {document.EndnoteProperties?.NumberingRestart?.Val}");
 
-                document.AddFootnoteProperties(position: FootnotePositionValues.PageBottom,
-                                            restartNumbering: RestartNumberValues.EachSection,
+                document.AddFootnoteProperties(position: WordFootnotePosition.PageBottom,
+                                            restartNumbering: WordNoteNumberRestart.EachSection,
                                             startNumber: 1);
-                document.AddEndnoteProperties(position: EndnotePositionValues.SectionEnd,
-                                            restartNumbering: RestartNumberValues.EachSection,
+                document.AddEndnoteProperties(position: WordEndnotePosition.SectionEnd,
+                                            restartNumbering: WordNoteNumberRestart.EachSection,
                                             startNumber: 1);
 
                 Console.WriteLine("----");

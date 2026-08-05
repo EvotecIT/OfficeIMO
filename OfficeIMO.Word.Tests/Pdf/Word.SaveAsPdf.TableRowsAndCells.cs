@@ -48,7 +48,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 2);
-            table.LayoutType = TableLayoutValues.Fixed;
+            table.LayoutType = WordTableLayoutMode.Fixed;
             table.Rows[0].Cells[0].Width = 2400;
             table.Rows[0].Cells[1].Width = 2400;
 
@@ -99,7 +99,7 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(1, 2);
-            table.LayoutType = TableLayoutValues.Fixed;
+            table.LayoutType = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.Rows[0].Cells[0].Width = 2400;
             table.Rows[0].Cells[1].Width = 2400;
@@ -148,7 +148,7 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(1, 1);
-            table.LayoutType = TableLayoutValues.Fixed;
+            table.LayoutType = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.Rows[0].Cells[0].Width = 3600;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "TableStyledSub";
@@ -346,12 +346,12 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 1);
-            table.WidthType = TableWidthUnitValues.Dxa;
+            table.WidthType = WordTableWidthUnit.Dxa;
             table.Width = 2200;
             table.Rows[0].Height = 360;
             table.Rows[0]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = heightRule;
             table.Rows[0].Cells[0].Width = 2200;
-            table.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Alpha Beta Gamma Delta Epsilon Zeta Eta Theta";
             table.Rows[1].Cells[0].Paragraphs[0].Text = followingRowText;
 
@@ -378,12 +378,12 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 2);
-            table.WidthType = TableWidthUnitValues.Pct;
+            table.WidthType = WordTableWidthUnit.Pct;
             table.Width = 5000;
             table.Rows[0].Cells[0].Width = 1440;
-            table.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
             table.Rows[0].Cells[1].Width = 1440;
-            table.Rows[0].Cells[1].WidthType = TableWidthUnitValues.Dxa;
+            table.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "LeftColumn";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "RightColumn";
 
@@ -413,13 +413,13 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 3);
             table.Width = 4320;
-            table.WidthType = TableWidthUnitValues.Dxa;
-            table.LayoutType = TableLayoutValues.Fixed;
+            table.WidthType = WordTableWidthUnit.Dxa;
+            table.LayoutType = WordTableLayoutMode.Fixed;
             table.GridColumnWidth = new List<int> { 1440, 1440, 1440 };
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
                     cell.Width = 1440;
-                    cell.WidthType = TableWidthUnitValues.Dxa;
+                    cell.WidthType = WordTableWidthUnit.Dxa;
                 }
             }
 
@@ -463,12 +463,12 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 3);
             table.Width = 4320;
-            table.WidthType = TableWidthUnitValues.Dxa;
-            table.LayoutType = TableLayoutValues.Fixed;
+            table.WidthType = WordTableWidthUnit.Dxa;
+            table.LayoutType = WordTableLayoutMode.Fixed;
             table.GridColumnWidth = new List<int> { 1440, 1440, 1440 };
             foreach (WordTableCell cell in table.Rows[0].Cells) {
                 cell.Width = 1440;
-                cell.WidthType = TableWidthUnitValues.Dxa;
+                cell.WidthType = WordTableWidthUnit.Dxa;
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "GALeft";
@@ -502,9 +502,9 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 7);
-            table.WidthType = TableWidthUnitValues.Pct;
+            table.WidthType = WordTableWidthUnit.Pct;
             table.Width = 5000;
-            table.LayoutType = TableLayoutValues.Autofit;
+            table.LayoutType = WordTableLayoutMode.Autofit;
             string[] headers = {
                 "Item",
                 "IssuedOn",
@@ -526,10 +526,10 @@ public partial class Word {
 
             for (int column = 0; column < headers.Length; column++) {
                 table.Rows[0].Cells[column].Width = 2400;
-                table.Rows[0].Cells[column].WidthType = TableWidthUnitValues.Dxa;
+                table.Rows[0].Cells[column].WidthType = WordTableWidthUnit.Dxa;
                 table.Rows[0].Cells[column].Paragraphs[0].Text = headers[column];
                 table.Rows[1].Cells[column].Width = 2400;
-                table.Rows[1].Cells[column].WidthType = TableWidthUnitValues.Dxa;
+                table.Rows[1].Cells[column].WidthType = WordTableWidthUnit.Dxa;
                 table.Rows[1].Cells[column].Paragraphs[0].Text = values[column];
             }
 
@@ -594,11 +594,11 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1);
             table.Width = 900;
-            table.WidthType = TableWidthUnitValues.Dxa;
-            table.LayoutType = TableLayoutValues.Fixed;
+            table.WidthType = WordTableWidthUnit.Dxa;
+            table.LayoutType = WordTableLayoutMode.Fixed;
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Width = 900;
-            cell.WidthType = TableWidthUnitValues.Dxa;
+            cell.WidthType = WordTableWidthUnit.Dxa;
             cell.WrapText = wrapText;
             cell.Paragraphs[0].Text = tableMarker + " Alpha Beta Gamma Delta Epsilon";
 
@@ -646,7 +646,7 @@ public partial class Word {
 
             WordTable table = document.AddTable(1, 1);
             table.Width = 2880;
-            table.WidthType = TableWidthUnitValues.Dxa;
+            table.WidthType = WordTableWidthUnit.Dxa;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = firstMarker;
@@ -678,17 +678,17 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1);
             table.Width = 900;
-            table.WidthType = TableWidthUnitValues.Dxa;
-            table.LayoutType = TableLayoutValues.Fixed;
+            table.WidthType = WordTableWidthUnit.Dxa;
+            table.LayoutType = WordTableLayoutMode.Fixed;
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Width = 900;
-            cell.WidthType = TableWidthUnitValues.Dxa;
+            cell.WidthType = WordTableWidthUnit.Dxa;
 
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = firstMarker + " " + secondMarker;
             paragraph.LineSpacingAfterPoints = 0D;
             paragraph.LineSpacingPoints = lineSpacingPoints;
-            paragraph.LineSpacingRule = LineSpacingRuleValues.Exact;
+            paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
@@ -726,11 +726,11 @@ public partial class Word {
 
             WordTable table = document.AddTable(1, 1);
             table.Width = 3000;
-            table.WidthType = TableWidthUnitValues.Dxa;
-            table.LayoutType = TableLayoutValues.Fixed;
+            table.WidthType = WordTableWidthUnit.Dxa;
+            table.LayoutType = WordTableLayoutMode.Fixed;
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Width = 3000;
-            cell.WidthType = TableWidthUnitValues.Dxa;
+            cell.WidthType = WordTableWidthUnit.Dxa;
 
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = string.Empty;
@@ -739,7 +739,7 @@ public partial class Word {
             paragraph.AddText(secondMarker).SetCharacterStyleId(styleId);
             paragraph.LineSpacingAfterPoints = 0D;
             paragraph.LineSpacingPoints = 18D;
-            paragraph.LineSpacingRule = LineSpacingRuleValues.Exact;
+            paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
@@ -890,8 +890,8 @@ public partial class Word {
 
             WordTable table = document.AddTable(2, 2);
             table.Width = 3600;
-            table.WidthType = TableWidthUnitValues.Dxa;
-            table.LayoutType = TableLayoutValues.Fixed;
+            table.WidthType = WordTableWidthUnit.Dxa;
+            table.LayoutType = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstColumn = true;
             foreach (WordTableRow row in table.Rows) {
@@ -899,13 +899,13 @@ public partial class Word {
                 row._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
                 foreach (WordTableCell cell in row.Cells) {
                     cell.Width = 1800;
-                    cell.WidthType = TableWidthUnitValues.Dxa;
+                    cell.WidthType = WordTableWidthUnit.Dxa;
                 }
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "BottomCell";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "TopPeer";
-            table.Rows[1].Cells[0].VerticalAlignment = TableVerticalAlignmentValues.Top;
+            table.Rows[1].Cells[0].VerticalAlignment = WordTableVerticalAlignment.Top;
             table.Rows[1].Cells[0].Paragraphs[0].Text = "DirectTop";
             table.Rows[1].Cells[1].Paragraphs[0].Text = "DirectTopPeer";
 
@@ -953,13 +953,13 @@ public partial class Word {
 
             WordTable table = document.AddTable(2, 1);
             table.Width = 3600;
-            table.WidthType = TableWidthUnitValues.Dxa;
-            table.LayoutType = TableLayoutValues.Fixed;
+            table.WidthType = WordTableWidthUnit.Dxa;
+            table.LayoutType = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstRow = true;
             foreach (WordTableRow row in table.Rows) {
                 row.Cells[0].Width = 3600;
-                row.Cells[0].WidthType = TableWidthUnitValues.Dxa;
+                row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "CenteredAA";
@@ -1011,13 +1011,13 @@ public partial class Word {
 
             WordTable table = document.AddTable(2, 1);
             table.Width = 900;
-            table.WidthType = TableWidthUnitValues.Dxa;
-            table.LayoutType = TableLayoutValues.Fixed;
+            table.WidthType = WordTableWidthUnit.Dxa;
+            table.LayoutType = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstRow = true;
             foreach (WordTableRow row in table.Rows) {
                 row.Cells[0].Width = 900;
-                row.Cells[0].WidthType = TableWidthUnitValues.Dxa;
+                row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "TallA TallB";
@@ -1067,13 +1067,13 @@ public partial class Word {
 
             WordTable table = document.AddTable(2, 1);
             table.Width = 3600;
-            table.WidthType = TableWidthUnitValues.Dxa;
-            table.LayoutType = TableLayoutValues.Fixed;
+            table.WidthType = WordTableWidthUnit.Dxa;
+            table.LayoutType = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstRow = true;
             foreach (WordTableRow row in table.Rows) {
                 row.Cells[0].Width = 3600;
-                row.Cells[0].WidthType = TableWidthUnitValues.Dxa;
+                row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "StyledIndent";
@@ -1105,11 +1105,11 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 1);
             table.Width = 3000;
-            table.WidthType = TableWidthUnitValues.Dxa;
-            table.LayoutType = TableLayoutValues.Fixed;
+            table.WidthType = WordTableWidthUnit.Dxa;
+            table.LayoutType = WordTableLayoutMode.Fixed;
             foreach (WordTableRow row in table.Rows) {
                 row.Cells[0].Width = 3000;
-                row.Cells[0].WidthType = TableWidthUnitValues.Dxa;
+                row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "PlainCellIndent";
@@ -1143,14 +1143,14 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1);
             table.Width = 5200;
-            table.WidthType = TableWidthUnitValues.Dxa;
-            table.LayoutType = TableLayoutValues.Fixed;
+            table.WidthType = WordTableWidthUnit.Dxa;
+            table.LayoutType = WordTableLayoutMode.Fixed;
             table.Rows[0].Cells[0].Width = 5200;
-            table.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
 
             WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "CellTabRevenue\t42";
-            paragraph.AddTabStop(3600, TabStopValues.Right, TabStopLeaderCharValues.Dot);
+            paragraph.AddTabStop(3600, WordTabAlignment.Right, WordTabLeader.Dot);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
@@ -1346,10 +1346,10 @@ public partial class Word {
             document.Settings.DefaultTabStop = defaultTabStopTwips;
             WordTable table = document.AddTable(1, 1);
             table.Width = 5200;
-            table.WidthType = TableWidthUnitValues.Dxa;
-            table.LayoutType = TableLayoutValues.Fixed;
+            table.WidthType = WordTableWidthUnit.Dxa;
+            table.LayoutType = WordTableLayoutMode.Fixed;
             table.Rows[0].Cells[0].Width = 5200;
-            table.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "WWW\tDefaultCellTab";
 
             document.Save();
@@ -1378,7 +1378,7 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1);
             table._tableProperties!.TableStyle?.Remove();
             table.Rows[0].Cells[0].Width = 2880;
-            table.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = firstMarker;
             cell.Paragraphs[0].LineSpacingAfterPoints = firstSpacingAfter;
@@ -1423,10 +1423,10 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1);
             table._tableProperties!.TableStyle?.Remove();
             table.Width = 3200;
-            table.WidthType = TableWidthUnitValues.Dxa;
+            table.WidthType = WordTableWidthUnit.Dxa;
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Width = 3200;
-            cell.WidthType = TableWidthUnitValues.Dxa;
+            cell.WidthType = WordTableWidthUnit.Dxa;
             cell.Paragraphs[0].AddText(firstMarker).SetCharacterStyleId(styleId);
             cell.Paragraphs[0].LineSpacingAfterPoints = 0D;
             WordParagraph second = cell.AddParagraph(string.Empty);
@@ -1478,7 +1478,7 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1);
             table._tableProperties!.TableStyle?.Remove();
             table.Rows[0].Cells[0].Width = 2880;
-            table.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = firstMarker;
             cell.Paragraphs[0].SetStyleId(styleId);
@@ -1543,27 +1543,27 @@ public partial class Word {
             WordTableCell rightCell = table.Rows[0].Cells[2];
 
             leftCell.Width = 1440;
-            leftCell.WidthType = TableWidthUnitValues.Dxa;
+            leftCell.WidthType = WordTableWidthUnit.Dxa;
             centerCell.Width = 1440;
-            centerCell.WidthType = TableWidthUnitValues.Dxa;
+            centerCell.WidthType = WordTableWidthUnit.Dxa;
             rightCell.Width = 1440;
-            rightCell.WidthType = TableWidthUnitValues.Dxa;
+            rightCell.WidthType = WordTableWidthUnit.Dxa;
 
             leftCell.Paragraphs[0].Text = "TOP";
             leftCell.AddParagraph("PAD");
             leftCell.AddParagraph("PAD");
-            leftCell.Paragraphs[0].ParagraphAlignment = JustificationValues.Left;
-            leftCell.Paragraphs[1].ParagraphAlignment = JustificationValues.Left;
-            leftCell.Paragraphs[2].ParagraphAlignment = JustificationValues.Left;
-            leftCell.VerticalAlignment = TableVerticalAlignmentValues.Top;
+            leftCell.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Left;
+            leftCell.Paragraphs[1].ParagraphAlignment = WordParagraphAlignment.Left;
+            leftCell.Paragraphs[2].ParagraphAlignment = WordParagraphAlignment.Left;
+            leftCell.VerticalAlignment = WordTableVerticalAlignment.Top;
 
             centerCell.Paragraphs[0].Text = "MID";
-            centerCell.Paragraphs[0].ParagraphAlignment = JustificationValues.Center;
-            centerCell.VerticalAlignment = TableVerticalAlignmentValues.Center;
+            centerCell.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Center;
+            centerCell.VerticalAlignment = WordTableVerticalAlignment.Center;
 
             rightCell.Paragraphs[0].Text = "END";
-            rightCell.Paragraphs[0].ParagraphAlignment = JustificationValues.Right;
-            rightCell.VerticalAlignment = TableVerticalAlignmentValues.Bottom;
+            rightCell.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Right;
+            rightCell.VerticalAlignment = WordTableVerticalAlignment.Bottom;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
@@ -1599,13 +1599,13 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1);
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Width = 2880;
-            cell.WidthType = TableWidthUnitValues.Dxa;
+            cell.WidthType = WordTableWidthUnit.Dxa;
             cell.Paragraphs[0].Text = "LeftMix";
-            cell.Paragraphs[0].ParagraphAlignment = JustificationValues.Left;
+            cell.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Left;
             WordParagraph center = cell.AddParagraph("CenterMix");
-            center.ParagraphAlignment = JustificationValues.Center;
+            center.ParagraphAlignment = WordParagraphAlignment.Center;
             WordParagraph right = cell.AddParagraph("RightMix");
-            right.ParagraphAlignment = JustificationValues.Right;
+            right.ParagraphAlignment = WordParagraphAlignment.Right;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
@@ -1670,11 +1670,11 @@ public partial class Word {
             WordTableCell rightCell = table.Rows[0].Cells[2];
 
             leftCell.Width = 1440;
-            leftCell.WidthType = TableWidthUnitValues.Dxa;
+            leftCell.WidthType = WordTableWidthUnit.Dxa;
             centerCell.Width = 1440;
-            centerCell.WidthType = TableWidthUnitValues.Dxa;
+            centerCell.WidthType = WordTableWidthUnit.Dxa;
             rightCell.Width = 1440;
-            rightCell.WidthType = TableWidthUnitValues.Dxa;
+            rightCell.WidthType = WordTableWidthUnit.Dxa;
 
             leftCell.Paragraphs[0].Text = "SLEFT";
             centerCell.Paragraphs[0].Text = "SMID";
@@ -1716,20 +1716,20 @@ public partial class Word {
                 row.Height = 1100;
                 foreach (WordTableCell cell in row.Cells) {
                     cell.Width = 1440;
-                    cell.WidthType = TableWidthUnitValues.Dxa;
+                    cell.WidthType = WordTableWidthUnit.Dxa;
                 }
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "TopPeer";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "Left2";
-            table.Rows[0].Cells[1].Paragraphs[0].ParagraphAlignment = JustificationValues.Left;
-            table.Rows[0].Cells[1].VerticalAlignment = TableVerticalAlignmentValues.Top;
+            table.Rows[0].Cells[1].Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Left;
+            table.Rows[0].Cells[1].VerticalAlignment = WordTableVerticalAlignment.Top;
 
             table.Rows[1].Cells[0].Paragraphs[0].Text = "TopCell";
-            table.Rows[1].Cells[0].VerticalAlignment = TableVerticalAlignmentValues.Top;
+            table.Rows[1].Cells[0].VerticalAlignment = WordTableVerticalAlignment.Top;
             table.Rows[1].Cells[1].Paragraphs[0].Text = "R2";
-            table.Rows[1].Cells[1].Paragraphs[0].ParagraphAlignment = JustificationValues.Right;
-            table.Rows[1].Cells[1].VerticalAlignment = TableVerticalAlignmentValues.Bottom;
+            table.Rows[1].Cells[1].Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Right;
+            table.Rows[1].Cells[1].VerticalAlignment = WordTableVerticalAlignment.Bottom;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
@@ -1762,16 +1762,16 @@ public partial class Word {
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
                     cell.Width = 1440;
-                    cell.WidthType = TableWidthUnitValues.Dxa;
+                    cell.WidthType = WordTableWidthUnit.Dxa;
                 }
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].AddHyperLink("Across", new Uri(horizontalUri), addStyle: true, tooltip: "Column span metadata");
-            table.Rows[0].Cells[0].Paragraphs[0].ParagraphAlignment = JustificationValues.Center;
+            table.Rows[0].Cells[0].Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Center;
             table.Rows[0].Cells[2].Paragraphs[0].Text = "TopTail";
 
             table.Rows[1].Cells[0].Paragraphs[0].AddHyperLink("Tall", new Uri(verticalUri), addStyle: true, tooltip: "Row span metadata");
-            table.Rows[1].Cells[0].VerticalAlignment = TableVerticalAlignmentValues.Center;
+            table.Rows[1].Cells[0].VerticalAlignment = WordTableVerticalAlignment.Center;
             table.Rows[1].Cells[1].Paragraphs[0].Text = "Upper";
             table.Rows[1].Cells[2].Paragraphs[0].Text = "UpperTail";
             table.Rows[2].Cells[1].Paragraphs[0].Text = "Lower";

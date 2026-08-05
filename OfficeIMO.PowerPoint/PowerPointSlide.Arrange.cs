@@ -179,7 +179,7 @@ namespace OfficeIMO.PowerPoint {
             switch (shape) {
                 case PowerPointAutoShape auto when auto.ShapeType != null:
                     return auto.ShapeType.Value.ToString();
-                case PowerPointTextBox textBox when textBox.PlaceholderType == PlaceholderValues.Title:
+                case PowerPointTextBox textBox when textBox.PlaceholderType == PowerPointPlaceholderType.Title:
                     return "Title";
                 case PowerPointTextBox:
                     return "TextBox";

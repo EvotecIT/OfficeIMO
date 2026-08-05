@@ -78,7 +78,7 @@ namespace OfficeIMO.Word.Fluent {
         /// Appends underlined text (Markdown parity helper).
         /// </summary>
         public ParagraphBuilder Underline(string text) {
-            return Text(text, t => t.Underline(UnderlineValues.Single));
+            return Text(text, t => t.Underline(WordUnderlineStyle.Single));
         }
 
         /// <summary>
@@ -100,7 +100,7 @@ namespace OfficeIMO.Word.Fluent {
         /// Inserts a break into the paragraph.
         /// </summary>
         /// <param name="breakType">Optional break type.</param>
-        public ParagraphBuilder Break(BreakValues? breakType = null) {
+        public ParagraphBuilder Break(WordBreakType? breakType = null) {
             _paragraph.AddBreak(breakType);
             return this;
         }
@@ -119,9 +119,9 @@ namespace OfficeIMO.Word.Fluent {
         /// <param name="alignment">Desired alignment.</param>
         public ParagraphBuilder Align(HorizontalAlignment alignment) {
             _paragraph.ParagraphAlignment = alignment switch {
-                HorizontalAlignment.Center => JustificationValues.Center,
-                HorizontalAlignment.Right => JustificationValues.Right,
-                _ => JustificationValues.Left,
+                HorizontalAlignment.Center => WordParagraphAlignment.Center,
+                HorizontalAlignment.Right => WordParagraphAlignment.Right,
+                _ => WordParagraphAlignment.Left,
             };
             return this;
         }
@@ -130,7 +130,7 @@ namespace OfficeIMO.Word.Fluent {
         /// Applies justified alignment to the paragraph.
         /// </summary>
         public ParagraphBuilder Justify() {
-            _paragraph.ParagraphAlignment = JustificationValues.Both;
+            _paragraph.ParagraphAlignment = WordParagraphAlignment.Both;
             return this;
         }
 

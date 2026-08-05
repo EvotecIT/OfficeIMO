@@ -91,21 +91,21 @@ namespace OfficeIMO.Tests {
                 var sdt1 = para1.AddStructuredDocumentTag("Styled", "AliasProps", "TagProps");
                 sdt1.Bold = true;
                 sdt1.Italic = true;
-                sdt1.Underline = UnderlineValues.Single;
+                sdt1.Underline = WordUnderlineStyle.Single;
                 sdt1.FontFamily = "Calibri";
                 sdt1.FontSize = 12;
                 sdt1.ColorHex = "2F5597";
-                sdt1.Highlight = HighlightColorValues.Yellow;
+                sdt1.Highlight = WordHighlightColor.Yellow;
 
                 var para2 = document.AddParagraph("Formatted fluent:");
                 para2.AddStructuredDocumentTag("Fluent", "AliasFluent", "TagFluent")
                     .SetBold()
                     .SetItalic()
-                    .SetUnderline(UnderlineValues.Single)
+                    .SetUnderline(WordUnderlineStyle.Single)
                     .SetFontFamily("Calibri")
                     .SetFontSize(14)
                     .SetColorHex("C00000")
-                    .SetHighlight(HighlightColorValues.LightGray);
+                    .SetHighlight(WordHighlightColor.LightGray);
 
                 document.Save();
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
@@ -116,21 +116,21 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(props);
                 Assert.True(props!.Bold);
                 Assert.True(props.Italic);
-                Assert.Equal(UnderlineValues.Single, props.Underline);
+                Assert.Equal(WordUnderlineStyle.Single, props.Underline);
                 Assert.Equal(12, props.FontSize);
                 Assert.Equal("Calibri", props.FontFamily);
                 Assert.Equal("2F5597", props.ColorHex);
-                Assert.Equal(HighlightColorValues.Yellow, props.Highlight);
+                Assert.Equal(WordHighlightColor.Yellow, props.Highlight);
 
                 var fluent = document.GetStructuredDocumentTagByTag("TagFluent");
                 Assert.NotNull(fluent);
                 Assert.True(fluent!.Bold);
                 Assert.True(fluent.Italic);
-                Assert.Equal(UnderlineValues.Single, fluent.Underline);
+                Assert.Equal(WordUnderlineStyle.Single, fluent.Underline);
                 Assert.Equal(14, fluent.FontSize);
                 Assert.Equal("Calibri", fluent.FontFamily);
                 Assert.Equal("C00000", fluent.ColorHex);
-                Assert.Equal(HighlightColorValues.LightGray, fluent.Highlight);
+                Assert.Equal(WordHighlightColor.LightGray, fluent.Highlight);
             }
         }
 

@@ -98,8 +98,8 @@ namespace OfficeIMO.Tests {
             for (int column = 1; column <= headers.Length; column++) {
                 sheet.CellValue(1, column, headers[column - 1]);
                 sheet.CellAt(1, column).SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold().SetFontSize(12D);
-                sheet.CellAlign(1, column, HorizontalAlignmentValues.Center);
-                sheet.CellVerticalAlign(1, column, VerticalAlignmentValues.Center);
+                sheet.CellAlign(1, column, ExcelHorizontalAlignment.Center);
+                sheet.CellVerticalAlign(1, column, ExcelVerticalAlignment.Center);
             }
 
             AddPageLayoutRow(sheet, 2, "North", "Avery", "Ready", 0.94D, "E7F6E7", "226B22");
@@ -121,8 +121,8 @@ namespace OfficeIMO.Tests {
 
             for (int row = 1; row <= 8; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.CellAt(row, column).SetBorder(BorderStyleValues.Thin, "94A3B8").SetFontSize(12D);
-                    sheet.CellVerticalAlign(row, column, VerticalAlignmentValues.Center);
+                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "94A3B8").SetFontSize(12D);
+                    sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
                 }
             }
 
@@ -144,7 +144,7 @@ namespace OfficeIMO.Tests {
                 .SetFillColor(row == 2 ? "F8FAFC" : "FFFFFF");
             sheet.CellAt(row, 3).SetFillColor(statusFill).SetFontColor(statusText).SetBold().SetFontSize(12D);
             sheet.CellAt(row, 4).Percent(0).SetBold().SetFontSize(12D);
-            sheet.CellAlign(row, 4, HorizontalAlignmentValues.Right);
+            sheet.CellAlign(row, 4, ExcelHorizontalAlignment.Right);
         }
 
         private static ExcelWorksheetImageExportOptions CreatePageLayoutBaselineOptions() =>

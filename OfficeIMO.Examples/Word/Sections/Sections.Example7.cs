@@ -14,15 +14,15 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var section0 = document.Sections[0];
-                section0.PageOrientation = PageOrientationValues.Landscape;
+                section0.PageOrientation = WordPageOrientation.Landscape;
                 section0.AddParagraph("Test Section0");
                 // Default header
-                section0.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph().SetText("Test Section 0 - Header");
+                section0.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph().SetText("Test Section 0 - Header");
                 // First/Evens
                 section0.DifferentFirstPage = true;
-                section0.GetOrCreateHeader(HeaderFooterValues.First).AddParagraph().SetText("Test Section 0 - First Header");
+                section0.GetOrCreateHeader(WordHeaderFooterType.First).AddParagraph().SetText("Test Section 0 - First Header");
                 section0.DifferentOddAndEvenPages = true;
-                section0.GetOrCreateHeader(HeaderFooterValues.Even).AddParagraph().SetText("Test Section 0 - Even");
+                section0.GetOrCreateHeader(WordHeaderFooterType.Even).AddParagraph().SetText("Test Section 0 - Even");
 
                 document.AddPageBreak();
 
@@ -37,11 +37,11 @@ namespace OfficeIMO.Examples.Word {
 
 
                 var section1 = document.AddSection();
-                section1.PageOrientation = PageOrientationValues.Portrait;
+                section1.PageOrientation = WordPageOrientation.Portrait;
                 section1.AddParagraph("Test Section1");
-                section1.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph().SetText("Test Section 1 - Header");
+                section1.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph().SetText("Test Section 1 - Header");
                 section1.DifferentFirstPage = true;
-                section1.GetOrCreateHeader(HeaderFooterValues.First).AddParagraph().SetText("Test Section 1 - First Header");
+                section1.GetOrCreateHeader(WordHeaderFooterType.First).AddParagraph().SetText("Test Section 1 - First Header");
 
 
                 document.AddPageBreak();
@@ -58,15 +58,15 @@ namespace OfficeIMO.Examples.Word {
 
                 var section2 = document.AddSection();
                 section2.AddParagraph("Test Section2");
-                section2.PageOrientation = PageOrientationValues.Landscape;
-                section2.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph().SetText("Test Section 2 - Header");
+                section2.PageOrientation = WordPageOrientation.Landscape;
+                section2.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph().SetText("Test Section 2 - Header");
 
                 document.AddParagraph("Test Section2 - Paragraph 1");
 
 
                 var section3 = document.AddSection();
                 section3.AddParagraph("Test Section3");
-                section3.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph().SetText("Test Section 3 - Header");
+                section3.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph().SetText("Test Section 3 - Header");
 
 
                 Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Paragraphs[0].Text);
@@ -75,10 +75,10 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Section 2 - Text 1: " + document.Sections[2].Paragraphs[1].Text);
                 Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Paragraphs[0].Text);
 
-                var section0DefaultHeaderCreated = document.Sections[0].GetOrCreateHeader(HeaderFooterValues.Default);
-                var section1DefaultHeaderCreated = document.Sections[1].GetOrCreateHeader(HeaderFooterValues.Default);
-                var section2DefaultHeaderCreated = document.Sections[2].GetOrCreateHeader(HeaderFooterValues.Default);
-                var section3DefaultHeaderCreated = document.Sections[3].GetOrCreateHeader(HeaderFooterValues.Default);
+                var section0DefaultHeaderCreated = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+                var section1DefaultHeaderCreated = document.Sections[1].GetOrCreateHeader(WordHeaderFooterType.Default);
+                var section2DefaultHeaderCreated = document.Sections[2].GetOrCreateHeader(WordHeaderFooterType.Default);
+                var section3DefaultHeaderCreated = document.Sections[3].GetOrCreateHeader(WordHeaderFooterType.Default);
 
                 Console.WriteLine("Section 0 - Text 0: " + section0DefaultHeaderCreated.Paragraphs[0].Text);
                 Console.WriteLine("Section 1 - Text 0: " + section1DefaultHeaderCreated.Paragraphs[0].Text);
@@ -94,17 +94,17 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Paragraphs[0].Text);
                 Console.WriteLine("Section 2 - Text 1: " + document.Sections[2].Paragraphs[1].Text);
                 Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Paragraphs[0].Text);
-                var section0DefaultHeaderLoaded = document.Sections[0].GetOrCreateHeader(HeaderFooterValues.Default);
-                var section1DefaultHeaderLoaded = document.Sections[1].GetOrCreateHeader(HeaderFooterValues.Default);
-                var section2DefaultHeaderLoaded = document.Sections[2].GetOrCreateHeader(HeaderFooterValues.Default);
-                var section3DefaultHeaderLoaded = document.Sections[3].GetOrCreateHeader(HeaderFooterValues.Default);
+                var section0DefaultHeaderLoaded = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+                var section1DefaultHeaderLoaded = document.Sections[1].GetOrCreateHeader(WordHeaderFooterType.Default);
+                var section2DefaultHeaderLoaded = document.Sections[2].GetOrCreateHeader(WordHeaderFooterType.Default);
+                var section3DefaultHeaderLoaded = document.Sections[3].GetOrCreateHeader(WordHeaderFooterType.Default);
 
                 Console.WriteLine("Section 0 - Text 0: " + section0DefaultHeaderLoaded.Paragraphs[0].Text);
                 Console.WriteLine("Section 1 - Text 0: " + section1DefaultHeaderLoaded.Paragraphs[0].Text);
                 Console.WriteLine("Section 2 - Text 0: " + section2DefaultHeaderLoaded.Paragraphs[0].Text);
                 Console.WriteLine("Section 3 - Text 0: " + section3DefaultHeaderLoaded.Paragraphs[0].Text);
                 Console.WriteLine("-----");
-                var section1DefaultHeaderAfterLoad = document.Sections[1].GetOrCreateHeader(HeaderFooterValues.Default);
+                var section1DefaultHeaderAfterLoad = document.Sections[1].GetOrCreateHeader(WordHeaderFooterType.Default);
                 section1DefaultHeaderAfterLoad.AddParagraph().SetText("Test Section 1 - Header-Par1");
                 Console.WriteLine("Section 1 - Text 1: " + section1DefaultHeaderAfterLoad.Paragraphs[1].Text);
                 document.Save();

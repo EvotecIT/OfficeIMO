@@ -36,7 +36,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             text.TextAutoFit = PowerPointTextAutoFit.Normal;
 
             PowerPointParagraph heading = text.AddParagraph("Formatting demo", p => {
-                p.Alignment = A.TextAlignmentTypeValues.Left;
+                p.Alignment = PowerPointTextAlignment.Left;
                 p.SpaceAfterPoints = 6;
             });
             PowerPointTextStyle.Subtitle.WithColor("1F4E79").Apply(heading);
@@ -47,7 +47,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             line.AddText(", ");
             line.AddFormattedText("italic", italic: true).SetColor("0070C0");
             line.AddText(", and ");
-            line.AddFormattedText("underline", underline: A.TextUnderlineValues.Single).SetColor("38761D");
+            line.AddFormattedText("underline", underline: PowerPointUnderlineStyle.Single).SetColor("38761D");
             line.AddText(" runs in one paragraph.");
 
             text.AddBullet("Bulleted item one");
@@ -61,7 +61,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 rightColumn.LeftCm, rightColumn.TopCm, rightColumn.WidthCm, rightColumn.HeightCm);
             callout.FillColor = "E7F7FF";
             callout.OutlineColor = "5B9BD5";
-            callout.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
+            callout.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
             callout.SetTextMarginsCm(0.3, 0.3, 0.3, 0.3);
             callout.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("1F4E79"));
 

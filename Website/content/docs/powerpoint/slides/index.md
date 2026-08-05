@@ -50,7 +50,7 @@ text.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
 text.TextAutoFit = PowerPointTextAutoFit.Normal;
 
 var heading = text.AddParagraph("Highlights", p => {
-    p.Alignment = A.TextAlignmentTypeValues.Left;
+    p.Alignment = PowerPointTextAlignment.Left;
     p.SpaceAfterPoints = 6;
 });
 PowerPointTextStyle.Subtitle.WithColor("1F4E79").Apply(heading);

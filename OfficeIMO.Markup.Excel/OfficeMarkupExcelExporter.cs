@@ -1,5 +1,4 @@
 using OfficeIMO.Excel;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Markup.Excel;
 
@@ -567,34 +566,34 @@ internal sealed class OfficeMarkupExcelExporter {
         || string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase)
         || string.Equals(value, "1", StringComparison.OrdinalIgnoreCase);
 
-    private static bool TryParseHorizontalAlignment(string? value, out DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues alignment) {
+    private static bool TryParseHorizontalAlignment(string? value, out ExcelHorizontalAlignment alignment) {
         switch (Normalize(value ?? string.Empty)) {
             case "general":
-                alignment = DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.General;
+                alignment = ExcelHorizontalAlignment.General;
                 return true;
             case "left":
-                alignment = DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Left;
+                alignment = ExcelHorizontalAlignment.Left;
                 return true;
             case "center":
             case "centre":
-                alignment = DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Center;
+                alignment = ExcelHorizontalAlignment.Center;
                 return true;
             case "centercontinuous":
             case "centeracross":
             case "centeracrossselection":
-                alignment = DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.CenterContinuous;
+                alignment = ExcelHorizontalAlignment.CenterContinuous;
                 return true;
             case "right":
-                alignment = DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Right;
+                alignment = ExcelHorizontalAlignment.Right;
                 return true;
             case "fill":
-                alignment = DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Fill;
+                alignment = ExcelHorizontalAlignment.Fill;
                 return true;
             case "justify":
-                alignment = DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Justify;
+                alignment = ExcelHorizontalAlignment.Justify;
                 return true;
             case "distributed":
-                alignment = DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Distributed;
+                alignment = ExcelHorizontalAlignment.Distributed;
                 return true;
             default:
                 alignment = default;
@@ -602,24 +601,24 @@ internal sealed class OfficeMarkupExcelExporter {
         }
     }
 
-    private static bool TryParseVerticalAlignment(string? value, out DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues alignment) {
+    private static bool TryParseVerticalAlignment(string? value, out ExcelVerticalAlignment alignment) {
         switch (Normalize(value ?? string.Empty)) {
             case "top":
-                alignment = DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues.Top;
+                alignment = ExcelVerticalAlignment.Top;
                 return true;
             case "middle":
             case "center":
             case "centre":
-                alignment = DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues.Center;
+                alignment = ExcelVerticalAlignment.Center;
                 return true;
             case "bottom":
-                alignment = DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues.Bottom;
+                alignment = ExcelVerticalAlignment.Bottom;
                 return true;
             case "justify":
-                alignment = DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues.Justify;
+                alignment = ExcelVerticalAlignment.Justify;
                 return true;
             case "distributed":
-                alignment = DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues.Distributed;
+                alignment = ExcelVerticalAlignment.Distributed;
                 return true;
             default:
                 alignment = default;
@@ -627,50 +626,50 @@ internal sealed class OfficeMarkupExcelExporter {
         }
     }
 
-    private static bool TryParseBorderStyle(string? value, out DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues style) {
+    private static bool TryParseBorderStyle(string? value, out ExcelBorderStyle style) {
         switch (Normalize(value ?? string.Empty)) {
             case "true":
             case "yes":
             case "on":
             case "1":
             case "thin":
-                style = DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Thin;
+                style = ExcelBorderStyle.Thin;
                 return true;
             case "medium":
-                style = DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Medium;
+                style = ExcelBorderStyle.Medium;
                 return true;
             case "thick":
-                style = DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Thick;
+                style = ExcelBorderStyle.Thick;
                 return true;
             case "dashed":
-                style = DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Dashed;
+                style = ExcelBorderStyle.Dashed;
                 return true;
             case "dotted":
-                style = DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Dotted;
+                style = ExcelBorderStyle.Dotted;
                 return true;
             case "double":
-                style = DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Double;
+                style = ExcelBorderStyle.Double;
                 return true;
             case "hair":
-                style = DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Hair;
+                style = ExcelBorderStyle.Hair;
                 return true;
             case "dashdot":
-                style = DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.DashDot;
+                style = ExcelBorderStyle.DashDot;
                 return true;
             case "dashdotdot":
-                style = DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.DashDotDot;
+                style = ExcelBorderStyle.DashDotDot;
                 return true;
             case "mediumdashed":
-                style = DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.MediumDashed;
+                style = ExcelBorderStyle.MediumDashed;
                 return true;
             case "mediumdashdot":
-                style = DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.MediumDashDot;
+                style = ExcelBorderStyle.MediumDashDot;
                 return true;
             case "mediumdashdotdot":
-                style = DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.MediumDashDotDot;
+                style = ExcelBorderStyle.MediumDashDotDot;
                 return true;
             case "slantdashdot":
-                style = DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.SlantDashDot;
+                style = ExcelBorderStyle.SlantDashDot;
                 return true;
             default:
                 style = default;
@@ -678,23 +677,23 @@ internal sealed class OfficeMarkupExcelExporter {
         }
     }
 
-    private static bool TryParseLegendPosition(string value, out C.LegendPositionValues position) {
+    private static bool TryParseLegendPosition(string value, out ExcelChartLegendPosition position) {
         switch (Normalize(value)) {
             case "left":
-                position = C.LegendPositionValues.Left;
+                position = ExcelChartLegendPosition.Left;
                 return true;
             case "right":
-                position = C.LegendPositionValues.Right;
+                position = ExcelChartLegendPosition.Right;
                 return true;
             case "top":
-                position = C.LegendPositionValues.Top;
+                position = ExcelChartLegendPosition.Top;
                 return true;
             case "bottom":
-                position = C.LegendPositionValues.Bottom;
+                position = ExcelChartLegendPosition.Bottom;
                 return true;
             case "corner":
             case "topright":
-                position = C.LegendPositionValues.TopRight;
+                position = ExcelChartLegendPosition.TopRight;
                 return true;
             default:
                 position = default;
@@ -702,34 +701,34 @@ internal sealed class OfficeMarkupExcelExporter {
         }
     }
 
-    private static bool TryParseDataLabelPosition(string? value, out C.DataLabelPositionValues position) {
+    private static bool TryParseDataLabelPosition(string? value, out ExcelChartDataLabelPosition position) {
         switch (Normalize(value ?? string.Empty)) {
             case "bestfit":
-                position = C.DataLabelPositionValues.BestFit;
+                position = ExcelChartDataLabelPosition.BestFit;
                 return true;
             case "bottom":
-                position = C.DataLabelPositionValues.Bottom;
+                position = ExcelChartDataLabelPosition.Bottom;
                 return true;
             case "center":
-                position = C.DataLabelPositionValues.Center;
+                position = ExcelChartDataLabelPosition.Center;
                 return true;
             case "insidebase":
-                position = C.DataLabelPositionValues.InsideBase;
+                position = ExcelChartDataLabelPosition.InsideBase;
                 return true;
             case "insideend":
-                position = C.DataLabelPositionValues.InsideEnd;
+                position = ExcelChartDataLabelPosition.InsideEnd;
                 return true;
             case "left":
-                position = C.DataLabelPositionValues.Left;
+                position = ExcelChartDataLabelPosition.Left;
                 return true;
             case "outsideend":
-                position = C.DataLabelPositionValues.OutsideEnd;
+                position = ExcelChartDataLabelPosition.OutsideEnd;
                 return true;
             case "right":
-                position = C.DataLabelPositionValues.Right;
+                position = ExcelChartDataLabelPosition.Right;
                 return true;
             case "top":
-                position = C.DataLabelPositionValues.Top;
+                position = ExcelChartDataLabelPosition.Top;
                 return true;
             default:
                 position = default;

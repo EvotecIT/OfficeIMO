@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies whole-number validation.
         /// </summary>
-        public ExcelRange WholeNumber(DataValidationOperatorValues @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        public ExcelRange WholeNumber(ExcelDataValidationOperator @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             _range.Sheet.ValidationWholeNumber(_range.Address, @operator, formula1, formula2, allowBlank, errorTitle, errorMessage);
             return _range;
         }
@@ -54,13 +54,13 @@ namespace OfficeIMO.Excel {
         /// Applies whole-number validation between two values.
         /// </summary>
         public ExcelRange WholeNumberBetween(int minimum, int maximum, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
-            return WholeNumber(DataValidationOperatorValues.Between, minimum, maximum, allowBlank, errorTitle, errorMessage);
+            return WholeNumber(ExcelDataValidationOperator.Between, minimum, maximum, allowBlank, errorTitle, errorMessage);
         }
 
         /// <summary>
         /// Applies decimal-number validation.
         /// </summary>
-        public ExcelRange Decimal(DataValidationOperatorValues @operator, double formula1, double? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        public ExcelRange Decimal(ExcelDataValidationOperator @operator, double formula1, double? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             _range.Sheet.ValidationDecimal(_range.Address, @operator, formula1, formula2, allowBlank, errorTitle, errorMessage);
             return _range;
         }
@@ -69,13 +69,13 @@ namespace OfficeIMO.Excel {
         /// Applies decimal-number validation between two values.
         /// </summary>
         public ExcelRange DecimalBetween(double minimum, double maximum, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
-            return Decimal(DataValidationOperatorValues.Between, minimum, maximum, allowBlank, errorTitle, errorMessage);
+            return Decimal(ExcelDataValidationOperator.Between, minimum, maximum, allowBlank, errorTitle, errorMessage);
         }
 
         /// <summary>
         /// Applies date validation.
         /// </summary>
-        public ExcelRange Date(DataValidationOperatorValues @operator, DateTime formula1, DateTime? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        public ExcelRange Date(ExcelDataValidationOperator @operator, DateTime formula1, DateTime? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             _range.Sheet.ValidationDate(_range.Address, @operator, formula1, formula2, allowBlank, errorTitle, errorMessage);
             return _range;
         }
@@ -84,13 +84,13 @@ namespace OfficeIMO.Excel {
         /// Applies date validation between two dates.
         /// </summary>
         public ExcelRange DateBetween(DateTime minimum, DateTime maximum, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
-            return Date(DataValidationOperatorValues.Between, minimum, maximum, allowBlank, errorTitle, errorMessage);
+            return Date(ExcelDataValidationOperator.Between, minimum, maximum, allowBlank, errorTitle, errorMessage);
         }
 
         /// <summary>
         /// Applies time validation.
         /// </summary>
-        public ExcelRange Time(DataValidationOperatorValues @operator, TimeSpan formula1, TimeSpan? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        public ExcelRange Time(ExcelDataValidationOperator @operator, TimeSpan formula1, TimeSpan? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             _range.Sheet.ValidationTime(_range.Address, @operator, formula1, formula2, allowBlank, errorTitle, errorMessage);
             return _range;
         }
@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies text-length validation.
         /// </summary>
-        public ExcelRange TextLength(DataValidationOperatorValues @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        public ExcelRange TextLength(ExcelDataValidationOperator @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             _range.Sheet.ValidationTextLength(_range.Address, @operator, formula1, formula2, allowBlank, errorTitle, errorMessage);
             return _range;
         }

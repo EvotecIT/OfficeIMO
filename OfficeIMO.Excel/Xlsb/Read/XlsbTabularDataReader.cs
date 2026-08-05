@@ -546,7 +546,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 : null;
             ExcelCellValue converted = converter(
                 new ExcelCellContext(
-                    typeHint,
+                    typeHint.ToOfficeEnum(),
                     styleIndex,
                     rawText,
                     inlineText,

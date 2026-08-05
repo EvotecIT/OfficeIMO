@@ -48,7 +48,7 @@ namespace OfficeIMO.Word.Fluent {
         /// Applies underline formatting to the current run.
         /// </summary>
         /// <param name="underline">Underline style.</param>
-        public TextBuilder Underline(UnderlineValues underline) {
+        public TextBuilder Underline(WordUnderlineStyle underline) {
             _paragraph?.SetUnderline(underline);
             return this;
         }
@@ -93,7 +93,7 @@ namespace OfficeIMO.Word.Fluent {
         /// Applies a highlight color to the current run.
         /// </summary>
         /// <param name="highlight">Highlight color.</param>
-        public TextBuilder Highlight(HighlightColorValues highlight) {
+        public TextBuilder Highlight(WordHighlightColor highlight) {
             _paragraph?.SetHighlight(highlight);
             return this;
         }

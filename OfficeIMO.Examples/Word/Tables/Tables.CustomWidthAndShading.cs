@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
                 WordTable table = document.AddTable(2, 2);
 
                 table.ColumnWidth = new List<int> { 1440, 2880 };
-                table.ColumnWidthType = TableWidthUnitValues.Dxa;
+                table.ColumnWidthType = WordTableWidthUnit.Dxa;
 
                 var cell1 = table.Rows[0].Cells[0];
                 cell1.AddParagraph("Red");

@@ -214,7 +214,7 @@ namespace OfficeIMO.Excel {
         public bool ShowErrorMessage { get; set; }
         internal bool PreserveShowMessageFlags { get; set; }
         /// <summary>Gets or sets the validation error alert style.</summary>
-        public DataValidationErrorStyleValues? ErrorStyle { get; set; }
+        public ExcelDataValidationErrorStyle? ErrorStyle { get; set; }
         /// <summary>Gets or sets whether Excel should hide the in-cell dropdown for list validations. Leave null to preserve the existing value.</summary>
         public bool? SuppressDropDown { get; set; }
     }

@@ -46,7 +46,7 @@ namespace OfficeIMO.Examples.Excel {
                     destinationCell: "F2",
                     name: "RevenuePivot",
                     rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Revenue", DataConsolidateFunctionValues.Sum, "Total Revenue") },
+                    dataFields: new[] { new ExcelPivotDataField("Revenue", ExcelPivotDataFunction.Sum, "Total Revenue") },
                     pivotStyleName: "PivotStyleMedium9");
 
                 OfficeImageExportResult preview = sheet.Range("A1:J20").ExportImage(OfficeImageExportFormat.Png);

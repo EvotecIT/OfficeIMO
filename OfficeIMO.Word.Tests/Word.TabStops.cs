@@ -11,13 +11,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreateDocumentWithTabStops.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 Assert.True(document.Settings.DefaultTabStop == 720);
-                Assert.True(document.Settings.CharacterSpacingControl == CharacterSpacingValues.DoNotCompress);
+                Assert.True(document.Settings.CharacterSpacingControl == WordCharacterSpacing.DoNotCompress);
 
                 document.Settings.DefaultTabStop = 2880;
-                document.Settings.CharacterSpacingControl = CharacterSpacingValues.CompressPunctuation;
+                document.Settings.CharacterSpacingControl = WordCharacterSpacing.CompressPunctuation;
 
                 Assert.True(document.Settings.DefaultTabStop == 2880);
-                Assert.True(document.Settings.CharacterSpacingControl == CharacterSpacingValues.CompressPunctuation);
+                Assert.True(document.Settings.CharacterSpacingControl == WordCharacterSpacing.CompressPunctuation);
 
                 var paragraph = document.AddParagraph("\tFirst Line");
 
@@ -29,8 +29,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(paragraph.TabStops.Count == 1);
 
                 var tab2 = paragraph.AddTabStop(1440);
-                tab2.Alignment = TabStopValues.Left;
-                tab2.Leader = TabStopLeaderCharValues.Hyphen;
+                tab2.Alignment = WordTabAlignment.Left;
+                tab2.Leader = WordTabLeader.Hyphen;
                 tab2.Position = 1440;
 
                 paragraph.AddText("\tMore text");
@@ -40,13 +40,13 @@ namespace OfficeIMO.Tests {
                 var paragraph1 = document.AddParagraph("\tNext Line");
 
                 var tab3 = paragraph1.AddTabStop(5000);
-                tab3.Leader = TabStopLeaderCharValues.Hyphen;
+                tab3.Leader = WordTabLeader.Hyphen;
 
                 var tab4 = paragraph1.AddTabStop(1440 * 2);
                 paragraph1.AddText("\tEven more text");
 
 
-                var tab5 = paragraph1.AddTabStop(1440 * 3, TabStopValues.Decimal, TabStopLeaderCharValues.MiddleDot);
+                var tab5 = paragraph1.AddTabStop(1440 * 3, WordTabAlignment.Decimal, WordTabLeader.MiddleDot);
                 paragraph1.AddText("\tLast more text");
 
                 Assert.True(paragraph.TabStops.Count == 2);
@@ -62,25 +62,25 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[4].TabStops.Count == 3);
 
                 // two WordParagraphs, share same Paragraph, and same ParagraphProperties, so the tab stops are shared
-                Assert.True(document.Paragraphs[0].TabStops[0].Alignment == TabStopValues.Left);
-                Assert.True(document.Paragraphs[0].TabStops[0].Leader == TabStopLeaderCharValues.None);
+                Assert.True(document.Paragraphs[0].TabStops[0].Alignment == WordTabAlignment.Left);
+                Assert.True(document.Paragraphs[0].TabStops[0].Leader == WordTabLeader.None);
                 Assert.True(document.Paragraphs[0].TabStops[0].Position == 1440);
 
-                Assert.True(document.Paragraphs[0].TabStops[1].Alignment == TabStopValues.Left);
-                Assert.True(document.Paragraphs[0].TabStops[1].Leader == TabStopLeaderCharValues.Hyphen);
+                Assert.True(document.Paragraphs[0].TabStops[1].Alignment == WordTabAlignment.Left);
+                Assert.True(document.Paragraphs[0].TabStops[1].Leader == WordTabLeader.Hyphen);
                 Assert.True(document.Paragraphs[0].TabStops[1].Position == 1440);
 
                 // three WordParagraphs, share same Paragraph, and same ParagraphProperties, so the tab stops are shared
-                Assert.True(document.Paragraphs[2].TabStops[0].Alignment == TabStopValues.Left);
-                Assert.True(document.Paragraphs[2].TabStops[0].Leader == TabStopLeaderCharValues.Hyphen);
+                Assert.True(document.Paragraphs[2].TabStops[0].Alignment == WordTabAlignment.Left);
+                Assert.True(document.Paragraphs[2].TabStops[0].Leader == WordTabLeader.Hyphen);
                 Assert.True(document.Paragraphs[2].TabStops[0].Position == 5000);
 
-                Assert.True(document.Paragraphs[3].TabStops[1].Alignment == TabStopValues.Left);
-                Assert.True(document.Paragraphs[3].TabStops[1].Leader == TabStopLeaderCharValues.None);
+                Assert.True(document.Paragraphs[3].TabStops[1].Alignment == WordTabAlignment.Left);
+                Assert.True(document.Paragraphs[3].TabStops[1].Leader == WordTabLeader.None);
                 Assert.True(document.Paragraphs[3].TabStops[1].Position == 2880);
 
-                Assert.True(document.Paragraphs[4].TabStops[2].Alignment == TabStopValues.Decimal);
-                Assert.True(document.Paragraphs[4].TabStops[2].Leader == TabStopLeaderCharValues.MiddleDot);
+                Assert.True(document.Paragraphs[4].TabStops[2].Alignment == WordTabAlignment.Decimal);
+                Assert.True(document.Paragraphs[4].TabStops[2].Leader == WordTabLeader.MiddleDot);
                 Assert.True(document.Paragraphs[4].TabStops[2].Position == 1440 * 3);
 
                 Assert.True(document.Sections[0].Paragraphs[0].TabStops.Count == 2);
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTabStops.docx"))) {
                 Assert.True(document.Settings.DefaultTabStop == 2880);
-                Assert.True(document.Settings.CharacterSpacingControl == CharacterSpacingValues.CompressPunctuation);
+                Assert.True(document.Settings.CharacterSpacingControl == WordCharacterSpacing.CompressPunctuation);
 
                 Assert.True(document.Paragraphs.Count == 5);
                 // First paragraph with 2 runs, having 2 tab stops
@@ -101,43 +101,43 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[4].TabStops.Count == 3);
 
                 // two WordParagraphs, share same Paragraph, and same ParagraphProperties, so the tab stops are shared
-                Assert.True(document.Paragraphs[0].TabStops[0].Alignment == TabStopValues.Left);
-                Assert.True(document.Paragraphs[0].TabStops[0].Leader == TabStopLeaderCharValues.None);
+                Assert.True(document.Paragraphs[0].TabStops[0].Alignment == WordTabAlignment.Left);
+                Assert.True(document.Paragraphs[0].TabStops[0].Leader == WordTabLeader.None);
                 Assert.True(document.Paragraphs[0].TabStops[0].Position == 1440);
 
-                Assert.True(document.Paragraphs[0].TabStops[1].Alignment == TabStopValues.Left);
-                Assert.True(document.Paragraphs[0].TabStops[1].Leader == TabStopLeaderCharValues.Hyphen);
+                Assert.True(document.Paragraphs[0].TabStops[1].Alignment == WordTabAlignment.Left);
+                Assert.True(document.Paragraphs[0].TabStops[1].Leader == WordTabLeader.Hyphen);
                 Assert.True(document.Paragraphs[0].TabStops[1].Position == 1440);
 
                 // three WordParagraphs, share same Paragraph, and same ParagraphProperties, so the tab stops are shared
-                Assert.True(document.Paragraphs[2].TabStops[0].Alignment == TabStopValues.Left);
-                Assert.True(document.Paragraphs[2].TabStops[0].Leader == TabStopLeaderCharValues.Hyphen);
+                Assert.True(document.Paragraphs[2].TabStops[0].Alignment == WordTabAlignment.Left);
+                Assert.True(document.Paragraphs[2].TabStops[0].Leader == WordTabLeader.Hyphen);
                 Assert.True(document.Paragraphs[2].TabStops[0].Position == 5000);
 
-                Assert.True(document.Paragraphs[3].TabStops[1].Alignment == TabStopValues.Left);
-                Assert.True(document.Paragraphs[3].TabStops[1].Leader == TabStopLeaderCharValues.None);
+                Assert.True(document.Paragraphs[3].TabStops[1].Alignment == WordTabAlignment.Left);
+                Assert.True(document.Paragraphs[3].TabStops[1].Leader == WordTabLeader.None);
                 Assert.True(document.Paragraphs[3].TabStops[1].Position == 2880);
 
-                Assert.True(document.Paragraphs[4].TabStops[2].Alignment == TabStopValues.Decimal);
-                Assert.True(document.Paragraphs[4].TabStops[2].Leader == TabStopLeaderCharValues.MiddleDot);
+                Assert.True(document.Paragraphs[4].TabStops[2].Alignment == WordTabAlignment.Decimal);
+                Assert.True(document.Paragraphs[4].TabStops[2].Leader == WordTabLeader.MiddleDot);
                 Assert.True(document.Paragraphs[4].TabStops[2].Position == 1440 * 3);
 
                 Assert.True(document.Sections[0].Paragraphs[0].TabStops.Count == 2);
 
                 document.Paragraphs[4].TabStops[2].Position = 1440 * 4;
-                document.Paragraphs[4].TabStops[2].Alignment = TabStopValues.Right;
+                document.Paragraphs[4].TabStops[2].Alignment = WordTabAlignment.Right;
 
-                var tab4 = document.Paragraphs[4].AddTabStop(1440 * 2, TabStopValues.Bar, TabStopLeaderCharValues.Dot);
+                var tab4 = document.Paragraphs[4].AddTabStop(1440 * 2, WordTabAlignment.Bar, WordTabLeader.Dot);
 
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTabStops.docx"))) {
-                Assert.True(document.Paragraphs[4].TabStops[2].Alignment == TabStopValues.Right);
-                Assert.True(document.Paragraphs[4].TabStops[2].Leader == TabStopLeaderCharValues.MiddleDot);
+                Assert.True(document.Paragraphs[4].TabStops[2].Alignment == WordTabAlignment.Right);
+                Assert.True(document.Paragraphs[4].TabStops[2].Leader == WordTabLeader.MiddleDot);
                 Assert.True(document.Paragraphs[4].TabStops[2].Position == 1440 * 4);
 
-                Assert.True(document.Paragraphs[4].TabStops[3].Alignment == TabStopValues.Bar);
-                Assert.True(document.Paragraphs[4].TabStops[3].Leader == TabStopLeaderCharValues.Dot);
+                Assert.True(document.Paragraphs[4].TabStops[3].Alignment == WordTabAlignment.Bar);
+                Assert.True(document.Paragraphs[4].TabStops[3].Leader == WordTabLeader.Dot);
                 Assert.True(document.Paragraphs[4].TabStops[3].Position == 1440 * 2);
 
             }

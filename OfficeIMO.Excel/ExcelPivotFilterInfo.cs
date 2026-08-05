@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelPivotFilterInfo(
             string fieldName,
-            PivotFilterValues? type,
+            ExcelPivotFilterType? type,
             string? value1,
             string? value2,
             string? dataFieldName,
@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
         public string FieldName { get; }
 
         /// <summary>Gets the Open XML pivot filter type.</summary>
-        public PivotFilterValues? Type { get; }
+        public ExcelPivotFilterType? Type { get; }
 
         /// <summary>Gets the first filter value.</summary>
         public string? Value1 { get; }

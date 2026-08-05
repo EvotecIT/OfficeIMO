@@ -6,7 +6,6 @@ using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Markdown;
 using OfficeIMO.Markdown;
 using OfficeIMO.Word.Fluent;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Examples.Word.EndToEnd {
     internal static class Word_EndToEnd {
@@ -60,7 +59,7 @@ namespace OfficeIMO.Examples.Word.EndToEnd {
                         }
                     }
                     // New section every 2 chapters
-                    if (ch % 2 == 0) doc.AddSection(SectionMarkValues.NextPage);
+                    if (ch % 2 == 0) doc.AddSection(WordSectionBreakType.NextPage);
                 }
 
                 // 2) Save as .docx

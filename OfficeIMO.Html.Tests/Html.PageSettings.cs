@@ -10,13 +10,13 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_Respects_DefaultPageSettings() {
             string html = "<p>Hello</p>";
             var options = new HtmlToWordOptions {
-                DefaultOrientation = PageOrientationValues.Landscape,
+                DefaultOrientation = WordPageOrientation.Landscape,
                 DefaultPageSize = WordPageSize.A5
             };
             
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(options);
             
-            Assert.Equal(PageOrientationValues.Landscape, doc.PageOrientation);
+            Assert.Equal(WordPageOrientation.Landscape, doc.PageOrientation);
             Assert.Equal(WordPageSize.A5, doc.PageSettings.PageSize);
         }
 
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             Assert.True(doc.Paragraphs[1].PageBreakBefore);
             Assert.Null(doc.Paragraphs[2].PageBreak);
             Assert.NotNull(doc.Paragraphs[3].PageBreak);
-            Assert.Equal(BreakValues.Page, doc.Paragraphs[3].PageBreak!.BreakType);
+            Assert.Equal(WordBreakType.Page, doc.Paragraphs[3].PageBreak!.BreakType);
             Assert.Null(doc.Paragraphs[4].PageBreak);
         }
 
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(doc.Paragraphs[0].PageBreak);
             Assert.Null(doc.Paragraphs[1].PageBreak);
             Assert.NotNull(doc.Paragraphs[2].PageBreak);
-            Assert.Equal(BreakValues.Page, doc.Paragraphs[2].PageBreak!.BreakType);
+            Assert.Equal(WordBreakType.Page, doc.Paragraphs[2].PageBreak!.BreakType);
             Assert.Null(doc.Paragraphs[3].PageBreak);
         }
     }

@@ -15,7 +15,7 @@ namespace OfficeIMO.Word.Fluent {
         /// Sets the page orientation.
         /// </summary>
         /// <param name="orientation">Orientation value.</param>
-        public PageSetupBuilder Orientation(PageOrientationValues orientation) {
+        public PageSetupBuilder Orientation(WordPageOrientation orientation) {
             _fluent.Document.PageOrientation = orientation;
             return this;
         }

@@ -279,7 +279,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("Native justified paragraph alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau wraps across multiple visual lines.");
-                paragraph.ParagraphAlignment = JustificationValues.Both;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Both;
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
@@ -306,10 +306,10 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("Native shaded panel paragraph");
                 paragraph.ShadingFillColorHex = "E6F2FF";
-                paragraph.Borders.TopStyle = BorderValues.Single;
-                paragraph.Borders.BottomStyle = BorderValues.Single;
-                paragraph.Borders.LeftStyle = BorderValues.Single;
-                paragraph.Borders.RightStyle = BorderValues.Single;
+                paragraph.Borders.TopStyle = WordBorderStyle.Single;
+                paragraph.Borders.BottomStyle = WordBorderStyle.Single;
+                paragraph.Borders.LeftStyle = WordBorderStyle.Single;
+                paragraph.Borders.RightStyle = WordBorderStyle.Single;
                 paragraph.Borders.TopColorHex = "336699";
                 paragraph.Borders.BottomColorHex = "336699";
                 paragraph.Borders.LeftColorHex = "336699";
@@ -425,7 +425,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Before native horizontal line");
-                document.AddHorizontalLine(BorderValues.Single, OfficeIMO.Drawing.OfficeColor.Red, size: 16, space: 4);
+                document.AddHorizontalLine(WordBorderStyle.Single, OfficeIMO.Drawing.OfficeColor.Red, size: 16, space: 4);
                 document.AddParagraph("After native horizontal line");
 
                 document.Save();
@@ -457,7 +457,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("Native bordered paragraph heading");
-                paragraph.Borders.BottomStyle = BorderValues.Single;
+                paragraph.Borders.BottomStyle = WordBorderStyle.Single;
                 paragraph.Borders.BottomColorHex = "336699";
                 paragraph.Borders.BottomSize = 12;
                 paragraph.Borders.BottomSpace = 3;
@@ -495,7 +495,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Before native top border");
 
                 WordParagraph paragraph = document.AddParagraph("Native top bordered paragraph");
-                paragraph.Borders.TopStyle = BorderValues.Single;
+                paragraph.Borders.TopStyle = WordBorderStyle.Single;
                 paragraph.Borders.TopColorHex = "008000";
                 paragraph.Borders.TopSize = 16;
                 paragraph.Borders.TopSpace = 4;
@@ -530,10 +530,10 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("Native side bordered paragraph");
-                paragraph.Borders.LeftStyle = BorderValues.Single;
+                paragraph.Borders.LeftStyle = WordBorderStyle.Single;
                 paragraph.Borders.LeftColorHex = "FF0000";
                 paragraph.Borders.LeftSize = 12;
-                paragraph.Borders.RightStyle = BorderValues.Single;
+                paragraph.Borders.RightStyle = WordBorderStyle.Single;
                 paragraph.Borders.RightColorHex = "0000FF";
                 paragraph.Borders.RightSize = 20;
 
@@ -567,14 +567,14 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph tight = document.AddParagraph("TightSpace");
-                tight.Borders.LeftStyle = BorderValues.Single;
+                tight.Borders.LeftStyle = WordBorderStyle.Single;
                 tight.Borders.LeftColorHex = "444444";
                 tight.Borders.LeftSize = 8;
                 tight.Borders.LeftSpace = 0;
                 tight.LineSpacingAfterPoints = 4;
 
                 WordParagraph wide = document.AddParagraph("WideSpace");
-                wide.Borders.LeftStyle = BorderValues.Single;
+                wide.Borders.LeftStyle = WordBorderStyle.Single;
                 wide.Borders.LeftColorHex = "444444";
                 wide.Borders.LeftSize = 8;
                 wide.Borders.LeftSpace = 24;
@@ -604,10 +604,10 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("BoundedBorderSpace");
-                paragraph.Borders.LeftStyle = BorderValues.Single;
-                paragraph.Borders.RightStyle = BorderValues.Single;
-                paragraph.Borders.TopStyle = BorderValues.Single;
-                paragraph.Borders.BottomStyle = BorderValues.Single;
+                paragraph.Borders.LeftStyle = WordBorderStyle.Single;
+                paragraph.Borders.RightStyle = WordBorderStyle.Single;
+                paragraph.Borders.TopStyle = WordBorderStyle.Single;
+                paragraph.Borders.BottomStyle = WordBorderStyle.Single;
                 paragraph.Borders.LeftSpace = uint.MaxValue;
                 paragraph.Borders.RightSpace = uint.MaxValue;
                 paragraph.Borders.TopSpace = uint.MaxValue;
@@ -632,7 +632,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("Revenue\t12");
-                paragraph.AddTabStop(4320, TabStopValues.Right, TabStopLeaderCharValues.Dot);
+                paragraph.AddTabStop(4320, WordTabAlignment.Right, WordTabLeader.Dot);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
@@ -704,7 +704,7 @@ namespace OfficeIMO.Tests {
             paragraph.KeepLinesTogether = true;
             paragraph.KeepWithNext = true;
             paragraph.AvoidWidowAndOrphan = true;
-            paragraph.AddTabStop(1440, TabStopValues.Right, TabStopLeaderCharValues.Dot);
+            paragraph.AddTabStop(1440, WordTabAlignment.Right, WordTabLeader.Dot);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
@@ -850,7 +850,7 @@ namespace OfficeIMO.Tests {
             styled.SetStyleId(styleId);
             WordParagraph directOverride = document.AddParagraph("Native direct alignment override");
             directOverride.SetStyleId(styleId);
-            directOverride.ParagraphAlignment = JustificationValues.Right;
+            directOverride.ParagraphAlignment = WordParagraphAlignment.Right;
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ResolveNativeParagraphAlign", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph), typeof(bool) }, modifiers: null)!;
 
@@ -1481,9 +1481,9 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_OfficeIMOEngine_Ignores_Bar_And_Clear_TabStops_For_Text_Tabs() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeIgnoredTabStops.docx"));
             WordParagraph paragraph = document.AddParagraph("Native ignored tab stops");
-            paragraph.AddTabStop(720, TabStopValues.Bar, TabStopLeaderCharValues.None);
-            paragraph.AddTabStop(1440, TabStopValues.Clear, TabStopLeaderCharValues.None);
-            paragraph.AddTabStop(2160, TabStopValues.Right, TabStopLeaderCharValues.Dot);
+            paragraph.AddTabStop(720, WordTabAlignment.Bar, WordTabLeader.None);
+            paragraph.AddTabStop(1440, WordTabAlignment.Clear, WordTabLeader.None);
+            paragraph.AddTabStop(2160, WordTabAlignment.Right, WordTabLeader.Dot);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
@@ -1498,7 +1498,7 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_OfficeIMOEngine_Keeps_Default_Tab_Width_Separate_From_Explicit_TabStops() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultTabWidth.docx"));
             WordParagraph paragraph = document.AddParagraph("Native default tab width");
-            paragraph.AddTabStop(2880, TabStopValues.Left, TabStopLeaderCharValues.None);
+            paragraph.AddTabStop(2880, WordTabAlignment.Left, WordTabLeader.None);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
@@ -1517,7 +1517,7 @@ namespace OfficeIMO.Tests {
 
             WordParagraph autoParagraph = document.AddParagraph("Native auto line spacing");
             autoParagraph.LineSpacing = 276;
-            autoParagraph.LineSpacingRule = LineSpacingRuleValues.Auto;
+            autoParagraph.LineSpacingRule = WordLineSpacingRule.Auto;
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle exactStyle = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { exactParagraph }));
@@ -1533,7 +1533,7 @@ namespace OfficeIMO.Tests {
             WordParagraph paragraph = document.AddParagraph("Serif line spacing");
             paragraph.FontFamily = "Times New Roman";
             paragraph.LineSpacing = 240;
-            paragraph.LineSpacingRule = LineSpacingRuleValues.Auto;
+            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
 
             Type converterType = typeof(WordPdfConverterExtensions);
             Type nativeFontMapType = converterType.GetNestedType("NativeFontMap", BindingFlags.NonPublic)!;
@@ -1609,7 +1609,7 @@ namespace OfficeIMO.Tests {
             WordParagraph paragraph = document.AddParagraph("A");
             paragraph.FontFamily = "Scoped Metric";
             paragraph.LineSpacing = 240;
-            paragraph.LineSpacingRule = LineSpacingRuleValues.Auto;
+            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
 
             var onlyA = new OfficeIMO.Drawing.OfficeFontUnicodeRangeSet(new[] {
                 new OfficeIMO.Drawing.OfficeFontUnicodeRange('A', 'A')
@@ -1672,7 +1672,7 @@ namespace OfficeIMO.Tests {
             WordParagraph directParagraph = document.AddParagraph("Native at least line spacing");
             directParagraph.FontSize = 24;
             directParagraph.LineSpacingPoints = 6;
-            directParagraph.LineSpacingRule = LineSpacingRuleValues.AtLeast;
+            directParagraph.LineSpacingRule = WordLineSpacingRule.AtLeast;
 
             const string styleId = "AtLeastLineSpacingStyle";
             Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
@@ -1711,14 +1711,14 @@ namespace OfficeIMO.Tests {
                 WordParagraph exact = document.AddParagraph("ExactSmallFirst");
                 exact.FontSize = 24;
                 exact.LineSpacingPoints = 6;
-                exact.LineSpacingRule = LineSpacingRuleValues.Exact;
+                exact.LineSpacingRule = WordLineSpacingRule.Exact;
                 exact.AddBreak();
                 exact.AddText("ExactSmallSecond");
 
                 WordParagraph atLeast = document.AddParagraph("AtLeastFirst");
                 atLeast.FontSize = 24;
                 atLeast.LineSpacingPoints = 6;
-                atLeast.LineSpacingRule = LineSpacingRuleValues.AtLeast;
+                atLeast.LineSpacingRule = WordLineSpacingRule.AtLeast;
                 atLeast.AddBreak();
                 atLeast.AddText("AtLeastSecond");
 
@@ -1766,7 +1766,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddText("CharExactSecond").SetCharacterStyleId(styleId);
                 paragraph.LineSpacingAfterPoints = 0;
                 paragraph.LineSpacingPoints = 18;
-                paragraph.LineSpacingRule = LineSpacingRuleValues.Exact;
+                paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {

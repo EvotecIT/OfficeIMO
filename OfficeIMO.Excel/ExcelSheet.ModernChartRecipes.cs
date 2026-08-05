@@ -145,9 +145,9 @@ namespace OfficeIMO.Excel {
                     new ExcelChartSeries("Cumulative %", cumulative, ExcelChartType.Line, ExcelChartAxisGroup.Secondary, "F59E0B")
                 });
             ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, ExcelChartType.ColumnClustered, title);
-            return chart.SetLegend(C.LegendPositionValues.Bottom)
+            return chart.SetLegend(ExcelChartLegendPosition.Bottom)
                 .SetSeriesLineColor(1, "F59E0B", 2)
-                .SetSeriesMarker(1, C.MarkerStyleValues.Circle, size: 6, fillColor: "F59E0B", lineColor: "F59E0B")
+                .SetSeriesMarker(1, ExcelChartMarkerStyle.Circle, size: 6, fillColor: "F59E0B", lineColor: "F59E0B")
                 .SetValueAxisNumberFormat("0%", sourceLinked: false, ExcelChartAxisGroup.Secondary)
                 .SetValueAxisScale(minimum: 0, maximum: 1, majorUnit: 0.2, axisGroup: ExcelChartAxisGroup.Secondary)
                 .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "E5E7EB", lineWidthPoints: 0.5);
@@ -187,7 +187,7 @@ namespace OfficeIMO.Excel {
             chart.ApplyAuthoredSeriesStyles(data.Series, new[] { false, true, false });
             return chart.SetSeriesNoFill(0)
                 .SetSeriesNoFill(2)
-                .SetSeriesDataLabels(1, showValue: true, position: C.DataLabelPositionValues.Center, numberFormat: "#,##0.###############")
+                .SetSeriesDataLabels(1, showValue: true, position: ExcelChartDataLabelPosition.Center, numberFormat: "#,##0.###############")
                 .SetCategoryAxisReverseOrder()
                 .SetValueAxisGridlines(showMajor: false, showMinor: false);
         }
@@ -277,16 +277,16 @@ namespace OfficeIMO.Excel {
 
             if (increasePoints.Count > 0) {
                 chart.SetSeriesDataLabelsForPoints(1, increasePoints, showValue: true,
-                    position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "+" + waterfallNumberFormat);
+                    position: ExcelChartDataLabelPosition.OutsideEnd, numberFormat: "+" + waterfallNumberFormat);
             }
             if (decreasePoints.Count > 0) {
                 chart.SetSeriesDataLabelsForPoints(2, decreasePoints, showValue: true,
-                    position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "-" + waterfallNumberFormat);
+                    position: ExcelChartDataLabelPosition.OutsideEnd, numberFormat: "-" + waterfallNumberFormat);
             }
 
             if (includeTotal) {
                 chart.SetSeriesDataLabelsForPoints(3, new[] { count - 1 }, showValue: true,
-                    position: C.DataLabelPositionValues.OutsideEnd, numberFormat: waterfallNumberFormat);
+                    position: ExcelChartDataLabelPosition.OutsideEnd, numberFormat: waterfallNumberFormat);
             }
 
             return chart;

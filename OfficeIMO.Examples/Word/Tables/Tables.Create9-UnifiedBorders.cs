@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with Tables9_UnifiedBorders.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var title = document.AddParagraph("Unified Table Border Examples");
-                title.ParagraphAlignment = JustificationValues.Center;
+                title.ParagraphAlignment = WordParagraphAlignment.Center;
                 title.Bold = true;
                 title.FontSize = 16;
                 document.AddParagraph();
@@ -41,7 +41,7 @@ namespace OfficeIMO.Examples.Word {
                 // Using the new helper method to set uniform borders
                 var table1Style = Guard.NotNull(table1.StyleDetails, "Table style details should be available.");
                 table1Style.SetBordersForAllSides(
-                    BorderValues.Single,
+                    WordBorderStyle.Single,
                     12U,
                     Color.Blue
                 );
@@ -68,8 +68,8 @@ namespace OfficeIMO.Examples.Word {
                 // Using the helper method to set different border styles for outside vs inside
                 var table2Style = Guard.NotNull(table2.StyleDetails, "Table style details should be available.");
                 table2Style.SetBordersOutsideInside(
-                    BorderValues.Double, 16U, Color.Red,  // Outside borders
-                    BorderValues.Single, 8U, Color.Blue   // Inside borders
+                    WordBorderStyle.Double, 16U, Color.Red,  // Outside borders
+                    WordBorderStyle.Single, 8U, Color.Blue   // Inside borders
                 );
 
                 document.AddParagraph();
@@ -94,12 +94,12 @@ namespace OfficeIMO.Examples.Word {
                 // Using the custom border method to set different styles for each side
                 var table3Style = Guard.NotNull(table3.StyleDetails, "Table style details should be available.");
                 table3Style.SetCustomBorders(
-                    topStyle: BorderValues.DotDash, topSize: 16U, topColor: Color.Green,
-                    bottomStyle: BorderValues.Triple, bottomSize: 16U, bottomColor: Color.Purple,
-                    leftStyle: BorderValues.Thick, leftSize: 12U, leftColor: Color.Orange,
-                    rightStyle: BorderValues.Wave, rightSize: 12U, rightColor: Color.Red,
-                    insideHStyle: BorderValues.Dotted, insideHSize: 8U, insideHColor: Color.Gray,
-                    insideVStyle: BorderValues.Dotted, insideVSize: 8U, insideVColor: Color.Gray
+                    topStyle: WordBorderStyle.DotDash, topSize: 16U, topColor: Color.Green,
+                    bottomStyle: WordBorderStyle.Triple, bottomSize: 16U, bottomColor: Color.Purple,
+                    leftStyle: WordBorderStyle.Thick, leftSize: 12U, leftColor: Color.Orange,
+                    rightStyle: WordBorderStyle.Wave, rightSize: 12U, rightColor: Color.Red,
+                    insideHStyle: WordBorderStyle.Dotted, insideHSize: 8U, insideHColor: Color.Gray,
+                    insideVStyle: WordBorderStyle.Dotted, insideVSize: 8U, insideVColor: Color.Gray
                 );
 
                 document.AddParagraph();
@@ -124,8 +124,8 @@ namespace OfficeIMO.Examples.Word {
                 // Set table borders first
                 var table4Style = Guard.NotNull(table4.StyleDetails, "Table style details should be available.");
                 table4Style.SetBordersOutsideInside(
-                    BorderValues.Double, 24U, Color.DarkBlue,   // Outside borders
-                    BorderValues.Single, 12U, Color.DarkGreen   // Inside borders
+                    WordBorderStyle.Double, 24U, Color.DarkBlue,   // Outside borders
+                    WordBorderStyle.Single, 12U, Color.DarkGreen   // Inside borders
                 );
 
                 // Then apply those borders to all cells
@@ -144,10 +144,10 @@ namespace OfficeIMO.Examples.Word {
                 // Set some border styles first
                 var table5Style = Guard.NotNull(table5.StyleDetails, "Table style details should be available.");
                 table5Style.SetCustomBorders(
-                    topStyle: BorderValues.Thick, topSize: 16U, topColor: Color.DarkRed,
-                    bottomStyle: BorderValues.Thick, bottomSize: 16U, bottomColor: Color.DarkRed,
-                    leftStyle: BorderValues.Single, leftSize: 8U, leftColor: Color.DarkBlue,
-                    rightStyle: BorderValues.Single, rightSize: 8U, rightColor: Color.DarkBlue
+                    topStyle: WordBorderStyle.Thick, topSize: 16U, topColor: Color.DarkRed,
+                    bottomStyle: WordBorderStyle.Thick, bottomSize: 16U, bottomColor: Color.DarkRed,
+                    leftStyle: WordBorderStyle.Single, leftSize: 8U, leftColor: Color.DarkBlue,
+                    rightStyle: WordBorderStyle.Single, rightSize: 8U, rightColor: Color.DarkBlue
                 );
 
                 // Retrieve the properties and display them

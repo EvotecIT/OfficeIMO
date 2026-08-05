@@ -106,13 +106,13 @@ namespace OfficeIMO.Word {
             foreach (WordTableCell cell in row.GetCells(readOnly: true)) {
                 context.ThrowIfCancellationRequested();
                 int columnSpan = Math.Max(1, cell.ColumnSpan);
-                if (cell.HorizontalMerge == MergedCellValues.Continue) {
+                if (cell.HorizontalMerge == WordCellMerge.Continue) {
                     columnIndex += columnSpan;
                     cellLeftOffset += SumWidths(columnWidths, columnIndex - columnSpan, columnSpan);
                     continue;
                 }
 
-                if (cell.VerticalMerge == MergedCellValues.Continue) {
+                if (cell.VerticalMerge == WordCellMerge.Continue) {
                     columnIndex += columnSpan;
                     cellLeftOffset += SumWidths(columnWidths, columnIndex - columnSpan, columnSpan);
                     continue;

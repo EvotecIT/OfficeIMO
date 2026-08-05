@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<string> values) {
             if (options == null) return;
 
-            if (options.SortType.HasValue) pivotField.SortType = options.SortType.Value;
+            if (options.SortType.HasValue) pivotField.SortType = options.SortType.Value.ToOpenXml();
             if (options.DefaultSubtotal.HasValue) pivotField.DefaultSubtotal = options.DefaultSubtotal.Value;
             if (options.SubtotalTop.HasValue) pivotField.SubtotalTop = options.SubtotalTop.Value;
             if (options.InsertBlankRow.HasValue) pivotField.InsertBlankRow = options.InsertBlankRow.Value;
@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel {
                 int fieldIndex = ResolveFieldIndex(filter.FieldName, headerIndex, nameof(filters));
                 var pivotFilter = new PivotFilter {
                     Field = (uint)fieldIndex,
-                    Type = filter.Type,
+                    Type = filter.Type.ToOpenXml(),
                     EvaluationOrder = i,
                     Id = (uint)(i + 1)
                 };
@@ -130,7 +130,7 @@ namespace OfficeIMO.Excel {
 
             CustomFilters customFilters;
 
-            if (TryResolveBetweenFilter(filter.Type, out var firstOperator, out var secondOperator, out bool matchAll)) {
+            if (TryResolveBetweenFilter(filter.Type.ToOpenXml(), out var firstOperator, out var secondOperator, out bool matchAll)) {
                 string? value1 = GetPivotFilterValue1(filter, dateSystem);
                 string? value2 = GetPivotFilterValue2(filter, dateSystem);
                 if (value1 == null || value2 == null) {
@@ -154,8 +154,8 @@ namespace OfficeIMO.Excel {
 
                 customFilters = new CustomFilters();
                 customFilters.Append(new CustomFilter {
-                    Operator = ResolveSingleFilterOperator(filter.Type),
-                    Val = NormalizePivotFilterAutoFilterValue(filter.Type, value1)
+                    Operator = ResolveSingleFilterOperator(filter.Type.ToOpenXml()),
+                    Val = NormalizePivotFilterAutoFilterValue(filter.Type.ToOpenXml(), value1)
                 });
             }
 
@@ -175,7 +175,8 @@ namespace OfficeIMO.Excel {
                 : filter.Value2;
 
         private static bool TryCreateTop10Filter(ExcelPivotFilter filter, out Top10 top10) {
-            if (filter.Type != PivotFilterValues.Count && filter.Type != PivotFilterValues.Percent && filter.Type != PivotFilterValues.Sum) {
+            var filterType = filter.Type.ToOpenXml();
+            if (filterType != PivotFilterValues.Count && filterType != PivotFilterValues.Percent && filterType != PivotFilterValues.Sum) {
                 top10 = new Top10();
                 return false;
             }
@@ -190,7 +191,7 @@ namespace OfficeIMO.Excel {
 
             top10 = new Top10 {
                 Top = filter.IsTop ?? true,
-                Percent = filter.IsPercent ?? filter.Type == PivotFilterValues.Percent,
+                Percent = filter.IsPercent ?? filterType == PivotFilterValues.Percent,
                 Val = value
             };
 
@@ -206,7 +207,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool TryCreateDynamicFilter(ExcelPivotFilter filter, out DynamicFilter dynamicFilter) {
-            DynamicFilterValues? dynamicType = ResolveDynamicFilterType(filter.Type);
+            DynamicFilterValues? dynamicType = ResolveDynamicFilterType(filter.Type.ToOpenXml());
             if (!dynamicType.HasValue) {
                 dynamicFilter = new DynamicFilter();
                 return false;

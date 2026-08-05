@@ -97,16 +97,16 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Gets or sets the horizontal alignment of the cell text.
         /// </summary>
-        public A.TextAlignmentTypeValues? HorizontalAlignment {
+        public PowerPointTextAlignment? HorizontalAlignment {
             get {
                 var pPr = Cell.TextBody?.Elements<Paragraph>().FirstOrDefault()?.ParagraphProperties;
-                return pPr?.Alignment?.Value;
+                return pPr?.Alignment?.Value.ToOfficeEnum();
             }
             set {
                 Cell.TextBody ??= new A.TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph());
                 var paragraph = Cell.TextBody.Elements<A.Paragraph>().First();
                 paragraph.ParagraphProperties ??= new A.ParagraphProperties();
-                paragraph.ParagraphProperties.Alignment = value;
+                paragraph.ParagraphProperties.Alignment = value?.ToOpenXml();
             }
         }
 
@@ -430,11 +430,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Gets or sets the vertical alignment of the cell text (top/center/bottom).
         /// </summary>
-        public A.TextAnchoringTypeValues? VerticalAlignment {
-            get => Cell.TableCellProperties?.Anchor?.Value;
+        public PowerPointTextVerticalAlignment? VerticalAlignment {
+            get => Cell.TableCellProperties?.Anchor?.Value.ToOfficeEnum();
             set {
                 Cell.TableCellProperties ??= new TableCellProperties();
-                Cell.TableCellProperties.Anchor = value;
+                Cell.TableCellProperties.Anchor = value?.ToOpenXml();
             }
         }
 
@@ -564,7 +564,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Applies border styling with a dash pattern to the specified sides.
         /// </summary>
-        public void SetBorders(TableCellBorders borders, string color, double? widthPoints, A.PresetLineDashValues dash) {
+        public void SetBorders(TableCellBorders borders, string color, double? widthPoints, PowerPointLineDashStyle dash) {
             if (string.IsNullOrWhiteSpace(color)) {
                 throw new ArgumentException("Border color cannot be null or empty.", nameof(color));
             }
@@ -631,10 +631,10 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyLine(LinePropertiesType line, string color, double? widthPoints, A.PresetLineDashValues dash) {
+        private static void ApplyLine(LinePropertiesType line, string color, double? widthPoints, PowerPointLineDashStyle dash) {
             ApplyLine(line, color, widthPoints);
             line.RemoveAllChildren<A.PresetDash>();
-            line.Append(new A.PresetDash { Val = dash });
+            line.Append(new A.PresetDash { Val = dash.ToOpenXml() });
         }
 
         private static string? GetLineColor(LinePropertiesType? line) {

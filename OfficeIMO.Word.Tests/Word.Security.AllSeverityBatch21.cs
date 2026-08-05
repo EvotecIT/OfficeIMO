@@ -9,12 +9,12 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
-    public void ListInfoRetainsOriginalConstructorSignature() {
+    public void ListInfoUsesOfficeOwnedEnumConstructorSignature() {
         ConstructorInfo? constructor = typeof(DocumentTraversal.ListInfo).GetConstructor(new[] {
             typeof(int),
             typeof(bool),
             typeof(int),
-            typeof(NumberFormatValues?),
+            typeof(WordNumberFormat?),
             typeof(string),
             typeof(int?),
             typeof(int?)
@@ -29,10 +29,10 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeContinuousSectionRestart.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.Sections[0].AddPageNumbering(1, NumberFormatValues.Decimal);
+            document.Sections[0].AddPageNumbering(1, WordNumberFormat.Decimal);
             document.AddParagraph("BeforeRestart");
-            WordSection second = document.AddSection(SectionMarkValues.Continuous);
-            second.AddPageNumbering(1, NumberFormatValues.Decimal);
+            WordSection second = document.AddSection(WordSectionBreakType.Continuous);
+            second.AddPageNumbering(1, WordNumberFormat.Decimal);
             document.AddParagraph("AfterRestart");
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {

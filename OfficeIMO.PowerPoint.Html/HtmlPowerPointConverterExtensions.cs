@@ -799,9 +799,9 @@ public static partial class HtmlPowerPointConverterExtensions {
             chartKind.Equals("StackedLine100", StringComparison.OrdinalIgnoreCase)) {
             chart = slide.AddLineChartPoints(data, left, top, width, height);
             if (chartKind.Equals("StackedLine", StringComparison.OrdinalIgnoreCase)) {
-                chart.SetLineChartGrouping(C.GroupingValues.Stacked);
+                chart.SetLineChartGrouping(PptCore.PowerPointChartGrouping.Stacked);
             } else if (chartKind.Equals("StackedLine100", StringComparison.OrdinalIgnoreCase)) {
-                chart.SetLineChartGrouping(C.GroupingValues.PercentStacked);
+                chart.SetLineChartGrouping(PptCore.PowerPointChartGrouping.PercentStacked);
             }
 
             return true;

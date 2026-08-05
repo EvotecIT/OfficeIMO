@@ -16,10 +16,10 @@ namespace OfficeIMO.Examples.Word {
                 WordTableCell cell = table.Rows[0].Cells[0];
                 cell.Paragraphs[0].Text = "Styled";
                 cell.ShadingFillColorHex = "FFFF00";
-                cell.Borders.TopStyle = W.BorderValues.Single;
-                cell.Borders.BottomStyle = W.BorderValues.Single;
-                cell.Borders.LeftStyle = W.BorderValues.Single;
-                cell.Borders.RightStyle = W.BorderValues.Single;
+                cell.Borders.TopStyle = WordBorderStyle.Single;
+                cell.Borders.BottomStyle = WordBorderStyle.Single;
+                cell.Borders.LeftStyle = WordBorderStyle.Single;
+                cell.Borders.RightStyle = WordBorderStyle.Single;
                 cell.Borders.TopColorHex = "FF0000";
                 cell.Borders.BottomColorHex = "FF0000";
                 cell.Borders.LeftColorHex = "FF0000";

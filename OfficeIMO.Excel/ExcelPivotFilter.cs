@@ -7,6 +7,8 @@ namespace OfficeIMO.Excel {
     /// Describes a pivot table label or value filter to author.
     /// </summary>
     public sealed class ExcelPivotFilter {
+        private readonly PivotFilterValues _type;
+
         private ExcelPivotFilter(
             string fieldName,
             PivotFilterValues type,
@@ -21,7 +23,7 @@ namespace OfficeIMO.Excel {
             DateTime? dateValue1 = null,
             DateTime? dateValue2 = null) {
             FieldName = string.IsNullOrWhiteSpace(fieldName) ? throw new ArgumentNullException(nameof(fieldName)) : fieldName.Trim();
-            Type = type;
+            _type = type;
             Value1 = string.IsNullOrWhiteSpace(value1) ? null : value1;
             Value2 = string.IsNullOrWhiteSpace(value2) ? null : value2;
             DataFieldName = string.IsNullOrWhiteSpace(dataFieldName) ? null : dataFieldName!.Trim();
@@ -38,7 +40,7 @@ namespace OfficeIMO.Excel {
         public string FieldName { get; }
 
         /// <summary>Gets the Open XML pivot filter type.</summary>
-        public PivotFilterValues Type { get; }
+        public ExcelPivotFilterType Type => _type.ToOfficeEnum();
 
         /// <summary>Gets the first filter value.</summary>
         public string? Value1 { get; }
@@ -307,19 +309,31 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Creates a label pivot filter using a specific Open XML pivot filter type.</summary>
-        public static ExcelPivotFilter Label(string fieldName, PivotFilterValues type, string value1, string? value2 = null, string? name = null, string? description = null) {
+        public static ExcelPivotFilter Label(string fieldName, ExcelPivotFilterType type, string value1, string? value2 = null, string? name = null, string? description = null) {
+            return Label(fieldName, type.ToOpenXml(), value1, value2, name, description);
+        }
+
+        private static ExcelPivotFilter Label(string fieldName, PivotFilterValues type, string value1, string? value2 = null, string? name = null, string? description = null) {
             return new ExcelPivotFilter(fieldName, type, value1, value2, null, name, description);
         }
 
         /// <summary>Creates a value pivot filter using a specific Open XML pivot filter type.</summary>
-        public static ExcelPivotFilter Value(string fieldName, string dataFieldName, PivotFilterValues type, double value1, double? value2 = null, string? name = null, string? description = null) {
+        public static ExcelPivotFilter Value(string fieldName, string dataFieldName, ExcelPivotFilterType type, double value1, double? value2 = null, string? name = null, string? description = null) {
+            return Value(fieldName, dataFieldName, type.ToOpenXml(), value1, value2, name, description);
+        }
+
+        private static ExcelPivotFilter Value(string fieldName, string dataFieldName, PivotFilterValues type, double value1, double? value2 = null, string? name = null, string? description = null) {
             string first = InvariantNumberText.Get(value1);
             string? second = value2.HasValue ? InvariantNumberText.Get(value2.Value) : null;
             return new ExcelPivotFilter(fieldName, type, first, second, dataFieldName, name, description);
         }
 
         /// <summary>Creates a fixed date pivot filter using a supported Open XML pivot filter type.</summary>
-        public static ExcelPivotFilter Date(string fieldName, PivotFilterValues type, DateTime value1, DateTime? value2 = null, string? name = null, string? description = null) {
+        public static ExcelPivotFilter Date(string fieldName, ExcelPivotFilterType type, DateTime value1, DateTime? value2 = null, string? name = null, string? description = null) {
+            return Date(fieldName, type.ToOpenXml(), value1, value2, name, description);
+        }
+
+        private static ExcelPivotFilter Date(string fieldName, PivotFilterValues type, DateTime value1, DateTime? value2 = null, string? name = null, string? description = null) {
             if (!IsFixedDateFilter(type)) {
                 throw new ArgumentException($"Pivot filter type '{type}' is not a supported fixed date filter.", nameof(type));
             }
@@ -330,7 +344,11 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Creates a dynamic date pivot filter using a supported Open XML pivot filter type.</summary>
-        public static ExcelPivotFilter DynamicDate(string fieldName, PivotFilterValues type, string? name = null, string? description = null) {
+        public static ExcelPivotFilter DynamicDate(string fieldName, ExcelPivotFilterType type, string? name = null, string? description = null) {
+            return DynamicDate(fieldName, type.ToOpenXml(), name, description);
+        }
+
+        private static ExcelPivotFilter DynamicDate(string fieldName, PivotFilterValues type, string? name = null, string? description = null) {
             if (!IsDynamicDateFilter(type)) {
                 throw new ArgumentException($"Pivot filter type '{type}' is not a supported dynamic date filter.", nameof(type));
             }

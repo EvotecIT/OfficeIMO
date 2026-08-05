@@ -29,7 +29,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         background.FillColor = "F6FAFC";
         background.OutlineColor = "F6FAFC";
 
-        PowerPointAutoShape panel = slide.AddShapePoints(ShapeTypeValues.RoundRectangle, 14, 14, 132, 72);
+        PowerPointAutoShape panel = slide.AddShapePoints(PowerPointShapeType.RoundRectangle, 14, 14, 132, 72);
         panel.FillColor = "FFFFFF";
         panel.OutlineColor = "B9D7EA";
         panel.OutlineWidthPoints = 1.2D;
@@ -63,7 +63,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         table.GetCell(1, 0).Text = "Quality";
         PowerPointTableCell value = table.GetCell(1, 1);
         value.Text = "99";
-        value.HorizontalAlignment = DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.Center;
+        value.HorizontalAlignment = OfficeIMO.PowerPoint.PowerPointTextAlignment.Center;
 
         var chartData = new PowerPointChartData(
             new[] { "Q1", "Q2", "Q3" },
@@ -74,7 +74,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         PowerPointChart chart = slide.AddChartPoints(chartData, 166, 78, 132, 86);
         chart.SetTitle("Revenue");
 
-        PowerPointAutoShape rule = slide.AddShapePoints(ShapeTypeValues.Line, 154, 20, 80, 0);
+        PowerPointAutoShape rule = slide.AddShapePoints(PowerPointShapeType.Line, 154, 20, 80, 0);
         rule.OutlineColor = "1E5A96";
         rule.OutlineWidthPoints = 1.5D;
 
@@ -131,7 +131,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         table.GetCell(0, 1).Bold = true;
         table.GetCell(1, 0).Text = "Packed";
         table.GetCell(1, 1).Text = "Watch";
-        table.GetCell(1, 1).HorizontalAlignment = DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.Center;
+        table.GetCell(1, 1).HorizontalAlignment = OfficeIMO.PowerPoint.PowerPointTextAlignment.Center;
 
         byte[] logoBytes = File.ReadAllBytes(System.IO.Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png"));
         PowerPointPicture picture = slide.AddPicture(new MemoryStream(logoBytes), ImagePartType.Png, PowerPointUnits.FromPoints(220), PowerPointUnits.FromPoints(18), PowerPointUnits.FromPoints(64), PowerPointUnits.FromPoints(30));

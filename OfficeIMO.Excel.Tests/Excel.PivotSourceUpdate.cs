@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                     name: "SalesPivot",
                     rowFields: new[] { "Region" },
                     columnFields: new[] { "Product" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum, "Total Sales") },
+                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") },
                     options: new ExcelPivotTableOptions { SaveSourceData = true });
 
                 ExcelSheet mismatch = document.AddWorksheet("Mismatch");
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
                     destinationCell: "E2",
                     name: "SalesPivot",
                     rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
 
                 PivotTableCacheDefinitionPart cachePart = original.WorksheetPart.PivotTableParts
                     .Single()
@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
                 destinationCell: "E2",
                 name: "SalesPivot",
                 rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
 
             ExcelSheet renamed = document.AddWorksheet("Renamed");
             WritePivotSource(renamed, "Area", "Item", "Amount", 4);

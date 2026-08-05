@@ -14,11 +14,11 @@ namespace OfficeIMO.Examples.Word {
 
                 var par = document.AddParagraph("This should be Tahoma 20");
                 par.FontFamily = "Tahoma";
-                par.AddText("SuperScript").SetVerticalTextAlignment(VerticalPositionValues.Superscript);
+                par.AddText("SuperScript").SetVerticalTextAlignment(WordVerticalTextPosition.Superscript);
                 par.AddText("Continue 1 ");
-                par.AddText("Baseline").SetVerticalTextAlignment(VerticalPositionValues.Baseline);
+                par.AddText("Baseline").SetVerticalTextAlignment(WordVerticalTextPosition.Baseline);
                 par.AddText("Continue 2 ");
-                par.AddText("SubScript").SetVerticalTextAlignment(VerticalPositionValues.Subscript);
+                par.AddText("SubScript").SetVerticalTextAlignment(WordVerticalTextPosition.Subscript);
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

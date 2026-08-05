@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
         public void Test_PageNumberSettings() {
             string filePath = Path.Combine(_directoryWithFiles, "PageNumberSettings.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].AddPageNumbering(2, NumberFormatValues.LowerRoman);
+                document.Sections[0].AddPageNumbering(2, WordNumberFormat.LowerRoman);
                 document.AddHeadersAndFooters();
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 footer.AddParagraph().AddPageNumber();
@@ -170,7 +170,7 @@ namespace OfficeIMO.Tests {
         public void Test_PageNumberRomanFormat() {
             string filePath = Path.Combine(_directoryWithFiles, "PageNumberRoman.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].AddPageNumbering(1, NumberFormatValues.UpperRoman);
+                document.Sections[0].AddPageNumbering(1, WordNumberFormat.UpperRoman);
                 document.AddHeadersAndFooters();
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 var para = footer.AddParagraph();

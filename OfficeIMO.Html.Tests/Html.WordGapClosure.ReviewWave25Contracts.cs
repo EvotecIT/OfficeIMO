@@ -98,7 +98,7 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             candidate => candidate.Text == "Text");
 
-        Assert.Equal(BorderValues.Single, paragraph.Borders.LeftStyle);
+        Assert.Equal(WordBorderStyle.Single, paragraph.Borders.LeftStyle);
         Assert.Equal(18U, paragraph.Borders.LeftSize?.Value);
     }
 }

@@ -21,14 +21,14 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation created =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = created.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 using var storage = new MemoryStream(storageBytes,
                     writable: false);
                 PowerPointOleObject ole = slide.AddOleObject(storage,
                     "Package", 12700L, 25400L, 2743200L, 1828800L);
                 ole.ShowAsIcon = true;
                 ole.FollowColorScheme =
-                    P.OleObjectFollowColorSchemeValues.TextAndBackground;
+                    PowerPointOleFollowColorScheme.TextAndBackground;
 
                 Assert.Equal(PowerPointShapeContentType.OleObject,
                     ole.ShapeContentType);
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
                 PowerPointOleObject>(Assert.Single(projected.Slides[0].Shapes));
             Assert.Equal("Package", projectedOle.ProgId);
             Assert.True(projectedOle.ShowAsIcon);
-            Assert.Equal(P.OleObjectFollowColorSchemeValues.TextAndBackground,
+            Assert.Equal(PowerPointOleFollowColorScheme.TextAndBackground,
                 projectedOle.FollowColorScheme);
             Assert.Equal(storageBytes, projectedOle.GetData());
             Assert.Empty(projected.ValidateDocument());
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation created =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = created.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 using var storage = new MemoryStream(storageBytes,
                     writable: false);
                 PowerPointOleObject ole = slide.AddOleObject(storage,
@@ -193,7 +193,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             using var storage = new MemoryStream(storageBytes,
                 writable: false);
             PowerPointOleObject ole = slide.AddOleObject(storage, "Package");
@@ -225,7 +225,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             using var storage = new MemoryStream(storageBytes,
                 writable: false);
             PowerPointOleObject ole = slide.AddOleObject(storage,
@@ -273,7 +273,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation created =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = created.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 using var storage = new MemoryStream(oleStorage,
                     writable: false);
                 slide.AddOleObject(storage, "Package");
@@ -308,7 +308,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation created =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = created.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 using var storage = new MemoryStream(originalStorage,
                     writable: false);
                 PowerPointOleObject ole = slide.AddOleObject(storage,
@@ -330,7 +330,7 @@ namespace OfficeIMO.Tests {
                 ole.ProgId = "Word.Document.8";
                 ole.ShowAsIcon = true;
                 ole.FollowColorScheme =
-                    P.OleObjectFollowColorSchemeValues.Full;
+                    PowerPointOleFollowColorScheme.Full;
                 ole.Left += 15875L;
 
                 LegacyPptWritePreflightReport preflight = imported
@@ -369,7 +369,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(replacementStorage, projectedOle.GetData());
             Assert.Equal("Word.Document.8", projectedOle.ProgId);
             Assert.True(projectedOle.ShowAsIcon);
-            Assert.Equal(P.OleObjectFollowColorSchemeValues.Full,
+            Assert.Equal(PowerPointOleFollowColorScheme.Full,
                 projectedOle.FollowColorScheme);
             Assert.Empty(projected.ValidateDocument());
         }
@@ -380,7 +380,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             using var storage = new MemoryStream(storageBytes,
                 writable: false);
             PowerPointOleObject ole = slide.AddOleObject(storage, "Package");
@@ -406,7 +406,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
 
             InvalidDataException addException = Assert.Throws<
                 InvalidDataException>(() => slide.AddOleObject(
@@ -435,7 +435,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 using var storage = new MemoryStream(storageBytes,
                     writable: false);
                 slide.AddOleObject(storage, "Package");
@@ -487,7 +487,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             using var source = new MemoryStream(originalStorage,
                 writable: false);
             PowerPointOleObject original = slide.AddOleObject(source,
@@ -523,7 +523,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             using var source = new MemoryStream(originalStorage,
                 writable: false);
             PowerPointOleObject first = slide.AddOleObject(source,
@@ -562,9 +562,9 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide firstSlide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             PowerPointSlide secondSlide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             using var firstSource = new MemoryStream(originalStorage,
                 writable: false);
             using var secondSource = new MemoryStream(originalStorage,
@@ -606,7 +606,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation created =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = created.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 using var storage = new MemoryStream(storageBytes,
                     writable: false);
                 slide.AddOleObject(storage, "Package");
@@ -669,7 +669,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             using var storage = new MemoryStream(storageBytes,
                 writable: false);
             slide.AddOleObject(storage, "Package");

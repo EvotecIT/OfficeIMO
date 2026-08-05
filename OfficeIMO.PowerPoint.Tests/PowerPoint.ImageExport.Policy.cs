@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(180, 100);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape source = slide.AddShapePoints(
-                A.ShapeTypeValues.Rectangle,
+                PowerPointShapeType.Rectangle,
                 30,
                 25,
                 100,

@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filename">Path to the document.</param>
         /// <param name="types">Header or footer types to remove.</param>
-        public static void RemoveHeadersAndFooters(string filename, params HeaderFooterValues[] types) {
+        public static void RemoveHeadersAndFooters(string filename, params WordHeaderFooterType[] types) {
             using (WordprocessingDocument doc = WordprocessingDocument.Open(filename, true)) {
                 WordHeader.RemoveHeaders(doc, types);
                 WordFooter.RemoveFooters(doc, types);

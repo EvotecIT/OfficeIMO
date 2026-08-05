@@ -9,17 +9,17 @@ namespace OfficeIMO.Tests {
         public void Test_NormalizeTablesForOnline_UpdatesBodyHeaderAndFooterTables() {
             using var document = WordDocument.Create();
             var bodyTable = document.AddTable(2, 2);
-            bodyTable.WidthType = TableWidthUnitValues.Dxa;
+            bodyTable.WidthType = WordTableWidthUnit.Dxa;
             bodyTable.Width = 5000;
 
-            var header = document.Sections[0].GetOrCreateHeader(HeaderFooterValues.Default);
+            var header = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
             var headerTable = header.AddTable(1, 2);
-            headerTable.WidthType = TableWidthUnitValues.Dxa;
+            headerTable.WidthType = WordTableWidthUnit.Dxa;
             headerTable.Width = 4000;
 
-            var footer = document.Sections[0].GetOrCreateFooter(HeaderFooterValues.Default);
+            var footer = document.Sections[0].GetOrCreateFooter(WordHeaderFooterType.Default);
             var footerTable = footer.AddTable(1, 2);
-            footerTable.WidthType = TableWidthUnitValues.Dxa;
+            footerTable.WidthType = WordTableWidthUnit.Dxa;
             footerTable.Width = 4000;
 
             document.NormalizeTablesForOnline();
@@ -48,22 +48,22 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
 
             var bodyTable = document.AddTable(2, 3);
-            bodyTable.WidthType = TableWidthUnitValues.Pct;
+            bodyTable.WidthType = WordTableWidthUnit.Pct;
             bodyTable.Width = 5000;
             bodyTable.Rows[0].Cells[0].Paragraphs[0].Text = "Merged";
             bodyTable.Rows[0].Cells[1].Paragraphs[0].Text = "Removed after merge";
             bodyTable.Rows[0].Cells[0].MergeHorizontally(1, copyParagraphs: true);
 
             var nestedTable = bodyTable.Rows[1].Cells[0].AddTable(1, 3);
-            nestedTable.WidthType = TableWidthUnitValues.Pct;
+            nestedTable.WidthType = WordTableWidthUnit.Pct;
             nestedTable.Width = 5000;
             nestedTable.Rows[0].Cells[0].Paragraphs[0].Text = "Nested merged";
             nestedTable.Rows[0].Cells[1].Paragraphs[0].Text = "Nested hidden";
             nestedTable.Rows[0].Cells[0].MergeHorizontally(1, copyParagraphs: true);
 
-            var header = document.Sections[0].GetOrCreateHeader(HeaderFooterValues.Default);
+            var header = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
             var headerTable = header.AddTable(1, 3);
-            headerTable.WidthType = TableWidthUnitValues.Dxa;
+            headerTable.WidthType = WordTableWidthUnit.Dxa;
             headerTable.Width = 4500;
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "Header merged";
             headerTable.Rows[0].Cells[1].Paragraphs[0].Text = "Header hidden";

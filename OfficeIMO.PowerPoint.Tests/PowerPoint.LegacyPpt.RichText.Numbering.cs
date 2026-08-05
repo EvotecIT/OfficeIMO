@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation presentation = PowerPointPresentation
                        .Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
-                        P.SlideLayoutValues.Blank)
+                        PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints(string.Empty, 30, 30, 320, 180);
                 P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
                 shape.TextBody = new P.TextBody(new A.BodyProperties(),
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation presentation = PowerPointPresentation
                        .Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
-                        P.SlideLayoutValues.Blank)
+                        PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints(string.Empty, 30, 30, 320, 120);
                 A.Paragraph first = CreateNumberedParagraph("Third", 0,
                     A.TextAutoNumberSchemeValues
@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
                 .Single().Paragraphs.ToArray();
             Assert.Equal(3, paragraphs[0].NumberingStartAt);
             Assert.Equal(4, paragraphs[1].NumberingStartAt);
-            Assert.Equal(A.TextAutoNumberSchemeValues
+            Assert.Equal(PowerPointNumberingScheme
                     .AlphaLowerCharacterParenR,
                 paragraphs[1].NumberingScheme);
         }
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
                                 .AlphaLowerCharacterParenR,
                             StartAt = 3
                         }));
-                presentation.AddSlide(P.SlideLayoutValues.Blank);
+                presentation.AddSlide(PowerPointSlideLayoutType.Blank);
 
                 LegacyPptWritePreflightReport preflight = presentation
                     .AnalyzeLegacyPptWrite();
@@ -209,7 +209,7 @@ namespace OfficeIMO.Tests {
                             Type = A.TextAutoNumberSchemeValues.ArabicPeriod,
                             StartAt = 3
                         }));
-                source.AddSlide(P.SlideLayoutValues.Blank);
+                source.AddSlide(PowerPointSlideLayoutType.Blank);
                 sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(
@@ -277,7 +277,7 @@ namespace OfficeIMO.Tests {
                         new A.PictureBullet(new A.Blip {
                             Embed = masterPart.GetIdOfPart(imagePart)
                         })));
-                source.AddSlide(P.SlideLayoutValues.Blank);
+                source.AddSlide(PowerPointSlideLayoutType.Blank);
                 sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(
@@ -377,7 +377,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
-                source.AddSlide(P.SlideLayoutValues.Blank)
+                source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddTextBox("Number me");
                 sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
             }
@@ -426,7 +426,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
                 PowerPointTextBox textBox = source.AddSlide(
-                        P.SlideLayoutValues.Blank)
+                        PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints(string.Empty, 30, 30, 320, 120);
                 Assert.IsType<P.Shape>(textBox.Element).TextBody =
                     new P.TextBody(new A.BodyProperties(), new A.ListStyle(),
@@ -488,7 +488,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
                 PowerPointTextBox textBox = source.AddSlide(
-                        P.SlideLayoutValues.Blank)
+                        PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints(string.Empty, 30, 30, 320, 120);
                 Assert.IsType<P.Shape>(textBox.Element).TextBody =
                     new P.TextBody(new A.BodyProperties(), new A.ListStyle(),

@@ -40,7 +40,7 @@ public partial class WordRtfConverterTests {
 
         using WordDocument word = rtfDocument.ToWordDocument();
 
-        Assert.Equal(PageOrientationValues.Landscape, word.PageOrientation);
+        Assert.Equal(WordPageOrientation.Landscape, word.PageOrientation);
         Assert.Equal(16838U, word.PageSettings.Width?.Value);
         Assert.Equal(11906U, word.PageSettings.Height?.Value);
         Assert.Equal(1440U, word.Margins.Left.Value);
@@ -53,11 +53,11 @@ public partial class WordRtfConverterTests {
         Assert.True(word.RtlGutter);
         Assert.Equal(5, word.PageNumberType.Start?.Value);
         Assert.Equal(NumberFormatValues.LowerRoman, word.PageNumberType.Format?.Value);
-        Assert.Equal(BorderValues.Single, word.Borders.TopStyle);
+        Assert.Equal(WordBorderStyle.Single, word.Borders.TopStyle);
         Assert.Equal(12U, word.Borders.TopSize?.Value);
         Assert.Equal(24U, word.Borders.TopSpace?.Value);
         Assert.Equal("FF0000", word.Borders.TopColorHex);
-        Assert.Equal(BorderValues.Double, word.Borders.BottomStyle);
+        Assert.Equal(WordBorderStyle.Double, word.Borders.BottomStyle);
         Assert.Equal(18U, word.Borders.BottomSize?.Value);
         Assert.Equal(30U, word.Borders.BottomSpace?.Value);
         Assert.Equal("0000FF", word.Borders.BottomColorHex);
@@ -93,14 +93,14 @@ public partial class WordRtfConverterTests {
     public void Word_To_Rtf_Bridge_Preserves_Sections_Columns_And_Section_PageSetup() {
         using WordDocument word = WordDocument.Create();
         word.Sections[0].AddParagraph("First section");
-        WordSection second = word.AddSection(SectionMarkValues.Continuous);
+        WordSection second = word.AddSection(WordSectionBreakType.Continuous);
         second.AddParagraph("Second section");
         WordTable secondTable = second.AddTable(1, 2);
         secondTable.Rows[0].Cells[0].AddParagraph("S2A", removeExistingParagraphs: true);
         secondTable.Rows[0].Cells[1].AddParagraph("S2B", removeExistingParagraphs: true);
 
         WordSection first = word.Sections[0];
-        first.PageOrientation = PageOrientationValues.Landscape;
+        first.PageOrientation = WordPageOrientation.Landscape;
         first.PageSettings.Width = 16838U;
         first.PageSettings.Height = 11906U;
         first.Margins.Left = 1440U;
@@ -109,19 +109,19 @@ public partial class WordRtfConverterTests {
         first.Margins.HeaderDistance = 300U;
         first.Margins.FooterDistance = 420U;
         first.RtlGutter = true;
-        first.AddPageNumbering(3, NumberFormatValues.UpperRoman);
-        first.Borders.LeftStyle = BorderValues.Dotted;
+        first.AddPageNumbering(3, WordNumberFormat.UpperRoman);
+        first.Borders.LeftStyle = WordBorderStyle.Dotted;
         first.Borders.LeftSize = 8U;
         first.Borders.LeftSpace = 12U;
-        first.Borders.RightStyle = BorderValues.Dashed;
+        first.Borders.RightStyle = WordBorderStyle.Dashed;
         first.Borders.RightSize = 10U;
         first.Borders.RightSpace = 14U;
         PageBorders sectionPageBorders = first._sectionProperties.GetFirstChild<PageBorders>()!;
         sectionPageBorders.Display = PageBorderDisplayValues.FirstPage;
         sectionPageBorders.ZOrder = PageBorderZOrderValues.Back;
         sectionPageBorders.OffsetFrom = PageBorderOffsetValues.Page;
-        first.AddFootnoteProperties(NumberFormatValues.UpperLetter, FootnotePositionValues.PageBottom, RestartNumberValues.EachPage, startNumber: 3);
-        first.AddEndnoteProperties(NumberFormatValues.LowerLetter, EndnotePositionValues.SectionEnd, RestartNumberValues.EachSection, startNumber: 9);
+        first.AddFootnoteProperties(WordNumberFormat.UpperLetter, WordFootnotePosition.PageBottom, WordNoteNumberRestart.EachPage, startNumber: 3);
+        first.AddEndnoteProperties(WordNumberFormat.LowerLetter, WordEndnotePosition.SectionEnd, WordNoteNumberRestart.EachSection, startNumber: 9);
         first.DifferentFirstPage = true;
         first._sectionProperties.Append(new VerticalTextAlignmentOnPage { Val = VerticalJustificationValues.Center });
         first.ColumnCount = 2;
@@ -275,7 +275,7 @@ public partial class WordRtfConverterTests {
         using WordDocument word = rtfDocument.ToWordDocument();
 
         Assert.Equal(2, word.Sections.Count);
-        Assert.True(word.Sections[0].PageOrientation == PageOrientationValues.Landscape);
+        Assert.True(word.Sections[0].PageOrientation == WordPageOrientation.Landscape);
         Assert.Equal(16838U, word.Sections[0].PageSettings.Width?.Value);
         Assert.Equal(1440U, word.Sections[0].Margins.Left.Value);
         Assert.Equal(240U, word.Sections[0].Margins.Gutter.Value);
@@ -284,10 +284,10 @@ public partial class WordRtfConverterTests {
         Assert.True(word.Sections[0].RtlGutter);
         Assert.Equal(3, word.Sections[0].PageNumberType.Start?.Value);
         Assert.Equal(NumberFormatValues.UpperRoman, word.Sections[0].PageNumberType.Format?.Value);
-        Assert.Equal(BorderValues.Dotted, word.Sections[0].Borders.LeftStyle);
+        Assert.Equal(WordBorderStyle.Dotted, word.Sections[0].Borders.LeftStyle);
         Assert.Equal(8U, word.Sections[0].Borders.LeftSize?.Value);
         Assert.Equal(12U, word.Sections[0].Borders.LeftSpace?.Value);
-        Assert.Equal(BorderValues.Dashed, word.Sections[0].Borders.RightStyle);
+        Assert.Equal(WordBorderStyle.Dashed, word.Sections[0].Borders.RightStyle);
         Assert.Equal(10U, word.Sections[0].Borders.RightSize?.Value);
         Assert.Equal(14U, word.Sections[0].Borders.RightSpace?.Value);
         PageBorders wordSectionPageBorders = word.Sections[0]._sectionProperties.GetFirstChild<PageBorders>()!;

@@ -67,7 +67,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void RenderNativeBreak(INativePdfFlow pdf, WordBreak wordBreak) {
-            if (wordBreak.BreakType == W.BreakValues.Page) {
+            if (wordBreak.BreakType == WordBreakType.Page) {
                 pdf.PageBreak();
             }
         }
@@ -584,7 +584,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool IsNativeTextWrappingBreak(WordParagraph run) =>
-            run.IsBreak && run.Break?.BreakType != W.BreakValues.Page;
+            run.IsBreak && run.Break?.BreakType != WordBreakType.Page;
 
         private static WordTextBox? GetNativeParagraphTextBox(WordParagraph paragraph, out string? fallbackText) {
             fallbackText = GetNativeParagraphTextBoxPlainText(paragraph);

@@ -15,13 +15,13 @@ namespace OfficeIMO.Tests {
         public void Test_FootnoteEndnotePropertiesRoundtrip() {
             string filePath = Path.Combine(_directoryWithFiles, "FootnoteEndnoteProperties.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddFootnoteProperties(NumberFormatValues.LowerRoman,
-                                            FootnotePositionValues.PageBottom,
-                                            RestartNumberValues.EachSection,
+                document.AddFootnoteProperties(WordNumberFormat.LowerRoman,
+                                            WordFootnotePosition.PageBottom,
+                                            WordNoteNumberRestart.EachSection,
                                             5);
-                document.AddEndnoteProperties(NumberFormatValues.Decimal,
-                                            EndnotePositionValues.SectionEnd,
-                                            RestartNumberValues.EachSection,
+                document.AddEndnoteProperties(WordNumberFormat.Decimal,
+                                            WordEndnotePosition.SectionEnd,
+                                            WordNoteNumberRestart.EachSection,
                                             5);
                 document.Save();
             }

@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
                 "D2",
                 "SalesPivot",
                 rowFields: new[] { "OrderDate" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
             _ = document.Sheets;
 
             ReaderWriterLockSlim workbookLock = document.EnsureLock();

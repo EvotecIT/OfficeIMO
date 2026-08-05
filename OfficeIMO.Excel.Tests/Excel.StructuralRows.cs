@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests {
                     destinationCell: "E2",
                     name: "SalesPivot",
                     rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
 
                 data.InsertRows(2);
                 document.Save();
@@ -396,7 +396,7 @@ namespace OfficeIMO.Tests {
                 "A1:B2",
                 "E5",
                 rowFields: new[] { "Keep" },
-                dataFields: new[] { new ExcelPivotDataField("Value", DataConsolidateFunctionValues.Sum) });
+                dataFields: new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum) });
             PivotTablePart pivotPart = sheet.WorksheetPart.PivotTableParts.Single();
             WorksheetSource pivotSource = pivotPart.PivotTableCacheDefinitionPart!
                 .PivotCacheDefinition!.CacheSource!.WorksheetSource!;
@@ -443,7 +443,7 @@ namespace OfficeIMO.Tests {
                 "A1:B3",
                 "E5",
                 rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
 
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(6));
             Assert.Throws<InvalidOperationException>(() => sheet.DeleteRows(5));

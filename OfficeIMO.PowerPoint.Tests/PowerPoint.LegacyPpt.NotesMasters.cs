@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                     new PowerPointLayoutBox(8200000, 400000, 400000, 400000),
                     placeholder: null, text: null,
                     shapeType: A.ShapeTypeValues.Ellipse));
-            presentation.AddSlide(P.SlideLayoutValues.Blank);
+            presentation.AddSlide(PowerPointSlideLayoutType.Blank);
 
             LegacyPptWritePreflightReport preflight = presentation
                 .AnalyzeLegacyPptWrite();
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
             presentation.OpenXmlDocument.PresentationPart!.NotesMasterPart!
                 .NotesMaster!.CommonSlideData!.ShapeTree!
                 .Append(new P.GraphicFrame());
-            presentation.AddSlide(P.SlideLayoutValues.Blank);
+            presentation.AddSlide(PowerPointSlideLayoutType.Blank);
 
             LegacyPptWritePreflightReport preflight = presentation
                 .AnalyzeLegacyPptWrite();
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
                     new A.SolidFill(
                         new A.RgbColorModelHex { Val = "334455" })));
             PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             slide.Notes.Text = "Handout topology note";
 
             LegacyPptWritePreflightReport preflight = presentation
@@ -203,7 +203,7 @@ namespace OfficeIMO.Tests {
             SetPictureBackground(handoutMasterPart,
                 handoutMasterPart.HandoutMaster!.CommonSlideData!, imageBytes);
             PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             slide.Notes.Text = "Temporary notes body";
             NotesSlidePart notesPart = slide.SlidePart.NotesSlidePart!;
             slide.Notes.Text = string.Empty;
@@ -271,7 +271,7 @@ namespace OfficeIMO.Tests {
                 handoutMaster.HandoutMaster!.CommonSlideData!.Background =
                     CreateSolidBackground("334455");
                 PowerPointSlide slide = created.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 slide.Notes.Text = "Preserved picture background note";
                 slide.SlidePart.NotesSlidePart!.NotesSlide!.CommonSlideData!
                     .Background = CreateSolidBackground("445566");
@@ -333,7 +333,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation created =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = created.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 slide.Notes.Text = "Notes page picture";
                 slide.SlidePart.NotesSlidePart!.NotesSlide!.CommonSlideData!
                     .Background = CreateSolidBackground("123456");
@@ -374,7 +374,7 @@ namespace OfficeIMO.Tests {
             HandoutMasterPart handoutMasterPart = CreateHandoutMaster(presentation);
             handoutMasterPart.HandoutMaster!.CommonSlideData!.ShapeTree!
                 .Append(new P.GraphicFrame());
-            presentation.AddSlide(P.SlideLayoutValues.Blank);
+            presentation.AddSlide(PowerPointSlideLayoutType.Blank);
 
             LegacyPptWritePreflightReport preflight = presentation
                 .AnalyzeLegacyPptWrite();

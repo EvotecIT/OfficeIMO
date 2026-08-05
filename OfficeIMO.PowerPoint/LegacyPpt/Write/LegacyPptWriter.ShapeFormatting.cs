@@ -862,8 +862,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             out string? reason) {
             shapeType = 0;
             A.ShapeTypeValues? preset = shape switch {
-                PowerPointConnectionShape connector => connector.ShapeType,
-                PowerPointAutoShape autoShape => autoShape.ShapeType,
+                PowerPointConnectionShape connector => connector.ShapeType.ToOpenXml(),
+                PowerPointAutoShape autoShape => autoShape.ShapeType.ToOpenXml(),
                 _ when shape.Element is P.Shape source => source
                     .ShapeProperties?.GetFirstChild<A.PresetGeometry>()?
                     .Preset?.Value,

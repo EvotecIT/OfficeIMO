@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
         /// <param name="range">A1-style range to apply the rule to.</param>
         /// <param name="operator">Comparison operator for the rule.</param>
         /// <param name="formula1">Primary formula or value.</param>
-        public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1) {
+        public void AddConditionalRule(string range, ExcelConditionalFormattingOperator @operator, string formula1) {
             AddConditionalRule(range, @operator, formula1, null, null);
         }
 
@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
         /// <param name="operator">Comparison operator for the rule.</param>
         /// <param name="formula1">Primary formula or value.</param>
         /// <param name="formula2">Optional secondary formula or value.</param>
-        public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2) {
+        public void AddConditionalRule(string range, ExcelConditionalFormattingOperator @operator, string formula1, string? formula2) {
             AddConditionalRule(range, @operator, formula1, formula2, null);
         }
 
@@ -33,7 +33,7 @@ namespace OfficeIMO.Excel {
         /// <param name="formula1">Primary formula or value.</param>
         /// <param name="formula2">Optional secondary formula or value.</param>
         /// <param name="fillColor">Optional fill color applied when the condition is true.</param>
-        public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2 = null, string? fillColor = null) {
+        public void AddConditionalRule(string range, ExcelConditionalFormattingOperator @operator, string formula1, string? formula2 = null, string? fillColor = null) {
             AddConditionalRule(range, @operator, formula1, formula2, fillColor, stopIfTrue: false, priority: null);
         }
 
@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
         /// <param name="formula2">Optional secondary formula or value.</param>
         /// <param name="stopIfTrue">Whether lower-priority rules should stop when this rule evaluates to true.</param>
         /// <param name="priority">Optional explicit rule priority.</param>
-        public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2, bool stopIfTrue, int? priority = null) {
+        public void AddConditionalRule(string range, ExcelConditionalFormattingOperator @operator, string formula1, string? formula2, bool stopIfTrue, int? priority = null) {
             AddConditionalRule(range, @operator, formula1, formula2, fillColor: null, stopIfTrue, priority);
         }
 
@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel {
         /// <param name="fillColor">Optional fill color applied when the condition is true.</param>
         /// <param name="stopIfTrue">Whether lower-priority rules should stop when this rule evaluates to true.</param>
         /// <param name="priority">Optional explicit rule priority.</param>
-        public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2, string? fillColor, bool stopIfTrue = false, int? priority = null) {
+        public void AddConditionalRule(string range, ExcelConditionalFormattingOperator @operator, string formula1, string? formula2, string? fillColor, bool stopIfTrue = false, int? priority = null) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel {
 
                 ConditionalFormattingRule rule = new ConditionalFormattingRule {
                     Type = ConditionalFormatValues.CellIs,
-                    Operator = @operator,
+                    Operator = @operator.ToOpenXml(),
                     Priority = priority ?? GetNextConditionalFormattingPriority(),
                     StopIfTrue = stopIfTrue
                 };
@@ -198,7 +198,7 @@ namespace OfficeIMO.Excel {
         /// <param name="iconSet">Icon set type (e.g., ThreeTrafficLights1, ThreeSymbols, FourArrows, FiveRatings).</param>
         /// <param name="showValue">Whether to display the underlying cell values.</param>
         /// <param name="reverseIconOrder">Reverse icon order.</param>
-        public void AddConditionalIconSet(string range, IconSetValues iconSet, bool showValue, bool reverseIconOrder) {
+        public void AddConditionalIconSet(string range, ExcelIconSet iconSet, bool showValue, bool reverseIconOrder) {
             AddConditionalIconSet(range, iconSet, showValue, reverseIconOrder, percentThresholds: null, numberThresholds: null);
         }
 
@@ -207,7 +207,7 @@ namespace OfficeIMO.Excel {
         /// Provide either <paramref name="percentThresholds"/> (0..100) or <paramref name="numberThresholds"/> as absolute values.
         /// The number of thresholds must match the icon count for the selected icon set (3/4/5).
         /// </summary>
-        public void AddConditionalIconSet(string range, IconSetValues iconSet, bool showValue, bool reverseIconOrder, double[]? percentThresholds, double[]? numberThresholds) {
+        public void AddConditionalIconSet(string range, ExcelIconSet iconSet, bool showValue, bool reverseIconOrder, double[]? percentThresholds, double[]? numberThresholds) {
             if (string.IsNullOrEmpty(range)) throw new ArgumentNullException(nameof(range));
 
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
@@ -223,7 +223,7 @@ namespace OfficeIMO.Excel {
                     Priority = GetNextConditionalFormattingPriority()
                 };
 
-                var icon = new IconSet { IconSetValue = iconSet, ShowValue = showValue, Reverse = reverseIconOrder };
+                var icon = new IconSet { IconSetValue = iconSet.ToOpenXml(), ShowValue = showValue, Reverse = reverseIconOrder };
                 int count = ResolveIconSetThresholdCount(iconSet);
 
                 if (numberThresholds != null && numberThresholds.Length == count) {
@@ -258,25 +258,25 @@ namespace OfficeIMO.Excel {
         /// Overload with common defaults for convenience.
         /// </summary>
         public void AddConditionalIconSet(string range)
-            => AddConditionalIconSet(range, IconSetValues.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+            => AddConditionalIconSet(range, ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
 
-        private static int ResolveIconSetThresholdCount(IconSetValues iconSet) {
-            if (iconSet == IconSetValues.ThreeArrows ||
-                iconSet == IconSetValues.ThreeArrowsGray ||
-                iconSet == IconSetValues.ThreeFlags ||
-                iconSet == IconSetValues.ThreeSigns ||
-                iconSet == IconSetValues.ThreeSymbols ||
-                iconSet == IconSetValues.ThreeSymbols2 ||
-                iconSet == IconSetValues.ThreeTrafficLights1 ||
-                iconSet == IconSetValues.ThreeTrafficLights2) {
+        private static int ResolveIconSetThresholdCount(ExcelIconSet iconSet) {
+            if (iconSet == ExcelIconSet.ThreeArrows ||
+                iconSet == ExcelIconSet.ThreeArrowsGray ||
+                iconSet == ExcelIconSet.ThreeFlags ||
+                iconSet == ExcelIconSet.ThreeSigns ||
+                iconSet == ExcelIconSet.ThreeSymbols ||
+                iconSet == ExcelIconSet.ThreeSymbols2 ||
+                iconSet == ExcelIconSet.ThreeTrafficLights1 ||
+                iconSet == ExcelIconSet.ThreeTrafficLights2) {
                 return 3;
             }
 
-            if (iconSet == IconSetValues.FourArrows ||
-                iconSet == IconSetValues.FourArrowsGray ||
-                iconSet == IconSetValues.FourRating ||
-                iconSet == IconSetValues.FourRedToBlack ||
-                iconSet == IconSetValues.FourTrafficLights) {
+            if (iconSet == ExcelIconSet.FourArrows ||
+                iconSet == ExcelIconSet.FourArrowsGray ||
+                iconSet == ExcelIconSet.FourRating ||
+                iconSet == ExcelIconSet.FourRedToBlack ||
+                iconSet == ExcelIconSet.FourTrafficLights) {
                 return 4;
             }
 

@@ -13,7 +13,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get type of Break in given paragraph
         /// </summary>
-        public BreakValues? BreakType {
+        public WordBreakType? BreakType {
             get {
                 if (_run != null) {
                     var brake = _run.ChildElements.OfType<Break>().FirstOrDefault();
@@ -21,7 +21,7 @@ namespace OfficeIMO.Word {
                         return null;
                     }
 
-                    return brake.Type?.Value;
+                    return brake.Type?.Value.ToOfficeEnum();
                 }
 
                 return null;

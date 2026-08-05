@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ValidationWholeNumber.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.ValidationWholeNumber("A1:A10", DataValidationOperatorValues.Between, 1, 10, errorTitle: "Error", errorMessage: "1-10");
+                sheet.ValidationWholeNumber("A1:A10", ExcelDataValidationOperator.Between, 1, 10, errorTitle: "Error", errorMessage: "1-10");
                 document.Save();
             }
 
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ValidationDecimal.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.ValidationDecimal("B1:B10", DataValidationOperatorValues.GreaterThan, 5.5);
+                sheet.ValidationDecimal("B1:B10", ExcelDataValidationOperator.GreaterThan, 5.5);
                 document.Save();
             }
 
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
             DateTime dt = new DateTime(2024, 1, 1);
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.ValidationDate("C1:C10", DataValidationOperatorValues.LessThanOrEqual, dt);
+                sheet.ValidationDate("C1:C10", ExcelDataValidationOperator.LessThanOrEqual, dt);
                 document.Save();
             }
 
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
             TimeSpan ts = TimeSpan.FromHours(12);
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.ValidationTime("D1:D10", DataValidationOperatorValues.Equal, ts);
+                sheet.ValidationTime("D1:D10", ExcelDataValidationOperator.Equal, ts);
                 document.Save();
             }
 
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ValidationTextLength.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.ValidationTextLength("E1:E10", DataValidationOperatorValues.LessThan, 10);
+                sheet.ValidationTextLength("E1:E10", ExcelDataValidationOperator.LessThan, 10);
                 document.Save();
             }
 

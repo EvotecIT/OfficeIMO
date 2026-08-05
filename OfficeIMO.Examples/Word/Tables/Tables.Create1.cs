@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with Tables1.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 document.AddParagraph();
 
@@ -19,17 +19,17 @@ namespace OfficeIMO.Examples.Word {
                 wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
                 // align to center
                 wordTable.Rows[2].Cells[3].Paragraphs[0].Text = "Center";
-                wordTable.Rows[2].Cells[3].Paragraphs[0].ParagraphAlignment = JustificationValues.Center;
+                wordTable.Rows[2].Cells[3].Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Center;
 
                 // align to right
                 wordTable.Rows[1].Cells[3].Paragraphs[0].Text = "Right";
-                wordTable.Rows[1].Cells[3].Paragraphs[0].ParagraphAlignment = JustificationValues.Right;
+                wordTable.Rows[1].Cells[3].Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Right;
 
                 // align it on paragraph outside of table
                 var paragraph1 = wordTable.Rows[0].Cells[0].Paragraphs[0].AddParagraph();
                 paragraph1 = paragraph1.AddParagraph();
                 paragraph1.AddText("Ok");
-                paragraph1.ParagraphAlignment = JustificationValues.Center;
+                paragraph1.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 var paragraph2 = wordTable.Rows[1].Cells[0].Paragraphs[0].AddParagraphAfterSelf();
                 paragraph2 = paragraph2.AddParagraphAfterSelf();
@@ -66,7 +66,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with TablesInsert.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 document.AddParagraph();
 

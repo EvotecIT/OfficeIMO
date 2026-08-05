@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             sheet.WrapCells(4, 1, 1);
             sheet.CellValue(4, 4, "No spill");
             sheet.CellValue(5, 1, "Centered");
-            sheet.CellAlign(5, 1, HorizontalAlignmentValues.Center);
+            sheet.CellAlign(5, 1, ExcelHorizontalAlignment.Center);
             sheet.CellValue(5, 4, "Policy");
 
             sheet.SetColumnWidth(1, 9);
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
 
             for (int row = 1; row <= 5; row++) {
                 for (int column = 1; column <= 5; column++) {
-                    sheet.CellAt(row, column).SetBorder(BorderStyleValues.Thin, "CBD5E1");
+                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
                 }
             }
 

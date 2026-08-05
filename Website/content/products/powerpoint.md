@@ -81,7 +81,7 @@ chartSlide.AddChartCm(OfficeChartKind.ColumnClustered, data, 1.5, 3.0, 22, 9,
             AlternativeText = "Quarterly revenue increased from 3.2 to 4.9"
         })
     .SetTitle("2025 revenue")
-    .SetLegend(LegendPositionValues.Bottom);
+    .SetLegend(PowerPointChartLegendPosition.Bottom);
 
 presentation.Save();
 ```

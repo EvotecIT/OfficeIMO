@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -25,7 +25,7 @@ namespace OfficeIMO.Examples.Word {
                 var test = document.AddParagraph("Test 1 - to delete");
                 test.Remove();
                 section1.PageSettings.PageSize = WordPageSize.A5;
-                section2.PageOrientation = PageOrientationValues.Landscape;
+                section2.PageOrientation = WordPageOrientation.Landscape;
 
                 document.Sections[2].AddParagraph("Test 0 - Section Last");
                 document.Sections[1].AddParagraph("Test 1").AddComment("Przemysław Kłys", "PK", " This is just a test");

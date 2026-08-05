@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
     /// Describes a native worksheet cell value without requiring callers to inspect OpenXML directly.
     /// </summary>
     public sealed class ExcelCellValueSnapshot {
-        internal ExcelCellValueSnapshot(ExcelCellValueKind kind, string text, string rawValue, CellValues? openXmlType, DateTime? dateTimeValue = null) {
+        internal ExcelCellValueSnapshot(ExcelCellValueKind kind, string text, string rawValue, ExcelCellValueType? openXmlType, DateTime? dateTimeValue = null) {
             Kind = kind;
             Text = text;
             RawValue = rawValue;
@@ -42,8 +42,8 @@ namespace OfficeIMO.Excel {
         /// <summary>Raw value that can be used for loss-aware interchange between OfficeIMO converters.</summary>
         public string RawValue { get; }
 
-        /// <summary>Underlying OpenXML cell type hint, when present.</summary>
-        public CellValues? OpenXmlType { get; }
+        /// <summary>Underlying cell type hint, when present.</summary>
+        public ExcelCellValueType? OpenXmlType { get; }
 
         /// <summary>
         /// Resolved date/time value when <see cref="Kind"/> is <see cref="ExcelCellValueKind.DateTime"/>.

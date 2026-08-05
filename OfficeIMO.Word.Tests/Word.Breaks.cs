@@ -90,13 +90,13 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.ParagraphsPageBreaks.Count == 0);
 
                 var paragraph6 = document.AddParagraph("Adding paragraph6 with some text and different break");
-                paragraph6.AddBreak(BreakValues.TextWrapping);
+                paragraph6.AddBreak(WordBreakType.TextWrapping);
 
                 var paragraph7 = document.AddParagraph("Adding paragraph7 with some text and different break");
-                paragraph7.AddBreak(BreakValues.Column);
+                paragraph7.AddBreak(WordBreakType.Column);
 
                 var paragraph8 = document.AddParagraph("Adding paragraph8 with some text and different break");
-                paragraph8.AddBreak(BreakValues.Page);
+                paragraph8.AddBreak(WordBreakType.Page);
 
                 Assert.True(document.Paragraphs.Count == 19);
                 Assert.True(document.Breaks.Count == 7);
@@ -137,19 +137,19 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "BasicWordWithBreaksDifferent.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Blue;
                 paragraph.AddText(" This is continutation in the same line");
-                paragraph.AddBreak(BreakValues.TextWrapping);
-                paragraph.AddText(" This is continuation, in another line").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
+                paragraph.AddBreak(WordBreakType.TextWrapping);
+                paragraph.AddText(" This is continuation, in another line").SetUnderline(WordUnderlineStyle.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(WordHighlightColor.DarkGreen);
 
-                var paragraph1 = document.AddParagraph("Here's another paragraph ").AddText(" which continues here, but will continue in another line ").AddBreak(BreakValues.TextWrapping).AddText("to confirm that breaks with TextWrapping is working properly");
+                var paragraph1 = document.AddParagraph("Here's another paragraph ").AddText(" which continues here, but will continue in another line ").AddBreak(WordBreakType.TextWrapping).AddText("to confirm that breaks with TextWrapping is working properly");
 
                 Assert.True(paragraph.Color == OfficeIMO.Drawing.OfficeColor.Blue);
                 Assert.True(document.Paragraphs[0].Color == OfficeIMO.Drawing.OfficeColor.Blue);
                 Assert.True(document.Paragraphs[1].Color == null);
                 Assert.True(document.Paragraphs[2].IsBreak == true);
-                  Assert.True(document.Paragraphs[2].Break!.BreakType == BreakValues.TextWrapping);
+                  Assert.True(document.Paragraphs[2].Break!.BreakType == WordBreakType.TextWrapping);
                 Assert.True(document.Sections.Count == 1);
                 Assert.True(document.Sections[0].Paragraphs.Count == 8);
 

@@ -185,7 +185,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a border style to the cell.
         /// </summary>
-        public ExcelCell SetBorder(BorderStyleValues style, string? hexColor = null) {
+        public ExcelCell SetBorder(ExcelBorderStyle style, string? hexColor = null) {
             Sheet.CellBorder(Row, Column, style, hexColor);
             return this;
         }
@@ -193,7 +193,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies diagonal borders to the cell.
         /// </summary>
-        public ExcelCell SetDiagonalBorder(BorderStyleValues style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) {
+        public ExcelCell SetDiagonalBorder(ExcelBorderStyle style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) {
             Sheet.CellDiagonalBorder(Row, Column, style, hexColor, diagonalUp, diagonalDown);
             return this;
         }
@@ -566,7 +566,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies totals row functions by header name.
         /// </summary>
-        public ExcelTable SetTotals(IDictionary<string, TotalsRowFunctionValues> byHeader) {
+        public ExcelTable SetTotals(IDictionary<string, ExcelTableTotalsFunction> byHeader) {
             Sheet.SetTableTotalsByName(NameOrRange, byHeader);
             return this;
         }
@@ -645,7 +645,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets or sets whether the run is struck through.</summary>
         public bool Strikethrough { get; set; }
         /// <summary>Gets or sets the run underline style.</summary>
-        public UnderlineValues? UnderlineStyle { get; set; }
+        public ExcelUnderlineStyle? UnderlineStyle { get; set; }
         /// <summary>Gets or sets the run font color as a hex value.</summary>
         public string? FontColor { get; set; }
         /// <summary>Gets or sets the run font name.</summary>
@@ -653,7 +653,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets or sets the run font size.</summary>
         public double? FontSize { get; set; }
         /// <summary>Gets or sets the run vertical text alignment.</summary>
-        public VerticalAlignmentRunValues? VerticalTextAlignment { get; set; }
+        public ExcelVerticalTextAlignment? VerticalTextAlignment { get; set; }
         /// <summary>Gets or sets whether the run font uses outline text.</summary>
         public bool Outline { get; set; }
         /// <summary>Gets or sets whether the run font uses shadow text.</summary>
@@ -674,7 +674,7 @@ namespace OfficeIMO.Excel {
 
         internal static void AppendFontMetadata(RunProperties properties, ExcelRichTextRun run) {
             if (run.VerticalTextAlignment.HasValue) {
-                properties.Append(new VerticalTextAlignment { Val = run.VerticalTextAlignment.Value });
+                properties.Append(new VerticalTextAlignment { Val = run.VerticalTextAlignment.Value.ToOpenXml() });
             }
 
             if (run.Outline) {
@@ -719,17 +719,17 @@ namespace OfficeIMO.Excel {
                 : null;
         }
 
-        internal static VerticalAlignmentRunValues? GetVerticalTextAlignment(RunProperties? properties) {
-            return properties?.GetFirstChild<VerticalTextAlignment>()?.Val?.Value;
+        internal static ExcelVerticalTextAlignment? GetVerticalTextAlignment(RunProperties? properties) {
+            return properties?.GetFirstChild<VerticalTextAlignment>()?.Val?.Value.ToOfficeEnum();
         }
 
-        internal static UnderlineValues? GetUnderlineStyle(RunProperties? properties) {
+        internal static ExcelUnderlineStyle? GetUnderlineStyle(RunProperties? properties) {
             Underline? underline = properties?.GetFirstChild<Underline>();
             if (underline == null) {
                 return null;
             }
 
-            return underline.Val?.Value ?? UnderlineValues.Single;
+            return underline.Val?.Value.ToOfficeEnum() ?? ExcelUnderlineStyle.Single;
         }
 
         private static bool TryGetByte(uint? value, out byte result) {

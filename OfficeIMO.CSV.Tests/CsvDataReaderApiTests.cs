@@ -113,6 +113,8 @@ public sealed class CsvDataReaderApiTests {
                 DetectDelimiter = true
             });
 
+        ICsvDataReaderMetadata metadata = Assert.IsAssignableFrom<ICsvDataReaderMetadata>(reader);
+        Assert.Equal(';', metadata.Delimiter);
         Assert.Equal(prefix.Length, stream.Position);
         Assert.Equal("Id", reader.GetName(0));
         Assert.Equal("Name", reader.GetName(1));

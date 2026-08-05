@@ -33,7 +33,7 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             candidate => candidate.Text == "Text");
 
-        Assert.Equal(HighlightColorValues.None, run.Highlight);
+        Assert.Equal(WordHighlightColor.None, run.Highlight);
         Assert.Equal(string.Empty, run.RunShadingFillColorHex);
         Assert.Contains(
             """<mark style="background-color:transparent">Text</mark>""",
@@ -56,7 +56,7 @@ public partial class HtmlWordGapClosure {
             """));
 
         WordTable table = Assert.Single(document.Tables);
-        Assert.Equal(TableWidthUnitValues.Dxa, table.WidthType);
+        Assert.Equal(WordTableWidthUnit.Dxa, table.WidthType);
         Assert.Equal(6700, table.Width);
     }
 }

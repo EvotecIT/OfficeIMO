@@ -44,9 +44,9 @@ namespace OfficeIMO.Tests.Pdf {
             using WordDocument document = WordDocument.Create();
             WordTable table = document.AddTable(1, 2);
             table.Rows[0].Cells[0].Width = 2400;
-            table.Rows[0].Cells[0].WidthType = DocumentFormat.OpenXml.Wordprocessing.TableWidthUnitValues.Dxa;
+            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
             table.Rows[0].Cells[1].Width = 720;
-            table.Rows[0].Cells[1].WidthType = DocumentFormat.OpenXml.Wordprocessing.TableWidthUnitValues.Dxa;
+            table.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
 
             TableLayout layout = TableLayoutCache.GetLayout(table);
 
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests.Pdf {
             table.Rows[1]._tableRow.TableRowProperties.Append(new W.GridBefore { Val = 1 });
             table.Rows[1]._tableRow.TableRowProperties.Append(new W.GridAfter { Val = 1 });
             table.Rows[1].Cells[0].Width = 2880;
-            table.Rows[1].Cells[0].WidthType = W.TableWidthUnitValues.Dxa;
+            table.Rows[1].Cells[0].WidthType = WordTableWidthUnit.Dxa;
 
             TableLayout layout = TableLayoutCache.GetLayout(table);
 
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests.Pdf {
             table.Rows[0]._tableRow.TableRowProperties ??= new W.TableRowProperties();
             table.Rows[0]._tableRow.TableRowProperties.Append(new W.GridBefore { Val = 16_384 });
             table.Rows[0]._tableRow.TableRowProperties.Append(new W.GridAfter { Val = 16_384 });
-            table.Rows[0].Cells[0].HorizontalMerge = W.MergedCellValues.Continue;
+            table.Rows[0].Cells[0].HorizontalMerge = WordCellMerge.Continue;
 
             Assert.Throws<InvalidDataException>(() => TableLayoutCache.GetLayout(table));
         }

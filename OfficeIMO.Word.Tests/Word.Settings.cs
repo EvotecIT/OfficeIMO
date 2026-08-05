@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.ProtectionPassword = "Test";
 
-                Assert.True(document.Settings.ProtectionType == DocumentProtectionValues.ReadOnly);
+                Assert.True(document.Settings.ProtectionType == WordDocumentProtectionType.ReadOnly);
 
                 Assert.True(document.Settings.Language == "en-US");
 
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Settings.Language == "en-US");
 
-                Assert.True(document.Settings.ProtectionType == DocumentProtectionValues.ReadOnly);
+                Assert.True(document.Settings.ProtectionType == WordDocumentProtectionType.ReadOnly);
 
                 document.Settings.RemoveProtection();
 
@@ -160,21 +160,21 @@ namespace OfficeIMO.Tests {
                 document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.None;
                 Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.None);
 
-                document.Settings.ZoomPreset = PresetZoomValues.BestFit;
+                document.Settings.ZoomPreset = WordZoomPreset.BestFit;
 
-                Assert.True(document.Settings.ZoomPreset == PresetZoomValues.BestFit);
+                Assert.True(document.Settings.ZoomPreset == WordZoomPreset.BestFit);
 
-                document.Settings.ZoomPreset = PresetZoomValues.FullPage;
+                document.Settings.ZoomPreset = WordZoomPreset.FullPage;
 
-                Assert.True(document.Settings.ZoomPreset == PresetZoomValues.FullPage);
+                Assert.True(document.Settings.ZoomPreset == WordZoomPreset.FullPage);
 
-                document.Settings.ZoomPreset = PresetZoomValues.None;
+                document.Settings.ZoomPreset = WordZoomPreset.None;
 
-                Assert.True(document.Settings.ZoomPreset == PresetZoomValues.None);
+                Assert.True(document.Settings.ZoomPreset == WordZoomPreset.None);
 
-                document.Settings.ZoomPreset = PresetZoomValues.TextFit;
+                document.Settings.ZoomPreset = WordZoomPreset.TextFit;
 
-                Assert.True(document.Settings.ZoomPreset == PresetZoomValues.TextFit);
+                Assert.True(document.Settings.ZoomPreset == WordZoomPreset.TextFit);
 
                 Assert.True(document.Settings.FinalDocument == true);
                 document.Settings.FinalDocument = false;
@@ -234,11 +234,11 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test ReadOnlyEnforced");
                 document.Settings.ProtectionPassword = "Test123";
-                document.Settings.ProtectionType = DocumentProtectionValues.ReadOnly;
+                document.Settings.ProtectionType = WordDocumentProtectionType.ReadOnly;
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.True(document.Settings.ProtectionType == DocumentProtectionValues.ReadOnly);
+                Assert.True(document.Settings.ProtectionType == WordDocumentProtectionType.ReadOnly);
             }
         }
     }

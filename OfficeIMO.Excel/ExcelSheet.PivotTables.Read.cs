@@ -139,8 +139,8 @@ namespace OfficeIMO.Excel {
                 uint? numberFormatId = field.NumberFormatId?.Value;
                 list.Add(new ExcelPivotFieldInfo(
                     fieldName: ResolveFieldName(index, cacheFields),
-                    axis: field.Axis?.Value,
-                    sortType: field.SortType?.Value,
+                    axis: field.Axis?.Value.ToOfficeEnum(),
+                    sortType: field.SortType?.Value.ToOfficeEnum(),
                     numberFormatId: numberFormatId,
                     showAll: field.ShowAll?.Value,
                     defaultSubtotal: field.DefaultSubtotal?.Value,
@@ -198,12 +198,12 @@ namespace OfficeIMO.Excel {
             foreach (var field in fields) {
                 int idx = field.Field?.Value is uint u ? (int)u : 0;
                 var name = ResolveFieldName(idx, cacheFields);
-                var fn = field.Subtotal?.Value ?? DataConsolidateFunctionValues.Sum;
+                var fn = (field.Subtotal?.Value ?? DataConsolidateFunctionValues.Sum).ToOfficeEnum();
                 var display = field.Name?.Value;
                 uint? numberFormatId = field.NumberFormatId?.Value;
                 list.Add(new ExcelPivotDataFieldInfo(name, fn, display, numberFormatId,
                     ResolveNumberFormatCode(numberFormatId, numberFormatCodes),
-                    field.ShowDataAs?.Value,
+                    field.ShowDataAs?.Value.ToOfficeEnum(),
                     field.BaseField?.Value,
                     field.BaseItem?.Value));
             }
@@ -232,7 +232,7 @@ namespace OfficeIMO.Excel {
 
                 list.Add(new ExcelPivotFilterInfo(
                     fieldName,
-                    filter.Type?.Value,
+                    filter.Type?.Value.ToOfficeEnum(),
                     filter.StringValue1?.Value ?? FormatOpenXmlDouble(top10?.Val?.Value),
                     filter.StringValue2?.Value,
                     dataFieldName,
@@ -281,7 +281,7 @@ namespace OfficeIMO.Excel {
                 if (range != null) {
                     list.Add(new ExcelPivotGroupingInfo(
                         ResolveFieldName(index, cacheFields),
-                        range.GroupBy?.Value,
+                        range.GroupBy?.Value.ToOfficeEnum(),
                         range.StartDate?.Value,
                         range.EndDate?.Value,
                         range.StartNumber?.Value,

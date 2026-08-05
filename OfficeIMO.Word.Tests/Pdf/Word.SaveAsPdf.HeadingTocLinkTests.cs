@@ -475,7 +475,7 @@ namespace OfficeIMO.Tests {
             heading.LineSpacingBeforePoints = 12D;
             heading.LineSpacingAfterPoints = 3D;
             heading.LineSpacingPoints = 36D;
-            heading.LineSpacingRule = LineSpacingRuleValues.Exact;
+            heading.LineSpacingRule = WordLineSpacingRule.Exact;
             document.Save();
 
             MethodInfo paragraphStyleMethod = typeof(WordPdfConverterExtensions).GetMethod(

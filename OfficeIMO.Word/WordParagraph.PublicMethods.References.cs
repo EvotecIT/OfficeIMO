@@ -45,12 +45,12 @@ namespace OfficeIMO.Word {
         /// <param name="size">The size of the line.</param>
         /// <param name="space">The space the line takes up.</param>
         /// <returns>The new Paragraph after the line.</returns>
-        public WordParagraph AddHorizontalLine(BorderValues? lineType = null, OfficeIMO.Drawing.OfficeColor? color = null, uint size = 12, uint space = 1) {
-            lineType ??= BorderValues.Single;
+        public WordParagraph AddHorizontalLine(WordBorderStyle? lineType = null, OfficeIMO.Drawing.OfficeColor? color = null, uint size = 12, uint space = 1) {
+            lineType ??= WordBorderStyle.Single;
             var paragraphProperties = _paragraph!.ParagraphProperties ??= new ParagraphProperties();
             paragraphProperties.ParagraphBorders = new ParagraphBorders {
                 BottomBorder = new BottomBorder() {
-                    Val = lineType.Value,
+                    Val = lineType.Value.ToOpenXml(),
                     Size = size,
                     Space = space,
                     Color = color != null ? color.Value.ToRgbHex() : "auto"

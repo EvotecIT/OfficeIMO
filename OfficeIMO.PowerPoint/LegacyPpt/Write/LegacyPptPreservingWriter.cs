@@ -422,9 +422,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (kind == LegacyPptShapeKind.Group) return shape is PowerPointGroupShape;
             if (shape is not PowerPointAutoShape autoShape) return false;
             if (kind == LegacyPptShapeKind.AutoShape) return autoShape.ShapeType.HasValue;
-            if (kind == LegacyPptShapeKind.Rectangle) return autoShape.ShapeType == A.ShapeTypeValues.Rectangle;
-            if (kind == LegacyPptShapeKind.Ellipse) return autoShape.ShapeType == A.ShapeTypeValues.Ellipse;
-            return kind == LegacyPptShapeKind.Line && autoShape.ShapeType == A.ShapeTypeValues.Line;
+            if (kind == LegacyPptShapeKind.Rectangle) return autoShape.ShapeType == PowerPointShapeType.Rectangle;
+            if (kind == LegacyPptShapeKind.Ellipse) return autoShape.ShapeType == PowerPointShapeType.Ellipse;
+            return kind == LegacyPptShapeKind.Line && autoShape.ShapeType == PowerPointShapeType.Line;
         }
 
         private static bool HasOnlyPlainProjectedText(PowerPointTextBox textBox) {

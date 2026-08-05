@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var paragraph = doc.Paragraphs[0];
             Assert.Equal(360, paragraph.LineSpacing);
-            Assert.Equal(LineSpacingRuleValues.Auto, paragraph.LineSpacingRule);
+            Assert.Equal(OfficeIMO.Word.WordLineSpacingRule.Auto, paragraph.LineSpacingRule);
         }
 
         [Fact]
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
             string html = "<p><span style=\"text-decoration:underline line-through\">styled</span></p>";
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
-            Assert.Equal(UnderlineValues.Single, run.Underline);
+            Assert.Equal(OfficeIMO.Word.WordUnderlineStyle.Single, run.Underline);
             Assert.True(run.Strike);
         }
 
@@ -49,8 +49,8 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var runs = doc.Paragraphs[0].GetRuns().ToArray();
 
-            Assert.Equal(UnderlineValues.Dotted, runs[0].Underline);
-            Assert.Equal(UnderlineValues.Wave, runs[1].Underline);
+            Assert.Equal(OfficeIMO.Word.WordUnderlineStyle.Dotted, runs[0].Underline);
+            Assert.Equal(OfficeIMO.Word.WordUnderlineStyle.Wave, runs[1].Underline);
         }
 
         [Fact]
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var runs = doc.Paragraphs[0].GetRuns().ToArray();
 
-            Assert.Equal(UnderlineValues.Double, runs[0].Underline);
+            Assert.Equal(OfficeIMO.Word.WordUnderlineStyle.Double, runs[0].Underline);
             Assert.Null(runs[1].Underline);
         }
     }

@@ -331,11 +331,11 @@ namespace OfficeIMO.Tests {
             presentation.SetThemeLatinFonts("Aptos Display", "Aptos");
 
             PowerPointTextBox primary = presentation.EnsureLayoutPlaceholderTextBox(0, 0,
-                PlaceholderValues.Body, 20, PowerPointLayoutBox.FromCentimeters(1.5, 3.0, 18, 7),
+                PowerPointPlaceholderType.Body, 20, PowerPointLayoutBox.FromCentimeters(1.5, 3.0, 18, 7),
                 "Executive Summary Body");
             primary.Name = "Executive Summary Body";
             PowerPointTextBox secondary = presentation.EnsureLayoutPlaceholderTextBox(0, 0,
-                PlaceholderValues.Body, 21, PowerPointLayoutBox.FromCentimeters(20, 3.0, 5, 7),
+                PowerPointPlaceholderType.Body, 21, PowerPointLayoutBox.FromCentimeters(20, 3.0, 5, 7),
                 "Supporting Body");
             secondary.Name = "Supporting Body";
             presentation.EnsureLayoutFooterPlaceholderTextBox(0, 0, "CONFIDENTIAL");

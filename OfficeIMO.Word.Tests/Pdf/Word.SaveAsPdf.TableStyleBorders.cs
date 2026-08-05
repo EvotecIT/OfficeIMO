@@ -52,7 +52,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 2);
             table.Style = WordTableStyle.PlainTable1;
-            table.StyleDetails!.SetBordersForAllSides(BorderValues.Single, 12U, OfficeIMO.Drawing.OfficeColor.Red);
+            table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 12U, OfficeIMO.Drawing.OfficeColor.Red);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Border A1";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "Border B1";
             table.Rows[1].Cells[0].Paragraphs[0].Text = "Border A2";

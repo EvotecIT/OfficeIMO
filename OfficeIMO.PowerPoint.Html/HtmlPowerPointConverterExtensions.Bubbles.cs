@@ -104,17 +104,17 @@ public static partial class HtmlPowerPointConverterExtensions {
                bool.TryParse(rawOverlay, out overlayLegend);
     }
 
-    private static C.LegendPositionValues ToPowerPointLegendPosition(
+    private static PptCore.PowerPointChartLegendPosition ToPowerPointLegendPosition(
         OfficeChartLegendPosition position) =>
         position switch {
             OfficeChartLegendPosition.Left =>
-                C.LegendPositionValues.Left,
+                PptCore.PowerPointChartLegendPosition.Left,
             OfficeChartLegendPosition.Right =>
-                C.LegendPositionValues.Right,
+                PptCore.PowerPointChartLegendPosition.Right,
             OfficeChartLegendPosition.Top =>
-                C.LegendPositionValues.Top,
+                PptCore.PowerPointChartLegendPosition.Top,
             OfficeChartLegendPosition.Bottom =>
-                C.LegendPositionValues.Bottom,
+                PptCore.PowerPointChartLegendPosition.Bottom,
             _ => throw new ArgumentOutOfRangeException(nameof(position))
         };
 }

@@ -318,22 +318,22 @@ namespace OfficeIMO.Word.Html {
             string color = value.Color?.ToRgbHex() ?? fallbackColor;
             switch (side) {
                 case BlockBorderSide.Left:
-                    cell.Borders.LeftStyle = value.Style;
+                    cell.Borders.LeftStyle = value.Style.ToOfficeEnum();
                     cell.Borders.LeftSize = value.Size;
                     cell.Borders.LeftColorHex = color;
                     break;
                 case BlockBorderSide.Right:
-                    cell.Borders.RightStyle = value.Style;
+                    cell.Borders.RightStyle = value.Style.ToOfficeEnum();
                     cell.Borders.RightSize = value.Size;
                     cell.Borders.RightColorHex = color;
                     break;
                 case BlockBorderSide.Top:
-                    cell.Borders.TopStyle = value.Style;
+                    cell.Borders.TopStyle = value.Style.ToOfficeEnum();
                     cell.Borders.TopSize = value.Size;
                     cell.Borders.TopColorHex = color;
                     break;
                 case BlockBorderSide.Bottom:
-                    cell.Borders.BottomStyle = value.Style;
+                    cell.Borders.BottomStyle = value.Style.ToOfficeEnum();
                     cell.Borders.BottomSize = value.Size;
                     cell.Borders.BottomColorHex = color;
                     break;
@@ -752,22 +752,22 @@ namespace OfficeIMO.Word.Html {
             string color = value.Color?.ToRgbHex() ?? fallbackColor;
             switch (side) {
                 case BlockBorderSide.Left:
-                    paragraph.Borders.LeftStyle = value.Style;
+                    paragraph.Borders.LeftStyle = value.Style.ToOfficeEnum();
                     paragraph.Borders.LeftSize = value.Size;
                     paragraph.Borders.LeftColorHex = color;
                     break;
                 case BlockBorderSide.Right:
-                    paragraph.Borders.RightStyle = value.Style;
+                    paragraph.Borders.RightStyle = value.Style.ToOfficeEnum();
                     paragraph.Borders.RightSize = value.Size;
                     paragraph.Borders.RightColorHex = color;
                     break;
                 case BlockBorderSide.Top:
-                    paragraph.Borders.TopStyle = value.Style;
+                    paragraph.Borders.TopStyle = value.Style.ToOfficeEnum();
                     paragraph.Borders.TopSize = value.Size;
                     paragraph.Borders.TopColorHex = color;
                     break;
                 case BlockBorderSide.Bottom:
-                    paragraph.Borders.BottomStyle = value.Style;
+                    paragraph.Borders.BottomStyle = value.Style.ToOfficeEnum();
                     paragraph.Borders.BottomSize = value.Size;
                     paragraph.Borders.BottomColorHex = color;
                     break;

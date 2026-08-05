@@ -42,10 +42,10 @@ public partial class HtmlWordGapClosure {
         Assert.Empty(document.Sections[0].Paragraphs);
         Assert.Equal("ABCDEF", first.ShadingFillColorHex);
         Assert.Equal("ABCDEF", last.ShadingFillColorHex);
-        Assert.Equal(BorderValues.Single, first.Borders.TopStyle);
-        Assert.Equal(BorderValues.Single, first.Borders.LeftStyle);
-        Assert.Equal(BorderValues.Single, last.Borders.TopStyle);
-        Assert.Equal(BorderValues.Single, last.Borders.RightStyle);
+        Assert.Equal(WordBorderStyle.Single, first.Borders.TopStyle);
+        Assert.Equal(WordBorderStyle.Single, first.Borders.LeftStyle);
+        Assert.Equal(WordBorderStyle.Single, last.Borders.TopStyle);
+        Assert.Equal(WordBorderStyle.Single, last.Borders.RightStyle);
         Assert.Equal("123456", first.Borders.LeftColorHex);
         Assert.Equal("123456", last.Borders.RightColorHex);
     }

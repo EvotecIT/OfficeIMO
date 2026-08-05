@@ -94,7 +94,7 @@ namespace OfficeIMO.Word.Html {
         /// <summary>
         /// Optional default page orientation applied when creating new documents.
         /// </summary>
-        public PageOrientationValues? DefaultOrientation { get; set; }
+        public WordPageOrientation? DefaultOrientation { get; set; }
 
         /// <summary>
         /// Maps HTML class names to paragraph styles. Example: <code>ClassStyles["title"] = WordParagraphStyles.Heading1;</code>

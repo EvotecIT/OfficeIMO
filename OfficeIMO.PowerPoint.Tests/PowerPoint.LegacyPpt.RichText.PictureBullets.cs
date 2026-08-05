@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 PowerPointTextBox textBox = slide.AddTextBox(
                     "Picture bullet");
                 ImagePart imagePart = slide.SlidePart.AddImagePart(
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 PowerPointTextBox textBox = slide.AddTextBox(
                     "Metafile picture bullet");
                 ImagePart imagePart = slide.SlidePart.AddImagePart(
@@ -205,7 +205,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
-                source.AddSlide(P.SlideLayoutValues.Blank)
+                source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddTextBox("Editable picture bullet");
                 sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
             }

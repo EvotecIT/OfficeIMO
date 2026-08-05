@@ -105,10 +105,10 @@ namespace OfficeIMO.Word.Pdf {
             Math.Max(0, layout.GetRowTrailingColumnCount(rowIndex));
 
         private static bool IsNativeHorizontalMergeContinuation(WordTableCell cell) =>
-            cell.HorizontalMerge == W.MergedCellValues.Continue;
+            cell.HorizontalMerge == WordCellMerge.Continue;
 
         private static bool IsNativeVerticalMergeContinuation(WordTableCell cell) =>
-            cell.VerticalMerge == W.MergedCellValues.Continue;
+            cell.VerticalMerge == WordCellMerge.Continue;
 
         private static int GetNativeCellColumnSpan(WordTableCell cell) =>
             Math.Max(1, cell.ColumnSpan);
@@ -239,10 +239,10 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IEnumerable<(W.BorderValues? BorderStyle, string? Color, DocumentFormat.OpenXml.UInt32Value? Size)> GetNativeTableCellBorderSides(WordTableCellBorder borders) {
-            yield return (borders.TopStyle, borders.TopColorHex, borders.TopSize);
-            yield return (borders.BottomStyle, borders.BottomColorHex, borders.BottomSize);
-            yield return (borders.LeftStyle, borders.LeftColorHex, borders.LeftSize);
-            yield return (borders.RightStyle, borders.RightColorHex, borders.RightSize);
+            yield return (borders.TopStyle.ToOpenXml(), borders.TopColorHex, borders.TopSize);
+            yield return (borders.BottomStyle.ToOpenXml(), borders.BottomColorHex, borders.BottomSize);
+            yield return (borders.LeftStyle.ToOpenXml(), borders.LeftColorHex, borders.LeftSize);
+            yield return (borders.RightStyle.ToOpenXml(), borders.RightColorHex, borders.RightSize);
         }
 
         private static PdfCore.PdfCellBorderSide? CreateNativeCellBorderSide(W.BorderValues? borderStyle, string? color, DocumentFormat.OpenXml.UInt32Value? size) {
@@ -257,6 +257,9 @@ namespace OfficeIMO.Word.Pdf {
                 LineStyle = ToNativeBorderLineStyle(borderStyle)
             };
         }
+
+        private static PdfCore.PdfCellBorderSide? CreateNativeCellBorderSide(WordBorderStyle? borderStyle, string? color, DocumentFormat.OpenXml.UInt32Value? size) =>
+            CreateNativeCellBorderSide(borderStyle.ToOpenXml(), color, size);
 
         private static PdfCore.PdfCellBorderSide? CreateNativeCellBorderSide(W.BorderType? border) =>
             border == null
@@ -370,7 +373,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static W.JustificationValues? ResolveNativeTableCellParagraphJustification(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults) =>
-            paragraph.ParagraphAlignment ?? GetNativeParagraphStyleDefaults(paragraph).Alignment ?? tableStyleDefaults.ParagraphAlignment;
+            paragraph.ParagraphAlignment.ToOpenXml() ?? GetNativeParagraphStyleDefaults(paragraph).Alignment ?? tableStyleDefaults.ParagraphAlignment;
 
         private static (double Left, double Right, double FirstLine) ResolveNativeTableCellParagraphIndentation(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
@@ -411,7 +414,7 @@ namespace OfficeIMO.Word.Pdf {
                 styleDefaults,
                 tableStyleDefaults.RunStyle,
                 nativeFontMap);
-            if (paragraph.LineSpacing.HasValue && paragraph.LineSpacingRule == W.LineSpacingRuleValues.Auto) {
+            if (paragraph.LineSpacing.HasValue && paragraph.LineSpacingRule == WordLineSpacingRule.Auto) {
                 return Math.Max(0.01D, naturalLineHeight * (paragraph.LineSpacing.Value / 240D));
             }
 

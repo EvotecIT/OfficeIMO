@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var paragraph = doc.Paragraphs[0];
 
-            Assert.Equal(JustificationValues.Center, paragraph.ParagraphAlignment);
+            Assert.Equal(OfficeIMO.Word.WordParagraphAlignment.Center, paragraph.ParagraphAlignment);
         }
 
         [Fact]

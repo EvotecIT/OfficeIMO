@@ -88,7 +88,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordprocessingDocument">Document to operate on.</param>
         /// <param name="types">Footer types to remove.</param>
-        public static void RemoveFooters(WordprocessingDocument wordprocessingDocument, params HeaderFooterValues[] types) {
+        public static void RemoveFooters(WordprocessingDocument wordprocessingDocument, params WordHeaderFooterType[] types) {
             var docPart = wordprocessingDocument.MainDocumentPart;
             var document = docPart?.Document;
 
@@ -103,11 +103,12 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            var openXmlTypes = new HashSet<HeaderFooterValues>(types.Select(type => type.ToOpenXml()));
             var partsToDelete = new HashSet<FooterPart>();
             var documentRoot = document ?? throw new InvalidOperationException("Main document is missing.");
             var mainDocumentPart = docPart!;
             var footersToRemove = documentRoot.Descendants<FooterReference>()
-                .Where(f => f.Type != null && types.Contains(WordSection.GetType(f.Type))).ToList();
+                .Where(f => f.Type != null && openXmlTypes.Contains(WordSection.GetType(f.Type))).ToList();
             foreach (var footer in footersToRemove) {
                 if (footer.Id == null) continue;
                 string relationshipId = footer.Id.Value!;
@@ -132,7 +133,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Document to operate on.</param>
         /// <param name="types">Footer types to remove.</param>
-        public static void RemoveFooters(WordDocument document, params HeaderFooterValues[] types) {
+        public static void RemoveFooters(WordDocument document, params WordHeaderFooterType[] types) {
             RemoveFooters(document._wordprocessingDocument, types);
         }
     }

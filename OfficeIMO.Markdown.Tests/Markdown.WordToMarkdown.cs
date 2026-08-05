@@ -97,9 +97,9 @@ namespace OfficeIMO.Tests {
         public void WordToMarkdown_ToMarkdownDocument_BuildsTypedAstDirectly() {
             using var doc = WordDocument.Create();
             var paragraph = doc.AddParagraph("Water");
-            paragraph.AddText("2").SetVerticalTextAlignment(DocumentFormat.OpenXml.Wordprocessing.VerticalPositionValues.Subscript);
+            paragraph.AddText("2").SetVerticalTextAlignment(OfficeIMO.Word.WordVerticalTextPosition.Subscript);
             paragraph.AddText(" and ");
-            paragraph.AddText("important").Underline = DocumentFormat.OpenXml.Wordprocessing.UnderlineValues.Single;
+            paragraph.AddText("important").Underline = OfficeIMO.Word.WordUnderlineStyle.Single;
 
             MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions { EnableUnderline = true });
             var block = Assert.IsType<ParagraphBlock>(Assert.Single(markdown.Blocks));
@@ -550,7 +550,7 @@ namespace OfficeIMO.Tests {
                 new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                 new Run(new Text("(a)/(b)")),
                 new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
-            paragraph.AddBreak(BreakValues.Page);
+            paragraph.AddBreak(WordBreakType.Page);
             paragraph.AddText(" after");
 
             string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
@@ -622,7 +622,7 @@ namespace OfficeIMO.Tests {
         public void WordToMarkdown_Preserves_PageBreaks_As_Semantic_Blocks() {
             using var doc = WordDocument.Create();
             var paragraph = doc.AddParagraph("Before");
-            paragraph.AddBreak(BreakValues.Page);
+            paragraph.AddBreak(WordBreakType.Page);
             paragraph.AddText("After");
 
             MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
@@ -810,7 +810,7 @@ namespace OfficeIMO.Tests {
             using var restored = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, WordMarkdownSemanticBlocks.CreateReaderOptions()).ToWordDocument();
 
             Assert.Contains(restored.Paragraphs, paragraph => paragraph.Text.Trim() == "Before");
-            Assert.Contains(restored.Paragraphs, paragraph => paragraph.PageBreak?.BreakType == BreakValues.Page);
+            Assert.Contains(restored.Paragraphs, paragraph => paragraph.PageBreak?.BreakType == WordBreakType.Page);
             Assert.Contains(restored.Paragraphs, paragraph => paragraph.Text.Trim() == "After");
         }
 

@@ -20,8 +20,8 @@ namespace OfficeIMO.Tests {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape line = slide.AddLine(0, 0, 4000, 0, "ArrowLine");
                     line.OutlineColor = "FF0000";
-                    line.OutlineDash = A.PresetLineDashValues.Dash;
-                    line.SetLineEnds(A.LineEndValues.Triangle, A.LineEndValues.Stealth, A.LineEndWidthValues.Medium, A.LineEndLengthValues.Medium);
+                    line.OutlineDash = PowerPointLineDashStyle.Dash;
+                    line.SetLineEnds(PowerPointLineEndType.Triangle, PowerPointLineEndType.Stealth, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
                     presentation.Save();
                 }
 
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
 
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointShape line = presentation.Slides[0].GetShape("JoinedArrowLine")!;
-                    line.SetLineEnds(null, A.LineEndValues.Triangle, A.LineEndWidthValues.Medium, A.LineEndLengthValues.Medium);
+                    line.SetLineEnds(null, PowerPointLineEndType.Triangle, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());
                 }
@@ -108,9 +108,9 @@ namespace OfficeIMO.Tests {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape line = slide.AddLine(0, 0, 4000, 0, "ReverseStyledArrowLine");
 
-                    line.SetLineEnds(A.LineEndValues.Triangle, A.LineEndValues.Stealth, A.LineEndWidthValues.Medium, A.LineEndLengthValues.Medium);
+                    line.SetLineEnds(PowerPointLineEndType.Triangle, PowerPointLineEndType.Stealth, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
                     line.OutlineColor = "156082";
-                    line.OutlineDash = A.PresetLineDashValues.DashDot;
+                    line.OutlineDash = PowerPointLineDashStyle.DashDot;
 
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());

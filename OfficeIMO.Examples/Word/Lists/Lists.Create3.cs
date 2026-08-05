@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with Lists6.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 WordList wordList = document.AddList(WordListStyle.Numbered);
                 wordList.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph.Bold = true;
                 paragraph.SetItalic();
 
-                document.AddParagraph("This is second list").SetColor(OfficeIMO.Drawing.OfficeColor.OrangeRed).SetUnderline(UnderlineValues.Double);
+                document.AddParagraph("This is second list").SetColor(OfficeIMO.Drawing.OfficeColor.OrangeRed).SetUnderline(WordUnderlineStyle.Double);
 
                 WordList wordList1 = document.AddList(WordListStyle.HeadingIA1);
                 wordList1.AddItem("Temp 1").SetCapsStyle(CapsStyle.SmallCaps);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Lists count - before adding section: " + document.Lists.Count);
 
                 var section = document.AddSection();
-                section.PageSettings.Orientation = PageOrientationValues.Landscape;
+                section.PageSettings.Orientation = WordPageOrientation.Landscape;
 
                 Console.WriteLine(document.Sections[0].PageSettings.Orientation);
                 Console.WriteLine(document.Sections[1].PageSettings.Orientation);

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             var paragraph = document.AddParagraph("Hello");
             paragraph.AddFormattedText(" bold", bold: true);
             paragraph.AddFormattedText(" italic", italic: true);
-            paragraph.AddFormattedText(" underline", underline: UnderlineValues.Single);
+            paragraph.AddFormattedText(" underline", underline: WordUnderlineStyle.Single);
             paragraph.AddHyperLink(" link", new Uri("https://example.com"));
 
             var runs = paragraph.GetRuns().ToList();
@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Hello", runs[0].Text);
             Assert.True(runs[1].Bold);
             Assert.True(runs[2].Italic);
-            Assert.Equal(UnderlineValues.Single, runs[3].Underline);
+            Assert.Equal(WordUnderlineStyle.Single, runs[3].Underline);
             Assert.True(runs[4].IsHyperLink);
 
             document.Save();

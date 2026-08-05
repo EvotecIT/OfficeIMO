@@ -209,13 +209,13 @@ public partial class WordList : WordElement {
     /// <summary>
     /// Gets or sets the underline style of the numbering symbols.
     /// </summary>
-    public UnderlineValues? Underline {
-        get => GetNumberingProperty<UnderlineValues?>(props =>
-            props.Elements<Underline>().FirstOrDefault()?.Val?.Value);
+    public WordUnderlineStyle? Underline {
+        get => GetNumberingProperty<WordUnderlineStyle?>(props =>
+            props.Elements<Underline>().FirstOrDefault()?.Val?.Value.ToOfficeEnum());
         set => SetNumberingProperty(props => {
             props.RemoveAllChildren<Underline>();
             if (value.HasValue) {
-                props.Append(new Underline { Val = value.Value });
+                props.Append(new Underline { Val = value.Value.ToOpenXml() });
             }
         }, value.HasValue);
     }

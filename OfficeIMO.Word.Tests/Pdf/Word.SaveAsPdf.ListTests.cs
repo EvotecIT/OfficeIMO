@@ -466,7 +466,7 @@ namespace OfficeIMO.Tests {
                 item.AddText(secondMarker).SetCharacterStyleId(styleId);
                 item.LineSpacingAfterPoints = 0D;
                 item.LineSpacingPoints = 18D;
-                item.LineSpacingRule = LineSpacingRuleValues.Exact;
+                item.LineSpacingRule = WordLineSpacingRule.Exact;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
@@ -534,7 +534,7 @@ namespace OfficeIMO.Tests {
                 item.AddText(" ");
                 item.AddText("ListBold").SetBold();
                 item.AddText(" ");
-                item.AddText("ListMarked").SetHighlight(HighlightColorValues.Yellow);
+                item.AddText("ListMarked").SetHighlight(WordHighlightColor.Yellow);
                 item.AddText(" ");
                 item.AddHyperLink("ListLink", new System.Uri(linkUri), addStyle: true, tooltip: "Native list link metadata");
 
@@ -792,15 +792,15 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_OfficeIMOEngine_Honors_Numbering_Level_Marker_Suffix() {
             (double MarkerX, double TextX) nothing = RenderNativeNumberedListMarkerSuffix(
                 "PdfNativeListMarkerSuffixNothing",
-                LevelSuffixValues.Nothing,
+                WordListLevelSuffix.Nothing,
                 "NothingSuffixMarkerBody");
             (double MarkerX, double TextX) space = RenderNativeNumberedListMarkerSuffix(
                 "PdfNativeListMarkerSuffixSpace",
-                LevelSuffixValues.Space,
+                WordListLevelSuffix.Space,
                 "SpaceSuffixMarkerBody");
             (double MarkerX, double TextX) tab = RenderNativeNumberedListMarkerSuffix(
                 "PdfNativeListMarkerSuffixTab",
-                LevelSuffixValues.Tab,
+                WordListLevelSuffix.Tab,
                 "TabSuffixMarkerBody");
 
             Assert.InRange(Math.Abs(space.MarkerX - nothing.MarkerX), 0D, 1.5D);
@@ -847,7 +847,7 @@ namespace OfficeIMO.Tests {
             return (markerX, textX);
         }
 
-        private (double MarkerX, double TextX) RenderNativeNumberedListMarkerSuffix(string fileNamePrefix, LevelSuffixValues suffix, string bodyText) {
+        private (double MarkerX, double TextX) RenderNativeNumberedListMarkerSuffix(string fileNamePrefix, WordListLevelSuffix suffix, string bodyText) {
             string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
             string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
 

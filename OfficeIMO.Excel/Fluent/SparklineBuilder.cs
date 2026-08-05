@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel.Fluent {
     public sealed class SparklineBuilder {
         private readonly ExcelSheet _sheet;
         private readonly string _dataRange;
-        private SparklineTypeValues _type = SparklineTypeValues.Line;
+        private ExcelSparklineType _type = ExcelSparklineType.Line;
         private bool _displayMarkers;
         private bool _displayHighLow;
         private bool _displayFirstLast;
@@ -30,19 +30,19 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         /// <summary>Uses a specific sparkline type.</summary>
-        public SparklineBuilder Type(SparklineTypeValues type) {
+        public SparklineBuilder Type(ExcelSparklineType type) {
             _type = type;
             return this;
         }
 
         /// <summary>Uses line sparklines.</summary>
-        public SparklineBuilder Line() => Type(SparklineTypeValues.Line);
+        public SparklineBuilder Line() => Type(ExcelSparklineType.Line);
 
         /// <summary>Uses column sparklines.</summary>
-        public SparklineBuilder Column() => Type(SparklineTypeValues.Column);
+        public SparklineBuilder Column() => Type(ExcelSparklineType.Column);
 
         /// <summary>Uses win/loss sparklines.</summary>
-        public SparklineBuilder WinLoss() => Type(SparklineTypeValues.Stacked);
+        public SparklineBuilder WinLoss() => Type(ExcelSparklineType.Stacked);
 
         /// <summary>Shows or hides point markers.</summary>
         public SparklineBuilder Markers(bool show = true) {

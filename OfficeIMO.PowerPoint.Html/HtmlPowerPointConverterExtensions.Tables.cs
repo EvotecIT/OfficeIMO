@@ -76,18 +76,18 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static void ApplySemanticTableAlignment(PptCore.PowerPointTableCell cell, string? alignment) {
         switch ((alignment ?? string.Empty).Trim().ToLowerInvariant()) {
             case "center":
-                cell.HorizontalAlignment = DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.Center;
+                cell.HorizontalAlignment = PptCore.PowerPointTextAlignment.Center;
                 break;
             case "right":
             case "end":
-                cell.HorizontalAlignment = DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.Right;
+                cell.HorizontalAlignment = PptCore.PowerPointTextAlignment.Right;
                 break;
             case "justify":
-                cell.HorizontalAlignment = DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.Justified;
+                cell.HorizontalAlignment = PptCore.PowerPointTextAlignment.Justified;
                 break;
             case "left":
             case "start":
-                cell.HorizontalAlignment = DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.Left;
+                cell.HorizontalAlignment = PptCore.PowerPointTextAlignment.Left;
                 break;
         }
     }

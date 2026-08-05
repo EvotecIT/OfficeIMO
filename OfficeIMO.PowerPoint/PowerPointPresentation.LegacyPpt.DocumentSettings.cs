@@ -7,9 +7,9 @@ namespace OfficeIMO.PowerPoint {
         private static void ApplyLegacyDocumentSettings(PowerPointPresentation target,
             LegacyPptPresentation source) {
             LegacyPptDocumentSettings? settings = source.DocumentSettings;
-            SlideSizeValues sizeType = settings?.SlideSizeType is LegacyPptSlideSizeType type
+            PowerPointSlideSizeType sizeType = settings?.SlideSizeType is LegacyPptSlideSizeType type
                 ? MapLegacySlideSizeType(type, source.SlideWidth, source.SlideHeight)
-                : SlideSizeValues.Custom;
+                : PowerPointSlideSizeType.Custom;
             target.SlideSize.SetSizeEmus(ToEmus(source.SlideWidth),
                 ToEmus(source.SlideHeight), sizeType);
             if (settings == null) return;
@@ -36,17 +36,17 @@ namespace OfficeIMO.PowerPoint {
             if (view != null) view.ShowComments = settings.ShowComments;
         }
 
-        private static SlideSizeValues MapLegacySlideSizeType(LegacyPptSlideSizeType type,
+        private static PowerPointSlideSizeType MapLegacySlideSizeType(LegacyPptSlideSizeType type,
             int width, int height) => type switch {
                 LegacyPptSlideSizeType.Screen => width * 9L == height * 16L
-                    ? SlideSizeValues.Screen16x9
-                    : SlideSizeValues.Screen4x3,
-                LegacyPptSlideSizeType.LetterPaper => SlideSizeValues.Letter,
-                LegacyPptSlideSizeType.A4Paper => SlideSizeValues.A4,
-                LegacyPptSlideSizeType.Film35Mm => SlideSizeValues.Film35mm,
-                LegacyPptSlideSizeType.Overhead => SlideSizeValues.Overhead,
-                LegacyPptSlideSizeType.Banner => SlideSizeValues.Banner,
-                _ => SlideSizeValues.Custom
+                    ? PowerPointSlideSizeType.Screen16x9
+                    : PowerPointSlideSizeType.Screen4x3,
+                LegacyPptSlideSizeType.LetterPaper => PowerPointSlideSizeType.Letter,
+                LegacyPptSlideSizeType.A4Paper => PowerPointSlideSizeType.A4,
+                LegacyPptSlideSizeType.Film35Mm => PowerPointSlideSizeType.Film35mm,
+                LegacyPptSlideSizeType.Overhead => PowerPointSlideSizeType.Overhead,
+                LegacyPptSlideSizeType.Banner => PowerPointSlideSizeType.Banner,
+                _ => PowerPointSlideSizeType.Custom
             };
     }
 }

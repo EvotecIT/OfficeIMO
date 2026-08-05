@@ -61,7 +61,7 @@ namespace OfficeIMO.PowerPoint {
                             PowerPointTemplatePlaceholderRole role = InferPlaceholderRole(
                                 placeholder.Type?.Value, name);
                             placeholders.Add(new PowerPointTemplatePlaceholderInfo(name,
-                                placeholder.Type?.Value, placeholder.Index?.Value, role,
+                                placeholder.Type?.Value.ToOfficeEnum(), placeholder.Index?.Value, role,
                                 GetTemplateElementBounds(element), defaultText));
                             if (role == PowerPointTemplatePlaceholderRole.Footer && defaultText != null) {
                                 footerContents.Add(defaultText);

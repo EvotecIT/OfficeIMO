@@ -15,21 +15,21 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a cell-value comparison rule.
         /// </summary>
-        public ExcelRange CellIs(ConditionalFormattingOperatorValues @operator, string formula1) {
+        public ExcelRange CellIs(ExcelConditionalFormattingOperator @operator, string formula1) {
             return CellIs(@operator, formula1, null, null);
         }
 
         /// <summary>
         /// Applies a cell-value comparison rule.
         /// </summary>
-        public ExcelRange CellIs(ConditionalFormattingOperatorValues @operator, string formula1, string? formula2) {
+        public ExcelRange CellIs(ExcelConditionalFormattingOperator @operator, string formula1, string? formula2) {
             return CellIs(@operator, formula1, formula2, null);
         }
 
         /// <summary>
         /// Applies a cell-value comparison rule.
         /// </summary>
-        public ExcelRange CellIs(ConditionalFormattingOperatorValues @operator, string formula1, string? formula2 = null, string? fillColor = null) {
+        public ExcelRange CellIs(ExcelConditionalFormattingOperator @operator, string formula1, string? formula2 = null, string? fillColor = null) {
             _range.Sheet.AddConditionalRule(_range.Address, @operator, formula1, formula2, fillColor);
             return _range;
         }
@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
         /// Applies a greater-than cell-value rule.
         /// </summary>
         public ExcelRange GreaterThan(string formula, string? fillColor) {
-            return CellIs(ConditionalFormattingOperatorValues.GreaterThan, formula, null, fillColor);
+            return CellIs(ExcelConditionalFormattingOperator.GreaterThan, formula, null, fillColor);
         }
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace OfficeIMO.Excel {
         /// Applies a less-than cell-value rule.
         /// </summary>
         public ExcelRange LessThan(string formula, string? fillColor) {
-            return CellIs(ConditionalFormattingOperatorValues.LessThan, formula, null, fillColor);
+            return CellIs(ExcelConditionalFormattingOperator.LessThan, formula, null, fillColor);
         }
 
         /// <summary>
@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel {
         /// Applies a between cell-value rule.
         /// </summary>
         public ExcelRange Between(string formula1, string formula2, string? fillColor) {
-            return CellIs(ConditionalFormattingOperatorValues.Between, formula1, formula2, fillColor);
+            return CellIs(ExcelConditionalFormattingOperator.Between, formula1, formula2, fillColor);
         }
 
         /// <summary>
@@ -268,7 +268,7 @@ namespace OfficeIMO.Excel {
         /// Applies a begins-with text rule.
         /// </summary>
         public ExcelRange BeginsWith(string text) {
-            _range.Sheet.AddConditionalTextRule(_range.Address, ConditionalFormatValues.BeginsWith, text);
+            _range.Sheet.AddConditionalTextRule(_range.Address, ExcelConditionalFormatType.BeginsWith, text);
             return _range;
         }
 
@@ -276,7 +276,7 @@ namespace OfficeIMO.Excel {
         /// Applies an ends-with text rule.
         /// </summary>
         public ExcelRange EndsWith(string text) {
-            _range.Sheet.AddConditionalTextRule(_range.Address, ConditionalFormatValues.EndsWith, text);
+            _range.Sheet.AddConditionalTextRule(_range.Address, ExcelConditionalFormatType.EndsWith, text);
             return _range;
         }
 
@@ -315,7 +315,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a time-period rule.
         /// </summary>
-        public ExcelRange TimePeriod(TimePeriodValues timePeriod) {
+        public ExcelRange TimePeriod(ExcelConditionalTimePeriod timePeriod) {
             _range.Sheet.AddConditionalTimePeriodRule(_range.Address, timePeriod);
             return _range;
         }
@@ -323,7 +323,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a time-period rule with a differential fill color.
         /// </summary>
-        public ExcelRange TimePeriod(TimePeriodValues timePeriod, string fillColor) {
+        public ExcelRange TimePeriod(ExcelConditionalTimePeriod timePeriod, string fillColor) {
             _range.Sheet.AddConditionalTimePeriodRule(_range.Address, timePeriod, fillColor: fillColor);
             return _range;
         }
@@ -364,13 +364,13 @@ namespace OfficeIMO.Excel {
         /// Applies an icon set.
         /// </summary>
         public ExcelRange IconSet() {
-            return IconSet(IconSetValues.ThreeTrafficLights1);
+            return IconSet(ExcelIconSet.ThreeTrafficLights1);
         }
 
         /// <summary>
         /// Applies an icon set.
         /// </summary>
-        public ExcelRange IconSet(IconSetValues iconSet, bool showValue = true, bool reverseIconOrder = false, double[]? percentThresholds = null, double[]? numberThresholds = null) {
+        public ExcelRange IconSet(ExcelIconSet iconSet, bool showValue = true, bool reverseIconOrder = false, double[]? percentThresholds = null, double[]? numberThresholds = null) {
             _range.Sheet.AddConditionalIconSet(_range.Address, iconSet, showValue, reverseIconOrder, percentThresholds, numberThresholds);
             return _range;
         }

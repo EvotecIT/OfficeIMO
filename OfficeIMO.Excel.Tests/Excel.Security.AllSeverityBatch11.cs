@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                     sourceRange: "A1:C1048576",
                     destinationCell: "E2",
                     rowFields: new[] { "First", "Second" },
-                    dataFields: new[] { new ExcelPivotDataField("Value", DataConsolidateFunctionValues.Sum) }));
+                    dataFields: new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum) }));
 
             Assert.Contains("shared-item discovery", exception.Message, StringComparison.Ordinal);
         }

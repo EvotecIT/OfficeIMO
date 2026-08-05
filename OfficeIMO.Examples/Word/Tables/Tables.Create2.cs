@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with Tables.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 WordTable wordTable = document.AddTable(3, 4, WordTableStyle.PlainTable1);
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
@@ -97,7 +97,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable.Rows[0].Cells[2].MergeVertically(2, true);
 
 
-                document.AddHorizontalLine(BorderValues.Double, Color.Green);
+                document.AddHorizontalLine(WordBorderStyle.Double, Color.Green);
 
 
                 document.AddParagraph("Test");
@@ -111,7 +111,7 @@ namespace OfficeIMO.Examples.Word {
 
                 section.AddParagraph("This is a big test");
 
-                section.AddHorizontalLine(BorderValues.BalloonsHotAir, null, 24, 24);
+                section.AddHorizontalLine(WordBorderStyle.BalloonsHotAir, null, 24, 24);
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

@@ -65,7 +65,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            table.WidthType = TableWidthUnitValues.Dxa;
+            table.WidthType = WordTableWidthUnit.Dxa;
             table.Width = (int)constrainedWidth;
         }
 

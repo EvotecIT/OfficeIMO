@@ -225,9 +225,9 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 1, "A");
                 sheet.CellValue(2, 2, 2d);
                 sheet.AddTable("A1:B2", true, "MyTable", TableStyle.TableStyleMedium9);
-                sheet.SetTableTotals("A1:B2", new Dictionary<string, TotalsRowFunctionValues> {
-                    ["name"] = TotalsRowFunctionValues.Count,
-                    ["AMOUNT"] = TotalsRowFunctionValues.Sum,
+                sheet.SetTableTotals("A1:B2", new Dictionary<string, ExcelTableTotalsFunction> {
+                    ["name"] = ExcelTableTotalsFunction.Count,
+                    ["AMOUNT"] = ExcelTableTotalsFunction.Sum,
                 });
                 document.Save();
             }
@@ -257,10 +257,10 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 2d);
                 sheet.CellValue(2, 3, 3d);
                 sheet.AddTable("A1:C2", true, "MyTable", TableStyle.TableStyleMedium9);
-                sheet.SetTableTotals("A1:C2", new Dictionary<string, TotalsRowFunctionValues> {
-                    ["NAME"] = TotalsRowFunctionValues.Count,
-                    ["amount"] = TotalsRowFunctionValues.Sum,
-                    ["BaLaNcE"] = TotalsRowFunctionValues.Sum,
+                sheet.SetTableTotals("A1:C2", new Dictionary<string, ExcelTableTotalsFunction> {
+                    ["NAME"] = ExcelTableTotalsFunction.Count,
+                    ["amount"] = ExcelTableTotalsFunction.Sum,
+                    ["BaLaNcE"] = ExcelTableTotalsFunction.Sum,
                 });
                 document.Save();
             }
@@ -290,9 +290,9 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 2d);
                 sheet.AddTable("A1:B2", true, "SalesTable", TableStyle.TableStyleMedium9);
 
-                sheet.SetTableTotalsByName("SalesTable", new Dictionary<string, TotalsRowFunctionValues> {
-                    ["Name"] = TotalsRowFunctionValues.Count,
-                    ["Amount"] = TotalsRowFunctionValues.Sum,
+                sheet.SetTableTotalsByName("SalesTable", new Dictionary<string, ExcelTableTotalsFunction> {
+                    ["Name"] = ExcelTableTotalsFunction.Count,
+                    ["Amount"] = ExcelTableTotalsFunction.Sum,
                 });
 
                 sheet.ClearTableTotals("SalesTable");
@@ -321,13 +321,13 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 2d);
                 sheet.AddTable("A1:B2", true, "SalesTable", TableStyle.TableStyleMedium9);
 
-                sheet.SetTableTotalsByName("SalesTable", new Dictionary<string, TotalsRowFunctionValues> {
-                    ["Name"] = TotalsRowFunctionValues.Count,
-                    ["Amount"] = TotalsRowFunctionValues.Sum,
+                sheet.SetTableTotalsByName("SalesTable", new Dictionary<string, ExcelTableTotalsFunction> {
+                    ["Name"] = ExcelTableTotalsFunction.Count,
+                    ["Amount"] = ExcelTableTotalsFunction.Sum,
                 });
                 sheet.ClearTableTotals("SalesTable");
-                sheet.SetTableTotalsByName("SalesTable", new Dictionary<string, TotalsRowFunctionValues> {
-                    ["Amount"] = TotalsRowFunctionValues.Sum,
+                sheet.SetTableTotalsByName("SalesTable", new Dictionary<string, ExcelTableTotalsFunction> {
+                    ["Amount"] = ExcelTableTotalsFunction.Sum,
                 });
                 document.Save();
             }

@@ -30,11 +30,11 @@ namespace OfficeIMO.Word {
         /// Alignment aka Paragraph Alignment. This element specifies the paragraph alignment which shall be applied to text in this paragraph.
         /// If this element is omitted on a given paragraph, its value is determined by the setting previously set at any level of the style hierarchy (i.e.that previous setting remains unchanged). If this setting is never specified in the style hierarchy, then no alignment is applied to the paragraph.
         /// </summary>
-        public JustificationValues? ParagraphAlignment {
+        public WordParagraphAlignment? ParagraphAlignment {
             get {
                 if (_paragraphProperties != null)
                     if (_paragraphProperties.Justification != null)
-                        return _paragraphProperties.Justification.Val?.Value;
+                        return _paragraphProperties.Justification.Val?.Value.ToOfficeEnum();
                 return null;
             }
             set {
@@ -42,7 +42,7 @@ namespace OfficeIMO.Word {
                     _paragraph.ParagraphProperties = new ParagraphProperties();
                 }
                 _paragraph.ParagraphProperties!.Justification = new Justification {
-                    Val = value
+                    Val = value?.ToOpenXml()
                 };
             }
         }
@@ -51,16 +51,16 @@ namespace OfficeIMO.Word {
         /// Text Alignment aka Vertical Character Alignment on Line. This element specifies the vertical alignment of all text on each line displayed within a paragraph. If the line height (before any added spacing) is larger than one or more characters on the line, all characters are aligned to each other as specified by this element.
         /// If this element is omitted on a given paragraph, its value is determined by the setting previously set at any level of the style hierarchy (i.e.that previous setting remains unchanged). If this setting is never specified in the style hierarchy, then the vertical alignment of all characters on the line shall be automatically determined by the consumer.
         /// </summary>
-        public VerticalTextAlignmentValues? VerticalCharacterAlignmentOnLine {
+        public WordVerticalCharacterAlignment? VerticalCharacterAlignmentOnLine {
             get {
                 if (_paragraphProperties != null)
                     if (_paragraphProperties.TextAlignment != null)
-                        return _paragraphProperties.TextAlignment.Val?.Value;
+                        return _paragraphProperties.TextAlignment.Val?.Value.ToOfficeEnum();
                 return null;
             }
             set {
                 var textAlignment = new TextAlignment();
-                textAlignment.Val = value;
+                textAlignment.Val = value?.ToOpenXml();
                 if (_paragraphProperties == null) {
                     _paragraph.ParagraphProperties = new ParagraphProperties();
                 }
@@ -295,15 +295,15 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the text flow direction for the paragraph.
         /// </summary>
-        public TextDirectionValues? TextDirection {
+        public WordTextDirection? TextDirection {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.TextDirection != null) {
-                    return _paragraphProperties.TextDirection.Val?.Value;
+                    return _paragraphProperties.TextDirection.Val?.Value.ToOfficeEnum();
                 }
                 return null;
             }
             set {
-                var textDirection = new TextDirection { Val = value };
+                var textDirection = new TextDirection { Val = value?.ToOpenXml() };
                 if (_paragraphProperties == null) {
                     _paragraph.ParagraphProperties = new ParagraphProperties();
                 }
@@ -335,11 +335,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the rule used to calculate line spacing for the paragraph.
         /// </summary>
-        public LineSpacingRuleValues? LineSpacingRule {
+        public WordLineSpacingRule? LineSpacingRule {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
                     if (_paragraphProperties.SpacingBetweenLines.LineRule != null) {
-                        return _paragraphProperties.SpacingBetweenLines.LineRule;
+                        return _paragraphProperties.SpacingBetweenLines.LineRule.Value.ToOfficeEnum();
                     }
                 }
                 return null;
@@ -347,7 +347,7 @@ namespace OfficeIMO.Word {
             set {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var spacing = props.SpacingBetweenLines ?? new SpacingBetweenLines();
-                spacing.LineRule = value;
+                spacing.LineRule = value?.ToOpenXml();
                 props.SpacingBetweenLines = spacing;
             }
         }
@@ -469,11 +469,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the vertical text alignment - the alignment of the text in the paragraph with respect to the line height.
         /// </summary>
-        public VerticalPositionValues? VerticalTextAlignment {
+        public WordVerticalTextPosition? VerticalTextAlignment {
             get {
                 RunProperties? runProperties = IsHyperLink ? Hyperlink?._runProperties : _runProperties;
                 if (runProperties?.VerticalTextAlignment != null) {
-                    return runProperties.VerticalTextAlignment.Val?.Value;
+                    return runProperties.VerticalTextAlignment.Val?.Value.ToOfficeEnum();
                 }
                 return null;
             }
@@ -494,7 +494,7 @@ namespace OfficeIMO.Word {
                     } else {
                         runProperties = VerifyRunProperties();
                     }
-                    runProperties.VerticalTextAlignment = new VerticalTextAlignment { Val = value };
+                    runProperties.VerticalTextAlignment = new VerticalTextAlignment { Val = value.Value.ToOpenXml() };
                 }
             }
         }

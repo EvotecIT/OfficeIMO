@@ -76,17 +76,17 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Adds a native command action targeted at a shape.</summary>
         public PowerPointTimelineAction AddCommandAnimation(PowerPointShape shape,
             string command, PowerPointTimelineOptions? options = null) =>
-            AddCommandAnimation(shape, command, CommandValues.Event, options);
+            AddCommandAnimation(shape, command, PowerPointAnimationCommand.Event, options);
 
         /// <summary>Adds a native command action of the requested command type.</summary>
         public PowerPointTimelineAction AddCommandAnimation(PowerPointShape shape,
-            string command, CommandValues type,
+            string command, PowerPointAnimationCommand type,
             PowerPointTimelineOptions? options = null) {
             if (string.IsNullOrWhiteSpace(command)) throw new ArgumentException("A command is required.", nameof(command));
             uint shapeId = ValidateTimelineTarget(shape);
             uint id = GetNextTimingId();
             var action = new Command(CreateTimelineBehavior(shapeId, id, options)) {
-                Type = type,
+                Type = type.ToOpenXml(),
                 CommandName = command
             };
             AppendTimelineAction(action, options);

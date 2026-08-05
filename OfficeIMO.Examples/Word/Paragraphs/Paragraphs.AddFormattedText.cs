@@ -13,7 +13,7 @@ internal static partial class Paragraphs {
             var paragraph = document.AddParagraph(string.Empty);
             paragraph.AddFormattedText("Bold", bold: true);
             paragraph.AddFormattedText(" Italic", italic: true);
-            paragraph.AddFormattedText(" Underlined", underline: UnderlineValues.Single);
+            paragraph.AddFormattedText(" Underlined", underline: WordUnderlineStyle.Single);
             document.Save();
             if (openWord) document.OpenInApplication();
         }

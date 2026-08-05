@@ -15,13 +15,13 @@ namespace OfficeIMO.Examples.Word {
                 var defaultFooter = Guard.NotNull(footers.Default, "Default footer must exist after enabling headers.");
 
                 var table = defaultFooter.AddTable(1, 2, WordTableStyle.TableGrid);
-                table.WidthType = TableWidthUnitValues.Pct;
+                table.WidthType = WordTableWidthUnit.Pct;
                 // 5000 represents 100% when using Pct width
                 table.Width = 5000;
 
                 table.Rows[0].Cells[0].AddParagraph("Confidential");
                 var para = table.Rows[0].Cells[1].AddParagraph();
-                para.ParagraphAlignment = JustificationValues.Right;
+                para.ParagraphAlignment = WordParagraphAlignment.Right;
                 para.AddPageNumber(includeTotalPages: true, separator: " / ");
 
                 document.Save();

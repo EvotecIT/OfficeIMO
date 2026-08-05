@@ -387,7 +387,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph();
                 paragraph.AddText("Before ");
-                paragraph.AddText("Marked").SetHighlight(HighlightColorValues.Yellow);
+                paragraph.AddText("Marked").SetHighlight(WordHighlightColor.Yellow);
                 paragraph.AddText("After");
 
                 document.Save();

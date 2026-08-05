@@ -223,7 +223,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.SetDocumentVariable("ClientName", "Acme");
-                var source = new WordBibliographySource("S1", DataSourceValues.Book) {
+                var source = new WordBibliographySource("S1", WordBibliographySourceType.Book) {
                     Title = "Automation Notes",
                     Author = "OfficeIMO",
                     Year = "2026"

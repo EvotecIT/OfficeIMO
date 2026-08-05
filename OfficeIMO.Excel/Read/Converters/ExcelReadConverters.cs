@@ -6,8 +6,8 @@ namespace OfficeIMO.Excel {
     /// Describes a cell's raw OpenXML data for custom conversion hooks.
     /// </summary>
     public readonly struct ExcelCellContext {
-        /// <summary>OpenXML cell type hint, if present.</summary>
-        public CellValues? TypeHint { get; }
+        /// <summary>Cell type hint, if present.</summary>
+        public ExcelCellValueType? TypeHint { get; }
         /// <summary>Cell style index as defined in the workbook, if present.</summary>
         public uint? StyleIndex { get; }
         /// <summary>Raw shared/inline text value when present.</summary>
@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Creates a description of the original OpenXML cell and culture for conversion.
         /// </summary>
-        public ExcelCellContext(CellValues? typeHint, uint? styleIndex, string? rawText, string? inlineText, CultureInfo culture) {
+        public ExcelCellContext(ExcelCellValueType? typeHint, uint? styleIndex, string? rawText, string? inlineText, CultureInfo culture) {
             TypeHint = typeHint;
             StyleIndex = styleIndex;
             RawText = rawText;

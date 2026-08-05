@@ -349,7 +349,7 @@ public sealed class ReaderOfficeRichMappingTests {
             PowerPointTextBox visible = slide.AddTextBox("Visible guidance");
             visible.Paragraphs[0].Runs[0].SetHyperlink("https://example.test/visible");
             PowerPointTextBox hiddenTitle = slide.AddTextBox("Hidden title");
-            hiddenTitle.PlaceholderType = DocumentFormat.OpenXml.Presentation.PlaceholderValues.Title;
+            hiddenTitle.PlaceholderType = PowerPointPlaceholderType.Title;
             hiddenTitle.Hidden = true;
             hiddenTitle.Paragraphs[0].Runs[0].SetHyperlink("https://example.test/hidden");
             PowerPointTable hiddenTable = slide.AddTable(1, 1);

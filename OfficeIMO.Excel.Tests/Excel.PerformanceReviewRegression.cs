@@ -2791,11 +2791,12 @@ namespace OfficeIMO.Tests {
                     false,
                     false,
                     CancellationToken.None,
-                    string.Empty
+                    null
                 ];
 
                 Assert.True((bool)method.Invoke(sheet, args)!);
-                Assert.Equal("A1:A2", Assert.IsType<string>(args[12]));
+                ExcelDataReaderInsertResult result = Assert.IsType<ExcelDataReaderInsertResult>(args[12]);
+                Assert.Equal("A1:A2", result.Range);
 
                 document.Save(memory);
 
@@ -3984,10 +3985,10 @@ namespace OfficeIMO.Tests {
                     ("Name", row => row.Name),
                     ("Score", row => row.Score),
                     ("Created", row => row.Created));
-                sheet.AddConditionalRule("B2:B4", ConditionalFormattingOperatorValues.GreaterThan, "15");
+                sheet.AddConditionalRule("B2:B4", ExcelConditionalFormattingOperator.GreaterThan, "15");
                 sheet.AddConditionalColorScale("B2:B4", OfficeIMO.Drawing.OfficeColor.LightPink, OfficeIMO.Drawing.OfficeColor.LightGreen);
                 sheet.AddConditionalDataBar("B2:B4", OfficeIMO.Drawing.OfficeColor.SteelBlue);
-                sheet.ValidationWholeNumber("B2:B4", DataValidationOperatorValues.Between, 1, 100);
+                sheet.ValidationWholeNumber("B2:B4", ExcelDataValidationOperator.Between, 1, 100);
                 sheet.Freeze(topRows: 1, leftCols: 1);
                 sheet.AddAutoFilter("A1:C4");
 
@@ -4111,7 +4112,7 @@ namespace OfficeIMO.Tests {
                     "A1:C4",
                     "F20",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
 
                 document.Save(memory);
 
@@ -4155,7 +4156,7 @@ namespace OfficeIMO.Tests {
                     "A1:C4",
                     "F20",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
 
                 document.Save(memory);
 
@@ -4191,7 +4192,7 @@ namespace OfficeIMO.Tests {
                     "A1:C4",
                     "F20",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
                 var chartData = new ExcelChartData(
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
@@ -4294,7 +4295,7 @@ namespace OfficeIMO.Tests {
                     "A1:C4",
                     "F20",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
                 sheet.CellValue(2, 4, 123.45d);
                 sheet.CellAt(2, 4).SetNumberFormat("0.00");
 
@@ -4549,7 +4550,7 @@ namespace OfficeIMO.Tests {
                     "A1:C4",
                     "F20",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
                 sheet.CellValue(10, 4, "Manual");
 
                 document.Save(firstMemory);
@@ -4591,7 +4592,7 @@ namespace OfficeIMO.Tests {
                         "A1:C4",
                         "F20",
                         rowFields: new[] { "Name" },
-                        dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                        dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
 
                     document.Save(path, null);
 
@@ -4632,7 +4633,7 @@ namespace OfficeIMO.Tests {
                     "A1:C4",
                     "F20",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
 
                 document.Save(stream);
 
@@ -4680,7 +4681,7 @@ namespace OfficeIMO.Tests {
                     "A1:C4",
                     "F20",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
 
                 document.Save(memory);
 
@@ -4721,7 +4722,7 @@ namespace OfficeIMO.Tests {
                     "A1:C4",
                     "F20",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
 
                 var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
                 var row2 = sheetData.Elements<Row>().FirstOrDefault(row => row.RowIndex?.Value == 2U)
@@ -4785,7 +4786,7 @@ namespace OfficeIMO.Tests {
                     "A1:C4",
                     "F20",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
                 sheet.CellValue(2, 4, string.Empty);
                 sheet.CellValue(2, 5, string.Empty);
 
@@ -4834,7 +4835,7 @@ namespace OfficeIMO.Tests {
                     "A1:C4",
                     "F20",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
                 sheet.CellValue(2, 4, "Compact side note");
 
                 var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
@@ -4884,7 +4885,7 @@ namespace OfficeIMO.Tests {
                     "A1:C4",
                     "F20",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
                 sheet.CellValue(2, 2, 42);
 
                 document.Save(memory);
@@ -4960,7 +4961,7 @@ namespace OfficeIMO.Tests {
                     "A1:C601",
                     "F20",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
 
                 document.Save(memory);
 
@@ -5067,8 +5068,8 @@ namespace OfficeIMO.Tests {
                 sheet.AutoFitColumns();
                 sheet.Freeze(topRows: 1, leftCols: 1);
                 sheet.AddAutoFilter("A1:C3");
-                sheet.AddConditionalRule("B2:B3", ConditionalFormattingOperatorValues.GreaterThan, "15");
-                sheet.ValidationWholeNumber("B2:B3", DataValidationOperatorValues.Between, 1, 100);
+                sheet.AddConditionalRule("B2:B3", ExcelConditionalFormattingOperator.GreaterThan, "15");
+                sheet.ValidationWholeNumber("B2:B3", ExcelDataValidationOperator.Between, 1, 100);
                 sheet.CellValue(4, 1, "Manual note");
 
                 document.Save(memory);
@@ -5115,8 +5116,8 @@ namespace OfficeIMO.Tests {
                 sheet.AutoFitColumns();
                 sheet.Freeze(topRows: 1, leftCols: 1);
                 sheet.AddAutoFilter("A1:C3");
-                sheet.AddConditionalRule("B2:B3", ConditionalFormattingOperatorValues.GreaterThan, "15");
-                sheet.ValidationWholeNumber("B2:B3", DataValidationOperatorValues.Between, 1, 100);
+                sheet.AddConditionalRule("B2:B3", ExcelConditionalFormattingOperator.GreaterThan, "15");
+                sheet.ValidationWholeNumber("B2:B3", ExcelDataValidationOperator.Between, 1, 100);
 
                 document.Save(memory);
 
@@ -5527,7 +5528,7 @@ namespace OfficeIMO.Tests {
                     destinationCell: "E2",
                     name: "ScorePivot",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
 
                 document.Save(memory);
 
@@ -5575,7 +5576,7 @@ namespace OfficeIMO.Tests {
                     destinationCell: "E2",
                     name: "ScorePivot",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
 
                 var relationship = sheet.WorksheetPart.AddHyperlinkRelationship(new Uri("https://example.org/pivot-fallback"), true);
                 var hyperlinks = sheet.WorksheetPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
@@ -5625,7 +5626,7 @@ namespace OfficeIMO.Tests {
                     destinationCell: "E2",
                     name: "ScorePivot",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") },
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") },
                     calculatedFields: new[] { new ExcelPivotCalculatedField("DoubleScore", "'Score' * 2") },
                     options: new ExcelPivotTableOptions { SaveSourceData = true });
 
@@ -5668,7 +5669,7 @@ namespace OfficeIMO.Tests {
                     destinationCell: "E2",
                     name: "ScorePivot",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
 
                 document.Save(memory);
             }
@@ -5720,7 +5721,7 @@ namespace OfficeIMO.Tests {
                     destinationCell: "G2",
                     name: "ScorePivot",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
 
                 document.MaterializeDeferredDataSetImport();
                 document.Save(memory);
@@ -5758,7 +5759,7 @@ namespace OfficeIMO.Tests {
                     destinationCell: "E2",
                     name: "ScorePivot",
                     rowFields: new[] { "Score" },
-                    dataFields: new[] { new ExcelPivotDataField("Name", DataConsolidateFunctionValues.Count, "Name Count") });
+                    dataFields: new[] { new ExcelPivotDataField("Name", ExcelPivotDataFunction.Count, "Name Count") });
 
                 document.Save(memory);
             }
@@ -5794,8 +5795,8 @@ namespace OfficeIMO.Tests {
                     destinationCell: "E2",
                     name: "CreatedPivot",
                     rowFields: new[] { "Created" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") },
-                    groupings: new[] { ExcelPivotGrouping.DateHierarchy("Created", GroupByValues.Years, GroupByValues.Months) });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") },
+                    groupings: new[] { ExcelPivotGrouping.DateHierarchy("Created", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Months) });
 
                 document.Save(memory);
             }
@@ -5838,7 +5839,7 @@ namespace OfficeIMO.Tests {
                     destinationCell: "D2",
                     name: "CreatedPivot",
                     rowFields: new[] { "Created" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
 
                 document.Save(memory);
             }
@@ -5872,7 +5873,7 @@ namespace OfficeIMO.Tests {
                     destinationCell: "E2",
                     name: "ScorePivot",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
 
                 document.Save(memory);
             }

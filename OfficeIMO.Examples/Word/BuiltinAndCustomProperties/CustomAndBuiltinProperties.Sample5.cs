@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Word {
                 document.BuiltinDocumentProperties.Keywords = "word, docx, test";
 
                 var paragraph = document.AddParagraph("Basic paragraph");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 document.Save();

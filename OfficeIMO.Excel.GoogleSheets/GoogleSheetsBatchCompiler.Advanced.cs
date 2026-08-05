@@ -423,17 +423,17 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return true;
         }
 
-        private static string MapAggregate(DataConsolidateFunctionValues function) {
-            if (function == DataConsolidateFunctionValues.Average) return "AVERAGE";
-            if (function == DataConsolidateFunctionValues.Count) return "COUNTA";
-            if (function == DataConsolidateFunctionValues.CountNumbers) return "COUNT";
-            if (function == DataConsolidateFunctionValues.Maximum) return "MAX";
-            if (function == DataConsolidateFunctionValues.Minimum) return "MIN";
-            if (function == DataConsolidateFunctionValues.Product) return "PRODUCT";
-            if (function == DataConsolidateFunctionValues.StandardDeviation) return "STDEV";
-            if (function == DataConsolidateFunctionValues.StandardDeviationP) return "STDEVP";
-            if (function == DataConsolidateFunctionValues.Variance) return "VAR";
-            if (function == DataConsolidateFunctionValues.VarianceP) return "VARP";
+        private static string MapAggregate(ExcelPivotDataFunction function) {
+            if (function == ExcelPivotDataFunction.Average) return "AVERAGE";
+            if (function == ExcelPivotDataFunction.Count) return "COUNTA";
+            if (function == ExcelPivotDataFunction.CountNumbers) return "COUNT";
+            if (function == ExcelPivotDataFunction.Maximum) return "MAX";
+            if (function == ExcelPivotDataFunction.Minimum) return "MIN";
+            if (function == ExcelPivotDataFunction.Product) return "PRODUCT";
+            if (function == ExcelPivotDataFunction.StandardDeviation) return "STDEV";
+            if (function == ExcelPivotDataFunction.StandardDeviationP) return "STDEVP";
+            if (function == ExcelPivotDataFunction.Variance) return "VAR";
+            if (function == ExcelPivotDataFunction.VarianceP) return "VARP";
             return "SUM";
         }
 

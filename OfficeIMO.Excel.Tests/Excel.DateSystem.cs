@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                     document.DateSystem = ExcelDateSystem.NineteenFour;
                     var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, date);
-                    sheet.ValidationDate("A1:A10", DataValidationOperatorValues.Between, minimum, maximum);
+                    sheet.ValidationDate("A1:A10", ExcelDataValidationOperator.Between, minimum, maximum);
                     document.Save();
                 }
 

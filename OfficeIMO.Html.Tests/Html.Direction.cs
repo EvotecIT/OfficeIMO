@@ -46,9 +46,9 @@ namespace OfficeIMO.Tests {
 
             using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
 
-            Assert.Equal(JustificationValues.Left, doc.Paragraphs.First(p => p.Text.Contains("Left")).ParagraphAlignment);
-            Assert.Equal(JustificationValues.Right, doc.Paragraphs.First(p => p.Text.Contains("Right")).ParagraphAlignment);
-            Assert.Equal(JustificationValues.Left, doc.Paragraphs.First(p => p.Text.Contains("LeftAgain")).ParagraphAlignment);
+            Assert.Equal(WordParagraphAlignment.Left, doc.Paragraphs.First(p => p.Text.Contains("Left")).ParagraphAlignment);
+            Assert.Equal(WordParagraphAlignment.Right, doc.Paragraphs.First(p => p.Text.Contains("Right")).ParagraphAlignment);
+            Assert.Equal(WordParagraphAlignment.Left, doc.Paragraphs.First(p => p.Text.Contains("LeftAgain")).ParagraphAlignment);
         }
 
         [Fact]
@@ -58,8 +58,8 @@ namespace OfficeIMO.Tests {
             using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var row = doc.Tables[0].Rows[0];
 
-            Assert.Equal(JustificationValues.Right, row.Cells[0].Paragraphs[0].ParagraphAlignment);
-            Assert.Equal(JustificationValues.Left, row.Cells[1].Paragraphs[0].ParagraphAlignment);
+            Assert.Equal(WordParagraphAlignment.Right, row.Cells[0].Paragraphs[0].ParagraphAlignment);
+            Assert.Equal(WordParagraphAlignment.Left, row.Cells[1].Paragraphs[0].ParagraphAlignment);
         }
     }
 }

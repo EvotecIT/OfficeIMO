@@ -4,7 +4,6 @@ public sealed partial class OfficeMarkupCSharpEmitter {
     private static void EmitPresentation(OfficeMarkupDocument document, OfficeMarkupEmitterOptions options, StringBuilder sb) {
         sb.AppendLine("using OfficeIMO.PowerPoint;");
         sb.AppendLine("using OfficeIMO.Drawing;");
-        sb.AppendLine("using C = DocumentFormat.OpenXml.Drawing.Charts;");
         sb.AppendLine();
         sb.AppendLine($"using PowerPointPresentation presentation = PowerPointPresentation.Create({options.FilePathVariable});");
         var slideIndex = 0;

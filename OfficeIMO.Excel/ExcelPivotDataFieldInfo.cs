@@ -8,14 +8,14 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Creates a data field info instance.
         /// </summary>
-        public ExcelPivotDataFieldInfo(string fieldName, DataConsolidateFunctionValues function, string? displayName)
+        public ExcelPivotDataFieldInfo(string fieldName, ExcelPivotDataFunction function, string? displayName)
             : this(fieldName, function, displayName, null) {
         }
 
         /// <summary>
         /// Creates a data field info instance.
         /// </summary>
-        public ExcelPivotDataFieldInfo(string fieldName, DataConsolidateFunctionValues function, string? displayName, uint? numberFormatId) {
+        public ExcelPivotDataFieldInfo(string fieldName, ExcelPivotDataFunction function, string? displayName, uint? numberFormatId) {
             FieldName = fieldName;
             Function = function;
             DisplayName = displayName;
@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Creates a data field info instance.
         /// </summary>
-        public ExcelPivotDataFieldInfo(string fieldName, DataConsolidateFunctionValues function, string? displayName,
+        public ExcelPivotDataFieldInfo(string fieldName, ExcelPivotDataFunction function, string? displayName,
             uint? numberFormatId, string? numberFormatCode) {
             FieldName = fieldName;
             Function = function;
@@ -37,8 +37,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Creates a data field info instance.
         /// </summary>
-        public ExcelPivotDataFieldInfo(string fieldName, DataConsolidateFunctionValues function, string? displayName,
-            uint? numberFormatId, ShowDataAsValues? showDataAs, int? baseField, uint? baseItem) {
+        public ExcelPivotDataFieldInfo(string fieldName, ExcelPivotDataFunction function, string? displayName,
+            uint? numberFormatId, ExcelPivotShowDataAs? showDataAs, int? baseField, uint? baseItem) {
             FieldName = fieldName;
             Function = function;
             DisplayName = displayName;
@@ -51,8 +51,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Creates a data field info instance.
         /// </summary>
-        public ExcelPivotDataFieldInfo(string fieldName, DataConsolidateFunctionValues function, string? displayName,
-            uint? numberFormatId, string? numberFormatCode, ShowDataAsValues? showDataAs, int? baseField, uint? baseItem) {
+        public ExcelPivotDataFieldInfo(string fieldName, ExcelPivotDataFunction function, string? displayName,
+            uint? numberFormatId, string? numberFormatCode, ExcelPivotShowDataAs? showDataAs, int? baseField, uint? baseItem) {
             FieldName = fieldName;
             Function = function;
             DisplayName = displayName;
@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the aggregation function.
         /// </summary>
-        public DataConsolidateFunctionValues Function { get; }
+        public ExcelPivotDataFunction Function { get; }
 
         /// <summary>
         /// Gets the display name for the data field.
@@ -91,7 +91,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the show-values-as calculation mode applied to the data field.
         /// </summary>
-        public ShowDataAsValues? ShowDataAs { get; }
+        public ExcelPivotShowDataAs? ShowDataAs { get; }
 
         /// <summary>
         /// Gets the base field index for show-values-as calculations that require one.

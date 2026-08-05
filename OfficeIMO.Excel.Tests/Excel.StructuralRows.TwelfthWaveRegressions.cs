@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
                 name: "SalesPivot",
                 rowFields: new[] { "Region" },
                 dataFields: new[] {
-                    new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum)
+                    new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum)
                 });
             return sheet;
         }

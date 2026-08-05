@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel {
 
                 changed |= ApplySeriesMarkerByChartIndex(seriesIndex, marker => ApplyMarker(
                     marker,
-                    style.ShowMarkers ? MapMarkerStyle(style.MarkerShape) : C.MarkerStyleValues.None,
+                    style.ShowMarkers ? MapMarkerStyle(style.MarkerShape).ToOfficeEnum() : ExcelChartMarkerStyle.None,
                     style.MarkerSize.HasValue ? System.Math.Min(72, style.MarkerSize.Value) : (int?)null,
                     style.ShowMarkers ? style.SeriesColorArgb : null,
                     style.ShowMarkers ? style.MarkerOutlineColorArgb : null,

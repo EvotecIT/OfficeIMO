@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with FootNotes02.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Basic paragraph");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text")
                     .AddText(" continuing").AddFootNote("2nd footnote!");

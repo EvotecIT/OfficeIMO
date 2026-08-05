@@ -260,7 +260,7 @@ public static partial class PowerPointPdfConverterExtensions {
     private static Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>? CreateTableCellAlignments(PptCore.PowerPointTable table) {
         var alignments = new Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>();
         ForEachTableAnchorCell(table, (row, column, cell) => {
-            PdfCore.PdfColumnAlign? align = MapColumnAlign(cell.HorizontalAlignment);
+            PdfCore.PdfColumnAlign? align = MapColumnAlign(cell.HorizontalAlignment.ToOpenXml());
             if (align.HasValue) {
                 alignments[(row, column)] = align.Value;
             }
@@ -272,7 +272,7 @@ public static partial class PowerPointPdfConverterExtensions {
     private static Dictionary<(int Row, int Column), PdfCore.PdfCellVerticalAlign>? CreateTableCellVerticalAlignments(PptCore.PowerPointTable table) {
         var alignments = new Dictionary<(int Row, int Column), PdfCore.PdfCellVerticalAlign>();
         ForEachTableAnchorCell(table, (row, column, cell) => {
-            PdfCore.PdfCellVerticalAlign? align = MapVerticalAlign(cell.VerticalAlignment);
+            PdfCore.PdfCellVerticalAlign? align = MapVerticalAlign(cell.VerticalAlignment.ToOpenXml());
             if (align.HasValue) {
                 alignments[(row, column)] = align.Value;
             }

@@ -24,7 +24,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             _storageBytes = source.GetBytes();
             _progId = projected.ProgId;
             _showAsIcon = projected.ShowAsIcon;
-            _colorFollow = projected.FollowColorScheme;
+            _colorFollow = projected.FollowColorScheme.ToOpenXml();
         }
 
         internal LegacyPptEmbeddedOleObject Source { get; }
@@ -73,13 +73,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 StringComparison.Ordinal);
             bool drawAspectChanged = _showAsIcon != current.ShowAsIcon;
             bool colorFollowChanged = _colorFollow !=
-                current.FollowColorScheme;
+                current.FollowColorScheme.ToOpenXml();
             if (storageChanged || progIdChanged || drawAspectChanged
                 || colorFollowChanged) {
                 edit = new LegacyPptOleObjectEdit(this, storageBytes,
                     storageChanged, progIdChanged, drawAspectChanged,
                     colorFollowChanged, current.ProgId,
-                    current.ShowAsIcon, current.FollowColorScheme);
+                    current.ShowAsIcon, current.FollowColorScheme.ToOpenXml());
             }
             return true;
         }

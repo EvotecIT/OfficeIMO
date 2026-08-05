@@ -133,7 +133,7 @@ namespace OfficeIMO.Word.Markdown {
 
             var paragraph = host.CreateParagraph();
             ApplyBlockParagraphFormatting(paragraph, quoteDepth, alignment);
-            paragraph.AddBreak(BreakValues.Page);
+            paragraph.AddBreak(WordBreakType.Page);
             if (!string.IsNullOrWhiteSpace(block.Caption)) {
                 var captionParagraph = host.CreateParagraph();
                 ApplyBlockParagraphFormatting(captionParagraph, quoteDepth, alignment);
@@ -179,30 +179,30 @@ namespace OfficeIMO.Word.Markdown {
             return true;
         }
 
-        private static HeaderFooterValues ResolveHeaderFooterType(
+        private static WordHeaderFooterType ResolveHeaderFooterType(
             string? slot,
             MarkdownToWordOptions options,
             Omd.SemanticFencedBlock block) {
             if (string.IsNullOrWhiteSpace(slot)) {
-                return HeaderFooterValues.Default;
+                return WordHeaderFooterType.Default;
             }
 
             var normalizedSlot = (slot ?? string.Empty).Trim().ToLowerInvariant();
             return normalizedSlot switch {
-                "default" => HeaderFooterValues.Default,
-                "odd" => HeaderFooterValues.Default,
-                "first" => HeaderFooterValues.First,
-                "even" => HeaderFooterValues.Even,
+                "default" => WordHeaderFooterType.Default,
+                "odd" => WordHeaderFooterType.Default,
+                "first" => WordHeaderFooterType.First,
+                "even" => WordHeaderFooterType.Even,
                 _ => WarnAndReturnDefault(normalizedSlot, options, block)
             };
         }
 
-        private static HeaderFooterValues WarnAndReturnDefault(
+        private static WordHeaderFooterType WarnAndReturnDefault(
             string slot,
             MarkdownToWordOptions options,
             Omd.SemanticFencedBlock block) {
             options.OnWarning?.Invoke($"Semantic {block.SemanticKind} block requested unsupported slot '{slot}'. Falling back to default header or footer.");
-            return HeaderFooterValues.Default;
+            return WordHeaderFooterType.Default;
         }
 
         private void ProcessTableCellBlocksOmd(

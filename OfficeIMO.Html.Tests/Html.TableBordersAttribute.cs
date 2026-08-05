@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             var table = doc.Tables[0];
 
             var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Top);
-            Assert.Equal(BorderValues.Single, style);
+            Assert.Equal(WordBorderStyle.Single, style);
             Assert.Equal((UInt32Value)12U, size);
             Assert.Equal("000000", colorHex);
 
@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("B1", string.Join(string.Empty, table.Rows[0].Cells[1].Paragraphs.ConvertAll(p => p.Text)));
 
             var cell = table.Rows[0].Cells[1];
-            Assert.Equal(BorderValues.Single, cell.Borders.TopStyle);
+            Assert.Equal(WordBorderStyle.Single, cell.Borders.TopStyle);
             Assert.Equal("FF0000", cell.Borders.TopColorHex);
             Assert.Equal((UInt32Value)6U, cell.Borders.TopSize);
         }

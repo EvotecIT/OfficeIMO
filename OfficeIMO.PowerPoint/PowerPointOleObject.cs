@@ -56,16 +56,16 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Gets or sets how the object follows the presentation color scheme.</summary>
-        public P.OleObjectFollowColorSchemeValues FollowColorScheme {
+        public PowerPointOleFollowColorScheme FollowColorScheme {
             get => OleObject.GetFirstChild<P.OleObjectEmbed>()?
-                .FollowColorScheme?.Value
-                ?? P.OleObjectFollowColorSchemeValues.None;
+                .FollowColorScheme?.Value.ToOfficeEnum()
+                ?? PowerPointOleFollowColorScheme.None;
             set {
                 P.OleObjectEmbed embed = OleObject
                     .GetFirstChild<P.OleObjectEmbed>()
                     ?? throw new InvalidOperationException(
                         "The OLE object is linked rather than embedded.");
-                embed.FollowColorScheme = value;
+                embed.FollowColorScheme = value.ToOpenXml();
             }
         }
 

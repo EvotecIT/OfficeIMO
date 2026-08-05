@@ -516,13 +516,13 @@ namespace OfficeIMO.Word.Html {
                         node = u;
                     }
 
-                    if (run.VerticalTextAlignment == VerticalPositionValues.Superscript) {
+                    if (run.VerticalTextAlignment == WordVerticalTextPosition.Superscript) {
                         var sup = CreateOutputElement(htmlDoc, "sup");
                         sup.AppendChild(node);
                         node = sup;
                     }
 
-                    if (run.VerticalTextAlignment == VerticalPositionValues.Subscript) {
+                    if (run.VerticalTextAlignment == WordVerticalTextPosition.Subscript) {
                         var sub = CreateOutputElement(htmlDoc, "sub");
                         sub.AppendChild(node);
                         node = sub;
@@ -748,7 +748,7 @@ namespace OfficeIMO.Word.Html {
                 }
                 // Inline paragraph styles: alignment, shading background, and paragraph borders
                 List<string> pStyles = new();
-                var alignCss = GetTextAlignCss(para.ParagraphAlignment);
+                var alignCss = GetTextAlignCss(para.ParagraphAlignment?.ToOpenXml());
                 if (!string.IsNullOrEmpty(alignCss)) {
                     pStyles.Add($"text-align:{alignCss}");
                 }
@@ -783,7 +783,7 @@ namespace OfficeIMO.Word.Html {
                     }
                     if (para.LineSpacing.HasValue && para.LineSpacing.Value != 0) {
                         var rule = para.LineSpacingRule;
-                        if (rule == null || rule == LineSpacingRuleValues.Auto) {
+                        if (rule == null || rule == WordLineSpacingRule.Auto) {
                             var multiple = para.LineSpacing.Value / 240.0;
                             if (multiple > 0) {
                                 pStyles.Add($"line-height:{FormatNumber(multiple)}");
@@ -857,7 +857,7 @@ namespace OfficeIMO.Word.Html {
                     SetOutputAttribute(tableEl, "aria-description", table.Description!, "Table:accessible-description");
                 }
                 var tableStyles = new List<string>();
-                var tableWidth = GetWidthCss(table.WidthType, table.Width);
+                var tableWidth = GetWidthCss(table.WidthType?.ToOpenXml(), table.Width);
                 if (!string.IsNullOrEmpty(tableWidth)) {
                     tableStyles.Add($"width:{tableWidth}");
                 }
@@ -895,7 +895,7 @@ namespace OfficeIMO.Word.Html {
                     bool isFooterRow = hasFooterRow && r == table.Rows.Count - 1;
                     for (int c = 0; c < row.Cells.Count; c++) {
                         var cell = row.Cells[c];
-                        if (cell.HorizontalMerge == MergedCellValues.Continue || cell.VerticalMerge == MergedCellValues.Continue) {
+                        if (cell.HorizontalMerge == WordCellMerge.Continue || cell.VerticalMerge == WordCellMerge.Continue) {
                             continue;
                         }
                         var cellElement = CreateOutputElement(htmlDoc, isHeaderRow ? "th" : "td");
@@ -904,9 +904,9 @@ namespace OfficeIMO.Word.Html {
                         }
                         int colSpan = 1;
                         int rowSpan = 1;
-                        if (cell.HorizontalMerge == MergedCellValues.Restart) {
+                        if (cell.HorizontalMerge == WordCellMerge.Restart) {
                             int cc = c + 1;
-                            while (cc < row.Cells.Count && row.Cells[cc].HorizontalMerge == MergedCellValues.Continue) {
+                            while (cc < row.Cells.Count && row.Cells[cc].HorizontalMerge == WordCellMerge.Continue) {
                                 colSpan++;
                                 cc++;
                             }
@@ -914,9 +914,9 @@ namespace OfficeIMO.Word.Html {
                                 SetOutputAttribute(cellElement, "colspan", colSpan.ToString(CultureInfo.InvariantCulture), "TableCell:colspan");
                             }
                         }
-                        if (cell.VerticalMerge == MergedCellValues.Restart) {
+                        if (cell.VerticalMerge == WordCellMerge.Restart) {
                             int rr = r + 1;
-                            while (rr < table.Rows.Count && table.Rows[rr].Cells[c].VerticalMerge == MergedCellValues.Continue) {
+                            while (rr < table.Rows.Count && table.Rows[rr].Cells[c].VerticalMerge == WordCellMerge.Continue) {
                                 rowSpan++;
                                 rr++;
                             }
@@ -926,7 +926,7 @@ namespace OfficeIMO.Word.Html {
                         }
 
                         var cellStyles = new List<string>();
-                        var width = GetWidthCss(cell.WidthType, cell.Width);
+                        var width = GetWidthCss(cell.WidthType?.ToOpenXml(), cell.Width);
                         if (!string.IsNullOrEmpty(width)) {
                             cellStyles.Add($"width:{width}");
                         }
@@ -938,9 +938,9 @@ namespace OfficeIMO.Word.Html {
                         // Vertical alignment within table cells
                         if (cell.VerticalAlignment != null) {
                             string vAlign = "top";
-                            if (cell.VerticalAlignment.Value == TableVerticalAlignmentValues.Center) {
+                            if (cell.VerticalAlignment.Value == WordTableVerticalAlignment.Center) {
                                 vAlign = "middle";
-                            } else if (cell.VerticalAlignment.Value == TableVerticalAlignmentValues.Bottom) {
+                            } else if (cell.VerticalAlignment.Value == WordTableVerticalAlignment.Bottom) {
                                 vAlign = "bottom";
                             }
                             cellStyles.Add($"vertical-align:{vAlign}");
@@ -1091,7 +1091,7 @@ namespace OfficeIMO.Word.Html {
 
             string? GetListStyle(DocumentTraversal.ListInfo info) {
                 var format = info.NumberFormat;
-                if (format == NumberFormatValues.Bullet) {
+                if (format == WordNumberFormat.Bullet) {
                     return info.LevelText switch {
                         "o" or "◦" => "circle",
                         "■" or "§" => "square",
@@ -1104,7 +1104,7 @@ namespace OfficeIMO.Word.Html {
                         _ => QuoteCssListMarker(info.LevelText),
                     };
                 }
-                if (format != null && formatMap.TryGetValue(format.Value, out var map)) {
+                if (format != null && formatMap.TryGetValue(format.Value.ToOpenXml(), out var map)) {
                     return map.Css;
                 }
                 return null;
@@ -1122,7 +1122,7 @@ namespace OfficeIMO.Word.Html {
 
             string? GetListType(DocumentTraversal.ListInfo info) {
                 var format = info.NumberFormat;
-                if (format == NumberFormatValues.Bullet) {
+                if (format == WordNumberFormat.Bullet) {
                     return info.LevelText switch {
                         "o" or "◦" => "circle",
                         "■" or "§" => "square",
@@ -1131,7 +1131,7 @@ namespace OfficeIMO.Word.Html {
                         _ => null,
                     };
                 }
-                if (format != null && formatMap.TryGetValue(format.Value, out var map)) {
+                if (format != null && formatMap.TryGetValue(format.Value.ToOpenXml(), out var map)) {
                     return map.Type;
                 }
                 return null;

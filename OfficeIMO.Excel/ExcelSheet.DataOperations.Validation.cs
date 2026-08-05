@@ -79,46 +79,46 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a whole number validation to the specified A1 range.
         /// </summary>
-        public void ValidationWholeNumber(string a1Range, DataValidationOperatorValues @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        public void ValidationWholeNumber(string a1Range, ExcelDataValidationOperator @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             string f1 = InvariantNumberText.Get(formula1);
             string? f2 = formula2.HasValue ? InvariantNumberText.Get(formula2.Value) : null;
-            ValidationAdd(a1Range, DataValidationValues.Whole, @operator, f1, f2, allowBlank, errorTitle, errorMessage);
+            ValidationAdd(a1Range, DataValidationValues.Whole, @operator.ToOpenXml(), f1, f2, allowBlank, errorTitle, errorMessage);
         }
 
         /// <summary>
         /// Applies a decimal number validation to the specified A1 range.
         /// </summary>
-        public void ValidationDecimal(string a1Range, DataValidationOperatorValues @operator, double formula1, double? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        public void ValidationDecimal(string a1Range, ExcelDataValidationOperator @operator, double formula1, double? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             string f1 = InvariantNumberText.Get(formula1);
             string? f2 = formula2.HasValue ? InvariantNumberText.Get(formula2.Value) : null;
-            ValidationAdd(a1Range, DataValidationValues.Decimal, @operator, f1, f2, allowBlank, errorTitle, errorMessage);
+            ValidationAdd(a1Range, DataValidationValues.Decimal, @operator.ToOpenXml(), f1, f2, allowBlank, errorTitle, errorMessage);
         }
 
         /// <summary>
         /// Applies a date validation to the specified A1 range.
         /// </summary>
-        public void ValidationDate(string a1Range, DataValidationOperatorValues @operator, DateTime formula1, DateTime? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        public void ValidationDate(string a1Range, ExcelDataValidationOperator @operator, DateTime formula1, DateTime? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             string f1 = InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(formula1, _excelDocument.DateSystem));
             string? f2 = formula2.HasValue ? InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(formula2.Value, _excelDocument.DateSystem)) : null;
-            ValidationAdd(a1Range, DataValidationValues.Date, @operator, f1, f2, allowBlank, errorTitle, errorMessage);
+            ValidationAdd(a1Range, DataValidationValues.Date, @operator.ToOpenXml(), f1, f2, allowBlank, errorTitle, errorMessage);
         }
 
         /// <summary>
         /// Applies a time validation to the specified A1 range.
         /// </summary>
-        public void ValidationTime(string a1Range, DataValidationOperatorValues @operator, TimeSpan formula1, TimeSpan? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        public void ValidationTime(string a1Range, ExcelDataValidationOperator @operator, TimeSpan formula1, TimeSpan? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             string f1 = InvariantNumberText.Get(formula1.TotalDays);
             string? f2 = formula2.HasValue ? InvariantNumberText.Get(formula2.Value.TotalDays) : null;
-            ValidationAdd(a1Range, DataValidationValues.Time, @operator, f1, f2, allowBlank, errorTitle, errorMessage);
+            ValidationAdd(a1Range, DataValidationValues.Time, @operator.ToOpenXml(), f1, f2, allowBlank, errorTitle, errorMessage);
         }
 
         /// <summary>
         /// Applies a text length validation to the specified A1 range.
         /// </summary>
-        public void ValidationTextLength(string a1Range, DataValidationOperatorValues @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        public void ValidationTextLength(string a1Range, ExcelDataValidationOperator @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             string f1 = formula1.ToString(System.Globalization.CultureInfo.InvariantCulture);
             string? f2 = formula2?.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            ValidationAdd(a1Range, DataValidationValues.TextLength, @operator, f1, f2, allowBlank, errorTitle, errorMessage);
+            ValidationAdd(a1Range, DataValidationValues.TextLength, @operator.ToOpenXml(), f1, f2, allowBlank, errorTitle, errorMessage);
         }
 
         /// <summary>

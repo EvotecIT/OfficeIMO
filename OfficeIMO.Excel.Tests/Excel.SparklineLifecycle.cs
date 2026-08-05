@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
             sheet.AddSparklines("A1:C2", "D1:D2");
 
             Assert.Equal(new[] { "D1", "D2" }, sheet.GetSparklines().Select(item => item.LocationRange));
-            Assert.Equal(2, sheet.SetSparklineType("D1:D2", SparklineTypeValues.Column));
-            Assert.All(sheet.GetSparklines(), item => Assert.Equal(SparklineTypeValues.Column, item.Type));
+            Assert.Equal(2, sheet.SetSparklineType("D1:D2", ExcelSparklineType.Column));
+            Assert.All(sheet.GetSparklines(), item => Assert.Equal(ExcelSparklineType.Column, item.Type));
             Assert.Equal(1, sheet.RemoveSparklines("D1"));
             Assert.Equal("D2", Assert.Single(sheet.GetSparklines()).LocationRange);
             Assert.Equal(1, sheet.ClearSparklines());
@@ -26,11 +26,11 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.AddSparklines("A1:C2", "D1:D2");
 
-            Assert.Equal(1, sheet.SetSparklineType("D1", SparklineTypeValues.Column));
+            Assert.Equal(1, sheet.SetSparklineType("D1", ExcelSparklineType.Column));
 
             ExcelSparklineInfo[] sparklines = sheet.GetSparklines().OrderBy(item => item.LocationRange).ToArray();
-            Assert.Equal(SparklineTypeValues.Column, sparklines[0].Type);
-            Assert.Equal(SparklineTypeValues.Line, sparklines[1].Type);
+            Assert.Equal(ExcelSparklineType.Column, sparklines[0].Type);
+            Assert.Equal(ExcelSparklineType.Line, sparklines[1].Type);
             Assert.NotEqual(sparklines[0].GroupIndex, sparklines[1].GroupIndex);
         }
 
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             document.AddWorksheet("Other");
             sheet.AddSparklines("A1:C1", "D1");
 
-            Assert.Throws<System.ArgumentException>(() => sheet.SetSparklineType("Other!D1", SparklineTypeValues.Column));
+            Assert.Throws<System.ArgumentException>(() => sheet.SetSparklineType("Other!D1", ExcelSparklineType.Column));
             Assert.Throws<System.ArgumentException>(() => sheet.RemoveSparklines("[Book.xlsx]Data!D1"));
             Assert.Single(sheet.GetSparklines());
         }

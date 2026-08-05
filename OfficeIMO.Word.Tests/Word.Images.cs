@@ -75,9 +75,12 @@ namespace OfficeIMO.Tests {
             paragraph2.AddImage(filePathImage, 500, 500);
             var paragraph2Image = paragraph2.Image;
             Assert.NotNull(paragraph2Image);
-            //paragraph2Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
+#pragma warning disable CS0618
+            paragraph2Image.BlackWiteMode = WordImageBlackWhiteMode.GrayWhite;
+#pragma warning restore CS0618
+            Assert.Equal(WordImageBlackWhiteMode.GrayWhite, paragraph2Image.BlackWhiteMode);
             paragraph2Image!.Rotation = 180;
-            paragraph2Image.Shape = ShapeTypeValues.ActionButtonMovie;
+            paragraph2Image.Shape = WordImageShapeType.ActionButtonMovie;
 
             Assert.Equal(500d, paragraph2Image.Height ?? default, 15);
             Assert.Equal(500d, paragraph2Image.Width ?? default, 15);
@@ -225,7 +228,7 @@ namespace OfficeIMO.Tests {
                 paragraphHeader.AddImage(imageStream, fileNameImageEvotec, 300, 300, WrapTextImage.InLineWithText, "This is a test");
                 var headerImage = paragraphHeader.Image;
                 Assert.NotNull(headerImage);
-                Assert.True(headerImage!.CompressionQuality == BlipCompressionValues.Print);
+                Assert.True(headerImage!.CompressionQuality == WordImageCompressionQuality.Print);
             }
 
             Assert.True(defaultHeader.Images.Count == 1);
@@ -242,9 +245,9 @@ namespace OfficeIMO.Tests {
 
             Assert.True(headerEvenImage.Description == "Different description");
             Assert.True(headerEvenImage.VerticalFlip == true);
-            Assert.True(headerEvenImage.CompressionQuality == BlipCompressionValues.Print);
-            headerEvenImage.CompressionQuality = BlipCompressionValues.HighQualityPrint;
-            Assert.True(headerEvenImage.CompressionQuality == BlipCompressionValues.HighQualityPrint);
+            Assert.True(headerEvenImage.CompressionQuality == WordImageCompressionQuality.Print);
+            headerEvenImage.CompressionQuality = WordImageCompressionQuality.HighQualityPrint;
+            Assert.True(headerEvenImage.CompressionQuality == WordImageCompressionQuality.HighQualityPrint);
 
             document.Save();
         }
@@ -276,9 +279,9 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(document.Images[2].Shape);
                 Assert.NotNull(document.Images[3].Shape);
 
-                document.Images[0].Shape = ShapeTypeValues.Cloud;
+                document.Images[0].Shape = WordImageShapeType.Cloud;
 
-                Assert.True(document.Images[0].Shape == ShapeTypeValues.Cloud);
+                Assert.True(document.Images[0].Shape == WordImageShapeType.Cloud);
                 document.Save();
             }
         }
@@ -299,9 +302,9 @@ namespace OfficeIMO.Tests {
             paragraph2.AddImage(filePathImage, 100, 100, WrapTextImage.BehindText);
             var paragraph2Image = paragraph2.Image;
             Assert.NotNull(paragraph2Image);
-            Assert.True(paragraph2Image!.CompressionQuality == BlipCompressionValues.Print);
-            paragraph2Image.CompressionQuality = BlipCompressionValues.HighQualityPrint;
-            Assert.True(paragraph2Image.CompressionQuality == BlipCompressionValues.HighQualityPrint);
+            Assert.True(paragraph2Image!.CompressionQuality == WordImageCompressionQuality.Print);
+            paragraph2Image.CompressionQuality = WordImageCompressionQuality.HighQualityPrint;
+            Assert.True(paragraph2Image.CompressionQuality == WordImageCompressionQuality.HighQualityPrint);
 
             var paragraph3 = document.AddParagraph("This is a test document with images wraps");
             paragraph3.AddImage(filePathImage, 100, 100, WrapTextImage.InFrontOfText);

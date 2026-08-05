@@ -205,7 +205,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("MergeCf");
             sheet.CellValue(1, 1, 20);
             sheet.MergeRange("A1:B1");
-            sheet.AddConditionalRule("A1:B1", DocumentFormat.OpenXml.Spreadsheet.ConditionalFormattingOperatorValues.GreaterThan, "10", fillColor: "C6EFCE");
+            sheet.AddConditionalRule("A1:B1", ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "C6EFCE");
 
             ExcelRangeVisualSnapshot snapshot = sheet.Range("B1:C1").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
 

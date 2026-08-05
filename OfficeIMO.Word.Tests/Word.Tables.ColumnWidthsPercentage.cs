@@ -19,15 +19,15 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Load(filePath)) {
                 var table = document.Tables[0];
                 Assert.Equal(5000, table.Width);
-                Assert.Equal(TableWidthUnitValues.Pct, table.WidthType);
+                Assert.Equal(WordTableWidthUnit.Pct, table.WidthType);
 
                 Assert.Equal(500, table.Rows[0].Cells[0].Width);
                 Assert.Equal(1500, table.Rows[0].Cells[1].Width);
                 Assert.Equal(3000, table.Rows[0].Cells[2].Width);
 
-                Assert.Equal(TableWidthUnitValues.Pct, table.Rows[0].Cells[0].WidthType);
-                Assert.Equal(TableWidthUnitValues.Pct, table.Rows[0].Cells[1].WidthType);
-                Assert.Equal(TableWidthUnitValues.Pct, table.Rows[0].Cells[2].WidthType);
+                Assert.Equal(WordTableWidthUnit.Pct, table.Rows[0].Cells[0].WidthType);
+                Assert.Equal(WordTableWidthUnit.Pct, table.Rows[0].Cells[1].WidthType);
+                Assert.Equal(WordTableWidthUnit.Pct, table.Rows[0].Cells[2].WidthType);
             }
         }
 

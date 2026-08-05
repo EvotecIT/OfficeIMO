@@ -46,7 +46,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            run.SetHighlight(highlight.Value);
+            run.SetHighlight(highlight.Value.ToOfficeEnum());
             if (!exact) {
                 AddDiagnostic(
                     options,

@@ -580,7 +580,7 @@ public static partial class PowerPointPdfConverterExtensions {
             return HasListMarker(paragraphs.FirstOrDefault());
         }
 
-        TextAlignmentTypeValues? firstAlignment = paragraphs[0].Alignment;
+        PptCore.PowerPointTextAlignment? firstAlignment = paragraphs[0].Alignment;
         return paragraphs.Any(paragraph => paragraph.Alignment != firstAlignment || HasListMarker(paragraph));
     }
 
@@ -691,7 +691,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
         frame.StrokeColor = outline;
         frame.StrokeWidth = outline.HasValue ? textBox.OutlineWidthPoints ?? 0.75D : 0D;
-        frame.StrokeDashStyle = MapDash(textBox.OutlineDash);
+        frame.StrokeDashStyle = MapDash(textBox.OutlineDash.ToOpenXml());
         canvas.Shape(frame, x, y, rotationAngle: textBox.Rotation ?? 0D);
     }
 
@@ -706,7 +706,7 @@ public static partial class PowerPointPdfConverterExtensions {
         paragraphStyle.PaddingRight = 0D;
         paragraphStyle.PaddingTop = 0D;
         paragraphStyle.PaddingBottom = 0D;
-        paragraphStyle.Align = MapAlign(paragraph.Alignment);
+        paragraphStyle.Align = MapAlign(paragraph.Alignment.ToOpenXml());
         paragraphStyle.VerticalAlign = PdfCore.PdfVerticalAlign.Top;
         return paragraphStyle;
     }
@@ -891,7 +891,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 : null,
             BorderColor = outline,
             BorderWidth = outline.HasValue ? textBox.OutlineWidthPoints ?? 0.75D : 0D,
-            BorderDashStyle = MapDash(textBox.OutlineDash),
+            BorderDashStyle = MapDash(textBox.OutlineDash.ToOpenXml()),
             PaddingLeft = textBox.TextMarginLeftPoints ?? 3.6D,
             PaddingRight = textBox.TextMarginRightPoints ?? 3.6D,
             PaddingTop = textBox.TextMarginTopPoints ?? 3.6D,
@@ -899,8 +899,8 @@ public static partial class PowerPointPdfConverterExtensions {
             TextColor = ParsePdfColor(textBox.Color),
             FontSize = textBox.FontSize ?? PptCore.PowerPointTextDefaults.DefaultFontSizePoints,
             Font = MapFont(fontFamily),
-            Align = MapAlign(textBox.Paragraphs.FirstOrDefault()?.Alignment),
-            VerticalAlign = MapTextVerticalAlign(textBox.TextVerticalAlignment)
+            Align = MapAlign(textBox.Paragraphs.FirstOrDefault()?.Alignment.ToOpenXml()),
+            VerticalAlign = MapTextVerticalAlign(textBox.TextVerticalAlignment.ToOpenXml())
         };
     }
 
@@ -977,9 +977,9 @@ public static partial class PowerPointPdfConverterExtensions {
             }
             return;
         }
-        OfficeShape? shape = CreateOfficeShape(autoShape.ShapeType, autoShape, width, height);
+        OfficeShape? shape = CreateOfficeShape(autoShape.ShapeType.ToOpenXml(), autoShape, width, height);
         if (shape == null) {
-            AddWarning(options, slideNumber, "unsupported-auto-shape", "Skipped unsupported PowerPoint auto-shape type '" + GetShapePresetName(autoShape.ShapeType) + "'.");
+            AddWarning(options, slideNumber, "unsupported-auto-shape", "Skipped unsupported PowerPoint auto-shape type '" + GetShapePresetName(autoShape.ShapeType.ToOpenXml()) + "'.");
             return;
         }
 
@@ -988,7 +988,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static bool RenderTextBoxGeometry(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height) {
-        ShapeTypeValues? type = textBox.ShapeType;
+        ShapeTypeValues? type = textBox.ShapeType.ToOpenXml();
         if (type == ShapeTypeValues.Rectangle) {
             return false;
         }
@@ -1046,7 +1046,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
         target.StrokeColor = ParseOfficeColor(source.OutlineColor);
         target.StrokeWidth = source.OutlineWidthPoints ?? (target.StrokeColor.HasValue ? 1D : 0D);
-        target.StrokeDashStyle = MapDash(source.OutlineDash);
+        target.StrokeDashStyle = MapDash(source.OutlineDash.ToOpenXml());
     }
 
     private static bool TryGetShapeBox(PptCore.PowerPointShape shape, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, bool warnInvalidBounds, out double x, out double y, out double width, out double height) {
@@ -1086,7 +1086,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static bool IsLineShape(PptCore.PowerPointShape shape) {
         return shape is PptCore.PowerPointAutoShape autoShape &&
-               (autoShape.ShapeType == ShapeTypeValues.Line || autoShape.ShapeType == ShapeTypeValues.StraightConnector1);
+               (autoShape.ShapeType == PptCore.PowerPointShapeType.Line || autoShape.ShapeType == PptCore.PowerPointShapeType.StraightConnector1);
     }
 
     private static bool IntersectsPage(double x, double y, double width, double height, double pageWidth, double pageHeight) =>

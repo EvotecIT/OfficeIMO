@@ -14,7 +14,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Gets the preset geometry type of the connection shape.
         /// </summary>
-        public A.ShapeTypeValues? ShapeType => Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value;
+        public PowerPointShapeType? ShapeType => Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value.ToOfficeEnum();
 
         /// <summary>
         ///     Sets the outline color (and optional width in points) and returns the shape for chaining.

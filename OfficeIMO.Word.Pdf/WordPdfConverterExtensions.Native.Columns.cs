@@ -473,11 +473,11 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsNativeColumnBreakElement(WordElement element) {
             if (element is WordBreak wordBreak) {
-                return wordBreak.BreakType == W.BreakValues.Column;
+                return wordBreak.BreakType == WordBreakType.Column;
             }
 
             return element is WordParagraph paragraph &&
-                paragraph.Break?.BreakType == W.BreakValues.Column &&
+                paragraph.Break?.BreakType == WordBreakType.Column &&
                 string.IsNullOrWhiteSpace(paragraph.Text);
         }
 

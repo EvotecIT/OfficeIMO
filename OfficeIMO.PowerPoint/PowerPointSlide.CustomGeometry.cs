@@ -59,7 +59,7 @@ namespace OfficeIMO.PowerPoint {
                 geometry, commands);
 
             PowerPointAutoShape result = AddShape(
-                A.ShapeTypeValues.Rectangle, left, top, width, height, name);
+                PowerPointShapeType.Rectangle, left, top, width, height, name);
             Shape shape = (Shape)result.Element;
             ShapeProperties properties = shape.ShapeProperties
                 ?? throw new InvalidOperationException("The added shape has no shape properties.");
@@ -311,7 +311,7 @@ namespace OfficeIMO.PowerPoint {
             if (geometry.StrokeColor is OfficeColor stroke) {
                 result.OutlineWidthPoints = geometry.StrokeWidth;
                 result.OutlineDash = MapCustomGeometryDash(
-                    geometry.StrokeDashStyle);
+                    geometry.StrokeDashStyle).ToOfficeEnum();
                 double combinedOpacity = CombineOpacity(stroke.A,
                     geometry.StrokeOpacity);
                 if (combinedOpacity < 1D) {

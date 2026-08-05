@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 1, "A");
             sheet.CellValue(2, 2, 1);
             sheet.AddPivotTable("A1:B2", "E5", rowFields: new[] { "Category" },
-                dataFields: new[] { new ExcelPivotDataField("Value", S.DataConsolidateFunctionValues.Sum) });
+                dataFields: new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum) });
             S.Location location = Assert.Single(sheet.WorksheetPart.PivotTableParts).PivotTableDefinition!.Location!;
 
             Assert.Throws<System.InvalidOperationException>(() => sheet.PlanDeleteColumns(5));

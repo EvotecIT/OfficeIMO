@@ -100,25 +100,25 @@ namespace OfficeIMO.Tests {
             Assert.Equal(9, slide.Shapes.Count);
             PowerPointTextBox diamond = Assert.Single(slide.TextBoxes,
                 shape => shape.Text == "Diamond");
-            Assert.Equal(A.ShapeTypeValues.Diamond, diamond.ShapeType);
+            Assert.Equal(PowerPointShapeType.Diamond, diamond.ShapeType);
             Assert.Contains(slide.Shapes.OfType<PowerPointAutoShape>(),
-                shape => shape.ShapeType == A.ShapeTypeValues.Hexagon);
+                shape => shape.ShapeType == PowerPointShapeType.Hexagon);
 
             PowerPointConnectionShape[] connectors = slide.Shapes
                 .OfType<PowerPointConnectionShape>()
                 .ToArray();
             Assert.Equal(3, connectors.Length);
-            Assert.Contains(connectors, shape => shape.ShapeType == A.ShapeTypeValues.StraightConnector1);
-            Assert.Contains(connectors, shape => shape.ShapeType == A.ShapeTypeValues.BentConnector3);
-            Assert.Contains(connectors, shape => shape.ShapeType == A.ShapeTypeValues.CurvedConnector3);
+            Assert.Contains(connectors, shape => shape.ShapeType == PowerPointShapeType.StraightConnector1);
+            Assert.Contains(connectors, shape => shape.ShapeType == PowerPointShapeType.BentConnector3);
+            Assert.Contains(connectors, shape => shape.ShapeType == PowerPointShapeType.CurvedConnector3);
 
             PowerPointGroupShape group = Assert.Single(slide.Shapes.OfType<PowerPointGroupShape>());
             IReadOnlyList<PowerPointShape> children = slide.GetGroupChildren(group);
             Assert.Equal(2, children.Count);
             Assert.Contains(children.OfType<PowerPointTextBox>(), child =>
-                child.Text == "Grouped" && child.ShapeType == A.ShapeTypeValues.RoundRectangle);
+                child.Text == "Grouped" && child.ShapeType == PowerPointShapeType.RoundRectangle);
             Assert.Contains(children.OfType<PowerPointAutoShape>(), child =>
-                child.ShapeType == A.ShapeTypeValues.Ellipse);
+                child.ShapeType == PowerPointShapeType.Ellipse);
 
             for (int index = 0; index < slide.Shapes.Count; index++) {
                 Assert.Equal(index, slide.Shapes[index].DrawingOrder);
@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Load(ShapeFixturePath);
             PowerPointSlide slide = presentation.Slides[0];
             PowerPointConnectionShape connector = slide.Shapes.OfType<PowerPointConnectionShape>()
-                .Single(shape => shape.ShapeType == A.ShapeTypeValues.StraightConnector1);
+                .Single(shape => shape.ShapeType == PowerPointShapeType.StraightConnector1);
             PowerPointGroupShape group = Assert.Single(slide.Shapes.OfType<PowerPointGroupShape>());
             connector.Left += 15875;
             group.Top += 15875;

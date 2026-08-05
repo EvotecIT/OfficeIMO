@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FluentListBuilderFormats.docx");
             using (var document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .List(l => l.Numbered().NumberFormat(NumberFormatValues.LowerRoman)
+                    .List(l => l.Numbered().NumberFormat(WordNumberFormat.LowerRoman)
                                      .Item("first")
                                      .Item("second"))
                     .List(l => l.Bulleted().BulletCharacter("\u2736")

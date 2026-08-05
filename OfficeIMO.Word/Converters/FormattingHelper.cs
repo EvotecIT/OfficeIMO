@@ -24,8 +24,8 @@ namespace OfficeIMO.Word {
 
                 string? hyperlink = run.IsHyperLink && run.Hyperlink != null ? run.Hyperlink.Uri?.ToString() : null;
                 bool strike = run.Strike;
-                bool superscript = run.VerticalTextAlignment == VerticalPositionValues.Superscript;
-                bool subscript = run.VerticalTextAlignment == VerticalPositionValues.Subscript;
+                bool superscript = run.VerticalTextAlignment == WordVerticalTextPosition.Superscript;
+                bool subscript = run.VerticalTextAlignment == WordVerticalTextPosition.Subscript;
                 string? monospace = FontResolver.Resolve("monospace");
                 string? defaultFont = paragraph._document?.Settings.FontFamily;
                 bool code = !string.IsNullOrEmpty(monospace) &&

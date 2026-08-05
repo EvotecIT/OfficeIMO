@@ -23,7 +23,7 @@ public class CustomAndBuiltinPropertiesTests : VerifyTestBase {
     public async Task ValidateDocument() {
         using var document = WordDocument.Create();
         var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-        paragraph.ParagraphAlignment = JustificationValues.Center;
+        paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
         document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
         document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
@@ -42,7 +42,7 @@ public class CustomAndBuiltinPropertiesTests : VerifyTestBase {
         document.BuiltinDocumentProperties.Keywords = "word, docx, test";
 
         var paragraph = document.AddParagraph("Basic paragraph");
-        paragraph.ParagraphAlignment = JustificationValues.Center;
+        paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
         paragraph.Color = Color.Red;
 
         _ = document.ToBytes();

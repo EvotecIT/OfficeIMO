@@ -21,11 +21,11 @@ namespace OfficeIMO.Examples.Word {
                 //var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
                 //var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.Dots);
 
-                pageNumber.ParagraphAlignment = JustificationValues.Center;
+                pageNumber.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 document.AddPageBreak();
 
-                document.AddHorizontalLine(BorderValues.Double);
+                document.AddHorizontalLine(WordBorderStyle.Double);
 
                 if (document.Sections.Count > 0) {
                     document.Sections[0].AddHorizontalLine();
@@ -49,7 +49,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var para = document.AddParagraph("Let's show everyone how to create a list within already defined list");
                 para.CapsStyle = CapsStyle.Caps;
-                para.Highlight = HighlightColorValues.DarkMagenta;
+                para.Highlight = WordHighlightColor.DarkMagenta;
 
                 var wordList = document.AddList(WordListStyle.Bulleted);
 

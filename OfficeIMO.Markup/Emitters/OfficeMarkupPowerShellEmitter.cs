@@ -34,7 +34,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
     }
 
     private static void EmitPresentation(OfficeMarkupDocument document, OfficeMarkupEmitterOptions options, StringBuilder sb) {
-        sb.AppendLine("$presentation = New-OfficePowerPoint -FilePath " + options.FilePathVariable);
+        sb.AppendLine("$presentation = New-OfficePowerPoint -FilePath " + options.FilePathVariable + " -NoSave");
         var index = 0;
         var chartIndex = 0;
         string? activeSection = null;
@@ -57,7 +57,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
             if (!string.IsNullOrWhiteSpace(slide.Transition)) {
                 var resolvedTransition = OfficeMarkupTransitionResolver.Parse(slide.Transition);
                 if (!string.IsNullOrWhiteSpace(resolvedTransition.ResolvedIdentifier)) {
-                    sb.AppendLine($"$slide{index}.Transition = [OfficeIMO.PowerPoint.SlideTransition]::{resolvedTransition.ResolvedIdentifier}");
+                    sb.AppendLine($"$slide{index}.Transition = {PsString(resolvedTransition.ResolvedIdentifier!)}");
                     EmitTransitionAssignments(sb, $"$slide{index}", resolvedTransition);
                 }
 
@@ -71,7 +71,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
             }
 
             if (!string.IsNullOrWhiteSpace(slide.Title)) {
-                sb.AppendLine($"Add-OfficePowerPointText -Slide $slide{index} -Text {PsString(slide.Title!)}");
+                sb.AppendLine($"Add-OfficePowerPointTextBox -Slide $slide{index} -Text {PsString(slide.Title!)}");
             }
 
             foreach (var child in slide.Blocks) {
@@ -83,7 +83,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
             }
         }
 
-        sb.AppendLine("Save-OfficePowerPoint -Presentation $presentation");
+        sb.AppendLine("Save-OfficePowerPoint -Presentation $presentation -Path " + options.FilePathVariable);
     }
 
     private static IEnumerable<OfficeMarkupSlideBlock> GetPresentationSlides(OfficeMarkupDocument document) {
@@ -124,13 +124,13 @@ public sealed class OfficeMarkupPowerShellEmitter {
     private static void EmitSlideChild(OfficeMarkupBlock block, string slideVariable, StringBuilder sb, ref int chartIndex) {
         switch (block) {
             case OfficeMarkupHeadingBlock heading:
-                sb.AppendLine($"Add-OfficePowerPointText -Slide {slideVariable} -Text {PsString(heading.Text)}");
+                sb.AppendLine($"Add-OfficePowerPointTextBox -Slide {slideVariable} -Text {PsString(heading.Text)}");
                 break;
             case OfficeMarkupParagraphBlock paragraph:
-                sb.AppendLine($"Add-OfficePowerPointText -Slide {slideVariable} -Text {PsString(paragraph.Text)}");
+                sb.AppendLine($"Add-OfficePowerPointTextBox -Slide {slideVariable} -Text {PsString(paragraph.Text)}");
                 break;
             case OfficeMarkupListBlock list:
-                sb.AppendLine($"Add-OfficePowerPointText -Slide {slideVariable} -Text {PsString(FormatList(list))}");
+                sb.AppendLine($"Add-OfficePowerPointTextBox -Slide {slideVariable} -Text {PsString(FormatList(list))}");
                 break;
             case OfficeMarkupImageBlock image:
                 EmitPlacementComment(image.Placement, sb);
@@ -143,9 +143,9 @@ public sealed class OfficeMarkupPowerShellEmitter {
             case OfficeMarkupChartBlock chart:
                 EmitChartComment(chart, sb);
                 if (!string.IsNullOrWhiteSpace(chart.Source)) {
-                    sb.AppendLine($"Add-OfficePowerPointChart -Slide {slideVariable} -Type {PsString(chart.ChartType)} -Source {PsString(chart.Source!)} -Title {PsString(chart.Title ?? string.Empty)}");
+                    sb.AppendLine($"# TODO: bind source {PsString(chart.Source!)} to objects, then call Add-OfficePowerPointChart with -InputObject, -CategoryProperty, and -SeriesProperty.");
                 } else if (EmitChartData(chart, $"$chartData{++chartIndex}", sb)) {
-                    sb.AppendLine($"Add-OfficePowerPointChart -Slide {slideVariable} -Type {PsString(chart.ChartType)} -Title {PsString(chart.Title ?? string.Empty)} -Data $chartData{chartIndex}");
+                    sb.AppendLine($"# TODO: convert $chartData{chartIndex} to the Add-OfficePowerPointChart -InputObject contract.");
                 }
 
                 break;
@@ -155,7 +155,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
                     sb.AppendLine($"# Style: {textBox.Style}");
                 }
 
-                sb.AppendLine($"Add-OfficePowerPointText -Slide {slideVariable} -Text {PsString(textBox.Text)}");
+                sb.AppendLine($"Add-OfficePowerPointTextBox -Slide {slideVariable} -Text {PsString(textBox.Text)}");
                 break;
             case OfficeMarkupCardBlock card:
                 EmitPlacementComment(card.Placement, sb);
@@ -163,7 +163,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
                     sb.AppendLine($"# Style: {card.Style}");
                 }
 
-                sb.AppendLine($"Add-OfficePowerPointText -Slide {slideVariable} -Text {PsString((card.Title ?? string.Empty) + Environment.NewLine + card.Body)}");
+                sb.AppendLine($"Add-OfficePowerPointTextBox -Slide {slideVariable} -Text {PsString((card.Title ?? string.Empty) + Environment.NewLine + card.Body)}");
                 break;
             case OfficeMarkupColumnsBlock columns:
                 EmitPlacementComment(columns.Placement, sb);
@@ -221,7 +221,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
 
     private static void EmitTransitionAssignments(StringBuilder sb, string slideVariable, OfficeMarkupResolvedTransition resolvedTransition) {
         if (TryGetTransitionSpeed(resolvedTransition, out var speedIdentifier)) {
-            sb.AppendLine($"{slideVariable}.TransitionSpeed = [OfficeIMO.PowerPoint.SlideTransitionSpeed]::{speedIdentifier}");
+            sb.AppendLine($"{slideVariable}.TransitionSpeed = {PsString(speedIdentifier)}");
         }
 
         if (TryGetTransitionSeconds(resolvedTransition, out var durationSeconds, "duration", "dur")) {
@@ -309,34 +309,37 @@ public sealed class OfficeMarkupPowerShellEmitter {
         value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 
     private static void EmitDocument(OfficeMarkupDocument document, OfficeMarkupEmitterOptions options, StringBuilder sb) {
-        sb.AppendLine("$document = New-OfficeWordDocument -FilePath " + options.FilePathVariable);
+        sb.AppendLine("$document = New-OfficeWord -OutputPath " + options.FilePathVariable + " -NoSave");
         var chartIndex = 0;
         foreach (var block in document.Blocks) {
             EmitDocumentBlock(block, "$document", sb, ref chartIndex);
         }
 
-        sb.AppendLine("Save-OfficeWordDocument -Document $document");
+        sb.AppendLine("Save-OfficeWord -Document $document -Path " + options.FilePathVariable);
     }
 
     private static void EmitDocumentBlock(OfficeMarkupBlock block, string documentVariable, StringBuilder sb, ref int chartIndex) {
         switch (block) {
             case OfficeMarkupHeadingBlock heading:
-                sb.AppendLine($"Add-OfficeWordParagraph -Document {documentVariable} -Text {PsString(heading.Text)} -Style Heading{heading.Level}");
+                sb.AppendLine($"$paragraph = {documentVariable}.AddParagraph({PsString(heading.Text)})");
+                sb.AppendLine($"$paragraph.Style = {PsString($"Heading{heading.Level}")}");
                 break;
             case OfficeMarkupParagraphBlock paragraph:
-                sb.AppendLine($"Add-OfficeWordParagraph -Document {documentVariable} -Text {PsString(paragraph.Text)}");
+                sb.AppendLine($"$null = {documentVariable}.AddParagraph({PsString(paragraph.Text)})");
                 break;
             case OfficeMarkupListBlock list:
                 foreach (var item in list.Items) {
-                    sb.AppendLine($"Add-OfficeWordParagraph -Document {documentVariable} -Text {PsString(item.Text)}");
+                    sb.AppendLine($"$null = {documentVariable}.AddParagraph({PsString(item.Text)})");
                 }
 
                 break;
             case OfficeMarkupPageBreakBlock:
-                sb.AppendLine($"Add-OfficeWordPageBreak -Document {documentVariable}");
+                sb.AppendLine($"$null = {documentVariable}.AddPageBreak()");
                 break;
             case OfficeMarkupHeaderFooterBlock headerFooter:
-                sb.AppendLine($"Set-OfficeWord{NormalizeHeaderFooterKind(headerFooter.HeaderFooterKind)} -Document {documentVariable} -Text {PsString(headerFooter.Text)}");
+                var headerFooterKind = NormalizeHeaderFooterKind(headerFooter.HeaderFooterKind);
+                sb.AppendLine($"{documentVariable}.AddHeadersAndFooters()");
+                sb.AppendLine($"$null = {documentVariable}.{headerFooterKind}.Default.AddParagraph({PsString(headerFooter.Text)})");
                 break;
             case OfficeMarkupTableOfContentsBlock:
                 sb.AppendLine($"Add-OfficeWordTableOfContents -Document {documentVariable}");
@@ -352,13 +355,13 @@ public sealed class OfficeMarkupPowerShellEmitter {
                 sb.AppendLine($"# Render {diagram.Language} to an image and add it to the Word document.");
                 break;
             case OfficeMarkupTableBlock table:
-                sb.AppendLine($"Add-OfficeWordTable -Document {documentVariable} -Rows {Math.Max(1, table.Rows.Count + (table.Headers.Count > 0 ? 1 : 0))} -Columns {Math.Max(1, table.Headers.Count > 0 ? table.Headers.Count : table.Rows.Select(row => row.Count).DefaultIfEmpty(1).Max())}");
+                sb.AppendLine($"$null = {documentVariable}.AddTable({Math.Max(1, table.Rows.Count + (table.Headers.Count > 0 ? 1 : 0))}, {Math.Max(1, table.Headers.Count > 0 ? table.Headers.Count : table.Rows.Select(row => row.Count).DefaultIfEmpty(1).Max())})");
                 sb.AppendLine("# Fill table cells from the semantic table AST.");
                 break;
             case OfficeMarkupChartBlock chart:
                 EmitChartComment(chart, sb);
                 if (EmitChartData(chart, $"$chartData{++chartIndex}", sb)) {
-                    sb.AppendLine($"Add-OfficeWordChart -Document {documentVariable} -Type {PsString(chart.ChartType)} -Title {PsString(chart.Title ?? string.Empty)} -Data $chartData{chartIndex}");
+                    sb.AppendLine($"# TODO: convert $chartData{chartIndex} to the Add-OfficeWordChart -InputObject contract.");
                 }
 
                 break;
@@ -369,13 +372,11 @@ public sealed class OfficeMarkupPowerShellEmitter {
     }
 
     private static void EmitWorkbook(OfficeMarkupDocument document, OfficeMarkupEmitterOptions options, StringBuilder sb) {
-        sb.AppendLine("$workbook = New-OfficeExcelWorkbook -FilePath " + options.FilePathVariable);
+        sb.AppendLine("$workbook = New-OfficeExcel -FilePath " + options.FilePathVariable + " -NoSave");
         sb.AppendLine("$sheet = $null");
         sb.AppendLine("function Get-OrAddOfficeExcelWorksheet {");
         sb.AppendLine("    param($Workbook, [string] $Name)");
-        sb.AppendLine("    $existing = Get-OfficeExcelWorksheet -Workbook $Workbook -Name $Name -ErrorAction SilentlyContinue");
-        sb.AppendLine("    if ($null -ne $existing) { return $existing }");
-        sb.AppendLine("    return Add-OfficeExcelWorksheet -Workbook $Workbook -Name $Name");
+        sb.AppendLine("    try { return $Workbook.GetSheet($Name) } catch { return $Workbook.AddWorksheet($Name) }");
         sb.AppendLine("}");
         var chartIndex = 0;
         foreach (var block in document.Blocks) {
@@ -397,19 +398,23 @@ public sealed class OfficeMarkupPowerShellEmitter {
                     for (int row = 0; row < range.Values.Count; row++) {
                         var values = range.Values[row];
                         for (int column = 0; column < values.Count; column++) {
-                            sb.AppendLine($"Set-OfficeExcelCell -Worksheet {rangeWorksheetExpression} -Row {startRow + row} -Column {startColumn + column} -Value {PsString(values[column])}");
+                            sb.AppendLine($"{rangeWorksheetExpression}.Cell({startRow + row}, {startColumn + column}, {PsString(values[column])})");
                         }
                     }
 
                     break;
                 case OfficeMarkupFormulaBlock formula:
                     var (formulaWorksheetExpression, formulaCell) = ResolveWorkbookTarget(formula.Sheet, formula.Cell);
-                    sb.AppendLine($"Set-OfficeExcelFormula -Worksheet {formulaWorksheetExpression} -Cell {PsString(formulaCell)} -Formula {PsString(formula.Expression)}");
+                    if (TryParseCellAddress(formulaCell, out var formulaRow, out var formulaColumn)) {
+                        sb.AppendLine($"{formulaWorksheetExpression}.CellFormula({formulaRow}, {formulaColumn}, {PsString(formula.Expression)})");
+                    } else {
+                        sb.AppendLine($"# TODO: formula target {PsString(formulaCell)} could not be parsed; apply {PsString(formula.Expression)} manually.");
+                    }
                     break;
                 case OfficeMarkupNamedTableBlock table:
                     table.Attributes.TryGetValue("sheet", out var tableSheet);
                     var (tableWorksheetExpression, tableRange) = ResolveWorkbookTarget(tableSheet, table.Range);
-                    sb.AppendLine($"Add-OfficeExcelTable -Worksheet {tableWorksheetExpression} -Range {PsString(tableRange)} -Name {PsString(table.Name)} -HasHeader ${table.HasHeader.ToString().ToLowerInvariant()}");
+                    sb.AppendLine($"{tableWorksheetExpression}.AddTable({PsString(tableRange)}, ${table.HasHeader.ToString().ToLowerInvariant()}, {PsString(table.Name)}, 'TableStyleMedium2')");
                     break;
                 case OfficeMarkupChartBlock chart:
                     EmitChartComment(chart, sb);
@@ -423,9 +428,13 @@ public sealed class OfficeMarkupPowerShellEmitter {
                     }
 
                     if (!string.IsNullOrWhiteSpace(chart.Source)) {
-                        sb.AppendLine($"Add-OfficeExcelChart -Worksheet {chartWorksheetExpression} -Type {PsString(chart.ChartType)} -Source {PsString(chart.Source!)} -Row {chartRow} -Column {chartColumn} -Title {PsString(chart.Title ?? string.Empty)}");
+                        if (IsLocalA1Range(chart.Source!)) {
+                            sb.AppendLine($"$null = {chartWorksheetExpression}.AddChartFromRange({PsString(chart.Source!)}, {chartRow}, {chartColumn}, 640, 360, {PsString(chart.ChartType)}, $true, {PsString(chart.Title ?? string.Empty)}, $true)");
+                        } else {
+                            sb.AppendLine($"# TODO: bind chart source {PsString(chart.Source!)} to an Excel range or table before adding the chart at {PsString(chartCell ?? "A1")}.");
+                        }
                     } else if (EmitChartData(chart, $"$chartData{++chartIndex}", sb)) {
-                        sb.AppendLine($"Add-OfficeExcelChart -Worksheet {chartWorksheetExpression} -Type {PsString(chart.ChartType)} -Data $chartData{chartIndex} -Row {chartRow} -Column {chartColumn} -Title {PsString(chart.Title ?? string.Empty)}");
+                        sb.AppendLine($"# TODO: convert $chartData{chartIndex} to OfficeChartData before adding it to {chartWorksheetExpression}.");
                     }
 
                     break;
@@ -440,7 +449,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
             }
         }
 
-        sb.AppendLine("Save-OfficeExcelWorkbook -Workbook $workbook");
+        sb.AppendLine("Save-OfficeExcel -Document $workbook -Path " + options.FilePathVariable);
     }
 
     private static void EmitWorkbookFormatting(OfficeMarkupFormattingBlock formatting, string worksheetExpression, string target, StringBuilder sb) {
@@ -487,11 +496,11 @@ public sealed class OfficeMarkupPowerShellEmitter {
             }
 
             if (TryGetHorizontalAlignmentIdentifier(alignment, out var alignmentIdentifier)) {
-                sb.AppendLine($"{worksheetExpression}.CellAlign({row}, {column}, [DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues]::{alignmentIdentifier})");
+                sb.AppendLine($"{worksheetExpression}.CellAlign({row}, {column}, {PsString(alignmentIdentifier)})");
             }
 
             if (TryGetVerticalAlignmentIdentifier(verticalAlignment, out var verticalAlignmentIdentifier)) {
-                sb.AppendLine($"{worksheetExpression}.CellVerticalAlign({row}, {column}, [DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues]::{verticalAlignmentIdentifier})");
+                sb.AppendLine($"{worksheetExpression}.CellVerticalAlign({row}, {column}, {PsString(verticalAlignmentIdentifier)})");
             }
 
             if (!string.IsNullOrWhiteSpace(wrap) && IsTruthy(wrap!)) {
@@ -502,7 +511,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
                 var borderColorArgument = !string.IsNullOrWhiteSpace(borderColor)
                     ? $", {PsString(borderColor!)}"
                     : string.Empty;
-                sb.AppendLine($"{worksheetExpression}.CellBorder({row}, {column}, [DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues]::{borderStyleIdentifier}{borderColorArgument})");
+                sb.AppendLine($"{worksheetExpression}.CellBorder({row}, {column}, {PsString(borderStyleIdentifier)}{borderColorArgument})");
             }
         }
     }
@@ -718,6 +727,12 @@ public sealed class OfficeMarkupPowerShellEmitter {
 
         row = int.Parse(match.Groups[2]!.Value, System.Globalization.CultureInfo.InvariantCulture);
         return row > 0 && column > 0;
+    }
+
+    private static bool IsLocalA1Range(string source) {
+        return System.Text.RegularExpressions.Regex.IsMatch(
+            source.Trim(),
+            @"^\$?[A-Za-z]+\$?\d+:\$?[A-Za-z]+\$?\d+$");
     }
 
     private static string FormatList(OfficeMarkupListBlock list) {

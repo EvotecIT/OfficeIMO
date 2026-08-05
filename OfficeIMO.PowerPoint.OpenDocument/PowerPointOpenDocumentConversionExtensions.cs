@@ -98,13 +98,13 @@ public static class PowerPointOpenDocumentConversionExtensions {
                     tables++;
                 } else if (shape is PowerPointAutoShape autoShape) {
                     OdpShape converted;
-                    if (autoShape.ShapeType == ShapeTypeValues.Ellipse) converted = targetSlide.AddEllipse(ToOdfRect(autoShape), autoShape.Name);
-                    else if (autoShape.ShapeType == ShapeTypeValues.Line) {
+                    if (autoShape.ShapeType == PowerPointShapeType.Ellipse) converted = targetSlide.AddEllipse(ToOdfRect(autoShape), autoShape.Name);
+                    else if (autoShape.ShapeType == PowerPointShapeType.Line) {
                         converted = targetSlide.AddLine(OdfLength.Points(autoShape.LeftPoints), OdfLength.Points(autoShape.TopPoints),
                             OdfLength.Points(autoShape.RightPoints), OdfLength.Points(autoShape.BottomPoints), autoShape.Name);
                     } else {
                         converted = targetSlide.AddRectangle(ToOdfRect(autoShape), autoShape.Name);
-                        if (autoShape.ShapeType != ShapeTypeValues.Rectangle) transformedShapes++;
+                        if (autoShape.ShapeType != PowerPointShapeType.Rectangle) transformedShapes++;
                     }
                     CopyShapeAppearance(autoShape, converted, effective);
                     autoShapes++;

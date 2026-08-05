@@ -17,12 +17,12 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape rectangle = slide.AddShapePoints(
-                    A.ShapeTypeValues.Rectangle, 24, 24, 120, 70);
+                    PowerPointShapeType.Rectangle, 24, 24, 120, 70);
                 rectangle.Fill("C0504D").Stroke("4F81BD", 2.5D);
                 rectangle.FillTransparency = 25;
-                rectangle.OutlineDash = A.PresetLineDashValues.DashDot;
+                rectangle.OutlineDash = PowerPointLineDashStyle.DashDot;
                 rectangle.Rotation = 30D;
                 rectangle.HorizontalFlip = true;
                 rectangle.SetShadow("222222", blurPoints: 4D,
@@ -30,19 +30,19 @@ namespace OfficeIMO.Tests {
                     transparencyPercent: 35);
 
                 PowerPointAutoShape chevron = slide.AddShapePoints(
-                    A.ShapeTypeValues.Chevron, 180, 24, 100, 70);
+                    PowerPointShapeType.Chevron, 180, 24, 100, 70);
                 chevron.Fill("9BBB59").Stroke("8064A2", 1.25D);
                 chevron.VerticalFlip = true;
 
                 PowerPointAutoShape line = slide.AddShapePoints(
-                    A.ShapeTypeValues.Line, 24, 130, 180, 40);
+                    PowerPointShapeType.Line, 24, 130, 180, 40);
                 line.Stroke("00B050", 3D);
-                line.OutlineDash = A.PresetLineDashValues
+                line.OutlineDash = PowerPointLineDashStyle
                     .LargeDashDotDot;
-                line.SetLineEnds(A.LineEndValues.Triangle,
-                    A.LineEndValues.Diamond,
-                    A.LineEndWidthValues.Large,
-                    A.LineEndLengthValues.Small);
+                line.SetLineEnds(PowerPointLineEndType.Triangle,
+                    PowerPointLineEndType.Diamond,
+                    PowerPointLineEndWidth.Large,
+                    PowerPointLineEndLength.Small);
                 line.HorizontalFlip = true;
                 line.VerticalFlip = true;
 
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
                 .Single(shape => shape.FillColor == "C0504D").Rotation);
             Assert.Contains(projected.Slides[0].Shapes
                 .OfType<PowerPointAutoShape>(), shape =>
-                    shape.ShapeType == A.ShapeTypeValues.Chevron);
+                    shape.ShapeType == PowerPointShapeType.Chevron);
             Assert.Empty(projected.ValidateDocument());
             Assert.Equal(bytes,
                 projected.ToBytes(PowerPointFileFormat.Ppt));
@@ -121,8 +121,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_ReportsOversizedShadowOffsetsWithoutOverflowing() {
             using PowerPointPresentation source = PowerPointPresentation.Create();
-            PowerPointAutoShape shape = source.AddSlide(P.SlideLayoutValues.Blank)
-                .AddShapePoints(A.ShapeTypeValues.Rectangle, 24, 24, 120, 70);
+            PowerPointAutoShape shape = source.AddSlide(PowerPointSlideLayoutType.Blank)
+                .AddShapePoints(PowerPointShapeType.Rectangle, 24, 24, 120, 70);
             shape.SetShadow("222222", blurPoints: 1D, distancePoints: 1D,
                 angleDegrees: 0D, transparencyPercent: 0);
             P.Shape element = Assert.IsType<P.Shape>(shape.Element);
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 PowerPointConnectionShape connector = slide
                     .AddConnectionShape(A.ShapeTypeValues.BentConnector3,
                         PowerPointUnits.FromPoints(24),
@@ -151,11 +151,11 @@ namespace OfficeIMO.Tests {
                         PowerPointUnits.FromPoints(180),
                         PowerPointUnits.FromPoints(90));
                 connector.Stroke("4472C4", 2.25D);
-                connector.OutlineDash = A.PresetLineDashValues.DashDot;
-                connector.SetLineEnds(A.LineEndValues.Oval,
-                    A.LineEndValues.Triangle,
-                    A.LineEndWidthValues.Large,
-                    A.LineEndLengthValues.Small);
+                connector.OutlineDash = PowerPointLineDashStyle.DashDot;
+                connector.SetLineEnds(PowerPointLineEndType.Oval,
+                    PowerPointLineEndType.Triangle,
+                    PowerPointLineEndWidth.Large,
+                    PowerPointLineEndLength.Small);
                 connector.Rotation = 15D;
                 connector.HorizontalFlip = true;
 
@@ -188,7 +188,7 @@ namespace OfficeIMO.Tests {
             PowerPointConnectionShape projectedConnector = Assert.Single(
                 projected.Slides[0].Shapes
                     .OfType<PowerPointConnectionShape>());
-            Assert.Equal(A.ShapeTypeValues.BentConnector3,
+            Assert.Equal(PowerPointShapeType.BentConnector3,
                 projectedConnector.ShapeType);
             Assert.Empty(projected.ValidateDocument());
             Assert.Equal(bytes,
@@ -200,7 +200,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation source = PowerPointPresentation
                 .Create();
             PowerPointSlide slide = source.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             PowerPointConnectionShape connector = slide
                 .AddConnectionShape(A.ShapeTypeValues.StraightConnector1,
                     100, 200, 300, 400);
@@ -224,12 +224,12 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape round = slide.AddShapePoints(
-                    A.ShapeTypeValues.RoundRectangle, 20, 20, 120, 70);
+                    PowerPointShapeType.RoundRectangle, 20, 20, 120, 70);
                 SetAdjustment(round, "val 30000");
                 PowerPointAutoShape donut = slide.AddShapePoints(
-                    A.ShapeTypeValues.Donut, 170, 20, 90, 90);
+                    PowerPointShapeType.Donut, 170, 20, 90, 90);
                 SetAdjustment(donut, "val 40000");
 
                 LegacyPptWritePreflightReport preflight = source
@@ -264,8 +264,8 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation source = PowerPointPresentation
                 .Create();
             PowerPointAutoShape round = source.AddSlide(
-                    P.SlideLayoutValues.Blank)
-                .AddShapePoints(A.ShapeTypeValues.RoundRectangle,
+                    PowerPointSlideLayoutType.Blank)
+                .AddShapePoints(PowerPointShapeType.RoundRectangle,
                     20, 20, 120, 70);
             SetAdjustment(round, "val 33334");
 
@@ -283,12 +283,12 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape rectangle = slide.AddShapePoints(
-                    A.ShapeTypeValues.Rectangle, 30, 40, 80, 50);
+                    PowerPointShapeType.Rectangle, 30, 40, 80, 50);
                 rectangle.Fill("4472C4");
                 PowerPointAutoShape ellipse = slide.AddShapePoints(
-                    A.ShapeTypeValues.Ellipse, 125, 50, 65, 45);
+                    PowerPointShapeType.Ellipse, 125, 50, 65, 45);
                 ellipse.Fill("ED7D31");
                 PowerPointGroupShape inner = slide.GroupShapes(
                     new PowerPointShape[] { rectangle, ellipse },
@@ -347,7 +347,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation source = PowerPointPresentation
                 .Create();
             PowerPointSlide slide = source.AddSlide(
-                P.SlideLayoutValues.Blank);
+                PowerPointSlideLayoutType.Blank);
             PowerPointGroupShape group = slide.GroupShapes(new PowerPointShape[] {
                 slide.AddRectangle(100000, 100000, 500000, 500000),
                 slide.AddRectangle(700000, 100000, 500000, 500000)
@@ -376,8 +376,8 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation source = PowerPointPresentation
                 .Create();
             PowerPointAutoShape shape = source.AddSlide(
-                    P.SlideLayoutValues.Blank)
-                .AddShapePoints(A.ShapeTypeValues.Rectangle,
+                    PowerPointSlideLayoutType.Blank)
+                .AddShapePoints(PowerPointShapeType.Rectangle,
                     20, 20, 100, 60);
             shape.SetGlow("4472C4", radiusPoints: 5D);
 
@@ -395,8 +395,8 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
                 PowerPointAutoShape shape = source.AddSlide(
-                        P.SlideLayoutValues.Blank)
-                    .AddShapePoints(A.ShapeTypeValues.Rectangle,
+                        PowerPointSlideLayoutType.Blank)
+                    .AddShapePoints(PowerPointShapeType.Rectangle,
                         20, 20, 120, 70);
                 shape.Fill("4472C4").Stroke("203864", 2D);
                 shape.SetShadow("222222", blurPoints: 3D,
@@ -415,7 +415,7 @@ namespace OfficeIMO.Tests {
             edited.FillTransparency = 10;
             edited.OutlineColor = "A5A5A5";
             edited.OutlineWidthPoints = 3D;
-            edited.OutlineDash = A.PresetLineDashValues.LargeDash;
+            edited.OutlineDash = PowerPointLineDashStyle.LargeDash;
             edited.Rotation = 42D;
             edited.HorizontalFlip = true;
             edited.VerticalFlip = true;
@@ -453,13 +453,13 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape hiddenChild = slide.AddShapePoints(
-                    A.ShapeTypeValues.Rectangle, 20, 20, 90, 50);
+                    PowerPointShapeType.Rectangle, 20, 20, 90, 50);
                 hiddenChild.Name = "Hidden child";
                 hiddenChild.Hidden = true;
                 PowerPointAutoShape visibleChild = slide.AddShapePoints(
-                    A.ShapeTypeValues.Ellipse, 130, 20, 70, 50);
+                    PowerPointShapeType.Ellipse, 130, 20, 70, 50);
                 visibleChild.Name = "Visible child";
                 PowerPointGroupShape group = slide.GroupShapes(
                     new PowerPointShape[] { hiddenChild, visibleChild },
@@ -505,7 +505,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 PowerPointTextBox visible = slide.AddTextBoxPoints(
                     "Visible", 20, 20, 100, 35);
                 visible.Name = "Initially visible";
@@ -570,7 +570,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
-                    P.SlideLayoutValues.Blank);
+                    PowerPointSlideLayoutType.Blank);
                 using var stream = new MemoryStream(image, writable: false);
                 PowerPointPicture picture = slide.AddPicture(stream,
                     ImagePartType.Png, 158750, 317500, 635000, 476250);

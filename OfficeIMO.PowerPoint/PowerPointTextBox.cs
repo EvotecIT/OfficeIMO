@@ -29,7 +29,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Gets the preset geometry used by this text-bearing shape.
         /// </summary>
-        public A.ShapeTypeValues? ShapeType => Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value;
+        public PowerPointShapeType? ShapeType => Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value.ToOfficeEnum();
 
         /// <summary>
         /// Gets whether this shape represents a conventional text box or placeholder rather than a text-bearing preset shape.
@@ -233,8 +233,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Gets or sets the placeholder type for this textbox.
         /// </summary>
-        public PlaceholderValues? PlaceholderType {
-            get => GetPlaceholderShape()?.Type?.Value;
+        public PowerPointPlaceholderType? PlaceholderType {
+            get => GetPlaceholderShape()?.Type?.Value.ToOfficeEnum();
             set {
                 if (value == null) {
                     PlaceholderShape? placeholder = GetPlaceholderShape();
@@ -248,7 +248,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 PlaceholderShape shape = EnsurePlaceholderShape();
-                shape.Type = value.Value;
+                shape.Type = value.Value.ToOpenXml();
             }
         }
 
@@ -277,8 +277,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Gets or sets the preferred placeholder size.
         /// </summary>
-        public PlaceholderSizeValues? PlaceholderSize {
-            get => GetPlaceholderShape()?.Size?.Value;
+        public PowerPointPlaceholderSize? PlaceholderSize {
+            get => GetPlaceholderShape()?.Size?.Value.ToOfficeEnum();
             set {
                 if (value == null) {
                     PlaceholderShape? placeholder = GetPlaceholderShape();
@@ -288,15 +288,15 @@ namespace OfficeIMO.PowerPoint {
                     }
                     return;
                 }
-                EnsurePlaceholderShape().Size = value.Value;
+                EnsurePlaceholderShape().Size = value.Value.ToOpenXml();
             }
         }
 
         /// <summary>
         ///     Gets or sets the placeholder orientation.
         /// </summary>
-        public DirectionValues? PlaceholderOrientation {
-            get => GetPlaceholderShape()?.Orientation?.Value;
+        public PowerPointPlaceholderDirection? PlaceholderOrientation {
+            get => GetPlaceholderShape()?.Orientation?.Value.ToOfficeEnum();
             set {
                 if (value == null) {
                     PlaceholderShape? placeholder = GetPlaceholderShape();
@@ -306,7 +306,7 @@ namespace OfficeIMO.PowerPoint {
                     }
                     return;
                 }
-                EnsurePlaceholderShape().Orientation = value.Value;
+                EnsurePlaceholderShape().Orientation = value.Value.ToOpenXml();
             }
         }
 
@@ -442,17 +442,17 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Gets or sets the vertical anchoring of text inside the textbox.
         /// </summary>
-        public A.TextAnchoringTypeValues? TextVerticalAlignment {
-            get => GetBodyProperties()?.Anchor?.Value;
-            set => EnsureBodyProperties().Anchor = value;
+        public PowerPointTextVerticalAlignment? TextVerticalAlignment {
+            get => GetBodyProperties()?.Anchor?.Value.ToOfficeEnum();
+            set => EnsureBodyProperties().Anchor = value?.ToOpenXml();
         }
 
         /// <summary>
         ///     Gets or sets the text direction (horizontal/vertical).
         /// </summary>
-        public A.TextVerticalValues? TextDirection {
-            get => GetBodyProperties()?.Vertical?.Value;
-            set => EnsureBodyProperties().Vertical = value;
+        public PowerPointTextDirection? TextDirection {
+            get => GetBodyProperties()?.Vertical?.Value.ToOfficeEnum();
+            set => EnsureBodyProperties().Vertical = value?.ToOpenXml();
         }
 
         /// <summary>

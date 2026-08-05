@@ -35,9 +35,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(3, table1.Rows.Count);
                 Assert.Equal(3, table1.Rows[0].CellsCount);
                 Assert.Equal(5000, table1.Width);
-                Assert.Equal(TableWidthUnitValues.Pct, table1.WidthType);
+                Assert.Equal(WordTableWidthUnit.Pct, table1.WidthType);
                 Assert.Equal(WordTableStyle.TableGrid, table1.Style);
-                Assert.Equal(TableRowAlignmentValues.Center, table1.Alignment);
+                Assert.Equal(WordTableAlignment.Center, table1.Alignment);
                 Assert.True(table1.ConditionalFormattingFirstRow);
                 Assert.Equal("Name", table1.Rows[0].Cells[0].Paragraphs[0].Text);
 
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Load(filePath)) {
                 var table = document.Tables[0];
                 Assert.Equal(2000, table.Width);
-                Assert.Equal(TableWidthUnitValues.Dxa, table.WidthType);
+                Assert.Equal(WordTableWidthUnit.Dxa, table.WidthType);
             }
         }
 
@@ -130,10 +130,10 @@ namespace OfficeIMO.Tests {
                         .RowHeight(1, 36)
                         .RowHeight(2, 72)
                         .CellStyle(1, 1, cell => {
-                            cell.Paragraphs[0].ParagraphAlignment = JustificationValues.Center;
-                            cell.VerticalAlignment = TableVerticalAlignmentValues.Center;
+                            cell.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Center;
+                            cell.VerticalAlignment = WordTableVerticalAlignment.Center;
                             cell.ShadingFillColorHex = "FFCC00";
-                            cell.Borders.LeftStyle = BorderValues.Single;
+                            cell.Borders.LeftStyle = WordBorderStyle.Single;
                         }))
                     .End()
                     .Save();
@@ -142,15 +142,15 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Load(filePath)) {
                 var table = document.Tables[0];
                 Assert.Equal(1440, table.Rows[0].Cells[0].Width);
-                Assert.Equal(TableWidthUnitValues.Dxa, table.Rows[0].Cells[0].WidthType);
+                Assert.Equal(WordTableWidthUnit.Dxa, table.Rows[0].Cells[0].WidthType);
                 Assert.Equal(2880, table.Rows[0].Cells[1].Width);
                 Assert.Equal(720, table.Rows[0].Height);
                 Assert.Equal(1440, table.Rows[1].Height);
                 var cell = table.Rows[0].Cells[0];
                 Assert.Equal("FFCC00", cell.ShadingFillColorHex);
-                Assert.Equal(TableVerticalAlignmentValues.Center, cell.VerticalAlignment);
-                Assert.Equal(JustificationValues.Center, cell.Paragraphs[0].ParagraphAlignment);
-                Assert.Equal(BorderValues.Single, cell.Borders.LeftStyle);
+                Assert.Equal(WordTableVerticalAlignment.Center, cell.VerticalAlignment);
+                Assert.Equal(WordParagraphAlignment.Center, cell.Paragraphs[0].ParagraphAlignment);
+                Assert.Equal(WordBorderStyle.Single, cell.Borders.LeftStyle);
             }
         }
 
@@ -170,8 +170,8 @@ namespace OfficeIMO.Tests {
                 var table = document.Tables[0];
                 Assert.Equal(1250, table.Rows[0].Cells[0].Width);
                 Assert.Equal(3750, table.Rows[0].Cells[1].Width);
-                Assert.Equal(TableWidthUnitValues.Pct, table.Rows[0].Cells[0].WidthType);
-                Assert.Equal(TableWidthUnitValues.Pct, table.Rows[0].Cells[1].WidthType);
+                Assert.Equal(WordTableWidthUnit.Pct, table.Rows[0].Cells[0].WidthType);
+                Assert.Equal(WordTableWidthUnit.Pct, table.Rows[0].Cells[1].WidthType);
             }
         }
 

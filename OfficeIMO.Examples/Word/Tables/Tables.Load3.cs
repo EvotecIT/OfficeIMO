@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
                     Console.WriteLine("Tables " + i + " width: " + document.Tables[i].Width);
                 }
                 //var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-                //paragraph.ParagraphAlignment = JustificationValues.Center;
+                //paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 //WordTable wordTable = document.AddTable(3, 4, WordTableStyle.GridTable1LightAccent5);
                 //wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";

@@ -366,7 +366,7 @@ for the current capability matrix and safety contract. Use the
 using DocumentFormat.OpenXml.Wordprocessing;
 
 document.Settings.ProtectionPassword = "owner-password";
-document.Settings.ProtectionType = DocumentProtectionValues.ReadOnly;
+document.Settings.ProtectionType = WordDocumentProtectionType.ReadOnly;
 ```
 
 ### Editable equations from the shared math model

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             var paragraph = doc.Paragraphs[0];
 
             Assert.Equal("Location", paragraph.Text);
-            Assert.Equal(JustificationValues.Right, paragraph.ParagraphAlignment);
+            Assert.Equal(OfficeIMO.Word.WordParagraphAlignment.Right, paragraph.ParagraphAlignment);
         }
 
         [Fact]
@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             var paragraph = doc.Paragraphs[0];
 
             Assert.Equal("Article text", paragraph.Text);
-            Assert.Equal(JustificationValues.Center, paragraph.ParagraphAlignment);
+            Assert.Equal(OfficeIMO.Word.WordParagraphAlignment.Center, paragraph.ParagraphAlignment);
         }
 
         [Fact]
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             var paragraph = doc.Paragraphs[0];
 
             Assert.Equal("Aside note", paragraph.Text);
-            Assert.Equal(JustificationValues.Both, paragraph.ParagraphAlignment);
+            Assert.Equal(OfficeIMO.Word.WordParagraphAlignment.Both, paragraph.ParagraphAlignment);
         }
 
         [Fact]

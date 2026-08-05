@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation presentation = PowerPointPresentation
                        .Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
-                        P.SlideLayoutValues.Blank)
+                        PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints(string.Empty, 30, 30, 360, 180);
                 P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
                 var firstProperties = new A.ParagraphProperties(
@@ -294,7 +294,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_ReportsOutOfRangeRichTextLevelBeforeBuildingRuler() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
-            PowerPointTextBox textBox = presentation.AddSlide(P.SlideLayoutValues.Blank)
+            PowerPointTextBox textBox = presentation.AddSlide(PowerPointSlideLayoutType.Blank)
                 .AddTextBoxPoints("Unsafe level", 30, 30, 240, 120);
             P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
             A.Paragraph paragraph = Assert.Single(shape.TextBody!.Elements<A.Paragraph>());
@@ -314,12 +314,12 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation presentation = PowerPointPresentation
                        .Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
-                        P.SlideLayoutValues.Blank)
+                        PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints("Text frame", 30, 30, 240, 120)
                     .SetTextMarginsPoints(8, 4, 6, 2);
                 textBox.TextVerticalAlignment =
-                    A.TextAnchoringTypeValues.Center;
-                textBox.TextDirection = A.TextVerticalValues.Vertical270;
+                    PowerPointTextVerticalAlignment.Center;
+                textBox.TextDirection = PowerPointTextDirection.Vertical270;
                 textBox.TextAutoFit = PowerPointTextAutoFit.Shape;
                 A.BodyProperties body = Assert.IsType<P.Shape>(
                     textBox.Element).TextBody!.BodyProperties!;
@@ -358,9 +358,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(4D, projected.TextMarginTopPoints);
             Assert.Equal(6D, projected.TextMarginRightPoints);
             Assert.Equal(2D, projected.TextMarginBottomPoints);
-            Assert.Equal(A.TextAnchoringTypeValues.Center,
+            Assert.Equal(PowerPointTextVerticalAlignment.Center,
                 projected.TextVerticalAlignment);
-            Assert.Equal(A.TextVerticalValues.Vertical270,
+            Assert.Equal(PowerPointTextDirection.Vertical270,
                 projected.TextDirection);
             Assert.Equal(PowerPointTextAutoFit.Shape,
                 projected.TextAutoFit);
@@ -378,12 +378,12 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
                 PowerPointTextBox textBox = source.AddSlide(
-                        P.SlideLayoutValues.Blank)
+                        PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints("Editable frame", 30, 30, 240, 120)
                     .SetTextMarginsPoints(8, 4, 6, 2);
                 textBox.TextVerticalAlignment =
-                    A.TextAnchoringTypeValues.Center;
-                textBox.TextDirection = A.TextVerticalValues.Vertical270;
+                    PowerPointTextVerticalAlignment.Center;
+                textBox.TextDirection = PowerPointTextDirection.Vertical270;
                 textBox.TextAutoFit = PowerPointTextAutoFit.Shape;
                 A.BodyProperties body = Assert.IsType<P.Shape>(
                     textBox.Element).TextBody!.BodyProperties!;
@@ -409,8 +409,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(projection.TextFrameMatches(textBox));
                 textBox.SetTextMarginsPoints(5, 7, 9, 11);
                 textBox.TextVerticalAlignment =
-                    A.TextAnchoringTypeValues.Bottom;
-                textBox.TextDirection = A.TextVerticalValues.Vertical;
+                    PowerPointTextVerticalAlignment.Bottom;
+                textBox.TextDirection = PowerPointTextDirection.Vertical;
                 textBox.TextAutoFit = PowerPointTextAutoFit.None;
                 A.BodyProperties body = Assert.IsType<P.Shape>(
                     textBox.Element).TextBody!.BodyProperties!;
@@ -459,9 +459,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(7D, projected.TextMarginTopPoints);
             Assert.Equal(9D, projected.TextMarginRightPoints);
             Assert.Equal(11D, projected.TextMarginBottomPoints);
-            Assert.Equal(A.TextAnchoringTypeValues.Bottom,
+            Assert.Equal(PowerPointTextVerticalAlignment.Bottom,
                 projected.TextVerticalAlignment);
-            Assert.Equal(A.TextVerticalValues.Vertical,
+            Assert.Equal(PowerPointTextDirection.Vertical,
                 projected.TextDirection);
             Assert.Equal(PowerPointTextAutoFit.None,
                 projected.TextAutoFit);
@@ -478,7 +478,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation
                        .Create()) {
-                source.AddSlide(P.SlideLayoutValues.Blank)
+                source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddTextBox("Existing slide");
                 sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
             }
@@ -490,7 +490,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation imported = PowerPointPresentation
                        .Load(input)) {
                 PowerPointTextBox textBox = imported.AddSlide(
-                        P.SlideLayoutValues.Blank)
+                        PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints(string.Empty, 40, 40, 320, 120);
                 P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
                 shape.TextBody = new P.TextBody(

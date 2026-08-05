@@ -228,9 +228,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or Set section/page Orientation
         /// </summary>
-        public PageOrientationValues Orientation {
-            get => GetOrientation(_section._sectionProperties);
-            set => SetOrientation(_section._sectionProperties, value);
+        public WordPageOrientation Orientation {
+            get => GetOrientation(_section._sectionProperties).ToOfficeEnum();
+            set => SetOrientation(_section._sectionProperties, value.ToOpenXml());
         }
 
         /// <summary>

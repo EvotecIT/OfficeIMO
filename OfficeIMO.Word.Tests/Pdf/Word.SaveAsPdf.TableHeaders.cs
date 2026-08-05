@@ -23,7 +23,7 @@ public partial class Word {
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
                     cell.Width = 1440;
-                    cell.WidthType = TableWidthUnitValues.Dxa;
+                    cell.WidthType = WordTableWidthUnit.Dxa;
                 }
             }
 
@@ -64,7 +64,7 @@ public partial class Word {
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
                     cell.Width = 1440;
-                    cell.WidthType = TableWidthUnitValues.Dxa;
+                    cell.WidthType = WordTableWidthUnit.Dxa;
                 }
             }
 
@@ -115,7 +115,7 @@ public partial class Word {
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
                     cell.Width = 1440;
-                    cell.WidthType = TableWidthUnitValues.Dxa;
+                    cell.WidthType = WordTableWidthUnit.Dxa;
                 }
             }
 

@@ -12,7 +12,7 @@ public partial class WordRtfConverterTests {
     [Fact]
     public void Word_To_Rtf_Bridge_Carries_PageSetup_Headers_And_Footers() {
         using WordDocument word = WordDocument.Create();
-        word.PageOrientation = PageOrientationValues.Landscape;
+        word.PageOrientation = WordPageOrientation.Landscape;
         word.PageSettings.Width = 16838U;
         word.PageSettings.Height = 11906U;
         word.Margins.Left = 1440U;
@@ -24,12 +24,12 @@ public partial class WordRtfConverterTests {
         word.Margins.FooterDistance = 540U;
         word.RtlGutter = true;
         word.Settings.MirrorMargins = true;
-        word.AddPageNumbering(5, NumberFormatValues.LowerRoman);
-        word.Borders.TopStyle = BorderValues.Single;
+        word.AddPageNumbering(5, WordNumberFormat.LowerRoman);
+        word.Borders.TopStyle = WordBorderStyle.Single;
         word.Borders.TopSize = 12U;
         word.Borders.TopSpace = 24U;
         word.Borders.TopColorHex = "FF0000";
-        word.Borders.BottomStyle = BorderValues.Double;
+        word.Borders.BottomStyle = WordBorderStyle.Double;
         word.Borders.BottomSize = 18U;
         word.Borders.BottomSpace = 30U;
         word.Borders.BottomColorHex = "0000FF";
@@ -154,7 +154,7 @@ public partial class WordRtfConverterTests {
 
         Assert.Equal(1440, word.Settings.DefaultTabStop);
         Assert.Equal(125, word.Settings.ZoomPercentage);
-        Assert.Equal(DocumentProtectionValues.ReadOnly, word.Settings.ProtectionType);
+        Assert.Equal(WordDocumentProtectionType.ReadOnly, word.Settings.ProtectionType);
         Assert.True(word.DifferentOddAndEvenPages);
         Assert.True(word.Settings.MirrorMargins);
         Assert.Equal(1440, roundTrip.Settings.DefaultTabWidthTwips);

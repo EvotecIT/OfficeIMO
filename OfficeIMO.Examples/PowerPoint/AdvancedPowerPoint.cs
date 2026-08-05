@@ -87,7 +87,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 PowerPointTextBox placeholder = slide2.AddTextBox("(image placeholder)", mediaBox);
                 placeholder.FillColor = "F3F3F3";
                 placeholder.OutlineColor = "CCCCCC";
-                placeholder.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
+                placeholder.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
                 placeholder.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("777777"));
             }
 
@@ -112,8 +112,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             for (int c = 0; c < kpiTable.Columns; c++) {
                 PowerPointTableCell header = kpiTable.GetCell(0, c);
                 header.Bold = true;
-                header.HorizontalAlignment = A.TextAlignmentTypeValues.Center;
-                header.VerticalAlignment = A.TextAnchoringTypeValues.Center;
+                header.HorizontalAlignment = PowerPointTextAlignment.Center;
+                header.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
             }
 
             // Slide 4: KPI chart
@@ -133,7 +133,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 bodyBox.WidthCm,
                 bodyBox.HeightCm);
             chart.SetTitle("Current vs Target")
-                .SetLegend(C.LegendPositionValues.Right)
+                .SetLegend(PowerPointChartLegendPosition.Right)
                 .SetDataLabels(showValue: true)
                 .SetCategoryAxisTitle("Metric")
                 .SetValueAxisTitle("Score");

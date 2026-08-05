@@ -465,9 +465,9 @@ namespace OfficeIMO.PowerPoint {
 
         private static void CenterComposerText(PowerPointTextBox textBox) {
             foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
-                paragraph.Alignment = A.TextAlignmentTypeValues.Center;
+                paragraph.Alignment = PowerPointTextAlignment.Center;
             }
-            textBox.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
+            textBox.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
         }
 
         private static int StablePick(string value, int choices) {

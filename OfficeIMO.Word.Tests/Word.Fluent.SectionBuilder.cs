@@ -11,13 +11,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FluentSectionBuilderOrientation.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .Section(s => s.New().Orientation(PageOrientationValues.Landscape))
+                    .Section(s => s.New().Orientation(WordPageOrientation.Landscape))
                     .End()
                     .Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Equal(PageOrientationValues.Landscape, document.Sections[1].PageSettings.Orientation);
+                Assert.Equal(WordPageOrientation.Landscape, document.Sections[1].PageSettings.Orientation);
             }
         }
 

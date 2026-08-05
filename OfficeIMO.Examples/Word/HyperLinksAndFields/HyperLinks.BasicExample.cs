@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
                 var test = document.AddParagraph("Test Email Address ").AddHyperLink("Przemysław Klys", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"), true);
                 test.Bold = true;
                 test.Italic = true;
-                test.Underline = UnderlineValues.Dash;
+                test.Underline = WordUnderlineStyle.Dash;
                 test.Color = Color.Green;
 
                 // this hyperlink will have no style at all

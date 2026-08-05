@@ -14,9 +14,9 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with Table Alignment.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Lets add table with some alignment ");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Bold = true;
-                paragraph.Underline = UnderlineValues.DotDash;
+                paragraph.Underline = WordUnderlineStyle.DotDash;
 
                 WordTable wordTable = document.AddTable(4, 4, WordTableStyle.GridTable1LightAccent1);
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
@@ -29,16 +29,16 @@ namespace OfficeIMO.Examples.Word {
                 wordTable.FirstRow.FirstCell.ShadingFillColor = Color.Blue;
                 wordTable.Rows[1].FirstCell.ShadingFillColor = Color.Red;
 
-                wordTable.LastRow.FirstCell.ShadingPattern = ShadingPatternValues.Percent20;
+                wordTable.LastRow.FirstCell.ShadingPattern = WordShadingPattern.Percent20;
 
 
                 wordTable.AddComment("Przemysław Kłys", "PK", "This is a table, and we just added comment to a whole table");
 
                 wordTable.LastRow.LastCell.Paragraphs[0].Text = "Last Cell";
 
-                wordTable.WidthType = TableWidthUnitValues.Pct;
+                wordTable.WidthType = WordTableWidthUnit.Pct;
                 wordTable.Width = 5000; // 5000 is a magic number that represents 100% in the Open XML spec for table width 
-                wordTable.Alignment = TableRowAlignmentValues.Center;
+                wordTable.Alignment = WordTableAlignment.Center;
 
                 wordTable.Title = "This is title";
                 wordTable.Description = "Description of table";
@@ -52,7 +52,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable1.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
                 wordTable1.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
 
-                wordTable1.WidthType = TableWidthUnitValues.Pct;
+                wordTable1.WidthType = WordTableWidthUnit.Pct;
                 wordTable1.Width = 3000;
 
                 wordTable1.AllowTextWrap = true;
@@ -76,9 +76,9 @@ namespace OfficeIMO.Examples.Word {
                 // add a cell to 3rd row
                 WordTableCell cell = new WordTableCell(document, wordTable2, wordTable2.Rows[2]);
                 cell.Paragraphs[0].Text = "This cell is outside a bit";
-                cell.TextDirection = TextDirectionValues.TopToBottomLeftToRightRotated;
+                cell.TextDirection = WordTextDirection.TopToBottomLeftToRightRotated;
 
-                wordTable2.LayoutType = TableLayoutValues.Fixed;
+                wordTable2.LayoutType = WordTableLayoutMode.Fixed;
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

@@ -13,7 +13,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void AddPageBreakAfter(WordParagraph paragraph) {
-            paragraph.AddParagraphAfterSelf().AddBreak(BreakValues.Page);
+            paragraph.AddParagraphAfterSelf().AddBreak(WordBreakType.Page);
         }
 
         private static bool StyleRequestsPageBreakBefore(IElement element) {

@@ -205,7 +205,7 @@ namespace OfficeIMO.PowerPoint {
                         ? slide.AddTitle(shape.Text, left, top, width, height)
                         : slide.AddTextBox(shape.Text, left, top, width, height);
                     PlaceholderValues? placeholder = MapPlaceholder(shape.PlaceholderKind);
-                    if (placeholder.HasValue) textBox.PlaceholderType = placeholder.Value;
+                    if (placeholder.HasValue) textBox.PlaceholderType = placeholder.Value.ToOfficeEnum();
                     LegacyPptTextProjection.Apply(
                         (DocumentFormat.OpenXml.Presentation.Shape)textBox.Element,
                         shape.TextBody, shape.TextFrame,
@@ -224,18 +224,18 @@ namespace OfficeIMO.PowerPoint {
                     projectedShape = textBox;
                     break;
                 case LegacyPptShapeKind.Rectangle:
-                    projectedShape = slide.AddShape(A.ShapeTypeValues.Rectangle, left, top, width, height);
+                    projectedShape = slide.AddShape(PowerPointShapeType.Rectangle, left, top, width, height);
                     break;
                 case LegacyPptShapeKind.Ellipse:
-                    projectedShape = slide.AddShape(A.ShapeTypeValues.Ellipse, left, top, width, height);
+                    projectedShape = slide.AddShape(PowerPointShapeType.Ellipse, left, top, width, height);
                     break;
                 case LegacyPptShapeKind.Line:
-                    projectedShape = slide.AddShape(A.ShapeTypeValues.Line, left, top, width, height);
+                    projectedShape = slide.AddShape(PowerPointShapeType.Line, left, top, width, height);
                     break;
                 case LegacyPptShapeKind.AutoShape:
                     if (LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
                             out A.ShapeTypeValues geometry)) {
-                        projectedShape = slide.AddShape(geometry, left, top, width, height);
+                        projectedShape = slide.AddShape(geometry.ToOfficeEnum(), left, top, width, height);
                     }
                     break;
                 case LegacyPptShapeKind.Connector:
@@ -262,10 +262,10 @@ namespace OfficeIMO.PowerPoint {
                             == LegacyPptOleDrawAspect.Icon;
                         ole.FollowColorScheme = shape.OleObject.ColorFollow switch {
                             LegacyPptOleColorFollow.Scheme =>
-                                OleObjectFollowColorSchemeValues.Full,
+                                PowerPointOleFollowColorScheme.Full,
                             LegacyPptOleColorFollow.TextAndBackground =>
-                                OleObjectFollowColorSchemeValues.TextAndBackground,
-                            _ => OleObjectFollowColorSchemeValues.None
+                                PowerPointOleFollowColorScheme.TextAndBackground,
+                            _ => PowerPointOleFollowColorScheme.None
                         };
                         ApplyLegacyOlePreview(slide.SlidePart, ole, shape);
                         projectedShape = ole;

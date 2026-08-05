@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with Tables10_StyleModificationWithCentimeters.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var title = document.AddParagraph("Table Styles with Twips and Centimeters");
-                title.ParagraphAlignment = JustificationValues.Center;
+                title.ParagraphAlignment = WordParagraphAlignment.Center;
                 title.Bold = true;
                 title.FontSize = 16;
                 document.AddParagraph();
@@ -103,8 +103,8 @@ namespace OfficeIMO.Examples.Word {
                 // Set borders with different units
                 var styleDetails4 = Guard.NotNull(wordTable4.StyleDetails, "Table style details should be available.");
                 styleDetails4.SetBordersOutsideInside(
-                    BorderValues.Double, 24U, Color.Red,  // Outside borders
-                    BorderValues.Single, 12U, Color.Blue  // Inside borders
+                    WordBorderStyle.Double, 24U, Color.Red,  // Outside borders
+                    WordBorderStyle.Single, 12U, Color.Blue  // Inside borders
                 );
 
                 // Set cell spacing using centimeters

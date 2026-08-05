@@ -136,7 +136,7 @@ namespace OfficeIMO.Excel.Fluent {
                     Sheet.Cell(_row, col, label);
                     Sheet.CellBold(_row, col, true);
                     Sheet.CellBackground(_row, col, fill);
-                    Sheet.CellAlign(_row, col, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Center);
+                    Sheet.CellAlign(_row, col, ExcelHorizontalAlignment.Center);
                     col++;
                 }
                 _row++;
@@ -146,7 +146,7 @@ namespace OfficeIMO.Excel.Fluent {
                     var (_, val) = list[idx + i];
                     Sheet.Cell(_row, col, val ?? string.Empty);
                     Sheet.CellBold(_row, col, true);
-                    Sheet.CellAlign(_row, col, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Center);
+                    Sheet.CellAlign(_row, col, ExcelHorizontalAlignment.Center);
                     col++;
                 }
                 _row++;

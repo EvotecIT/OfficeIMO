@@ -255,20 +255,20 @@ public sealed class ReaderPowerPointExtractionTests {
             text.AddParagraph("Plain boundary").ClearBullet();
             PowerPointParagraph restarted = text.AddParagraph("After one");
             restarted.SetNumbered(
-                A.TextAutoNumberSchemeValues.ArabicPeriod);
+                PowerPointNumberingScheme.ArabicPeriod);
             PowerPointParagraph parentOne = text.AddParagraph("Parent one");
             parentOne.SetNumbered(
-                A.TextAutoNumberSchemeValues.ArabicPeriod);
+                PowerPointNumberingScheme.ArabicPeriod);
             PowerPointParagraph childOne = text.AddParagraph("Child one");
             childOne.SetNumbered(
-                A.TextAutoNumberSchemeValues.ArabicPeriod);
+                PowerPointNumberingScheme.ArabicPeriod);
             childOne.Level = 1;
             PowerPointParagraph parentTwo = text.AddParagraph("Parent two");
             parentTwo.SetNumbered(
-                A.TextAutoNumberSchemeValues.ArabicPeriod);
+                PowerPointNumberingScheme.ArabicPeriod);
             PowerPointParagraph childTwo = text.AddParagraph("Child restart");
             childTwo.SetNumbered(
-                A.TextAutoNumberSchemeValues.ArabicPeriod);
+                PowerPointNumberingScheme.ArabicPeriod);
             childTwo.Level = 1;
             bytes = presentation.ToBytes();
         }
@@ -325,7 +325,7 @@ public sealed class ReaderPowerPointExtractionTests {
         list.AddBullets(new[] { "Nested bullet" }, level: 1);
         PowerPointTextBox numbered = slide.AddTextBox(string.Empty);
         numbered.SetNumberedList(new[] { "Third item", "Fourth item" },
-            A.TextAutoNumberSchemeValues.AlphaLowerCharacterParenR,
+            PowerPointNumberingScheme.AlphaLowerCharacterParenR,
             startAt: 3);
         PowerPointTextBox link = slide.AddTextBox("Read ");
         link.Paragraphs[0].AddRun("the guide")

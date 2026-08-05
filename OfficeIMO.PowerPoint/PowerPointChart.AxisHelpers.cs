@@ -179,7 +179,7 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
-        private PowerPointChart SetAxisTickLabelPosition<TAxis>(C.TickLabelPositionValues position, Func<TAxis, bool>? predicate = null)
+        private PowerPointChart SetAxisTickLabelPosition<TAxis>(PowerPointChartTickLabelPosition position, Func<TAxis, bool>? predicate = null)
             where TAxis : OpenXmlCompositeElement {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -194,7 +194,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            ReplaceAxisChild(axis, new C.TickLabelPosition { Val = position });
+            ReplaceAxisChild(axis, new C.TickLabelPosition { Val = position.ToOpenXml() });
             Save();
             return this;
         }
@@ -489,13 +489,13 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyAxisCrossing(OpenXmlCompositeElement axis, C.CrossesValues crosses, double? crossesAt) {
+        private static void ApplyAxisCrossing(OpenXmlCompositeElement axis, PowerPointChartAxisCrossing crosses, double? crossesAt) {
             axis.GetFirstChild<C.Crosses>()?.Remove();
             axis.GetFirstChild<C.CrossesAt>()?.Remove();
 
             OpenXmlElement crossing = crossesAt != null
                 ? new C.CrossesAt { Val = crossesAt.Value }
-                : new C.Crosses { Val = crosses };
+                : new C.Crosses { Val = crosses.ToOpenXml() };
 
             C.CrossingAxis? crossAxis = axis.GetFirstChild<C.CrossingAxis>();
             if (crossAxis != null) {

@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 DocumentTraversal.ListInfo? info = DocumentTraversal.GetListInfo(paragraph);
                 Assert.True(info.HasValue);
                 Assert.False(info.Value.Ordered);
-                Assert.Equal(NumberFormatValues.Bullet, info.Value.NumberFormat);
+                Assert.Equal(WordNumberFormat.Bullet, info.Value.NumberFormat);
             });
 
             string roundTripHtml = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
             Assert.All(imported, paragraph => {
                 DocumentTraversal.ListInfo info = DocumentTraversal.GetListInfo(paragraph)!.Value;
                 Assert.False(info.Ordered);
-                Assert.Equal(NumberFormatValues.Bullet, info.NumberFormat);
+                Assert.Equal(WordNumberFormat.Bullet, info.NumberFormat);
                 Assert.NotEqual(existing.NumberId, paragraph._listNumberId);
             });
         }
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
             Assert.False(info[0].Ordered);
             Assert.Equal("■", info[0].LevelText);
             Assert.True(info[1].Ordered);
-            Assert.Equal(NumberFormatValues.LowerLetter, info[1].NumberFormat);
+            Assert.Equal(WordNumberFormat.LowerLetter, info[1].NumberFormat);
             Assert.Equal(4, info[1].Start);
             Assert.False(info[2].Ordered);
             Assert.Equal("o", info[2].LevelText);
@@ -158,7 +158,7 @@ namespace OfficeIMO.Tests {
             var first = doc.Paragraphs.First(p => p.IsListItem);
             var info = DocumentTraversal.GetListInfo(first);
             Assert.True(info.HasValue);
-            Assert.Equal(NumberFormatValues.UpperRoman, info.Value.NumberFormat);
+            Assert.Equal(WordNumberFormat.UpperRoman, info.Value.NumberFormat);
         }
 
         [Fact]
@@ -170,7 +170,7 @@ namespace OfficeIMO.Tests {
             var first = doc.Paragraphs.First(p => p.IsListItem);
             var info = DocumentTraversal.GetListInfo(first);
             Assert.True(info.HasValue);
-            Assert.Equal(NumberFormatValues.RussianLower, info.Value.NumberFormat);
+            Assert.Equal(WordNumberFormat.RussianLower, info.Value.NumberFormat);
         }
 
         [Fact]

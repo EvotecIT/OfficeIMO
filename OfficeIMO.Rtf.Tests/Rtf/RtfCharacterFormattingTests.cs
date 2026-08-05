@@ -99,7 +99,7 @@ public class RtfCharacterFormattingTests {
     public void Word_Rtf_Bridge_Carries_Rich_Underline_Style_And_Color() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
-        WordParagraph styled = paragraph.AddText("Styled").SetUnderline(UnderlineValues.WavyDouble);
+        WordParagraph styled = paragraph.AddText("Styled").SetUnderline(WordUnderlineStyle.WavyDouble);
         styled._run!.RunProperties!.Underline!.Color = "4472C4";
         paragraph.AddText("Plain");
 
@@ -113,7 +113,7 @@ public class RtfCharacterFormattingTests {
         Assert.Contains(@"\uldbwave", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\ulc1", rtf, StringComparison.Ordinal);
         WordParagraph roundTripRun = Assert.Single(roundTrip.Paragraphs, run => run.Text == "Styled");
-        Assert.Equal(UnderlineValues.WavyDouble, roundTripRun.Underline);
+        Assert.Equal(WordUnderlineStyle.WavyDouble, roundTripRun.Underline);
         Assert.Equal("4472C4", roundTripRun._run?.RunProperties?.Underline?.Color?.Value);
     }
 
@@ -128,7 +128,7 @@ public class RtfCharacterFormattingTests {
         using WordDocument word = rtfDocument.ToWordDocument();
 
         WordParagraph styled = Assert.Single(word.Paragraphs, run => run.Text == "Styled");
-        Assert.Equal(UnderlineValues.DashDotDotHeavy, styled.Underline);
+        Assert.Equal(WordUnderlineStyle.DashDotDotHeavy, styled.Underline);
         Assert.Equal("4472C4", styled._run?.RunProperties?.Underline?.Color?.Value);
         WordParagraph plain = Assert.Single(word.Paragraphs, run => run.Text == "Plain");
         Assert.Null(plain.Underline);

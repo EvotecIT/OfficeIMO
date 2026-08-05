@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
         public void AddSparklines(
             string dataRange,
             string locationRange,
-            SparklineTypeValues type,
+            ExcelSparklineType type,
             bool displayMarkers = false,
             bool displayHighLow = false,
             bool displayFirstLast = false,
@@ -56,7 +56,7 @@ namespace OfficeIMO.Excel {
                 var ws = WorksheetRoot;
                 var groups = GetOrCreateSparklineGroups(ws);
 
-                var group = new SparklineGroup { Type = type };
+                var group = new SparklineGroup { Type = type.ToOpenXml() };
                 if (displayMarkers) group.Markers = true;
                 if (displayHighLow) {
                     group.High = true;
@@ -130,7 +130,7 @@ namespace OfficeIMO.Excel {
             AddSparklines(
                 dataRange,
                 locationRange,
-                SparklineTypeValues.Line,
+                ExcelSparklineType.Line,
                 displayMarkers,
                 displayHighLow,
                 displayFirstLast,

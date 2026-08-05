@@ -94,11 +94,11 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTable table = slide.AddTable(rows: 2, columns: 2, left: 0, top: 0, width: 4000, height: 3000);
 
-                table.SetCellAlignment(A.TextAlignmentTypeValues.Center, A.TextAnchoringTypeValues.Center,
+                table.SetCellAlignment(PowerPointTextAlignment.Center, PowerPointTextVerticalAlignment.Center,
                     startRow: 0, endRow: 0, startColumn: 0, endColumn: 1);
 
-                Assert.Equal(A.TextAlignmentTypeValues.Center, table.GetCell(0, 0).HorizontalAlignment);
-                Assert.Equal(A.TextAlignmentTypeValues.Center, table.GetCell(0, 1).HorizontalAlignment);
+                Assert.Equal(PowerPointTextAlignment.Center, table.GetCell(0, 0).HorizontalAlignment);
+                Assert.Equal(PowerPointTextAlignment.Center, table.GetCell(0, 1).HorizontalAlignment);
                 Assert.Null(table.GetCell(1, 0).HorizontalAlignment);
             } finally {
                 if (File.Exists(filePath)) {
@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
                     PowerPointTable table = slide.AddTable(rows: 1, columns: 1, left: 0, top: 0, width: 4000, height: 2000);
 
                     table.SetCellBorders(TableCellBorders.All, "FF0000", widthPoints: 1,
-                        dash: A.PresetLineDashValues.Dash);
+                        dash: PowerPointLineDashStyle.Dash);
                     presentation.Save();
                 }
 

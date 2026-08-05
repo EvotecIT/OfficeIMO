@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Bookmarks.Count == 0);
 
                 var paragraph = document.AddParagraph("Basic paragraph");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text").AddText(" continuing").AddFootNote("2nd footnote!");
 
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
         public void Test_FootnoteNumberingAcrossSections() {
             string filePath = Path.Combine(_directoryWithFiles, "FootnoteNumberingSections.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddFootnoteProperties(restartNumbering: RestartNumberValues.EachSection);
+                document.AddFootnoteProperties(restartNumbering: WordNoteNumberRestart.EachSection);
 
                 document.AddParagraph("Section1").AddFootNote("fn1");
                 document.AddSection();

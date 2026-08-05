@@ -18,7 +18,7 @@ internal static partial class Paragraphs {
                 .Paragraph(p => p
                     .Text("Border and shading")
                     .Border(b => {
-                        b.LeftStyle = BorderValues.Thick;
+                        b.LeftStyle = WordBorderStyle.Thick;
                         b.LeftColor = Color.Red;
                         b.LeftSize = 24;
                     })

@@ -262,6 +262,9 @@ namespace OfficeIMO.Word.Pdf {
             return (markerWidth, markerGap);
         }
 
+        private static (double MarkerWidth, double MarkerGap) ResolveNativeListMarkerSpacing(WordListLevelSuffix? levelSuffix, double markerTextWidth, double fontSize, double textIndent, double markerIndent) =>
+            ResolveNativeListMarkerSpacing(levelSuffix.ToOpenXml(), markerTextWidth, fontSize, textIndent, markerIndent);
+
         private static double EstimateNativeListMarkerWidth(string marker, double fontSize) {
             if (string.IsNullOrEmpty(marker)) {
                 return 0D;
@@ -368,6 +371,9 @@ namespace OfficeIMO.Word.Pdf {
 
             return value.Value == W.LevelJustificationValues.Left ? PdfCore.PdfAlign.Left : null;
         }
+
+        private static PdfCore.PdfAlign? MapNativeListMarkerAlign(WordListLevelAlignment? value) =>
+            MapNativeListMarkerAlign(value.ToOpenXml());
 
         private static List<WordParagraph> GetNativeRuns(WordParagraph paragraph) {
             if (paragraph._paragraph == null) {

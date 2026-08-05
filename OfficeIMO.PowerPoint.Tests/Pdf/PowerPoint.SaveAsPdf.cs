@@ -360,19 +360,19 @@ public class PowerPointSaveAsPdfTests {
         PowerPointSlide slide = presentation.AddSlide();
 
         PowerPointTextBox top = slide.AddTextBoxPoints("TopPpt", 20, 30, 90, 90);
-        top.TextVerticalAlignment = TextAnchoringTypeValues.Top;
+        top.TextVerticalAlignment = PowerPointTextVerticalAlignment.Top;
         top.FontSize = 10;
         top.FillColor = "FFFFFF";
         top.FillTransparency = 100;
 
         PowerPointTextBox middle = slide.AddTextBoxPoints("MiddlePpt", 130, 30, 90, 90);
-        middle.TextVerticalAlignment = TextAnchoringTypeValues.Center;
+        middle.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
         middle.FontSize = 10;
         middle.FillColor = "FFFFFF";
         middle.FillTransparency = 100;
 
         PowerPointTextBox bottom = slide.AddTextBoxPoints("BottomPpt", 240, 30, 90, 90);
-        bottom.TextVerticalAlignment = TextAnchoringTypeValues.Bottom;
+        bottom.TextVerticalAlignment = PowerPointTextVerticalAlignment.Bottom;
         bottom.FontSize = 10;
         bottom.FillColor = "FFFFFF";
         bottom.FillTransparency = 100;
@@ -401,8 +401,8 @@ public class PowerPointSaveAsPdfTests {
             "First paragraph needs room",
             "Second paragraph should trigger overflow"
         });
-        paragraphs[0].SetAlignment(TextAlignmentTypeValues.Left);
-        paragraphs[1].SetAlignment(TextAlignmentTypeValues.Right);
+        paragraphs[0].SetAlignment(PowerPointTextAlignment.Left);
+        paragraphs[1].SetAlignment(PowerPointTextAlignment.Right);
         var options = new PowerPointPdfSaveOptions();
 
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
@@ -448,7 +448,7 @@ public class PowerPointSaveAsPdfTests {
     public void ToPdfDocument_PowerPointPresentation_WarnsForUnsupportedShapes() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.AddSlide().AddShape(ShapeTypeValues.Cloud, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(40));
+        presentation.AddSlide().AddShape(PowerPointShapeType.Cloud, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(40));
         var options = new PowerPointPdfSaveOptions();
 
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
@@ -465,9 +465,9 @@ public class PowerPointSaveAsPdfTests {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(260, 160);
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddShapePoints(ShapeTypeValues.Triangle, 20, 24, 58, 44).Fill("1F4E79").Stroke("1F4E79", 1D);
-        slide.AddShapePoints(ShapeTypeValues.Parallelogram, 96, 24, 74, 44).Fill("1976D2").Stroke("1976D2", 1D);
-        slide.AddShapePoints(ShapeTypeValues.RightArrow, 36, 94, 112, 34).Fill("16A34A").Stroke("16A34A", 1D);
+        slide.AddShapePoints(PowerPointShapeType.Triangle, 20, 24, 58, 44).Fill("1F4E79").Stroke("1F4E79", 1D);
+        slide.AddShapePoints(PowerPointShapeType.Parallelogram, 96, 24, 74, 44).Fill("1976D2").Stroke("1976D2", 1D);
+        slide.AddShapePoints(PowerPointShapeType.RightArrow, 36, 94, 112, 34).Fill("16A34A").Stroke("16A34A", 1D);
         var options = new PowerPointPdfSaveOptions();
 
         byte[] bytes = presentation.ToPdf(options);
@@ -800,7 +800,7 @@ public class PowerPointSaveAsPdfTests {
                 new Paragraph(new Run(new DocumentFormat.OpenXml.Drawing.Text("Layout Prompt"))))));
         layoutPart.SlideLayout.Save();
         PowerPointTextBox title = slide.AddTextBoxPoints("Actual Title", 20, 20, 160, 34);
-        title.PlaceholderType = PlaceholderValues.Title;
+        title.PlaceholderType = PowerPointPlaceholderType.Title;
         title.PlaceholderIndex = 0U;
 
         byte[] bytes = presentation.ToPdf();
@@ -983,7 +983,7 @@ public class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         PowerPointSlide slide = presentation.AddSlide();
-        slide.SetLayout(SlideLayoutValues.Text);
+        slide.SetLayout(PowerPointSlideLayoutType.Text);
         slide.AddTextBoxPoints("Layout Bound Title", 12, 12, 120, 30);
         DocumentFormat.OpenXml.Presentation.Shape placeholderShape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
             .Elements<DocumentFormat.OpenXml.Presentation.Shape>()
@@ -1207,8 +1207,8 @@ public class PowerPointSaveAsPdfTests {
         textBox.OutlineColor = null;
         textBox.FontSize = 10;
         textBox.SetParagraphs(new[] { "Heading", "Item" });
-        textBox.Paragraphs[0].Alignment = TextAlignmentTypeValues.Center;
-        textBox.Paragraphs[1].Alignment = TextAlignmentTypeValues.Left;
+        textBox.Paragraphs[0].Alignment = PowerPointTextAlignment.Center;
+        textBox.Paragraphs[1].Alignment = PowerPointTextAlignment.Left;
         textBox.Paragraphs[1].SetBullet('*');
 
         byte[] bytes = presentation.ToPdf();
@@ -1324,7 +1324,7 @@ public class PowerPointSaveAsPdfTests {
         PowerPointTableCell headerScore = table.GetCell(0, 1);
         headerScore.Text = "Score";
         headerScore.FillColor = "D9EAF7";
-        headerScore.HorizontalAlignment = TextAlignmentTypeValues.Center;
+        headerScore.HorizontalAlignment = PowerPointTextAlignment.Center;
 
         PowerPointTableCell body = table.GetCell(1, 0);
         body.Text = "Quality";
@@ -1334,8 +1334,8 @@ public class PowerPointSaveAsPdfTests {
         PowerPointTableCell score = table.GetCell(1, 1);
         score.Text = "99";
         score.FillColor = "EAF4FF";
-        score.HorizontalAlignment = TextAlignmentTypeValues.Center;
-        score.VerticalAlignment = TextAnchoringTypeValues.Center;
+        score.HorizontalAlignment = PowerPointTextAlignment.Center;
+        score.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
 
         var options = new PowerPointPdfSaveOptions();
         byte[] bytes = presentation.ToPdf(options);
@@ -1915,8 +1915,8 @@ public class PowerPointSaveAsPdfTests {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(240, 160);
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddShapePoints(ShapeTypeValues.Line, 20, 40, 100, 0).Stroke("1E5A96", 1.5D);
-        slide.AddShapePoints(ShapeTypeValues.Line, 140, 30, 0, 80).Stroke("C00000", 1.5D);
+        slide.AddShapePoints(PowerPointShapeType.Line, 20, 40, 100, 0).Stroke("1E5A96", 1.5D);
+        slide.AddShapePoints(PowerPointShapeType.Line, 140, 30, 0, 80).Stroke("C00000", 1.5D);
         var options = new PowerPointPdfSaveOptions();
 
         byte[] bytes = presentation.ToPdf(options);
@@ -1935,8 +1935,8 @@ public class PowerPointSaveAsPdfTests {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(240, 160);
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddShapePoints(ShapeTypeValues.StraightConnector1, 20, 40, 100, 0).Stroke("1E5A96", 1.5D);
-        slide.AddShapePoints(ShapeTypeValues.StraightConnector1, 140, 30, 0, 80).Stroke("C00000", 1.5D);
+        slide.AddShapePoints(PowerPointShapeType.StraightConnector1, 20, 40, 100, 0).Stroke("1E5A96", 1.5D);
+        slide.AddShapePoints(PowerPointShapeType.StraightConnector1, 140, 30, 0, 80).Stroke("C00000", 1.5D);
         var options = new PowerPointPdfSaveOptions();
 
         byte[] bytes = presentation.ToPdf(options);
@@ -1954,7 +1954,7 @@ public class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(240, 160);
-        PowerPointAutoShape line = presentation.AddSlide().AddShapePoints(ShapeTypeValues.Line, 20, 40, 80, 40);
+        PowerPointAutoShape line = presentation.AddSlide().AddShapePoints(PowerPointShapeType.Line, 20, 40, 80, 40);
         line.HorizontalFlip = true;
         line.Stroke("1E5A96", 1.5D);
 

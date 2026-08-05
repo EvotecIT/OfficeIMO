@@ -104,14 +104,14 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the category axis tick label position.
         /// </summary>
-        public PowerPointChart SetCategoryAxisTickLabelPosition(C.TickLabelPositionValues position) {
+        public PowerPointChart SetCategoryAxisTickLabelPosition(PowerPointChartTickLabelPosition position) {
             return SetAxisTickLabelPosition<C.CategoryAxis>(position);
         }
 
         /// <summary>
         ///     Sets the value axis tick label position.
         /// </summary>
-        public PowerPointChart SetValueAxisTickLabelPosition(C.TickLabelPositionValues position) {
+        public PowerPointChart SetValueAxisTickLabelPosition(PowerPointChartTickLabelPosition position) {
             return SetAxisTickLabelPosition<C.ValueAxis>(position);
         }
 
@@ -336,7 +336,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the scatter chart X-axis tick label position.
         /// </summary>
-        public PowerPointChart SetScatterXAxisTickLabelPosition(C.TickLabelPositionValues position) {
+        public PowerPointChart SetScatterXAxisTickLabelPosition(PowerPointChartTickLabelPosition position) {
             if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
                 return this;
             }
@@ -347,7 +347,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the scatter chart Y-axis tick label position.
         /// </summary>
-        public PowerPointChart SetScatterYAxisTickLabelPosition(C.TickLabelPositionValues position) {
+        public PowerPointChart SetScatterYAxisTickLabelPosition(PowerPointChartTickLabelPosition position) {
             if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
                 return this;
             }
@@ -358,7 +358,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets how the value axis crosses between categories.
         /// </summary>
-        public PowerPointChart SetValueAxisCrossBetween(C.CrossBetweenValues between) {
+        public PowerPointChart SetValueAxisCrossBetween(PowerPointChartAxisCrossBetween between) {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
             if (plotArea == null) {
@@ -370,7 +370,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            ReplaceValueAxisCrossBetween(axis, new C.CrossBetween { Val = between });
+            ReplaceValueAxisCrossBetween(axis, new C.CrossBetween { Val = between.ToOpenXml() });
             Save();
             return this;
         }
@@ -416,7 +416,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets display units for the scatter chart X-axis.
         /// </summary>
-        public PowerPointChart SetScatterXAxisDisplayUnits(C.BuiltInUnitValues unit, bool showLabel = true) {
+        public PowerPointChart SetScatterXAxisDisplayUnits(PowerPointChartDisplayUnit unit, bool showLabel = true) {
             if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
                 return this;
             }
@@ -424,14 +424,14 @@ namespace OfficeIMO.PowerPoint {
             return SetValueAxisDisplayUnitsCore(displayUnits => {
                 displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
                 displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.Append(new C.BuiltInUnit { Val = unit });
+                displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
             }, showLabel, null, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
         }
 
         /// <summary>
         ///     Sets display units for the scatter chart X-axis with custom label text.
         /// </summary>
-        public PowerPointChart SetScatterXAxisDisplayUnits(C.BuiltInUnitValues unit, string labelText, bool showLabel = true) {
+        public PowerPointChart SetScatterXAxisDisplayUnits(PowerPointChartDisplayUnit unit, string labelText, bool showLabel = true) {
             if (string.IsNullOrWhiteSpace(labelText)) {
                 throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
             }
@@ -442,7 +442,7 @@ namespace OfficeIMO.PowerPoint {
             return SetValueAxisDisplayUnitsCore(displayUnits => {
                 displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
                 displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.Append(new C.BuiltInUnit { Val = unit });
+                displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
             }, showLabel, labelText, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
         }
 
@@ -499,7 +499,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets display units for the scatter chart Y-axis.
         /// </summary>
-        public PowerPointChart SetScatterYAxisDisplayUnits(C.BuiltInUnitValues unit, bool showLabel = true) {
+        public PowerPointChart SetScatterYAxisDisplayUnits(PowerPointChartDisplayUnit unit, bool showLabel = true) {
             if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
                 return this;
             }
@@ -507,14 +507,14 @@ namespace OfficeIMO.PowerPoint {
             return SetValueAxisDisplayUnitsCore(displayUnits => {
                 displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
                 displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.Append(new C.BuiltInUnit { Val = unit });
+                displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
             }, showLabel, null, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
         }
 
         /// <summary>
         ///     Sets display units for the scatter chart Y-axis with custom label text.
         /// </summary>
-        public PowerPointChart SetScatterYAxisDisplayUnits(C.BuiltInUnitValues unit, string labelText, bool showLabel = true) {
+        public PowerPointChart SetScatterYAxisDisplayUnits(PowerPointChartDisplayUnit unit, string labelText, bool showLabel = true) {
             if (string.IsNullOrWhiteSpace(labelText)) {
                 throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
             }
@@ -525,7 +525,7 @@ namespace OfficeIMO.PowerPoint {
             return SetValueAxisDisplayUnitsCore(displayUnits => {
                 displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
                 displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.Append(new C.BuiltInUnit { Val = unit });
+                displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
             }, showLabel, labelText, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
         }
 
@@ -582,18 +582,18 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets display units for the value axis.
         /// </summary>
-        public PowerPointChart SetValueAxisDisplayUnits(C.BuiltInUnitValues unit, bool showLabel = true) {
+        public PowerPointChart SetValueAxisDisplayUnits(PowerPointChartDisplayUnit unit, bool showLabel = true) {
             return SetValueAxisDisplayUnitsCore(displayUnits => {
                 displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
                 displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.Append(new C.BuiltInUnit { Val = unit });
+                displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
             }, showLabel);
         }
 
         /// <summary>
         ///     Sets display units for the value axis with custom label text.
         /// </summary>
-        public PowerPointChart SetValueAxisDisplayUnits(C.BuiltInUnitValues unit, string labelText, bool showLabel = true) {
+        public PowerPointChart SetValueAxisDisplayUnits(PowerPointChartDisplayUnit unit, string labelText, bool showLabel = true) {
             if (string.IsNullOrWhiteSpace(labelText)) {
                 throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
             }
@@ -601,7 +601,7 @@ namespace OfficeIMO.PowerPoint {
             return SetValueAxisDisplayUnitsCore(displayUnits => {
                 displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
                 displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.Append(new C.BuiltInUnit { Val = unit });
+                displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
             }, showLabel, labelText);
         }
 

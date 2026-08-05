@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 1, 87d);
             sheet.AddConditionalColorScale("A2:A3", OfficeColor.Red, OfficeColor.Lime);
             sheet.AddConditionalDataBar("A2:A3", OfficeColor.Blue);
-            sheet.AddConditionalRule("A2:A3", ConditionalFormattingOperatorValues.GreaterThan, "50");
+            sheet.AddConditionalRule("A2:A3", ExcelConditionalFormattingOperator.GreaterThan, "50");
             document.Save();
             return filePath;
         }
@@ -195,8 +195,8 @@ namespace OfficeIMO.Tests {
 
             ExcelChart chart = sheet.AddChart(data, row: 2, column: 6, widthPixels: 640, heightPixels: 360,
                 type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
-            chart.SetSeriesDataLabels(1, showValue: true, position: DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues.Top)
-                 .SetSeriesDataLabelForPoint(1, 2, showValue: true, position: DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues.OutsideEnd);
+            chart.SetSeriesDataLabels(1, showValue: true, position: ExcelChartDataLabelPosition.Top)
+                 .SetSeriesDataLabelForPoint(1, 2, showValue: true, position: ExcelChartDataLabelPosition.OutsideEnd);
 
             document.Save();
             return filePath;
@@ -251,7 +251,7 @@ namespace OfficeIMO.Tests {
                 destinationCell: "E2",
                 name: "SalesPivot",
                 rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum, "Total Sales") });
+                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") });
 
             ExcelSheet expanded = document.AddWorksheet("Expanded");
             WriteDesktopPivotSource(expanded, 4);

@@ -256,16 +256,16 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         private static bool TryMapShape(PowerPointAutoShape shape, out string slidesShapeType) =>
             TryMapShape(shape.ShapeType, out slidesShapeType);
 
-        private static bool TryMapShape(A.ShapeTypeValues? shapeType, out string slidesShapeType) {
-            if (shapeType == A.ShapeTypeValues.Rectangle) slidesShapeType = "RECTANGLE";
-            else if (shapeType == A.ShapeTypeValues.RoundRectangle) slidesShapeType = "ROUND_RECTANGLE";
-            else if (shapeType == A.ShapeTypeValues.Ellipse) slidesShapeType = "ELLIPSE";
-            else if (shapeType == A.ShapeTypeValues.Triangle) slidesShapeType = "TRIANGLE";
-            else if (shapeType == A.ShapeTypeValues.RightTriangle) slidesShapeType = "RIGHT_TRIANGLE";
-            else if (shapeType == A.ShapeTypeValues.Parallelogram) slidesShapeType = "PARALLELOGRAM";
-            else if (shapeType == A.ShapeTypeValues.Trapezoid) slidesShapeType = "TRAPEZOID";
-            else if (shapeType == A.ShapeTypeValues.Diamond) slidesShapeType = "DIAMOND";
-            else if (shapeType == A.ShapeTypeValues.RightArrow) slidesShapeType = "RIGHT_ARROW";
+        private static bool TryMapShape(PowerPointShapeType? shapeType, out string slidesShapeType) {
+            if (shapeType == PowerPointShapeType.Rectangle) slidesShapeType = "RECTANGLE";
+            else if (shapeType == PowerPointShapeType.RoundRectangle) slidesShapeType = "ROUND_RECTANGLE";
+            else if (shapeType == PowerPointShapeType.Ellipse) slidesShapeType = "ELLIPSE";
+            else if (shapeType == PowerPointShapeType.Triangle) slidesShapeType = "TRIANGLE";
+            else if (shapeType == PowerPointShapeType.RightTriangle) slidesShapeType = "RIGHT_TRIANGLE";
+            else if (shapeType == PowerPointShapeType.Parallelogram) slidesShapeType = "PARALLELOGRAM";
+            else if (shapeType == PowerPointShapeType.Trapezoid) slidesShapeType = "TRAPEZOID";
+            else if (shapeType == PowerPointShapeType.Diamond) slidesShapeType = "DIAMOND";
+            else if (shapeType == PowerPointShapeType.RightArrow) slidesShapeType = "RIGHT_ARROW";
             else {
                 slidesShapeType = string.Empty;
                 return false;

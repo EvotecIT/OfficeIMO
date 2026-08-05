@@ -193,7 +193,7 @@ namespace OfficeIMO.Examples.Excel {
                     }, visuals: v => {
                         // Example of explicit icon thresholds for demo purposes
                         v.IconSets["Value"] = new IconSetOptions {
-                            IconSet = DocumentFormat.OpenXml.Spreadsheet.IconSetValues.ThreeSymbols,
+                            IconSet = ExcelIconSet.ThreeSymbols,
                             ShowValue = true,
                             ReverseOrder = false,
                             PercentThresholds = new double[] { 0, 60, 85 } // 0-60 red, 60-85 yellow, 85-100 green

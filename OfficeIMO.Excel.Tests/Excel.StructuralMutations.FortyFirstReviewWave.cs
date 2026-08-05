@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
                 "D2",
                 "SalesPivot",
                 rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
             ExcelPivotInteractionInfo first = document.AddPivotSlicer(
                 "SalesPivot",
                 "Region",

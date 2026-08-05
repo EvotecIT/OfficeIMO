@@ -140,15 +140,15 @@ internal static class ExcelRealWorldProfileRunner {
 
     private static void ApplyConditionalFormatting(ExcelSheet sheet, int rowCount) {
         int lastRow = rowCount + 1;
-        sheet.AddConditionalRule($"E2:E{lastRow.ToString(CultureInfo.InvariantCulture)}", ConditionalFormattingOperatorValues.GreaterThan, "3000");
-        sheet.AddConditionalRule($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}", ConditionalFormattingOperatorValues.LessThan, "5");
+        sheet.AddConditionalRule($"E2:E{lastRow.ToString(CultureInfo.InvariantCulture)}", ExcelConditionalFormattingOperator.GreaterThan, "3000");
+        sheet.AddConditionalRule($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}", ExcelConditionalFormattingOperator.LessThan, "5");
         sheet.AddConditionalColorScale($"E2:E{lastRow.ToString(CultureInfo.InvariantCulture)}", OfficeColor.LightPink, OfficeColor.LightGreen);
         sheet.AddConditionalDataBar($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}", OfficeColor.SteelBlue);
     }
 
     private static void ApplyDataValidation(ExcelSheet sheet, int rowCount) {
         int lastRow = rowCount + 1;
-        sheet.ValidationWholeNumber($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}", DataValidationOperatorValues.Between, 1, 24);
+        sheet.ValidationWholeNumber($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}", ExcelDataValidationOperator.Between, 1, 24);
     }
 
     private static void AddPivotTable(ExcelSheet sheet, int rowCount) {
@@ -158,7 +158,7 @@ internal static class ExcelRealWorldProfileRunner {
             name: "SalesPivot",
             rowFields: new[] { "Region" },
             columnFields: new[] { "Owner" },
-            dataFields: new[] { new ExcelPivotDataField("Amount", DataConsolidateFunctionValues.Sum, "Total Amount") },
+            dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Total Amount") },
             pivotStyleName: "PivotStyleMedium9");
     }
 

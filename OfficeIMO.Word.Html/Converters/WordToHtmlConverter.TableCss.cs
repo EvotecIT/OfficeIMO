@@ -112,17 +112,17 @@ namespace OfficeIMO.Word.Html {
                 var firstRow = table.Rows[0];
                 var columns = new List<(TableWidthUnitValues? Type, int Width)>();
                 foreach (var cell in firstRow.Cells) {
-                    if (cell.HorizontalMerge == MergedCellValues.Continue || cell.VerticalMerge == MergedCellValues.Continue) {
+                    if (cell.HorizontalMerge == WordCellMerge.Continue || cell.VerticalMerge == WordCellMerge.Continue) {
                         return gridColumns;
                     }
-                    if (cell.HorizontalMerge == MergedCellValues.Restart || cell.VerticalMerge == MergedCellValues.Restart) {
+                    if (cell.HorizontalMerge == WordCellMerge.Restart || cell.VerticalMerge == WordCellMerge.Restart) {
                         return gridColumns;
                     }
-                    if (cell.WidthType == null || cell.Width == null || GetWidthCss(cell.WidthType, cell.Width) == null) {
+                    if (cell.WidthType == null || cell.Width == null || GetWidthCss(cell.WidthType?.ToOpenXml(), cell.Width) == null) {
                         return gridColumns;
                     }
 
-                    columns.Add((cell.WidthType, cell.Width.Value));
+                    columns.Add((cell.WidthType?.ToOpenXml(), cell.Width.Value));
                 }
 
                 if (columns.Count > 0) {
@@ -174,8 +174,8 @@ namespace OfficeIMO.Word.Html {
                         continue;
                     }
                     if (align == null) {
-                        align = p.ParagraphAlignment;
-                    } else if (align != p.ParagraphAlignment) {
+                        align = p.ParagraphAlignment?.ToOpenXml();
+                    } else if (align != p.ParagraphAlignment?.ToOpenXml()) {
                         return null;
                     }
                 }
@@ -211,10 +211,10 @@ namespace OfficeIMO.Word.Html {
                     return styles;
                 }
 
-                var left = BuildBorderCss(b.LeftStyle, b.LeftColorHex, b.LeftSize);
-                var right = BuildBorderCss(b.RightStyle, b.RightColorHex, b.RightSize);
-                var top = BuildBorderCss(b.TopStyle, b.TopColorHex, b.TopSize);
-                var bottom = BuildBorderCss(b.BottomStyle, b.BottomColorHex, b.BottomSize);
+                var left = BuildBorderCss(b.LeftStyle?.ToOpenXml(), b.LeftColorHex, b.LeftSize);
+                var right = BuildBorderCss(b.RightStyle?.ToOpenXml(), b.RightColorHex, b.RightSize);
+                var top = BuildBorderCss(b.TopStyle?.ToOpenXml(), b.TopColorHex, b.TopSize);
+                var bottom = BuildBorderCss(b.BottomStyle?.ToOpenXml(), b.BottomColorHex, b.BottomSize);
 
                 if (left == null && right == null && top == null && bottom == null) {
                     return styles;
@@ -245,10 +245,10 @@ namespace OfficeIMO.Word.Html {
                 var b = p.Borders;
                 if (b == null) return styles;
 
-                var left = BuildBorderCss(b.LeftStyle, b.LeftColorHex, b.LeftSize);
-                var right = BuildBorderCss(b.RightStyle, b.RightColorHex, b.RightSize);
-                var top = BuildBorderCss(b.TopStyle, b.TopColorHex, b.TopSize);
-                var bottom = BuildBorderCss(b.BottomStyle, b.BottomColorHex, b.BottomSize);
+                var left = BuildBorderCss(b.LeftStyle?.ToOpenXml(), b.LeftColorHex, b.LeftSize);
+                var right = BuildBorderCss(b.RightStyle?.ToOpenXml(), b.RightColorHex, b.RightSize);
+                var top = BuildBorderCss(b.TopStyle?.ToOpenXml(), b.TopColorHex, b.TopSize);
+                var bottom = BuildBorderCss(b.BottomStyle?.ToOpenXml(), b.BottomColorHex, b.BottomSize);
 
                 if (left == null && right == null && top == null && bottom == null) {
                     return styles;

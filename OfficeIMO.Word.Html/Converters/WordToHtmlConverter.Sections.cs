@@ -17,7 +17,7 @@ namespace OfficeIMO.Word.Html {
                 htmlDoc,
                 element,
                 "data-page-orientation",
-                FormatOrientation(section.PageOrientation),
+                FormatOrientation(section.PageOrientation.ToOpenXml()),
                 "SectionMetadata:orientation");
 
             var pageSize = section.PageSettings.PageSize;

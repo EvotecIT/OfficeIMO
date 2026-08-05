@@ -25,12 +25,12 @@ namespace OfficeIMO.Tests {
                         }
                     }
 
-                    sheet.AddConditionalRule("A2:A5", OpenXmlConditionalFormattingOperatorValues.NotBetween, "2", "5");
-                    sheet.AddConditionalRule("B2:B5", OpenXmlConditionalFormattingOperatorValues.Equal, "8");
-                    sheet.AddConditionalRule("C2:C5", OpenXmlConditionalFormattingOperatorValues.NotEqual, "9");
-                    sheet.AddConditionalRule("D2:D5", OpenXmlConditionalFormattingOperatorValues.LessThan, "20");
-                    sheet.AddConditionalRule("E2:E5", OpenXmlConditionalFormattingOperatorValues.GreaterThanOrEqual, "15");
-                    sheet.AddConditionalRule("F2:F3 H2:H3", OpenXmlConditionalFormattingOperatorValues.LessThanOrEqual, "30");
+                    sheet.AddConditionalRule("A2:A5", ExcelConditionalFormattingOperator.NotBetween, "2", "5");
+                    sheet.AddConditionalRule("B2:B5", ExcelConditionalFormattingOperator.Equal, "8");
+                    sheet.AddConditionalRule("C2:C5", ExcelConditionalFormattingOperator.NotEqual, "9");
+                    sheet.AddConditionalRule("D2:D5", ExcelConditionalFormattingOperator.LessThan, "20");
+                    sheet.AddConditionalRule("E2:E5", ExcelConditionalFormattingOperator.GreaterThanOrEqual, "15");
+                    sheet.AddConditionalRule("F2:F3 H2:H3", ExcelConditionalFormattingOperator.LessThanOrEqual, "30");
 
                     document.Save(xlsOutputPath);
                 }
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(2, 1, 5d);
                     sheet.CellValue(3, 1, 10d);
 
-                    sheet.AddConditionalRule("A1:A3", OpenXmlConditionalFormattingOperatorValues.GreaterThan, "3", null, stopIfTrue: true);
+                    sheet.AddConditionalRule("A1:A3", ExcelConditionalFormattingOperator.GreaterThan, "3", null, stopIfTrue: true);
 
                     document.Save(xlsOutputPath);
                 }
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorksheet("SingleCf");
                     sheet.CellValue(1, 1, 3d);
-                    sheet.AddConditionalRule("A1", OpenXmlConditionalFormattingOperatorValues.GreaterThan, "1");
+                    sheet.AddConditionalRule("A1", ExcelConditionalFormattingOperator.GreaterThan, "1");
 
                     document.Save(xlsOutputPath);
                 }
@@ -185,7 +185,7 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(1, 3, "#N/A");
                     sheet.CellValue(2, 3, "Ok");
 
-                    sheet.AddConditionalTextRule("A1:A3", OpenXmlConditionalFormatValues.ContainsText, "Ready");
+                    sheet.AddConditionalTextRule("A1:A3", ExcelConditionalFormatType.ContainsText, "Ready");
                     sheet.AddConditionalBlanksRule("B1:B3");
                     sheet.AddConditionalErrorsRule("C1:C3", containsErrors: false);
 
@@ -467,7 +467,7 @@ namespace OfficeIMO.Tests {
 
         [Theory]
         [MemberData(nameof(LegacyXlsTimePeriodConditionalFormattingCases))]
-        public void LegacyXls_NativeSave_WritesSupportedTimePeriodConditionalFormatting(OpenXmlTimePeriodValues timePeriod, string expectedFormula) {
+        public void LegacyXls_NativeSave_WritesSupportedTimePeriodConditionalFormatting(ExcelConditionalTimePeriod timePeriod, string expectedFormula) {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
@@ -500,16 +500,16 @@ namespace OfficeIMO.Tests {
 
         public static IEnumerable<object[]> LegacyXlsTimePeriodConditionalFormattingCases {
             get {
-                yield return new object[] { OpenXmlTimePeriodValues.Yesterday, "FLOOR(A1,1)=TODAY()-1" };
-                yield return new object[] { OpenXmlTimePeriodValues.Today, "FLOOR(A1,1)=TODAY()" };
-                yield return new object[] { OpenXmlTimePeriodValues.Tomorrow, "FLOOR(A1,1)=TODAY()+1" };
-                yield return new object[] { OpenXmlTimePeriodValues.Last7Days, "AND(TODAY()-FLOOR(A1,1)<=6,FLOOR(A1,1)<=TODAY())" };
-                yield return new object[] { OpenXmlTimePeriodValues.LastWeek, "AND(FLOOR(A1,1)>=TODAY()-WEEKDAY(TODAY(),2)-6,FLOOR(A1,1)<=TODAY()-WEEKDAY(TODAY(),2))" };
-                yield return new object[] { OpenXmlTimePeriodValues.ThisWeek, "AND(FLOOR(A1,1)>=TODAY()-WEEKDAY(TODAY(),2)+1,FLOOR(A1,1)<=TODAY()-WEEKDAY(TODAY(),2)+7)" };
-                yield return new object[] { OpenXmlTimePeriodValues.NextWeek, "AND(FLOOR(A1,1)>=TODAY()-WEEKDAY(TODAY(),2)+8,FLOOR(A1,1)<=TODAY()-WEEKDAY(TODAY(),2)+14)" };
-                yield return new object[] { OpenXmlTimePeriodValues.LastMonth, "AND(FLOOR(A1,1)>=DATE(YEAR(TODAY()),MONTH(TODAY())-1,1),FLOOR(A1,1)<DATE(YEAR(TODAY()),MONTH(TODAY()),1))" };
-                yield return new object[] { OpenXmlTimePeriodValues.ThisMonth, "AND(FLOOR(A1,1)>=DATE(YEAR(TODAY()),MONTH(TODAY()),1),FLOOR(A1,1)<DATE(YEAR(TODAY()),MONTH(TODAY())+1,1))" };
-                yield return new object[] { OpenXmlTimePeriodValues.NextMonth, "AND(FLOOR(A1,1)>=DATE(YEAR(TODAY()),MONTH(TODAY())+1,1),FLOOR(A1,1)<DATE(YEAR(TODAY()),MONTH(TODAY())+2,1))" };
+                yield return new object[] { ExcelConditionalTimePeriod.Yesterday, "FLOOR(A1,1)=TODAY()-1" };
+                yield return new object[] { ExcelConditionalTimePeriod.Today, "FLOOR(A1,1)=TODAY()" };
+                yield return new object[] { ExcelConditionalTimePeriod.Tomorrow, "FLOOR(A1,1)=TODAY()+1" };
+                yield return new object[] { ExcelConditionalTimePeriod.Last7Days, "AND(TODAY()-FLOOR(A1,1)<=6,FLOOR(A1,1)<=TODAY())" };
+                yield return new object[] { ExcelConditionalTimePeriod.LastWeek, "AND(FLOOR(A1,1)>=TODAY()-WEEKDAY(TODAY(),2)-6,FLOOR(A1,1)<=TODAY()-WEEKDAY(TODAY(),2))" };
+                yield return new object[] { ExcelConditionalTimePeriod.ThisWeek, "AND(FLOOR(A1,1)>=TODAY()-WEEKDAY(TODAY(),2)+1,FLOOR(A1,1)<=TODAY()-WEEKDAY(TODAY(),2)+7)" };
+                yield return new object[] { ExcelConditionalTimePeriod.NextWeek, "AND(FLOOR(A1,1)>=TODAY()-WEEKDAY(TODAY(),2)+8,FLOOR(A1,1)<=TODAY()-WEEKDAY(TODAY(),2)+14)" };
+                yield return new object[] { ExcelConditionalTimePeriod.LastMonth, "AND(FLOOR(A1,1)>=DATE(YEAR(TODAY()),MONTH(TODAY())-1,1),FLOOR(A1,1)<DATE(YEAR(TODAY()),MONTH(TODAY()),1))" };
+                yield return new object[] { ExcelConditionalTimePeriod.ThisMonth, "AND(FLOOR(A1,1)>=DATE(YEAR(TODAY()),MONTH(TODAY()),1),FLOOR(A1,1)<DATE(YEAR(TODAY()),MONTH(TODAY())+1,1))" };
+                yield return new object[] { ExcelConditionalTimePeriod.NextMonth, "AND(FLOOR(A1,1)>=DATE(YEAR(TODAY()),MONTH(TODAY())+1,1),FLOOR(A1,1)<DATE(YEAR(TODAY()),MONTH(TODAY())+2,1))" };
             }
         }
 

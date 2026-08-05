@@ -14,7 +14,7 @@ public static partial class WordRtfConverterExtensions {
 
         run.Bold = wordRun.Bold;
         run.Italic = wordRun.Italic;
-        run.UnderlineStyle = ToRtfUnderlineStyle(wordRun.Underline);
+        run.UnderlineStyle = ToRtfUnderlineStyle(wordRun.Underline.ToOpenXml());
         if (TryGetUnderlineColor(wordRun, out byte underlineRed, out byte underlineGreen, out byte underlineBlue)) {
             run.UnderlineColorIndex = GetOrAddColor(rtfDocument, underlineRed, underlineGreen, underlineBlue);
         }
@@ -37,7 +37,7 @@ public static partial class WordRtfConverterExtensions {
         }
 
         if (wordRun.Highlight.HasValue &&
-            TryGetRtfHighlightColor(wordRun.Highlight.Value, out byte highlightRed, out byte highlightGreen, out byte highlightBlue)) {
+            TryGetRtfHighlightColor(wordRun.Highlight.Value.ToOpenXml(), out byte highlightRed, out byte highlightGreen, out byte highlightBlue)) {
             run.HighlightColorIndex = GetOrAddColor(rtfDocument, highlightRed, highlightGreen, highlightBlue);
         }
 
@@ -48,9 +48,9 @@ public static partial class WordRtfConverterExtensions {
         run.LanguageId = ToRtfLanguageId(wordRun._run?.RunProperties?.Languages?.Val?.Value);
         run.Direction = IsRightToLeftWordRun(wordRun) ? RtfTextDirection.RightToLeft : null;
 
-        run.VerticalPosition = wordRun.VerticalTextAlignment == VerticalPositionValues.Superscript
+        run.VerticalPosition = wordRun.VerticalTextAlignment == WordVerticalTextPosition.Superscript
             ? RtfVerticalPosition.Superscript
-            : wordRun.VerticalTextAlignment == VerticalPositionValues.Subscript
+            : wordRun.VerticalTextAlignment == WordVerticalTextPosition.Subscript
                 ? RtfVerticalPosition.Subscript
                 : RtfVerticalPosition.Baseline;
     }
@@ -63,7 +63,7 @@ public static partial class WordRtfConverterExtensions {
         wordRun.Bold = run.Bold;
         wordRun.Italic = run.Italic;
         if (run.UnderlineStyle != RtfUnderlineStyle.None) {
-            wordRun.SetUnderline(ToWordUnderlineStyle(run.UnderlineStyle));
+            wordRun.SetUnderline(ToWordUnderlineStyle(run.UnderlineStyle).ToOfficeEnum());
             if (run.UnderlineColorIndex.HasValue && rtfDocument != null) {
                 string? underlineColor = GetColorHex(rtfDocument, run.UnderlineColorIndex.Value);
                 if (underlineColor != null) {
@@ -104,7 +104,7 @@ public static partial class WordRtfConverterExtensions {
 
         if (run.HighlightColorIndex.HasValue &&
             TryGetWordHighlightColor(rtfDocument, run.HighlightColorIndex.Value, out HighlightColorValues highlight)) {
-            wordRun.SetHighlight(highlight);
+            wordRun.SetHighlight(highlight.ToOfficeEnum());
         }
 
         wordRun.Spacing = run.CharacterSpacingTwips;
@@ -125,9 +125,9 @@ public static partial class WordRtfConverterExtensions {
         }
 
         if (run.VerticalPosition == RtfVerticalPosition.Superscript) {
-            wordRun.SetVerticalTextAlignment(VerticalPositionValues.Superscript);
+            wordRun.SetVerticalTextAlignment(WordVerticalTextPosition.Superscript);
         } else if (run.VerticalPosition == RtfVerticalPosition.Subscript) {
-            wordRun.SetVerticalTextAlignment(VerticalPositionValues.Subscript);
+            wordRun.SetVerticalTextAlignment(WordVerticalTextPosition.Subscript);
         }
 
         if (run.FontSize.HasValue) {

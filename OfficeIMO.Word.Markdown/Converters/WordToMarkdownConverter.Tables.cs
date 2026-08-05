@@ -62,13 +62,13 @@ namespace OfficeIMO.Word.Markdown {
 
         private static string GetAlignmentMarker(WordTableCell cell) {
             var alignment = cell.Paragraphs.FirstOrDefault()?.ParagraphAlignment;
-            if (alignment == JustificationValues.Center) {
+            if (alignment == WordParagraphAlignment.Center) {
                 return ":---:";
             }
-            if (alignment == JustificationValues.Right || alignment == JustificationValues.End) {
+            if (alignment == WordParagraphAlignment.Right || alignment == WordParagraphAlignment.End) {
                 return "---:";
             }
-            if (alignment == JustificationValues.Left || alignment == JustificationValues.Start) {
+            if (alignment == WordParagraphAlignment.Left || alignment == WordParagraphAlignment.Start) {
                 return ":---";
             }
             return "---";

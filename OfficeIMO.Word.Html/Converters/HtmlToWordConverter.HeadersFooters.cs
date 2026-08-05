@@ -67,17 +67,17 @@ namespace OfficeIMO.Word.Html {
         private static bool HasClass(IElement element, string className) =>
             element.ClassList.Any(name => string.Equals(name, className, StringComparison.OrdinalIgnoreCase));
 
-        private static HeaderFooterValues GetHeaderFooterType(IElement element) {
+        private static WordHeaderFooterType GetHeaderFooterType(IElement element) {
             var type = element.GetAttribute("data-type");
             if (string.Equals(type, "first", StringComparison.OrdinalIgnoreCase)) {
-                return HeaderFooterValues.First;
+                return WordHeaderFooterType.First;
             }
 
             if (string.Equals(type, "even", StringComparison.OrdinalIgnoreCase)) {
-                return HeaderFooterValues.Even;
+                return WordHeaderFooterType.Even;
             }
 
-            return HeaderFooterValues.Default;
+            return WordHeaderFooterType.Default;
         }
 
         private static void RemoveEmptyHeaderFooterPlaceholders(WordHeaderFooter headerFooter) {
