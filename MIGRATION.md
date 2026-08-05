@@ -286,9 +286,10 @@ use the worksheet `ToCsv` / `SaveAsCsv` methods instead. Calls that passed
 `ToCsv` arguments positionally should use the current `headersInFirstRow`,
 `csvOptions`, `readOptions`, and `cancellationToken` parameter names. Replace
 old import-result properties
-`TableName`, `RowCount`, `ColumnCount`, and `Warnings` with the current
-`ExcelCsvImportResult.SheetName`, `Range`, and `Delimiter`; inspect the
-resulting worksheet/table when row or column counts are needed. `Delimiter`
+`RowCount`, `ColumnCount`, and `Warnings` with the current
+`ExcelCsvImportResult.SheetName`, `TableName`, `Range`, and `Delimiter`.
+`TableName` reports the sanitized, unique name actually created by OfficeIMO;
+inspect the resulting worksheet/table when row or column counts are needed. `Delimiter`
 reports the actual delimiter used, including one selected by detection.
 
 CSV reader configuration remains in `CsvDataReaderOptions`. Excel reader safety limits remain in `ExcelReadOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.

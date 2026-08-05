@@ -209,7 +209,41 @@ namespace OfficeIMO.Excel {
             bool includeAutoFilter = false,
             bool autoFit = false,
             bool useCellValueNumberFormats = false,
+            bool replacingPendingDirectCellValues = false) =>
+            RegisterDeferredDirectTabularSaveCandidate(
+                sheet,
+                out _,
+                tableNameForModel,
+                columnNames,
+                columnTypes,
+                rows,
+                includeHeaders,
+                range,
+                tableName,
+                createTable,
+                tableStyle,
+                includeAutoFilter,
+                autoFit,
+                useCellValueNumberFormats,
+                replacingPendingDirectCellValues);
+
+        internal bool RegisterDeferredDirectTabularSaveCandidate(
+            ExcelSheet sheet,
+            out ExcelDataSetImportResult? result,
+            string tableNameForModel,
+            IReadOnlyList<string> columnNames,
+            IReadOnlyList<Type> columnTypes,
+            IReadOnlyList<object?[]> rows,
+            bool includeHeaders,
+            string range,
+            string? tableName = null,
+            bool createTable = false,
+            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            bool includeAutoFilter = false,
+            bool autoFit = false,
+            bool useCellValueNumberFormats = false,
             bool replacingPendingDirectCellValues = false) {
+            result = null;
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
             if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
@@ -245,9 +279,11 @@ namespace OfficeIMO.Excel {
                 _packageDirty = true;
                 _unchangedPackageBytes = null;
                 _requiresSavePreflight = false;
+                result = model.Results[0];
                 return true;
             } catch {
                 ClearDirectDataSetSaveCandidate();
+                result = null;
                 return false;
             }
         }

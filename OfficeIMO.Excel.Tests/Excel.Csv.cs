@@ -41,6 +41,7 @@ public class ExcelCsvExtensionsTests {
             new ExcelCsvImportOptions { SheetName = "Empty" });
 
         Assert.Equal("Empty", result.SheetName);
+        Assert.Null(result.TableName);
         Assert.Equal(string.Empty, result.Range);
         Assert.Equal("A1:A1", document["Empty"].GetUsedRangeA1());
     }
@@ -190,6 +191,7 @@ public class ExcelCsvExtensionsTests {
             });
 
         Assert.Equal("Import", result.SheetName);
+        Assert.Equal("ImportData", result.TableName);
         Assert.Equal("A1:B3", result.Range);
         Assert.Equal(';', result.Delimiter);
         document.Save();
@@ -198,6 +200,29 @@ public class ExcelCsvExtensionsTests {
             stream,
             new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
         Assert.Equal("ImportData", reloaded.GetTables().Single().Name);
+    }
+
+    [Fact]
+    public void CsvImportReportsSanitizedAndUniqueTableNames() {
+        using var stream = new MemoryStream();
+        using var document = ExcelDocument.Create(stream);
+
+        ExcelCsvImportResult sanitized = document.ImportCsvText(
+            "Name,Amount\r\nAlpha,10.5",
+            new ExcelCsvImportOptions {
+                SheetName = "Sales Data"
+            });
+        ExcelCsvImportResult unique = document.ImportCsvText(
+            "Name,Amount\r\nBeta,11.5",
+            new ExcelCsvImportOptions {
+                SheetName = "Second",
+                TableName = "Sales Data"
+            });
+
+        Assert.Equal("Sales_Data", sanitized.TableName);
+        Assert.Equal("Sales_Data2", unique.TableName);
+        Assert.Equal(sanitized.TableName, document.GetTables().Single(table => table.SheetName == "Sales Data").Name);
+        Assert.Equal(unique.TableName, document.GetTables().Single(table => table.SheetName == "Second").Name);
     }
 
     [Fact]

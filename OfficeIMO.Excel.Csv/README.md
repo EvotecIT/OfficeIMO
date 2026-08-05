@@ -27,7 +27,8 @@ Use `ImportCsvText`, `ImportCsv(Stream)`, or `ImportCsv(CsvDocument)` for other
 source shapes. `ExcelCsvImportOptions.LoadOptions` and `ReaderOptions` expose the
 canonical CSV option types instead of introducing another parsing model.
 `ExcelCsvImportResult.Delimiter` reports the delimiter that was actually used,
-including one selected by delimiter detection.
+including one selected by delimiter detection. `ExcelCsvImportResult.TableName`
+reports the sanitized, unique table name that was actually created.
 
 ## Export Excel data to CSV
 
