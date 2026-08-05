@@ -33,7 +33,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return TryParseRange(reference, out range);
         }
 
-        private static IReadOnlyList<XlsbGeneratedRecord> CreateRecords(AutoFilter autoFilter, string sheetName) {
+        internal static IReadOnlyList<XlsbGeneratedRecord> CreateRecords(AutoFilter autoFilter, string sheetName) {
             if (autoFilter.HasChildren && autoFilter.ChildElements.Any(element => element is not FilterColumn)) {
                 throw new NotSupportedException($"Native XLSB generation supports filterColumn children only in the worksheet AutoFilter on worksheet '{sheetName}'.");
             }

@@ -109,15 +109,24 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         internal static byte[] Rewrite(byte[] originalPart, IReadOnlyList<XlsbWriteCell> cells) =>
-            Rewrite(originalPart, cells, Array.Empty<XlsbGeneratedRecord>(), rewriteHyperlinks: false);
+            Rewrite(
+                originalPart,
+                cells,
+                Array.Empty<XlsbGeneratedRecord>(),
+                rewriteAutoFilter: false,
+                Array.Empty<XlsbGeneratedRecord>(),
+                rewriteHyperlinks: false);
 
         internal static byte[] Rewrite(
             byte[] originalPart,
             IReadOnlyList<XlsbWriteCell> cells,
+            IReadOnlyList<XlsbGeneratedRecord> autoFilterRecords,
+            bool rewriteAutoFilter,
             IReadOnlyList<XlsbGeneratedRecord> hyperlinkRecords,
             bool rewriteHyperlinks) {
             if (originalPart == null) throw new ArgumentNullException(nameof(originalPart));
             if (cells == null) throw new ArgumentNullException(nameof(cells));
+            if (autoFilterRecords == null) throw new ArgumentNullException(nameof(autoFilterRecords));
             if (hyperlinkRecords == null) throw new ArgumentNullException(nameof(hyperlinkRecords));
 
             IReadOnlyList<XlsbRecord> records;
@@ -140,6 +149,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             int hyperlinkInsertionIndex = rewriteHyperlinks
                 ? FindHyperlinkInsertionIndex(records, endIndex)
                 : -1;
+            (int Begin, int End) autoFilterBounds = rewriteAutoFilter
+                ? FindAutoFilterBounds(records, endIndex)
+                : (-1, -1);
 
             using var output = new MemoryStream(originalPart.Length + Math.Max(256, cells.Count * 24));
             for (int index = 0; index <= beginIndex; index++) {
@@ -168,6 +180,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             for (int index = endIndex; index < records.Count; index++) {
+                if (rewriteAutoFilter && index == autoFilterBounds.Begin) {
+                    foreach (XlsbGeneratedRecord autoFilter in autoFilterRecords) {
+                        XlsbRecordWriter.Write(output, autoFilter.Type, autoFilter.Payload);
+                    }
+                }
+                if (rewriteAutoFilter
+                    && index >= autoFilterBounds.Begin
+                    && index <= autoFilterBounds.End) {
+                    continue;
+                }
                 if (rewriteHyperlinks && index == hyperlinkInsertionIndex) {
                     foreach (XlsbGeneratedRecord hyperlink in hyperlinkRecords) {
                         XlsbRecordWriter.Write(output, hyperlink.Type, hyperlink.Payload);
@@ -178,6 +200,20 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             return output.ToArray();
+        }
+
+        private static (int Begin, int End) FindAutoFilterBounds(
+            IReadOnlyList<XlsbRecord> records,
+            int endSheetDataIndex) {
+            const int BrtBeginAFilter = 161;
+            const int BrtEndAFilter = 162;
+            int begin = FindSingleRecord(records, BrtBeginAFilter, "BrtBeginAFilter");
+            int end = FindSingleRecord(records, BrtEndAFilter, "BrtEndAFilter");
+            int endSheet = FindSingleRecord(records, BrtEndSheet, "BrtEndSheet");
+            if (begin <= endSheetDataIndex || end < begin || end >= endSheet) {
+                throw new InvalidDataException("The XLSB worksheet has an invalid AutoFilter record boundary order.");
+            }
+            return (begin, end);
         }
 
         private static int FindHyperlinkInsertionIndex(IReadOnlyList<XlsbRecord> records, int endSheetDataIndex) {

@@ -13,18 +13,16 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             worksheet.Append(Create(source));
         }
 
-        internal static void ValidateUnchanged(ExcelSheet sheet, XlsbAutoFilter? expected) {
+        internal static bool Matches(ExcelSheet sheet, XlsbAutoFilter? expected) {
             Worksheet worksheet = sheet.WorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
             AutoFilter[] actual = worksheet.Elements<AutoFilter>().ToArray();
             AutoFilter? expectedElement = expected == null ? null : Create(expected);
-            if (actual.Length > 1
-                || (expectedElement == null && actual.Length != 0)
-                || (expectedElement != null
-                    && (actual.Length != 1
-                        || !string.Equals(actual[0].OuterXml, expectedElement.OuterXml, StringComparison.Ordinal)))) {
-                throw new NotSupportedException($"Native XLSB rewriting preserves but cannot modify the worksheet AutoFilter on worksheet '{sheet.Name}'. Save as .xlsx to retain that change.");
-            }
+            return actual.Length <= 1
+                && (expectedElement == null
+                    ? actual.Length == 0
+                    : actual.Length == 1
+                        && string.Equals(actual[0].OuterXml, expectedElement.OuterXml, StringComparison.Ordinal));
         }
 
         private static AutoFilter Create(XlsbAutoFilter source) {

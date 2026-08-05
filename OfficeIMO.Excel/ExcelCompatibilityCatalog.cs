@@ -87,7 +87,7 @@ public static class ExcelCompatibilityCatalog {
             XlsbNative("Structure.Geometry", "Structure", "Dimensions, rows, columns, merges, panes, views, selections, and outline metadata."),
             XlsbNative("Navigation.Hyperlinks", "Navigation", "Internal and relationship-backed external hyperlinks.", editableRoundTrip: true),
             XlsbSubset("Data.AutoFilter", "Data", "Worksheet AutoFilter ranges and equality-list criteria.",
-                "Unsupported criteria remain preserved on import; native new-package generation supports the documented equality-list subset."),
+                "Unsupported criteria remain preserved on import; native generation and loaded-package criteria rewrites support the documented equality-list subset when the filter range is unchanged."),
             XlsbNative("Print.PageSetup", "Print", "Print options, margins, page setup, and text headers and footers."),
             XlsbNative("Security.Protection", "Security", "Workbook and worksheet classic protection metadata."),
             XlsbNative("Names.DefinedNames", "Names", "Supported workbook defined names and self-sheet references."),

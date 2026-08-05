@@ -7,7 +7,7 @@ using System.IO.Compression;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>
-    /// Rewrites supported worksheet cells and hyperlinks in an existing XLSB package while copying every other part.
+    /// Rewrites supported worksheet cells, AutoFilters, and hyperlinks in an existing XLSB package while copying every other part.
     /// </summary>
     internal static class XlsbNativePackageWriter {
         private const int MaxWorksheetPartBytes = 128 * 1024 * 1024;
@@ -55,6 +55,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         sheets[index],
                         sourceSheet,
                         stylesheetPlan.CellFormatCount);
+                    XlsbWorksheetAutoFilterPlan autoFilterPlan =
+                        XlsbWorksheetAutoFilterPlan.Create(sheets[index], sourceSheet);
                     bool rewriteHyperlinks = !XlsbWorksheetHyperlinkProjector.Matches(sheets[index], sourceSheet);
                     string[] reservedRelationshipIds = sourceSheet.Relationships.Values
                         .Where(relationship => !relationship.Type.EndsWith(HyperlinkRelationshipSuffix, StringComparison.Ordinal))
@@ -69,6 +71,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     byte[] rewrittenPart = XlsbWorksheetPartWriter.Rewrite(
                         originalPart,
                         cells,
+                        autoFilterPlan.Records,
+                        autoFilterPlan.Rewrite,
                         hyperlinkPlan?.Records ?? Array.Empty<XlsbGeneratedRecord>(),
                         rewriteHyperlinks);
                     if (!originalPart.SequenceEqual(rewrittenPart)) {
