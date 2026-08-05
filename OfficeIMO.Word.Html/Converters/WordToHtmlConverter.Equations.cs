@@ -11,19 +11,20 @@ namespace OfficeIMO.Word.Html {
             IElement context,
             WordEquation equation,
             WordToHtmlOptions options) {
-            string label = equation.Text;
-            if (equation.Representation == WordEquationRepresentation.EquationField) {
-                // InspectExport charged the cached field result as ordinary Word text. The
-                // MathML projection replaces that source text, so release it before charging
-                // the generated mtext and accessibility label that actually reach the output.
-                ReleaseOutputCharacters(
-                    htmlDocument,
-                    GetHtmlEncodedLength(label, attributeValue: false));
-            }
-            long remaining = GetRemainingOutputCharacters(htmlDocument);
+            string label;
             string mathMl;
             try {
-                mathMl = equation.ToMathMl(GetMathMlParserInputLimit(remaining));
+                label = equation.GetText(options.MaxEquationNestingDepth);
+                if (equation.Representation == WordEquationRepresentation.EquationField) {
+                    // InspectExport charged the cached field result as ordinary Word text. The
+                    // MathML projection replaces that source text, so release it before charging
+                    // the generated mtext and accessibility label that actually reach the output.
+                    ReleaseOutputCharacters(
+                        htmlDocument,
+                        GetHtmlEncodedLength(label, attributeValue: false));
+                }
+                long remaining = GetRemainingOutputCharacters(htmlDocument);
+                mathMl = equation.ToMathMl(remaining, options.MaxEquationNestingDepth);
             } catch (WordMathMlOutputLimitExceededException) {
                 ThrowExportLimitExceeded(
                     options,
@@ -32,6 +33,15 @@ namespace OfficeIMO.Word.Html {
                     "EquationMathMl",
                     SaturatingAdd(options.MaxOutputCharacters, 1),
                     options.MaxOutputCharacters);
+                return null;
+            } catch (InvalidDataException exception) {
+                ThrowExportLimitExceeded(
+                    options,
+                    "WordEquationDepthLimitExceeded",
+                    exception.Message,
+                    "EquationOmml",
+                    SaturatingAdd(options.MaxEquationNestingDepth, 1),
+                    options.MaxEquationNestingDepth);
                 return null;
             }
             IElement? mathNode = new HtmlParser()
@@ -55,11 +65,6 @@ namespace OfficeIMO.Word.Html {
             mathNode.SetAttribute("aria-label", label);
             return mathNode;
         }
-
-        private static long GetMathMlParserInputLimit(long remainingOutputCharacters) =>
-            remainingOutputCharacters > long.MaxValue / 6L
-                ? long.MaxValue
-                : remainingOutputCharacters * 6L;
 
         private INode CreateEquationAdjacentTextNode(
             IHtmlDocument htmlDocument,

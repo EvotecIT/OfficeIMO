@@ -21,6 +21,9 @@ namespace OfficeIMO.Excel.Xlsb {
         /// <summary>Gets or sets the maximum number of populated cells projected from one workbook.</summary>
         public int MaxCells { get; set; } = 4_000_000;
 
+        /// <summary>Gets or sets the maximum logical rows emitted across one workbook data-reader operation.</summary>
+        public int MaxLogicalRows { get; set; } = 1_048_576;
+
         /// <summary>Gets or sets the maximum number of row metadata definitions projected from one workbook.</summary>
         public int MaxRowDefinitions { get; set; } = 100_000;
 
@@ -56,6 +59,7 @@ namespace OfficeIMO.Excel.Xlsb {
             if (MaxRecordCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRecordCount));
             if (MaxWorksheets <= 0) throw new ArgumentOutOfRangeException(nameof(MaxWorksheets));
             if (MaxCells <= 0) throw new ArgumentOutOfRangeException(nameof(MaxCells));
+            if (MaxLogicalRows <= 0) throw new ArgumentOutOfRangeException(nameof(MaxLogicalRows));
             if (MaxRowDefinitions <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRowDefinitions));
             if (MaxSharedStrings <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSharedStrings));
             if (MaxSharedStringItemCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSharedStringItemCharacters));

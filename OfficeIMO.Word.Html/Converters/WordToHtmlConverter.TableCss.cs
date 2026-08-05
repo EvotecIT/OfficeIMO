@@ -2,16 +2,33 @@ using AngleSharp.Dom;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
         private static IEnumerable<WordElement> ExpandTableCellBlockContent(WordTableCell cell) =>
-            ExpandTableCellBlockContent(cell.Document, cell._tableCell);
+            ExpandTableCellBlockContent(
+                cell.Document,
+                cell._tableCell,
+                int.MaxValue,
+                CancellationToken.None);
 
         private static IEnumerable<WordElement> ExpandTableCellBlockContent(
             WordDocument document,
-            OpenXmlCompositeElement container) {
-            foreach (OpenXmlElement child in container.ChildElements) {
+            OpenXmlCompositeElement container,
+            long maxElements,
+            CancellationToken cancellationToken) {
+            if (maxElements <= 0) throw new ArgumentOutOfRangeException(nameof(maxElements));
+            var pending = new Stack<OpenXmlElement>();
+            PushChildrenInDocumentOrder(container, pending);
+            long visited = 0;
+            while (pending.Count > 0) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (++visited > maxElements) {
+                    throw new InvalidDataException(
+                        $"The Word table-cell content exceeds the {maxElements}-element HTML conversion limit.");
+                }
+                OpenXmlElement child = pending.Pop();
                 if (child is Paragraph paragraph) {
                     foreach (WordParagraph converted in WordSection.ConvertParagraphToWordParagraphs(document, paragraph)) {
                         yield return converted;
@@ -19,10 +36,16 @@ namespace OfficeIMO.Word.Html {
                 } else if (child is Table table) {
                     yield return new WordTable(document, table);
                 } else if (child is OpenXmlCompositeElement blockWrapper && child is not TableCellProperties) {
-                    foreach (WordElement nested in ExpandTableCellBlockContent(document, blockWrapper)) {
-                        yield return nested;
-                    }
+                    PushChildrenInDocumentOrder(blockWrapper, pending);
                 }
+            }
+        }
+
+        private static void PushChildrenInDocumentOrder(
+            OpenXmlCompositeElement container,
+            Stack<OpenXmlElement> pending) {
+            for (int index = container.ChildElements.Count - 1; index >= 0; index--) {
+                pending.Push(container.ChildElements[index]);
             }
         }
 

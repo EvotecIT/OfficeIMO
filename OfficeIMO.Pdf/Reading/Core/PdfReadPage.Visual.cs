@@ -785,6 +785,10 @@ public sealed partial class PdfReadPage {
         if (colorSpaces == null) {
             return result;
         }
+        if (colorSpaces.Items.Count > _limits.MaxColorSpaceResourcesPerPage) {
+            throw new InvalidDataException(
+                $"The page declares more than {_limits.MaxColorSpaceResourcesPerPage} color-space resources.");
+        }
 
         foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
             if (TryReadColorSpaceResource(entry.Value, out PdfPageColorSpace colorSpace)) {
@@ -801,6 +805,10 @@ public sealed partial class PdfReadPage {
             !resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject) ||
             ResolveDictionary(colorSpacesObject) is not PdfDictionary colorSpaces) {
             return result;
+        }
+        if (colorSpaces.Items.Count > _limits.MaxColorSpaceResourcesPerPage) {
+            throw new InvalidDataException(
+                $"The page declares more than {_limits.MaxColorSpaceResourcesPerPage} color-space resources.");
         }
 
         foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {

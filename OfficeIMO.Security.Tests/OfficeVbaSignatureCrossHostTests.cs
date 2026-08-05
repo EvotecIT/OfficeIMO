@@ -102,6 +102,22 @@ public sealed class OfficeVbaSignatureCrossHostTests {
     }
 
     [Fact]
+    public void ManagedCanonicalizerProcessesManySourceLinesWithoutRetainingASplitArray() {
+        string sourceLines = string.Join("\r\n", Enumerable.Repeat("' bounded source line", 20_000));
+        byte[] project = CreateVbaProject("ManyLines()\r\n" + sourceLines + "\r\nSub Tail");
+
+        bool created = OfficeVbaProjectCanonicalizer.TryCreate(
+            project,
+            1024 * 1024,
+            out OfficeVbaProjectCanonicalizer.Result? canonical,
+            out string detail);
+
+        Assert.True(created, detail);
+        Assert.NotNull(canonical);
+        Assert.NotEmpty(canonical!.ComputeV3Hash());
+    }
+
+    [Fact]
     public void ManagedCanonicalizerPreservesDesignerStorageTraversalOrder() {
         byte[] project = CreateVbaProject("Test", "UserForm1", 0, new[] {
             new OfficeCompoundStream("UserForm1/AA", new byte[] { 0xAA }),
@@ -401,16 +417,22 @@ public sealed class OfficeVbaSignatureCrossHostTests {
     }
 
     private static byte[] CompressLiteral(byte[] uncompressed) {
-        var payload = new List<byte>();
-        for (int offset = 0; offset < uncompressed.Length; offset += 8) {
-            payload.Add(0);
-            int count = Math.Min(8, uncompressed.Length - offset);
-            for (int index = 0; index < count; index++) payload.Add(uncompressed[offset + index]);
+        const int maximumLiteralBytesPerChunk = 3_640;
+        var result = new List<byte> { 0x01 };
+        for (int chunkOffset = 0; chunkOffset < uncompressed.Length; chunkOffset += maximumLiteralBytesPerChunk) {
+            int chunkInputLength = Math.Min(maximumLiteralBytesPerChunk, uncompressed.Length - chunkOffset);
+            var payload = new List<byte>(chunkInputLength + ((chunkInputLength + 7) / 8));
+            for (int offset = 0; offset < chunkInputLength; offset += 8) {
+                payload.Add(0);
+                int count = Math.Min(8, chunkInputLength - offset);
+                for (int index = 0; index < count; index++) payload.Add(uncompressed[chunkOffset + offset + index]);
+            }
+            int chunkSize = payload.Count + 2;
+            ushort header = checked((ushort)(0xB000 | (chunkSize - 3)));
+            result.Add((byte)header);
+            result.Add((byte)(header >> 8));
+            result.AddRange(payload);
         }
-        int chunkSize = payload.Count + 2;
-        ushort header = checked((ushort)(0xB000 | (chunkSize - 3)));
-        var result = new List<byte> { 0x01, (byte)header, (byte)(header >> 8) };
-        result.AddRange(payload);
         return result.ToArray();
     }
 

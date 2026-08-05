@@ -67,6 +67,23 @@ public class ExcelCsvExtensionsTests {
     }
 
     [Fact]
+    public void CsvTextImportReportsTheEffectiveDelimiterTextCharacter() {
+        var options = new ExcelCsvImportOptions {
+            SheetName = "Imported",
+            LoadOptions = new CsvLoadOptions { DelimiterText = "||" },
+            ReaderOptions = new CsvDataReaderOptions { InferSchema = false }
+        };
+        using var stream = new MemoryStream();
+        using var document = ExcelDocument.Create(stream);
+
+        ExcelCsvImportResult result = document.ImportCsvText("Name||Value\r\nAlpha||1", options);
+
+        Assert.Equal('|', result.Delimiter);
+        Assert.True(document["Imported"].TryGetCellText(2, 2, out string? value));
+        Assert.Equal("1", value);
+    }
+
+    [Fact]
     public void CsvTextImportEnforcesMaxInputBytesBeforeCreatingOrMutatingSheets() {
         var options = new ExcelCsvImportOptions {
             SheetName = "Rejected",

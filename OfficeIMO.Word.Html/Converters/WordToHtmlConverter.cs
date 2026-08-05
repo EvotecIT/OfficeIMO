@@ -960,7 +960,11 @@ namespace OfficeIMO.Word.Html {
 
                         IElement? cellDefinitionList = null;
                         var cellElements = new List<WordElement>();
-                        IEnumerable<WordElement> projectedCellElements = ExpandTableCellBlockContent(cell);
+                        IEnumerable<WordElement> projectedCellElements = ExpandTableCellBlockContent(
+                            cell.Document,
+                            cell._tableCell,
+                            options.MaxDocumentElements,
+                            cancellationToken);
                         foreach (WordElement wordElement in projectedCellElements) {
                             if (wordElement is WordParagraph candidate &&
                                 cellElements.Count > 0 &&

@@ -12,6 +12,13 @@ namespace OfficeIMO.Word.Html {
             if (options.MaxEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedImageBytes));
             if (options.MaxTotalEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalEmbeddedImageBytes));
             if (options.MaxOutputCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxOutputCharacters));
+            if (options.MaxEquationNestingDepth <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEquationNestingDepth));
+            if (options.MaxEquationNestingDepth > WordMath.DefaultMaximumProjectionDepth) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(options.MaxEquationNestingDepth),
+                    "MaxEquationNestingDepth cannot exceed the supported OMML projection depth of " +
+                    WordMath.DefaultMaximumProjectionDepth + ".");
+            }
 
             long elements = 0;
             bool hasFields = false;

@@ -71,13 +71,19 @@ public sealed partial class PdfReadPage {
             !TryReadExtendedColorSpaceResource(array.Items[1], depth + 1, out PdfPageColorSpace baseColorSpace) ||
             baseColorSpace.Kind is PdfPageColorSpaceKind.Pattern or PdfPageColorSpaceKind.Indexed ||
             TryReadInteger(array.Items[2]) is not int highValue ||
-            highValue < 0 || highValue > 255 ||
-            !PdfIndexedImageNormalizer.TryReadIndexedLookupBytes(array.Items[3], _objects, out byte[] lookupBytes)) {
+            highValue < 0 || highValue > 255) {
             return false;
         }
 
         int componentCount = baseColorSpace.ComponentCount;
         int paletteCount = highValue + 1;
+        int lookupLength = checked(paletteCount * componentCount);
+        int lookupLimit = Math.Min(lookupLength, _limits.MaxDecodedStreamBytes);
+        if (!PdfIndexedImageNormalizer.TryReadIndexedLookupBytes(
+                array.Items[3],
+                _objects,
+                lookupLimit,
+                out byte[] lookupBytes)) return false;
         if (lookupBytes.Length < paletteCount * componentCount) return false;
 
         var palette = new OfficeColor[paletteCount];
@@ -178,7 +184,12 @@ public sealed partial class PdfReadPage {
     private bool TryReadBoundedCalculatorProgram(PdfStream stream, int inputCount, int outputCount, out int duplicateCount) {
         duplicateCount = 0;
         if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).Count != 0) return false;
-        byte[] bytes = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, _objects);
+        int decodeLimit = Math.Min(257, _limits.MaxDecodedStreamBytes);
+        byte[] bytes = Filters.StreamDecoder.Decode(
+            stream.Dictionary,
+            stream.Data,
+            _objects,
+            decodeLimit);
         if (bytes.Length > 256) return false;
         string program = Encoding.ASCII.GetString(bytes).Trim();
         if (program.Length < 2 || program[0] != '{' || program[program.Length - 1] != '}') return false;

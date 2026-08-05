@@ -105,6 +105,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaSyntaxTree_RewritesDeepStructuredSelectorsWithoutRecursion() {
+            const int depth = 100_000;
+            string selector = new string('[', depth) + "Old" + new string(']', depth);
+
+            string rewritten = ExcelFormulaSyntaxTree.RewriteStructuredColumns(
+                selector,
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+                    ["Old"] = "New"
+                });
+
+            Assert.Equal(new string('[', depth) + "New" + new string(']', depth), rewritten);
+        }
+
+        [Fact]
         public void Test_FormulaSyntaxTree_DoesNotTreatQualifiedDefinedNameAsTableName() {
             ExcelFormulaSyntaxTree tree = ExcelFormulaSyntaxTree.Parse("=Sales!TaxRate+Sales[Amount]");
 

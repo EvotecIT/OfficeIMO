@@ -53,6 +53,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly XlsbImportOptions _limits;
         private readonly XlsbRecordReadBudget _recordBudget;
         private readonly XlsbCellReadBudget _cellBudget;
+        private readonly XlsbLogicalRowReadBudget _logicalRowBudget;
         private readonly IReadOnlyList<string> _sharedStrings;
         private readonly int _maxSharedStringItemCharacters;
         private readonly long _maxSharedStringCharacters;
@@ -78,12 +79,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 MaxPackageBytes = readOptions.MaxInputBytes,
                 MaxSharedStrings = readOptions.MaxSharedStringItems,
                 MaxCells = readOptions.MaxXlsbCells,
+                MaxLogicalRows = readOptions.MaxXlsbLogicalRows,
                 ReportPreservedRecords = false
             };
             _limits.Validate();
             _parts = new XlsbPackagePartReader(_archive, _limits);
             _recordBudget = new XlsbRecordReadBudget(_limits.MaxRecordCount);
             _cellBudget = new XlsbCellReadBudget(_limits.MaxCells);
+            _logicalRowBudget = new XlsbLogicalRowReadBudget(_limits.MaxLogicalRows);
 
             IReadOnlyDictionary<string, XlsbPackageRelationship> relationships =
                 _parts.ReadRelationships(workbookPartName, cancellationToken);
@@ -208,6 +211,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     _limits,
                     _recordBudget,
                     _cellBudget,
+                    _logicalRowBudget,
                     cancellationToken);
             } catch {
                 part.Dispose();

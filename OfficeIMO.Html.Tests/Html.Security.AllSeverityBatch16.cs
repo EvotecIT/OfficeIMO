@@ -1,7 +1,9 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml;
 using Xunit;
+using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Tests;
 
@@ -62,5 +64,52 @@ public sealed class HtmlAllSeverityBatch16SecurityTests {
         string html = document.ToHtml();
 
         Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(html, ">same-content</p>").Count);
+    }
+
+    [Fact]
+    public void WordToHtmlExpandsDeepTableCellWrappersWithoutRecursion() {
+        const int depth = 5_000;
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        cell._tableCell.RemoveAllChildren();
+        OpenXmlCompositeElement parent = cell._tableCell;
+        for (int index = 0; index < depth; index++) {
+            var content = new SdtContentBlock();
+            parent.Append(new SdtBlock(new SdtProperties(), content));
+            parent = content;
+        }
+        parent.Append(new Paragraph(new Run(new Text("deep-table-cell"))));
+
+        string html = document.ToHtml(new WordToHtmlOptions {
+            MaxDocumentElements = 100_000
+        });
+
+        Assert.Contains("deep-table-cell", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WordToHtmlRejectsDeepOmmlBeforeRecursiveProjection() {
+        const int depth = 5_000;
+        using WordDocument document = WordDocument.Create();
+        var equation = new M.OfficeMath();
+        OpenXmlCompositeElement parent = equation;
+        for (int index = 0; index < depth; index++) {
+            var numerator = new M.Numerator();
+            parent.Append(new M.Fraction(
+                numerator,
+                new M.Denominator(new M.Run(new M.Text("1")))));
+            parent = numerator;
+        }
+        parent.Append(new M.Run(new M.Text("x")));
+        document.AddParagraph()._paragraph.Append(equation);
+
+        HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+            document.ToHtmlResult(new WordToHtmlOptions {
+                MaxDocumentElements = 100_000,
+                MaxEquationNestingDepth = 64
+            }));
+
+        Assert.Equal("WordEquationDepthLimitExceeded", exception.Code);
+        Assert.Equal("EquationOmml", exception.LimitSource);
     }
 }

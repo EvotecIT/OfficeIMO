@@ -54,6 +54,8 @@ namespace OfficeIMO.Word {
             var timestampBudget = new OfficePackageTimestampValidationBudget(
                 options.MaxTimestampTokens,
                 options.MaxTimestampBytes);
+            var digestWorkBudget = new OfficePackageDigestWorkBudget(options.MaxTotalDigestBytes);
+            digestWorkBudget.Reserve(signatureInfo.InspectionDigestWorkBytes);
             Dictionary<string, XmlSignaturePart> packageParts = originPart.XmlSignatureParts
                 .ToDictionary(part => OfficePackageSignatureArchive.NormalizePartUri(part.Uri.ToString()), StringComparer.OrdinalIgnoreCase);
             var results = new List<WordSignaturePartValidationResult>(signatureInfo.SignatureParts.Count);
@@ -71,7 +73,8 @@ namespace OfficeIMO.Word {
                     securityProvider,
                     options,
                     certificateByteBudget,
-                    timestampBudget));
+                    timestampBudget,
+                    digestWorkBudget));
             }
             return results;
         }
@@ -83,7 +86,8 @@ namespace OfficeIMO.Word {
             IOfficeSecurityProvider securityProvider,
             WordSignatureValidationOptions options,
             OfficePackageCertificateByteBudget certificateByteBudget,
-            OfficePackageTimestampValidationBudget timestampBudget) {
+            OfficePackageTimestampValidationBudget timestampBudget,
+            OfficePackageDigestWorkBudget digestWorkBudget) {
             var findings = new List<WordSignatureValidationFinding>();
             var timestampResults = new List<Rfc3161TimestampVerificationResult>();
             var certificates = new List<X509Certificate2>();
@@ -130,12 +134,28 @@ namespace OfficeIMO.Word {
                                findings)) {
                     cryptographicStatus = WordSignatureValidationState.Unsupported;
                 } else {
+                    long availableDigestWorkBytes = digestWorkBudget.RemainingBytes;
+                    if (availableDigestWorkBytes <= 0) {
+                        throw new InvalidDataException(
+                            "Local SignedInfo references exceed the " + digestWorkBudget.MaxBytes +
+                            " byte aggregate digest-work limit across signature parts.");
+                    }
+                    long localDigestWorkBytes = XmlDigitalSignatureReferenceWorkCalculator.Measure(
+                        document,
+                        signatureElement.ChildNodes
+                            .OfType<XmlElement>()
+                            .FirstOrDefault(element =>
+                                element.LocalName == "SignedInfo" &&
+                                element.NamespaceURI == XmlDigitalSignatureAlgorithms.Namespace),
+                        certificates.Count,
+                        availableDigestWorkBytes);
+                    digestWorkBudget.Reserve(localDigestWorkBytes);
                     var verificationRequest = new XmlDigitalSignatureVerificationRequest(
                         signatureBytes,
                         certificates) {
                         MaxSignatureBytes = options.MaxSignatureBytes,
                         MaxReferences = options.MaxSignedReferences,
-                        MaxTotalDigestWorkBytes = options.MaxTotalDigestBytes,
+                        MaxTotalDigestWorkBytes = availableDigestWorkBytes,
                         AllowedCanonicalizationMethods = SupportedSignedInfoCanonicalizationMethods,
                         AllowedReferenceTransforms = SupportedSignedInfoReferenceTransforms
                     };
@@ -543,6 +563,7 @@ namespace OfficeIMO.Word {
                     element.LocalName == "Reference" &&
                     element.NamespaceURI == XmlDigitalSignatureAlgorithms.Namespace)
                 .ToArray();
+
 
         private static WordSignatureValidationFinding Finding(
             string code,

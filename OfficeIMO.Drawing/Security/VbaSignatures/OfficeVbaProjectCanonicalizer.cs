@@ -156,10 +156,7 @@ internal static class OfficeVbaProjectCanonicalizer {
                 return false;
             }
             bool hashModuleName = false;
-            byte[][] lines = SplitLines(source).ToArray();
-            for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++) {
-                byte[] line = lines[lineIndex];
-                if (lineIndex == lines.Length - 1 && line.Length == 0) continue;
+            foreach (byte[] line in SplitLinesWithoutTerminalEmptyLine(source)) {
                 bool attribute = StartsWithAsciiIgnoreCase(line, "attribute");
                 if (attribute && StartsWithAsciiIgnoreCase(line, "Attribute VB_Name = ")) continue;
                 if (attribute && V3DefaultAttributes.Any(defaultValue => BytesEqual(line, defaultValue))) continue;
@@ -184,6 +181,15 @@ internal static class OfficeVbaProjectCanonicalizer {
         output = buffer.ToArray();
         detail = string.Empty;
         return true;
+    }
+
+    private static IEnumerable<byte[]> SplitLinesWithoutTerminalEmptyLine(byte[] bytes) {
+        byte[]? pending = null;
+        foreach (byte[] line in SplitLines(bytes)) {
+            if (pending != null) yield return pending;
+            pending = line;
+        }
+        if (pending is { Length: > 0 }) yield return pending;
     }
 
     private static bool TryBuildFormsNormalizedData(OfficeCompoundFile compound, DirectoryModel model,

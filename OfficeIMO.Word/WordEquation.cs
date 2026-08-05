@@ -81,6 +81,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        internal string GetText(int maxDepth) => MathElement != null
+            ? WordMath.GetText(MathElement, maxDepth)
+            : FieldParagraph?.Text ?? string.Empty;
+
         /// <summary>Gets raw OMML when the equation is backed by DOCX math markup; otherwise <c>null</c>.</summary>
         public string? Omml => MathElement?.OuterXml;
 
@@ -95,6 +99,10 @@ namespace OfficeIMO.Word {
 
         internal string ToMathMl(long maxCharacters) => MathElement != null
             ? WordMath.ToMathMl(MathElement, maxCharacters)
+            : WordMath.ToMathMlText(Text, maxCharacters);
+
+        internal string ToMathMl(long maxCharacters, int maxDepth) => MathElement != null
+            ? WordMath.ToMathMl(MathElement, maxCharacters, maxDepth)
             : WordMath.ToMathMlText(Text, maxCharacters);
 
         /// <summary>Projects this equation into the reusable OfficeIMO math expression tree.</summary>

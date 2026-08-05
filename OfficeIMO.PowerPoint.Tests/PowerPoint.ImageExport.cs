@@ -2125,6 +2125,90 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_BoundsEmbeddedPictureReadsForVisualSnapshots() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
+            slide.AddPicture(new MemoryStream(png), ImagePartType.Png,
+                PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(new PowerPointImageExportOptions {
+                MaximumEmbeddedImageBytes = png.Length - 1,
+                MaximumTotalEmbeddedImageBytes = png.Length * 2L
+            });
+
+            Assert.Empty(snapshot.Drawing.Images);
+            Assert.Contains(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape &&
+                diagnostic.Message.Contains("embedded image bytes", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void PowerPointSlide_BoundsAggregateEmbeddedPictureReads() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
+            slide.AddPicture(new MemoryStream(png), ImagePartType.Png,
+                PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
+            slide.AddPicture(new MemoryStream(png), ImagePartType.Png,
+                PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(new PowerPointImageExportOptions {
+                MaximumEmbeddedImageBytes = png.Length,
+                MaximumTotalEmbeddedImageBytes = png.Length
+            });
+
+            Assert.Single(snapshot.Drawing.Images);
+            Assert.Contains(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape);
+        }
+
+        [Fact]
+        public void PowerPointSlide_ChargesGroupedPicturesOnceAgainstAggregateBudget() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
+            PowerPointPicture picture = slide.AddPicture(new MemoryStream(png), ImagePartType.Png,
+                PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
+            PowerPointAutoShape anchor = slide.AddRectanglePoints(50, 20, 12, 12);
+            slide.GroupShapes(new PowerPointShape[] { picture, anchor }, "Bounded picture group");
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(new PowerPointImageExportOptions {
+                MaximumEmbeddedImageBytes = png.Length,
+                MaximumTotalEmbeddedImageBytes = png.Length
+            });
+
+            Assert.Single(snapshot.Drawing.Images);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("embedded image bytes", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void PowerPointSlide_BoundsEmbeddedBackgroundImageReads() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
+            slide.SetBackgroundImage(new MemoryStream(png), ImagePartType.Png);
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(new PowerPointImageExportOptions {
+                MaximumEmbeddedImageBytes = png.Length - 1,
+                MaximumTotalEmbeddedImageBytes = png.Length * 2L
+            });
+
+            Assert.Empty(snapshot.Drawing.Images);
+            Assert.Contains(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Code == PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundImage);
+        }
+
+        [Fact]
         public void PowerPointSlide_RasterizesExistingSvgPictureWithoutAPlaceholder() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

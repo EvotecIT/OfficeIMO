@@ -13,8 +13,15 @@ namespace OfficeIMO.Word {
 
         internal long MaxBytes { get; }
 
+        internal long RemainingBytes => _remainingBytes;
+
+        internal long ConsumedBytes => MaxBytes - _remainingBytes;
+
+        internal bool IsExceeded { get; private set; }
+
         internal void Reserve(long bytes) {
             if (bytes > _remainingBytes) {
+                IsExceeded = true;
                 throw new InvalidDataException("Authenticated package references exceed the " + MaxBytes + " byte aggregate digest-work limit.");
             }
             _remainingBytes -= bytes;

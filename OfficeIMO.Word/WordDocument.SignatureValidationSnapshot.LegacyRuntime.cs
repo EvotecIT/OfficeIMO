@@ -15,6 +15,18 @@ namespace OfficeIMO.Word {
                 ? (byte[])sourceBytes.Clone()
                 : null;
 
+        private static MemoryStream CreateLegacyValidationPackageStream(
+            byte[] sourceBytes,
+            bool readOnly,
+            long maximumPackageBytes) {
+            MemoryStream stream = !readOnly && RequiresLegacyRuntimeSignatureSnapshot()
+                ? new LegacyValidationPackageMemoryStream(maximumPackageBytes)
+                : new MemoryStream(sourceBytes.Length);
+            stream.Write(sourceBytes, 0, sourceBytes.Length);
+            stream.Position = 0;
+            return stream;
+        }
+
         // System.IO.Packaging on .NET Framework invalidates ProgressiveCrcCalculatingStream after
         // in-memory package edits. Flush the live package once, retain that stream for the document,
         // and keep the original encoded bytes in the validation baseline instead of rereading stale
@@ -47,9 +59,21 @@ namespace OfficeIMO.Word {
                     " byte validation-snapshot limit.");
             }
             MemoryStream livePackageStream = DetachLegacyValidationLivePackageStream(encodedPackage);
-            _wordprocessingDocument.Save();
-            sourcePackage.Save();
-            livePackageStream.Flush();
+            LegacyValidationPackageMemoryStream? boundedLivePackage =
+                livePackageStream as LegacyValidationPackageMemoryStream;
+            if (boundedLivePackage == null) {
+                throw new SignatureValidationSnapshotResourceException(
+                    "The legacy runtime package stream cannot be serialized within a validation byte limit.");
+            }
+            long previousMaximum = boundedLivePackage.MaximumBytes;
+            boundedLivePackage.SetMaximumBytes(Math.Min(previousMaximum, options.MaxPackageBytes));
+            try {
+                _wordprocessingDocument.Save();
+                sourcePackage.Save();
+                livePackageStream.Flush();
+            } finally {
+                boundedLivePackage.SetMaximumBytes(previousMaximum);
+            }
             if (livePackageStream.Length > options.MaxPackageBytes) {
                 throw new SignatureValidationSnapshotResourceException(
                     "The current OPC package exceeds the " + options.MaxPackageBytes +
@@ -80,6 +104,47 @@ namespace OfficeIMO.Word {
             _ownedPackageStream = new MemoryStream(encodedPackage, writable: false);
             _legacyValidationEncodedPackageBytes = null;
             return livePackageStream;
+        }
+
+        private sealed class LegacyValidationPackageMemoryStream : MemoryStream {
+            internal LegacyValidationPackageMemoryStream(long maximumBytes) {
+                SetMaximumBytes(maximumBytes);
+            }
+
+            internal long MaximumBytes { get; private set; }
+
+            internal void SetMaximumBytes(long maximumBytes) {
+                if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+                if (Length > maximumBytes) {
+                    throw new SignatureValidationSnapshotResourceException(
+                        "The current OPC package exceeds the " + maximumBytes +
+                        " byte validation-snapshot limit.");
+                }
+                MaximumBytes = maximumBytes;
+            }
+
+            public override void Write(byte[] buffer, int offset, int count) {
+                EnsureWithinLimit(Math.Max(Length, checked(Position + count)));
+                base.Write(buffer, offset, count);
+            }
+
+            public override void WriteByte(byte value) {
+                EnsureWithinLimit(Math.Max(Length, checked(Position + 1)));
+                base.WriteByte(value);
+            }
+
+            public override void SetLength(long value) {
+                EnsureWithinLimit(value);
+                base.SetLength(value);
+            }
+
+            private void EnsureWithinLimit(long value) {
+                if (value > MaximumBytes) {
+                    throw new SignatureValidationSnapshotResourceException(
+                        "The current OPC package exceeds the " + MaximumBytes +
+                        " byte validation-snapshot limit.");
+                }
+            }
         }
 
         private Dictionary<Uri, byte[]> CaptureLegacyPendingRootPayloads(WordSignatureValidationOptions options) {

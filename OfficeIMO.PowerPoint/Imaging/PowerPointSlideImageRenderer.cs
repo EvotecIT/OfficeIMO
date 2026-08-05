@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Text;
 using System.Threading;
 using OfficeIMO.Drawing;
@@ -77,6 +78,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static PowerPointSlideVisualSnapshot CreateSnapshot(PowerPointSlide slide, PowerPointImageExportOptions options) {
+            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            options.Validate();
             List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>();
             OfficeDrawing drawing = CreateDrawing(slide, options, diagnostics);
             drawing.AppendFontDiagnostics(diagnostics, "PowerPoint slide");
@@ -86,18 +90,21 @@ namespace OfficeIMO.PowerPoint {
         private static OfficeDrawing CreateDrawing(PowerPointSlide slide, PowerPointImageExportOptions options, List<OfficeImageExportDiagnostic> diagnostics) {
             (double width, double height) = GetSlideSizePoints(slide);
             OfficeDrawing drawing = new OfficeDrawing(width, height).ApplyImageExportOptions(options);
+            var imageBudget = new PowerPointEmbeddedImageReadBudget(
+                options.MaximumEmbeddedImageBytes,
+                options.MaximumTotalEmbeddedImageBytes);
             AddBackgroundRectangle(drawing, options.BackgroundColor, fillGradient: null);
 
             if (options.IncludeSlideBackground) {
-                AddResolvedBackground(slide, drawing, diagnostics);
+                AddResolvedBackground(slide, drawing, diagnostics, imageBudget);
             }
 
             if (options.IncludeSlideContent) {
                 A.ColorScheme? colorScheme = GetSlideColorScheme(slide);
                 AddSlideContent(slide.GetInheritedShapesForExport(), drawing, diagnostics,
-                    PowerPointShapeBoundsMapping.Identity, colorScheme, options, 0);
+                    PowerPointShapeBoundsMapping.Identity, colorScheme, options, imageBudget, 0);
                 AddSlideContent(slide.Shapes, drawing, diagnostics,
-                    PowerPointShapeBoundsMapping.Identity, colorScheme, options, 0);
+                    PowerPointShapeBoundsMapping.Identity, colorScheme, options, imageBudget, 0);
             }
 
             return drawing;
@@ -105,7 +112,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddSlideContent(IEnumerable<PowerPointShape> shapes, OfficeDrawing drawing,
             List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping,
-            A.ColorScheme? colorScheme, PowerPointImageExportOptions options, int groupDepth) {
+            A.ColorScheme? colorScheme, PowerPointImageExportOptions options,
+            PowerPointEmbeddedImageReadBudget imageBudget, int groupDepth) {
             foreach (PowerPointShape shape in shapes) {
                 if (shape.Hidden && !options.IncludeHiddenShapes) {
                     continue;
@@ -115,9 +123,9 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 if (shape is PowerPointGroupShape groupShape) {
-                    AddGroupShape(drawing, groupShape, diagnostics, mapping, colorScheme, options, groupDepth);
+                    AddGroupShape(drawing, groupShape, diagnostics, mapping, colorScheme, options, imageBudget, groupDepth);
                 } else if (shape is PowerPointPicture picture) {
-                    AddPicture(drawing, picture, diagnostics, mapping);
+                    AddPicture(drawing, picture, diagnostics, mapping, imageBudget);
                 } else if (shape is PowerPointTable table) {
                     AddTable(drawing, table, diagnostics, mapping, colorScheme);
                 } else if (shape is PowerPointChart chart) {
@@ -158,7 +166,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddGroupShape(OfficeDrawing drawing, PowerPointGroupShape groupShape,
             List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping,
-            A.ColorScheme? colorScheme, PowerPointImageExportOptions options, int groupDepth) {
+            A.ColorScheme? colorScheme, PowerPointImageExportOptions options,
+            PowerPointEmbeddedImageReadBudget imageBudget, int groupDepth) {
             if (options.MaxGroupShapeDepth >= 0 && groupDepth >= options.MaxGroupShapeDepth) {
                 AddUnsupportedShapeDiagnostic(diagnostics, groupShape,
                     "Skipped nested PowerPoint group content because MaxGroupShapeDepth was reached.");
@@ -179,7 +188,7 @@ namespace OfficeIMO.PowerPoint {
                 groupDrawing.Fonts.AddRange(drawing.Fonts);
                 PowerPointShapeBoundsMapping localChildMapping = CreateGroupLocalChildMapping(groupShape, mapping);
                 AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), groupDrawing, diagnostics,
-                    localChildMapping, colorScheme, options, groupDepth + 1);
+                    localChildMapping, colorScheme, options, imageBudget, groupDepth + 1);
 
                 try {
                     OfficeImageFrameTransform groupFrameTransform = CreateGroupFrameTransform(groupShape, left, top, width, height);
@@ -195,21 +204,23 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            PowerPointShapeBoundsMapping childMapping = CreateGroupChildMapping(groupShape, mapping);
             if (TryGetBounds(groupShape, drawing, diagnostics, mapping, out double clipLeft, out double clipTop, out double clipWidth, out double clipHeight)) {
                 var groupDrawing = new OfficeDrawing(Math.Max(1D, drawing.Width - clipLeft), Math.Max(1D, drawing.Height - clipTop));
                 groupDrawing.Fonts.AddRange(drawing.Fonts);
                 PowerPointShapeBoundsMapping localChildMapping = CreateGroupLocalChildMapping(groupShape, mapping);
                 AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), groupDrawing, diagnostics,
-                    localChildMapping, colorScheme, options, groupDepth + 1);
+                    localChildMapping, colorScheme, options, imageBudget, groupDepth + 1);
                 if (RequiresGroupClip(groupDrawing, clipWidth, clipHeight)) {
                     drawing.AddClippedDrawing(groupDrawing, clipLeft, clipTop, OfficeClipPath.Rectangle(clipWidth, clipHeight));
-                    return;
+                } else {
+                    drawing.AddDrawing(groupDrawing, clipLeft, clipTop);
                 }
+                return;
             }
 
+            PowerPointShapeBoundsMapping childMapping = CreateGroupChildMapping(groupShape, mapping);
             AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), drawing, diagnostics,
-                childMapping, colorScheme, options, groupDepth + 1);
+                childMapping, colorScheme, options, imageBudget, groupDepth + 1);
         }
 
         private static bool RequiresGroupClip(OfficeDrawing groupDrawing, double width, double height) {
@@ -242,15 +253,19 @@ namespace OfficeIMO.PowerPoint {
             return false;
         }
 
-        private static void AddPicture(OfficeDrawing drawing, PowerPointPicture picture, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping) {
+        private static void AddPicture(OfficeDrawing drawing, PowerPointPicture picture,
+            List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping,
+            PowerPointEmbeddedImageReadBudget imageBudget) {
             if (!TryGetBounds(picture, drawing, diagnostics, mapping, out double left, out double top, out double width, out double height)) {
                 return;
             }
 
             byte[] bytes;
             try {
-                bytes = picture.GetImageBytes();
-            } catch (InvalidOperationException) {
+                int readLimit = imageBudget.GetNextReadLimit();
+                bytes = picture.GetImageBytes(readLimit);
+                imageBudget.Consume(bytes.Length);
+            } catch (Exception exception) when (exception is InvalidOperationException or InvalidDataException) {
                 AddUnsupportedShapeDiagnostic(diagnostics, picture, "Skipped a PowerPoint picture because its embedded image bytes could not be read.");
                 return;
             }
@@ -1040,8 +1055,23 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void AddResolvedBackground(PowerPointSlide slide, OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics) {
-            PowerPointSlideBackground background = slide.GetBackground();
+        private static void AddResolvedBackground(PowerPointSlide slide, OfficeDrawing drawing,
+            List<OfficeImageExportDiagnostic> diagnostics, PowerPointEmbeddedImageReadBudget imageBudget) {
+            PowerPointSlideBackground background;
+            try {
+                int readLimit = imageBudget.GetNextReadLimit();
+                background = slide.GetBackground(readLimit);
+                if (background.Kind == PowerPointSlideBackgroundKind.Image) {
+                    imageBudget.Consume(background.ImageByteLength);
+                }
+            } catch (Exception exception) when (exception is InvalidOperationException or InvalidDataException) {
+                AddDiagnostic(
+                    diagnostics,
+                    PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundImage,
+                    "Used the configured fallback background because the PowerPoint slide background image exceeded the export limit.",
+                    OfficeImageExportLossKind.Omission);
+                return;
+            }
             switch (background.Kind) {
                 case PowerPointSlideBackgroundKind.None:
                     return;
@@ -1077,6 +1107,30 @@ namespace OfficeIMO.PowerPoint {
                         "Used the configured fallback background because " + (background.UnsupportedReason ?? "the PowerPoint slide background is not supported."),
                         OfficeImageExportLossKind.Omission);
                     return;
+            }
+        }
+
+        private sealed class PowerPointEmbeddedImageReadBudget {
+            private readonly int _maximumImageBytes;
+            private long _remainingBytes;
+
+            internal PowerPointEmbeddedImageReadBudget(int maximumImageBytes, long maximumTotalBytes) {
+                _maximumImageBytes = maximumImageBytes;
+                _remainingBytes = maximumTotalBytes;
+            }
+
+            internal int GetNextReadLimit() {
+                if (_remainingBytes <= 0) {
+                    throw new InvalidOperationException("The aggregate embedded-image byte limit was exceeded.");
+                }
+                return (int)Math.Min(_maximumImageBytes, Math.Min(int.MaxValue, _remainingBytes));
+            }
+
+            internal void Consume(int bytes) {
+                if (bytes < 0 || bytes > _remainingBytes) {
+                    throw new InvalidOperationException("The aggregate embedded-image byte limit was exceeded.");
+                }
+                _remainingBytes -= bytes;
             }
         }
 
