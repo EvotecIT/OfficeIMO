@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             using var positionReportingDestination = destination.CanSeek
                 ? null
-                : new PositionReportingWriteStream(destination);
+                : new ExcelPositionReportingWriteStream(destination);
             Stream packageDestination = positionReportingDestination ?? destination;
             using (var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true)) {
                 WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(sheets.Length, stylesPart != null));
@@ -181,43 +181,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             entry.LastWriteTime = ReproducibleEntryTime;
             using Stream output = entry.Open();
             output.Write(content, 0, content.Length);
-        }
-
-        /// <summary>
-        /// Keeps XLSB package creation forward-only while satisfying the .NET Framework
-        /// <see cref="ZipArchive"/> implementation, which reads <see cref="Stream.Position"/>
-        /// even when the destination reports that it cannot seek.
-        /// </summary>
-        private sealed class PositionReportingWriteStream : Stream {
-            private readonly Stream _destination;
-            private long _position;
-
-            internal PositionReportingWriteStream(Stream destination) {
-                _destination = destination;
-            }
-
-            public override bool CanRead => false;
-            public override bool CanSeek => false;
-            public override bool CanWrite => _destination.CanWrite;
-            public override long Length => _position;
-
-            public override long Position {
-                get => _position;
-                set => throw new NotSupportedException();
-            }
-
-            public override void Flush() => _destination.Flush();
-
-            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-
-            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-
-            public override void SetLength(long value) => throw new NotSupportedException();
-
-            public override void Write(byte[] buffer, int offset, int count) {
-                _destination.Write(buffer, offset, count);
-                _position = checked(_position + count);
-            }
         }
 
         private const string RootRelationships =

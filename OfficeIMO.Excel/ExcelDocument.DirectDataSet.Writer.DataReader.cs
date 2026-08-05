@@ -12,7 +12,11 @@ namespace OfficeIMO.Excel {
                 CancellationToken ct) {
                 DirectStylePlan stylePlan = DirectStylePlan.Create(model);
                 DirectColumnWritePlan[] columnWritePlans = CreateColumnWritePlans(model, stylePlan, ct);
-                using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true);
+                using var positionReportingDestination = stream.CanSeek
+                    ? null
+                    : new ExcelPositionReportingWriteStream(stream);
+                Stream packageDestination = positionReportingDestination ?? stream;
+                using var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true);
                 WritePackagePreamble(archive, model, stylePlan, includeSharedStrings: false);
                 return WriteDataReaderWorksheet(
                     archive,

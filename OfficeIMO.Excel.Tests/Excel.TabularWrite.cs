@@ -35,6 +35,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DirectTabularWriters_WritePackagesToNonSeekableStreams() {
+            using (var rowOutput = new NonSeekableReadWriteBuffer(Array.Empty<byte>())) {
+                ExcelDataSetImportResult result = ExcelDocument.WriteRows(
+                    rowOutput,
+                    new[] { new TabularWriteRow(1, "Alpha", new DateTime(2026, 7, 10), true) },
+                    ["Id", "Name"],
+                    static (writer, row) => writer.Write(row.Id).Write(row.Name));
+
+                Assert.Equal(1, result.RowCount);
+                using var spreadsheet = SpreadsheetDocument.Open(
+                    new MemoryStream(rowOutput.ToArray(), writable: false),
+                    false);
+                Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+            }
+
+            var table = new DataTable("ReaderData");
+            table.Columns.Add("Id", typeof(int));
+            table.Rows.Add(1);
+            using var reader = table.CreateDataReader();
+            using var readerOutput = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
+
+            ExcelDataSetImportResult readerResult = ExcelDocument.WriteDataReader(readerOutput, reader);
+
+            Assert.Equal(1, readerResult.RowCount);
+            using var readerSpreadsheet = SpreadsheetDocument.Open(
+                new MemoryStream(readerOutput.ToArray(), writable: false),
+                false);
+            Assert.Empty(new OpenXmlValidator().Validate(readerSpreadsheet));
+        }
+
+        [Fact]
         public void WriteDataReader_CompactPackageStreamsAndRoundTrips() {
             var table = new DataTable("ReaderData");
             table.Columns.Add("Id", typeof(int));
