@@ -83,11 +83,14 @@ namespace OfficeIMO.PowerPoint {
             try {
                 using PowerPointPresentation source = PowerPointPresentation.Load(
                     fullPath, new PowerPointLoadOptions {
-                        AccessMode = DocumentAccessMode.ReadOnly
+                        AccessMode = DocumentAccessMode.ReadOnly,
+                        PackageSecurity = OfficePackageSecurityOptions.UntrustedDefaults
                     });
                 expectedSlideCount = source.Slides.Count;
                 slidesWithVisibleContent = source.Slides
-                    .Select(HasExpectedVisibleContent)
+                    .Select(slide => HasExpectedVisibleContent(
+                        slide,
+                        new PowerPointImageExportOptions()))
                     .ToArray();
             } catch (Exception ex) {
                 return new PowerPointReferenceRenderResult(
@@ -211,14 +214,22 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static bool HasExpectedVisibleContent(PowerPointSlide slide) {
+            return HasExpectedVisibleContent(slide, new PowerPointImageExportOptions());
+        }
+
+        internal static bool HasExpectedVisibleContent(
+            PowerPointSlide slide,
+            PowerPointImageExportOptions options) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
+            if (options == null) throw new ArgumentNullException(nameof(options));
             if (slide.SmartArts.Any(smartArt => !smartArt.Hidden
                     && IsPotentiallyVisibleOnSlide(slide, smartArt)
                     && !smartArt.TryGetOfficeDiagramSnapshot(out _))) {
                 return true;
             }
             OfficeImageExportResult rendered = slide.ExportImage(
-                OfficeImageExportFormat.Png);
+                OfficeImageExportFormat.Png,
+                options);
             if (HasVisibleOmittedContent(slide, rendered.Diagnostics)) {
                 return true;
             }

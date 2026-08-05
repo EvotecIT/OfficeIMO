@@ -2617,6 +2617,57 @@ public class PdfPageImageRendererTests {
         Assert.Throws<ArgumentException>(() => PdfPageImageRenderer.RenderPage(new WriteOnlyStream()));
     }
 
+    [Fact]
+    public void IndexedPaletteLookupStopsAtTheExactPaletteByteBudget() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var lookupStream = new PdfStream(dictionary, CompressWithDeflate(new byte[4_096]));
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfIndexedImageNormalizer.TryReadIndexedLookupBytes(
+                lookupStream,
+                new Dictionary<int, PdfIndirectObject>(),
+                maxLookupBytes: 3,
+                out _));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(3, exception.Limit);
+    }
+
+    [Fact]
+    public void RenderPageBoundsDeclaredColorSpaceResourceCount() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Cs1 cs 0.5 sc 0 0 10 10 re f",
+            "<< /ColorSpace << /Cs1 /DeviceGray /Cs2 /DeviceRGB >> >>");
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxColorSpaceResourcesPerPage = 1 }
+        });
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            document.Pages[0].ToDrawing());
+
+        Assert.Contains("color-space resources", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CalculatorColorSpaceProgramUsesATinyDecodeBudget() {
+        string oversizedProgram = "{" + new string(' ', 300) + "}";
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Cs1 cs 0.5 sc 0 0 10 10 re f",
+            "<< /ColorSpace << /Cs1 [/Separation /Spot /DeviceRGB 5 0 R] >> >>",
+            BuildStreamObject(
+                5,
+                "<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1]",
+                oversizedProgram));
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(257, exception.Limit);
+    }
+
     private static void AssertPngSignature(byte[] bytes) {
         Assert.True(bytes.Length > 8);
         Assert.Equal(137, bytes[0]);

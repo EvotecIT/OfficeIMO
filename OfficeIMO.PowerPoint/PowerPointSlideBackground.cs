@@ -58,6 +58,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Embedded background image bytes when <see cref="Kind"/> is <see cref="PowerPointSlideBackgroundKind.Image"/>.</summary>
         public byte[]? ImageBytes => _imageBytes == null ? null : (byte[])_imageBytes.Clone();
 
+        internal int ImageByteLength => _imageBytes?.Length ?? 0;
+
         /// <summary>Embedded image content type when <see cref="Kind"/> is <see cref="PowerPointSlideBackgroundKind.Image"/>.</summary>
         public string? ImageContentType { get; }
 

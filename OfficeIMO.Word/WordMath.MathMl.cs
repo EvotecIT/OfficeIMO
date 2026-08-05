@@ -17,7 +17,11 @@ namespace OfficeIMO.Word {
     internal static partial class WordMath {
         internal static string ToMathMl(OpenXmlElement element) => ToMathMl(element, long.MaxValue);
 
-        internal static string ToMathMl(OpenXmlElement element, long maxCharacters) {
+        internal static string ToMathMl(OpenXmlElement element, long maxCharacters) =>
+            ToMathMl(element, maxCharacters, DefaultMaximumProjectionDepth);
+
+        internal static string ToMathMl(OpenXmlElement element, long maxCharacters, int maxDepth) {
+            EnsureMaximumProjectionDepth(element, maxDepth);
             var builder = new BoundedStringBuilder(maxCharacters);
             builder.Append("<math xmlns=\"http://www.w3.org/1998/Math/MathML\">");
             AppendMathMl(builder, element);

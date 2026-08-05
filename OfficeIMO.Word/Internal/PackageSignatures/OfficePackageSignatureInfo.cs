@@ -29,7 +29,8 @@ namespace OfficeIMO.Word {
             IReadOnlyList<OfficePackageSignaturePartInfo> signatureParts,
             IReadOnlyList<string> unsupportedDetails,
             IReadOnlyList<string> details,
-            bool inspectionResourceLimitExceeded = false) {
+            bool inspectionResourceLimitExceeded = false,
+            long inspectionDigestWorkBytes = 0L) {
             HasDigitalSignatureOriginPart = hasDigitalSignatureOriginPart;
             OriginPartUri = originPartUri;
             OriginRelationshipId = originRelationshipId;
@@ -38,6 +39,7 @@ namespace OfficeIMO.Word {
             UnsupportedDetails = unsupportedDetails;
             Details = details;
             InspectionResourceLimitExceeded = inspectionResourceLimitExceeded;
+            InspectionDigestWorkBytes = inspectionDigestWorkBytes;
         }
 
         /// <summary>Gets whether any package signature metadata was found.</summary>
@@ -66,6 +68,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets whether inspection stopped before package-part traversal at a caller-owned resource limit.</summary>
         internal bool InspectionResourceLimitExceeded { get; }
+
+        /// <summary>Gets package-reference digest work reserved during structural inspection.</summary>
+        internal long InspectionDigestWorkBytes { get; }
     }
 
     /// <summary>
@@ -270,6 +275,8 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            bool digestWorkLimitExceeded = false;
+            long digestInspectionWorkBytes = 0L;
             try {
                 if (originPart != null) {
                     originRelationshipId = FindRelationshipId(package.Parts, originPart);
@@ -283,8 +290,8 @@ namespace OfficeIMO.Word {
                     Dictionary<string, OpenXmlPart> packageParts = GetPackageParts(package);
                     HashSet<string> packagePartUris = GetPackagePartUris(packageParts);
                     if (signatureArchive != null) packagePartUris.UnionWith(signatureArchive.PartUris);
+                    var digestWorkBudget = new OfficePackageDigestWorkBudget(maxTotalDigestBytes);
                     foreach (XmlSignaturePart signaturePart in originPart.XmlSignatureParts) {
-                        var digestWorkBudget = new OfficePackageDigestWorkBudget(maxTotalDigestBytes);
                         OfficePackageSignaturePartInfo partInfo = InspectSignaturePart(
                             originPart,
                             signaturePart,
@@ -308,7 +315,12 @@ namespace OfficeIMO.Word {
                         AddTimestampDetails(details, partInfo.Timestamps);
                         AddParseDetails(details, "X509 subjects", partInfo.X509SubjectNames);
                         unsupportedDetails.AddRange(partInfo.UnsupportedDetails);
+                        if (digestWorkBudget.IsExceeded) {
+                            digestWorkLimitExceeded = true;
+                            break;
+                        }
                     }
+                    digestInspectionWorkBytes = digestWorkBudget.ConsumedBytes;
                 }
 
                 if (hasApplicationSignatureMetadata) {
@@ -326,7 +338,9 @@ namespace OfficeIMO.Word {
                     hasApplicationSignatureMetadata,
                     signatureParts,
                     unsupportedDetails.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
-                    details.Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
+                    details.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
+                    inspectionResourceLimitExceeded: digestWorkLimitExceeded,
+                    inspectionDigestWorkBytes: digestInspectionWorkBytes);
             } finally {
                 signatureArchive?.Dispose();
             }

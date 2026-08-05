@@ -2085,6 +2085,21 @@ namespace OfficeIMO.Tests {
             appPart.Properties.Save();
         }
 
+        private static void AddDigitalSignatureMetadata(string filePath, params byte[][] signatureParts) {
+            using WordprocessingDocument package = WordprocessingDocument.Open(filePath, true);
+            package.AddDigitalSignatureOriginPart();
+            foreach (byte[] signatureBytes in signatureParts) {
+                XmlSignaturePart signaturePart = package.DigitalSignatureOriginPart!.AddNewPart<XmlSignaturePart>();
+                using var stream = new MemoryStream(signatureBytes);
+                signaturePart.FeedData(stream);
+            }
+
+            ExtendedFilePropertiesPart appPart = package.ExtendedFilePropertiesPart ?? package.AddExtendedFilePropertiesPart();
+            appPart.Properties ??= new DocumentFormat.OpenXml.ExtendedProperties.Properties();
+            appPart.Properties.DigitalSignature = new DigitalSignature();
+            appPart.Properties.Save();
+        }
+
         private static X509Certificate2 CreateSelfSignedSigningCertificate(string subjectName = "CN=OfficeIMO Package Signing Test") {
             using RSA rsa = RSA.Create(2048);
             return CreateSelfSignedSigningCertificate(rsa, subjectName);

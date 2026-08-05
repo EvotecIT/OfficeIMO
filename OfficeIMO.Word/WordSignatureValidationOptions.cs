@@ -32,7 +32,7 @@ namespace OfficeIMO.Word {
         public int MaxSignedReferences { get; set; } = 4096;
 
         /// <summary>
-        /// Gets or sets the maximum aggregate bytes processed by each package-part or local SignedInfo digest-work phase per signature part.
+        /// Gets or sets the maximum aggregate bytes processed by package-part and local SignedInfo digest-work phases across the validation operation.
         /// Local-reference work includes every certificate candidate that may trigger cryptographic verification. Defaults to 512 MiB.
         /// </summary>
         public long MaxTotalDigestBytes { get; set; } = 512L * 1024 * 1024;

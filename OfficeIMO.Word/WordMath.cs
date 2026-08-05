@@ -9,8 +9,17 @@ namespace OfficeIMO.Word {
     /// </summary>
     internal static partial class WordMath {
         internal const string MathNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/math";
+        internal const int DefaultMaximumProjectionDepth = 256;
 
-        internal static string GetText(OpenXmlElement element) {
+        internal static string GetText(OpenXmlElement element) =>
+            GetText(element, DefaultMaximumProjectionDepth);
+
+        internal static string GetText(OpenXmlElement element, int maxDepth) {
+            EnsureMaximumProjectionDepth(element, maxDepth);
+            return GetTextValidated(element);
+        }
+
+        private static string GetTextValidated(OpenXmlElement element) {
             var builder = new StringBuilder();
             AppendText(builder, element);
             return builder.ToString();
@@ -239,7 +248,23 @@ namespace OfficeIMO.Word {
 
         private static string ReadChildText(OpenXmlElement element, string localName) {
             OpenXmlElement? child = FindFirstChild(element, localName);
-            return child == null ? string.Empty : GetText(child);
+            return child == null ? string.Empty : GetTextValidated(child);
+        }
+
+        private static void EnsureMaximumProjectionDepth(OpenXmlElement element, int maxDepth) {
+            if (maxDepth <= 0) throw new ArgumentOutOfRangeException(nameof(maxDepth));
+            var pending = new Stack<(OpenXmlElement Element, int Depth)>();
+            pending.Push((element, 1));
+            while (pending.Count > 0) {
+                (OpenXmlElement current, int depth) = pending.Pop();
+                if (depth > maxDepth) {
+                    throw new InvalidDataException(
+                        "OMML equation nesting exceeds the configured " + maxDepth + "-level projection limit.");
+                }
+                for (int index = current.ChildElements.Count - 1; index >= 0; index--) {
+                    pending.Push((current.ChildElements[index], depth + 1));
+                }
+            }
         }
 
         private static string ReadNaryOperatorText(OpenXmlElement element) {

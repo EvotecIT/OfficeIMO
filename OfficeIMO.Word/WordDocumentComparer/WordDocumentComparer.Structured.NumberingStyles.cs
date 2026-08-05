@@ -95,47 +95,92 @@ namespace OfficeIMO.Word {
                     numbering = cached;
                     return true;
                 }
-                if (!visiting.Add(styleId)) {
-                    numbering = null;
-                    return true;
-                }
-                if (comparisonWorkBudget != null && !comparisonWorkBudget.TryConsume(1)) {
-                    visiting.Remove(styleId);
+                var frames = new List<StyleNumberingResolutionFrame>();
+                if (!TryPushStyleResolutionFrame(
+                        styleId,
+                        comparisonWorkBudget,
+                        visiting,
+                        frames)) {
                     numbering = null;
                     return false;
                 }
 
-                foreach (Style style in StylesById[styleId]) {
+                while (frames.Count > 0) {
+                    StyleNumberingResolutionFrame frame = frames[frames.Count - 1];
+                    if (frame.NextStyleIndex >= frame.Styles.Count) {
+                        CompleteStyleResolution(frames, visiting, frame.StyleId, null);
+                        continue;
+                    }
+
+                    Style style = frame.Styles[frame.NextStyleIndex++];
                     NumberingProperties? direct = style.StyleParagraphProperties?.NumberingProperties;
                     if (direct != null) {
-                        visiting.Remove(styleId);
-                        _resolvedNumbering[styleId] = direct;
-                        numbering = direct;
-                        return true;
+                        CompleteStyleResolution(frames, visiting, frame.StyleId, direct);
+                        continue;
                     }
+
                     string? baseStyleId = style.BasedOn?.Val?.Value;
-                    if (string.IsNullOrWhiteSpace(baseStyleId)) continue;
-                    if (!TryResolveStyleNumbering(
+                    if (string.IsNullOrWhiteSpace(baseStyleId) || visiting.Contains(baseStyleId!)) continue;
+                    if (_resolvedNumbering.TryGetValue(baseStyleId!, out NumberingProperties? inherited)) {
+                        if (inherited != null) {
+                            CompleteStyleResolution(frames, visiting, frame.StyleId, inherited);
+                        }
+                        continue;
+                    }
+                    if (!TryPushStyleResolutionFrame(
                             baseStyleId!,
                             comparisonWorkBudget,
                             visiting,
-                            out NumberingProperties? inherited)) {
-                        visiting.Remove(styleId);
+                            frames)) {
+                        foreach (StyleNumberingResolutionFrame pending in frames) visiting.Remove(pending.StyleId);
                         numbering = null;
                         return false;
                     }
-                    if (inherited != null) {
-                        visiting.Remove(styleId);
-                        _resolvedNumbering[styleId] = inherited;
-                        numbering = inherited;
-                        return true;
-                    }
                 }
 
-                visiting.Remove(styleId);
-                _resolvedNumbering[styleId] = null;
-                numbering = null;
+                numbering = _resolvedNumbering[styleId];
                 return true;
+            }
+
+            private bool TryPushStyleResolutionFrame(
+                string styleId,
+                ComparisonWorkBudget? comparisonWorkBudget,
+                ISet<string> visiting,
+                ICollection<StyleNumberingResolutionFrame> frames) {
+                if (!visiting.Add(styleId)) return true;
+                if (comparisonWorkBudget != null && !comparisonWorkBudget.TryConsume(1)) {
+                    visiting.Remove(styleId);
+                    return false;
+                }
+                frames.Add(new StyleNumberingResolutionFrame(styleId, StylesById[styleId].ToArray()));
+                return true;
+            }
+
+            private void CompleteStyleResolution(
+                IList<StyleNumberingResolutionFrame> frames,
+                ISet<string> visiting,
+                string styleId,
+                NumberingProperties? numbering) {
+                _resolvedNumbering[styleId] = numbering;
+                visiting.Remove(styleId);
+                frames.RemoveAt(frames.Count - 1);
+                while (numbering != null && frames.Count > 0) {
+                    StyleNumberingResolutionFrame parent = frames[frames.Count - 1];
+                    _resolvedNumbering[parent.StyleId] = numbering;
+                    visiting.Remove(parent.StyleId);
+                    frames.RemoveAt(frames.Count - 1);
+                }
+            }
+
+            private sealed class StyleNumberingResolutionFrame {
+                internal StyleNumberingResolutionFrame(string styleId, IReadOnlyList<Style> styles) {
+                    StyleId = styleId;
+                    Styles = styles;
+                }
+
+                internal string StyleId { get; }
+                internal IReadOnlyList<Style> Styles { get; }
+                internal int NextStyleIndex { get; set; }
             }
 
             internal static ParagraphNumberingStyleCatalog? Create(

@@ -385,54 +385,62 @@ namespace OfficeIMO.Excel {
         }
 
         private static string RewriteStructuredSelector(string value, Func<string, string?> rewriteColumn) {
+            int[] matchingClosings = GetMatchedStructuredBrackets(value);
+            int[] nextOpenings = GetNextMatchedOpenings(matchingClosings);
             var builder = new StringBuilder(value.Length);
-            int cursor = 0;
-            while (cursor < value.Length) {
-                if (value[cursor] != '[' || IsEscapedStructuredCharacter(value, cursor)
-                    || !TryFindStructuredBracketEnd(value, cursor, out int end)) {
-                    builder.Append(value[cursor++]);
-                    continue;
-                }
-
-                string content = value.Substring(cursor + 1, end - cursor - 2);
-                if (ContainsUnescapedOpeningBracket(content)) {
-                    builder.Append('[').Append(RewriteStructuredSelector(content, rewriteColumn)).Append(']');
-                } else {
+            for (int cursor = 0; cursor < value.Length; cursor++) {
+                int closing = matchingClosings[cursor];
+                if (closing >= 0) {
+                    builder.Append('[');
+                    if (nextOpenings[cursor + 1] < closing) continue;
+                    string content = value.Substring(cursor + 1, closing - cursor - 1);
                     bool rowContext = content.Length > 0 && content[0] == '@';
                     string rawColumn = rowContext ? content.Substring(1) : content;
                     bool areaSpecifier = rawColumn.Length > 0 && rawColumn[0] == '#';
                     string? replacement = areaSpecifier ? null : rewriteColumn(rawColumn);
-                    builder.Append('[');
                     if (rowContext) builder.Append('@');
-                    builder.Append(replacement ?? rawColumn).Append(']');
+                    builder.Append(replacement ?? rawColumn);
+                    builder.Append(']');
+                    cursor = closing;
+                    continue;
                 }
-                cursor = end;
+                builder.Append(value[cursor]);
             }
             return builder.ToString();
         }
 
-        private static bool ContainsUnescapedOpeningBracket(string value) {
+        private static int[] GetMatchedStructuredBrackets(string value) {
+            int[] matchingClosings = Enumerable.Repeat(-1, value.Length).ToArray();
+            var pending = new Stack<int>();
+            int apostropheRun = 0;
             for (int index = 0; index < value.Length; index++) {
-                if (value[index] == '[' && !IsEscapedStructuredCharacter(value, index)) return true;
-            }
-            return false;
-        }
-
-        private static bool TryFindStructuredBracketEnd(string value, int start, out int end) {
-            int depth = 0;
-            for (int index = start; index < value.Length; index++) {
-                if (value[index] == '[' && !IsEscapedStructuredCharacter(value, index)) {
-                    depth++;
-                } else if (value[index] == ']' && !IsEscapedStructuredCharacter(value, index)) {
-                    depth--;
-                    if (depth == 0) {
-                        end = index + 1;
-                        return true;
-                    }
+                char current = value[index];
+                if (current == '\'') {
+                    apostropheRun++;
+                    continue;
+                }
+                bool escaped = (apostropheRun & 1) != 0;
+                apostropheRun = 0;
+                if (escaped) continue;
+                if (current == '[') {
+                    pending.Push(index);
+                } else if (current == ']' && pending.Count > 0) {
+                    int opening = pending.Pop();
+                    matchingClosings[opening] = index;
                 }
             }
-            end = start;
-            return false;
+            return matchingClosings;
+        }
+
+        private static int[] GetNextMatchedOpenings(int[] matchingClosings) {
+            var nextOpenings = new int[matchingClosings.Length + 1];
+            int next = matchingClosings.Length;
+            nextOpenings[matchingClosings.Length] = next;
+            for (int index = matchingClosings.Length - 1; index >= 0; index--) {
+                if (matchingClosings[index] >= 0) next = index;
+                nextOpenings[index] = next;
+            }
+            return nextOpenings;
         }
 
         internal static bool IsEscapedStructuredCharacter(string value, int position) {

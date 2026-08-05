@@ -77,12 +77,16 @@ internal static class PdfIndexedImageNormalizer {
             return false;
         }
 
-        if (!TryReadIndexedLookupBytes(colorSpaceArray.Items[3], objects, out var lookupBytes)) {
+        int paletteEntryCount = highValue + 1;
+        int expectedLookupLength = paletteEntryCount * baseComponentCount;
+        if (!TryReadIndexedLookupBytes(
+                colorSpaceArray.Items[3],
+                objects,
+                expectedLookupLength,
+                out var lookupBytes)) {
             return false;
         }
 
-        int paletteEntryCount = highValue + 1;
-        int expectedLookupLength = paletteEntryCount * baseComponentCount;
         if (lookupBytes.Length < expectedLookupLength) {
             return false;
         }
@@ -117,10 +121,13 @@ internal static class PdfIndexedImageNormalizer {
     internal static bool TryReadIndexedLookupBytes(
         PdfObject? lookupObject,
         Dictionary<int, PdfIndirectObject> objects,
+        int maxLookupBytes,
         out byte[] lookupBytes) {
         lookupBytes = Array.Empty<byte>();
+        if (maxLookupBytes <= 0) return false;
         PdfObject? resolvedLookup = ResolveObject(lookupObject, objects);
         if (resolvedLookup is PdfStringObj lookupString) {
+            if (lookupString.RawBytes.Length > maxLookupBytes) return false;
             lookupBytes = lookupString.RawBytes;
             return true;
         }
@@ -130,7 +137,11 @@ internal static class PdfIndexedImageNormalizer {
                 return false;
             }
 
-            lookupBytes = Filters.StreamDecoder.Decode(lookupStream.Dictionary, lookupStream.Data, objects);
+            lookupBytes = Filters.StreamDecoder.Decode(
+                lookupStream.Dictionary,
+                lookupStream.Data,
+                objects,
+                maxLookupBytes);
             return lookupBytes.Length > 0;
         }
 
