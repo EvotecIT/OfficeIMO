@@ -14,6 +14,31 @@ namespace OfficeIMO.CSV;
 /// </summary>
 public sealed partial class CsvRowWriter : IDisposable
 {
+    /// <summary>
+    /// Creates a row writer for a file, applying the encoding, compression, append, and no-clobber settings.
+    /// </summary>
+    /// <param name="path">Destination CSV path.</param>
+    /// <param name="options">Optional CSV serialization settings.</param>
+    /// <param name="append">Whether rows should be appended to an existing uncompressed file.</param>
+    /// <param name="bufferSize">File and text-writer buffer size.</param>
+    /// <returns>A writer that owns the destination file and releases it when disposed.</returns>
+    public static CsvRowWriter CreateFile(
+        string path,
+        CsvSaveOptions? options = null,
+        bool append = false,
+        int bufferSize = 256 * 1024)
+    {
+        options ??= new CsvSaveOptions();
+        return new CsvRowWriter(CsvFile.CreateTextWriter(path, options, append, bufferSize), options);
+    }
+
+    /// <summary>Resolves explicit or file-extension-inferred compression for a destination path.</summary>
+    /// <param name="compressionType">Requested compression type.</param>
+    /// <param name="path">Destination path used when <paramref name="compressionType"/> is <see cref="CsvCompressionType.Auto"/>.</param>
+    /// <returns>The effective compression type.</returns>
+    public static CsvCompressionType ResolveCompression(CsvCompressionType compressionType, string path) =>
+        CsvFile.ResolveCompression(compressionType, path);
+
     private readonly TextWriter _writer;
     private readonly CsvSaveOptions _options;
     private readonly HashSet<string>? _quoteFields;

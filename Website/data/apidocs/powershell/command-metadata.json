@@ -120,8 +120,8 @@
         "ExcelPackageMetadata"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelPackageMetadataCommand.cs",
-      "sourceLine": 20,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelPackageMetadataCommand.cs#L20"
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelPackageMetadataCommand.cs#L19"
     },
     {
       "name": "Add-OfficeExcelPageBreak",
@@ -261,8 +261,8 @@
         "ExcelSlicer"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelSlicerCommand.cs",
-      "sourceLine": 20,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelSlicerCommand.cs#L20"
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelSlicerCommand.cs#L19"
     },
     {
       "name": "Add-OfficeExcelSparkline",
@@ -330,8 +330,8 @@
         "ExcelTimeline"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelTimelineCommand.cs",
-      "sourceLine": 20,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelTimelineCommand.cs#L20"
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelTimelineCommand.cs#L19"
     },
     {
       "name": "Add-OfficeExcelValidationCustomFormula",
@@ -862,8 +862,8 @@
         "PptShape"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointShapeCommand.cs",
-      "sourceLine": 24,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointShapeCommand.cs#L24"
+      "sourceLine": 25,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointShapeCommand.cs#L25"
     },
     {
       "name": "Add-OfficePowerPointSlide",
@@ -1012,8 +1012,8 @@
         "WordChart"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordChartCommand.cs",
-      "sourceLine": 60,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordChartCommand.cs#L60"
+      "sourceLine": 61,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordChartCommand.cs#L61"
     },
     {
       "name": "Add-OfficeWordCheckBox",
@@ -3591,24 +3591,24 @@
         "ExcelChartAxis"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartAxisCommand.cs",
-      "sourceLine": 24,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartAxisCommand.cs#L24"
+      "sourceLine": 26,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartAxisCommand.cs#L26"
     },
     {
       "name": "Set-OfficeExcelChartDataLabels",
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartDataLabelsCommand.cs",
-      "sourceLine": 16,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartDataLabelsCommand.cs#L16"
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartDataLabelsCommand.cs#L18"
     },
     {
       "name": "Set-OfficeExcelChartLegend",
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartLegendCommand.cs",
-      "sourceLine": 16,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartLegendCommand.cs#L16"
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartLegendCommand.cs#L18"
     },
     {
       "name": "Set-OfficeExcelChartPoint",
@@ -3627,8 +3627,8 @@
         "ExcelChartSeries"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartSeriesCommand.cs",
-      "sourceLine": 19,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartSeriesCommand.cs#L19"
+      "sourceLine": 20,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartSeriesCommand.cs#L20"
     },
     {
       "name": "Set-OfficeExcelChartStyle",
@@ -3645,8 +3645,8 @@
         "ExcelChartTrendline"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartTrendlineCommand.cs",
-      "sourceLine": 19,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartTrendlineCommand.cs#L19"
+      "sourceLine": 20,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartTrendlineCommand.cs#L20"
     },
     {
       "name": "Set-OfficeExcelColumn",
@@ -3824,8 +3824,8 @@
         "ExcelOrientation"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelOrientationCommand.cs",
-      "sourceLine": 16,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelOrientationCommand.cs#L16"
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelOrientationCommand.cs#L17"
     },
     {
       "name": "Set-OfficeExcelPageSetup",
@@ -3854,8 +3854,8 @@
         "ExcelPrintLayout"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelPrintLayoutCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelPrintLayoutCommand.cs#L18"
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelPrintLayoutCommand.cs#L19"
     },
     {
       "name": "Set-OfficeExcelPrintTitles",
@@ -4320,8 +4320,8 @@
         "WordPageSetup"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordPageSetupCommand.cs",
-      "sourceLine": 21,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordPageSetupCommand.cs#L21"
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordPageSetupCommand.cs#L22"
     },
     {
       "name": "Set-OfficeWordParagraphStyle",
@@ -4368,8 +4368,8 @@
         "WordTextStyle"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordTextStyleCommand.cs",
-      "sourceLine": 19,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordTextStyleCommand.cs#L19"
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordTextStyleCommand.cs#L18"
     },
     {
       "name": "Split-OfficePdf",
