@@ -9,6 +9,63 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.1 is a coordinated breaking release. Upgrade every OfficeIMO package in an application to the same `3.1.x` version and perform a clean restore after changing versions.
 
+## Start here: most OfficeIMO.Word applications
+
+If an application references `OfficeIMO.Word` and uses the high-level Word object
+model, start here. The usual create, load, edit, and save workflow keeps the same
+shape. Most migration work is replacing enum or type names reported by the
+compiler; applications do not need to rewrite ordinary paragraph, table, image,
+header, footer, or section workflows.
+
+Use this upgrade sequence:
+
+1. Upgrade `OfficeIMO.Word` and every other OfficeIMO package in the application
+   to the same `3.1.x` version.
+2. If the project explicitly references the `OfficeIMO.Drawing` package, replace
+   that package reference with `OfficeIMO.Core`. A project that references only
+   `OfficeIMO.Word` receives Core through the Word package dependency.
+3. Delete stale `bin` and `obj` output, restore packages, and build the application.
+4. Fix compiler errors using the Word and shared replacement tables below. Remove
+   `DocumentFormat.OpenXml.Wordprocessing` imports that were present only for
+   high-level OfficeIMO enum values.
+5. Run the application's document tests. Review the focused behavior notes only
+   for APIs the application actually uses, especially table layout, low-level
+   style/page settings, signatures, or converters.
+
+A typical enum migration is local:
+
+```csharp
+// OfficeIMO 3.0
+using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word;
+
+title.SetAlignment(JustificationValues.Center);
+document.AddSection(SectionMarkValues.Continuous);
+```
+
+```csharp
+// OfficeIMO 3.1
+using OfficeIMO.Word;
+
+title.SetAlignment(WordParagraphAlignment.Center);
+document.AddSection(WordSectionBreakType.Continuous);
+```
+
+Estimate the likely migration from the APIs the application uses:
+
+| Application shape | Likely work |
+| --- | --- |
+| `OfficeIMO.Word` with the regular document object model | Mostly compiler-guided enum and type replacements. |
+| Word fluent APIs without storing concrete builder types | The `AsFluent()` entry point remains; rename any builder types referenced explicitly. |
+| Word code using Open XML values as high-level options | Replace them with the corresponding `Word*` or shared `Office*` enums. |
+| Word code receiving Open XML styles, page sizes, note settings, or page-number elements from OfficeIMO | Move to the OfficeIMO-owned definitions and settings described under [cross-format contract and naming cleanup](#cross-format-contract-and-naming-cleanup). |
+| Word plus PDF, HTML, Markdown, RTF, or Google Docs adapters | Also replace format-specific conversion diagnostics and policies with the shared `OfficeConversion*` contracts. |
+| Word, Excel, and PowerPoint in one application | Expect more renames, but fewer ambiguous types afterward because genuinely shared contracts now have one `Office*` name. |
+| Removed Excel reader APIs or the old PowerPoint fluent/composer surface | Follow the dedicated [CSV and Excel tabular reads](#csv-and-excel-tabular-reads) or [PowerPoint lifecycle, composition, and inspection](#powerpoint-lifecycle-composition-and-inspection) sections; these are the migrations most likely to require workflow changes. |
+
+The rest of this guide is a lookup reference. An application does not need to
+apply sections for packages or features it does not use.
+
 ## Shared foundation package: Drawing to Core
 
 The zero-dependency shared package, project, and assembly have been renamed from

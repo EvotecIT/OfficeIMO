@@ -13,6 +13,9 @@ If OfficeIMO saves you time, please consider supporting the work through [GitHub
 dotnet add package OfficeIMO.Word
 ```
 
+Upgrading from OfficeIMO 3.0? The regular create, load, edit, and save workflow
+keeps the same shape. Start with the [short Word-first 3.1 migration path](../MIGRATION.md#start-here-most-officeimoword-applications) for the package, enum, and type replacements most Word applications need.
+
 Document authoring, reading, signature inspection, and safe signed-package handling do not require the security
 package. Install it only when the application creates or cryptographically validates OPC or VBA signatures:
 

@@ -14,7 +14,7 @@ This is not one facade over a collection of unrelated document libraries. Office
 
 The current source line is `3.1.x`; the latest NuGet release is `3.0.3`. Applications should keep OfficeIMO packages on the same coordinated version. The 3.1 source API keeps CSV and Excel behavior package-owned, uses one document lifecycle vocabulary, and keeps converters explicit about fidelity and diagnostics.
 
-Upgrading an existing application? Use the [OfficeIMO migration guide](MIGRATION.md) for version-to-version package, API, and behavior changes. Release history and downloadable artifacts are published through [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases).
+Upgrading an existing application? Most `OfficeIMO.Word` users can begin with the [short Word-first 3.1 path](MIGRATION.md#start-here-most-officeimoword-applications); the full [OfficeIMO migration guide](MIGRATION.md) covers package, API, and behavior changes across every format. Release history and downloadable artifacts are published through [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases).
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should start with [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
 
