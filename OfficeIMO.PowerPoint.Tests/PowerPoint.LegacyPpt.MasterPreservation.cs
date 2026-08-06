@@ -492,7 +492,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(titleSlide.SlidePart.Slide!.CommonSlideData!.Background);
             using (var image = new MemoryStream(imageBytes, writable: false)) {
                 titleSlide.SetBackgroundImage(image,
-                    OfficeIMO.PowerPoint.PowerPointImagePartType.Png);
+                    OfficeIMO.Drawing.OfficeImageFormat.Png);
             }
 
             LegacyPptWritePreflightReport preflight = imported

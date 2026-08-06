@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
                     OfficeColor.FromRgb(99, 102, 241)
                 },
                 topDown: true));
-            slide.AddPicturePoints(image, PowerPointImagePartType.Bmp, 276, 16, 24, 24);
+            slide.AddPicturePoints(image, OfficeImageFormat.Bmp, 276, 16, 24, 24);
 
             return presentation;
         }

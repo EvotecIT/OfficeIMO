@@ -1551,7 +1551,7 @@ namespace OfficeIMO.Tests {
 
             PowerPointPicture picture = slide.AddPicture(
                 new MemoryStream(new byte[] { 1, 2, 3, 4, 5, 6 }),
-                PowerPointImagePartType.Bmp,
+                OfficeImageFormat.Bmp,
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(24),
@@ -1626,7 +1626,7 @@ namespace OfficeIMO.Tests {
             byte[] pngBytes = OfficePngWriter.Encode(new OfficeRasterImage(4, 4, OfficeColor.FromRgb(37, 99, 235)));
             PowerPointPicture picture = slide.AddPicture(
                 new MemoryStream(pngBytes),
-                PowerPointImagePartType.Png,
+                OfficeImageFormat.Png,
                 PowerPointUnits.FromPoints(30),
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(80),
@@ -2107,7 +2107,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(160, 100);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            slide.AddPicture(new MemoryStream(png), PowerPointImagePartType.Png, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
+            slide.AddPicture(new MemoryStream(png), OfficeImageFormat.Png, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
 
             OfficeImageExportResult pngResult = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svgResult = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -2130,7 +2130,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            slide.AddPicture(new MemoryStream(png), PowerPointImagePartType.Png,
+            slide.AddPicture(new MemoryStream(png), OfficeImageFormat.Png,
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
 
@@ -2151,10 +2151,10 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            slide.AddPicture(new MemoryStream(png), PowerPointImagePartType.Png,
+            slide.AddPicture(new MemoryStream(png), OfficeImageFormat.Png,
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
-            slide.AddPicture(new MemoryStream(png), PowerPointImagePartType.Png,
+            slide.AddPicture(new MemoryStream(png), OfficeImageFormat.Png,
                 PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
 
@@ -2174,7 +2174,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            PowerPointPicture picture = slide.AddPicture(new MemoryStream(png), PowerPointImagePartType.Png,
+            PowerPointPicture picture = slide.AddPicture(new MemoryStream(png), OfficeImageFormat.Png,
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
             PowerPointAutoShape anchor = slide.AddRectanglePoints(50, 20, 12, 12);
@@ -2196,7 +2196,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            slide.SetBackgroundImage(new MemoryStream(png), PowerPointImagePartType.Png);
+            slide.SetBackgroundImage(new MemoryStream(png), OfficeImageFormat.Png);
 
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(new PowerPointImageExportOptions {
                 MaximumEmbeddedImageBytes = png.Length - 1,
@@ -2220,7 +2220,7 @@ namespace OfficeIMO.Tests {
                 "</svg>");
             slide.AddPicture(
                 new MemoryStream(svg),
-                PowerPointImagePartType.Svg,
+                OfficeImageFormat.Svg,
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(40),
@@ -2280,7 +2280,7 @@ namespace OfficeIMO.Tests {
             });
             slide.AddPicture(
                 new MemoryStream(bmp),
-                PowerPointImagePartType.Bmp,
+                OfficeImageFormat.Bmp,
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(24),
@@ -2312,7 +2312,7 @@ namespace OfficeIMO.Tests {
             }, topDown: true);
             slide.AddPicture(
                 new MemoryStream(bmp),
-                PowerPointImagePartType.Bmp,
+                OfficeImageFormat.Bmp,
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(24),
@@ -2343,7 +2343,7 @@ namespace OfficeIMO.Tests {
             });
             slide.AddPicture(
                 new MemoryStream(bmp),
-                PowerPointImagePartType.Bmp,
+                OfficeImageFormat.Bmp,
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(24),
@@ -2376,7 +2376,7 @@ namespace OfficeIMO.Tests {
             slide.BackgroundColor = "000000";
             slide.AddPicture(
                 new MemoryStream(CreateSinglePixelGif()),
-                PowerPointImagePartType.Gif,
+                OfficeImageFormat.Gif,
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(24),
@@ -2413,7 +2413,7 @@ namespace OfficeIMO.Tests {
             byte[] png = OfficePngWriter.Encode(source);
             PowerPointPicture picture = slide.AddPicture(
                 new MemoryStream(png),
-                PowerPointImagePartType.Png,
+                OfficeImageFormat.Png,
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(10),
                 PowerPointUnits.FromPoints(80),

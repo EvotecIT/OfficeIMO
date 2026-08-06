@@ -126,7 +126,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             return;
         }
 
-        if (!TryGetImagePartType(dataUri.MediaType, out PptCore.PowerPointImagePartType imagePartType)) {
+        if (!TryGetImagePartType(dataUri.MediaType, out OfficeImageFormat imagePartType)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
                 "Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' used unsupported media type '" + dataUri.MediaType + "' and was not imported.", lossKind: OfficeConversionLossKind.Omission);
             return;
@@ -888,60 +888,60 @@ public static partial class HtmlPowerPointConverterExtensions {
         return value.Length == 0 ? "ClusteredColumn" : value;
     }
 
-    private static bool TryGetImagePartType(string mediaType, out PptCore.PowerPointImagePartType imagePartType) {
+    private static bool TryGetImagePartType(string mediaType, out OfficeImageFormat imagePartType) {
         if (mediaType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/jpg", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.PowerPointImagePartType.Jpeg;
+            imagePartType = OfficeImageFormat.Jpeg;
             return true;
         }
 
         if (mediaType.Equals("image/gif", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.PowerPointImagePartType.Gif;
+            imagePartType = OfficeImageFormat.Gif;
             return true;
         }
 
         if (mediaType.Equals("image/bmp", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.PowerPointImagePartType.Bmp;
+            imagePartType = OfficeImageFormat.Bmp;
             return true;
         }
 
         if (mediaType.Equals("image/tiff", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/tif", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.PowerPointImagePartType.Tiff;
+            imagePartType = OfficeImageFormat.Tiff;
             return true;
         }
 
         if (mediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.PowerPointImagePartType.Svg;
+            imagePartType = OfficeImageFormat.Svg;
             return true;
         }
 
         if (mediaType.Equals("image/x-emf", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/emf", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.PowerPointImagePartType.Emf;
+            imagePartType = OfficeImageFormat.Emf;
             return true;
         }
 
         if (mediaType.Equals("image/x-wmf", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/wmf", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.PowerPointImagePartType.Wmf;
+            imagePartType = OfficeImageFormat.Wmf;
             return true;
         }
 
         if (mediaType.Equals("image/x-icon", StringComparison.OrdinalIgnoreCase) ||
             mediaType.Equals("image/vnd.microsoft.icon", StringComparison.OrdinalIgnoreCase) ||
             mediaType.Equals("image/ico", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.PowerPointImagePartType.Icon;
+            imagePartType = OfficeImageFormat.Icon;
             return true;
         }
 
         if (mediaType.Equals("image/x-pcx", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/pcx", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.PowerPointImagePartType.Pcx;
+            imagePartType = OfficeImageFormat.Pcx;
             return true;
         }
 
         if (mediaType.Equals("image/png", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/x-png", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.PowerPointImagePartType.Png;
+            imagePartType = OfficeImageFormat.Png;
             return true;
         }
 
-        imagePartType = PptCore.PowerPointImagePartType.Png;
+        imagePartType = OfficeImageFormat.Png;
         return false;
     }
 

@@ -159,6 +159,7 @@ Shared replacements include:
 | Open XML SDK `FileFormatVersions` in public validation APIs | `OfficeOpenXmlFileFormatVersion` |
 | Open XML SDK validation errors | `OfficeOpenXmlValidationError` |
 | Word/Excel/PowerPoint copies of common chart positions, markers, line ends, and preset shapes | `OfficeChart*`, `OfficeLineMarkerKind`, and `OfficePresetShapeType` from `OfficeIMO.Core` |
+| Word/PowerPoint image-part format enums | `OfficeImageFormat` from `OfficeIMO.Core` |
 
 Format-specific public type renames include:
 
@@ -167,7 +168,7 @@ Format-specific public type renames include:
 | Word `ApplicationProperties` / `BuiltinDocumentProperties` | `WordApplicationProperties` / `WordBuiltinDocumentProperties` |
 | Excel `ApplicationProperties` / `BuiltinDocumentProperties` | `ExcelApplicationProperties` / `ExcelBuiltinDocumentProperties` |
 | `CapsStyle` / `CompatibilityMode` / `CoverPageTemplate` | `WordCapsStyle` / `WordCompatibilityMode` / `WordCoverPageTemplate` |
-| `CustomImagePartType` / `ImageFillMode` / `WrapTextImage` | `WordImagePartType` / `WordImageFillMode` / `WordImageTextWrapping` |
+| `CustomImagePartType` / `WordImagePartType` / `ImageFillMode` / `WrapTextImage` | `OfficeImageFormat` / `WordImageFillMode` / `WordImageTextWrapping` |
 | `ShapeType` / `SmartArtType` | `WordShapeType` / `WordSmartArtType` |
 | `TableOfContentStyle` / `TargetFrame` / `TextMatchType` | `WordTableOfContentsStyle` / `WordHyperlinkTargetFrame` / `WordTextMatchType` |
 | Word `DocumentCleanupOptions` / `PropertyTypes` | `WordDocumentCleanupOptions` / `WordCustomPropertyType` |
@@ -175,7 +176,7 @@ Format-specific public type renames include:
 | Excel `HeaderFooterPosition` / `NameValidationMode` | `ExcelHeaderFooterPosition` / `ExcelDefinedNameValidationMode` |
 | Excel `TableStyle` | `ExcelTableStyle` |
 | Excel `SheetNameValidationMode` / `TableNameValidationMode` / `WorksheetValidationMode` | `ExcelSheetNameValidationMode` / `ExcelTableNameValidationMode` / `ExcelWorksheetValidationMode` |
-| PowerPoint `ImagePartType` | `PowerPointImagePartType` |
+| PowerPoint `ImagePartType` / `PowerPointImagePartType` | `OfficeImageFormat` |
 | `SlideTransition` / `SlideTransitionSpeed` / `TableCellBorders` | `PowerPointSlideTransition` / `PowerPointSlideTransitionSpeed` / `PowerPointTableCellBorders` |
 | Excel or PowerPoint format-specific signature mutation policy | `OfficeSignatureMutationPolicy` |
 | `OfficeImageExportLossKind`, `HtmlConversionLossKind`, or `WordMarkdownConversionLossKind` | `OfficeConversionLossKind` |

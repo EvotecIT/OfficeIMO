@@ -17,8 +17,8 @@ dotnet add package OfficeIMO.PowerPoint
 ## Quick start
 
 ```csharp
-using OfficeIMO.PowerPoint;
 using OfficeIMO.Drawing;
+using OfficeIMO.PowerPoint;
 
 using var presentation = PowerPointPresentation.Create("deck.pptx");
 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
@@ -221,6 +221,7 @@ agenda.AddBullets(new[] { "Intro", "KPIs", "Next steps" });
 ### Images and SVGs
 
 ```csharp
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 
 slide.AddPicture("logo.png",
@@ -228,7 +229,7 @@ slide.AddPicture("logo.png",
     PowerPointUnits.FromCentimeters(5), PowerPointUnits.FromCentimeters(2));
 
 using var logo = File.OpenRead("logo.png");
-slide.AddPicture(logo, PowerPointImagePartType.Png,
+slide.AddPicture(logo, OfficeImageFormat.Png,
     PowerPointUnits.FromCentimeters(2), PowerPointUnits.FromCentimeters(2),
     PowerPointUnits.FromCentimeters(5), PowerPointUnits.FromCentimeters(2));
 

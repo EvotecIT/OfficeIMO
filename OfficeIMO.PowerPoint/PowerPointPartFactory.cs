@@ -235,7 +235,7 @@ namespace OfficeIMO.PowerPoint {
             return CombinePartUri(normalizedFolder, baseName + nextIndex.ToString(CultureInfo.InvariantCulture) + normalizedExtension);
         }
 
-        internal static string GetImageExtension(PowerPointImagePartType type, string? sourcePath = null) {
+        internal static string GetImageExtension(OfficeImageFormat type, string? sourcePath = null) {
             if (!string.IsNullOrWhiteSpace(sourcePath)) {
                 string extension = Path.GetExtension(sourcePath);
                 if (!string.IsNullOrWhiteSpace(extension)) {

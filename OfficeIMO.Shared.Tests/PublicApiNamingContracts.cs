@@ -291,6 +291,7 @@ public sealed class PublicApiNamingContracts {
             typeof(OfficeOpenXmlLoadSettings),
             typeof(OfficeOpenXmlValidationErrorType),
             typeof(OfficeOpenXmlValidationError),
+            typeof(OfficeImageFormat),
             typeof(OfficePageOrientation),
             typeof(OfficeSignatureMutationPolicy),
             typeof(OfficeChartDisplayUnit),
@@ -401,7 +402,6 @@ public sealed class PublicApiNamingContracts {
             typeof(WordCapsStyle),
             typeof(WordCompatibilityMode),
             typeof(WordCoverPageTemplate),
-            typeof(WordImagePartType),
             typeof(WordDocumentCleanupOptions),
             typeof(WordImageFillMode),
             typeof(WordShapeType),
@@ -417,17 +417,16 @@ public sealed class PublicApiNamingContracts {
             typeof(ExcelHeaderFooterPosition),
             typeof(ExcelDefinedNameValidationMode),
             typeof(ExcelTableStyle),
-            typeof(OfficeIMO.PowerPoint.PowerPointImagePartType),
             typeof(OfficeIMO.PowerPoint.PowerPointSlideTransition),
             typeof(OfficeIMO.PowerPoint.PowerPointSlideTransitionSpeed),
             typeof(OfficeIMO.PowerPoint.PowerPointTableCellBorders)
         };
         string[] removedNames = {
             "ApplicationProperties", "BuiltinDocumentProperties", "CapsStyle", "CompatibilityMode",
-            "CoverPageTemplate", "CustomImagePartType", "DocumentCleanupOptions", "ImageFillMode",
+            "CoverPageTemplate", "CustomImagePartType", "WordImagePartType", "DocumentCleanupOptions", "ImageFillMode",
             "ShapeType", "SmartArtType", "TableOfContentStyle", "TargetFrame", "TextMatchType",
             "WrapTextImage", "ExecutionMode", "ExecutionPolicy", "HeaderFooterPosition",
-            "NameValidationMode", "TableStyle", "ImagePartType", "SlideTransition",
+            "NameValidationMode", "TableStyle", "ImagePartType", "PowerPointImagePartType", "SlideTransition",
             "SlideTransitionSpeed", "TableCellBorders"
         };
         Assembly[] assemblies = canonicalTypes.Select(type => type.Assembly).Distinct().ToArray();

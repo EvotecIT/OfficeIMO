@@ -254,7 +254,7 @@ namespace OfficeIMO.Tests {
                 text.Name = "Summary object";
                 text.Description = "Summary alternative text";
                 PowerPointPicture picture = slide.AddPicture(
-                    new MemoryStream(image), PowerPointImagePartType.Png,
+                    new MemoryStream(image), OfficeIMO.Drawing.OfficeImageFormat.Png,
                     PowerPointUnits.FromPoints(20),
                     PowerPointUnits.FromPoints(70),
                     PowerPointUnits.FromPoints(90),

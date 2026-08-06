@@ -7,6 +7,7 @@ using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
 using V = DocumentFormat.OpenXml.Vml;
@@ -281,27 +282,27 @@ namespace OfficeIMO.Word {
                 var location = paragraph.Location();
                 if (location.GetType() == typeof(Header)) {
                     var part = ((Header)location).HeaderPart ?? throw new InvalidOperationException("Header part is missing.");
-                    imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
+                    imagePart = part.AddImagePart(OfficeImageInfo.GetMimeType(imagePartType));
                     relationshipId = part.GetIdOfPart(imagePart);
                 } else if (location.GetType() == typeof(Footer)) {
                     var part = ((Footer)location).FooterPart ?? throw new InvalidOperationException("Footer part is missing.");
-                    imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
+                    imagePart = part.AddImagePart(OfficeImageInfo.GetMimeType(imagePartType));
                     relationshipId = part.GetIdOfPart(imagePart);
                 } else if (location.GetType() == typeof(Document)) {
                     var part = document._wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing.");
-                    imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
+                    imagePart = part.AddImagePart(OfficeImageInfo.GetMimeType(imagePartType));
                     relationshipId = part.GetIdOfPart(imagePart);
                 } else if (location.GetType() == typeof(Footnotes)) {
                     var part = document._wordprocessingDocument.MainDocumentPart?.FootnotesPart ?? throw new InvalidOperationException("FootnotesPart is missing.");
-                    imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
+                    imagePart = part.AddImagePart(OfficeImageInfo.GetMimeType(imagePartType));
                     relationshipId = part.GetIdOfPart(imagePart);
                 } else if (location.GetType() == typeof(Endnotes)) {
                     var part = document._wordprocessingDocument.MainDocumentPart?.EndnotesPart ?? throw new InvalidOperationException("EndnotesPart is missing.");
-                    imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
+                    imagePart = part.AddImagePart(OfficeImageInfo.GetMimeType(imagePartType));
                     relationshipId = part.GetIdOfPart(imagePart);
                 } else if (location.GetType() == typeof(Comments)) {
                     var part = document._wordprocessingDocument.MainDocumentPart?.WordprocessingCommentsPart ?? throw new InvalidOperationException("WordprocessingCommentsPart is missing.");
-                    imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
+                    imagePart = part.AddImagePart(OfficeImageInfo.GetMimeType(imagePartType));
                     relationshipId = part.GetIdOfPart(imagePart);
                 } else {
                     throw new InvalidOperationException("Paragraph is not in a supported document story.");

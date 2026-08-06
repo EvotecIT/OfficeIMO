@@ -704,7 +704,7 @@ namespace OfficeIMO.Tests {
             control.AddSlide().AddTitle("Filtered thumbnail");
             withPicture.AddSlide().AddTitle("Filtered thumbnail");
             withPicture.Slides[0].AddPicture(new MemoryStream(PdfPngTestImages.CreateRgbPng(255, 0, 0)),
-                OfficeIMO.PowerPoint.PowerPointImagePartType.Png, PowerPointUnits.FromPoints(72), PowerPointUnits.FromPoints(72),
+                OfficeIMO.Drawing.OfficeImageFormat.Png, PowerPointUnits.FromPoints(72), PowerPointUnits.FromPoints(72),
                 PowerPointUnits.FromPoints(180), PowerPointUnits.FromPoints(120));
 
             var controlOptions = new PowerPointPdfSaveOptions { PageLayout = layout };

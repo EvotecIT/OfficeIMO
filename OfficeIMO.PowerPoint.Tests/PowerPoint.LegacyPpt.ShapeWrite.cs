@@ -573,7 +573,7 @@ namespace OfficeIMO.Tests {
                     PowerPointSlideLayoutType.Blank);
                 using var stream = new MemoryStream(image, writable: false);
                 PowerPointPicture picture = slide.AddPicture(stream,
-                    PowerPointImagePartType.Png, 158750, 317500, 635000, 476250);
+                    OfficeIMO.Drawing.OfficeImageFormat.Png, 158750, 317500, 635000, 476250);
                 picture.Name = "Tertiary visibility picture";
                 picture.Hidden = true;
                 picture.RecolorColor = OfficeColor.Orange;

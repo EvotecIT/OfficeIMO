@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
                 .Fill("D9EAF7")
                 .Stroke("2563EB", 1.5D);
             using (var stream = new MemoryStream(image, writable: false)) {
-                first.AddPicture(stream, PowerPointImagePartType.Png,
+                first.AddPicture(stream, OfficeImageFormat.Png,
                     3600000, 2700000, 1800000, 1200000);
             }
             first.Notes.Text = "LibreOffice round-trip notes " + marker;

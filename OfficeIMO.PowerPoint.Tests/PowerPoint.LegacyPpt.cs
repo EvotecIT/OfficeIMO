@@ -360,7 +360,7 @@ namespace OfficeIMO.Tests {
             PowerPointPicture picture = Assert.Single(presentation.Slides[0].Pictures);
             using var replacement = new MemoryStream(picture.GetImageBytes(), writable: false);
 
-            picture.UpdateImage(replacement, PowerPointImagePartType.Png);
+            picture.UpdateImage(replacement, OfficeIMO.Drawing.OfficeImageFormat.Png);
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.False(preflight.CanWrite);

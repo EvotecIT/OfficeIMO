@@ -876,10 +876,10 @@ namespace OfficeIMO.Tests {
             secondImage[secondImage.Length - 12] ^= 0x01;
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             using var firstStream = new MemoryStream(firstImage);
-            PowerPointPicture picture = presentation.AddSlide().AddPicture(firstStream, PowerPointImagePartType.Png);
+            PowerPointPicture picture = presentation.AddSlide().AddPicture(firstStream, OfficeIMO.Drawing.OfficeImageFormat.Png);
             string baseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
 
-            using (var secondStream = new MemoryStream(secondImage)) picture.UpdateImage(secondStream, PowerPointImagePartType.Png);
+            using (var secondStream = new MemoryStream(secondImage)) picture.UpdateImage(secondStream, OfficeIMO.Drawing.OfficeImageFormat.Png);
             string contentChanged = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
             picture.Crop(10, 0, 0, 0);
             string cropChanged = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));

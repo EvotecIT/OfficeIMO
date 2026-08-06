@@ -10,7 +10,7 @@ using OfficeIMO.PowerPoint;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
-using PptImagePartType = OfficeIMO.PowerPoint.PowerPointImagePartType;
+using PptImagePartType = OfficeIMO.Drawing.OfficeImageFormat;
 
 namespace OfficeIMO.Tests {
     public class PowerPointFunctionalSmokeTests {

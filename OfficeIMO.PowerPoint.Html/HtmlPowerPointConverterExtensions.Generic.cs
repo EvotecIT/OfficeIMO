@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using PptCore = OfficeIMO.PowerPoint;
 
@@ -75,7 +76,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlImportBudget budget,
         ref double top) {
         if (!HtmlImageDataUri.TryParse(resource.Source, out HtmlImageDataUri dataUri)
-            || !TryGetImagePartType(dataUri.MediaType, out PptCore.PowerPointImagePartType imagePartType)) {
+            || !TryGetImagePartType(dataUri.MediaType, out OfficeImageFormat imagePartType)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
                 "An inline generic slide image was omitted because native import requires a supported bounded image data URI.",
                 lossKind: OfficeConversionLossKind.Omission, source: resource.Source);

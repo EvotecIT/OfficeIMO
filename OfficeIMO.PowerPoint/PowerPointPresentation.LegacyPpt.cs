@@ -423,13 +423,13 @@ namespace OfficeIMO.PowerPoint {
             ApplyLegacyPictureEffects(picture.BlipFill.Blip, source);
         }
 
-        private static PowerPointImagePartType GetLegacyPicturePartType(string contentType) => contentType switch {
-            "image/png" => PowerPointImagePartType.Png,
-            "image/jpeg" => PowerPointImagePartType.Jpeg,
-            "image/bmp" => PowerPointImagePartType.Bmp,
-            "image/tiff" => PowerPointImagePartType.Tiff,
-            "image/x-emf" => PowerPointImagePartType.Emf,
-            "image/x-wmf" => PowerPointImagePartType.Wmf,
+        private static OfficeImageFormat GetLegacyPicturePartType(string contentType) => contentType switch {
+            "image/png" => OfficeImageFormat.Png,
+            "image/jpeg" => OfficeImageFormat.Jpeg,
+            "image/bmp" => OfficeImageFormat.Bmp,
+            "image/tiff" => OfficeImageFormat.Tiff,
+            "image/x-emf" => OfficeImageFormat.Emf,
+            "image/x-wmf" => OfficeImageFormat.Wmf,
             _ => throw new NotSupportedException($"Legacy picture content type '{contentType}' is not supported.")
         };
 

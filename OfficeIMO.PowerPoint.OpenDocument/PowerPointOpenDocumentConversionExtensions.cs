@@ -222,7 +222,7 @@ public static class PowerPointOpenDocumentConversionExtensions {
                     }
                     try {
                         byte[] imageBytes = image.GetImageBytes();
-                        if (!TryGetImagePartType(image.Path, imageBytes, out PowerPointImagePartType imageType)) {
+                        if (!TryGetImagePartType(image.Path, imageBytes, out OfficeImageFormat imageType)) {
                             unsupportedPictures++;
                             continue;
                         }
@@ -417,37 +417,37 @@ public static class PowerPointOpenDocumentConversionExtensions {
         }
     }
 
-    private static bool TryGetImagePartType(string path, byte[] bytes, out PowerPointImagePartType type) {
+    private static bool TryGetImagePartType(string path, byte[] bytes, out OfficeImageFormat type) {
         string normalizedPath = path;
         int suffix = normalizedPath.IndexOfAny(new[] { '?', '#' });
         if (suffix >= 0) normalizedPath = normalizedPath.Substring(0, suffix);
         try { normalizedPath = Uri.UnescapeDataString(normalizedPath); } catch (UriFormatException) { }
         switch (System.IO.Path.GetExtension(normalizedPath).ToLowerInvariant()) {
-            case ".png": type = PowerPointImagePartType.Png; return true;
+            case ".png": type = OfficeImageFormat.Png; return true;
             case ".jpg":
-            case ".jpeg": type = PowerPointImagePartType.Jpeg; return true;
-            case ".gif": type = PowerPointImagePartType.Gif; return true;
-            case ".bmp": type = PowerPointImagePartType.Bmp; return true;
+            case ".jpeg": type = OfficeImageFormat.Jpeg; return true;
+            case ".gif": type = OfficeImageFormat.Gif; return true;
+            case ".bmp": type = OfficeImageFormat.Bmp; return true;
             case ".tif":
-            case ".tiff": type = PowerPointImagePartType.Tiff; return true;
+            case ".tiff": type = OfficeImageFormat.Tiff; return true;
         }
         if (bytes.Length >= 8 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) {
-            type = PowerPointImagePartType.Png; return true;
+            type = OfficeImageFormat.Png; return true;
         }
         if (bytes.Length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) {
-            type = PowerPointImagePartType.Jpeg; return true;
+            type = OfficeImageFormat.Jpeg; return true;
         }
         if (bytes.Length >= 6 && bytes[0] == (byte)'G' && bytes[1] == (byte)'I' && bytes[2] == (byte)'F') {
-            type = PowerPointImagePartType.Gif; return true;
+            type = OfficeImageFormat.Gif; return true;
         }
         if (bytes.Length >= 2 && bytes[0] == (byte)'B' && bytes[1] == (byte)'M') {
-            type = PowerPointImagePartType.Bmp; return true;
+            type = OfficeImageFormat.Bmp; return true;
         }
         if (bytes.Length >= 4 && ((bytes[0] == (byte)'I' && bytes[1] == (byte)'I' && bytes[2] == 42 && bytes[3] == 0) ||
                                 (bytes[0] == (byte)'M' && bytes[1] == (byte)'M' && bytes[2] == 0 && bytes[3] == 42))) {
-            type = PowerPointImagePartType.Tiff; return true;
+            type = OfficeImageFormat.Tiff; return true;
         }
-        type = PowerPointImagePartType.Png; return false;
+        type = OfficeImageFormat.Png; return false;
     }
 
     private static IEnumerable<string> SplitParagraphs(string text) => text.Replace("\r\n", "\n")

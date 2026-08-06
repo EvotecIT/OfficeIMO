@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     using var image = new MemoryStream(pixel);
-                    PowerPointPicture picture = slide.AddPicture(image, OfficeIMO.PowerPoint.PowerPointImagePartType.Png);
+                    PowerPointPicture picture = slide.AddPicture(image, OfficeIMO.Drawing.OfficeImageFormat.Png);
                     PowerPointAutoShape shape = slide.AddRectangle(914400, 0, 914400, 914400);
                     slide.GroupShapes(new PowerPointShape[] { picture, shape });
                     presentation.Save();

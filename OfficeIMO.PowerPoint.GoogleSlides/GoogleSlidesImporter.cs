@@ -359,13 +359,13 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             }
         }
 
-        private static PowerPointImagePartType DetectImageType(byte[] bytes) {
+        private static OfficeImageFormat DetectImageType(byte[] bytes) {
             if (bytes.Length >= 8
                 && bytes[0] == 0x89
                 && bytes[1] == 0x50
                 && bytes[2] == 0x4E
                 && bytes[3] == 0x47) {
-                return PowerPointImagePartType.Png;
+                return OfficeImageFormat.Png;
             }
             if (bytes.Length >= 6
                 && bytes[0] == 0x47
@@ -374,9 +374,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 && bytes[3] == 0x38
                 && (bytes[4] == 0x37 || bytes[4] == 0x39)
                 && bytes[5] == 0x61) {
-                return PowerPointImagePartType.Gif;
+                return OfficeImageFormat.Gif;
             }
-            return PowerPointImagePartType.Jpeg;
+            return OfficeImageFormat.Jpeg;
         }
 
         private static Uri GetTrustedImageUrl(string value) {

@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
             using var emptyImage = new MemoryStream();
             slide.SetBackgroundImage(
                 emptyImage,
-                PowerPointImagePartType.Png);
+                OfficeImageFormat.Png);
 
             OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
                 slide.ExportImage(

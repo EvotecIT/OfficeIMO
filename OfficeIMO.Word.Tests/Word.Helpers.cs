@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -11,13 +11,13 @@ namespace OfficeIMO.Tests;
 /// </summary>
 public partial class Word {
     [Theory]
-    [InlineData("snail.bmp", WordImagePartType.Bmp)]
-    [InlineData("example.gif", WordImagePartType.Gif)]
-    [InlineData("Kulek.jpg", WordImagePartType.Jpeg)]
-    [InlineData("BackgroundImage.png", WordImagePartType.Png)]
-    [InlineData("saturn.tif", WordImagePartType.Tiff)]
-    [InlineData("sample.emf", WordImagePartType.Emf)]
-    public void Test_GetImageСharacteristics(string filename, WordImagePartType expectedType) {
+    [InlineData("snail.bmp", OfficeImageFormat.Bmp)]
+    [InlineData("example.gif", OfficeImageFormat.Gif)]
+    [InlineData("Kulek.jpg", OfficeImageFormat.Jpeg)]
+    [InlineData("BackgroundImage.png", OfficeImageFormat.Png)]
+    [InlineData("saturn.tif", OfficeImageFormat.Tiff)]
+    [InlineData("sample.emf", OfficeImageFormat.Emf)]
+    public void Test_GetImageСharacteristics(string filename, OfficeImageFormat expectedType) {
         var filePath = Path.Combine(_directoryWithImages, filename);
         using var imageStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         var imageСharacteristics = Helpers.GetImageCharacteristics(imageStream, filename);
@@ -30,7 +30,7 @@ public partial class Word {
 
         var imageCharacteristics = Helpers.GetImageCharacteristics(imageStream, "sample.wmf");
 
-        Assert.Equal(WordImagePartType.Wmf, imageCharacteristics.Type);
+        Assert.Equal(OfficeImageFormat.Wmf, imageCharacteristics.Type);
         Assert.Equal(192, imageCharacteristics.Width);
         Assert.Equal(96, imageCharacteristics.Height);
     }
@@ -44,19 +44,6 @@ public partial class Word {
         Assert.Contains("Webp", exception.Message);
     }
 
-    [Theory]
-    [InlineData(WordImagePartType.Bmp, "image/bmp")]
-    [InlineData(WordImagePartType.Gif, "image/gif")]
-    [InlineData(WordImagePartType.Jpeg, "image/jpeg")]
-    [InlineData(WordImagePartType.Png, "image/png")]
-    [InlineData(WordImagePartType.Tiff, "image/tiff")]
-    [InlineData(WordImagePartType.Emf, "image/x-emf")]
-    [InlineData(WordImagePartType.Wmf, "image/x-wmf")]
-    [InlineData(WordImagePartType.Svg, "image/svg+xml")]
-    public void Test_CustomImagePartType_ToOpenXmlImagePartType(WordImagePartType imagePartType, string expectedContentType) {
-        Assert.Equal(expectedContentType, imagePartType.ToOpenXmlImagePartType());
-    }
-
     [Fact]
     public void Test_GetImageCharacteristics_FromNonSeekableStream() {
         var filePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
@@ -64,7 +51,7 @@ public partial class Word {
 
         var imageCharacteristics = Helpers.GetImageCharacteristics(imageStream, "Kulek.jpg");
 
-        Assert.Equal(WordImagePartType.Jpeg, imageCharacteristics.Type);
+        Assert.Equal(OfficeImageFormat.Jpeg, imageCharacteristics.Type);
         Assert.True(imageCharacteristics.Width > 0);
         Assert.True(imageCharacteristics.Height > 0);
     }
