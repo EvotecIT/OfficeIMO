@@ -159,7 +159,7 @@ public static class EmailImageExportExtensions {
                     "EMAIL_IMAGE_RTF_BODY_PROJECTED",
                     "The email RTF body was projected through the shared RTF-to-HTML adapter.",
                     "Email body",
-                    OfficeImageExportLossKind.Approximation));
+                    OfficeConversionLossKind.Approximation));
                 return ExtractHtmlBody(rtf.Document.ToHtml());
             } catch (Exception exception) when (
                 exception is InvalidDataException ||
@@ -170,7 +170,7 @@ public static class EmailImageExportExtensions {
                     "EMAIL_IMAGE_RTF_BODY_UNREADABLE",
                     "The email RTF body could not be projected; plain text was used when available.",
                     "Email body",
-                    OfficeImageExportLossKind.Omission));
+                    OfficeConversionLossKind.Omission));
             }
         }
 
@@ -189,7 +189,7 @@ public static class EmailImageExportExtensions {
             "EMAIL_IMAGE_BODY_MISSING",
             "The email does not contain a renderable HTML, RTF, or plain-text body.",
             "Email body",
-            OfficeImageExportLossKind.Omission));
+            OfficeConversionLossKind.Omission));
         return "<p class=\"officeimo-email-empty\">This message has no renderable body.</p>";
     }
 

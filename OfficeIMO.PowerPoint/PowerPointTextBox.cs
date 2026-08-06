@@ -29,7 +29,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Gets the preset geometry used by this text-bearing shape.
         /// </summary>
-        public PowerPointShapeType? ShapeType => Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value.ToOfficeEnum();
+        public OfficePresetShapeType? ShapeType => Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value.ToOfficeEnum();
 
         /// <summary>
         /// Gets whether this shape represents a conventional text box or placeholder rather than a text-bearing preset shape.

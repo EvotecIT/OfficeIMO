@@ -55,7 +55,7 @@ namespace OfficeIMO.Word {
         /// <param name="document">Parent document.</param>
         /// <param name="paragraph">Paragraph containing the bookmark.</param>
         /// <param name="bookmarkStart">Underlying bookmark start element.</param>
-        public WordBookmark(WordDocument document, Paragraph paragraph, BookmarkStart bookmarkStart) {
+        internal WordBookmark(WordDocument document, Paragraph paragraph, BookmarkStart bookmarkStart) {
             this._document = document;
             this._paragraph = paragraph;
             this._bookmarkStart = bookmarkStart;

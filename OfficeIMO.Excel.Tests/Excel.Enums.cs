@@ -11,13 +11,13 @@ namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
         public void TableStyleHasValues() {
-            Assert.True(Enum.IsDefined(typeof(TableStyle), nameof(TableStyle.TableStyleLight1)));
+            Assert.True(Enum.IsDefined(typeof(ExcelTableStyle), nameof(ExcelTableStyle.TableStyleLight1)));
         }
 
         [Fact]
         public void ExecutionPolicyDefaultsToAutomatic() {
-            var policy = new ExecutionPolicy();
-            Assert.Equal(ExecutionMode.Automatic, policy.Mode);
+            var policy = new ExcelExecutionPolicy();
+            Assert.Equal(ExcelExecutionMode.Automatic, policy.Mode);
         }
 
         [Fact]

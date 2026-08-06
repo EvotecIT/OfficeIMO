@@ -700,12 +700,12 @@ namespace OfficeIMO.Word.Pdf {
             return style;
         }
 
-        private static PdfCore.PdfAlign MapNativeTextBoxBoxAlign(WordHorizontalAlignmentValues alignment) {
+        private static PdfCore.PdfAlign MapNativeTextBoxBoxAlign(WordTextBoxHorizontalAlignment alignment) {
             switch (alignment) {
-                case WordHorizontalAlignmentValues.Center:
+                case WordTextBoxHorizontalAlignment.Center:
                     return PdfCore.PdfAlign.Center;
-                case WordHorizontalAlignmentValues.Right:
-                case WordHorizontalAlignmentValues.Outside:
+                case WordTextBoxHorizontalAlignment.Right:
+                case WordTextBoxHorizontalAlignment.Outside:
                     return PdfCore.PdfAlign.Right;
                 default:
                     return PdfCore.PdfAlign.Left;
@@ -1282,13 +1282,13 @@ namespace OfficeIMO.Word.Pdf {
             tabIndex = currentTabIndex;
         }
 
-        private static PdfCore.TextRun CreateNativeHyperLinkTextRun(
+        private static PdfCore.PdfTextRun CreateNativeHyperLinkTextRun(
             string text,
             string? linkUri,
             string? bookmarkName,
             string? contents,
             NativeResolvedTextStyle style) =>
-            new PdfCore.TextRun(
+            new PdfCore.PdfTextRun(
                 text,
                 bold: style.Bold,
                 underline: style.Underline || linkUri != null || bookmarkName != null,

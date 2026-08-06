@@ -162,115 +162,115 @@ namespace OfficeIMO.Excel {
             return min + ((max - min) * fallbackPercent / 100D);
         }
 
-        private static ExcelConditionalIconKind MapIconKind(ExcelConditionalIconFamily family, int index, int iconCount) {
+        private static OfficeConditionalIconKind MapIconKind(ExcelConditionalIconFamily family, int index, int iconCount) {
             int normalized = Math.Max(0, Math.Min(iconCount - 1, index));
             if (family == ExcelConditionalIconFamily.Arrows) {
                 if (iconCount >= 5) {
                     return normalized == 0
-                        ? ExcelConditionalIconKind.RedDownArrow
+                        ? OfficeConditionalIconKind.RedDownArrow
                         : normalized == 1
-                            ? ExcelConditionalIconKind.YellowDownArrow
+                            ? OfficeConditionalIconKind.YellowDownArrow
                             : normalized == 2
-                                ? ExcelConditionalIconKind.YellowSideArrow
+                                ? OfficeConditionalIconKind.YellowSideArrow
                                 : normalized == 3
-                                    ? ExcelConditionalIconKind.YellowUpArrow
-                                    : ExcelConditionalIconKind.GreenUpArrow;
+                                    ? OfficeConditionalIconKind.YellowUpArrow
+                                    : OfficeConditionalIconKind.GreenUpArrow;
                 }
 
                 if (iconCount == 4) {
                     return normalized == 0
-                        ? ExcelConditionalIconKind.RedDownArrow
+                        ? OfficeConditionalIconKind.RedDownArrow
                         : normalized == 1
-                            ? ExcelConditionalIconKind.YellowDownArrow
+                            ? OfficeConditionalIconKind.YellowDownArrow
                             : normalized == 2
-                                ? ExcelConditionalIconKind.YellowSideArrow
-                                : ExcelConditionalIconKind.GreenUpArrow;
+                                ? OfficeConditionalIconKind.YellowSideArrow
+                                : OfficeConditionalIconKind.GreenUpArrow;
                 }
 
                 return normalized == 0
-                    ? ExcelConditionalIconKind.RedDownArrow
+                    ? OfficeConditionalIconKind.RedDownArrow
                     : normalized == 1
-                        ? ExcelConditionalIconKind.YellowSideArrow
-                        : ExcelConditionalIconKind.GreenUpArrow;
+                        ? OfficeConditionalIconKind.YellowSideArrow
+                        : OfficeConditionalIconKind.GreenUpArrow;
             }
 
             if (family == ExcelConditionalIconFamily.Circles) {
                 if (iconCount >= 5) {
                     return normalized == 0
-                        ? ExcelConditionalIconKind.RedCircle
+                        ? OfficeConditionalIconKind.RedCircle
                         : normalized == 1
-                            ? ExcelConditionalIconKind.OrangeCircle
+                            ? OfficeConditionalIconKind.OrangeCircle
                             : normalized == 2
-                                ? ExcelConditionalIconKind.YellowCircle
+                                ? OfficeConditionalIconKind.YellowCircle
                                 : normalized == 3
-                                    ? ExcelConditionalIconKind.LightGreenCircle
-                                    : ExcelConditionalIconKind.GreenCircle;
+                                    ? OfficeConditionalIconKind.LightGreenCircle
+                                    : OfficeConditionalIconKind.GreenCircle;
                 }
 
                 if (iconCount == 4) {
                     return normalized == 0
-                        ? ExcelConditionalIconKind.RedCircle
+                        ? OfficeConditionalIconKind.RedCircle
                         : normalized == 1
-                            ? ExcelConditionalIconKind.OrangeCircle
+                            ? OfficeConditionalIconKind.OrangeCircle
                             : normalized == 2
-                                ? ExcelConditionalIconKind.YellowCircle
-                                : ExcelConditionalIconKind.GreenCircle;
+                                ? OfficeConditionalIconKind.YellowCircle
+                                : OfficeConditionalIconKind.GreenCircle;
                 }
 
                 return normalized == 0
-                    ? ExcelConditionalIconKind.RedCircle
+                    ? OfficeConditionalIconKind.RedCircle
                     : normalized == 1
-                        ? ExcelConditionalIconKind.YellowCircle
-                        : ExcelConditionalIconKind.GreenCircle;
+                        ? OfficeConditionalIconKind.YellowCircle
+                        : OfficeConditionalIconKind.GreenCircle;
             }
 
             if (family == ExcelConditionalIconFamily.Ratings) {
                 if (iconCount >= 5) {
                     return normalized == 0
-                        ? ExcelConditionalIconKind.RatingOne
+                        ? OfficeConditionalIconKind.RatingOne
                         : normalized == 1
-                            ? ExcelConditionalIconKind.RatingTwo
+                            ? OfficeConditionalIconKind.RatingTwo
                             : normalized == 2
-                                ? ExcelConditionalIconKind.RatingThree
+                                ? OfficeConditionalIconKind.RatingThree
                                 : normalized == 3
-                                    ? ExcelConditionalIconKind.RatingFour
-                                    : ExcelConditionalIconKind.RatingFive;
+                                    ? OfficeConditionalIconKind.RatingFour
+                                    : OfficeConditionalIconKind.RatingFive;
                 }
 
                 return normalized == 0
-                    ? ExcelConditionalIconKind.RatingOne
+                    ? OfficeConditionalIconKind.RatingOne
                     : normalized == 1
-                        ? ExcelConditionalIconKind.RatingTwo
+                        ? OfficeConditionalIconKind.RatingTwo
                         : normalized == 2
-                            ? ExcelConditionalIconKind.RatingThree
-                            : ExcelConditionalIconKind.RatingFour;
+                            ? OfficeConditionalIconKind.RatingThree
+                            : OfficeConditionalIconKind.RatingFour;
             }
 
             if (family == ExcelConditionalIconFamily.Quarters) {
                 return normalized == 0
-                    ? ExcelConditionalIconKind.QuarterEmpty
+                    ? OfficeConditionalIconKind.QuarterEmpty
                     : normalized == 1
-                        ? ExcelConditionalIconKind.QuarterOne
+                        ? OfficeConditionalIconKind.QuarterOne
                         : normalized == 2
-                            ? ExcelConditionalIconKind.QuarterTwo
+                            ? OfficeConditionalIconKind.QuarterTwo
                             : normalized == 3
-                                ? ExcelConditionalIconKind.QuarterThree
-                                : ExcelConditionalIconKind.QuarterFull;
+                                ? OfficeConditionalIconKind.QuarterThree
+                                : OfficeConditionalIconKind.QuarterFull;
             }
 
             if (family == ExcelConditionalIconFamily.Flags) {
                 return normalized == 0
-                    ? ExcelConditionalIconKind.RedFlag
+                    ? OfficeConditionalIconKind.RedFlag
                     : normalized == 1
-                        ? ExcelConditionalIconKind.YellowFlag
-                        : ExcelConditionalIconKind.GreenFlag;
+                        ? OfficeConditionalIconKind.YellowFlag
+                        : OfficeConditionalIconKind.GreenFlag;
             }
 
             return normalized == 0
-                ? ExcelConditionalIconKind.RedCross
+                ? OfficeConditionalIconKind.RedCross
                 : normalized == 1
-                    ? ExcelConditionalIconKind.YellowExclamation
-                    : ExcelConditionalIconKind.GreenCheck;
+                    ? OfficeConditionalIconKind.YellowExclamation
+                    : OfficeConditionalIconKind.GreenCheck;
         }
 
         private enum ExcelConditionalIconFamily {

@@ -86,7 +86,7 @@ Common Word changes are:
 | `paragraph.SetUnderline(UnderlineValues.Double)` | `paragraph.SetUnderline(WordUnderlineStyle.Double)` |
 | `paragraph.SetAlignment(JustificationValues.Center)` | `paragraph.SetAlignment(WordParagraphAlignment.Center)` |
 | `section.GetOrCreateHeader(HeaderFooterValues.First)` | `section.GetOrCreateHeader(WordHeaderFooterType.First)` |
-| `PageOrientationValues` | `WordPageOrientation` |
+| `PageOrientationValues`, `WordPageOrientation`, `ExcelPageOrientation`, or `PdfPageOrientation` | `OfficePageOrientation` |
 | `NumberFormatValues` | `WordNumberFormat` |
 | `BorderValues` | `WordBorderStyle` |
 | `HighlightColorValues` | `WordHighlightColor` |
@@ -102,9 +102,9 @@ Common Word changes are:
 | `DocumentProtectionValues` | `WordDocumentProtectionType` |
 | `FootnotePositionValues` / `EndnotePositionValues` / `RestartNumberValues` | `WordFootnotePosition` / `WordEndnotePosition` / `WordNoteNumberRestart` |
 | `LevelJustificationValues` / `LevelSuffixValues` | `WordListLevelAlignment` / `WordListLevelSuffix` |
-| `ShapeTypeValues` / `BlipCompressionValues` / `BlackWhiteModeValues` | `WordImageShapeType` / `WordImageCompressionQuality` / `WordImageBlackWhiteMode` |
+| `ShapeTypeValues` / `BlipCompressionValues` / `BlackWhiteModeValues` | `OfficePresetShapeType` / `WordImageCompressionQuality` / `WordImageBlackWhiteMode` |
 | `WordImage.BlackWiteMode` | `WordImage.BlackWhiteMode` (the misspelled member remains as an obsolete forwarding alias) |
-| chart `BarDirectionValues`, `BarGroupingValues`, and `LegendPositionValues` | `WordChartBarDirection`, `WordChartBarGrouping`, and `WordChartLegendPosition` |
+| chart `BarDirectionValues`, `BarGroupingValues`, and `LegendPositionValues` | `WordChartBarDirection`, `WordChartBarGrouping`, and `OfficeChartLegendPosition` |
 
 PowerPoint uses the same rule:
 
@@ -112,14 +112,14 @@ PowerPoint uses the same rule:
 | --- | --- |
 | `AddSlideWithLayoutType(...)` / `SetLayoutWithType(...)` / `GetLayoutIndexWithType(...)` | `AddSlide(...)` / `SetLayout(...)` / `GetLayoutIndex(...)` with `PowerPointSlideLayoutType` |
 | `SlideLayoutValues` | `PowerPointSlideLayoutType` |
-| `ShapeTypeValues` | `PowerPointShapeType` |
+| `ShapeTypeValues` | `OfficePresetShapeType` |
 | `TextAlignmentTypeValues` / `TextAnchoringTypeValues` / `TextVerticalValues` | `PowerPointTextAlignment` / `PowerPointTextVerticalAlignment` / `PowerPointTextDirection` |
 | `TextAutoNumberSchemeValues` / `TextUnderlineValues` | `PowerPointNumberingScheme` / `PowerPointUnderlineStyle` |
-| `LineEndValues` / `LineEndLengthValues` / `LineEndWidthValues` | `PowerPointLineEndType` / `PowerPointLineEndLength` / `PowerPointLineEndWidth` |
+| `LineEndValues` / `LineEndLengthValues` / `LineEndWidthValues` | `OfficeLineMarkerKind` / `PowerPointLineEndLength` / `PowerPointLineEndWidth` |
 | `PresetLineDashValues` / `RectangleAlignmentValues` | `PowerPointLineDashStyle` / `PowerPointRectangleAlignment` |
 | `PlaceholderValues` / `PlaceholderSizeValues` / `DirectionValues` | `PowerPointPlaceholderType` / `PowerPointPlaceholderSize` / `PowerPointPlaceholderDirection` |
 | `SlideSizeValues` | `PowerPointSlideSizeType` |
-| chart `BuiltInUnitValues`, `CrossBetweenValues`, `CrossesValues`, and `TickLabelPositionValues` | `PowerPointChartDisplayUnit`, `PowerPointChartAxisCrossBetween`, `PowerPointChartAxisCrossing`, and `PowerPointChartTickLabelPosition` |
+| chart `BuiltInUnitValues`, `CrossBetweenValues`, `CrossesValues`, and `TickLabelPositionValues` | `OfficeChartDisplayUnit`, `OfficeChartAxisCrossBetween`, `OfficeChartAxisCrossingPosition`, and `OfficeChartAxisTickLabelPosition` |
 | chart `DataLabelPositionValues`, `GroupingValues`, `LegendPositionValues`, `MarkerStyleValues`, and `TrendlineValues` | the corresponding `PowerPointChart*` enum |
 
 Excel replacements include:
@@ -135,10 +135,82 @@ Excel replacements include:
 | `TotalsRowFunctionValues` | `ExcelTableTotalsFunction` |
 | `DataConsolidateFunctionValues` / `FieldSortValues` / `GroupByValues` | `ExcelPivotDataFunction` / `ExcelPivotFieldSort` / `ExcelPivotGroupBy` |
 | `PivotFilterValues` / `PivotTableAxisValues` / `ShowDataAsValues` | `ExcelPivotFilterType` / `ExcelPivotTableAxis` / `ExcelPivotShowDataAs` |
-| chart `BuiltInUnitValues`, `CrossBetweenValues`, `CrossesValues`, and `TickLabelPositionValues` | `ExcelChartDisplayUnit`, `ExcelChartAxisCrossBetween`, `ExcelChartAxisCrossing`, and `ExcelChartTickLabelPosition` |
+| chart `BuiltInUnitValues`, `CrossBetweenValues`, `CrossesValues`, and `TickLabelPositionValues` | `OfficeChartDisplayUnit`, `OfficeChartAxisCrossBetween`, `OfficeChartAxisCrossingPosition`, and `OfficeChartAxisTickLabelPosition` |
 | chart `DataLabelPositionValues`, `LegendPositionValues`, `MarkerStyleValues`, and `TrendlineValues` | the corresponding `ExcelChart*` enum |
 
 The OpenXML member named `ShowDataAsValues.PercentOfRaw` serializes the token `percentOfRow`. OfficeIMO exposes the corrected spelling `ExcelPivotShowDataAs.PercentOfRow`.
+
+### Cross-format contract and naming cleanup
+
+OfficeIMO applications commonly import Word, Excel, PowerPoint, PDF, and one or
+more converters together. Format-owned types therefore carry their format name,
+while contracts with the same meaning in several formats live once in
+`OfficeIMO.Core` with an `Office*` name. This avoids ambiguous `using`
+directives and prevents converters from defining parallel policy enums.
+
+Shared replacements include:
+
+| OfficeIMO 3.0 or early 3.1 preview | OfficeIMO 3.1 |
+| --- | --- |
+| Format-specific conversion loss and destination-conflict enums | `OfficeConversionLossPolicy` / `OfficeConversionFileConflictPolicy` |
+| Format-specific conversion diagnostic category, severity, and failure enums | `OfficeConversionDiagnosticCategory`, `OfficeConversionDiagnosticSeverity`, and `OfficeConversionFailureReason` |
+| Format-specific feature-support enums | `OfficeFeatureSupportLevel` |
+| Open XML SDK `OpenSettings` in Word, Excel, or PowerPoint load options | `OfficeOpenXmlLoadSettings` |
+| Open XML SDK `FileFormatVersions` in public validation APIs | `OfficeOpenXmlFileFormatVersion` |
+| Open XML SDK validation errors | `OfficeOpenXmlValidationError` |
+| Word/Excel/PowerPoint copies of common chart positions, markers, line ends, and preset shapes | `OfficeChart*`, `OfficeLineMarkerKind`, and `OfficePresetShapeType` from `OfficeIMO.Core` |
+
+Format-specific public type renames include:
+
+| OfficeIMO 3.0 or early 3.1 preview | OfficeIMO 3.1 |
+| --- | --- |
+| Word `ApplicationProperties` / `BuiltinDocumentProperties` | `WordApplicationProperties` / `WordBuiltinDocumentProperties` |
+| Excel `ApplicationProperties` / `BuiltinDocumentProperties` | `ExcelApplicationProperties` / `ExcelBuiltinDocumentProperties` |
+| `CapsStyle` / `CompatibilityMode` / `CoverPageTemplate` | `WordCapsStyle` / `WordCompatibilityMode` / `WordCoverPageTemplate` |
+| `CustomImagePartType` / `ImageFillMode` / `WrapTextImage` | `WordImagePartType` / `WordImageFillMode` / `WordImageTextWrapping` |
+| `ShapeType` / `SmartArtType` | `WordShapeType` / `WordSmartArtType` |
+| `TableOfContentStyle` / `TargetFrame` / `TextMatchType` | `WordTableOfContentsStyle` / `WordHyperlinkTargetFrame` / `WordTextMatchType` |
+| Word `DocumentCleanupOptions` / `PropertyTypes` | `WordDocumentCleanupOptions` / `WordCustomPropertyType` |
+| Excel `ExecutionMode` / `ExecutionPolicy` | `ExcelExecutionMode` / `ExcelExecutionPolicy` |
+| Excel `HeaderFooterPosition` / `NameValidationMode` | `ExcelHeaderFooterPosition` / `ExcelDefinedNameValidationMode` |
+| Excel `TableStyle` | `ExcelTableStyle` |
+| Excel `SheetNameValidationMode` / `TableNameValidationMode` / `WorksheetValidationMode` | `ExcelSheetNameValidationMode` / `ExcelTableNameValidationMode` / `ExcelWorksheetValidationMode` |
+| PowerPoint `ImagePartType` | `PowerPointImagePartType` |
+| `SlideTransition` / `SlideTransitionSpeed` / `TableCellBorders` | `PowerPointSlideTransition` / `PowerPointSlideTransitionSpeed` / `PowerPointTableCellBorders` |
+| Excel or PowerPoint format-specific signature mutation policy | `OfficeSignatureMutationPolicy` |
+| `OfficeImageExportLossKind`, `HtmlConversionLossKind`, or `WordMarkdownConversionLossKind` | `OfficeConversionLossKind` |
+| `GoogleDocsImportMode`, `GoogleSheetsImportMode`, or `GoogleSlidesImportMode` | `GoogleWorkspaceImportMode` |
+| `GoogleDocsDiffKind`, `GoogleSheetsDiffKind`, or `GoogleSlidesDiffKind` | `GoogleWorkspaceDiffKind` |
+
+Word high-level APIs no longer expose package elements for ordinary formatting:
+
+| OfficeIMO 3.0 or early 3.1 preview | OfficeIMO 3.1 |
+| --- | --- |
+| Open XML `Style` arguments and results on paragraph-style APIs | `WordParagraphStyleDefinition` |
+| Open XML page-size values | `WordPageSizeDefinition` |
+| Open XML `FootnoteProperties`, `EndnoteProperties`, or `PageNumberType` | `WordFootnoteSettings`, `WordEndnoteSettings`, and `WordPageNumberSettings` |
+| Open XML numeric wrappers on margins and borders | `uint` / `ushort` values |
+| `WordHorizontalAlignmentValues` for text boxes | `WordTextBoxHorizontalAlignment` |
+| Generic fluent `HorizontalAlignment` / `VerticalAlignment` | `WordParagraphAlignment` or `WordTableAlignment`, according to the owning builder |
+| `WordTableLayoutType`, raw `WordTableLayoutMode`, `WordTable.LayoutType`, or `SetTableLayout(...)` | `WordTableLayoutMode.AutoFit` / `Fixed` and `WordTable.LayoutMode`; use `AutoFitToContents()`, `AutoFitToWindow()`, or `SetFixedWidth(percent)` when width changes are also intended |
+| Word fluent `ParagraphBuilder` / Markdown `ParagraphBuilder` | `WordParagraphBuilder` / `MarkdownParagraphBuilder` |
+| PDF `TextRun` / Markdown `TextRun` | `PdfTextRun` / `MarkdownTextRun` |
+
+The early 3.1-preview values `AutoFitToContents`, `AutoFitToWindow`, and
+`FixedWidth` mixed Word's two layout algorithms with width presets and could not
+round-trip unambiguously. `WordTable.LayoutMode` now changes only the real
+layout algorithm and preserves table and cell preferred widths. The explicit
+width helpers retain their action-oriented behavior. `SetFixedWidth(percent)`
+sets the table width only; it no longer rewrites each cell to an equal width.
+
+Excel package-metadata creation methods now return `ExcelPackagePartInfo`
+instead of an Open XML SDK package part. Use its `RelationshipId`, `Uri`,
+`ContentType`, and `RelationshipType` properties. Applications that intentionally
+perform low-level package editing can still start from
+`ExcelDocument.OpenXmlDocument`.
+
+`ExcelSheet.BeginNoLock()` is no longer public. Use `ExcelSheet.Batch(...)` to
+group worksheet mutations under one write lock.
 
 `OfficeIMO.Markup` now emits the same OfficeIMO-owned enums in generated C#. Its PowerShell starter output uses canonical PSWriteOffice commands and string enum member names so it remains compatible with the packaged module's isolated dependency context. Regenerate previously emitted starter code, review any emitted `TODO` comments for chart-data binding, or replace remaining `DocumentFormat.OpenXml.*Values` arguments with the matching enum above before compiling or running against 3.1.
 

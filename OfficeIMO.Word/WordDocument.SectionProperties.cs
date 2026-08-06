@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System.Diagnostics;
 
 namespace OfficeIMO.Word {
@@ -13,7 +13,7 @@ namespace OfficeIMO.Word {
         /// When a document contains multiple sections, consider using
         /// <c>Sections[wantedSection].PageOrientation</c> instead.
         /// </remarks>
-        public WordPageOrientation PageOrientation {
+        public OfficePageOrientation PageOrientation {
             get {
                 if (this.Sections.Count > 1) {
                     Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].PageOrientation.");
@@ -109,7 +109,7 @@ namespace OfficeIMO.Word {
         /// Use <c>Sections[wantedSection].FootnoteProperties</c> to modify
         /// other sections.
         /// </remarks>
-        public FootnoteProperties FootnoteProperties {
+        internal FootnoteProperties FootnoteProperties {
             get {
                 if (this.Sections.Count > 1) {
                     Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].FootnoteProperties.");
@@ -133,7 +133,7 @@ namespace OfficeIMO.Word {
         /// Use <c>Sections[wantedSection].EndnoteProperties</c> when working
         /// with multiple sections.
         /// </remarks>
-        public EndnoteProperties EndnoteProperties {
+        internal EndnoteProperties EndnoteProperties {
             get {
                 if (this.Sections.Count > 1) {
                     Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].EndnoteProperties.");
@@ -209,7 +209,7 @@ namespace OfficeIMO.Word {
         /// When a document has multiple sections, access
         /// <c>Sections[wantedSection].PageNumberType</c> instead.
         /// </remarks>
-        public PageNumberType PageNumberType {
+        internal PageNumberType PageNumberType {
             get {
                 if (this.Sections.Count > 1) {
                     Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].PageNumberType.");

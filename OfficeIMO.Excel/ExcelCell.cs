@@ -379,7 +379,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Creates an Excel table over the range.
         /// </summary>
-        public ExcelTable CreateTable(string name, bool hasHeader = true, TableStyle style = TableStyle.TableStyleMedium2, bool includeAutoFilter = true) {
+        public ExcelTable CreateTable(string name, bool hasHeader = true, ExcelTableStyle style = ExcelTableStyle.TableStyleMedium2, bool includeAutoFilter = true) {
             string resolvedName = Sheet.AddTableAndGetName(Address, hasHeader, name, style, includeAutoFilter);
             return Sheet.Table(resolvedName);
         }
@@ -558,7 +558,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a built-in table style and optional style flags.
         /// </summary>
-        public ExcelTable SetStyle(TableStyle style, bool? showFirstColumn = null, bool? showLastColumn = null, bool? showRowStripes = null, bool? showColumnStripes = null) {
+        public ExcelTable SetStyle(ExcelTableStyle style, bool? showFirstColumn = null, bool? showLastColumn = null, bool? showRowStripes = null, bool? showColumnStripes = null) {
             Sheet.SetTableStyle(NameOrRange, style, showFirstColumn, showLastColumn, showRowStripes, showColumnStripes);
             return this;
         }
@@ -580,7 +580,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Renames this table and its workbook references.</summary>
-        public ExcelTable Rename(string newName, TableNameValidationMode validationMode = TableNameValidationMode.Strict) {
+        public ExcelTable Rename(string newName, ExcelTableNameValidationMode validationMode = ExcelTableNameValidationMode.Strict) {
             return new ExcelTable(Sheet, Sheet.RenameTable(NameOrRange, newName, validationMode));
         }
 

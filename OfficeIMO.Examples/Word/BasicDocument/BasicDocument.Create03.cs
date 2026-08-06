@@ -40,11 +40,11 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine(document.CompatibilitySettings.CompatibilityMode);
 
-                document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.Word2013;
+                document.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2013;
 
                 Console.WriteLine(document.CompatibilitySettings.CompatibilityMode);
 
-                document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.None;
+                document.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.None;
                 
                 Console.WriteLine(document.CompatibilitySettings.CompatibilityMode);
 

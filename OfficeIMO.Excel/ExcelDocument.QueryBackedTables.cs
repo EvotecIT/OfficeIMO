@@ -42,9 +42,9 @@ namespace OfficeIMO.Excel {
                     range,
                     hasHeader: true,
                     requestedTableName,
-                    TableStyle.TableStyleMedium2,
+                    ExcelTableStyle.TableStyleMedium2,
                     includeAutoFilter: true,
-                    validationMode: TableNameValidationMode.Strict,
+                    validationMode: ExcelTableNameValidationMode.Strict,
                     headerNames: columns);
 
                 connectionId = GetNextPowerQueryConnectionId();

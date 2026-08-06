@@ -180,7 +180,7 @@ internal static class HtmlRenderStylesheetApplier {
             HtmlDiagnosticSeverity.Error,
             source,
             exception.LimitSource + ": " + exception.Detail,
-            HtmlConversionLossKind.Omission);
+            OfficeConversionLossKind.Omission);
         return false;
     }
 

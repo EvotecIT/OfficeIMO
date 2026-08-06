@@ -74,12 +74,12 @@ namespace OfficeIMO.Tests {
                     series => {
                         Assert.Equal("Adoption", series.Name);
                         Assert.Equal(ExcelChartType.ColumnClustered, series.ChartType);
-                        Assert.Equal(ExcelChartAxisGroup.Primary, series.AxisGroup);
+                        Assert.Equal(OfficeChartAxisGroup.Primary, series.AxisGroup);
                     },
                     series => {
                         Assert.Equal("Conversion", series.Name);
                         Assert.Equal(ExcelChartType.Line, series.ChartType);
-                        Assert.Equal(ExcelChartAxisGroup.Secondary, series.AxisGroup);
+                        Assert.Equal(OfficeChartAxisGroup.Secondary, series.AxisGroup);
                     });
             }
         }
@@ -108,8 +108,8 @@ namespace OfficeIMO.Tests {
             ExcelSheet reopenedSheet = reopened.Sheets.Single(item => item.Name == "Shared");
             ExcelChart chart = Assert.Single(reopenedSheet.Charts);
             Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
-            Assert.Equal(ExcelChartAxisGroup.Primary, snapshot.Data.Series[0].AxisGroup);
-            Assert.Equal(ExcelChartAxisGroup.Secondary, snapshot.Data.Series[1].AxisGroup);
+            Assert.Equal(OfficeChartAxisGroup.Primary, snapshot.Data.Series[0].AxisGroup);
+            Assert.Equal(OfficeChartAxisGroup.Secondary, snapshot.Data.Series[1].AxisGroup);
         }
 
         [Fact]

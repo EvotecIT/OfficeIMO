@@ -184,7 +184,7 @@ internal static partial class PdfWriter {
 
             double maxContentHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
             string? captionText = string.IsNullOrWhiteSpace(style.Caption) ? null : style.Caption;
-            System.Collections.Generic.IReadOnlyList<TextRun>? captionRuns = null;
+            System.Collections.Generic.IReadOnlyList<PdfTextRun>? captionRuns = null;
             System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>? captionLines = null;
             System.Collections.Generic.List<double>? captionLineHeights = null;
             double captionSize = style.CaptionFontSize ?? size;
@@ -192,7 +192,7 @@ internal static partial class PdfWriter {
             double captionHeight = 0;
             if (captionText != null) {
                 var captionFontForWrap = ChooseNormal(currentOpts.DefaultFont);
-                captionRuns = new[] { TextRun.Normal(captionText, style.CaptionColor, captionSize) };
+                captionRuns = new[] { PdfTextRun.Normal(captionText, style.CaptionColor, captionSize) };
                 var captionWrap = WrapRichRunsCore(captionRuns, tableWidth, captionSize, captionFontForWrap, captionLeading, null, DefaultParagraphTabStopWidth, currentOpts);
                 captionLines = captionWrap.Lines;
                 captionLineHeights = captionWrap.LineHeights;

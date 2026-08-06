@@ -4,7 +4,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private sealed class WorksheetPdfExportPlan {
-            public WorksheetPdfExportPlan(string sheetName, ExcelSheetPageSetup? pageSetup, ExcelSheet.HeaderFooterSnapshot? headerFooter, SheetExportData exportData, IReadOnlyList<WorksheetImageExportData> images, IReadOnlyList<WorksheetChartExportData> charts, bool hasTable, int exportedRows, IReadOnlyList<int> manualRowBreaks, IReadOnlyList<int> manualColumnBreaks, string bookmarkName, WorksheetGeometryData geometry, bool clipToExportRange) {
+            public WorksheetPdfExportPlan(string sheetName, ExcelSheetPageSetup? pageSetup, ExcelSheet.ExcelHeaderFooterSnapshot? headerFooter, SheetExportData exportData, IReadOnlyList<WorksheetImageExportData> images, IReadOnlyList<WorksheetChartExportData> charts, bool hasTable, int exportedRows, IReadOnlyList<int> manualRowBreaks, IReadOnlyList<int> manualColumnBreaks, string bookmarkName, WorksheetGeometryData geometry, bool clipToExportRange) {
                 SheetName = sheetName;
                 PageSetup = pageSetup;
                 HeaderFooter = headerFooter;
@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             public string SheetName { get; }
             public ExcelSheetPageSetup? PageSetup { get; }
-            public ExcelSheet.HeaderFooterSnapshot? HeaderFooter { get; }
+            public ExcelSheet.ExcelHeaderFooterSnapshot? HeaderFooter { get; }
             public SheetExportData ExportData { get; }
             public IReadOnlyList<WorksheetImageExportData> Images { get; }
             public IReadOnlyList<WorksheetChartExportData> Charts { get; }

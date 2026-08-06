@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
         public string? TableName { get; set; }
 
         /// <summary>Built-in table style.</summary>
-        public TableStyle TableStyle { get; set; } = TableStyle.TableStyleMedium9;
+        public ExcelTableStyle TableStyle { get; set; } = ExcelTableStyle.TableStyleMedium9;
 
         /// <summary>Whether the table should include AutoFilter dropdowns.</summary>
         public bool IncludeAutoFilter { get; set; } = true;

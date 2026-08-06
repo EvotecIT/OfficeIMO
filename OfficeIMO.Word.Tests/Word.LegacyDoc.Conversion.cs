@@ -171,13 +171,13 @@ namespace OfficeIMO.Tests {
 
             WordDocumentConversionException exception = Assert.Throws<WordDocumentConversionException>(() => WordDocument.Convert(docPath, blockedPath));
 
-            Assert.Equal(WordDocumentConversionFailureReason.DataLossBlocked, exception.Reason);
+            Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, exception.Reason);
             Assert.True(exception.Result.HasLoss);
-            Assert.Contains(exception.Result.Report.Diagnostics, diagnostic => diagnostic.Category == WordConversionDiagnosticCategory.DataLoss);
+            Assert.Contains(exception.Result.Report.Diagnostics, diagnostic => diagnostic.Category == OfficeConversionDiagnosticCategory.DataLoss);
             Assert.False(File.Exists(blockedPath));
 
             WordDocumentConversionResult result = WordDocument.Convert(docPath, allowedPath, new WordDocumentConversionOptions {
-                LossPolicy = WordConversionLossPolicy.Allow
+                LossPolicy = OfficeConversionLossPolicy.Allow
             });
 
             Assert.True(result.HasLoss);
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests {
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
                 WordDocument.Convert(sourcePath, destinationPath, new WordDocumentConversionOptions {
-                    LossPolicy = WordConversionLossPolicy.Allow,
+                    LossPolicy = OfficeConversionLossPolicy.Allow,
                     LegacyDocImportOptions = new LegacyDocImportOptions { MaxInputBytes = 1 }
                 }));
 
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
                     LegacyDocImportOptions = new LegacyDocImportOptions { ReportUnsupportedContent = false }
                 }));
 
-            Assert.Equal(WordDocumentConversionFailureReason.DataLossBlocked, exception.Reason);
+            Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, exception.Reason);
             Assert.True(exception.Result.HasLoss);
             Assert.False(File.Exists(destinationPath));
         }
@@ -258,11 +258,11 @@ namespace OfficeIMO.Tests {
             WordDocumentConversionException exception = Assert.Throws<WordDocumentConversionException>(() =>
                 WordDocument.Convert(sourcePath, destinationPath));
 
-            Assert.Equal(WordDocumentConversionFailureReason.DestinationExists, exception.Reason);
+            Assert.Equal(OfficeConversionFailureReason.DestinationExists, exception.Reason);
             Assert.Equal(existing, File.ReadAllBytes(destinationPath));
 
             WordDocumentConversionResult replaced = WordDocument.Convert(sourcePath, destinationPath, new WordDocumentConversionOptions {
-                FileConflictPolicy = WordConversionFileConflictPolicy.Replace
+                FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace
             });
             Assert.True(replaced.Report.ReplacedExistingFile);
             AssertOleCompoundFile(destinationPath);
@@ -282,7 +282,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 Assert.Throws<IOException>(() => WordDocument.Convert(sourcePath, destinationPath, new WordDocumentConversionOptions {
-                    FileConflictPolicy = WordConversionFileConflictPolicy.Replace
+                    FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace
                 }));
 
                 Assert.Equal(originalBytes, File.ReadAllBytes(destinationPath));
@@ -303,7 +303,7 @@ namespace OfficeIMO.Tests {
             WordDocumentConversionException exception = Assert.Throws<WordDocumentConversionException>(() =>
                 WordDocument.Convert(sourcePath, destinationPath));
 
-            Assert.Equal(WordDocumentConversionFailureReason.SameFormat, exception.Reason);
+            Assert.Equal(OfficeConversionFailureReason.SameFormat, exception.Reason);
             Assert.False(File.Exists(destinationPath));
         }
 
@@ -381,8 +381,8 @@ namespace OfficeIMO.Tests {
             WordDocumentConversionException blocked = Assert.Throws<WordDocumentConversionException>(() =>
                 WordDocument.Convert(sourcePath, blockedPath));
 
-            Assert.Equal(WordDocumentConversionFailureReason.DataLossBlocked, blocked.Reason);
-            WordConversionDiagnostic finding = Assert.Single(blocked.Result.Report.Diagnostics,
+            Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
+            OfficeConversionDiagnostic finding = Assert.Single(blocked.Result.Report.Diagnostics,
                 diagnostic => diagnostic.Code == "Word.VbaProject.Removed");
             Assert.Equal(OfficeCompatibilityState.Blocked, finding.CompatibilityState);
             Assert.True(finding.CompatibilityImpact.HasFlag(OfficeCompatibilityImpact.Security));
@@ -411,10 +411,10 @@ namespace OfficeIMO.Tests {
 
             WordDocumentConversionException exception = Assert.Throws<WordDocumentConversionException>(() =>
                 WordDocument.Convert(sourcePath, destinationPath, new WordDocumentConversionOptions {
-                    OpenSettings = new OpenSettings { AutoSave = true }
+                    OpenSettings = new OfficeOpenXmlLoadSettings()
                 }));
 
-            Assert.Equal(WordDocumentConversionFailureReason.SameFormat, exception.Reason);
+            Assert.Equal(OfficeConversionFailureReason.SameFormat, exception.Reason);
             Assert.Equal(sourceBytes, File.ReadAllBytes(sourcePath));
             Assert.Equal(sourceWriteTime, File.GetLastWriteTimeUtc(sourcePath));
             Assert.False(File.Exists(destinationPath));
@@ -430,12 +430,12 @@ namespace OfficeIMO.Tests {
 
             WordDocumentConversionException exception = Assert.Throws<WordDocumentConversionException>(() => WordDocument.Convert(docPath, blockedPath));
 
-            Assert.Equal(WordDocumentConversionFailureReason.DataLossBlocked, exception.Reason);
+            Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, exception.Reason);
             Assert.True(exception.Result.HasLoss);
             Assert.False(File.Exists(blockedPath));
 
             WordDocument.Convert(docPath, allowedPath, new WordDocumentConversionOptions {
-                LossPolicy = WordConversionLossPolicy.Allow
+                LossPolicy = OfficeConversionLossPolicy.Allow
             });
 
             using WordDocument converted = WordDocument.Load(allowedPath);
@@ -456,7 +456,7 @@ namespace OfficeIMO.Tests {
             Assert.False(File.Exists(blockedPath));
 
             document.Save(allowedPath, new WordSaveOptions {
-                LossPolicy = WordConversionLossPolicy.Allow
+                LossPolicy = OfficeConversionLossPolicy.Allow
             });
 
             using WordDocument saved = WordDocument.Load(allowedPath);
@@ -473,7 +473,7 @@ namespace OfficeIMO.Tests {
                 WordChart chart = document.AddChart("Delivery status", false, 420, 240);
                 chart.AddPie("Complete", 72);
                 chart.AddPie("Remaining", 28);
-                WordSmartArt smartArt = document.AddSmartArt(SmartArtType.BasicProcess);
+                WordSmartArt smartArt = document.AddSmartArt(WordSmartArtType.BasicProcess);
                 while (smartArt.NodeCount < 3) smartArt.AddNode("Step " + smartArt.NodeCount);
                 smartArt.ReplaceTexts("Plan", "Build", "Ship");
                 document.Save();
@@ -482,7 +482,7 @@ namespace OfficeIMO.Tests {
             WordDocumentConversionException blocked = Assert.Throws<WordDocumentConversionException>(() =>
                 WordDocument.Convert(sourcePath, blockedPath));
 
-            Assert.Equal(WordDocumentConversionFailureReason.DestinationFeatureUnsupported, blocked.Reason);
+            Assert.Equal(OfficeConversionFailureReason.DestinationFeatureUnsupported, blocked.Reason);
             Assert.Contains(blocked.Result.Report.Diagnostics,
                 finding => finding.Code == "Word.LegacyWriter.Unsupported"
                     && finding.CompatibilityState == OfficeCompatibilityState.Blocked);
@@ -536,7 +536,7 @@ namespace OfficeIMO.Tests {
                     CompatibilityMode = OfficeCompatibilityMode.PreservationOnly
                 });
 
-            WordConversionDiagnostic carrier = Assert.Single(converted.Report.Diagnostics,
+            OfficeConversionDiagnostic carrier = Assert.Single(converted.Report.Diagnostics,
                 finding => finding.Code == "Word.SourceCarrier.Embedded");
             Assert.Equal(OfficeCompatibilityState.EmbeddedSource, carrier.CompatibilityState);
             Assert.False(carrier.RepresentsDataLoss);
@@ -634,7 +634,7 @@ namespace OfficeIMO.Tests {
                         && (finding.Impact & OfficeCompatibilityImpact.Security) != 0);
                 WordDocumentConversionException blocked = Assert.Throws<WordDocumentConversionException>(() =>
                     WordDocument.Convert(sourcePath, destinationPath, options));
-                Assert.Equal(WordDocumentConversionFailureReason.DataLossBlocked, blocked.Reason);
+                Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
                 Assert.False(File.Exists(destinationPath));
             }
         }
@@ -659,7 +659,7 @@ namespace OfficeIMO.Tests {
 
             WordDocumentConversionException blocked = Assert.Throws<WordDocumentConversionException>(() =>
                 WordDocument.Convert(sourcePath, blockedPath));
-            Assert.Equal(WordDocumentConversionFailureReason.DataLossBlocked, blocked.Reason);
+            Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
             Assert.False(File.Exists(blockedPath));
 
             WordDocumentConversionResult allowed = WordDocument.Convert(

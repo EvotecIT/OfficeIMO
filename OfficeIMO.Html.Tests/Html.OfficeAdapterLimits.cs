@@ -464,7 +464,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
             diagnostic =>
                 diagnostic.Code ==
                     HtmlConversionDiagnosticCodes.TargetLimitExceeded &&
-                diagnostic.LossKind == HtmlConversionLossKind.Omission &&
+                diagnostic.LossKind == OfficeConversionLossKind.Omission &&
                 diagnostic.Detail != null &&
                 diagnostic.Detail.Contains("Actual=101000",
                     StringComparison.Ordinal));

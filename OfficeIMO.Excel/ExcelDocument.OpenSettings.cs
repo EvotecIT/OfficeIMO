@@ -28,17 +28,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static OpenSettings CreateOpenSettings(OpenSettings? openSettings) {
-            if (openSettings is null) {
-                return new OpenSettings { AutoSave = false };
-            }
-
-            return new OpenSettings {
-                AutoSave = false,
-                CompatibilityLevel = openSettings.CompatibilityLevel,
-                MarkupCompatibilityProcessSettings = openSettings.MarkupCompatibilityProcessSettings,
-                MaxCharactersInPart = openSettings.MaxCharactersInPart,
-            };
-        }
+        private static OpenSettings CreateOpenSettings(OfficeOpenXmlLoadSettings? openSettings) =>
+            openSettings.ToOpenXml();
     }
 }

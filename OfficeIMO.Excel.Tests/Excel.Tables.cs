@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
                 sheet.CellValue(2, 2, 1d);
-                sheet.AddTable("A1:B2", true, "MyTable", TableStyle.TableStyleMedium9);
+                sheet.AddTable("A1:B2", true, "MyTable", ExcelTableStyle.TableStyleMedium9);
                 document.Save();
             }
 
@@ -46,11 +46,11 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("EMEA", 200);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.GetOrCreateSheet("Data", SheetNameValidationMode.Sanitize);
-                string range = sheet.InsertDataTableAsTable(table, tableName: "Sales", style: TableStyle.TableStyleMedium9);
+                var sheet = document.GetOrCreateSheet("Data", ExcelSheetNameValidationMode.Sanitize);
+                string range = sheet.InsertDataTableAsTable(table, tableName: "Sales", style: ExcelTableStyle.TableStyleMedium9);
                 sheet.SetTableStyle(
                     range,
-                    TableStyle.TableStyleMedium9,
+                    ExcelTableStyle.TableStyleMedium9,
                     showFirstColumn: true,
                     showLastColumn: true,
                     showRowStripes: false,
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 1, "A");
                 sheet.CellValue(2, 2, 100d);
                 sheet.CellValue(2, 3, 120d);
-                sheet.AddTable("A1:C2", true, "RevenueTable", TableStyle.TableStyleMedium9);
+                sheet.AddTable("A1:C2", true, "RevenueTable", ExcelTableStyle.TableStyleMedium9);
                 document.Save();
             }
 
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 2, 2024d);
                 sheet.CellValue(2, 1, "A");
                 sheet.CellValue(2, 2, 100d);
-                sheet.AddTable("A1:B2", false, "RevenueTable", TableStyle.TableStyleMedium9);
+                sheet.AddTable("A1:B2", false, "RevenueTable", ExcelTableStyle.TableStyleMedium9);
                 document.Save();
             }
 
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
-                sheet.AddTable("A1:B2", true, "MyTable", TableStyle.TableStyleMedium9);
+                sheet.AddTable("A1:B2", true, "MyTable", ExcelTableStyle.TableStyleMedium9);
                 document.Save();
             }
 
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 var tasks = Enumerable.Range(0, 5)
-                    .Select(i => Task.Run(() => sheet.AddTable($"A{1 + i * 3}:B{3 + i * 3}", true, $"MyTable{i}", TableStyle.TableStyleMedium9)))
+                    .Select(i => Task.Run(() => sheet.AddTable($"A{1 + i * 3}:B{3 + i * 3}", true, $"MyTable{i}", ExcelTableStyle.TableStyleMedium9)))
                     .ToArray();
                 await Task.WhenAll(tasks);
                 document.Save();
@@ -186,10 +186,10 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 1d);
                 sheet.CellValue(3, 1, "B");
                 sheet.CellValue(3, 2, 2d);
-                sheet.AddTable("A1:B3", true, "Table1", TableStyle.TableStyleMedium9);
+                sheet.AddTable("A1:B3", true, "Table1", ExcelTableStyle.TableStyleMedium9);
 
                 Assert.Throws<InvalidOperationException>(() =>
-                    sheet.AddTable("B2:C4", true, "Table2", TableStyle.TableStyleMedium9));
+                    sheet.AddTable("B2:C4", true, "Table2", ExcelTableStyle.TableStyleMedium9));
                 document.Save();
             }
 
@@ -211,7 +211,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorksheet("Data");
 
                 Assert.Throws<ArgumentException>(() =>
-                    sheet.AddTable(range, true, "MyTable", TableStyle.TableStyleMedium9));
+                    sheet.AddTable(range, true, "MyTable", ExcelTableStyle.TableStyleMedium9));
             }
         }
 
@@ -224,7 +224,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(2, 1, "A");
                 sheet.CellValue(2, 2, 2d);
-                sheet.AddTable("A1:B2", true, "MyTable", TableStyle.TableStyleMedium9);
+                sheet.AddTable("A1:B2", true, "MyTable", ExcelTableStyle.TableStyleMedium9);
                 sheet.SetTableTotals("A1:B2", new Dictionary<string, ExcelTableTotalsFunction> {
                     ["name"] = ExcelTableTotalsFunction.Count,
                     ["AMOUNT"] = ExcelTableTotalsFunction.Sum,
@@ -256,7 +256,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 1, "A");
                 sheet.CellValue(2, 2, 2d);
                 sheet.CellValue(2, 3, 3d);
-                sheet.AddTable("A1:C2", true, "MyTable", TableStyle.TableStyleMedium9);
+                sheet.AddTable("A1:C2", true, "MyTable", ExcelTableStyle.TableStyleMedium9);
                 sheet.SetTableTotals("A1:C2", new Dictionary<string, ExcelTableTotalsFunction> {
                     ["NAME"] = ExcelTableTotalsFunction.Count,
                     ["amount"] = ExcelTableTotalsFunction.Sum,
@@ -288,7 +288,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(2, 1, "A");
                 sheet.CellValue(2, 2, 2d);
-                sheet.AddTable("A1:B2", true, "SalesTable", TableStyle.TableStyleMedium9);
+                sheet.AddTable("A1:B2", true, "SalesTable", ExcelTableStyle.TableStyleMedium9);
 
                 sheet.SetTableTotalsByName("SalesTable", new Dictionary<string, ExcelTableTotalsFunction> {
                     ["Name"] = ExcelTableTotalsFunction.Count,
@@ -319,7 +319,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(2, 1, "A");
                 sheet.CellValue(2, 2, 2d);
-                sheet.AddTable("A1:B2", true, "SalesTable", TableStyle.TableStyleMedium9);
+                sheet.AddTable("A1:B2", true, "SalesTable", ExcelTableStyle.TableStyleMedium9);
 
                 sheet.SetTableTotalsByName("SalesTable", new Dictionary<string, ExcelTableTotalsFunction> {
                     ["Name"] = ExcelTableTotalsFunction.Count,
@@ -354,11 +354,11 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(2, 1, "A");
                 sheet.CellValue(2, 2, 2d);
-                sheet.AddTable("A1:B2", true, "SalesTable", TableStyle.TableStyleMedium9);
+                sheet.AddTable("A1:B2", true, "SalesTable", ExcelTableStyle.TableStyleMedium9);
 
                 sheet.SetTableStyle(
                     "SalesTable",
-                    TableStyle.TableStyleLight11,
+                    ExcelTableStyle.TableStyleLight11,
                     showFirstColumn: true,
                     showLastColumn: true,
                     showRowStripes: false,
@@ -388,7 +388,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(2, 1, "A");
                 sheet.CellValue(2, 2, 2d);
-                sheet.AddTable("A1:B2", true, "SalesTable", TableStyle.TableStyleMedium9);
+                sheet.AddTable("A1:B2", true, "SalesTable", ExcelTableStyle.TableStyleMedium9);
                 document.Save();
             }
 
@@ -401,7 +401,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
-                document.GetSheet("Data").SetTableStyle("SalesTable", TableStyle.TableStyleLight11);
+                document.GetSheet("Data").SetTableStyle("SalesTable", ExcelTableStyle.TableStyleLight11);
                 document.Save();
             }
 

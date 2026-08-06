@@ -24,9 +24,9 @@ namespace OfficeIMO.Excel {
             var series = new List<ExcelChartSeries>(data.Series.Count);
             foreach (OfficeChartSeries item in data.Series) {
                 ExcelChartType? chartType = MapChartKind(item.RenderKind ?? defaultKind);
-                ExcelChartAxisGroup axisGroup = item.AxisGroup == OfficeChartAxisGroup.Secondary
-                    ? ExcelChartAxisGroup.Secondary
-                    : ExcelChartAxisGroup.Primary;
+                OfficeChartAxisGroup axisGroup = item.AxisGroup == OfficeChartAxisGroup.Secondary
+                    ? OfficeChartAxisGroup.Secondary
+                    : OfficeChartAxisGroup.Primary;
                 ExcelChartSeries mapped = item.XValues == null
                     ? new ExcelChartSeries(item.Name, item.Values, chartType, axisGroup,
                         item.Color?.ToRgbHex())

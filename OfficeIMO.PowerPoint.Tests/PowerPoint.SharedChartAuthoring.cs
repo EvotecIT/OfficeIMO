@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
                         }
                     }
 
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, string.Join(Environment.NewLine,
                         errors.Select(error => error.Description)));
                     presentation.Save();
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(OfficeChartAxisGroup.Primary, snapshot.Data.Series[0].AxisGroup);
                     Assert.Equal(OfficeChartAxisGroup.Secondary, snapshot.Data.Series[1].AxisGroup);
                     Assert.Contains("Revenue", chart.CreateDataSummary());
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, string.Join(Environment.NewLine,
                         errors.Select(error => error.Description)));
                     presentation.Save();
@@ -271,7 +271,7 @@ namespace OfficeIMO.Tests {
             PowerPointChart chart = slide.AddChart(OfficeChartKind.Line, initial)
                 .SetDataLabels(showValue: true)
                 .SetSeriesDataLabels(0, showValue: true, numberFormat: "0.0")
-                .SetSeriesTrendline(0, PowerPointChartTrendlineType.Linear, displayRSquared: true);
+                .SetSeriesTrendline(0, OfficeChartTrendlineType.Linear, displayRSquared: true);
 
             chart.UpdateData(updated);
 

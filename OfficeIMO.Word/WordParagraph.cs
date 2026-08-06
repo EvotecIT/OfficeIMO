@@ -308,7 +308,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Parent document.</param>
         /// <param name="paragraph">Paragraph to wrap.</param>
-        public WordParagraph(WordDocument document, Paragraph paragraph) {
+        internal WordParagraph(WordDocument document, Paragraph paragraph) {
             this._document = document;
             this._paragraph = paragraph;
             InvalidateParent();
@@ -320,7 +320,7 @@ namespace OfficeIMO.Word {
         /// <param name="document">Parent document.</param>
         /// <param name="paragraph">Paragraph to wrap.</param>
         /// <param name="run">Run within the paragraph.</param>
-        public WordParagraph(WordDocument document, Paragraph paragraph, Run run) {
+        internal WordParagraph(WordDocument document, Paragraph paragraph, Run run) {
             _document = document;
             _paragraph = paragraph;
             _run = run;

@@ -26,7 +26,7 @@ workbook.Save();
 By default, OfficeIMO validates sheet names against Excel's rules (no special characters like `:`, `\`, `/`, `?`, `*`, `[`, `]`; maximum 31 characters). You can control validation behavior:
 
 ```csharp
-var sheet = workbook.AddWorksheet("My Sheet!", SheetNameValidationMode.Sanitize);
+var sheet = workbook.AddWorksheet("My Sheet!", ExcelSheetNameValidationMode.Sanitize);
 // Name will be sanitized to remove invalid characters
 ```
 
@@ -147,7 +147,7 @@ sheet.Cells["D1"].Value = "=SUM(SalesData)";
 Configure print settings:
 
 ```csharp
-sheet.PageSetup.Orientation = ExcelPageOrientation.Landscape;
+sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
 sheet.PageSetup.PaperSize = 1;  // Letter
 sheet.PageSetup.FitToWidth = 1;
 sheet.PageSetup.FitToHeight = 0;  // 0 = as many pages as needed

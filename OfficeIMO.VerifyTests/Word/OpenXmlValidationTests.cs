@@ -15,8 +15,8 @@ public class OpenXmlValidationTests {
     public void CoverPageTableOfContentAndPageNumberAreSchemaValid() {
         using var document = WordDocument.Create();
 
-        document.AddCoverPage(CoverPageTemplate.Austin);
-        document.AddTableOfContent(TableOfContentStyle.Template2);
+        document.AddCoverPage(WordCoverPageTemplate.Austin);
+        document.AddTableOfContent(WordTableOfContentsStyle.Template2);
         document.AddPageBreak();
         document.AddParagraph("Section");
         document.AddHeadersAndFooters();

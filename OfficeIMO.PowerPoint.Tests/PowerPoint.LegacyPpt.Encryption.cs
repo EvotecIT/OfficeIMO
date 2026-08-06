@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 slide.AddTextBox("Encrypted binary deck", 100000, 100000,
                     2200000, 600000);
                 slide.AddPicture(new MemoryStream(imageBytes),
-                    ImagePartType.Png, 300000, 900000, 1800000, 1200000);
+                    PowerPointImagePartType.Png, 300000, 900000, 1800000, 1200000);
                 encryptedBytes = source.ToEncryptedBytes(password,
                     PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
                         LegacyPptEncryptionKeySizeBits = keySizeBits
@@ -327,7 +327,7 @@ namespace OfficeIMO.Tests {
                     PowerPointFileFormat.Ppt));
 
             presentation.SignatureMutationPolicy =
-                PowerPointSignatureMutationPolicy
+                OfficeSignatureMutationPolicy
                     .RemoveInvalidatedSignatures;
             byte[] encrypted = presentation.ToEncryptedBytes("signed-pass",
                 PowerPointFileFormat.Ppt);

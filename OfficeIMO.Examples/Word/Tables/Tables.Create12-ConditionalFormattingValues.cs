@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Word {
                 table.ConditionalFormatting(
                     "Status",
                     "Done",
-                    TextMatchType.Equals,
+                    WordTextMatchType.Equals,
                     matchFillColorHex: "92d050",
                     noMatchFillColorHex: "ff0000",
                     matchTextFormat: p => p.SetBold(),
@@ -28,8 +28,8 @@ namespace OfficeIMO.Examples.Word {
 
                 table.ConditionalFormatting(
                     new[] {
-                        ("Status", "Done", TextMatchType.Equals),
-                        ("Name", "Task1", TextMatchType.StartsWith)
+                        ("Status", "Done", WordTextMatchType.Equals),
+                        ("Name", "Task1", WordTextMatchType.StartsWith)
                     },
                     matchAll: true,
                     matchFillColorHex: "92d050",

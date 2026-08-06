@@ -22,7 +22,7 @@ namespace OfficeIMO.Word {
         /// Controls saves of documents projected from legacy DOC files when known legacy-only
         /// content cannot be represented by the selected output format. The default blocks the save.
         /// </summary>
-        public WordConversionLossPolicy LossPolicy { get; set; } = WordConversionLossPolicy.Block;
+        public OfficeConversionLossPolicy LossPolicy { get; set; } = OfficeConversionLossPolicy.Block;
 
         /// <summary>
         /// Gets or sets how save operations handle documents carrying digital-signature metadata.
@@ -34,7 +34,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public static WordSaveOptions Default => new();
 
-        internal WordSaveOptions WithLossPolicy(WordConversionLossPolicy lossPolicy) {
+        internal WordSaveOptions WithLossPolicy(OfficeConversionLossPolicy lossPolicy) {
             return new WordSaveOptions {
                 LossPolicy = lossPolicy,
                 SignedDocumentPolicy = SignedDocumentPolicy

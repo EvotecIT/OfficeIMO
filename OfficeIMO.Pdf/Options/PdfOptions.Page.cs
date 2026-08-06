@@ -35,7 +35,7 @@ public sealed partial class PdfOptions {
         }
     }
     /// <summary>Page orientation inferred from the current page size.</summary>
-    public PdfPageOrientation PageOrientation => PageWidth > PageHeight ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
+    public OfficePageOrientation PageOrientation => PageWidth > PageHeight ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
     /// <summary>Left margin in points. Default 72 (1 inch).</summary>
     public double MarginLeft { get; set; } = 72; // 1 in
     /// <summary>Right margin in points. Default 72 (1 inch).</summary>

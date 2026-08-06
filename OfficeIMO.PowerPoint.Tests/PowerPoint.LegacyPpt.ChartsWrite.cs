@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                     new PowerPointClassicAnimationOptions { BuildType = buildType });
                 bytes = source.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
 
                 bytes = source.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 

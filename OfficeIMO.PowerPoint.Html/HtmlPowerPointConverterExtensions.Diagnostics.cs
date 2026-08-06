@@ -10,7 +10,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         string code,
         string message,
         HtmlDiagnosticSeverity severity = HtmlDiagnosticSeverity.Warning,
-        HtmlConversionLossKind lossKind = HtmlConversionLossKind.None,
+        OfficeConversionLossKind lossKind = OfficeConversionLossKind.None,
         string? source = null,
         string? detail = null) {
         result.AddImportDiagnostic(new HtmlDiagnostic(ImportComponentName, code, message, severity, source, detail, lossKind));

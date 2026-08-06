@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("var x = 1;", codeParas[0].Text);
             Assert.Equal("var y = 2;", codeParas[1].Text);
             foreach (var p in codeParas) {
-                Assert.Equal(FontResolver.Resolve("monospace"), p.FontFamily);
+                Assert.Equal(WordFontResolver.Resolve("monospace"), p.FontFamily);
             }
 
             string roundTrip = doc.ToHtml();
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
 
             var runs = bodyParagraphs[0].Elements<Run>().Where(r => !string.IsNullOrEmpty(r.InnerText)).ToArray();
             Assert.Equal(new[] { "Use ", "dotnet test", " now." }, runs.Select(r => r.InnerText).ToArray());
-            Assert.Equal(FontResolver.Resolve("monospace"), runs[1].RunProperties!.RunFonts!.Ascii!.Value);
+            Assert.Equal(WordFontResolver.Resolve("monospace"), runs[1].RunProperties!.RunFonts!.Ascii!.Value);
             Assert.Equal("HtmlCode", runs[1].RunProperties!.RunStyle!.Val!.Value);
 
             string roundTrip = doc.ToHtml();
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToHtml_MonospaceParagraph_OutputCodeBlock() {
             using var document = WordDocument.Create();
-            var mono = FontResolver.Resolve("monospace")!;
+            var mono = WordFontResolver.Resolve("monospace")!;
             document.AddParagraph("Console.WriteLine(\"Hello\");").SetFontFamily(mono).SetStyleId("HTMLPreformatted");
 
             string html = document.ToHtml();

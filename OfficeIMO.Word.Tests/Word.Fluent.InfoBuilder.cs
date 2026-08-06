@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Some comments", document.BuiltinDocumentProperties.Description);
                 Assert.Equal("Cat", document.BuiltinDocumentProperties.Category);
                 Assert.Equal("Evotec", document.ApplicationProperties.Company);
-                Assert.Equal("Manager1", document.ApplicationProperties.Manager?.Text);
+                Assert.Equal("Manager1", document.ApplicationProperties.Manager);
                 Assert.Equal("John", document.BuiltinDocumentProperties.LastModifiedBy);
                 Assert.Equal("1.0", document.BuiltinDocumentProperties.Revision);
                 Assert.True(document.CustomDocumentProperties.ContainsKey("Custom1"));

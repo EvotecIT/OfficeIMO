@@ -260,7 +260,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape source = slide.AddShapePoints(PowerPointShapeType.Rectangle,
+            PowerPointAutoShape source = slide.AddShapePoints(OfficePresetShapeType.Rectangle,
                 10, 10, 100, 60);
             Shape shape = Assert.IsType<Shape>(source.Element);
             A.ThemeElements masterElements = slide.SlidePart.SlideLayoutPart!
@@ -322,7 +322,7 @@ namespace OfficeIMO.Tests {
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape source = slide.AddShapePoints(
-                PowerPointShapeType.Rectangle, 10, 10, 100, 60);
+                OfficePresetShapeType.Rectangle, 10, 10, 100, 60);
             Shape shape = Assert.IsType<Shape>(source.Element);
             shape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
             shape.ShapeStyle = new ShapeStyle(
@@ -347,9 +347,9 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 80);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape circle = slide.AddShapePoints(PowerPointShapeType.Rectangle,
+            PowerPointAutoShape circle = slide.AddShapePoints(OfficePresetShapeType.Rectangle,
                 10, 10, 100, 60);
-            PowerPointAutoShape shapePath = slide.AddShapePoints(PowerPointShapeType.Rectangle,
+            PowerPointAutoShape shapePath = slide.AddShapePoints(OfficePresetShapeType.Rectangle,
                 130, 10, 100, 60);
             AddShapePathGradient(Assert.IsType<Shape>(circle.Element),
                 A.PathShadeValues.Circle);
@@ -397,9 +397,9 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 120);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape rotating = slide.AddShapePoints(PowerPointShapeType.Rectangle,
+            PowerPointAutoShape rotating = slide.AddShapePoints(OfficePresetShapeType.Rectangle,
                 20, 30, 80, 40);
-            PowerPointAutoShape fixedToSlide = slide.AddShapePoints(PowerPointShapeType.Rectangle,
+            PowerPointAutoShape fixedToSlide = slide.AddShapePoints(OfficePresetShapeType.Rectangle,
                 140, 30, 80, 40);
             rotating.Rotation = 90D;
             fixedToSlide.Rotation = 90D;
@@ -436,7 +436,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 100);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape source = slide.AddShapePoints(PowerPointShapeType.Rectangle,
+            PowerPointAutoShape source = slide.AddShapePoints(OfficePresetShapeType.Rectangle,
                 30, 25, 100, 40);
             source.Rotation = 31D;
             AddShapeLinearGradient(Assert.IsType<Shape>(source.Element),
@@ -468,7 +468,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 100);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape source = slide.AddShapePoints(PowerPointShapeType.Rectangle,
+            PowerPointAutoShape source = slide.AddShapePoints(OfficePresetShapeType.Rectangle,
                 30, 25, 100, 40);
             source.Rotation = 37D;
             AddShapePathGradient(Assert.IsType<Shape>(source.Element),
@@ -491,9 +491,9 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 100);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape source = slide.AddShapePoints(PowerPointShapeType.Rectangle,
+            PowerPointAutoShape source = slide.AddShapePoints(OfficePresetShapeType.Rectangle,
                 30, 25, 80, 30);
-            PowerPointAutoShape anchor = slide.AddShapePoints(PowerPointShapeType.Rectangle,
+            PowerPointAutoShape anchor = slide.AddShapePoints(OfficePresetShapeType.Rectangle,
                 120, 25, 10, 10);
             anchor.FillColor = "E5E7EB";
             AddShapeLinearGradient(Assert.IsType<Shape>(source.Element),
@@ -519,9 +519,9 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape first = slide.AddShapePoints(PowerPointShapeType.Rectangle, 10, 10, 20, 20);
-            PowerPointAutoShape second = slide.AddShapePoints(PowerPointShapeType.Rectangle, 40, 10, 20, 20);
-            PowerPointAutoShape third = slide.AddShapePoints(PowerPointShapeType.Rectangle, 70, 10, 20, 20);
+            PowerPointAutoShape first = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 10, 10, 20, 20);
+            PowerPointAutoShape second = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 40, 10, 20, 20);
+            PowerPointAutoShape third = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 70, 10, 20, 20);
             PowerPointGroupShape inner = slide.GroupShapes(new PowerPointShape[] { first, second }, "Inner");
             slide.GroupShapes(new PowerPointShape[] { inner, third }, "Outer");
 
@@ -830,7 +830,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(160, 100);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape arrow = slide.AddShapePoints(PowerPointShapeType.RightArrow, 24, 24, 92, 36);
+            PowerPointAutoShape arrow = slide.AddShapePoints(OfficePresetShapeType.RightArrow, 24, 24, 92, 36);
             arrow.FillColor = "E0F2FE";
             arrow.OutlineColor = "0369A1";
             arrow.OutlineWidthPoints = 3D;
@@ -1058,17 +1058,17 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(220, 140);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape triangle = slide.AddShapePoints(PowerPointShapeType.Triangle, 20, 20, 48, 44);
+            PowerPointAutoShape triangle = slide.AddShapePoints(OfficePresetShapeType.Triangle, 20, 20, 48, 44);
             triangle.FillColor = "1F4E79";
             triangle.OutlineColor = "0F243E";
             triangle.OutlineWidthPoints = 1D;
 
-            PowerPointAutoShape panel = slide.AddShapePoints(PowerPointShapeType.Parallelogram, 82, 20, 70, 44);
+            PowerPointAutoShape panel = slide.AddShapePoints(OfficePresetShapeType.Parallelogram, 82, 20, 70, 44);
             panel.FillColor = "1976D2";
             panel.OutlineColor = "0B3D91";
             panel.OutlineWidthPoints = 1D;
 
-            PowerPointAutoShape arrow = slide.AddShapePoints(PowerPointShapeType.RightArrow, 42, 82, 116, 34);
+            PowerPointAutoShape arrow = slide.AddShapePoints(OfficePresetShapeType.RightArrow, 42, 82, 116, 34);
             arrow.FillColor = "16A34A";
             arrow.OutlineColor = "14532D";
             arrow.OutlineWidthPoints = 1D;
@@ -1099,27 +1099,27 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(260, 170);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape heptagon = slide.AddShapePoints(PowerPointShapeType.Heptagon, 16, 18, 52, 48);
+            PowerPointAutoShape heptagon = slide.AddShapePoints(OfficePresetShapeType.Heptagon, 16, 18, 52, 48);
             heptagon.FillColor = "DBEAFE";
             heptagon.OutlineColor = "1D4ED8";
 
-            PowerPointAutoShape decagon = slide.AddShapePoints(PowerPointShapeType.Decagon, 86, 18, 56, 48);
+            PowerPointAutoShape decagon = slide.AddShapePoints(OfficePresetShapeType.Decagon, 86, 18, 56, 48);
             decagon.FillColor = "FEF3C7";
             decagon.OutlineColor = "B45309";
 
-            PowerPointAutoShape dodecagon = slide.AddShapePoints(PowerPointShapeType.Dodecagon, 162, 18, 58, 48);
+            PowerPointAutoShape dodecagon = slide.AddShapePoints(OfficePresetShapeType.Dodecagon, 162, 18, 58, 48);
             dodecagon.FillColor = "DCFCE7";
             dodecagon.OutlineColor = "15803D";
 
-            PowerPointAutoShape star4 = slide.AddShapePoints(PowerPointShapeType.Star4, 24, 94, 48, 48);
+            PowerPointAutoShape star4 = slide.AddShapePoints(OfficePresetShapeType.Star4, 24, 94, 48, 48);
             star4.FillColor = "FCE7F3";
             star4.OutlineColor = "BE185D";
 
-            PowerPointAutoShape star8 = slide.AddShapePoints(PowerPointShapeType.Star8, 102, 94, 48, 48);
+            PowerPointAutoShape star8 = slide.AddShapePoints(OfficePresetShapeType.Star8, 102, 94, 48, 48);
             star8.FillColor = "E0F2FE";
             star8.OutlineColor = "0369A1";
 
-            PowerPointAutoShape star16 = slide.AddShapePoints(PowerPointShapeType.Star16, 180, 94, 48, 48);
+            PowerPointAutoShape star16 = slide.AddShapePoints(OfficePresetShapeType.Star16, 180, 94, 48, 48);
             star16.FillColor = "FEE2E2";
             star16.OutlineColor = "B91C1C";
 
@@ -1158,11 +1158,11 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(180, 120);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape upDown = slide.AddShapePoints(PowerPointShapeType.UpDownArrow, 20, 20, 48, 78);
+            PowerPointAutoShape upDown = slide.AddShapePoints(OfficePresetShapeType.UpDownArrow, 20, 20, 48, 78);
             upDown.FillColor = "A7F3D0";
             upDown.OutlineColor = "047857";
 
-            PowerPointAutoShape quad = slide.AddShapePoints(PowerPointShapeType.QuadArrow, 92, 22, 66, 66);
+            PowerPointAutoShape quad = slide.AddShapePoints(OfficePresetShapeType.QuadArrow, 92, 22, 66, 66);
             quad.FillColor = "FBCFE8";
             quad.OutlineColor = "BE185D";
 
@@ -1194,19 +1194,19 @@ namespace OfficeIMO.Tests {
         presentation.SlideSize.SetSizePoints(260, 170);
         PowerPointSlide slide = presentation.AddSlide();
 
-        PowerPointAutoShape leftUp = slide.AddShapePoints(PowerPointShapeType.LeftUpArrow, 18, 18, 56, 54);
+        PowerPointAutoShape leftUp = slide.AddShapePoints(OfficePresetShapeType.LeftUpArrow, 18, 18, 56, 54);
         leftUp.FillColor = "DBEAFE";
         leftUp.OutlineColor = "1D4ED8";
 
-        PowerPointAutoShape leftRightUp = slide.AddShapePoints(PowerPointShapeType.LeftRightUpArrow, 98, 16, 72, 56);
+        PowerPointAutoShape leftRightUp = slide.AddShapePoints(OfficePresetShapeType.LeftRightUpArrow, 98, 16, 72, 56);
         leftRightUp.FillColor = "DCFCE7";
         leftRightUp.OutlineColor = "15803D";
 
-        PowerPointAutoShape bentUp = slide.AddShapePoints(PowerPointShapeType.BentUpArrow, 28, 96, 72, 48);
+        PowerPointAutoShape bentUp = slide.AddShapePoints(OfficePresetShapeType.BentUpArrow, 28, 96, 72, 48);
         bentUp.FillColor = "FEF3C7";
         bentUp.OutlineColor = "B45309";
 
-        PowerPointAutoShape uTurn = slide.AddShapePoints(PowerPointShapeType.UTurnArrow, 150, 88, 62, 62);
+        PowerPointAutoShape uTurn = slide.AddShapePoints(OfficePresetShapeType.UTurnArrow, 150, 88, 62, 62);
         uTurn.FillColor = "FCE7F3";
         uTurn.OutlineColor = "BE185D";
 
@@ -1240,19 +1240,19 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(240, 160);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape rightCallout = slide.AddShapePoints(PowerPointShapeType.RightArrowCallout, 16, 18, 84, 42);
+            PowerPointAutoShape rightCallout = slide.AddShapePoints(OfficePresetShapeType.RightArrowCallout, 16, 18, 84, 42);
             rightCallout.FillColor = "DBEAFE";
             rightCallout.OutlineColor = "1D4ED8";
 
-            PowerPointAutoShape upDownCallout = slide.AddShapePoints(PowerPointShapeType.UpDownArrowCallout, 118, 14, 42, 80);
+            PowerPointAutoShape upDownCallout = slide.AddShapePoints(OfficePresetShapeType.UpDownArrowCallout, 118, 14, 42, 80);
             upDownCallout.FillColor = "DCFCE7";
             upDownCallout.OutlineColor = "15803D";
 
-            PowerPointAutoShape leftRightCallout = slide.AddShapePoints(PowerPointShapeType.LeftRightArrowCallout, 20, 104, 92, 36);
+            PowerPointAutoShape leftRightCallout = slide.AddShapePoints(OfficePresetShapeType.LeftRightArrowCallout, 20, 104, 92, 36);
             leftRightCallout.FillColor = "FEF3C7";
             leftRightCallout.OutlineColor = "B45309";
 
-            PowerPointAutoShape quadCallout = slide.AddShapePoints(PowerPointShapeType.QuadArrowCallout, 170, 78, 52, 52);
+            PowerPointAutoShape quadCallout = slide.AddShapePoints(OfficePresetShapeType.QuadArrowCallout, 170, 78, 52, 52);
             quadCallout.FillColor = "FBCFE8";
             quadCallout.OutlineColor = "BE185D";
 
@@ -1287,23 +1287,23 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(240, 170);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape process = slide.AddShapePoints(PowerPointShapeType.FlowChartProcess, 18, 18, 76, 38);
+            PowerPointAutoShape process = slide.AddShapePoints(OfficePresetShapeType.FlowChartProcess, 18, 18, 76, 38);
             process.FillColor = "DBEAFE";
             process.OutlineColor = "1D4ED8";
 
-            PowerPointAutoShape decision = slide.AddShapePoints(PowerPointShapeType.FlowChartDecision, 118, 12, 64, 52);
+            PowerPointAutoShape decision = slide.AddShapePoints(OfficePresetShapeType.FlowChartDecision, 118, 12, 64, 52);
             decision.FillColor = "FEF3C7";
             decision.OutlineColor = "D97706";
 
-            PowerPointAutoShape inputOutput = slide.AddShapePoints(PowerPointShapeType.FlowChartInputOutput, 20, 82, 76, 38);
+            PowerPointAutoShape inputOutput = slide.AddShapePoints(OfficePresetShapeType.FlowChartInputOutput, 20, 82, 76, 38);
             inputOutput.FillColor = "DCFCE7";
             inputOutput.OutlineColor = "16A34A";
 
-            PowerPointAutoShape terminator = slide.AddShapePoints(PowerPointShapeType.FlowChartTerminator, 120, 84, 82, 36);
+            PowerPointAutoShape terminator = slide.AddShapePoints(OfficePresetShapeType.FlowChartTerminator, 120, 84, 82, 36);
             terminator.FillColor = "FCE7F3";
             terminator.OutlineColor = "BE185D";
 
-            PowerPointAutoShape document = slide.AddShapePoints(PowerPointShapeType.FlowChartDocument, 62, 132, 94, 30);
+            PowerPointAutoShape document = slide.AddShapePoints(OfficePresetShapeType.FlowChartDocument, 62, 132, 94, 30);
             document.FillColor = "E0F2FE";
             document.OutlineColor = "0369A1";
 
@@ -1341,31 +1341,31 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(260, 190);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape preparation = slide.AddShapePoints(PowerPointShapeType.FlowChartPreparation, 16, 18, 64, 42);
+            PowerPointAutoShape preparation = slide.AddShapePoints(OfficePresetShapeType.FlowChartPreparation, 16, 18, 64, 42);
             preparation.FillColor = "DBEAFE";
             preparation.OutlineColor = "1D4ED8";
 
-            PowerPointAutoShape manualInput = slide.AddShapePoints(PowerPointShapeType.FlowChartManualInput, 98, 18, 74, 42);
+            PowerPointAutoShape manualInput = slide.AddShapePoints(OfficePresetShapeType.FlowChartManualInput, 98, 18, 74, 42);
             manualInput.FillColor = "FEF3C7";
             manualInput.OutlineColor = "B45309";
 
-            PowerPointAutoShape manualOperation = slide.AddShapePoints(PowerPointShapeType.FlowChartManualOperation, 18, 82, 70, 42);
+            PowerPointAutoShape manualOperation = slide.AddShapePoints(OfficePresetShapeType.FlowChartManualOperation, 18, 82, 70, 42);
             manualOperation.FillColor = "DCFCE7";
             manualOperation.OutlineColor = "15803D";
 
-            PowerPointAutoShape delay = slide.AddShapePoints(PowerPointShapeType.FlowChartDelay, 108, 82, 64, 42);
+            PowerPointAutoShape delay = slide.AddShapePoints(OfficePresetShapeType.FlowChartDelay, 108, 82, 64, 42);
             delay.FillColor = "FCE7F3";
             delay.OutlineColor = "BE185D";
 
-            PowerPointAutoShape offpage = slide.AddShapePoints(PowerPointShapeType.FlowChartOffpageConnector, 184, 42, 38, 54);
+            PowerPointAutoShape offpage = slide.AddShapePoints(OfficePresetShapeType.FlowChartOffpageConnector, 184, 42, 38, 54);
             offpage.FillColor = "E0F2FE";
             offpage.OutlineColor = "0369A1";
 
-            PowerPointAutoShape magneticTape = slide.AddShapePoints(PowerPointShapeType.FlowChartMagneticTape, 18, 136, 58, 38);
+            PowerPointAutoShape magneticTape = slide.AddShapePoints(OfficePresetShapeType.FlowChartMagneticTape, 18, 136, 58, 38);
             magneticTape.FillColor = "DDD6FE";
             magneticTape.OutlineColor = "6D28D9";
 
-            PowerPointAutoShape magneticDrum = slide.AddShapePoints(PowerPointShapeType.FlowChartMagneticDrum, 98, 136, 58, 38);
+            PowerPointAutoShape magneticDrum = slide.AddShapePoints(OfficePresetShapeType.FlowChartMagneticDrum, 98, 136, 58, 38);
             magneticDrum.FillColor = "FEE2E2";
             magneticDrum.OutlineColor = "B91C1C";
 
@@ -1403,23 +1403,23 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(260, 170);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape rectangleCallout = slide.AddShapePoints(PowerPointShapeType.WedgeRectangleCallout, 16, 16, 72, 50);
+            PowerPointAutoShape rectangleCallout = slide.AddShapePoints(OfficePresetShapeType.WedgeRectangleCallout, 16, 16, 72, 50);
             rectangleCallout.FillColor = "FDE68A";
             rectangleCallout.OutlineColor = "92400E";
 
-            PowerPointAutoShape roundedCallout = slide.AddShapePoints(PowerPointShapeType.WedgeRoundRectangleCallout, 104, 16, 82, 52);
+            PowerPointAutoShape roundedCallout = slide.AddShapePoints(OfficePresetShapeType.WedgeRoundRectangleCallout, 104, 16, 82, 52);
             roundedCallout.FillColor = "BFDBFE";
             roundedCallout.OutlineColor = "1D4ED8";
 
-            PowerPointAutoShape cloudCallout = slide.AddShapePoints(PowerPointShapeType.CloudCallout, 24, 94, 82, 52);
+            PowerPointAutoShape cloudCallout = slide.AddShapePoints(OfficePresetShapeType.CloudCallout, 24, 94, 82, 52);
             cloudCallout.FillColor = "DCFCE7";
             cloudCallout.OutlineColor = "15803D";
 
-            PowerPointAutoShape lightningBolt = slide.AddShapePoints(PowerPointShapeType.LightningBolt, 162, 94, 44, 56);
+            PowerPointAutoShape lightningBolt = slide.AddShapePoints(OfficePresetShapeType.LightningBolt, 162, 94, 44, 56);
             lightningBolt.FillColor = "FACC15";
             lightningBolt.OutlineColor = "854D0E";
 
-            PowerPointAutoShape moon = slide.AddShapePoints(PowerPointShapeType.Moon, 212, 22, 34, 44);
+            PowerPointAutoShape moon = slide.AddShapePoints(OfficePresetShapeType.Moon, 212, 22, 34, 44);
             moon.FillColor = "E0E7FF";
             moon.OutlineColor = "3730A3";
 
@@ -1455,11 +1455,11 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(180, 120);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape bracketPair = slide.AddShapePoints(PowerPointShapeType.BracketPair, 18, 18, 62, 84);
+            PowerPointAutoShape bracketPair = slide.AddShapePoints(OfficePresetShapeType.BracketPair, 18, 18, 62, 84);
             bracketPair.FillColor = "DDD6FE";
             bracketPair.OutlineColor = "6D28D9";
 
-            PowerPointAutoShape bracePair = slide.AddShapePoints(PowerPointShapeType.BracePair, 98, 18, 62, 84);
+            PowerPointAutoShape bracePair = slide.AddShapePoints(OfficePresetShapeType.BracePair, 98, 18, 62, 84);
             bracePair.FillColor = "FED7AA";
             bracePair.OutlineColor = "C2410C";
 
@@ -1551,7 +1551,7 @@ namespace OfficeIMO.Tests {
 
             PowerPointPicture picture = slide.AddPicture(
                 new MemoryStream(new byte[] { 1, 2, 3, 4, 5, 6 }),
-                ImagePartType.Bmp,
+                PowerPointImagePartType.Bmp,
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(24),
@@ -1626,7 +1626,7 @@ namespace OfficeIMO.Tests {
             byte[] pngBytes = OfficePngWriter.Encode(new OfficeRasterImage(4, 4, OfficeColor.FromRgb(37, 99, 235)));
             PowerPointPicture picture = slide.AddPicture(
                 new MemoryStream(pngBytes),
-                ImagePartType.Png,
+                PowerPointImagePartType.Png,
                 PowerPointUnits.FromPoints(30),
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(80),
@@ -1823,11 +1823,11 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(180, 120);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape horizontal = slide.AddShapePoints(PowerPointShapeType.StraightConnector1, 20, 40, 100, 0);
+            PowerPointAutoShape horizontal = slide.AddShapePoints(OfficePresetShapeType.StraightConnector1, 20, 40, 100, 0);
             horizontal.OutlineColor = "1E5A96";
             horizontal.OutlineWidthPoints = 2D;
 
-            PowerPointAutoShape vertical = slide.AddShapePoints(PowerPointShapeType.StraightConnector1, 140, 30, 0, 70);
+            PowerPointAutoShape vertical = slide.AddShapePoints(OfficePresetShapeType.StraightConnector1, 140, 30, 0, 70);
             vertical.OutlineColor = "C00000";
             vertical.OutlineWidthPoints = 2D;
 
@@ -1856,15 +1856,15 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(180, 120);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape horizontal = slide.AddShapePoints(PowerPointShapeType.StraightConnector1, 20, 40, 100, 0);
+            PowerPointAutoShape horizontal = slide.AddShapePoints(OfficePresetShapeType.StraightConnector1, 20, 40, 100, 0);
             horizontal.OutlineColor = "1E5A96";
             horizontal.OutlineWidthPoints = 2D;
-            horizontal.SetLineEnds(null, PowerPointLineEndType.Triangle, PowerPointLineEndWidth.Large, PowerPointLineEndLength.Large);
+            horizontal.SetLineEnds(null, OfficeLineMarkerKind.Triangle, PowerPointLineEndWidth.Large, PowerPointLineEndLength.Large);
 
-            PowerPointAutoShape vertical = slide.AddShapePoints(PowerPointShapeType.StraightConnector1, 140, 30, 0, 70);
+            PowerPointAutoShape vertical = slide.AddShapePoints(OfficePresetShapeType.StraightConnector1, 140, 30, 0, 70);
             vertical.OutlineColor = "C00000";
             vertical.OutlineWidthPoints = 2D;
-            vertical.SetLineEnds(PowerPointLineEndType.Diamond, null, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
+            vertical.SetLineEnds(OfficeLineMarkerKind.Diamond, null, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -1902,10 +1902,10 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(180, 120);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape connector = slide.AddShapePoints(PowerPointShapeType.BentConnector2, 24, 24, 92, 58);
+            PowerPointAutoShape connector = slide.AddShapePoints(OfficePresetShapeType.BentConnector2, 24, 24, 92, 58);
             connector.OutlineColor = "1E5A96";
             connector.OutlineWidthPoints = 2D;
-            connector.SetLineEnds(null, PowerPointLineEndType.Triangle, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
+            connector.SetLineEnds(null, OfficeLineMarkerKind.Triangle, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -1941,15 +1941,15 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(220, 150);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape bent4 = slide.AddShapePoints(PowerPointShapeType.BentConnector4, 20, 24, 96, 64);
+            PowerPointAutoShape bent4 = slide.AddShapePoints(OfficePresetShapeType.BentConnector4, 20, 24, 96, 64);
             bent4.OutlineColor = "1E5A96";
             bent4.OutlineWidthPoints = 2D;
-            bent4.SetLineEnds(PowerPointLineEndType.Diamond, PowerPointLineEndType.Triangle, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
+            bent4.SetLineEnds(OfficeLineMarkerKind.Diamond, OfficeLineMarkerKind.Triangle, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
 
-            PowerPointAutoShape bent5 = slide.AddShapePoints(PowerPointShapeType.BentConnector5, 122, 36, 72, 72);
+            PowerPointAutoShape bent5 = slide.AddShapePoints(OfficePresetShapeType.BentConnector5, 122, 36, 72, 72);
             bent5.OutlineColor = "C00000";
             bent5.OutlineWidthPoints = 2D;
-            bent5.SetLineEnds(null, PowerPointLineEndType.Triangle, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
+            bent5.SetLineEnds(null, OfficeLineMarkerKind.Triangle, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -2003,15 +2003,15 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(220, 150);
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointAutoShape curved2 = slide.AddShapePoints(PowerPointShapeType.CurvedConnector2, 20, 28, 86, 56);
+            PowerPointAutoShape curved2 = slide.AddShapePoints(OfficePresetShapeType.CurvedConnector2, 20, 28, 86, 56);
             curved2.OutlineColor = "1E5A96";
             curved2.OutlineWidthPoints = 2D;
-            curved2.SetLineEnds(null, PowerPointLineEndType.Triangle, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
+            curved2.SetLineEnds(null, OfficeLineMarkerKind.Triangle, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
 
-            PowerPointAutoShape curved5 = slide.AddShapePoints(PowerPointShapeType.CurvedConnector5, 122, 34, 72, 74);
+            PowerPointAutoShape curved5 = slide.AddShapePoints(OfficePresetShapeType.CurvedConnector5, 122, 34, 72, 74);
             curved5.OutlineColor = "C00000";
             curved5.OutlineWidthPoints = 2D;
-            curved5.SetLineEnds(PowerPointLineEndType.Diamond, PowerPointLineEndType.Triangle, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
+            curved5.SetLineEnds(OfficeLineMarkerKind.Diamond, OfficeLineMarkerKind.Triangle, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -2069,7 +2069,7 @@ namespace OfficeIMO.Tests {
             PowerPointConnectionShape connection = Assert.Single(loadedSlide.Shapes.OfType<PowerPointConnectionShape>());
             Assert.Equal(PowerPointShapeContentType.Connector, connection.ShapeContentType);
             Assert.Equal("Native Bent Connector", connection.Name);
-            Assert.Equal(PowerPointShapeType.BentConnector4, connection.ShapeType);
+            Assert.Equal(OfficePresetShapeType.BentConnector4, connection.ShapeType);
 
             PowerPointSlideVisualSnapshot snapshot = loadedSlide.CreateVisualSnapshot();
             OfficeImageExportResult png = loadedSlide.ExportImage(OfficeImageExportFormat.Png);
@@ -2107,7 +2107,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(160, 100);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            slide.AddPicture(new MemoryStream(png), ImagePartType.Png, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
+            slide.AddPicture(new MemoryStream(png), PowerPointImagePartType.Png, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
 
             OfficeImageExportResult pngResult = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svgResult = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -2130,7 +2130,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            slide.AddPicture(new MemoryStream(png), ImagePartType.Png,
+            slide.AddPicture(new MemoryStream(png), PowerPointImagePartType.Png,
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
 
@@ -2151,10 +2151,10 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            slide.AddPicture(new MemoryStream(png), ImagePartType.Png,
+            slide.AddPicture(new MemoryStream(png), PowerPointImagePartType.Png,
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
-            slide.AddPicture(new MemoryStream(png), ImagePartType.Png,
+            slide.AddPicture(new MemoryStream(png), PowerPointImagePartType.Png,
                 PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
 
@@ -2174,7 +2174,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            PowerPointPicture picture = slide.AddPicture(new MemoryStream(png), ImagePartType.Png,
+            PowerPointPicture picture = slide.AddPicture(new MemoryStream(png), PowerPointImagePartType.Png,
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
             PowerPointAutoShape anchor = slide.AddRectanglePoints(50, 20, 12, 12);
@@ -2196,7 +2196,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            slide.SetBackgroundImage(new MemoryStream(png), ImagePartType.Png);
+            slide.SetBackgroundImage(new MemoryStream(png), PowerPointImagePartType.Png);
 
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(new PowerPointImageExportOptions {
                 MaximumEmbeddedImageBytes = png.Length - 1,
@@ -2220,7 +2220,7 @@ namespace OfficeIMO.Tests {
                 "</svg>");
             slide.AddPicture(
                 new MemoryStream(svg),
-                ImagePartType.Svg,
+                PowerPointImagePartType.Svg,
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(40),
@@ -2280,7 +2280,7 @@ namespace OfficeIMO.Tests {
             });
             slide.AddPicture(
                 new MemoryStream(bmp),
-                ImagePartType.Bmp,
+                PowerPointImagePartType.Bmp,
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(24),
@@ -2312,7 +2312,7 @@ namespace OfficeIMO.Tests {
             }, topDown: true);
             slide.AddPicture(
                 new MemoryStream(bmp),
-                ImagePartType.Bmp,
+                PowerPointImagePartType.Bmp,
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(24),
@@ -2343,7 +2343,7 @@ namespace OfficeIMO.Tests {
             });
             slide.AddPicture(
                 new MemoryStream(bmp),
-                ImagePartType.Bmp,
+                PowerPointImagePartType.Bmp,
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(24),
@@ -2376,7 +2376,7 @@ namespace OfficeIMO.Tests {
             slide.BackgroundColor = "000000";
             slide.AddPicture(
                 new MemoryStream(CreateSinglePixelGif()),
-                ImagePartType.Gif,
+                PowerPointImagePartType.Gif,
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(24),
@@ -2413,7 +2413,7 @@ namespace OfficeIMO.Tests {
             byte[] png = OfficePngWriter.Encode(source);
             PowerPointPicture picture = slide.AddPicture(
                 new MemoryStream(png),
-                ImagePartType.Png,
+                PowerPointImagePartType.Png,
                 PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(10),
                 PowerPointUnits.FromPoints(80),
@@ -2599,10 +2599,10 @@ namespace OfficeIMO.Tests {
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Edges";
             cell.FillColor = "F8FAFC";
-            cell.SetBorders(TableCellBorders.Left, "DC2626", 2D);
-            cell.SetBorders(TableCellBorders.Top, "2563EB", 1.5D, PowerPointLineDashStyle.Dash);
-            cell.SetBorders(TableCellBorders.Right, "16A34A", 3D, PowerPointLineDashStyle.Dot);
-            cell.SetBorders(TableCellBorders.Bottom, "9333EA", 2.5D, PowerPointLineDashStyle.DashDot);
+            cell.SetBorders(PowerPointTableCellBorders.Left, "DC2626", 2D);
+            cell.SetBorders(PowerPointTableCellBorders.Top, "2563EB", 1.5D, PowerPointLineDashStyle.Dash);
+            cell.SetBorders(PowerPointTableCellBorders.Right, "16A34A", 3D, PowerPointLineDashStyle.Dot);
+            cell.SetBorders(PowerPointTableCellBorders.Bottom, "9333EA", 2.5D, PowerPointLineDashStyle.DashDot);
 
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
@@ -2642,7 +2642,7 @@ namespace OfficeIMO.Tests {
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Theme edge";
             cell.FillColor = "FFFFFF";
-            cell.SetBorders(TableCellBorders.Left, "000000", 2D);
+            cell.SetBorders(PowerPointTableCellBorders.Left, "000000", 2D);
             A.LinePropertiesType leftBorder = cell.Cell.TableCellProperties!.LeftBorderLineProperties!;
             leftBorder.RemoveAllChildren<A.SolidFill>();
             leftBorder.Append(new A.SolidFill(new A.SchemeColor(new A.LuminanceModulation { Val = 50000 }) { Val = A.SchemeColorValues.Accent2 }));
@@ -2677,7 +2677,7 @@ namespace OfficeIMO.Tests {
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Alpha cell";
             cell.FillColor = "FFFFFF";
-            cell.SetBorders(TableCellBorders.Left, "000000", 2D);
+            cell.SetBorders(PowerPointTableCellBorders.Left, "000000", 2D);
 
             A.TableCellProperties properties = cell.Cell.TableCellProperties!;
             properties.RemoveAllChildren<A.SolidFill>();
@@ -2723,8 +2723,8 @@ namespace OfficeIMO.Tests {
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Diagonal";
             cell.FillColor = "FFFFFF";
-            cell.SetBorders(TableCellBorders.DiagonalDown, "F97316", 2D);
-            cell.SetBorders(TableCellBorders.DiagonalUp, "0EA5E9", 1.5D, PowerPointLineDashStyle.Dash);
+            cell.SetBorders(PowerPointTableCellBorders.DiagonalDown, "F97316", 2D);
+            cell.SetBorders(PowerPointTableCellBorders.DiagonalUp, "0EA5E9", 1.5D, PowerPointLineDashStyle.Dash);
 
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);

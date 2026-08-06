@@ -88,7 +88,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordprocessingDocument">Document to operate on.</param>
         /// <param name="types">Footer types to remove.</param>
-        public static void RemoveFooters(WordprocessingDocument wordprocessingDocument, params WordHeaderFooterType[] types) {
+        internal static void RemoveFooters(WordprocessingDocument wordprocessingDocument, params WordHeaderFooterType[] types) {
             var docPart = wordprocessingDocument.MainDocumentPart;
             var document = docPart?.Document;
 

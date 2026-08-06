@@ -3,20 +3,13 @@ using System.Text;
 using OfficeIMO.GoogleWorkspace;
 
 namespace OfficeIMO.Excel.GoogleSheets {
-    public enum GoogleSheetsDiffKind {
-        SourceChange = 0,
-        RemoteChange = 1,
-        Conflict = 2,
-        LossyAction = 3,
-    }
-
     public sealed class GoogleSheetsDiffItem {
-        public GoogleSheetsDiffItem(GoogleSheetsDiffKind kind, string path, string message) {
+        public GoogleSheetsDiffItem(GoogleWorkspaceDiffKind kind, string path, string message) {
             Kind = kind;
             Path = path;
             Message = message;
         }
-        public GoogleSheetsDiffKind Kind { get; }
+        public GoogleWorkspaceDiffKind Kind { get; }
         public string Path { get; }
         public string Message { get; }
     }
@@ -37,8 +30,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public GoogleSpreadsheetReference Remote { get; }
         public IReadOnlyList<GoogleSheetsDiffItem> Items { get; }
         public TranslationReport Report { get; }
-        public bool HasConflicts => Items.Any(item => item.Kind == GoogleSheetsDiffKind.Conflict);
-        public bool HasLossyActions => Items.Any(item => item.Kind == GoogleSheetsDiffKind.LossyAction);
+        public bool HasConflicts => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.Conflict);
+        public bool HasLossyActions => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.LossyAction);
         public bool CanApply => !HasConflicts && !Report.HasErrors;
     }
 
@@ -61,7 +54,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             GoogleSheetsImportResult imported = await importer.ImportAsync(
                 spreadsheetId,
                 session,
-                new GoogleSheetsImportOptions { Mode = GoogleSheetsImportMode.Native },
+                new GoogleSheetsImportOptions { Mode = GoogleWorkspaceImportMode.Native },
                 cancellationToken).ConfigureAwait(false);
             using (imported.Document) {
                 var sourceHashes = BuildHashes(source);
@@ -71,12 +64,12 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 var remoteHashes = BuildHashes(imported.Document, sourceSheetNames);
                 var items = Compare(sourceHashes, remoteHashes, checkpoint);
                 foreach (TranslationNotice notice in imported.Report.Notices.Where(notice => notice.Severity >= TranslationSeverity.Warning)) {
-                    items.Add(new GoogleSheetsDiffItem(GoogleSheetsDiffKind.LossyAction, notice.TargetId ?? notice.Feature, notice.Message));
+                    items.Add(new GoogleSheetsDiffItem(GoogleWorkspaceDiffKind.LossyAction, notice.TargetId ?? notice.Feature, notice.Message));
                 }
                 if (checkpoint?.DriveVersion != null && imported.Source.DriveVersion != null
                     && checkpoint.DriveVersion != imported.Source.DriveVersion) {
                     items.Add(new GoogleSheetsDiffItem(
-                        GoogleSheetsDiffKind.RemoteChange,
+                        GoogleWorkspaceDiffKind.RemoteChange,
                         "spreadsheet/driveVersion",
                         "The Google spreadsheet Drive version changed after the checkpoint."));
                 }
@@ -98,11 +91,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 bool remoteChanged = checkpoint == null ? !string.Equals(remoteHash, localHash, StringComparison.Ordinal) : !string.Equals(remoteHash, baseHash, StringComparison.Ordinal);
                 if (!localChanged && !remoteChanged) continue;
                 if (localChanged && remoteChanged && !string.Equals(localHash, remoteHash, StringComparison.Ordinal)) {
-                    result.Add(new GoogleSheetsDiffItem(GoogleSheetsDiffKind.Conflict, path, "The OfficeIMO source and Google spreadsheet changed this item differently."));
+                    result.Add(new GoogleSheetsDiffItem(GoogleWorkspaceDiffKind.Conflict, path, "The OfficeIMO source and Google spreadsheet changed this item differently."));
                 } else if (localChanged) {
-                    result.Add(new GoogleSheetsDiffItem(GoogleSheetsDiffKind.SourceChange, path, "The OfficeIMO source changed this item."));
+                    result.Add(new GoogleSheetsDiffItem(GoogleWorkspaceDiffKind.SourceChange, path, "The OfficeIMO source changed this item."));
                 } else {
-                    result.Add(new GoogleSheetsDiffItem(GoogleSheetsDiffKind.RemoteChange, path, "The Google spreadsheet changed this item."));
+                    result.Add(new GoogleSheetsDiffItem(GoogleWorkspaceDiffKind.RemoteChange, path, "The Google spreadsheet changed this item."));
                 }
             }
             return result;

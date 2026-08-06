@@ -9,20 +9,20 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         public static IEnumerable<object[]> SmartArtTypesWithLayouts() {
-            yield return new object[] { SmartArtType.BasicProcess, "urn:microsoft.com/office/officeart/2005/8/layout/default" };
-            yield return new object[] { SmartArtType.Hierarchy, "urn:microsoft.com/office/officeart/2005/8/layout/hierarchy1" };
-            yield return new object[] { SmartArtType.Cycle, "urn:microsoft.com/office/officeart/2005/8/layout/cycle2" };
-            yield return new object[] { SmartArtType.PictureOrgChart, "urn:microsoft.com/office/officeart/2005/8/layout/pictureorgchart" };
-            yield return new object[] { SmartArtType.ContinuousBlockProcess, "urn:microsoft.com/office/officeart/2005/8/layout/process6" };
-            yield return new object[] { SmartArtType.CustomSmartArt1, "urn:microsoft.com/office/officeart/2005/8/layout/default" };
-            yield return new object[] { SmartArtType.CustomSmartArt2, "urn:microsoft.com/office/officeart/2005/8/layout/cycle2" };
+            yield return new object[] { WordSmartArtType.BasicProcess, "urn:microsoft.com/office/officeart/2005/8/layout/default" };
+            yield return new object[] { WordSmartArtType.Hierarchy, "urn:microsoft.com/office/officeart/2005/8/layout/hierarchy1" };
+            yield return new object[] { WordSmartArtType.Cycle, "urn:microsoft.com/office/officeart/2005/8/layout/cycle2" };
+            yield return new object[] { WordSmartArtType.PictureOrgChart, "urn:microsoft.com/office/officeart/2005/8/layout/pictureorgchart" };
+            yield return new object[] { WordSmartArtType.ContinuousBlockProcess, "urn:microsoft.com/office/officeart/2005/8/layout/process6" };
+            yield return new object[] { WordSmartArtType.CustomSmartArt1, "urn:microsoft.com/office/officeart/2005/8/layout/default" };
+            yield return new object[] { WordSmartArtType.CustomSmartArt2, "urn:microsoft.com/office/officeart/2005/8/layout/cycle2" };
         }
 
         [Fact]
         public void Test_AddSmartArt() {
             string filePath = Path.Combine(_directoryWithFiles, "SmartArtDocument.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddSmartArt(SmartArtType.BasicProcess);
+                document.AddSmartArt(WordSmartArtType.BasicProcess);
                 var mainPart = document._wordprocessingDocument.MainDocumentPart!;
                 Assert.Single(mainPart.DiagramDataParts);
                 Assert.Single(mainPart.DiagramLayoutDefinitionParts);
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
         public void Test_SmartArt_Retrieval_After_Load() {
             string filePath = Path.Combine(_directoryWithFiles, "SmartArtRetrieve.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddSmartArt(SmartArtType.Hierarchy);
+                document.AddSmartArt(WordSmartArtType.Hierarchy);
                 document.Save();
             }
 
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
         public void Test_SmartArt_Text_Edit_Persists() {
             string filePath = Path.Combine(_directoryWithFiles, "SmartArtEdit.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var sa = document.AddSmartArt(SmartArtType.BasicProcess);
+                var sa = document.AddSmartArt(WordSmartArtType.BasicProcess);
                 // Debug: ensure the SmartArt data part contains at least 1 editable node
                 var main = document._wordprocessingDocument.MainDocumentPart!;
                 var rel = sa._drawing.Descendants<DocumentFormat.OpenXml.Drawing.Diagrams.RelationshipIds>().First();
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
 
         [Theory]
         [MemberData(nameof(SmartArtTypesWithLayouts))]
-        public void Test_SmartArt_Relationships_For_Each_Type(SmartArtType type, string expectedLayoutUid) {
+        public void Test_SmartArt_Relationships_For_Each_Type(WordSmartArtType type, string expectedLayoutUid) {
             string filePath = Path.Combine(_directoryWithFiles, $"SmartArt_{type}.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {

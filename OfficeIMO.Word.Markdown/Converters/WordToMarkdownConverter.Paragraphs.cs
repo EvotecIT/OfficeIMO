@@ -27,13 +27,13 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             int? headingLevel = paragraph.Style.HasValue
-                ? HeadingStyleMapper.GetLevelForHeadingStyle(paragraph.Style.Value)
+                ? WordHeadingStyleMapper.GetLevelForHeadingStyle(paragraph.Style.Value)
                 : (int?)null;
             if (headingLevel.HasValue && headingLevel.Value > 0) {
                 sb.Append(new string('#', headingLevel.Value)).Append(' ');
             }
 
-            var listInfo = DocumentTraversal.GetListInfo(paragraph);
+            var listInfo = WordDocumentTraversal.GetListInfo(paragraph);
             if (listInfo != null) {
                 int level = ValidateListLevel(listInfo.Value.Level, options.MaxListNestingDepth);
                 sb.Append(new string(' ', checked(level * 2)));
@@ -65,11 +65,11 @@ namespace OfficeIMO.Word.Markdown {
                 return null;
             }
 
-            return FontResolver.Resolve(configuredFontFamily) ?? configuredFontFamily;
+            return WordFontResolver.Resolve(configuredFontFamily) ?? configuredFontFamily;
         }
 
         private static string? ResolveImplicitCodeFont() {
-            var font = FontResolver.Resolve("monospace");
+            var font = WordFontResolver.Resolve("monospace");
             if (string.IsNullOrWhiteSpace(font)) {
                 return null;
             }
@@ -87,7 +87,7 @@ namespace OfficeIMO.Word.Markdown {
             var sb = new StringBuilder();
             // Inline code detection:
             // 1) If caller specifies options.FontFamily, treat runs with that font as code
-            // 2) Else, treat runs with the platform monospace (FontResolver.Resolve("monospace")) as code
+            // 2) Else, treat runs with the platform monospace (WordFontResolver.Resolve("monospace")) as code
             // 3) Else, fallback to a conservative known-monospace allowlist or names containing "Mono"
             string? preferredCodeFont = ResolveConfiguredCodeFont(options.FontFamily);
             string? implicitCodeFont = ResolveImplicitCodeFont();

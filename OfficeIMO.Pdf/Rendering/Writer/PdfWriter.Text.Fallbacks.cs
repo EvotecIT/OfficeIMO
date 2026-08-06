@@ -11,10 +11,10 @@ internal static partial class PdfWriter {
         "Performance",
         "CA1859:Use concrete types when possible",
         Justification = "Callers expose read-only run collections and should not depend on the mutable implementation.")]
-    private static System.Collections.Generic.IReadOnlyList<TextRun> NormalizeFallbackRuns(System.Collections.Generic.IEnumerable<TextRun> runs, PdfStandardFont baseFont, PdfOptions? options) {
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> NormalizeFallbackRuns(System.Collections.Generic.IEnumerable<PdfTextRun> runs, PdfStandardFont baseFont, PdfOptions? options) {
         Guard.NotNull(runs, nameof(runs));
-        var normalized = new System.Collections.Generic.List<TextRun>();
-        foreach (TextRun run in runs) {
+        var normalized = new System.Collections.Generic.List<PdfTextRun>();
+        foreach (PdfTextRun run in runs) {
             if (run.InlineElement != null) {
                 normalized.Add(run);
                 continue;
@@ -40,7 +40,7 @@ internal static partial class PdfWriter {
                         baseFont,
                         options,
                         profileFamilyFallbacks,
-                        out System.Collections.Generic.IReadOnlyList<TextRun> profileRuns))
+                        out System.Collections.Generic.IReadOnlyList<PdfTextRun> profileRuns))
                     || TryPlanFallbackTextRuns(
                         profileFamilyFallbacks,
                         run.Text,
@@ -63,7 +63,7 @@ internal static partial class PdfWriter {
                     run.Italic)
                 ?? options?.EmbeddedFontFallbacksSnapshot;
             if (fallbackSet != null
-                && (TryPlanFallbackTextRuns(fallbackSet, run.Text, run, options, ResolveFontForRun(run, baseFont), out System.Collections.Generic.IReadOnlyList<TextRun> plannedRuns)
+                && (TryPlanFallbackTextRuns(fallbackSet, run.Text, run, options, ResolveFontForRun(run, baseFont), out System.Collections.Generic.IReadOnlyList<PdfTextRun> plannedRuns)
                     || TryPlanFallbackRunsPreservingSelectedFont(run, baseFont, options, fallbackSet, out plannedRuns))) {
                 normalized.AddRange(plannedRuns);
             } else {
@@ -75,12 +75,12 @@ internal static partial class PdfWriter {
     }
 
     private static bool TryPlanFallbackRunsPreservingSelectedFont(
-        TextRun run,
+        PdfTextRun run,
         PdfStandardFont baseFont,
         PdfOptions? options,
         PdfEmbeddedFontFallbackSet fallbackSet,
-        out System.Collections.Generic.IReadOnlyList<TextRun> plannedRuns) {
-        plannedRuns = Array.Empty<TextRun>();
+        out System.Collections.Generic.IReadOnlyList<PdfTextRun> plannedRuns) {
+        plannedRuns = Array.Empty<PdfTextRun>();
         string text = run.Text ?? string.Empty;
         if (text.Length == 0 || IsLayoutControlRun(run)) {
             plannedRuns = new[] { run };
@@ -88,15 +88,15 @@ internal static partial class PdfWriter {
         }
 
         PdfStandardFont fontForRun = ResolveFontForRun(run, baseFont);
-        var runs = new System.Collections.Generic.List<TextRun>();
+        var runs = new System.Collections.Generic.List<PdfTextRun>();
 
         for (int index = 0; index < text.Length;) {
             char ch = text[index];
             if (IsFallbackLayoutSeparator(ch)) {
                 if (ch == '\t') {
-                    runs.Add(TextRun.Tab(run.TabLeader, run.TabAlignment));
+                    runs.Add(PdfTextRun.Tab(run.TabLeader, run.TabAlignment));
                 } else {
-                    runs.Add(TextRun.LineBreak());
+                    runs.Add(PdfTextRun.LineBreak());
                     if (ch == '\r' && index + 1 < text.Length && text[index + 1] == '\n') {
                         index++;
                     }
@@ -121,8 +121,8 @@ internal static partial class PdfWriter {
                 continue;
             }
 
-            if (!TryPlanFallbackTextRuns(fallbackSet, segment, run, options, fontForRun, out System.Collections.Generic.IReadOnlyList<TextRun> fallbackRuns)) {
-                plannedRuns = Array.Empty<TextRun>();
+            if (!TryPlanFallbackTextRuns(fallbackSet, segment, run, options, fontForRun, out System.Collections.Generic.IReadOnlyList<PdfTextRun> fallbackRuns)) {
+                plannedRuns = Array.Empty<PdfTextRun>();
                 return false;
             }
 
@@ -136,11 +136,11 @@ internal static partial class PdfWriter {
     private static bool TryPlanFallbackTextRuns(
         PdfEmbeddedFontFallbackSet fallbackSet,
         string? text,
-        TextRun styleTemplate,
+        PdfTextRun styleTemplate,
         PdfOptions? options,
         PdfStandardFont selectedFont,
-        out System.Collections.Generic.IReadOnlyList<TextRun> plannedRuns) {
-        plannedRuns = Array.Empty<TextRun>();
+        out System.Collections.Generic.IReadOnlyList<PdfTextRun> plannedRuns) {
+        plannedRuns = Array.Empty<PdfTextRun>();
         string value = text ?? string.Empty;
         PdfTextFallbackPlan plan = fallbackSet.PlanText(
             value,
@@ -244,7 +244,7 @@ internal static partial class PdfWriter {
     private static bool IsFallbackLayoutSeparator(char ch) =>
         ch == '\n' || ch == '\r' || ch == '\t';
 
-    private static bool TryGetSelectedFontCoveredFallbackTextLength(string text, int index, TextRun run, PdfStandardFont fontForRun, PdfOptions? options, out int length) {
+    private static bool TryGetSelectedFontCoveredFallbackTextLength(string text, int index, PdfTextRun run, PdfStandardFont fontForRun, PdfOptions? options, out int length) {
         string textElement = System.Globalization.StringInfo.GetNextTextElement(text, index);
         length = textElement.Length;
         if (options != null &&

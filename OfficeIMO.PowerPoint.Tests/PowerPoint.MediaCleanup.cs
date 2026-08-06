@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                        writable: false)) {
                 shape.SetClickSound(actionSound, "Action");
             }
-            removed.Transition = SlideTransition.Fade;
+            removed.Transition = PowerPointSlideTransition.Fade;
             using (var transitionSound = new MemoryStream(CreateWave(),
                        writable: false)) {
                 removed.SetTransitionSound(transitionSound, "Transition");

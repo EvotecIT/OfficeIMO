@@ -9,17 +9,17 @@ namespace OfficeIMO.Word.Html {
             string? source = null,
             Exception? exception = null,
             HtmlDiagnosticSeverity severity = HtmlDiagnosticSeverity.Warning,
-            HtmlConversionLossKind? lossKind = null) {
+            OfficeConversionLossKind? lossKind = null) {
             var detail = exception is HtmlConversionLimitException limitException && !string.IsNullOrEmpty(limitException.Detail)
                 ? $"{exception.GetType().Name}: {limitException.Detail}"
                 : exception is HtmlUnsupportedCssException cssException && !string.IsNullOrEmpty(cssException.Detail)
                     ? $"{exception.GetType().Name}: {cssException.Detail}"
                 : exception == null ? null : $"{exception.GetType().Name}: {exception.Message}";
-            HtmlConversionLossKind effectiveLoss = lossKind ?? (severity == HtmlDiagnosticSeverity.Error
-                ? HtmlConversionLossKind.Failure
+            OfficeConversionLossKind effectiveLoss = lossKind ?? (severity == HtmlDiagnosticSeverity.Error
+                ? OfficeConversionLossKind.Failure
                 : severity == HtmlDiagnosticSeverity.Info
-                    ? HtmlConversionLossKind.None
-                    : HtmlConversionLossKind.Omission);
+                    ? OfficeConversionLossKind.None
+                    : OfficeConversionLossKind.Omission);
             options.ConversionReport.Add("OfficeIMO.Word.Html", code, message, severity, source, detail, effectiveLoss);
         }
     }

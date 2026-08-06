@@ -991,10 +991,10 @@ namespace OfficeIMO.Tests {
             directOverride._run.RunProperties.FontSize = new FontSize { Val = "20" };
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeCellParagraphRuns", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph), typeof(Dictionary<long, int>) }, modifiers: null)!;
-            var runs = Assert.IsAssignableFrom<IReadOnlyList<TextRun>>(method.Invoke(null, new object?[] { paragraph, null }));
-            TextRun run = Assert.Single(runs);
-            var overrideRuns = Assert.IsAssignableFrom<IReadOnlyList<TextRun>>(method.Invoke(null, new object?[] { directOverride, null }));
-            TextRun overrideRun = Assert.Single(overrideRuns);
+            var runs = Assert.IsAssignableFrom<IReadOnlyList<PdfTextRun>>(method.Invoke(null, new object?[] { paragraph, null }));
+            PdfTextRun run = Assert.Single(runs);
+            var overrideRuns = Assert.IsAssignableFrom<IReadOnlyList<PdfTextRun>>(method.Invoke(null, new object?[] { directOverride, null }));
+            PdfTextRun overrideRun = Assert.Single(overrideRuns);
 
             Assert.True(run.Bold);
             Assert.True(run.Italic);
@@ -1203,8 +1203,8 @@ namespace OfficeIMO.Tests {
             paragraph.SetStyleId(styleId);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeCellParagraphRuns", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph), typeof(Dictionary<long, int>) }, modifiers: null)!;
-            var runs = Assert.IsAssignableFrom<IReadOnlyList<TextRun>>(method.Invoke(null, new object?[] { paragraph, null }));
-            TextRun run = Assert.Single(runs);
+            var runs = Assert.IsAssignableFrom<IReadOnlyList<PdfTextRun>>(method.Invoke(null, new object?[] { paragraph, null }));
+            PdfTextRun run = Assert.Single(runs);
 
             Assert.Equal(PdfStandardFont.TimesRoman, run.Font);
         }

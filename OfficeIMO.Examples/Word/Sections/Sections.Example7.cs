@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var section0 = document.Sections[0];
-                section0.PageOrientation = WordPageOrientation.Landscape;
+                section0.PageOrientation = OfficePageOrientation.Landscape;
                 section0.AddParagraph("Test Section0");
                 // Default header
                 section0.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph().SetText("Test Section 0 - Header");
@@ -37,7 +37,7 @@ namespace OfficeIMO.Examples.Word {
 
 
                 var section1 = document.AddSection();
-                section1.PageOrientation = WordPageOrientation.Portrait;
+                section1.PageOrientation = OfficePageOrientation.Portrait;
                 section1.AddParagraph("Test Section1");
                 section1.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph().SetText("Test Section 1 - Header");
                 section1.DifferentFirstPage = true;
@@ -58,7 +58,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var section2 = document.AddSection();
                 section2.AddParagraph("Test Section2");
-                section2.PageOrientation = WordPageOrientation.Landscape;
+                section2.PageOrientation = OfficePageOrientation.Landscape;
                 section2.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph().SetText("Test Section 2 - Header");
 
                 document.AddParagraph("Test Section2 - Paragraph 1");

@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
             Directory.CreateDirectory(Path.GetDirectoryName(importedXlsxPath)!);
             result.Document.Save(importedXlsxPath);
             ExcelDocument.Convert(sourceXlsPath, convertedXlsxPath, new ExcelDocumentConversionOptions {
-                LossPolicy = ExcelConversionLossPolicy.Allow
+                LossPolicy = OfficeConversionLossPolicy.Allow
             });
             AssertWorkbooksOpenViaExcelComWhenAvailable(new[] { importedXlsxPath, convertedXlsxPath }, "One or more imported or converted XLSX workbooks did not open through desktop Excel.");
         }

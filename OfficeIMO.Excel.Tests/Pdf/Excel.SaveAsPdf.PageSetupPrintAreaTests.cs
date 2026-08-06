@@ -199,7 +199,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Name");
             sheet.Cell(2, 1, "WorksheetPageSetup");
-            sheet.SetOrientation(ExcelPageOrientation.Landscape);
+            sheet.SetOrientation(OfficePageOrientation.Landscape);
             sheet.SetMargins(left: 0.25, right: 0.25, top: 0.5, bottom: 0.5);
             document.Save();
 

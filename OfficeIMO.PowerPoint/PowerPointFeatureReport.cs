@@ -16,23 +16,6 @@ using P188 = DocumentFormat.OpenXml.Office2021.PowerPoint.Comment;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
-    /// OfficeIMO's current author/edit/preserve status for a PowerPoint feature discovered during inspection.
-    /// </summary>
-    public enum PowerPointFeatureSupportLevel {
-        /// <summary>OfficeIMO can author or edit this feature directly.</summary>
-        Editable,
-
-        /// <summary>OfficeIMO can author or edit common cases, but not the full PowerPoint feature surface.</summary>
-        PartiallyEditable,
-
-        /// <summary>OfficeIMO should preserve the feature during round-trip saves, but does not expose a rich authoring API.</summary>
-        Preserved,
-
-        /// <summary>OfficeIMO has no meaningful support for the feature yet.</summary>
-        Unsupported
-    }
-
-    /// <summary>
     /// Presentation-level feature and compatibility report.
     /// </summary>
     public sealed class PowerPointFeatureReport {
@@ -52,28 +35,28 @@ namespace OfficeIMO.PowerPoint {
         /// Features OfficeIMO can author or edit directly.
         /// </summary>
         public IReadOnlyList<PowerPointFeatureFinding> EditableFeatures => _features
-            .Where(feature => feature.SupportLevel == PowerPointFeatureSupportLevel.Editable)
+            .Where(feature => feature.SupportLevel == OfficeFeatureSupportLevel.Editable)
             .ToArray();
 
         /// <summary>
         /// Features OfficeIMO can partly author or edit.
         /// </summary>
         public IReadOnlyList<PowerPointFeatureFinding> PartiallyEditableFeatures => _features
-            .Where(feature => feature.SupportLevel == PowerPointFeatureSupportLevel.PartiallyEditable)
+            .Where(feature => feature.SupportLevel == OfficeFeatureSupportLevel.PartiallyEditable)
             .ToArray();
 
         /// <summary>
         /// Advanced features OfficeIMO should preserve but cannot fully author or edit yet.
         /// </summary>
         public IReadOnlyList<PowerPointFeatureFinding> PreservedFeatures => _features
-            .Where(feature => feature.SupportLevel == PowerPointFeatureSupportLevel.Preserved)
+            .Where(feature => feature.SupportLevel == OfficeFeatureSupportLevel.Preserved)
             .ToArray();
 
         /// <summary>
         /// Features OfficeIMO does not meaningfully support yet.
         /// </summary>
         public IReadOnlyList<PowerPointFeatureFinding> UnsupportedFeatures => _features
-            .Where(feature => feature.SupportLevel == PowerPointFeatureSupportLevel.Unsupported)
+            .Where(feature => feature.SupportLevel == OfficeFeatureSupportLevel.Unsupported)
             .ToArray();
 
         /// <summary>
@@ -107,11 +90,11 @@ namespace OfficeIMO.PowerPoint {
         /// Returns discovered features with one of the provided support levels.
         /// </summary>
         /// <param name="supportLevels">Support levels to match.</param>
-        public IReadOnlyList<PowerPointFeatureFinding> FindFeatures(params PowerPointFeatureSupportLevel[] supportLevels) {
+        public IReadOnlyList<PowerPointFeatureFinding> FindFeatures(params OfficeFeatureSupportLevel[] supportLevels) {
             if (supportLevels == null) throw new ArgumentNullException(nameof(supportLevels));
             if (supportLevels.Length == 0) return Array.Empty<PowerPointFeatureFinding>();
 
-            var levels = new HashSet<PowerPointFeatureSupportLevel>(supportLevels);
+            var levels = new HashSet<OfficeFeatureSupportLevel>(supportLevels);
             return _features
                 .Where(feature => levels.Contains(feature.SupportLevel))
                 .ToArray();
@@ -166,7 +149,7 @@ namespace OfficeIMO.PowerPoint {
         /// Throws when the presentation contains any features with the provided support levels.
         /// </summary>
         /// <param name="supportLevels">Support levels to reject.</param>
-        public PowerPointFeatureReport EnsureNoFeatures(params PowerPointFeatureSupportLevel[] supportLevels) {
+        public PowerPointFeatureReport EnsureNoFeatures(params OfficeFeatureSupportLevel[] supportLevels) {
             var matches = FindFeatures(supportLevels)
                 .Where(feature => feature.Count > 0)
                 .ToArray();
@@ -256,7 +239,7 @@ namespace OfficeIMO.PowerPoint {
     /// One feature discovered in a presentation.
     /// </summary>
     public sealed class PowerPointFeatureFinding {
-        internal PowerPointFeatureFinding(string category, string name, PowerPointFeatureSupportLevel supportLevel, int count, string? scope,
+        internal PowerPointFeatureFinding(string category, string name, OfficeFeatureSupportLevel supportLevel, int count, string? scope,
             string note, IReadOnlyList<string>? details = null) {
             Category = string.IsNullOrWhiteSpace(category) ? throw new ArgumentNullException(nameof(category)) : category;
             Name = string.IsNullOrWhiteSpace(name) ? throw new ArgumentNullException(nameof(name)) : name;
@@ -280,7 +263,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// OfficeIMO support status for this feature.
         /// </summary>
-        public PowerPointFeatureSupportLevel SupportLevel { get; }
+        public OfficeFeatureSupportLevel SupportLevel { get; }
 
         /// <summary>
         /// Number of matching items discovered.
@@ -331,20 +314,20 @@ namespace OfficeIMO.PowerPoint {
             var externalHyperlinkDetails = DescribeExternalHyperlinkRelationships(allParts);
             var externalPackageRelationshipDetails = DescribeExternalPackageRelationships(allParts);
 
-            Add(features, "Structure", "Slides", PowerPointFeatureSupportLevel.Editable, Slides.Count, null,
+            Add(features, "Structure", "Slides", OfficeFeatureSupportLevel.Editable, Slides.Count, null,
                 "Slides can be authored, duplicated, imported, hidden, reordered, and removed.");
-            Add(features, "Structure", "PowerPoint package scaffolding", PowerPointFeatureSupportLevel.Editable, packageFoundationDetails.Count, null,
+            Add(features, "Structure", "PowerPoint package scaffolding", OfficeFeatureSupportLevel.Editable, packageFoundationDetails.Count, null,
                 "Presentation, layout, master, theme, view, table-style, notes-master, and thumbnail parts are created or preserved as package foundation.",
                 packageFoundationDetails);
-            Add(features, "Structure", "Sections", PowerPointFeatureSupportLevel.Editable, GetSections().Count, null,
+            Add(features, "Structure", "Sections", OfficeFeatureSupportLevel.Editable, GetSections().Count, null,
                 "Sections can be authored, inspected, renamed, moved, and synchronized with slides.");
             PowerPointCustomShow[] customShows = CustomShows.ToArray();
             IReadOnlyList<string> unsafeCustomShowDetails =
                 DescribeUnsafeCustomShowStructure();
             bool customShowsAreEditable = unsafeCustomShowDetails.Count == 0;
             Add(features, "Presentation", "Custom shows", customShowsAreEditable
-                    ? PowerPointFeatureSupportLevel.Editable
-                    : PowerPointFeatureSupportLevel.Preserved,
+                    ? OfficeFeatureSupportLevel.Editable
+                    : OfficeFeatureSupportLevel.Preserved,
                 Math.Max(customShows.Length,
                     unsafeCustomShowDetails.Count == 0 ? 0 : 1), null,
                 customShowsAreEditable
@@ -353,50 +336,50 @@ namespace OfficeIMO.PowerPoint {
                 customShowsAreEditable
                     ? customShows.Select(show => $"{show.Name}: {show.Slides.Count} slide(s)").ToList()
                     : unsafeCustomShowDetails);
-            Add(features, "Content", "Text boxes", PowerPointFeatureSupportLevel.Editable, Slides.Sum(CountSlideTextBoxes), null,
+            Add(features, "Content", "Text boxes", OfficeFeatureSupportLevel.Editable, Slides.Sum(CountSlideTextBoxes), null,
                 "Text boxes, runs, common formatting, markdown import, hyperlinks, and replacement are editable.");
-            Add(features, "Content", "Tables", PowerPointFeatureSupportLevel.Editable, Slides.Sum(CountSlideTables), null,
+            Add(features, "Content", "Tables", OfficeFeatureSupportLevel.Editable, Slides.Sum(CountSlideTables), null,
                 "Tables, cells, text, merges, dimensions, fills, borders, alignment, banding flags, and typed object binding are editable.");
-            Add(features, "Content", "Table style metadata", PowerPointFeatureSupportLevel.Editable, tableMetadataDetails.Count, null,
+            Add(features, "Content", "Table style metadata", OfficeFeatureSupportLevel.Editable, tableMetadataDetails.Count, null,
                 "Generated tables include PowerPoint-style table IDs, banding metadata, row and column IDs, and language-aware cell text defaults.",
                 tableMetadataDetails);
-            Add(features, "Visualization", "Charts", PowerPointFeatureSupportLevel.PartiallyEditable, Math.Max(Slides.Sum(slide => slide.Charts.Count()), chartDetails.Count), null,
+            Add(features, "Visualization", "Charts", OfficeFeatureSupportLevel.PartiallyEditable, Math.Max(Slides.Sum(slide => slide.Charts.Count()), chartDetails.Count), null,
                 "Common charts are editable and rendered directly. Imported 3-D bar, line, area, and pie charts plus of-pie, stock, and surface charts with compatible referenced caches and workbooks expose in-place data editing and an explicit 2-D semantic export projection; other producer storage and chart families remain preservation-only with diagnostics.",
                 chartDetails.Concat(chartCompanionDetails).Distinct(StringComparer.OrdinalIgnoreCase).ToList());
-            Add(features, "Media", "Images", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(CountSlideImages), null,
+            Add(features, "Media", "Images", OfficeFeatureSupportLevel.PartiallyEditable, Slides.Sum(CountSlideImages), null,
                 "Images can be inserted and inspected in common slide scenarios; advanced drawing behaviors remain partial.");
-            Add(features, "Media", "Audio and video", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(CountSlideMedia), null,
+            Add(features, "Media", "Audio and video", OfficeFeatureSupportLevel.PartiallyEditable, Slides.Sum(CountSlideMedia), null,
                 "Linked and embedded audio and video expose targets, payload replacement, poster frames, volume, mute, loop, stopped visibility, video full-screen, trim, fade, and playback timing. Unmodeled producer metadata remains preserved.",
                 DescribePartsByUriOrContentType(allParts, "media"));
             Add(features, "Media", "Legacy media metadata",
-                PowerPointFeatureSupportLevel.Preserved,
+                OfficeFeatureSupportLevel.Preserved,
                 LegacyPptMediaDetails.Count, null,
                 "Linked, device-based, or legacy-only playback metadata from binary PowerPoint remains available for exact binary preservation but is not editable in the Open XML media surface.",
                 LegacyPptMediaDetails);
-            Add(features, "Visualization", "SmartArt", PowerPointFeatureSupportLevel.PartiallyEditable, Math.Max(Slides.Sum(CountSlideSmartArt), diagramDetails.Count), null,
+            Add(features, "Visualization", "SmartArt", OfficeFeatureSupportLevel.PartiallyEditable, Math.Max(Slides.Sum(CountSlideSmartArt), diagramDetails.Count), null,
                 "Supported SmartArt families expose node text, sibling order, and safe parent topology editing. Unsupported layouts, cycles, node-set changes, and meaning-changing connections are preserved or rejected explicitly.",
                 diagramDetails);
             var richNotesDetails = DescribeRichNotesContent();
-            Add(features, "Presentation", "Speaker notes", PowerPointFeatureSupportLevel.Editable, Slides.Count(slide => slide.SlidePart.NotesSlidePart != null), null,
+            Add(features, "Presentation", "Speaker notes", OfficeFeatureSupportLevel.Editable, Slides.Count(slide => slide.SlidePart.NotesSlidePart != null), null,
                 "Speaker notes can be authored, inspected, updated, and preserved.");
-            Add(features, "Presentation", "Rich notes content", PowerPointFeatureSupportLevel.Preserved, richNotesDetails.Count, null,
+            Add(features, "Presentation", "Rich notes content", OfficeFeatureSupportLevel.Preserved, richNotesDetails.Count, null,
                 "Notes-page drawings beyond speaker text are detected as preserve-only presentation content.",
                 richNotesDetails);
-            Add(features, "Presentation", "Slide transitions", PowerPointFeatureSupportLevel.Editable, Slides.Count(HasTransitionMarkup), null,
+            Add(features, "Presentation", "Slide transitions", OfficeFeatureSupportLevel.Editable, Slides.Count(HasTransitionMarkup), null,
                 "Common transitions, Morph fallback markup, speed, duration, advance timing, and transition sound actions can be authored and round-tripped.");
             Add(features, "Media", "Transition and action sounds",
-                PowerPointFeatureSupportLevel.Editable,
+                OfficeFeatureSupportLevel.Editable,
                 Slides.Sum(CountTransitionAndActionSounds), null,
                 "Embedded sounds referenced by slide transitions and shape or text actions are detected and round-tripped.");
             var unsupportedTransitionDetails = DescribeUnsupportedTransitionMarkup();
-            Add(features, "Presentation", "Unsupported transition markup", PowerPointFeatureSupportLevel.Preserved, unsupportedTransitionDetails.Count, null,
+            Add(features, "Presentation", "Unsupported transition markup", OfficeFeatureSupportLevel.Preserved, unsupportedTransitionDetails.Count, null,
                 "Transition markup not mapped by OfficeIMO is detected as preserve-only slide metadata.",
                 unsupportedTransitionDetails);
             int classicAnimationCount = Slides
                 .Where(slide => slide.HasOnlyClassicAnimationTiming())
                 .Sum(slide => slide.ClassicAnimations.Count);
             Add(features, "Presentation", "Classic animations",
-                PowerPointFeatureSupportLevel.Editable,
+                OfficeFeatureSupportLevel.Editable,
                 classicAnimationCount, null,
                 "Classic shape and text entrance effects, paragraph builds, order, automatic advance, after-effects, and sounds can be authored, inspected, and round-tripped.");
             int typedTimelineActionCount = Slides.Sum(slide =>
@@ -404,17 +387,17 @@ namespace OfficeIMO.PowerPoint {
                     .Count(element => element is AnimateMotion or AnimateRotation
                         or Command) ?? 0);
             Add(features, "Presentation", "Typed timeline actions",
-                PowerPointFeatureSupportLevel.Editable,
+                OfficeFeatureSupportLevel.Editable,
                 typedTimelineActionCount, null,
                 "Motion, rotation, command, duration, and media playback actions can be appended, edited, or removed incrementally without rebuilding unrelated timing sequences.");
             var advancedTimingDetails = DescribeAdvancedTimingMarkup();
-            Add(features, "Presentation", "Animations and timing", PowerPointFeatureSupportLevel.Preserved, advancedTimingDetails.Count, null,
+            Add(features, "Presentation", "Animations and timing", OfficeFeatureSupportLevel.Preserved, advancedTimingDetails.Count, null,
                 "Color, scale, set, producer extensions, and other unmodeled timing nodes remain inspectable and are preserved unless explicitly targeted.",
                 advancedTimingDetails);
-            Add(features, "Content", "External relationships", PowerPointFeatureSupportLevel.PartiallyEditable, externalHyperlinkDetails.Count, null,
+            Add(features, "Content", "External relationships", OfficeFeatureSupportLevel.PartiallyEditable, externalHyperlinkDetails.Count, null,
                 "External hyperlinks can be authored and inspected.",
                 externalHyperlinkDetails);
-            Add(features, "Compatibility", "External package relationships", PowerPointFeatureSupportLevel.Preserved, externalPackageRelationshipDetails.Count, null,
+            Add(features, "Compatibility", "External package relationships", OfficeFeatureSupportLevel.Preserved, externalPackageRelationshipDetails.Count, null,
                 "Linked package relationships outside hyperlink markup are detected as preserve-only package metadata.",
                 externalPackageRelationshipDetails);
 
@@ -431,10 +414,10 @@ namespace OfficeIMO.PowerPoint {
                  && part is not PowerPointAuthorsPart)
                 || HasUnsupportedCommentMarkup(part))
                 || !HasEditableCommentGraph();
-            PowerPointFeatureSupportLevel commentSupportLevel =
+            OfficeFeatureSupportLevel commentSupportLevel =
                 hasUnsupportedCommentParts
-                    ? PowerPointFeatureSupportLevel.Preserved
-                    : PowerPointFeatureSupportLevel.Editable;
+                    ? OfficeFeatureSupportLevel.Preserved
+                    : OfficeFeatureSupportLevel.Editable;
             var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
             PowerPointOleObject[] editableOleObjects = Slides
                 .SelectMany(slide => slide.OleObjects).ToArray();
@@ -464,9 +447,9 @@ namespace OfficeIMO.PowerPoint {
             bool hasEditableVbaProject = vbaParts.Length == 1
                 && ReferenceEquals(vbaParts[0], _presentationPart.VbaProjectPart)
                 && IsValidEditableVbaProject(_presentationPart.VbaProjectPart);
-            PowerPointFeatureSupportLevel vbaSupportLevel = vbaParts.Length == 0 || hasEditableVbaProject
-                ? PowerPointFeatureSupportLevel.Editable
-                : PowerPointFeatureSupportLevel.Preserved;
+            OfficeFeatureSupportLevel vbaSupportLevel = vbaParts.Length == 0 || hasEditableVbaProject
+                ? OfficeFeatureSupportLevel.Editable
+                : OfficeFeatureSupportLevel.Preserved;
             var webExtensionDetails = DescribeWebExtensionParts(allParts);
             var signatureDetails = DescribeDigitalSignatureParts(allParts);
             if (_document?.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
@@ -478,48 +461,48 @@ namespace OfficeIMO.PowerPoint {
                     ? "Plain classic and modern comment graphs are editable; rich or unrecognized comment structures and additional comment metadata are preserved without destructive mutation."
                     : "Classic comments and modern threaded comments/replies can be created, edited, reassigned, and removed; classic comments also round-trip through binary PPT.",
                 commentDetails);
-            Add(features, "Compatibility", "Custom XML parts", PowerPointFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
+            Add(features, "Compatibility", "Custom XML parts", OfficeFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
                 "Custom XML parts are preserve-only package metadata.",
                 customXmlDetails);
             Add(features, "Compatibility", "Embedded OLE objects",
-                PowerPointFeatureSupportLevel.Editable,
+                OfficeFeatureSupportLevel.Editable,
                 embeddedOleObjects.Length, null,
                 "Embedded OLE compound objects expose their ProgID, display mode, color-follow setting, exact storage bytes, geometry, duplication, and removal through the normal slide model.",
                 embeddedOleObjects.Select(ole =>
                     $"{ole.Name ?? "OLE object"}: {ole.ProgId ?? "Package"}, {ole.ContentType}").ToList());
-            Add(features, "Compatibility", "Embedded packages", PowerPointFeatureSupportLevel.Preserved, embeddedPackageDetails.Count, null,
+            Add(features, "Compatibility", "Embedded packages", OfficeFeatureSupportLevel.Preserved, embeddedPackageDetails.Count, null,
                 "Unreferenced or unrecognized embedded package parts remain preserve-only package content.",
                 embeddedPackageDetails);
             Add(features, "Compatibility", "Linked OLE objects",
                 linkedOpenXmlOleObjects.Length > 0
-                    ? PowerPointFeatureSupportLevel.PartiallyEditable
-                    : PowerPointFeatureSupportLevel.Preserved,
+                    ? OfficeFeatureSupportLevel.PartiallyEditable
+                    : OfficeFeatureSupportLevel.Preserved,
                 linkedOleDetails.Count, null,
                 "Open XML linked OLE targets, ProgID, automatic refresh, geometry, duplication, and removal are editable. Binary linked OLE metadata and cached compound storage remain typed and preservation-aware.",
                 linkedOleDetails);
-            Add(features, "Compatibility", "ActiveX controls", PowerPointFeatureSupportLevel.Preserved, activeXControlDetails.Count, null,
+            Add(features, "Compatibility", "ActiveX controls", OfficeFeatureSupportLevel.Preserved, activeXControlDetails.Count, null,
                 "ActiveX metadata and native control storage are detected and retained as preserve-only advanced presentation content.",
                 activeXControlDetails);
             Add(features, "Compatibility", "VBA macros",
                 vbaSupportLevel,
                 vbaDetails.Count, null,
-                vbaSupportLevel == PowerPointFeatureSupportLevel.Editable
+                vbaSupportLevel == OfficeFeatureSupportLevel.Editable
                     ? "VBA project compound storages can be inspected, added, replaced, removed, and preserved through macro-enabled saves; OfficeIMO does not edit or sign VBA modules."
                     : "Unrecognized or malformed VBA project parts, including projects with related signature or cache parts, are preserved as package content but cannot be safely mutated through the VBA project API.",
                 vbaDetails);
-            Add(features, "Compatibility", "Web extensions and task panes", PowerPointFeatureSupportLevel.Preserved, webExtensionDetails.Count, null,
+            Add(features, "Compatibility", "Web extensions and task panes", OfficeFeatureSupportLevel.Preserved, webExtensionDetails.Count, null,
                 "Office add-in and task-pane package metadata is detected as preserve-only advanced content.",
                 webExtensionDetails);
-            Add(features, "Compatibility", "Digital signatures", PowerPointFeatureSupportLevel.Unsupported, signatureDetails.Count, null,
+            Add(features, "Compatibility", "Digital signatures", OfficeFeatureSupportLevel.Unsupported, signatureDetails.Count, null,
                 "Package signing and signature validation are not implemented; editing signed presentations may invalidate signatures.",
                 signatureDetails);
 
             return new PowerPointFeatureReport(features);
         }
 
-        private static void Add(List<PowerPointFeatureFinding> features, string category, string name, PowerPointFeatureSupportLevel supportLevel,
+        private static void Add(List<PowerPointFeatureFinding> features, string category, string name, OfficeFeatureSupportLevel supportLevel,
             int count, string? scope, string note, IReadOnlyList<string>? details = null) {
-            if (count <= 0 && supportLevel != PowerPointFeatureSupportLevel.Editable) {
+            if (count <= 0 && supportLevel != OfficeFeatureSupportLevel.Editable) {
                 return;
             }
 
@@ -745,7 +728,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool HasTransitionMarkup(PowerPointSlide slide) {
-            return slide.Transition != SlideTransition.None
+            return slide.Transition != PowerPointSlideTransition.None
                 || slide.SlidePart.Slide?.Transition != null;
         }
 

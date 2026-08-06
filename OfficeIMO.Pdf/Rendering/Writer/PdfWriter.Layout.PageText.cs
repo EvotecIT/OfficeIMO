@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private static string BuildFooter(PdfOptions opts, int variantPage, int page, int pages, int documentPages, PdfStandardFont footerFont, string footerFontResource, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, System.Collections.Generic.IReadOnlyDictionary<PdfNamedFontFace, string> namedFontResources) {
-        System.Collections.Generic.IReadOnlyList<TextRun> runs;
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> runs;
         var footerSegments = opts.GetFooterSegmentsForPage(variantPage);
         var footerZones = opts.GetFooterZonesForPage(variantPage);
         if (HasPageTextZones(footerZones)) {
@@ -29,7 +29,7 @@ internal static partial class PdfWriter {
     }
 
     private static string BuildHeader(PdfOptions opts, int variantPage, int page, int pages, int documentPages, PdfStandardFont headerFont, string headerFontResource, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, System.Collections.Generic.IReadOnlyDictionary<PdfNamedFontFace, string> namedFontResources) {
-        System.Collections.Generic.IReadOnlyList<TextRun> runs;
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> runs;
         var headerSegments = opts.GetHeaderSegmentsForPage(variantPage);
         var headerZones = opts.GetHeaderZonesForPage(variantPage);
         if (HasPageTextZones(headerZones)) {
@@ -72,7 +72,7 @@ internal static partial class PdfWriter {
             return;
         }
 
-        System.Collections.Generic.IReadOnlyList<TextRun> runs;
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> runs;
         var segments = isHeader ? opts.GetHeaderSegmentsForPage(variantPage) : opts.GetFooterSegmentsForPage(variantPage);
         if (segments != null && segments.Count > 0) {
             runs = BuildPageTextRunsFromSegments(segments, page, pages, font, fontSize, color: null, opts, fontFamily);
@@ -108,9 +108,9 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void EnsurePageTextRunFontResources(System.Collections.Generic.IReadOnlyList<TextRun> runs, PdfStandardFont baseFont, PdfOptions opts, Func<PdfStandardFont, string, string> ensureFontResource, Action<PdfNamedFontFace> ensureNamedFontResource) {
+    private static void EnsurePageTextRunFontResources(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, PdfOptions opts, Func<PdfStandardFont, string, string> ensureFontResource, Action<PdfNamedFontFace> ensureNamedFontResource) {
         PdfStandardFont normalFont = ChooseNormal(opts.DefaultFont);
-        foreach (TextRun run in runs) {
+        foreach (PdfTextRun run in runs) {
             PdfStandardFont runFont = ResolvePageTextRunFont(run, baseFont);
             if (opts.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFont)) {
                 ensureNamedFontResource(namedFont);
@@ -144,7 +144,7 @@ internal static partial class PdfWriter {
         var zoneLayouts = BuildPageTextZoneLayouts(opts, zones, variantPage, page, pages, documentPages, font, fontSize, isHeader);
         foreach (var zone in zoneLayouts) {
             string? fontFamily = isHeader ? opts.HeaderFontFamily : opts.FooterFontFamily;
-            System.Collections.Generic.IReadOnlyList<TextRun> runs = BuildPageTextRuns(zone.Text, font, fontSize, color, opts, fontFamily);
+            System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildPageTextRuns(zone.Text, font, fontSize, color, opts, fontFamily);
             PdfNamedFontFace? namedFont = TryResolvePageTextNamedFont(opts, fontFamily, font, out PdfNamedFontFace resolvedNamedFont)
                 ? resolvedNamedFont
                 : null;
@@ -245,7 +245,7 @@ internal static partial class PdfWriter {
             PdfAlign.Right => zones.Right,
             _ => zones.Left
         };
-        System.Collections.Generic.IReadOnlyList<TextRun>? runs = null;
+        System.Collections.Generic.IReadOnlyList<PdfTextRun>? runs = null;
 
         if (!string.IsNullOrEmpty(text)) {
             text = FormatPageText(text!, page, pages, documentPages, opts.PageNumberStyle);
@@ -288,9 +288,9 @@ internal static partial class PdfWriter {
         double OccupiedX,
         double OccupiedWidth);
 
-    private static System.Collections.Generic.IReadOnlyList<TextRun> BuildPageTextRuns(string text, PdfStandardFont font, double fontSize, PdfColor? color, PdfOptions opts, string? fontFamily = null) {
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> BuildPageTextRuns(string text, PdfStandardFont font, double fontSize, PdfColor? color, PdfOptions opts, string? fontFamily = null) {
         (bool bold, bool italic) = GetPageTextFontStyle(font);
-        var run = new TextRun(
+        var run = new PdfTextRun(
             text,
             bold: bold,
             underline: false,
@@ -303,7 +303,7 @@ internal static partial class PdfWriter {
         return NormalizeFallbackRuns(new[] { run }, ChooseNormal(font), opts);
     }
 
-    private static System.Collections.Generic.IReadOnlyList<TextRun> BuildPageTextRunsFromSegments(
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> BuildPageTextRunsFromSegments(
         System.Collections.Generic.IReadOnlyList<FooterSegment> segments,
         int page,
         int pages,
@@ -313,7 +313,7 @@ internal static partial class PdfWriter {
         PdfOptions opts,
         string? fontFamily) {
         (bool bold, bool italic) = GetPageTextFontStyle(font);
-        var runs = new System.Collections.Generic.List<TextRun>(segments.Count);
+        var runs = new System.Collections.Generic.List<PdfTextRun>(segments.Count);
         foreach (FooterSegment segment in segments) {
             string text = segment.Kind switch {
                 FooterSegmentKind.Text => segment.Text ?? string.Empty,
@@ -325,7 +325,7 @@ internal static partial class PdfWriter {
             if (segment.StyledRun != null) {
                 runs.Add(CreateStyledTextRun(text, segment.StyledRun, segment.StyledRun.Font, fontFamily));
             } else {
-                runs.Add(new TextRun(
+                runs.Add(new PdfTextRun(
                     text,
                     bold: bold,
                     underline: false,
@@ -362,18 +362,18 @@ internal static partial class PdfWriter {
         return (bold, italic);
     }
 
-    private static double MeasurePageTextRuns(System.Collections.Generic.IReadOnlyList<TextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions opts) {
+    private static double MeasurePageTextRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions opts) {
         double width = 0D;
-        foreach (System.Collections.Generic.IReadOnlyList<TextRun> line in BuildPageTextLineRuns(runs)) {
+        foreach (System.Collections.Generic.IReadOnlyList<PdfTextRun> line in BuildPageTextLineRuns(runs)) {
             width = Math.Max(width, MeasurePageTextLineRuns(line, baseFont, fontSize, opts));
         }
 
         return width;
     }
 
-    private static double MeasurePageTextLineRuns(System.Collections.Generic.IReadOnlyList<TextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions opts) {
+    private static double MeasurePageTextLineRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions opts) {
         double width = 0D;
-        foreach (TextRun run in runs) {
+        foreach (PdfTextRun run in runs) {
             PdfNamedFontFace? namedFont = opts.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolvedNamedFont)
                 ? resolvedNamedFont
                 : null;
@@ -383,12 +383,12 @@ internal static partial class PdfWriter {
         return width;
     }
 
-    private static System.Collections.Generic.List<System.Collections.Generic.IReadOnlyList<TextRun>> BuildPageTextLineRuns(System.Collections.Generic.IReadOnlyList<TextRun> runs) {
-        var lines = new System.Collections.Generic.List<System.Collections.Generic.IReadOnlyList<TextRun>>();
-        var current = new System.Collections.Generic.List<TextRun>();
+    private static System.Collections.Generic.List<System.Collections.Generic.IReadOnlyList<PdfTextRun>> BuildPageTextLineRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs) {
+        var lines = new System.Collections.Generic.List<System.Collections.Generic.IReadOnlyList<PdfTextRun>>();
+        var current = new System.Collections.Generic.List<PdfTextRun>();
         lines.Add(current);
 
-        foreach (TextRun run in runs) {
+        foreach (PdfTextRun run in runs) {
             if (run.InlineElement != null) {
                 current.Add(run);
                 continue;
@@ -410,7 +410,7 @@ internal static partial class PdfWriter {
                     current.Add(CreateStyledTextRun(text.Substring(segmentStart, index - segmentStart), run, run.Font));
                 }
 
-                current = new System.Collections.Generic.List<TextRun>();
+                current = new System.Collections.Generic.List<PdfTextRun>();
                 lines.Add(current);
                 if (ch == '\r' && index + 1 < text.Length && text[index + 1] == '\n') {
                     index++;
@@ -429,7 +429,7 @@ internal static partial class PdfWriter {
 
     private static void AppendPageTextRuns(
         StringBuilder sb,
-        System.Collections.Generic.IReadOnlyList<TextRun> runs,
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> runs,
         PdfStandardFont baseFont,
         string baseFontResource,
         System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources,
@@ -453,7 +453,7 @@ internal static partial class PdfWriter {
 
         double currentTextRise = 0D;
         for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
-            System.Collections.Generic.IReadOnlyList<TextRun> line = lines[lineIndex];
+            System.Collections.Generic.IReadOnlyList<PdfTextRun> line = lines[lineIndex];
             double dx = 0D;
             if (lineBoxWidth.HasValue) {
                 double lineWidth = MeasurePageTextLineRuns(line, baseFont, fontSize, opts);
@@ -469,7 +469,7 @@ internal static partial class PdfWriter {
                 currentTextRise = 0D;
             }
             content.TextMatrix(x + dx, baselines[lineIndex]);
-            foreach (TextRun run in line) {
+            foreach (PdfTextRun run in line) {
                 string text = run.Text ?? string.Empty;
                 if (text.Length == 0) {
                     continue;
@@ -501,7 +501,7 @@ internal static partial class PdfWriter {
         content.EndText();
     }
 
-    private static PdfStandardFont ResolvePageTextRunFont(TextRun run, PdfStandardFont baseFont) {
+    private static PdfStandardFont ResolvePageTextRunFont(PdfTextRun run, PdfStandardFont baseFont) {
         PdfStandardFont runBaseFont = run.Font ?? baseFont;
         return (run.Bold && run.Italic)
             ? ChooseBoldItalic(ChooseNormal(runBaseFont))

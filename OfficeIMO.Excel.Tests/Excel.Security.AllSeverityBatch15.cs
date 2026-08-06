@@ -76,7 +76,7 @@ public sealed class ExcelAllSeverityBatch15SecurityTests {
         sheet.CellValue(1, 2, "Value");
         sheet.CellValue(2, 1, "A");
         sheet.CellValue(2, 2, 1);
-        sheet.AddTable("A1:B2", true, "DataTable", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+        sheet.AddTable("A1:B2", true, "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
         var totals = new Dictionary<string, ExcelTableTotalsFunction>(StringComparer.Ordinal) {
             ["Name"] = ExcelTableTotalsFunction.Count,
             ["NAME"] = ExcelTableTotalsFunction.None
@@ -122,10 +122,10 @@ public sealed class ExcelAllSeverityBatch15SecurityTests {
                 for (int row = 101; row <= 600; row++) sheet.CellValue(row, 1, "row " + row);
             },
             () => {
-                for (int pass = 0; pass < 8; pass++) sheet.AutoFitRows(ExecutionMode.Parallel);
+                for (int pass = 0; pass < 8; pass++) sheet.AutoFitRows(ExcelExecutionMode.Parallel);
             },
             () => {
-                for (int pass = 0; pass < 8; pass++) sheet.AutoFitRows(ExecutionMode.Parallel);
+                for (int pass = 0; pass < 8; pass++) sheet.AutoFitRows(ExcelExecutionMode.Parallel);
             });
 
         Assert.NotNull(sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().First().Height);

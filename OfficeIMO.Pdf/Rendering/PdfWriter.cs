@@ -1441,8 +1441,8 @@ internal static partial class PdfWriter {
     private static void EnsureTextWatermarkFontResources(PdfTextWatermark watermark, PdfOptions options, Func<PdfStandardFont, string, string> ensureFontResource) {
         PdfStandardFont baseFont = ChooseNormal(watermark.Font);
         PdfStandardFont normalFont = ChooseNormal(options.DefaultFont);
-        System.Collections.Generic.IReadOnlyList<TextRun> runs = BuildTextWatermarkRuns(watermark, options);
-        foreach (TextRun run in runs) {
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildTextWatermarkRuns(watermark, options);
+        foreach (PdfTextRun run in runs) {
             PdfStandardFont runFont = ResolvePageTextRunFont(run, baseFont);
             ensureFontResource(runFont, GetStandardFontResourceName(runFont, normalFont));
         }
@@ -1450,7 +1450,7 @@ internal static partial class PdfWriter {
 
     private static void AppendTextWatermark(StringBuilder sb, PdfOptions options, PdfTextWatermark watermark, string fontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? graphicsStateName) {
         PdfStandardFont baseFont = ChooseNormal(watermark.Font);
-        System.Collections.Generic.IReadOnlyList<TextRun> runs = BuildTextWatermarkRuns(watermark, options);
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildTextWatermarkRuns(watermark, options);
         double textWidth = MeasureTextWatermarkRuns(runs, baseFont, watermark.FontSize, options);
         double angle = watermark.RotationAngle * System.Math.PI / 180D;
         double cos = System.Math.Cos(angle);
@@ -1471,7 +1471,7 @@ internal static partial class PdfWriter {
             .Font(fontAlias, watermark.FontSize)
             .FillColor(watermark.Color)
             .TextMatrix(cos, sin, -sin, cos, originX, originY);
-        foreach (TextRun run in runs) {
+        foreach (PdfTextRun run in runs) {
             string text = run.Text ?? string.Empty;
             if (text.Length == 0) {
                 continue;
@@ -1489,9 +1489,9 @@ internal static partial class PdfWriter {
             .RestoreState();
     }
 
-    private static System.Collections.Generic.IReadOnlyList<TextRun> BuildTextWatermarkRuns(PdfTextWatermark watermark, PdfOptions options) {
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> BuildTextWatermarkRuns(PdfTextWatermark watermark, PdfOptions options) {
         PdfStandardFont baseFont = ChooseNormal(watermark.Font);
-        var run = new TextRun(
+        var run = new PdfTextRun(
             watermark.Text,
             bold: watermark.Bold,
             underline: false,
@@ -1503,9 +1503,9 @@ internal static partial class PdfWriter {
         return NormalizeFallbackRuns(new[] { run }, baseFont, options);
     }
 
-    private static double MeasureTextWatermarkRuns(System.Collections.Generic.IReadOnlyList<TextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions options) {
+    private static double MeasureTextWatermarkRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions options) {
         double width = 0D;
-        foreach (TextRun run in runs) {
+        foreach (PdfTextRun run in runs) {
             width += MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont), run.FontSize ?? fontSize, run.Baseline, options);
         }
 

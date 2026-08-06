@@ -309,8 +309,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                     headerRight: "Page &P of &N",
                     footerLeft: "OfficeIMO Excel PDF",
                     footerRight: "Visual baseline");
-                summary.SetHeaderImage(HeaderFooterPosition.Left, logoBytes, "image/png", widthPoints: 28, heightPoints: 14);
-                summary.SetOrientation(ExcelPageOrientation.Landscape);
+                summary.SetHeaderImage(ExcelHeaderFooterPosition.Left, logoBytes, "image/png", widthPoints: 28, heightPoints: 14);
+                summary.SetOrientation(OfficePageOrientation.Landscape);
                 summary.SetMargins(left: 0.35, right: 0.35, top: 0.55, bottom: 0.55);
 
                 ExcelSheet details = document.AddWorksheet("Details");

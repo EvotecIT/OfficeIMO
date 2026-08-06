@@ -97,7 +97,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void RenderListItem(System.Collections.Generic.IReadOnlyList<TextRun> runs, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, string marker, PdfStandardFont markerFont, PdfNamedFontFace? markerNamedFont, double markerSize, PdfColor? markerColor, double markerX, double markerWidth, PdfAlign markerAlign, double textX, double textWidth, PdfAlign textAlign, PdfColor? color, double size, double leading, double spacingBefore, double spacingAfter, string? bookmarkName, ref int? listStructureElementIndex, ref LayoutResult.Page? listStructurePage) {
+        private void RenderListItem(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, string marker, PdfStandardFont markerFont, PdfNamedFontFace? markerNamedFont, double markerSize, PdfColor? markerColor, double markerX, double markerWidth, PdfAlign markerAlign, double textX, double textWidth, PdfAlign textAlign, PdfColor? color, double size, double leading, double spacingBefore, double spacingAfter, string? bookmarkName, ref int? listStructureElementIndex, ref LayoutResult.Page? listStructurePage) {
             int lineIndex = 0;
             bool firstSegment = true;
             var listFont = ChooseNormal(currentOpts.DefaultFont);
@@ -328,7 +328,7 @@ internal static partial class PdfWriter {
             double spacingBefore = headingStyle?.SpacingBefore ?? 0D;
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, headingLeading);
             PdfColor? headingColor = heading.Color ?? headingStyle?.Color;
-            System.Collections.Generic.IReadOnlyList<TextRun> headingRuns = CreateHeadingTextRuns(heading, headingStyle, headingColor);
+            System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(heading, headingStyle, headingColor);
             var wrap = WrapRichRunsCore(headingRuns, frameWidth, headingSize, ChooseNormal(currentOpts.DefaultFont), headingLeading, null, DefaultParagraphTabStopWidth, currentOpts);
             return spacingBefore + MeasureRichLinesHeight(wrap.LineHeights, wrap.Lines.Count, headingLeading) + spacingAfter;
         }
@@ -682,7 +682,7 @@ internal static partial class PdfWriter {
             if (!string.IsNullOrWhiteSpace(style.Caption)) {
                 double captionSize = style.CaptionFontSize ?? fontSize;
                 double captionLeading = captionSize * 1.25D;
-                var captionRuns = new[] { TextRun.Normal(style.Caption!, style.CaptionColor, captionSize) };
+                var captionRuns = new[] { PdfTextRun.Normal(style.Caption!, style.CaptionColor, captionSize) };
                 var captionWrap = WrapRichRunsCore(captionRuns, columnLayout.Width, captionSize, ChooseNormal(currentOpts.DefaultFont), captionLeading, null, DefaultParagraphTabStopWidth, currentOpts);
                 captionHeight = MeasureRichLinesHeight(captionWrap.LineHeights, captionWrap.Lines.Count, captionLeading) + style.CaptionSpacingAfter;
             }

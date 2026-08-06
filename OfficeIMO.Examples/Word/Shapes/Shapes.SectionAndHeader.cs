@@ -10,15 +10,15 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var section = document.Sections[0];
-                section.AddShape(ShapeType.Rectangle, 50, 25, Color.Red, Color.Black);
-                section.AddShape(ShapeType.RoundedRectangle, 40, 20, Color.Yellow, Color.Purple, 1, arcSize: 0.3);
-                section.AddShapeDrawing(ShapeType.Ellipse, 40, 40);
+                section.AddShape(WordShapeType.Rectangle, 50, 25, Color.Red, Color.Black);
+                section.AddShape(WordShapeType.RoundedRectangle, 40, 20, Color.Yellow, Color.Purple, 1, arcSize: 0.3);
+                section.AddShapeDrawing(WordShapeType.Ellipse, 40, 40);
 
                 section.AddHeadersAndFooters();
                 var defaultHeader = RequireDefaultSectionHeader(section, "Section 0 default header");
-                defaultHeader.AddShape(ShapeType.Rectangle, 30, 20, Color.Blue, Color.Black);
-                defaultHeader.AddShape(ShapeType.RoundedRectangle, 25, 15, Color.Green, Color.Black, 1, arcSize: 0.3);
-                defaultHeader.AddShapeDrawing(ShapeType.Ellipse, 20, 20);
+                defaultHeader.AddShape(WordShapeType.Rectangle, 30, 20, Color.Blue, Color.Black);
+                defaultHeader.AddShape(WordShapeType.RoundedRectangle, 25, 15, Color.Green, Color.Black, 1, arcSize: 0.3);
+                defaultHeader.AddShapeDrawing(WordShapeType.Ellipse, 20, 20);
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

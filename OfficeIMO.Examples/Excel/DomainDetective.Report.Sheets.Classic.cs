@@ -70,7 +70,7 @@ namespace OfficeIMO.Examples.Excel {
             const string logoUrl = "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png";
             overview.HeaderFooter(h => h.Left("Domain Detective — Overview").Right("Page &P of &N"));
             await overview.Sheet.SetHeaderImageFromUrlAsync(
-                HeaderFooterPosition.Right,
+                ExcelHeaderFooterPosition.Right,
                 logoUrl,
                 widthPoints: 96,
                 heightPoints: 32);

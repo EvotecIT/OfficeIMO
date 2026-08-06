@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
         public void FeatureReportPreflight_DistinguishesSignedReadRenderAndMutationWorkflows() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Signed metadata");
-            document.ApplicationProperties.DigitalSignature = new DigitalSignature();
+            document.ApplicationProperties.HasDigitalSignatureMetadata = true;
 
             WordFeatureReport report = document.InspectFeatures();
 

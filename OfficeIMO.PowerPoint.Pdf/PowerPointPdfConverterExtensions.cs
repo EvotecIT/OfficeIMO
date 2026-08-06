@@ -550,7 +550,7 @@ public static partial class PowerPointPdfConverterExtensions {
             return;
         }
 
-        IReadOnlyList<PdfCore.TextRun> runs = CreateTextRuns(textBox, slideNumber, options);
+        IReadOnlyList<PdfCore.PdfTextRun> runs = CreateTextRuns(textBox, slideNumber, options);
         bool reportedOverflow = false;
         canvas.TextBox(runs, x, y, width, height, style, textBox.Rotation ?? 0D, diagnostic => {
             if (reportedOverflow || diagnostic.Kind != PdfCore.PdfLayoutDiagnosticKind.ClippedContent) {
@@ -603,18 +603,18 @@ public static partial class PowerPointPdfConverterExtensions {
         double fontSize = style.FontSize ?? 12D;
         double lineHeight = style.LineHeight ?? fontSize * 1.2D;
         AddPowerPointListLayoutDiagnostics(options, slideNumber, textBox, x, y, width, height);
-        var paragraphRuns = new List<IReadOnlyList<PdfCore.TextRun>>();
+        var paragraphRuns = new List<IReadOnlyList<PdfCore.PdfTextRun>>();
         var paragraphHeights = new List<double>();
         int numberIndex = 1;
 
         foreach (PptCore.PowerPointParagraph paragraph in textBox.Paragraphs) {
-            IReadOnlyList<PdfCore.TextRun> runs = CreateParagraphRuns(paragraph, textBox, slideNumber, options, ref numberIndex);
+            IReadOnlyList<PdfCore.PdfTextRun> runs = CreateParagraphRuns(paragraph, textBox, slideNumber, options, ref numberIndex);
             paragraphRuns.Add(runs);
             paragraphHeights.Add(EstimateParagraphHeight(runs, textWidth, fontSize, lineHeight));
         }
 
         if (paragraphRuns.Count == 0) {
-            paragraphRuns.Add(new[] { PdfCore.TextRun.Normal(string.Empty) });
+            paragraphRuns.Add(new[] { PdfCore.PdfTextRun.Normal(string.Empty) });
             paragraphHeights.Add(lineHeight);
         }
 
@@ -711,7 +711,7 @@ public static partial class PowerPointPdfConverterExtensions {
         return paragraphStyle;
     }
 
-    private static double EstimateParagraphHeight(IReadOnlyList<PdfCore.TextRun> runs, double width, double fontSize, double lineHeight) {
+    private static double EstimateParagraphHeight(IReadOnlyList<PdfCore.PdfTextRun> runs, double width, double fontSize, double lineHeight) {
         int lineCount = 0;
         double averageCharacterWidth = Math.Max(1D, fontSize * 0.52D);
         int charactersPerLine = Math.Max(1, (int)Math.Floor(width / averageCharacterWidth));
@@ -762,36 +762,36 @@ public static partial class PowerPointPdfConverterExtensions {
         fittedTrailing = trailing * scale;
     }
 
-    private static IReadOnlyList<PdfCore.TextRun> CreateTextRuns(PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options) {
-        var runs = new List<PdfCore.TextRun>();
+    private static IReadOnlyList<PdfCore.PdfTextRun> CreateTextRuns(PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options) {
+        var runs = new List<PdfCore.PdfTextRun>();
         IReadOnlyList<PptCore.PowerPointParagraph> paragraphs = textBox.Paragraphs;
         int numberIndex = 1;
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
             if (paragraphIndex > 0) {
-                runs.Add(PdfCore.TextRun.LineBreak());
+                runs.Add(PdfCore.PdfTextRun.LineBreak());
             }
 
             runs.AddRange(CreateParagraphRuns(paragraphs[paragraphIndex], textBox, slideNumber, options, ref numberIndex));
         }
 
         if (runs.Count == 0) {
-            runs.Add(PdfCore.TextRun.Normal(string.Empty));
+            runs.Add(PdfCore.PdfTextRun.Normal(string.Empty));
         }
 
         return runs;
     }
 
-    private static IReadOnlyList<PdfCore.TextRun> CreateParagraphRuns(PptCore.PowerPointParagraph paragraph, PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options, ref int numberIndex) {
-        var runs = new List<PdfCore.TextRun>();
+    private static IReadOnlyList<PdfCore.PdfTextRun> CreateParagraphRuns(PptCore.PowerPointParagraph paragraph, PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options, ref int numberIndex) {
+        var runs = new List<PdfCore.PdfTextRun>();
         string? fontFamily = ResolveTextBoxFontFamily(textBox, options);
         string prefix = CreateListPrefix(paragraph, ref numberIndex);
         if (!string.IsNullOrEmpty(prefix)) {
-            runs.Add(new PdfCore.TextRun(prefix, color: ParsePdfColor(textBox.Color), fontSize: textBox.FontSize, font: MapFont(fontFamily), fontFamily: fontFamily));
+            runs.Add(new PdfCore.PdfTextRun(prefix, color: ParsePdfColor(textBox.Color), fontSize: textBox.FontSize, font: MapFont(fontFamily), fontFamily: fontFamily));
         }
 
         IReadOnlyList<PptCore.PowerPointTextRun> paragraphRuns = paragraph.Runs;
         if (paragraphRuns.Count == 0 && !paragraph.Paragraph.ChildElements.Any(child => child is A.Break or A.Field)) {
-            runs.Add(new PdfCore.TextRun(paragraph.Text, font: MapFont(fontFamily), fontFamily: fontFamily));
+            runs.Add(new PdfCore.PdfTextRun(paragraph.Text, font: MapFont(fontFamily), fontFamily: fontFamily));
             return runs;
         }
 
@@ -808,13 +808,13 @@ public static partial class PowerPointPdfConverterExtensions {
                     runIndex++;
                     break;
                 case A.Break:
-                    runs.Add(PdfCore.TextRun.LineBreak());
+                    runs.Add(PdfCore.PdfTextRun.LineBreak());
                     hasInlineContent = true;
                     break;
                 case A.Field field:
                     string fieldText = field.Text?.Text ?? field.InnerText ?? string.Empty;
                     if (!string.IsNullOrEmpty(fieldText)) {
-                        runs.Add(new PdfCore.TextRun(fieldText, color: ParsePdfColor(textBox.Color), fontSize: textBox.FontSize, font: MapFont(fontFamily), fontFamily: fontFamily));
+                        runs.Add(new PdfCore.PdfTextRun(fieldText, color: ParsePdfColor(textBox.Color), fontSize: textBox.FontSize, font: MapFont(fontFamily), fontFamily: fontFamily));
                         hasInlineContent = true;
                     }
 
@@ -823,7 +823,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         if (!hasInlineContent) {
-            runs.Add(new PdfCore.TextRun(paragraph.Text, font: MapFont(fontFamily), fontFamily: fontFamily));
+            runs.Add(new PdfCore.PdfTextRun(paragraph.Text, font: MapFont(fontFamily), fontFamily: fontFamily));
         }
 
         return runs;
@@ -846,7 +846,7 @@ public static partial class PowerPointPdfConverterExtensions {
         return string.Empty;
     }
 
-    private static PdfCore.TextRun CreateTextRun(PptCore.PowerPointTextRun run, PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options) {
+    private static PdfCore.PdfTextRun CreateTextRun(PptCore.PowerPointTextRun run, PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options) {
         string text = run.Text ?? string.Empty;
         PdfCore.PdfColor? color = ParsePdfColor(run.Color ?? textBox.Color);
         string? fontFamily = run.FontName ?? ResolveTextBoxFontFamily(textBox, options);
@@ -858,7 +858,7 @@ public static partial class PowerPointPdfConverterExtensions {
             AddWarning(options, slideNumber, "relative-hyperlink", "Skipped a relative PowerPoint hyperlink because PDF URI annotations require absolute targets.");
         }
 
-        return new PdfCore.TextRun(
+        return new PdfCore.PdfTextRun(
             text,
             bold: run.Bold,
             underline: run.Underline || linkUri != null,
@@ -1086,7 +1086,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static bool IsLineShape(PptCore.PowerPointShape shape) {
         return shape is PptCore.PowerPointAutoShape autoShape &&
-               (autoShape.ShapeType == PptCore.PowerPointShapeType.Line || autoShape.ShapeType == PptCore.PowerPointShapeType.StraightConnector1);
+               (autoShape.ShapeType == OfficePresetShapeType.Line || autoShape.ShapeType == OfficePresetShapeType.StraightConnector1);
     }
 
     private static bool IntersectsPage(double x, double y, double width, double height, double pageWidth, double pageHeight) =>

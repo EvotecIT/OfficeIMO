@@ -1,16 +1,4 @@
 namespace OfficeIMO.Excel {
-    /// <summary>Controls saves of workbooks that carry digital-signature metadata.</summary>
-    public enum ExcelSignatureMutationPolicy {
-        /// <summary>Block save to prevent silently invalidating an existing signature.</summary>
-        BlockSave,
-
-        /// <summary>Remove signature parts and application metadata before saving the rewritten package.</summary>
-        RemoveInvalidatedSignatures,
-
-        /// <summary>Preserve signature markup even though rewriting the package can invalidate it.</summary>
-        PreserveSignatureMarkup
-    }
-
     /// <summary>
     /// Optional behaviors applied during <see cref="ExcelDocument.Save(string, ExcelSaveOptions?)"/> and
     /// <see cref="ExcelDocument.SaveAsync(string, ExcelSaveOptions?, System.Threading.CancellationToken)"/> to strengthen
@@ -84,19 +72,19 @@ namespace OfficeIMO.Excel {
         /// Controls saves of workbooks projected from legacy XLS files when known legacy-only
         /// content cannot be represented by the selected output format. The default blocks the save.
         /// </summary>
-        public ExcelConversionLossPolicy LossPolicy { get; set; } = ExcelConversionLossPolicy.Block;
+        public OfficeConversionLossPolicy LossPolicy { get; set; } = OfficeConversionLossPolicy.Block;
 
         /// <summary>
         /// Gets or sets how save operations handle digital-signature metadata. The safe default blocks
         /// package rewriting; removing or preserving invalidated markup must be selected explicitly.
         /// </summary>
-        public ExcelSignatureMutationPolicy SignatureMutationPolicy { get; set; } =
-            ExcelSignatureMutationPolicy.BlockSave;
+        public OfficeSignatureMutationPolicy SignatureMutationPolicy { get; set; } =
+            OfficeSignatureMutationPolicy.BlockSave;
 
         /// <summary>Returns a fresh options instance with the default save policy.</summary>
         public static ExcelSaveOptions Default => new ExcelSaveOptions();
 
-        internal ExcelSaveOptions WithLossPolicy(ExcelConversionLossPolicy lossPolicy) {
+        internal ExcelSaveOptions WithLossPolicy(OfficeConversionLossPolicy lossPolicy) {
             if (MaxInMemoryPackageBytes.HasValue && MaxInMemoryPackageBytes.Value <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(MaxInMemoryPackageBytes));
             }

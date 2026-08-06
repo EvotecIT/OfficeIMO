@@ -102,398 +102,6 @@ public enum WordChartBarGrouping {
     Stacked,
 }
 
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues.</summary>
-public enum WordChartLegendPosition {
-    /// <summary>Represents the Open XML value <c>b</c>.</summary>
-    Bottom,
-    /// <summary>Represents the Open XML value <c>tr</c>.</summary>
-    TopRight,
-    /// <summary>Represents the Open XML value <c>l</c>.</summary>
-    Left,
-    /// <summary>Represents the Open XML value <c>r</c>.</summary>
-    Right,
-    /// <summary>Represents the Open XML value <c>t</c>.</summary>
-    Top,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.ShapeTypeValues.</summary>
-public enum WordImageShapeType {
-    /// <summary>Represents the Open XML value <c>line</c>.</summary>
-    Line,
-    /// <summary>Represents the Open XML value <c>lineInv</c>.</summary>
-    LineInverse,
-    /// <summary>Represents the Open XML value <c>triangle</c>.</summary>
-    Triangle,
-    /// <summary>Represents the Open XML value <c>rtTriangle</c>.</summary>
-    RightTriangle,
-    /// <summary>Represents the Open XML value <c>rect</c>.</summary>
-    Rectangle,
-    /// <summary>Represents the Open XML value <c>diamond</c>.</summary>
-    Diamond,
-    /// <summary>Represents the Open XML value <c>parallelogram</c>.</summary>
-    Parallelogram,
-    /// <summary>Represents the Open XML value <c>trapezoid</c>.</summary>
-    Trapezoid,
-    /// <summary>Represents the Open XML value <c>nonIsoscelesTrapezoid</c>.</summary>
-    NonIsoscelesTrapezoid,
-    /// <summary>Represents the Open XML value <c>pentagon</c>.</summary>
-    Pentagon,
-    /// <summary>Represents the Open XML value <c>hexagon</c>.</summary>
-    Hexagon,
-    /// <summary>Represents the Open XML value <c>heptagon</c>.</summary>
-    Heptagon,
-    /// <summary>Represents the Open XML value <c>octagon</c>.</summary>
-    Octagon,
-    /// <summary>Represents the Open XML value <c>decagon</c>.</summary>
-    Decagon,
-    /// <summary>Represents the Open XML value <c>dodecagon</c>.</summary>
-    Dodecagon,
-    /// <summary>Represents the Open XML value <c>star4</c>.</summary>
-    Star4,
-    /// <summary>Represents the Open XML value <c>star5</c>.</summary>
-    Star5,
-    /// <summary>Represents the Open XML value <c>star6</c>.</summary>
-    Star6,
-    /// <summary>Represents the Open XML value <c>star7</c>.</summary>
-    Star7,
-    /// <summary>Represents the Open XML value <c>star8</c>.</summary>
-    Star8,
-    /// <summary>Represents the Open XML value <c>star10</c>.</summary>
-    Star10,
-    /// <summary>Represents the Open XML value <c>star12</c>.</summary>
-    Star12,
-    /// <summary>Represents the Open XML value <c>star16</c>.</summary>
-    Star16,
-    /// <summary>Represents the Open XML value <c>star24</c>.</summary>
-    Star24,
-    /// <summary>Represents the Open XML value <c>star32</c>.</summary>
-    Star32,
-    /// <summary>Represents the Open XML value <c>roundRect</c>.</summary>
-    RoundRectangle,
-    /// <summary>Represents the Open XML value <c>round1Rect</c>.</summary>
-    Round1Rectangle,
-    /// <summary>Represents the Open XML value <c>round2SameRect</c>.</summary>
-    Round2SameRectangle,
-    /// <summary>Represents the Open XML value <c>round2DiagRect</c>.</summary>
-    Round2DiagonalRectangle,
-    /// <summary>Represents the Open XML value <c>snipRoundRect</c>.</summary>
-    SnipRoundRectangle,
-    /// <summary>Represents the Open XML value <c>snip1Rect</c>.</summary>
-    Snip1Rectangle,
-    /// <summary>Represents the Open XML value <c>snip2SameRect</c>.</summary>
-    Snip2SameRectangle,
-    /// <summary>Represents the Open XML value <c>snip2DiagRect</c>.</summary>
-    Snip2DiagonalRectangle,
-    /// <summary>Represents the Open XML value <c>plaque</c>.</summary>
-    Plaque,
-    /// <summary>Represents the Open XML value <c>ellipse</c>.</summary>
-    Ellipse,
-    /// <summary>Represents the Open XML value <c>teardrop</c>.</summary>
-    Teardrop,
-    /// <summary>Represents the Open XML value <c>homePlate</c>.</summary>
-    HomePlate,
-    /// <summary>Represents the Open XML value <c>chevron</c>.</summary>
-    Chevron,
-    /// <summary>Represents the Open XML value <c>pieWedge</c>.</summary>
-    PieWedge,
-    /// <summary>Represents the Open XML value <c>pie</c>.</summary>
-    Pie,
-    /// <summary>Represents the Open XML value <c>blockArc</c>.</summary>
-    BlockArc,
-    /// <summary>Represents the Open XML value <c>donut</c>.</summary>
-    Donut,
-    /// <summary>Represents the Open XML value <c>noSmoking</c>.</summary>
-    NoSmoking,
-    /// <summary>Represents the Open XML value <c>rightArrow</c>.</summary>
-    RightArrow,
-    /// <summary>Represents the Open XML value <c>leftArrow</c>.</summary>
-    LeftArrow,
-    /// <summary>Represents the Open XML value <c>upArrow</c>.</summary>
-    UpArrow,
-    /// <summary>Represents the Open XML value <c>downArrow</c>.</summary>
-    DownArrow,
-    /// <summary>Represents the Open XML value <c>stripedRightArrow</c>.</summary>
-    StripedRightArrow,
-    /// <summary>Represents the Open XML value <c>notchedRightArrow</c>.</summary>
-    NotchedRightArrow,
-    /// <summary>Represents the Open XML value <c>bentUpArrow</c>.</summary>
-    BentUpArrow,
-    /// <summary>Represents the Open XML value <c>leftRightArrow</c>.</summary>
-    LeftRightArrow,
-    /// <summary>Represents the Open XML value <c>upDownArrow</c>.</summary>
-    UpDownArrow,
-    /// <summary>Represents the Open XML value <c>leftUpArrow</c>.</summary>
-    LeftUpArrow,
-    /// <summary>Represents the Open XML value <c>leftRightUpArrow</c>.</summary>
-    LeftRightUpArrow,
-    /// <summary>Represents the Open XML value <c>quadArrow</c>.</summary>
-    QuadArrow,
-    /// <summary>Represents the Open XML value <c>leftArrowCallout</c>.</summary>
-    LeftArrowCallout,
-    /// <summary>Represents the Open XML value <c>rightArrowCallout</c>.</summary>
-    RightArrowCallout,
-    /// <summary>Represents the Open XML value <c>upArrowCallout</c>.</summary>
-    UpArrowCallout,
-    /// <summary>Represents the Open XML value <c>downArrowCallout</c>.</summary>
-    DownArrowCallout,
-    /// <summary>Represents the Open XML value <c>leftRightArrowCallout</c>.</summary>
-    LeftRightArrowCallout,
-    /// <summary>Represents the Open XML value <c>upDownArrowCallout</c>.</summary>
-    UpDownArrowCallout,
-    /// <summary>Represents the Open XML value <c>quadArrowCallout</c>.</summary>
-    QuadArrowCallout,
-    /// <summary>Represents the Open XML value <c>bentArrow</c>.</summary>
-    BentArrow,
-    /// <summary>Represents the Open XML value <c>uturnArrow</c>.</summary>
-    UTurnArrow,
-    /// <summary>Represents the Open XML value <c>circularArrow</c>.</summary>
-    CircularArrow,
-    /// <summary>Represents the Open XML value <c>leftCircularArrow</c>.</summary>
-    LeftCircularArrow,
-    /// <summary>Represents the Open XML value <c>leftRightCircularArrow</c>.</summary>
-    LeftRightCircularArrow,
-    /// <summary>Represents the Open XML value <c>curvedRightArrow</c>.</summary>
-    CurvedRightArrow,
-    /// <summary>Represents the Open XML value <c>curvedLeftArrow</c>.</summary>
-    CurvedLeftArrow,
-    /// <summary>Represents the Open XML value <c>curvedUpArrow</c>.</summary>
-    CurvedUpArrow,
-    /// <summary>Represents the Open XML value <c>curvedDownArrow</c>.</summary>
-    CurvedDownArrow,
-    /// <summary>Represents the Open XML value <c>swooshArrow</c>.</summary>
-    SwooshArrow,
-    /// <summary>Represents the Open XML value <c>cube</c>.</summary>
-    Cube,
-    /// <summary>Represents the Open XML value <c>can</c>.</summary>
-    Can,
-    /// <summary>Represents the Open XML value <c>lightningBolt</c>.</summary>
-    LightningBolt,
-    /// <summary>Represents the Open XML value <c>heart</c>.</summary>
-    Heart,
-    /// <summary>Represents the Open XML value <c>sun</c>.</summary>
-    Sun,
-    /// <summary>Represents the Open XML value <c>moon</c>.</summary>
-    Moon,
-    /// <summary>Represents the Open XML value <c>smileyFace</c>.</summary>
-    SmileyFace,
-    /// <summary>Represents the Open XML value <c>irregularSeal1</c>.</summary>
-    IrregularSeal1,
-    /// <summary>Represents the Open XML value <c>irregularSeal2</c>.</summary>
-    IrregularSeal2,
-    /// <summary>Represents the Open XML value <c>foldedCorner</c>.</summary>
-    FoldedCorner,
-    /// <summary>Represents the Open XML value <c>bevel</c>.</summary>
-    Bevel,
-    /// <summary>Represents the Open XML value <c>frame</c>.</summary>
-    Frame,
-    /// <summary>Represents the Open XML value <c>halfFrame</c>.</summary>
-    HalfFrame,
-    /// <summary>Represents the Open XML value <c>corner</c>.</summary>
-    Corner,
-    /// <summary>Represents the Open XML value <c>diagStripe</c>.</summary>
-    DiagonalStripe,
-    /// <summary>Represents the Open XML value <c>chord</c>.</summary>
-    Chord,
-    /// <summary>Represents the Open XML value <c>arc</c>.</summary>
-    Arc,
-    /// <summary>Represents the Open XML value <c>leftBracket</c>.</summary>
-    LeftBracket,
-    /// <summary>Represents the Open XML value <c>rightBracket</c>.</summary>
-    RightBracket,
-    /// <summary>Represents the Open XML value <c>leftBrace</c>.</summary>
-    LeftBrace,
-    /// <summary>Represents the Open XML value <c>rightBrace</c>.</summary>
-    RightBrace,
-    /// <summary>Represents the Open XML value <c>bracketPair</c>.</summary>
-    BracketPair,
-    /// <summary>Represents the Open XML value <c>bracePair</c>.</summary>
-    BracePair,
-    /// <summary>Represents the Open XML value <c>straightConnector1</c>.</summary>
-    StraightConnector1,
-    /// <summary>Represents the Open XML value <c>bentConnector2</c>.</summary>
-    BentConnector2,
-    /// <summary>Represents the Open XML value <c>bentConnector3</c>.</summary>
-    BentConnector3,
-    /// <summary>Represents the Open XML value <c>bentConnector4</c>.</summary>
-    BentConnector4,
-    /// <summary>Represents the Open XML value <c>bentConnector5</c>.</summary>
-    BentConnector5,
-    /// <summary>Represents the Open XML value <c>curvedConnector2</c>.</summary>
-    CurvedConnector2,
-    /// <summary>Represents the Open XML value <c>curvedConnector3</c>.</summary>
-    CurvedConnector3,
-    /// <summary>Represents the Open XML value <c>curvedConnector4</c>.</summary>
-    CurvedConnector4,
-    /// <summary>Represents the Open XML value <c>curvedConnector5</c>.</summary>
-    CurvedConnector5,
-    /// <summary>Represents the Open XML value <c>callout1</c>.</summary>
-    Callout1,
-    /// <summary>Represents the Open XML value <c>callout2</c>.</summary>
-    Callout2,
-    /// <summary>Represents the Open XML value <c>callout3</c>.</summary>
-    Callout3,
-    /// <summary>Represents the Open XML value <c>accentCallout1</c>.</summary>
-    AccentCallout1,
-    /// <summary>Represents the Open XML value <c>accentCallout2</c>.</summary>
-    AccentCallout2,
-    /// <summary>Represents the Open XML value <c>accentCallout3</c>.</summary>
-    AccentCallout3,
-    /// <summary>Represents the Open XML value <c>borderCallout1</c>.</summary>
-    BorderCallout1,
-    /// <summary>Represents the Open XML value <c>borderCallout2</c>.</summary>
-    BorderCallout2,
-    /// <summary>Represents the Open XML value <c>borderCallout3</c>.</summary>
-    BorderCallout3,
-    /// <summary>Represents the Open XML value <c>accentBorderCallout1</c>.</summary>
-    AccentBorderCallout1,
-    /// <summary>Represents the Open XML value <c>accentBorderCallout2</c>.</summary>
-    AccentBorderCallout2,
-    /// <summary>Represents the Open XML value <c>accentBorderCallout3</c>.</summary>
-    AccentBorderCallout3,
-    /// <summary>Represents the Open XML value <c>wedgeRectCallout</c>.</summary>
-    WedgeRectangleCallout,
-    /// <summary>Represents the Open XML value <c>wedgeRoundRectCallout</c>.</summary>
-    WedgeRoundRectangleCallout,
-    /// <summary>Represents the Open XML value <c>wedgeEllipseCallout</c>.</summary>
-    WedgeEllipseCallout,
-    /// <summary>Represents the Open XML value <c>cloudCallout</c>.</summary>
-    CloudCallout,
-    /// <summary>Represents the Open XML value <c>cloud</c>.</summary>
-    Cloud,
-    /// <summary>Represents the Open XML value <c>ribbon</c>.</summary>
-    Ribbon,
-    /// <summary>Represents the Open XML value <c>ribbon2</c>.</summary>
-    Ribbon2,
-    /// <summary>Represents the Open XML value <c>ellipseRibbon</c>.</summary>
-    EllipseRibbon,
-    /// <summary>Represents the Open XML value <c>ellipseRibbon2</c>.</summary>
-    EllipseRibbon2,
-    /// <summary>Represents the Open XML value <c>leftRightRibbon</c>.</summary>
-    LeftRightRibbon,
-    /// <summary>Represents the Open XML value <c>verticalScroll</c>.</summary>
-    VerticalScroll,
-    /// <summary>Represents the Open XML value <c>horizontalScroll</c>.</summary>
-    HorizontalScroll,
-    /// <summary>Represents the Open XML value <c>wave</c>.</summary>
-    Wave,
-    /// <summary>Represents the Open XML value <c>doubleWave</c>.</summary>
-    DoubleWave,
-    /// <summary>Represents the Open XML value <c>plus</c>.</summary>
-    Plus,
-    /// <summary>Represents the Open XML value <c>flowChartProcess</c>.</summary>
-    FlowChartProcess,
-    /// <summary>Represents the Open XML value <c>flowChartDecision</c>.</summary>
-    FlowChartDecision,
-    /// <summary>Represents the Open XML value <c>flowChartInputOutput</c>.</summary>
-    FlowChartInputOutput,
-    /// <summary>Represents the Open XML value <c>flowChartPredefinedProcess</c>.</summary>
-    FlowChartPredefinedProcess,
-    /// <summary>Represents the Open XML value <c>flowChartInternalStorage</c>.</summary>
-    FlowChartInternalStorage,
-    /// <summary>Represents the Open XML value <c>flowChartDocument</c>.</summary>
-    FlowChartDocument,
-    /// <summary>Represents the Open XML value <c>flowChartMultidocument</c>.</summary>
-    FlowChartMultidocument,
-    /// <summary>Represents the Open XML value <c>flowChartTerminator</c>.</summary>
-    FlowChartTerminator,
-    /// <summary>Represents the Open XML value <c>flowChartPreparation</c>.</summary>
-    FlowChartPreparation,
-    /// <summary>Represents the Open XML value <c>flowChartManualInput</c>.</summary>
-    FlowChartManualInput,
-    /// <summary>Represents the Open XML value <c>flowChartManualOperation</c>.</summary>
-    FlowChartManualOperation,
-    /// <summary>Represents the Open XML value <c>flowChartConnector</c>.</summary>
-    FlowChartConnector,
-    /// <summary>Represents the Open XML value <c>flowChartPunchedCard</c>.</summary>
-    FlowChartPunchedCard,
-    /// <summary>Represents the Open XML value <c>flowChartPunchedTape</c>.</summary>
-    FlowChartPunchedTape,
-    /// <summary>Represents the Open XML value <c>flowChartSummingJunction</c>.</summary>
-    FlowChartSummingJunction,
-    /// <summary>Represents the Open XML value <c>flowChartOr</c>.</summary>
-    FlowChartOr,
-    /// <summary>Represents the Open XML value <c>flowChartCollate</c>.</summary>
-    FlowChartCollate,
-    /// <summary>Represents the Open XML value <c>flowChartSort</c>.</summary>
-    FlowChartSort,
-    /// <summary>Represents the Open XML value <c>flowChartExtract</c>.</summary>
-    FlowChartExtract,
-    /// <summary>Represents the Open XML value <c>flowChartMerge</c>.</summary>
-    FlowChartMerge,
-    /// <summary>Represents the Open XML value <c>flowChartOfflineStorage</c>.</summary>
-    FlowChartOfflineStorage,
-    /// <summary>Represents the Open XML value <c>flowChartOnlineStorage</c>.</summary>
-    FlowChartOnlineStorage,
-    /// <summary>Represents the Open XML value <c>flowChartMagneticTape</c>.</summary>
-    FlowChartMagneticTape,
-    /// <summary>Represents the Open XML value <c>flowChartMagneticDisk</c>.</summary>
-    FlowChartMagneticDisk,
-    /// <summary>Represents the Open XML value <c>flowChartMagneticDrum</c>.</summary>
-    FlowChartMagneticDrum,
-    /// <summary>Represents the Open XML value <c>flowChartDisplay</c>.</summary>
-    FlowChartDisplay,
-    /// <summary>Represents the Open XML value <c>flowChartDelay</c>.</summary>
-    FlowChartDelay,
-    /// <summary>Represents the Open XML value <c>flowChartAlternateProcess</c>.</summary>
-    FlowChartAlternateProcess,
-    /// <summary>Represents the Open XML value <c>flowChartOffpageConnector</c>.</summary>
-    FlowChartOffpageConnector,
-    /// <summary>Represents the Open XML value <c>actionButtonBlank</c>.</summary>
-    ActionButtonBlank,
-    /// <summary>Represents the Open XML value <c>actionButtonHome</c>.</summary>
-    ActionButtonHome,
-    /// <summary>Represents the Open XML value <c>actionButtonHelp</c>.</summary>
-    ActionButtonHelp,
-    /// <summary>Represents the Open XML value <c>actionButtonInformation</c>.</summary>
-    ActionButtonInformation,
-    /// <summary>Represents the Open XML value <c>actionButtonForwardNext</c>.</summary>
-    ActionButtonForwardNext,
-    /// <summary>Represents the Open XML value <c>actionButtonBackPrevious</c>.</summary>
-    ActionButtonBackPrevious,
-    /// <summary>Represents the Open XML value <c>actionButtonEnd</c>.</summary>
-    ActionButtonEnd,
-    /// <summary>Represents the Open XML value <c>actionButtonBeginning</c>.</summary>
-    ActionButtonBeginning,
-    /// <summary>Represents the Open XML value <c>actionButtonReturn</c>.</summary>
-    ActionButtonReturn,
-    /// <summary>Represents the Open XML value <c>actionButtonDocument</c>.</summary>
-    ActionButtonDocument,
-    /// <summary>Represents the Open XML value <c>actionButtonSound</c>.</summary>
-    ActionButtonSound,
-    /// <summary>Represents the Open XML value <c>actionButtonMovie</c>.</summary>
-    ActionButtonMovie,
-    /// <summary>Represents the Open XML value <c>gear6</c>.</summary>
-    Gear6,
-    /// <summary>Represents the Open XML value <c>gear9</c>.</summary>
-    Gear9,
-    /// <summary>Represents the Open XML value <c>funnel</c>.</summary>
-    Funnel,
-    /// <summary>Represents the Open XML value <c>mathPlus</c>.</summary>
-    MathPlus,
-    /// <summary>Represents the Open XML value <c>mathMinus</c>.</summary>
-    MathMinus,
-    /// <summary>Represents the Open XML value <c>mathMultiply</c>.</summary>
-    MathMultiply,
-    /// <summary>Represents the Open XML value <c>mathDivide</c>.</summary>
-    MathDivide,
-    /// <summary>Represents the Open XML value <c>mathEqual</c>.</summary>
-    MathEqual,
-    /// <summary>Represents the Open XML value <c>mathNotEqual</c>.</summary>
-    MathNotEqual,
-    /// <summary>Represents the Open XML value <c>cornerTabs</c>.</summary>
-    CornerTabs,
-    /// <summary>Represents the Open XML value <c>squareTabs</c>.</summary>
-    SquareTabs,
-    /// <summary>Represents the Open XML value <c>plaqueTabs</c>.</summary>
-    PlaqueTabs,
-    /// <summary>Represents the Open XML value <c>chartX</c>.</summary>
-    ChartX,
-    /// <summary>Represents the Open XML value <c>chartStar</c>.</summary>
-    ChartStar,
-    /// <summary>Represents the Open XML value <c>chartPlus</c>.</summary>
-    ChartPlus,
-}
-
 /// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Office2010.Word.Drawing.SizeRelativeHorizontallyValues.</summary>
 public enum WordTextBoxHorizontalSizeReference {
     /// <summary>Represents the Open XML value <c>margin</c>.</summary>
@@ -1166,14 +774,6 @@ public enum WordNumberFormat {
     Custom,
 }
 
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues.</summary>
-public enum WordPageOrientation {
-    /// <summary>Represents the Open XML value <c>portrait</c>.</summary>
-    Portrait,
-    /// <summary>Represents the Open XML value <c>landscape</c>.</summary>
-    Landscape,
-}
-
 /// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Wordprocessing.PresetZoomValues.</summary>
 public enum WordZoomPreset {
     /// <summary>Represents the Open XML value <c>none</c>.</summary>
@@ -1312,14 +912,6 @@ public enum WordTabAlignment {
     Bar,
     /// <summary>Represents the Open XML value <c>num</c>.</summary>
     Number,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Wordprocessing.TableLayoutValues.</summary>
-public enum WordTableLayoutMode {
-    /// <summary>Represents the Open XML value <c>fixed</c>.</summary>
-    Fixed,
-    /// <summary>Represents the Open XML value <c>autofit</c>.</summary>
-    Autofit,
 }
 
 /// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Wordprocessing.TableOverlapValues.</summary>
@@ -1553,228 +1145,6 @@ internal static class WordOpenXmlValueTypeExtensions {
         (WordChartBarGrouping)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, WordChartBarGroupingTokens, nameof(WordChartBarGrouping));
 
     internal static WordChartBarGrouping? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.BarGroupingValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] WordChartLegendPositionTokens = {
-        "b",
-        "tr",
-        "l",
-        "r",
-        "t",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues ToOpenXml(this WordChartLegendPosition value) =>
-        new(GetToken(value, WordChartLegendPositionTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues? ToOpenXml(this WordChartLegendPosition? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static WordChartLegendPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues value) =>
-        (WordChartLegendPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, WordChartLegendPositionTokens, nameof(WordChartLegendPosition));
-
-    internal static WordChartLegendPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] WordImageShapeTypeTokens = {
-        "line",
-        "lineInv",
-        "triangle",
-        "rtTriangle",
-        "rect",
-        "diamond",
-        "parallelogram",
-        "trapezoid",
-        "nonIsoscelesTrapezoid",
-        "pentagon",
-        "hexagon",
-        "heptagon",
-        "octagon",
-        "decagon",
-        "dodecagon",
-        "star4",
-        "star5",
-        "star6",
-        "star7",
-        "star8",
-        "star10",
-        "star12",
-        "star16",
-        "star24",
-        "star32",
-        "roundRect",
-        "round1Rect",
-        "round2SameRect",
-        "round2DiagRect",
-        "snipRoundRect",
-        "snip1Rect",
-        "snip2SameRect",
-        "snip2DiagRect",
-        "plaque",
-        "ellipse",
-        "teardrop",
-        "homePlate",
-        "chevron",
-        "pieWedge",
-        "pie",
-        "blockArc",
-        "donut",
-        "noSmoking",
-        "rightArrow",
-        "leftArrow",
-        "upArrow",
-        "downArrow",
-        "stripedRightArrow",
-        "notchedRightArrow",
-        "bentUpArrow",
-        "leftRightArrow",
-        "upDownArrow",
-        "leftUpArrow",
-        "leftRightUpArrow",
-        "quadArrow",
-        "leftArrowCallout",
-        "rightArrowCallout",
-        "upArrowCallout",
-        "downArrowCallout",
-        "leftRightArrowCallout",
-        "upDownArrowCallout",
-        "quadArrowCallout",
-        "bentArrow",
-        "uturnArrow",
-        "circularArrow",
-        "leftCircularArrow",
-        "leftRightCircularArrow",
-        "curvedRightArrow",
-        "curvedLeftArrow",
-        "curvedUpArrow",
-        "curvedDownArrow",
-        "swooshArrow",
-        "cube",
-        "can",
-        "lightningBolt",
-        "heart",
-        "sun",
-        "moon",
-        "smileyFace",
-        "irregularSeal1",
-        "irregularSeal2",
-        "foldedCorner",
-        "bevel",
-        "frame",
-        "halfFrame",
-        "corner",
-        "diagStripe",
-        "chord",
-        "arc",
-        "leftBracket",
-        "rightBracket",
-        "leftBrace",
-        "rightBrace",
-        "bracketPair",
-        "bracePair",
-        "straightConnector1",
-        "bentConnector2",
-        "bentConnector3",
-        "bentConnector4",
-        "bentConnector5",
-        "curvedConnector2",
-        "curvedConnector3",
-        "curvedConnector4",
-        "curvedConnector5",
-        "callout1",
-        "callout2",
-        "callout3",
-        "accentCallout1",
-        "accentCallout2",
-        "accentCallout3",
-        "borderCallout1",
-        "borderCallout2",
-        "borderCallout3",
-        "accentBorderCallout1",
-        "accentBorderCallout2",
-        "accentBorderCallout3",
-        "wedgeRectCallout",
-        "wedgeRoundRectCallout",
-        "wedgeEllipseCallout",
-        "cloudCallout",
-        "cloud",
-        "ribbon",
-        "ribbon2",
-        "ellipseRibbon",
-        "ellipseRibbon2",
-        "leftRightRibbon",
-        "verticalScroll",
-        "horizontalScroll",
-        "wave",
-        "doubleWave",
-        "plus",
-        "flowChartProcess",
-        "flowChartDecision",
-        "flowChartInputOutput",
-        "flowChartPredefinedProcess",
-        "flowChartInternalStorage",
-        "flowChartDocument",
-        "flowChartMultidocument",
-        "flowChartTerminator",
-        "flowChartPreparation",
-        "flowChartManualInput",
-        "flowChartManualOperation",
-        "flowChartConnector",
-        "flowChartPunchedCard",
-        "flowChartPunchedTape",
-        "flowChartSummingJunction",
-        "flowChartOr",
-        "flowChartCollate",
-        "flowChartSort",
-        "flowChartExtract",
-        "flowChartMerge",
-        "flowChartOfflineStorage",
-        "flowChartOnlineStorage",
-        "flowChartMagneticTape",
-        "flowChartMagneticDisk",
-        "flowChartMagneticDrum",
-        "flowChartDisplay",
-        "flowChartDelay",
-        "flowChartAlternateProcess",
-        "flowChartOffpageConnector",
-        "actionButtonBlank",
-        "actionButtonHome",
-        "actionButtonHelp",
-        "actionButtonInformation",
-        "actionButtonForwardNext",
-        "actionButtonBackPrevious",
-        "actionButtonEnd",
-        "actionButtonBeginning",
-        "actionButtonReturn",
-        "actionButtonDocument",
-        "actionButtonSound",
-        "actionButtonMovie",
-        "gear6",
-        "gear9",
-        "funnel",
-        "mathPlus",
-        "mathMinus",
-        "mathMultiply",
-        "mathDivide",
-        "mathEqual",
-        "mathNotEqual",
-        "cornerTabs",
-        "squareTabs",
-        "plaqueTabs",
-        "chartX",
-        "chartStar",
-        "chartPlus",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.ShapeTypeValues ToOpenXml(this WordImageShapeType value) =>
-        new(GetToken(value, WordImageShapeTypeTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.ShapeTypeValues? ToOpenXml(this WordImageShapeType? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static WordImageShapeType ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.ShapeTypeValues value) =>
-        (WordImageShapeType)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, WordImageShapeTypeTokens, nameof(WordImageShapeType));
-
-    internal static WordImageShapeType? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.ShapeTypeValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
     private static readonly string[] WordTextBoxHorizontalSizeReferenceTokens = {
@@ -2282,23 +1652,6 @@ internal static class WordOpenXmlValueTypeExtensions {
     internal static WordNumberFormat? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.NumberFormatValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
-    private static readonly string[] WordPageOrientationTokens = {
-        "portrait",
-        "landscape",
-    };
-
-    internal static DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues ToOpenXml(this WordPageOrientation value) =>
-        new(GetToken(value, WordPageOrientationTokens));
-
-    internal static DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues? ToOpenXml(this WordPageOrientation? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static WordPageOrientation ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues value) =>
-        (WordPageOrientation)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, WordPageOrientationTokens, nameof(WordPageOrientation));
-
-    internal static WordPageOrientation? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
     private static readonly string[] WordZoomPresetTokens = {
         "none",
         "fullPage",
@@ -2432,23 +1785,6 @@ internal static class WordOpenXmlValueTypeExtensions {
         (WordTabAlignment)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, WordTabAlignmentTokens, nameof(WordTabAlignment));
 
     internal static WordTabAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.TabStopValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] WordTableLayoutModeTokens = {
-        "fixed",
-        "autofit",
-    };
-
-    internal static DocumentFormat.OpenXml.Wordprocessing.TableLayoutValues ToOpenXml(this WordTableLayoutMode value) =>
-        new(GetToken(value, WordTableLayoutModeTokens));
-
-    internal static DocumentFormat.OpenXml.Wordprocessing.TableLayoutValues? ToOpenXml(this WordTableLayoutMode? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static WordTableLayoutMode ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.TableLayoutValues value) =>
-        (WordTableLayoutMode)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, WordTableLayoutModeTokens, nameof(WordTableLayoutMode));
-
-    internal static WordTableLayoutMode? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.TableLayoutValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
     private static readonly string[] WordTableOverlapTokens = {
@@ -2612,6 +1948,245 @@ internal static class WordOpenXmlValueTypeExtensions {
         (WordVerticalCharacterAlignment)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, WordVerticalCharacterAlignmentTokens, nameof(WordVerticalCharacterAlignment));
 
     internal static WordVerticalCharacterAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.VerticalTextAlignmentValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartLegendPositionTokens = {
+        "b",
+        "tr",
+        "l",
+        "r",
+        "t",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues ToOpenXml(this OfficeChartLegendPosition value) =>
+        new(GetToken(value, OfficeChartLegendPositionTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues? ToOpenXml(this OfficeChartLegendPosition? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartLegendPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues value) =>
+        (OfficeChartLegendPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartLegendPositionTokens, nameof(OfficeChartLegendPosition));
+
+    internal static OfficeChartLegendPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficePresetShapeTypeTokens = {
+        "line",
+        "lineInv",
+        "triangle",
+        "rtTriangle",
+        "rect",
+        "diamond",
+        "parallelogram",
+        "trapezoid",
+        "nonIsoscelesTrapezoid",
+        "pentagon",
+        "hexagon",
+        "heptagon",
+        "octagon",
+        "decagon",
+        "dodecagon",
+        "star4",
+        "star5",
+        "star6",
+        "star7",
+        "star8",
+        "star10",
+        "star12",
+        "star16",
+        "star24",
+        "star32",
+        "roundRect",
+        "round1Rect",
+        "round2SameRect",
+        "round2DiagRect",
+        "snipRoundRect",
+        "snip1Rect",
+        "snip2SameRect",
+        "snip2DiagRect",
+        "plaque",
+        "ellipse",
+        "teardrop",
+        "homePlate",
+        "chevron",
+        "pieWedge",
+        "pie",
+        "blockArc",
+        "donut",
+        "noSmoking",
+        "rightArrow",
+        "leftArrow",
+        "upArrow",
+        "downArrow",
+        "stripedRightArrow",
+        "notchedRightArrow",
+        "bentUpArrow",
+        "leftRightArrow",
+        "upDownArrow",
+        "leftUpArrow",
+        "leftRightUpArrow",
+        "quadArrow",
+        "leftArrowCallout",
+        "rightArrowCallout",
+        "upArrowCallout",
+        "downArrowCallout",
+        "leftRightArrowCallout",
+        "upDownArrowCallout",
+        "quadArrowCallout",
+        "bentArrow",
+        "uturnArrow",
+        "circularArrow",
+        "leftCircularArrow",
+        "leftRightCircularArrow",
+        "curvedRightArrow",
+        "curvedLeftArrow",
+        "curvedUpArrow",
+        "curvedDownArrow",
+        "swooshArrow",
+        "cube",
+        "can",
+        "lightningBolt",
+        "heart",
+        "sun",
+        "moon",
+        "smileyFace",
+        "irregularSeal1",
+        "irregularSeal2",
+        "foldedCorner",
+        "bevel",
+        "frame",
+        "halfFrame",
+        "corner",
+        "diagStripe",
+        "chord",
+        "arc",
+        "leftBracket",
+        "rightBracket",
+        "leftBrace",
+        "rightBrace",
+        "bracketPair",
+        "bracePair",
+        "straightConnector1",
+        "bentConnector2",
+        "bentConnector3",
+        "bentConnector4",
+        "bentConnector5",
+        "curvedConnector2",
+        "curvedConnector3",
+        "curvedConnector4",
+        "curvedConnector5",
+        "callout1",
+        "callout2",
+        "callout3",
+        "accentCallout1",
+        "accentCallout2",
+        "accentCallout3",
+        "borderCallout1",
+        "borderCallout2",
+        "borderCallout3",
+        "accentBorderCallout1",
+        "accentBorderCallout2",
+        "accentBorderCallout3",
+        "wedgeRectCallout",
+        "wedgeRoundRectCallout",
+        "wedgeEllipseCallout",
+        "cloudCallout",
+        "cloud",
+        "ribbon",
+        "ribbon2",
+        "ellipseRibbon",
+        "ellipseRibbon2",
+        "leftRightRibbon",
+        "verticalScroll",
+        "horizontalScroll",
+        "wave",
+        "doubleWave",
+        "plus",
+        "flowChartProcess",
+        "flowChartDecision",
+        "flowChartInputOutput",
+        "flowChartPredefinedProcess",
+        "flowChartInternalStorage",
+        "flowChartDocument",
+        "flowChartMultidocument",
+        "flowChartTerminator",
+        "flowChartPreparation",
+        "flowChartManualInput",
+        "flowChartManualOperation",
+        "flowChartConnector",
+        "flowChartPunchedCard",
+        "flowChartPunchedTape",
+        "flowChartSummingJunction",
+        "flowChartOr",
+        "flowChartCollate",
+        "flowChartSort",
+        "flowChartExtract",
+        "flowChartMerge",
+        "flowChartOfflineStorage",
+        "flowChartOnlineStorage",
+        "flowChartMagneticTape",
+        "flowChartMagneticDisk",
+        "flowChartMagneticDrum",
+        "flowChartDisplay",
+        "flowChartDelay",
+        "flowChartAlternateProcess",
+        "flowChartOffpageConnector",
+        "actionButtonBlank",
+        "actionButtonHome",
+        "actionButtonHelp",
+        "actionButtonInformation",
+        "actionButtonForwardNext",
+        "actionButtonBackPrevious",
+        "actionButtonEnd",
+        "actionButtonBeginning",
+        "actionButtonReturn",
+        "actionButtonDocument",
+        "actionButtonSound",
+        "actionButtonMovie",
+        "gear6",
+        "gear9",
+        "funnel",
+        "mathPlus",
+        "mathMinus",
+        "mathMultiply",
+        "mathDivide",
+        "mathEqual",
+        "mathNotEqual",
+        "cornerTabs",
+        "squareTabs",
+        "plaqueTabs",
+        "chartX",
+        "chartStar",
+        "chartPlus",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.ShapeTypeValues ToOpenXml(this OfficePresetShapeType value) =>
+        new(GetToken(value, OfficePresetShapeTypeTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.ShapeTypeValues? ToOpenXml(this OfficePresetShapeType? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficePresetShapeType ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.ShapeTypeValues value) =>
+        (OfficePresetShapeType)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficePresetShapeTypeTokens, nameof(OfficePresetShapeType));
+
+    internal static OfficePresetShapeType? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.ShapeTypeValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficePageOrientationTokens = {
+        "portrait",
+        "landscape",
+    };
+
+    internal static DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues ToOpenXml(this OfficePageOrientation value) =>
+        new(GetToken(value, OfficePageOrientationTokens));
+
+    internal static DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues? ToOpenXml(this OfficePageOrientation? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficePageOrientation ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues value) =>
+        (OfficePageOrientation)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficePageOrientationTokens, nameof(OfficePageOrientation));
+
+    internal static OfficePageOrientation? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
     private static string GetToken<TEnum>(TEnum value, string[] tokens) where TEnum : struct, Enum {

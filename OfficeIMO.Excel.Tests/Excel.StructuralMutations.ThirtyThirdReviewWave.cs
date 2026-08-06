@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
-            sheet.AddTable("A1:B4", true, "Sales", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B4", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             table.TotalsRowShown = true;
             table.TotalsRowCount = 1U;

@@ -24,13 +24,13 @@ internal static class HtmlRtfConversionReportMapper {
                 ? HtmlDiagnosticSeverity.Warning
                 : HtmlDiagnosticSeverity.Info;
         RtfConversionAction action = diagnostic.Action;
-        HtmlConversionLossKind lossKind = diagnostic.Severity == HtmlRtfConversionDiagnosticSeverity.Error
-            ? HtmlConversionLossKind.Failure
+        OfficeConversionLossKind lossKind = diagnostic.Severity == HtmlRtfConversionDiagnosticSeverity.Error
+            ? OfficeConversionLossKind.Failure
             : action == RtfConversionAction.Substituted || action == RtfConversionAction.Flattened
-                ? HtmlConversionLossKind.Approximation
+                ? OfficeConversionLossKind.Approximation
                 : action == RtfConversionAction.Omitted || action == RtfConversionAction.Blocked
-                    ? HtmlConversionLossKind.Omission
-                    : HtmlConversionLossKind.None;
+                    ? OfficeConversionLossKind.Omission
+                    : OfficeConversionLossKind.None;
         report.Add("OfficeIMO.Html.Rtf", diagnostic.Code, diagnostic.Message, severity, diagnostic.Source, diagnostic.Detail, lossKind);
     }
 

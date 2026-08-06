@@ -245,7 +245,7 @@ namespace OfficeIMO.Excel {
             bool preserveLinkedVbaProject = false) {
             if (SourceFormat != ExcelFileFormat.Xls
                 || !HasLossyLegacyXlsImportState(includeProjectedChartSheets, preserveLinkedVbaProject)
-                || options?.LossPolicy == ExcelConversionLossPolicy.Allow) {
+                || options?.LossPolicy == OfficeConversionLossPolicy.Allow) {
                 return;
             }
 
@@ -263,7 +263,7 @@ namespace OfficeIMO.Excel {
                 .Distinct(StringComparer.Ordinal)
                 .Take(8));
             string details = string.IsNullOrWhiteSpace(codes) ? string.Empty : $" Findings: {codes}.";
-            throw new NotSupportedException($"Saving is blocked because this workbook was loaded from {source} with unsupported, preserve-only, or non-projected legacy content.{details} Review LegacyXlsUnsupportedFeatures, LegacyXlsPreservedFeatures, LegacyXlsUnsupportedSheets, and LegacyXlsCompoundFeatures, or set ExcelSaveOptions.LossPolicy to ExcelConversionLossPolicy.Allow when that loss is intentional.");
+            throw new NotSupportedException($"Saving is blocked because this workbook was loaded from {source} with unsupported, preserve-only, or non-projected legacy content.{details} Review LegacyXlsUnsupportedFeatures, LegacyXlsPreservedFeatures, LegacyXlsUnsupportedSheets, and LegacyXlsCompoundFeatures, or set ExcelSaveOptions.LossPolicy to OfficeConversionLossPolicy.Allow when that loss is intentional.");
         }
 
         private bool TrySaveNativeLegacyXlsToFile(string path, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {

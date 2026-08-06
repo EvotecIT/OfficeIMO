@@ -100,7 +100,7 @@ internal static class MarkdownInlineMetadataSourceSpans {
     private static readonly ConditionalWeakTable<ImageLinkInline, ImageLinkHolder> _imageLinkSpans = new();
     private static readonly ConditionalWeakTable<MarkdownInline, FormattingMarkerHolder> _formattingMarkerSpans = new();
     private static readonly ConditionalWeakTable<CodeSpanInline, CodeSpanHolder> _codeSpanSpans = new();
-    private static readonly ConditionalWeakTable<TextRun, EscapedTextHolder> _escapedTextSpans = new();
+    private static readonly ConditionalWeakTable<MarkdownTextRun, EscapedTextHolder> _escapedTextSpans = new();
     private static readonly ConditionalWeakTable<DecodedHtmlEntityTextRun, DecodedEntityHolder> _decodedEntitySpans = new();
     private static readonly ConditionalWeakTable<HardBreakInline, HardBreakMarkerHolder> _hardBreakMarkerSpans = new();
     private static readonly ConditionalWeakTable<AbbreviationInline, AbbreviationHolder> _abbreviationSpans = new();
@@ -303,7 +303,7 @@ internal static class MarkdownInlineMetadataSourceSpans {
         ?? (inline != null && _codeSpanSpans.TryGetValue(inline, out var holder) ? holder.State?.ContentSpan : null);
 
     internal static void SetEscapedText(
-        TextRun? inline,
+        MarkdownTextRun? inline,
         string escapeMarker,
         MarkdownSourceSpan? escapeMarkerSpan,
         string escapedCharacter,
@@ -329,19 +329,19 @@ internal static class MarkdownInlineMetadataSourceSpans {
         inline.SetMarkdownSyntaxMetadataSpans(escapeMarker, escapeMarkerSpan, escapedCharacter, escapedCharacterSpan);
     }
 
-    internal static string? GetEscapeMarker(TextRun? inline) =>
+    internal static string? GetEscapeMarker(MarkdownTextRun? inline) =>
         inline?.EscapeMarker
         ?? (inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapeMarker : null);
 
-    internal static MarkdownSourceSpan? GetEscapeMarkerSpan(TextRun? inline) =>
+    internal static MarkdownSourceSpan? GetEscapeMarkerSpan(MarkdownTextRun? inline) =>
         inline?.EscapeMarkerSourceSpan
         ?? (inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapeMarkerSpan : null);
 
-    internal static string? GetEscapedCharacter(TextRun? inline) =>
+    internal static string? GetEscapedCharacter(MarkdownTextRun? inline) =>
         inline?.EscapedCharacter
         ?? (inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapedCharacter : null);
 
-    internal static MarkdownSourceSpan? GetEscapedCharacterSpan(TextRun? inline) =>
+    internal static MarkdownSourceSpan? GetEscapedCharacterSpan(MarkdownTextRun? inline) =>
         inline?.EscapedCharacterSourceSpan
         ?? (inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapedCharacterSpan : null);
 

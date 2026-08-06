@@ -36,7 +36,7 @@ doc.P("This is a simple paragraph of text.");
 
 ### Formatted Paragraphs
 
-Use the `ParagraphBuilder` for inline formatting:
+Use the `MarkdownParagraphBuilder` for inline formatting:
 
 ```csharp
 doc.P(p => p

@@ -15,13 +15,13 @@ namespace OfficeIMO.Tests {
 
             Assert.NotEmpty(codes);
             Assert.All(codes, code =>
-                Assert.True(Enum.IsDefined(typeof(OfficeImageExportLossKind), ExcelImageExportDiagnosticClassifier.Classify(code))));
+                Assert.True(Enum.IsDefined(typeof(OfficeConversionLossKind), ExcelImageExportDiagnosticClassifier.Classify(code))));
         }
 
         [Fact]
         public void ExcelImageExportDiagnosticClassifier_TreatsCategoryAxisFormatFallbackAsApproximation() {
             Assert.Equal(
-                OfficeImageExportLossKind.Approximation,
+                OfficeConversionLossKind.Approximation,
                 ExcelImageExportDiagnosticClassifier.Classify(
                     ExcelImageExportDiagnosticCodes.ChartCategoryAxisNumberFormatUnsupported));
         }
@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
         [InlineData(ExcelImageExportDiagnosticCodes.ImageFormatUnknown)]
         public void ExcelImageExportDiagnosticClassifier_TreatsDroppedVisualContentAsOmission(string code) {
             Assert.Equal(
-                OfficeImageExportLossKind.Omission,
+                OfficeConversionLossKind.Omission,
                 ExcelImageExportDiagnosticClassifier.Classify(code));
         }
 
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
                 exception.Diagnostics,
                 diagnostic =>
                     diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing &&
-                    diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+                    diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
 
         [Fact]
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
                 exception.Diagnostics,
                 diagnostic =>
                     diagnostic.Code == ExcelImageExportDiagnosticCodes.CellCommentUnsupported &&
-                    diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+                    diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
 
         [Fact]
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
                 result.Diagnostics,
                 diagnostic =>
                     diagnostic.Code == ExcelImageExportDiagnosticCodes.CellCommentBodyApproximation &&
-                    diagnostic.LossKind == OfficeImageExportLossKind.Approximation);
+                    diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         }
     }
 }

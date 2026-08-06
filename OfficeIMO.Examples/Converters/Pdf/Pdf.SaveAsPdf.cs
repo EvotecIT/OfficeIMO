@@ -57,7 +57,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     PageSize = OfficeIMO.Pdf.PageSizes.A4,
-                    Orientation = PdfPageOrientation.Landscape,
+                    Orientation = OfficePageOrientation.Landscape,
                     Margins = OfficeIMO.Pdf.PageMargins.FromCentimeters(
                         left: 2,
                         top: 2,

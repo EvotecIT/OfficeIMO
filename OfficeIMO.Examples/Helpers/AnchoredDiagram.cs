@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Utils {
 
         internal static void BuildGrid(
             WordDocument document,
-            IList<(ShapeType type, double wPt, double hPt, Color fill, Color stroke, string label)> shapes,
+            IList<(WordShapeType type, double wPt, double hPt, Color fill, Color stroke, string label)> shapes,
             int cols = 5,
             double startXpt = 30,
             double startYpt = 80,
@@ -47,8 +47,8 @@ namespace OfficeIMO.Examples.Utils {
                     double labelTopPt = item.top - (labelHpt + 8);
 
                     var lp = document.AddParagraph("");
-                    var tb = lp.AddTextBox("", WrapTextImage.InFrontOfText);
-                    tb.WrapText = WrapTextImage.InFrontOfText;
+                    var tb = lp.AddTextBox("", WordImageTextWrapping.InFrontOfText);
+                    tb.WrapText = WordImageTextWrapping.InFrontOfText;
                     tb.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                     tb.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
                     tb.HorizontalPositionOffset = PtToEmus(labelLeftPt);
@@ -73,7 +73,7 @@ namespace OfficeIMO.Examples.Utils {
                     double arrowW = Math.Max(available - 8, 8);
                     double arrowTop = from.top + (from.h - arrowH) / 2.0;
                     var cp = document.AddParagraph("");
-                    var conn = cp.AddShapeDrawing(ShapeType.RightArrow, arrowW, arrowH, gapLeft + 4, arrowTop);
+                    var conn = cp.AddShapeDrawing(WordShapeType.RightArrow, arrowW, arrowH, gapLeft + 4, arrowTop);
                     conn.FillColor = Color.Gray;
                     conn.StrokeColor = Color.DimGray;
                     conn.StrokeWeight = 1;
@@ -92,7 +92,7 @@ namespace OfficeIMO.Examples.Utils {
                     double arrowH = Math.Max(available - 8, 8);
                     double arrowLeft = from.left + (from.w - arrowW) / 2.0;
                     var vp = document.AddParagraph("");
-                    var vconn = vp.AddShapeDrawing(ShapeType.DownArrow, arrowW, arrowH, arrowLeft, gapTop + 4);
+                    var vconn = vp.AddShapeDrawing(WordShapeType.DownArrow, arrowW, arrowH, arrowLeft, gapTop + 4);
                     vconn.FillColor = Color.Gray;
                     vconn.StrokeColor = Color.DimGray;
                     vconn.StrokeWeight = 1;
@@ -105,8 +105,8 @@ namespace OfficeIMO.Examples.Utils {
                 double legendWpt = 340;
                 double legendHpt = 36;
                 var lp = document.AddParagraph("");
-                var tb = lp.AddTextBox("", WrapTextImage.InFrontOfText);
-                tb.WrapText = WrapTextImage.InFrontOfText;
+                var tb = lp.AddTextBox("", WordImageTextWrapping.InFrontOfText);
+                tb.WrapText = WordImageTextWrapping.InFrontOfText;
                 tb.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 tb.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
                 tb.HorizontalPositionOffset = PtToEmus(legendLeftPt);
@@ -129,7 +129,7 @@ namespace OfficeIMO.Examples.Utils {
                     double hW = Math.Max((elbowX - (from.left + from.w)), 8);
                     double hH = 12;
                     var hp = document.AddParagraph("");
-                    var hseg = hp.AddShapeDrawing(ShapeType.RightArrow, hW, hH, from.left + from.w + 4, elbowY - hH / 2.0);
+                    var hseg = hp.AddShapeDrawing(WordShapeType.RightArrow, hW, hH, from.left + from.w + 4, elbowY - hH / 2.0);
                     hseg.FillColor = Color.Gray;
                     hseg.StrokeColor = Color.DimGray;
                     hseg.StrokeWeight = 1;
@@ -137,7 +137,7 @@ namespace OfficeIMO.Examples.Utils {
                     double vH = Math.Max(((target.top + target.h / 2.0) - elbowY), 8);
                     double vW = 12;
                     var vp = document.AddParagraph("");
-                    var vseg = vp.AddShapeDrawing(ShapeType.DownArrow, vW, vH, elbowX - vW / 2.0, elbowY + 2);
+                    var vseg = vp.AddShapeDrawing(WordShapeType.DownArrow, vW, vH, elbowX - vW / 2.0, elbowY + 2);
                     vseg.FillColor = Color.Gray;
                     vseg.StrokeColor = Color.DimGray;
                     vseg.StrokeWeight = 1;

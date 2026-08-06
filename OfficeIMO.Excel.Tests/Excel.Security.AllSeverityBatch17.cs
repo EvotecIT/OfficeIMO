@@ -96,7 +96,7 @@ public partial class Excel {
     public void ConversionSaveOptionsPreserveTheTemporaryPackageLimit() {
         var options = new ExcelSaveOptions { MaxTemporaryPackageBytes = 1_024 };
 
-        ExcelSaveOptions copy = options.WithLossPolicy(ExcelConversionLossPolicy.Allow);
+        ExcelSaveOptions copy = options.WithLossPolicy(OfficeConversionLossPolicy.Allow);
 
         Assert.Equal(1_024, copy.MaxTemporaryPackageBytes);
     }

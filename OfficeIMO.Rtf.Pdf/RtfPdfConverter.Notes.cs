@@ -22,17 +22,17 @@ internal static partial class RtfPdfConverter {
 
         pdf.HR(spacingBefore: 8D, spacingAfter: 4D);
         foreach (PdfNoteReference noteReference in state.NoteReferences) {
-            List<PdfCore.TextRun> runs = new List<PdfCore.TextRun> {
-                PdfCore.TextRun.Bolded(GetNoteLabel(noteReference), fontSize: 9D)
+            List<PdfCore.PdfTextRun> runs = new List<PdfCore.PdfTextRun> {
+                PdfCore.PdfTextRun.Bolded(GetNoteLabel(noteReference), fontSize: 9D)
             };
 
             if (noteReference.Note.Paragraphs.Count == 0) {
-                runs.Add(PdfCore.TextRun.Normal(string.Empty, fontSize: 9D));
+                runs.Add(PdfCore.PdfTextRun.Normal(string.Empty, fontSize: 9D));
             }
 
             for (int i = 0; i < noteReference.Note.Paragraphs.Count; i++) {
                 if (i > 0) {
-                    runs.Add(PdfCore.TextRun.LineBreak());
+                    runs.Add(PdfCore.PdfTextRun.LineBreak());
                 }
 
                 AppendParagraphRuns(document, noteReference.Note.Paragraphs[i], runs, options, state, collectNotes: false);

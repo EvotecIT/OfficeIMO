@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
             }));
             var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
-            GoogleDocsImportResult imported = await new GoogleDocsImporter().ImportAsync("doc-import", session, new GoogleDocsImportOptions { Mode = GoogleDocsImportMode.Native });
+            GoogleDocsImportResult imported = await new GoogleDocsImporter().ImportAsync("doc-import", session, new GoogleDocsImportOptions { Mode = GoogleWorkspaceImportMode.Native });
             using (imported.Document) {
                 Assert.Equal("Import", imported.Document.BuiltinDocumentProperties.Title);
                 WordDocumentSnapshot snapshot = imported.Document.CreateInspectionSnapshot();
@@ -397,7 +397,7 @@ namespace OfficeIMO.Tests {
             var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
             InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                new GoogleDocsImporter().ImportAsync("doc-blocked", session, new GoogleDocsImportOptions { Mode = GoogleDocsImportMode.Native }));
+                new GoogleDocsImporter().ImportAsync("doc-blocked", session, new GoogleDocsImportOptions { Mode = GoogleWorkspaceImportMode.Native }));
 
             Assert.Contains("cannot be exported", exception.Message, StringComparison.Ordinal);
             Assert.Equal(0, nativeReads);
@@ -414,12 +414,12 @@ namespace OfficeIMO.Tests {
 
             await Assert.ThrowsAsync<InvalidDataException>(() =>
                 new GoogleDocsImporter().ImportAsync("doc-large", session, new GoogleDocsImportOptions {
-                    Mode = GoogleDocsImportMode.Native,
+                    Mode = GoogleWorkspaceImportMode.Native,
                     MaxResponseBytes = 32,
                 }));
             await Assert.ThrowsAsync<InvalidDataException>(() =>
                 new GoogleDocsImporter().ImportAsync("doc-large", session, new GoogleDocsImportOptions {
-                    Mode = GoogleDocsImportMode.Native,
+                    Mode = GoogleWorkspaceImportMode.Native,
                     MaxTextCharacters = 4,
                 }));
         }
@@ -436,7 +436,7 @@ namespace OfficeIMO.Tests {
 
             await Assert.ThrowsAsync<InvalidDataException>(() =>
                 new GoogleDocsImporter().ImportAsync("doc-sparse-table", session, new GoogleDocsImportOptions {
-                    Mode = GoogleDocsImportMode.Native,
+                    Mode = GoogleWorkspaceImportMode.Native,
                     MaxTableCells = 1,
                 }));
         }
@@ -453,7 +453,7 @@ namespace OfficeIMO.Tests {
 
             await Assert.ThrowsAsync<InvalidDataException>(() =>
                 new GoogleDocsImporter().ImportAsync("doc-ragged-table", session, new GoogleDocsImportOptions {
-                    Mode = GoogleDocsImportMode.Native,
+                    Mode = GoogleWorkspaceImportMode.Native,
                     MaxTableCells = 4,
                 }));
         }
@@ -476,7 +476,7 @@ namespace OfficeIMO.Tests {
 
                 GoogleDocsDiffPlan plan = await GoogleDocsDiffPlanner.BuildAsync(source, "doc-diff", session, checkpoint);
 
-                Assert.Contains(plan.Items, item => item.Kind == GoogleDocsDiffKind.RemoteChange && item.Path == "document/driveVersion");
+                Assert.Contains(plan.Items, item => item.Kind == GoogleWorkspaceDiffKind.RemoteChange && item.Path == "document/driveVersion");
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }
@@ -591,7 +591,7 @@ namespace OfficeIMO.Tests {
             GoogleDocsImportResult imported = await new GoogleDocsImporter().ImportAsync(
                 "doc-suggestions",
                 session,
-                new GoogleDocsImportOptions { Mode = GoogleDocsImportMode.Native, Suggestions = mode });
+                new GoogleDocsImportOptions { Mode = GoogleWorkspaceImportMode.Native, Suggestions = mode });
             using (imported.Document) {
                 Assert.NotNull(docsUri);
                 Assert.Contains("suggestionsViewMode=" + expectedApiValue, docsUri!.Query, StringComparison.Ordinal);
@@ -743,7 +743,7 @@ namespace OfficeIMO.Tests {
                 checkpoint);
 
             GoogleDocsDiffItem conflict = Assert.Single(items);
-            Assert.Equal(GoogleDocsDiffKind.Conflict, conflict.Kind);
+            Assert.Equal(GoogleWorkspaceDiffKind.Conflict, conflict.Kind);
         }
 
         private static GoogleDocsApiTabResponse CreateTabState(string tabId, string title, int endIndex, string headerId, string footerId, string rangeName) {

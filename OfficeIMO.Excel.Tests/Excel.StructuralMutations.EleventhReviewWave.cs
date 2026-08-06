@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(2, 2, 2);
             sheet.CellFormula(1, 4, "SUM(Sales[A])");
-            sheet.AddTable("A1:B2", true, "Sales", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B2", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             var sortState = new SortState(
                 new SortCondition { Reference = "A2:A2" }) { Reference = "A2:B2" };

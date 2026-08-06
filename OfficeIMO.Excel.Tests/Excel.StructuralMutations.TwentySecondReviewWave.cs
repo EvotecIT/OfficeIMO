@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(2, 2, 2);
             sheet.CellValue(3, 1, "Total");
-            sheet.AddTable("A1:B3", true, "DataTable", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B3", true, "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = sheet.WorksheetPart.TableDefinitionParts.Single().Table!;
             table.TotalsRowShown = true;
             table.TotalsRowCount = null;

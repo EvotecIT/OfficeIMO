@@ -66,7 +66,7 @@ namespace OfficeIMO.Word.Markdown {
             if (fmt.VerticalTextAlignment.HasValue) wrapper.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value.ToOfficeEnum());
 
             if (forceMonospace) {
-                wrapper.SetFontFamily(FontResolver.Resolve("monospace") ?? "Consolas");
+                wrapper.SetFontFamily(WordFontResolver.Resolve("monospace") ?? "Consolas");
             } else if (!string.IsNullOrEmpty(defaultFont)) {
                 wrapper.SetFontFamily(defaultFont!);
             }
@@ -147,7 +147,7 @@ namespace OfficeIMO.Word.Markdown {
                     .Visit(node);
             }
 
-            protected override void VisitTextRun(Omd.TextRun inline) =>
+            protected override void VisitTextRun(Omd.MarkdownTextRun inline) =>
                 _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt, _defaultFont));
 
             protected override void VisitHardBreakInline(Omd.HardBreakInline inline) =>
@@ -365,7 +365,7 @@ namespace OfficeIMO.Word.Markdown {
                     .Visit(node);
             }
 
-            protected override void VisitTextRun(Omd.TextRun inline) =>
+            protected override void VisitTextRun(Omd.MarkdownTextRun inline) =>
                 AddRun(_paragraph, inline.Text, _fmt, _defaultFont, _defaultTextColorHex);
 
             protected override void VisitHardBreakInline(Omd.HardBreakInline inline) =>
@@ -376,7 +376,7 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitCodeSpanInline(Omd.CodeSpanInline inline) {
                 var run = AddRun(_paragraph, inline.Text, _fmt, _defaultFont, _defaultTextColorHex);
-                var mono = FontResolver.Resolve("monospace") ?? "Consolas";
+                var mono = WordFontResolver.Resolve("monospace") ?? "Consolas";
                 run.SetFontFamily(mono);
             }
 

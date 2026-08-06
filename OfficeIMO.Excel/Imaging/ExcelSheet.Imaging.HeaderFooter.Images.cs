@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private const double HeaderFooterImagePadding = 4D;
 
-        private static HeaderFooterImageSnapshot? SelectHeaderFooterImage(HeaderFooterImageSnapshot? image, string sectionText) =>
+        private static ExcelHeaderFooterImageSnapshot? SelectHeaderFooterImage(ExcelHeaderFooterImageSnapshot? image, string sectionText) =>
             image != null && sectionText.IndexOf("&G", StringComparison.Ordinal) >= 0 ? image : null;
 
         private static int ResolveHeaderFooterBandHeight(double imageHeightPoints, double scale) {
@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
 
         private static void DrawHeaderFooterRasterImage(
             OfficeRasterCanvas canvas,
-            HeaderFooterImageSnapshot? image,
+            ExcelHeaderFooterImageSnapshot? image,
             OfficeTextZone zone,
             double bandTop,
             double bandHeight,
@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel {
 
         private static void AppendHeaderFooterSvgImage(
             StringBuilder builder,
-            HeaderFooterImageSnapshot? image,
+            ExcelHeaderFooterImageSnapshot? image,
             OfficeTextZone zone,
             double bandTop,
             double bandHeight,
@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static (double X, double Y, double Width, double Height) ResolveHeaderFooterImageBox(
-            HeaderFooterImageSnapshot image,
+            ExcelHeaderFooterImageSnapshot image,
             OfficeTextZone zone,
             double bandTop,
             double bandHeight,

@@ -38,11 +38,11 @@ internal static partial class Paragraphs {
 
             paragraph = document.AddParagraph("5th Test gmarmmar, this shouldnt show up as baddly written.");
             paragraph.DoNotCheckSpellingOrGrammar = true;
-            paragraph.CapsStyle = CapsStyle.Caps;
+            paragraph.CapsStyle = WordCapsStyle.Caps;
 
             paragraph = document.AddParagraph("6th Test gmarmmar, this should show up as baddly written.");
             paragraph.DoNotCheckSpellingOrGrammar = false;
-            paragraph.CapsStyle = CapsStyle.SmallCaps;
+            paragraph.CapsStyle = WordCapsStyle.SmallCaps;
 
             paragraph = document.AddParagraph("7th Highlight me on a new page?");
             paragraph.Highlight = WordHighlightColor.Yellow;

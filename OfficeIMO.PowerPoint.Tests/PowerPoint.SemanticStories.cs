@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
                             Variant = PowerPointClosingLayoutVariant.ActionPanel
                         });
 
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors.Select(error => error.Description)));
                     Assert.Equal(14, presentation.Slides.Count);
                     Assert.Equal(2, presentation.Slides.SelectMany(slide => slide.Charts).Count());
@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using (PowerPointPresentation reopened = PowerPointPresentation.Load(output)) {
-                    List<ValidationErrorInfo> errors = reopened.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = reopened.ValidateDocument();
                     Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors.Select(error => error.Description)));
                     PowerPointPicture picture = reopened.Slides.SelectMany(slide => slide.Pictures).First();
                     Assert.Equal("Product dashboard showing deployment progress", picture.AltText);

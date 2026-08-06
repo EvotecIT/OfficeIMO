@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
                 projected.ToBytes(PowerPointFileFormat.Ppt));
             Assert.Equal(binary, projected.ToBytes(PowerPointFileFormat.Ppt,
                 new PowerPointSaveOptions {
-                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                    LossPolicy = OfficeConversionLossPolicy.Allow
                 }));
         }
 
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
             byte[] binaryAfterPptxExport = imported.ToBytes(
                 PowerPointFileFormat.Ppt,
                 new PowerPointSaveOptions {
-                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                    LossPolicy = OfficeConversionLossPolicy.Allow
                 });
             Assert.Equal(projectBytes, Assert.IsType<LegacyPptVbaProject>(
                 LegacyPptPresentation.Load(binaryAfterPptxExport)
@@ -347,7 +347,7 @@ namespace OfficeIMO.Tests {
                     imported.ToBytes(PowerPointFileFormat.Ppt));
                 Assert.Equal(sourceBytes, imported.ToBytes(
                     PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     }));
                 PowerPointTextBox title = Assert.Single(imported.Slides[0]
                     .TextBoxes, item => item.Text == "Compressed VBA");
@@ -359,7 +359,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(preflight.CanWrite);
                 savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 

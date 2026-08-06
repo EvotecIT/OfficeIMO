@@ -53,7 +53,7 @@ namespace OfficeIMO.Word.Html {
                     "TextBackgroundColorApproximated",
                     "CSS text background color was approximated to the nearest Word highlight color.",
                     "background-color",
-                    lossKind: HtmlConversionLossKind.Approximation);
+                    lossKind: OfficeConversionLossKind.Approximation);
             }
         }
 

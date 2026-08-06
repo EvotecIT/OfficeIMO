@@ -2,19 +2,18 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
-using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Revisions {
-        private static string FormatErrors(IEnumerable<ValidationErrorInfo> errors) {
+        private static string FormatErrors(IEnumerable<OfficeOpenXmlValidationError> errors) {
             return string.Join(Environment.NewLine + Environment.NewLine,
                 errors.Select(error =>
                     $"Description: {error.Description}\n" +
                     $"Id: {error.Id}\n" +
                     $"ErrorType: {error.ErrorType}\n" +
-                    $"Part: {error.Part?.Uri}\n" +
-                    $"Path: {error.Path?.XPath}"));
+                    $"Part: {error.PartUri}\n" +
+                    $"Path: {error.Path}"));
         }
 
         internal static void Example_TrackedChanges(string folderPath, bool openWord) {

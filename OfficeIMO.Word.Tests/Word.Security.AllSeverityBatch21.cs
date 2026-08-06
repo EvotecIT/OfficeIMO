@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests;
 public partial class Word {
     [Fact]
     public void ListInfoUsesOfficeOwnedEnumConstructorSignature() {
-        ConstructorInfo? constructor = typeof(DocumentTraversal.ListInfo).GetConstructor(new[] {
+        ConstructorInfo? constructor = typeof(WordDocumentTraversal.ListInfo).GetConstructor(new[] {
             typeof(int),
             typeof(bool),
             typeof(int),

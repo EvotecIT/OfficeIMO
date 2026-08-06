@@ -142,7 +142,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PdfDocument CreateOfficeIMOPdfDocument(WordDocument document, WordPdfSaveOptions? options) {
             ResetNativeStyleLookupCache(document);
-            BuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
+            WordBuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
             var nativeFontMap = new NativeFontMap(options?.Report);
             PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(CreateNativeOptions(document, options, nativeFontMap))
                 .Meta(
@@ -151,8 +151,8 @@ namespace OfficeIMO.Word.Pdf {
                     subject: options?.Subject ?? properties.Subject,
                     keywords: BuildNativeKeywords(options, properties));
 
-            Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = DocumentTraversal.BuildListMarkers(document);
-            Dictionary<WordParagraph, (int Level, int Index)> listIndices = DocumentTraversal.BuildListIndices(document);
+            Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = WordDocumentTraversal.BuildListMarkers(document);
+            Dictionary<WordParagraph, (int Level, int Index)> listIndices = WordDocumentTraversal.BuildListIndices(document);
             Dictionary<W.Paragraph, string> headingDestinations = BuildNativeHeadingDestinations(document);
             IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries = BuildNativeTableOfContentsEntries(document, options, headingDestinations);
             NativeDocumentDefaults nativeDefaults = GetNativeDocumentDefaults(document, nativeFontMap);

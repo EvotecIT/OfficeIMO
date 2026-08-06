@@ -422,8 +422,8 @@ public partial class Excel {
             var data = new ExcelChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new ExcelChartSeries("Sales", new[] { 12D, 18D, 24D }, ExcelChartType.ColumnClustered, ExcelChartAxisGroup.Primary),
-                    new ExcelChartSeries("Trend", new[] { 10D, 16D, 22D }, ExcelChartType.Line, ExcelChartAxisGroup.Secondary)
+                    new ExcelChartSeries("Sales", new[] { 12D, 18D, 24D }, ExcelChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
+                    new ExcelChartSeries("Trend", new[] { 10D, 16D, 22D }, ExcelChartType.Line, OfficeChartAxisGroup.Secondary)
                 });
 
             sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");

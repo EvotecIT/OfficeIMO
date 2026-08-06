@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentWithPageMargins2() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithSectionsPageMargins2.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                Assert.True(document.Sections[0].PageOrientation == WordPageOrientation.Portrait, "Page orientation should match");
+                Assert.True(document.Sections[0].PageOrientation == OfficePageOrientation.Portrait, "Page orientation should match");
                 Assert.True(document.Paragraphs.Count == 0, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
 
@@ -102,8 +102,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Sections[0].Margins.Bottom == 1304);
                 Assert.True(document.Sections[0].Margins.Top == 3118);
-                Assert.True(document.Sections[0].Margins.Left.Value == 1707);
-                Assert.True(document.Sections[0].Margins.Right.Value == 1729);
+                Assert.True(document.Sections[0].Margins.Left == 1707);
+                Assert.True(document.Sections[0].Margins.Right == 1729);
 
 
 

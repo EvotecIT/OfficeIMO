@@ -114,10 +114,10 @@ namespace OfficeIMO.Tests.Pdf {
 
             IReadOnlyList<PdfTextEncodingDiagnostic> runDiagnostics = PdfTextDiagnostics.AnalyzeWinAnsiTextRuns(
                 new[] {
-                    TextRun.Normal("Alpha"),
-                    TextRun.Tab(PdfTabLeaderStyle.Dots),
-                    TextRun.LineBreak(),
-                    TextRun.Normal("Beta")
+                    PdfTextRun.Normal("Alpha"),
+                    PdfTextRun.Tab(PdfTabLeaderStyle.Dots),
+                    PdfTextRun.LineBreak(),
+                    PdfTextRun.Normal("Beta")
                 },
                 "runs");
 
@@ -128,10 +128,10 @@ namespace OfficeIMO.Tests.Pdf {
         public void TextDiagnostics_ReportsRunLocationForRichTextDiagnostics() {
             IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
                 new[] {
-                    TextRun.Normal("Alpha"),
-                    TextRun.Tab(PdfTabLeaderStyle.Dots),
-                    TextRun.LineBreak(),
-                    TextRun.Normal("Beta \u2603")
+                    PdfTextRun.Normal("Alpha"),
+                    PdfTextRun.Tab(PdfTabLeaderStyle.Dots),
+                    PdfTextRun.LineBreak(),
+                    PdfTextRun.Normal("Beta \u2603")
                 },
                 new PdfOptions(),
                 PdfStandardFont.Helvetica,
@@ -162,17 +162,17 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void TextRun_TabLeaderRequiresExplicitTabRun() {
             var invalidLeaderException = Assert.Throws<ArgumentException>(() =>
-                new TextRun("Alpha", tabLeader: PdfTabLeaderStyle.Dots));
+                new PdfTextRun("Alpha", tabLeader: PdfTabLeaderStyle.Dots));
 
             Assert.Contains("Tab leaders and alignment can only be applied to explicit tab runs.", invalidLeaderException.Message, StringComparison.Ordinal);
 
             var invalidEnumException = Assert.Throws<ArgumentException>(() =>
-                TextRun.Tab((PdfTabLeaderStyle)99));
+                PdfTextRun.Tab((PdfTabLeaderStyle)99));
 
             Assert.Contains("PDF tab leader style must be None, Dots, Hyphens, or Underscores.", invalidEnumException.Message, StringComparison.Ordinal);
 
             var invalidAlignmentException = Assert.Throws<ArgumentException>(() =>
-                TextRun.Tab(alignment: (PdfTabAlignment)99));
+                PdfTextRun.Tab(alignment: (PdfTabAlignment)99));
 
             Assert.Contains("PDF tab alignment must be Left, Center, Right, or DecimalSeparator.", invalidAlignmentException.Message, StringComparison.Ordinal);
         }

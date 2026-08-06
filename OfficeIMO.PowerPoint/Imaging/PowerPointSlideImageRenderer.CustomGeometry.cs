@@ -33,7 +33,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeImageExportDiagnostic? failure = diagnostics.FirstOrDefault(
                 diagnostic => diagnostic.Severity
                         != OfficeImageExportDiagnosticSeverity.Info
-                    || diagnostic.LossKind != OfficeImageExportLossKind.None);
+                    || diagnostic.LossKind != OfficeConversionLossKind.None);
             if (failure != null || candidate.Elements.Count == 0) {
                 reason = failure?.Message
                     ?? "The custom geometry produced no visible Drawing paths.";

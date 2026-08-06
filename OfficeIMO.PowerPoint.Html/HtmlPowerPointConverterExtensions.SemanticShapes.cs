@@ -89,14 +89,14 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (!budget.IsMetadataWithinLimit(text, out string metadataLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
                 "A slide text block was omitted because it exceeded the shared field limit.",
-                lossKind: HtmlConversionLossKind.Omission, detail: metadataLimit);
+                lossKind: OfficeConversionLossKind.Omission, detail: metadataLimit);
             return fallbackTop;
         }
 
         if (!budget.TryReserveShape(out string shapeLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "A slide text block was omitted because the shared shape limit was reached.",
-                lossKind: HtmlConversionLossKind.Omission, detail: shapeLimit);
+                lossKind: OfficeConversionLossKind.Omission, detail: shapeLimit);
             return fallbackTop;
         }
 

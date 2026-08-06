@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Hello World");
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
-                    DefaultOrientation = WordPageOrientation.Landscape,
+                    DefaultOrientation = OfficePageOrientation.Landscape,
                     DefaultPageSize = WordPageSize.A4
                 });
             }

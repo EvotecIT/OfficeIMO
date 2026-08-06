@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(1, 3, "C");
-            sheet.AddTable("A1:C10", true, "Sales", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:C10", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             var sortState = new SortState(
                 new SortCondition { Reference = "A2:B9" },

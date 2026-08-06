@@ -70,14 +70,14 @@ namespace OfficeIMO.Tests {
                 Assert.NotEqual(extension.ExtensionId, clone.ExtensionId);
 
                 ExcelFeatureFinding feature = Assert.Single(document.InspectFeatures().FindFeatures("Conditional formatting"));
-                Assert.Equal(ExcelFeatureSupportLevel.Editable, feature.SupportLevel);
+                Assert.Equal(OfficeFeatureSupportLevel.Editable, feature.SupportLevel);
                 Assert.Equal(3, feature.Count);
 
                 OfficeImageExportResult rendered = sheet.Range("B1:B3").ExportImage(OfficeImageExportFormat.Png);
                 OfficeImageExportDiagnostic approximation = Assert.Single(rendered.Diagnostics, item =>
                     item.Code == ExcelImageExportDiagnosticCodes.ConditionalExtensionApproximation);
                 Assert.Equal(OfficeImageExportDiagnosticSeverity.Info, approximation.Severity);
-                Assert.Equal(OfficeImageExportLossKind.Approximation, approximation.LossKind);
+                Assert.Equal(OfficeConversionLossKind.Approximation, approximation.LossKind);
 
                 sheet.RemoveConditionalFormattingRule(standard);
                 document.Save();

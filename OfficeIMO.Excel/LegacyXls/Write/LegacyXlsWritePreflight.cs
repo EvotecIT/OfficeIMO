@@ -99,7 +99,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 ThrowUnsupported(sheet, conditionalFormattingReason ?? "conditional formatting");
             }
 
-            ExcelSheet.HeaderFooterSnapshot headerFooter = sheet.GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterSnapshot headerFooter = sheet.GetHeaderFooter();
             if (headerFooter.HeaderHasPicturePlaceholder || headerFooter.FooterHasPicturePlaceholder) {
                 ThrowUnsupported(sheet, "header or footer images");
             }
@@ -666,7 +666,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return null;
         }
 
-        private static bool SupportsHeaderFooterText(ExcelSheet.HeaderFooterSnapshot headerFooter, out string? reason) {
+        private static bool SupportsHeaderFooterText(ExcelSheet.ExcelHeaderFooterSnapshot headerFooter, out string? reason) {
             reason = null;
             string? oddHeaderText = BuildHeaderFooterText(headerFooter.HeaderLeft, headerFooter.HeaderCenter, headerFooter.HeaderRight);
             string? oddFooterText = BuildHeaderFooterText(headerFooter.FooterLeft, headerFooter.FooterCenter, headerFooter.FooterRight);

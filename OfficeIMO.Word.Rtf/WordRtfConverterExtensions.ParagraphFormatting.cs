@@ -24,10 +24,10 @@ public static partial class WordRtfConverterExtensions {
         }
 
         CopyParagraphShadingPattern(source.ShadingPattern.ToOpenXml(), destination);
-        CopyParagraphBorder(source.Borders.TopStyle.ToOpenXml(), source.Borders.TopSize?.Value, source.Borders.TopColorHex, destination.TopBorder, document);
-        CopyParagraphBorder(source.Borders.LeftStyle.ToOpenXml(), source.Borders.LeftSize?.Value, source.Borders.LeftColorHex, destination.LeftBorder, document);
-        CopyParagraphBorder(source.Borders.BottomStyle.ToOpenXml(), source.Borders.BottomSize?.Value, source.Borders.BottomColorHex, destination.BottomBorder, document);
-        CopyParagraphBorder(source.Borders.RightStyle.ToOpenXml(), source.Borders.RightSize?.Value, source.Borders.RightColorHex, destination.RightBorder, document);
+        CopyParagraphBorder(source.Borders.TopStyle.ToOpenXml(), source.Borders.TopSize, source.Borders.TopColorHex, destination.TopBorder, document);
+        CopyParagraphBorder(source.Borders.LeftStyle.ToOpenXml(), source.Borders.LeftSize, source.Borders.LeftColorHex, destination.LeftBorder, document);
+        CopyParagraphBorder(source.Borders.BottomStyle.ToOpenXml(), source.Borders.BottomSize, source.Borders.BottomColorHex, destination.BottomBorder, document);
+        CopyParagraphBorder(source.Borders.RightStyle.ToOpenXml(), source.Borders.RightSize, source.Borders.RightColorHex, destination.RightBorder, document);
     }
 
     private static void CopyParagraphBorder(BorderValues? style, uint? width, string? colorHex, RtfParagraphBorder destination, RtfDocument document) {
@@ -233,14 +233,14 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static void ApplyParagraphBorder(RtfParagraphBorder source, Action<BorderValues?> setStyle, Action<UInt32Value?> setWidth, Action<string?> setColor, RtfDocument document) {
+    private static void ApplyParagraphBorder(RtfParagraphBorder source, Action<BorderValues?> setStyle, Action<uint?> setWidth, Action<string?> setColor, RtfDocument document) {
         if (!source.HasAnyValue) {
             return;
         }
 
         setStyle(ToWordParagraphBorderStyle(source.Style));
         if (source.Width.HasValue && source.Width.Value >= 0) {
-            setWidth((UInt32Value)(uint)source.Width.Value);
+            setWidth((uint)source.Width.Value);
         }
 
         if (source.ColorIndex.HasValue) {

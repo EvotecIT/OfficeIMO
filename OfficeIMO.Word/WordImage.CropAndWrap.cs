@@ -270,13 +270,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the image's wrap text.
         /// </summary>
-        public WrapTextImage? WrapText {
+        public WordImageTextWrapping? WrapText {
             get {
                 if (_Image.Anchor != null) {
                     return WordWrapTextImage.GetWrapTextImage(_Image.Anchor, _Image.Inline ?? new Inline());
                 }
                 if (_Image.Inline != null) {
-                    return WrapTextImage.InLineWithText;
+                    return WordImageTextWrapping.InLineWithText;
                 }
                 return null;
             }
@@ -284,7 +284,7 @@ namespace OfficeIMO.Word {
                 if (_Image.Anchor != null) {
                     WordWrapTextImage.SetWrapTextImage(_Image, _Image.Anchor, _Image.Inline ?? new Inline(), value);
                 } else if (_Image.Inline != null && value != null) {
-                    if (value == WrapTextImage.InLineWithText) {
+                    if (value == WordImageTextWrapping.InLineWithText) {
                         return;
                     }
                     var convertedAnchor = WordTextBox.ConvertInlineToAnchor(_Image.Inline, value.Value);
@@ -297,7 +297,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets how the image should fill its bounding box. Default is Stretch.
         /// </summary>
-        public ImageFillMode FillMode {
+        public WordImageFillMode FillMode {
             get {
                 var picture = GetPicture();
                 var blipFill = picture?.BlipFill;
@@ -305,18 +305,18 @@ namespace OfficeIMO.Word {
                     var tile = blipFill.GetFirstChild<Tile>();
                     if (tile != null) {
                         if (tile.Alignment?.Value == RectangleAlignmentValues.Center) {
-                            _fillMode = ImageFillMode.Center;
+                            _fillMode = WordImageFillMode.Center;
                         } else {
-                            _fillMode = ImageFillMode.Tile;
+                            _fillMode = WordImageFillMode.Tile;
                         }
                     } else {
                         var stretch = blipFill.GetFirstChild<Stretch>();
                         if (stretch != null) {
                             _fillMode = stretch.GetFirstChild<FillRectangle>() == null
-                                ? ImageFillMode.Fit
-                                : ImageFillMode.Stretch;
+                                ? WordImageFillMode.Fit
+                                : WordImageFillMode.Stretch;
                         } else {
-                            _fillMode = ImageFillMode.Stretch;
+                            _fillMode = WordImageFillMode.Stretch;
                         }
                     }
                 }
@@ -333,7 +333,7 @@ namespace OfficeIMO.Word {
                 var stretch = blipFill.GetFirstChild<Stretch>();
 
                 switch (value) {
-                    case ImageFillMode.Stretch:
+                    case WordImageFillMode.Stretch:
                         tile?.Remove();
                         if (stretch == null) {
                             stretch = new Stretch();
@@ -343,7 +343,7 @@ namespace OfficeIMO.Word {
                             stretch.AppendChild(new FillRectangle());
                         }
                         break;
-                    case ImageFillMode.Tile:
+                    case WordImageFillMode.Tile:
                         stretch?.Remove();
                         if (tile == null) {
                             tile = new Tile();
@@ -351,7 +351,7 @@ namespace OfficeIMO.Word {
                         }
                         tile.Alignment = null;
                         break;
-                    case ImageFillMode.Fit:
+                    case WordImageFillMode.Fit:
                         tile?.Remove();
                         if (stretch == null) {
                             stretch = new Stretch();
@@ -360,7 +360,7 @@ namespace OfficeIMO.Word {
                         var fillRect = stretch.GetFirstChild<FillRectangle>();
                         fillRect?.Remove();
                         break;
-                    case ImageFillMode.Center:
+                    case WordImageFillMode.Center:
                         stretch?.Remove();
                         if (tile == null) {
                             tile = new Tile();

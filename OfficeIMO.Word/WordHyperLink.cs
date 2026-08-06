@@ -9,7 +9,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Defines hyperlink target frames.
     /// </summary>
-    public enum TargetFrame {
+    public enum WordHyperlinkTargetFrame {
         /// <summary>
         /// opens in the current window
         /// </summary>
@@ -196,11 +196,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the target frame for the hyperlink.
         /// </summary>
-        public TargetFrame? TargetFrame {
+        public WordHyperlinkTargetFrame? TargetFrame {
             get {
                 string? target = _hyperlink.TargetFrame;
                 if (!string.IsNullOrEmpty(target)) {
-                    var targetFrame = (TargetFrame)Enum.Parse(typeof(TargetFrame), target, true);
+                    var targetFrame = (WordHyperlinkTargetFrame)Enum.Parse(typeof(WordHyperlinkTargetFrame), target, true);
                     return targetFrame;
                 }
 
@@ -254,7 +254,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a new instance of the <see cref="WordHyperLink"/> class.
         /// </summary>
-        public WordHyperLink(WordDocument document, Paragraph paragraph, Hyperlink hyperlink) {
+        internal WordHyperLink(WordDocument document, Paragraph paragraph, Hyperlink hyperlink) {
             _document = document;
             _paragraph = paragraph;
             _hyperlink = hyperlink;

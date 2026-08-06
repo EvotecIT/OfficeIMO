@@ -98,7 +98,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 source,
                 "layers=" + style.BackgroundImageLayerCount.ToString(CultureInfo.InvariantCulture)
                     + ";limit=" + _options.MaxBackgroundImageLayers.ToString(CultureInfo.InvariantCulture),
-                HtmlConversionLossKind.Omission);
+                OfficeConversionLossKind.Omission);
         }
 
         if (style.UnsupportedBackgroundImageLayerCount > 0) {
@@ -107,7 +107,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 "Unsupported or invalid CSS background image functions were omitted.",
                 source,
                 "layers=" + style.UnsupportedBackgroundImageLayerCount.ToString(CultureInfo.InvariantCulture),
-                HtmlConversionLossKind.Omission);
+                OfficeConversionLossKind.Omission);
         }
 
         if (style.GradientStopLimitExceededCount > 0) {
@@ -119,7 +119,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 diagnosticSourceDescription,
                 "gradients=" + style.GradientStopLimitExceededCount.ToString(CultureInfo.InvariantCulture)
                     + ";limit=" + _options.MaxGradientStops.ToString(CultureInfo.InvariantCulture),
-                HtmlConversionLossKind.Omission);
+                OfficeConversionLossKind.Omission);
         }
 
         for (int layerIndex = style.BackgroundImageLayers.Count - 1; layerIndex >= 0; layerIndex--) {
@@ -312,7 +312,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
                 "A CSS linear gradient could not be resolved against its paint area and was omitted.",
                 source,
-                lossKind: HtmlConversionLossKind.Omission);
+                lossKind: OfficeConversionLossKind.Omission);
             return;
         }
         fill.FillGradient = linearGradient;
@@ -323,7 +323,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
                 "A CSS radial gradient could not be resolved against its paint area and was omitted.",
                 source,
-                lossKind: HtmlConversionLossKind.Omission);
+                lossKind: OfficeConversionLossKind.Omission);
             return;
         }
 

@@ -42,9 +42,9 @@ public class PdfDocumentCanvasTests {
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.Section, section => section
                     .Structure(PdfCanvasStructureRole.Heading1, heading => heading
-                        .Text(new[] { TextRun.Normal("Heading") }, PdfCanvasTextStructureRole.Span, 10D, 10D, 120D, 20D))
+                        .Text(new[] { PdfTextRun.Normal("Heading") }, PdfCanvasTextStructureRole.Span, 10D, 10D, 120D, 20D))
                     .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph
-                        .Text(new[] { TextRun.Normal("Paragraph") }, PdfCanvasTextStructureRole.Span, 10D, 40D, 120D, 20D))))
+                        .Text(new[] { PdfTextRun.Normal("Paragraph") }, PdfCanvasTextStructureRole.Span, 10D, 40D, 120D, 20D))))
             .ToBytes();
 
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
@@ -169,7 +169,7 @@ public class PdfDocumentCanvasTests {
         byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Text(
-                new[] { TextRun.Normal("Canvas semantic heading") },
+                new[] { PdfTextRun.Normal("Canvas semantic heading") },
                 PdfCanvasTextStructureRole.Heading2,
                 24,
                 20,
@@ -183,7 +183,7 @@ public class PdfDocumentCanvasTests {
         Assert.Contains("H2", tagged.StructureTypes);
         Assert.True(tagged.MarkedContentReferenceCount >= 1);
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageCanvas().Text(
-            new[] { TextRun.Normal("Invalid") },
+            new[] { PdfTextRun.Normal("Invalid") },
             (PdfCanvasTextStructureRole)99,
             0,
             0,
@@ -477,7 +477,7 @@ public class PdfDocumentCanvasTests {
             typeof(double)
         }));
         Assert.NotNull(typeof(PdfPageCanvas).GetMethod(nameof(PdfPageCanvas.TextBox), new[] {
-            typeof(IEnumerable<TextRun>),
+            typeof(IEnumerable<PdfTextRun>),
             typeof(double),
             typeof(double),
             typeof(double),
@@ -1081,12 +1081,12 @@ public class PdfDocumentCanvasTests {
 
         byte[] flatBytes = PdfDocument.Create(options)
             .Canvas(canvas => canvas.TextBox(new[] {
-                TextRun.Link("Linked", uri)
+                PdfTextRun.Link("Linked", uri)
             }, 30, 40, 120, 42, style))
             .ToBytes();
         byte[] rotatedBytes = PdfDocument.Create(options)
             .Canvas(canvas => canvas.TextBox(new[] {
-                TextRun.Link("Linked", uri)
+                PdfTextRun.Link("Linked", uri)
             }, 30, 40, 120, 42, style, rotationAngle: 90D))
             .ToBytes();
 
@@ -1166,13 +1166,13 @@ public class PdfDocumentCanvasTests {
             CompressContentStreams = false
         };
         byte[] flatBytes = PdfDocument.Create(options)
-            .Canvas(canvas => canvas.Text(new[] { TextRun.Link("EffectText", uri) }, 20, 20, 80, 20, fontSize: 10))
+            .Canvas(canvas => canvas.Text(new[] { PdfTextRun.Link("EffectText", uri) }, 20, 20, 80, 20, fontSize: 10))
             .ToBytes();
         byte[] effectBytes = PdfDocument.Create(options)
             .Canvas(canvas => canvas.Effect(
                 OfficeTransform.Translate(12D, 7D),
                 0.5D,
-                nested => nested.Text(new[] { TextRun.Link("EffectText", uri) }, 20, 20, 80, 20, fontSize: 10)))
+                nested => nested.Text(new[] { PdfTextRun.Link("EffectText", uri) }, 20, 20, 80, 20, fontSize: 10)))
             .ToBytes();
 
         PdfLinkAnnotation flatLink = Assert.Single(PdfInspector.Inspect(flatBytes).LinkAnnotations);

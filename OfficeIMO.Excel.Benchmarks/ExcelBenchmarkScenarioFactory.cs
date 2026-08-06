@@ -79,7 +79,7 @@ internal static class ExcelBenchmarkScenarioFactory {
     }
 
     public static void AddOfficeImoTable(ExcelSheet sheet, int rowCount) {
-        sheet.AddTable(BuildDataRange(rowCount), hasHeader: true, name: "SalesData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+        sheet.AddTable(BuildDataRange(rowCount), hasHeader: true, name: "SalesData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
     }
 
     public static void AutoFitOfficeImoColumns(ExcelSheet sheet) {

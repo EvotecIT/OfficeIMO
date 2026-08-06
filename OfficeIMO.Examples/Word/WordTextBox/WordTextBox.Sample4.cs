@@ -16,55 +16,55 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Textbox (header) wraptext: " + textBox.WrapText);
 
-                textBox.WrapText = WrapTextImage.Square;
+                textBox.WrapText = WordImageTextWrapping.Square;
 
                 Console.WriteLine("Textbox (header) wraptext: " + textBox.WrapText);
 
-                var textBox2 = document.AddTextBox("My textbox 2 right - square", WrapTextImage.Square);
+                var textBox2 = document.AddTextBox("My textbox 2 right - square", WordImageTextWrapping.Square);
                 textBox2.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-                textBox2.HorizontalAlignment = WordHorizontalAlignmentValues.Right;
+                textBox2.HorizontalAlignment = WordTextBoxHorizontalAlignment.Right;
                 textBox2.VerticalPositionOffsetCentimeters = 6;
 
                 Console.WriteLine("Textbox2 (body) wraptext (Square): " + textBox2.WrapText);
 
-                var textBox3 = document.AddTextBox("My textbox 3 center - tight", WrapTextImage.Tight);
+                var textBox3 = document.AddTextBox("My textbox 3 center - tight", WordImageTextWrapping.Tight);
                 textBox3.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-                textBox3.HorizontalAlignment = WordHorizontalAlignmentValues.Center;
+                textBox3.HorizontalAlignment = WordTextBoxHorizontalAlignment.Center;
                 textBox3.VerticalPositionOffsetCentimeters = 6;
 
                 Console.WriteLine("Textbox3 (body) wraptext (Tight): " + textBox3.WrapText);
 
-                var textBox4 = document.AddTextBox("My textbox 4 left - behind text", WrapTextImage.BehindText);
+                var textBox4 = document.AddTextBox("My textbox 4 left - behind text", WordImageTextWrapping.BehindText);
                 textBox4.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-                textBox4.HorizontalAlignment = WordHorizontalAlignmentValues.Left;
+                textBox4.HorizontalAlignment = WordTextBoxHorizontalAlignment.Left;
                 textBox4.VerticalPositionOffsetCentimeters = 9;
 
                 Console.WriteLine("Textbox4 (body) wraptext (BehindText): " + textBox4.WrapText);
 
-                var textBox5 = document.AddTextBox("My textbox 5 right - in front of text", WrapTextImage.InFrontOfText);
+                var textBox5 = document.AddTextBox("My textbox 5 right - in front of text", WordImageTextWrapping.InFrontOfText);
                 textBox5.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-                textBox5.HorizontalAlignment = WordHorizontalAlignmentValues.Right;
+                textBox5.HorizontalAlignment = WordTextBoxHorizontalAlignment.Right;
                 textBox5.VerticalPositionOffsetCentimeters = 9;
 
                 Console.WriteLine("Textbox5 (body) wraptext (InFrontOfText): " + textBox5.WrapText);
 
-                var textBox6 = document.AddTextBox("My textbox 6 left - top and bottom", WrapTextImage.TopAndBottom);
+                var textBox6 = document.AddTextBox("My textbox 6 left - top and bottom", WordImageTextWrapping.TopAndBottom);
                 textBox6.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-                textBox6.HorizontalAlignment = WordHorizontalAlignmentValues.Left;
+                textBox6.HorizontalAlignment = WordTextBoxHorizontalAlignment.Left;
                 textBox6.VerticalPositionOffsetCentimeters = 12;
 
                 Console.WriteLine("Textbox6 (body) wraptext (TopAndBottom): " + textBox6.WrapText);
 
-                var textBox7 = document.AddTextBox("My textbox 7 right - through", WrapTextImage.Through);
+                var textBox7 = document.AddTextBox("My textbox 7 right - through", WordImageTextWrapping.Through);
                 textBox7.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-                textBox7.HorizontalAlignment = WordHorizontalAlignmentValues.Right;
+                textBox7.HorizontalAlignment = WordTextBoxHorizontalAlignment.Right;
                 textBox7.VerticalPositionOffsetCentimeters = 12;
 
                 Console.WriteLine("Textbox7 (body) wraptext (Through): " + textBox7.WrapText);
 
                 document.AddPageBreak();
 
-                document.Sections[0].AddTextBox("My textbox 8 center - Square", WrapTextImage.Square);
+                document.Sections[0].AddTextBox("My textbox 8 center - Square", WordImageTextWrapping.Square);
                 document.Sections[0].TextBoxes[0].HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Margin;
                 document.Sections[0].TextBoxes[0].VerticalPositionOffsetCentimeters = 10;
 
@@ -72,7 +72,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddSection();
 
-                var wordTextbox = document.Sections[1].AddTextBox("My textbox 9 center - Square", WrapTextImage.Square);
+                var wordTextbox = document.Sections[1].AddTextBox("My textbox 9 center - Square", WordImageTextWrapping.Square);
                 wordTextbox.VerticalPositionOffsetCentimeters = 10;
 
                 document.Save();

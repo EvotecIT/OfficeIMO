@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
                 var created = doc.AddWorksheet("Data??");
-                var resolved = doc.GetOrCreateSheet("Data??", SheetNameValidationMode.Sanitize);
+                var resolved = doc.GetOrCreateSheet("Data??", ExcelSheetNameValidationMode.Sanitize);
 
                 Assert.Single(doc.Sheets);
                 Assert.Equal(created.Name, resolved.Name);
@@ -58,11 +58,11 @@ namespace OfficeIMO.Tests {
         public void AddWorksheet_Sanitize_InvalidCharsAndDuplicate() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var s1 = doc.AddWorksheet("Q4:Revenue/Forecast?*", SheetNameValidationMode.Sanitize);
+                var s1 = doc.AddWorksheet("Q4:Revenue/Forecast?*", ExcelSheetNameValidationMode.Sanitize);
                 // invalid characters replaced, trimmed; consecutive underscores collapsed by sanitizer
                 Assert.Equal("Q4_Revenue_Forecast", s1.Name.Trim());
 
-                var s2 = doc.AddWorksheet("Q4:Revenue/Forecast?*", SheetNameValidationMode.Sanitize);
+                var s2 = doc.AddWorksheet("Q4:Revenue/Forecast?*", ExcelSheetNameValidationMode.Sanitize);
                 Assert.NotEqual(s1.Name, s2.Name);
                 Assert.EndsWith("(2)", s2.Name);
             }
@@ -74,12 +74,12 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
                 // Invalid chars
-                Assert.Throws<ArgumentException>(() => doc.AddWorksheet("Bad:Name", SheetNameValidationMode.Strict));
+                Assert.Throws<ArgumentException>(() => doc.AddWorksheet("Bad:Name", ExcelSheetNameValidationMode.Strict));
 
                 // Valid then duplicate
-                var s1 = doc.AddWorksheet("Data", SheetNameValidationMode.Strict);
+                var s1 = doc.AddWorksheet("Data", ExcelSheetNameValidationMode.Strict);
                 Assert.NotNull(s1);
-                Assert.Throws<ArgumentException>(() => doc.AddWorksheet("Data", SheetNameValidationMode.Strict));
+                Assert.Throws<ArgumentException>(() => doc.AddWorksheet("Data", ExcelSheetNameValidationMode.Strict));
             }
             File.Delete(path);
         }
@@ -88,8 +88,8 @@ namespace OfficeIMO.Tests {
         public void RenameWorksheet_StrictSetter_ThrowsOnInvalidOrDuplicate() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var alpha = doc.AddWorksheet("Alpha", SheetNameValidationMode.Strict);
-                var beta = doc.AddWorksheet("Beta", SheetNameValidationMode.Strict);
+                var alpha = doc.AddWorksheet("Alpha", ExcelSheetNameValidationMode.Strict);
+                var beta = doc.AddWorksheet("Beta", ExcelSheetNameValidationMode.Strict);
 
                 Assert.Throws<ArgumentException>(() => alpha.Name = "Bad:Name");
                 Assert.Throws<ArgumentException>(() => beta.Name = "Alpha");
@@ -548,7 +548,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 1d);
                 sheet.CellValue(3, 1, "B");
                 sheet.CellValue(3, 2, 2d);
-                sheet.AddTable("A1:B3", hasHeader: true, name: "FilterTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                sheet.AddTable("A1:B3", hasHeader: true, name: "FilterTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -593,7 +593,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 2, 2d);
                 sheet.CellValue(4, 1, "C");
                 sheet.CellValue(4, 2, 3d);
-                sheet.AddTable("A1:B3", hasHeader: true, name: "FilterTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                sheet.AddTable("A1:B3", hasHeader: true, name: "FilterTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -672,7 +672,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 1d);
                 sheet.CellValue(3, 1, "B");
                 sheet.CellValue(3, 2, 2d);
-                sheet.AddTable("A1:B3", hasHeader: true, name: "FilterTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                sheet.AddTable("A1:B3", hasHeader: true, name: "FilterTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -725,7 +725,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 1d);
                 sheet.CellValue(3, 1, "B");
                 sheet.CellValue(3, 2, 2d);
-                sheet.AddTable("A1:B3", hasHeader: true, name: "RepairTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                sheet.AddTable("A1:B3", hasHeader: true, name: "RepairTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -766,7 +766,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 1d);
                 sheet.CellValue(3, 1, "B");
                 sheet.CellValue(3, 2, 2d);
-                sheet.AddTable("A1:B3", hasHeader: true, name: "RepairTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                sheet.AddTable("A1:B3", hasHeader: true, name: "RepairTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -808,7 +808,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 1, "B");
                 sheet.CellValue(3, 2, 2d);
                 sheet.CellValue(3, 3, "Two");
-                sheet.AddTable("A1:C3", hasHeader: true, name: "RepairTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                sheet.AddTable("A1:C3", hasHeader: true, name: "RepairTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);

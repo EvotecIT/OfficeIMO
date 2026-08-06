@@ -30,7 +30,7 @@ internal static class MarkdownInlineTransformHelpers {
         bool changed = false;
 
         if (trimStart) {
-            while (nodes.Count > 0 && nodes[0] is TextRun leading) {
+            while (nodes.Count > 0 && nodes[0] is MarkdownTextRun leading) {
                 var trimmed = leading.Text.TrimStart();
                 if (trimmed == leading.Text) {
                     break;
@@ -42,13 +42,13 @@ internal static class MarkdownInlineTransformHelpers {
                     continue;
                 }
 
-                nodes[0] = new TextRun(trimmed);
+                nodes[0] = new MarkdownTextRun(trimmed);
                 break;
             }
         }
 
         if (trimEnd) {
-            while (nodes.Count > 0 && nodes[nodes.Count - 1] is TextRun trailing) {
+            while (nodes.Count > 0 && nodes[nodes.Count - 1] is MarkdownTextRun trailing) {
                 var trimmed = trailing.Text.TrimEnd();
                 if (trimmed == trailing.Text) {
                     break;
@@ -60,7 +60,7 @@ internal static class MarkdownInlineTransformHelpers {
                     continue;
                 }
 
-                nodes[nodes.Count - 1] = new TextRun(trimmed);
+                nodes[nodes.Count - 1] = new MarkdownTextRun(trimmed);
                 break;
             }
         }
@@ -79,7 +79,7 @@ internal static class MarkdownInlineTransformHelpers {
             switch (node) {
                 case null:
                     continue;
-                case TextRun textRun when string.IsNullOrWhiteSpace(textRun.Text):
+                case MarkdownTextRun textRun when string.IsNullOrWhiteSpace(textRun.Text):
                     continue;
                 default:
                     return true;
@@ -100,7 +100,7 @@ internal static class MarkdownInlineTransformHelpers {
             switch (node) {
                 case null:
                     continue;
-                case TextRun textRun when string.IsNullOrWhiteSpace(textRun.Text):
+                case MarkdownTextRun textRun when string.IsNullOrWhiteSpace(textRun.Text):
                     continue;
                 default:
                     return node is IStrongMarkdownInline;
@@ -219,7 +219,7 @@ internal static class MarkdownInlineTransformHelpers {
 
         for (var i = 0; i < nodes.Count; i++) {
             var node = nodes[i];
-            if (node is TextRun textRun) {
+            if (node is MarkdownTextRun textRun) {
                 var match = matcher(textRun.Text, hasPreviousChar, previousChar);
                 if (match != null) {
                     AppendText(headNodes, textRun.Text.Substring(0, match.StartIndex));
@@ -403,7 +403,7 @@ internal static class MarkdownInlineTransformHelpers {
             return true;
         }
 
-        if (node is TextRun textRun) {
+        if (node is MarkdownTextRun textRun) {
             if (textRun.Text.Length == 0) {
                 return false;
             }
@@ -432,7 +432,7 @@ internal static class MarkdownInlineTransformHelpers {
 
     private static void AppendText(List<IMarkdownInline> nodes, string? text) {
         if (!string.IsNullOrEmpty(text)) {
-            nodes.Add(new TextRun(text!));
+            nodes.Add(new MarkdownTextRun(text!));
         }
     }
 

@@ -6,16 +6,6 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Security;
 
 namespace OfficeIMO.PowerPoint {
-    /// <summary>Policy applied before saving a presentation that carries digital-signature metadata.</summary>
-    public enum PowerPointSignatureMutationPolicy {
-        /// <summary>Block save to prevent silently invalidating an existing signature.</summary>
-        BlockSave,
-        /// <summary>Remove signature parts and application metadata before saving the mutated package.</summary>
-        RemoveInvalidatedSignatures,
-        /// <summary>Preserve signature markup even though package mutation can invalidate it.</summary>
-        PreserveSignatureMarkup
-    }
-
     /// <summary>Action taken by the latest signature mutation check.</summary>
     public enum PowerPointSignatureMutationAction {
         /// <summary>No signature metadata was present.</summary>
@@ -32,7 +22,7 @@ namespace OfficeIMO.PowerPoint {
     public sealed class PowerPointSignatureReport {
         internal PowerPointSignatureReport(bool hasOriginPart, int xmlSignaturePartCount,
             bool hasApplicationSignatureFlag, bool hasLegacyBinarySignatureStream,
-            bool hasLegacyXmlSignatureStorage, PowerPointSignatureMutationPolicy policy,
+            bool hasLegacyXmlSignatureStorage, OfficeSignatureMutationPolicy policy,
             PowerPointSignatureMutationAction action) {
             HasOriginPart = hasOriginPart;
             XmlSignaturePartCount = xmlSignaturePartCount;
@@ -54,7 +44,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Whether a binary PowerPoint package contains the legacy <c>_xmlsignatures</c> storage.</summary>
         public bool HasLegacyXmlSignatureStorage { get; }
         /// <summary>Configured save policy.</summary>
-        public PowerPointSignatureMutationPolicy Policy { get; }
+        public OfficeSignatureMutationPolicy Policy { get; }
         /// <summary>Policy action taken.</summary>
         public PowerPointSignatureMutationAction Action { get; }
         /// <summary>Whether any signature metadata was detected.</summary>
@@ -89,8 +79,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Signature policy applied before save. The safe default blocks mutation of signed packages.
         /// </summary>
-        public PowerPointSignatureMutationPolicy SignatureMutationPolicy { get; set; } =
-            PowerPointSignatureMutationPolicy.BlockSave;
+        public OfficeSignatureMutationPolicy SignatureMutationPolicy { get; set; } =
+            OfficeSignatureMutationPolicy.BlockSave;
 
         internal PowerPointSignatureReport? LastSignatureReport { get; private set; }
 
@@ -108,11 +98,11 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            if (SignatureMutationPolicy == PowerPointSignatureMutationPolicy.BlockSave) {
+            if (SignatureMutationPolicy == OfficeSignatureMutationPolicy.BlockSave) {
                 LastSignatureReport = CreateSignatureReport(PowerPointSignatureMutationAction.Blocked);
                 throw new PowerPointSignedPresentationMutationException(LastSignatureReport);
             }
-            if (SignatureMutationPolicy == PowerPointSignatureMutationPolicy.RemoveInvalidatedSignatures) {
+            if (SignatureMutationPolicy == OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures) {
                 DigitalSignatureOriginPart? origin = _document!.DigitalSignatureOriginPart;
                 if (origin != null) _document.DeletePart(origin);
                 if (_document.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {

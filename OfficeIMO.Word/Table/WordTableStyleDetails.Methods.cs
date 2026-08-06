@@ -12,7 +12,7 @@ public partial class WordTableStyleDetails {
     /// <param name="style">Border style for all sides</param>
     /// <param name="size">Border size for all sides</param>
     /// <param name="color">Border color for all sides</param>
-    public void SetBordersForAllSides(WordBorderStyle style, UInt32Value size, OfficeIMO.Drawing.OfficeColor color) {
+    public void SetBordersForAllSides(WordBorderStyle style, uint size, OfficeIMO.Drawing.OfficeColor color) {
         _table.CheckTableProperties();
 
         string colorHex = color.ToRgbHex();
@@ -39,8 +39,8 @@ public partial class WordTableStyleDetails {
     /// <param name="insideSize">Size for inside borders</param>
     /// <param name="insideColor">Color for inside borders</param>
     public void SetBordersOutsideInside(
-        WordBorderStyle outsideStyle, UInt32Value outsideSize, OfficeIMO.Drawing.OfficeColor outsideColor,
-        WordBorderStyle insideStyle, UInt32Value insideSize, OfficeIMO.Drawing.OfficeColor insideColor) {
+        WordBorderStyle outsideStyle, uint outsideSize, OfficeIMO.Drawing.OfficeColor outsideColor,
+        WordBorderStyle insideStyle, uint insideSize, OfficeIMO.Drawing.OfficeColor insideColor) {
         _table.CheckTableProperties();
 
         string outsideColorHex = outsideColor.ToRgbHex();
@@ -62,12 +62,12 @@ public partial class WordTableStyleDetails {
     /// Creates a TableBorders object with custom settings for each side
     /// </summary>
     public void SetCustomBorders(
-        WordBorderStyle? topStyle = null, UInt32Value? topSize = null, OfficeIMO.Drawing.OfficeColor? topColor = null,
-        WordBorderStyle? bottomStyle = null, UInt32Value? bottomSize = null, OfficeIMO.Drawing.OfficeColor? bottomColor = null,
-        WordBorderStyle? leftStyle = null, UInt32Value? leftSize = null, OfficeIMO.Drawing.OfficeColor? leftColor = null,
-        WordBorderStyle? rightStyle = null, UInt32Value? rightSize = null, OfficeIMO.Drawing.OfficeColor? rightColor = null,
-        WordBorderStyle? insideHStyle = null, UInt32Value? insideHSize = null, OfficeIMO.Drawing.OfficeColor? insideHColor = null,
-        WordBorderStyle? insideVStyle = null, UInt32Value? insideVSize = null, OfficeIMO.Drawing.OfficeColor? insideVColor = null) {
+        WordBorderStyle? topStyle = null, uint? topSize = null, OfficeIMO.Drawing.OfficeColor? topColor = null,
+        WordBorderStyle? bottomStyle = null, uint? bottomSize = null, OfficeIMO.Drawing.OfficeColor? bottomColor = null,
+        WordBorderStyle? leftStyle = null, uint? leftSize = null, OfficeIMO.Drawing.OfficeColor? leftColor = null,
+        WordBorderStyle? rightStyle = null, uint? rightSize = null, OfficeIMO.Drawing.OfficeColor? rightColor = null,
+        WordBorderStyle? insideHStyle = null, uint? insideHSize = null, OfficeIMO.Drawing.OfficeColor? insideHColor = null,
+        WordBorderStyle? insideVStyle = null, uint? insideVSize = null, OfficeIMO.Drawing.OfficeColor? insideVColor = null) {
         _table.CheckTableProperties();
 
         // Get existing borders or create new
@@ -147,7 +147,7 @@ public partial class WordTableStyleDetails {
     /// </summary>
     /// <param name="side">The border side to get properties for</param>
     /// <returns>A tuple with style, size, and color</returns>
-    public (WordBorderStyle? Style, UInt32Value? Size, string? ColorHex) GetBorderProperties(WordTableBorderSide side) {
+    public (WordBorderStyle? Style, uint? Size, string? ColorHex) GetBorderProperties(WordTableBorderSide side) {
         if (TableBorders == null) {
             return (null, null, null);
         }
@@ -156,37 +156,37 @@ public partial class WordTableStyleDetails {
             case WordTableBorderSide.Top:
                 return (
                     TableBorders.TopBorder?.Val?.Value.ToOfficeEnum(),
-                    TableBorders.TopBorder?.Size,
+                    TableBorders.TopBorder?.Size?.Value,
                     TableBorders.TopBorder?.Color?.Value
                 );
             case WordTableBorderSide.Bottom:
                 return (
                     TableBorders.BottomBorder?.Val?.Value.ToOfficeEnum(),
-                    TableBorders.BottomBorder?.Size,
+                    TableBorders.BottomBorder?.Size?.Value,
                     TableBorders.BottomBorder?.Color?.Value
                 );
             case WordTableBorderSide.Left:
                 return (
                     TableBorders.LeftBorder?.Val?.Value.ToOfficeEnum(),
-                    TableBorders.LeftBorder?.Size,
+                    TableBorders.LeftBorder?.Size?.Value,
                     TableBorders.LeftBorder?.Color?.Value
                 );
             case WordTableBorderSide.Right:
                 return (
                     TableBorders.RightBorder?.Val?.Value.ToOfficeEnum(),
-                    TableBorders.RightBorder?.Size,
+                    TableBorders.RightBorder?.Size?.Value,
                     TableBorders.RightBorder?.Color?.Value
                 );
             case WordTableBorderSide.InsideHorizontal:
                 return (
                     TableBorders.InsideHorizontalBorder?.Val?.Value.ToOfficeEnum(),
-                    TableBorders.InsideHorizontalBorder?.Size,
+                    TableBorders.InsideHorizontalBorder?.Size?.Value,
                     TableBorders.InsideHorizontalBorder?.Color?.Value
                 );
             case WordTableBorderSide.InsideVertical:
                 return (
                     TableBorders.InsideVerticalBorder?.Val?.Value.ToOfficeEnum(),
-                    TableBorders.InsideVerticalBorder?.Size,
+                    TableBorders.InsideVerticalBorder?.Size?.Value,
                     TableBorders.InsideVerticalBorder?.Color?.Value
                 );
             default:

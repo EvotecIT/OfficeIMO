@@ -168,7 +168,7 @@ namespace OfficeIMO.Excel.Pdf {
                     group.Columns,
                     group.Rows,
                     options);
-                ExcelSheet sheet = workbook.AddWorksheet(BuildSheetName(options.SheetNamePrefix, extraction, i), SheetNameValidationMode.Sanitize);
+                ExcelSheet sheet = workbook.AddWorksheet(BuildSheetName(options.SheetNamePrefix, extraction, i), ExcelSheetNameValidationMode.Sanitize);
                 string range = sheet.InsertDataTableAsTable(
                     dataTable,
                     tableName: requestedTableName,
@@ -217,7 +217,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static void AddEmptyWorkbookSheet(ExcelDocument workbook, PdfExcelTableImportOptions options) {
-            ExcelSheet sheet = workbook.AddWorksheet(options.EmptyWorkbookSheetName, SheetNameValidationMode.Sanitize);
+            ExcelSheet sheet = workbook.AddWorksheet(options.EmptyWorkbookSheetName, ExcelSheetNameValidationMode.Sanitize);
             sheet.CellValue(1, 1, "No PDF tables detected.");
         }
 

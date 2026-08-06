@@ -31,9 +31,9 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Settings.UpdateFieldsOnOpen = true;
 
-                document.AddCoverPage(CoverPageTemplate.IonDark);
+                document.AddCoverPage(WordCoverPageTemplate.IonDark);
 
-                document.AddTableOfContent(TableOfContentStyle.Template1);
+                document.AddTableOfContent(WordTableOfContentsStyle.Template1);
 
                 document.AddPageBreak();
 

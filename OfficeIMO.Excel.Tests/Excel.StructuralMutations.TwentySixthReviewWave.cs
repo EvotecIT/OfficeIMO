@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Existing");
             sheet.CellValue(2, 1, "keep");
-            sheet.AddTable("A1:A2", true, "ExistingTable", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:A2", true, "ExistingTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             sheet.CellValue(1, 3, "preserve");
 
             Assert.Throws<InvalidOperationException>(() => document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 2, 1d);
             sheet.CellValue(3, 1, string.Empty);
             sheet.CellValue(3, 2, 2d);
-            sheet.AddTable("A1:B3", true, "FilteredTable", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B3", true, "FilteredTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             ExcelAutoFilterInfo filterInfo = Assert.Single(sheet.GetAutoFilters(), filter => filter.IsTableFilter);
 
             sheet.AutoFilterBlanks(filterInfo.Range, 0U);

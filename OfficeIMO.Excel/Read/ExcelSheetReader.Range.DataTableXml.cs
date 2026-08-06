@@ -369,7 +369,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Reads a rectangular range into a sequence of dictionaries using the first row as headers.
         /// </summary>
-        public IEnumerable<Dictionary<string, object?>> ReadObjects(string a1Range, OfficeIMO.Excel.ExecutionMode? mode = null, CancellationToken ct = default) {
+        public IEnumerable<Dictionary<string, object?>> ReadObjects(string a1Range, OfficeIMO.Excel.ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) throw new ArgumentException($"Invalid range '{a1Range}'.");
 

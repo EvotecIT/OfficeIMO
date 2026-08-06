@@ -75,8 +75,8 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
         WordTable table = Assert.Single(document.Tables);
         WordSection section = Assert.Single(document.Sections);
-        int pageWidth = (int)(section.PageSettings.Width?.Value ?? WordPageSizes.A4.Width!.Value);
-        int contentWidth = pageWidth - (int)section.Margins.Left.Value - (int)section.Margins.Right.Value;
+        int pageWidth = (int)(section.PageSettings.Width ?? WordPageSizes.A4.WidthTwips);
+        int contentWidth = pageWidth - (int)section.Margins.Left - (int)section.Margins.Right;
 
         Assert.Equal(WordTableWidthUnit.Dxa, table.WidthType);
         Assert.Equal(contentWidth - 300, table.Width);

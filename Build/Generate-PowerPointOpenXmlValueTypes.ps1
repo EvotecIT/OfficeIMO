@@ -4,21 +4,11 @@ param(
 )
 
 $typeNames = [ordered]@{
-    'DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues' = 'PowerPointChartDisplayUnit'
-    'DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues' = 'PowerPointChartAxisCrossBetween'
-    'DocumentFormat.OpenXml.Drawing.Charts.CrossesValues' = 'PowerPointChartAxisCrossing'
-    'DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues' = 'PowerPointChartDataLabelPosition'
     'DocumentFormat.OpenXml.Drawing.Charts.GroupingValues' = 'PowerPointChartGrouping'
-    'DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues' = 'PowerPointChartLegendPosition'
-    'DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues' = 'PowerPointChartMarkerStyle'
-    'DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues' = 'PowerPointChartTickLabelPosition'
-    'DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues' = 'PowerPointChartTrendlineType'
     'DocumentFormat.OpenXml.Drawing.LineEndLengthValues' = 'PowerPointLineEndLength'
-    'DocumentFormat.OpenXml.Drawing.LineEndValues' = 'PowerPointLineEndType'
     'DocumentFormat.OpenXml.Drawing.LineEndWidthValues' = 'PowerPointLineEndWidth'
     'DocumentFormat.OpenXml.Drawing.PresetLineDashValues' = 'PowerPointLineDashStyle'
     'DocumentFormat.OpenXml.Drawing.RectangleAlignmentValues' = 'PowerPointRectangleAlignment'
-    'DocumentFormat.OpenXml.Drawing.ShapeTypeValues' = 'PowerPointShapeType'
     'DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues' = 'PowerPointTextAlignment'
     'DocumentFormat.OpenXml.Drawing.TextAnchoringTypeValues' = 'PowerPointTextVerticalAlignment'
     'DocumentFormat.OpenXml.Drawing.TextAutoNumberSchemeValues' = 'PowerPointNumberingScheme'
@@ -32,8 +22,22 @@ $typeNames = [ordered]@{
     'DocumentFormat.OpenXml.Presentation.SlideSizeValues' = 'PowerPointSlideSizeType'
 }
 
+$sharedTypeNames = [ordered]@{
+    'DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues' = 'OfficeChartDisplayUnit'
+    'DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues' = 'OfficeChartAxisCrossBetween'
+    'DocumentFormat.OpenXml.Drawing.Charts.CrossesValues' = 'OfficeChartAxisCrossingPosition'
+    'DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues' = 'OfficeChartDataLabelPosition'
+    'DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues' = 'OfficeChartLegendPosition'
+    'DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues' = 'OfficeChartMarkerShape'
+    'DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues' = 'OfficeChartAxisTickLabelPosition'
+    'DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues' = 'OfficeChartTrendlineType'
+    'DocumentFormat.OpenXml.Drawing.LineEndValues' = 'OfficeLineMarkerKind'
+    'DocumentFormat.OpenXml.Drawing.ShapeTypeValues' = 'OfficePresetShapeType'
+}
+
 & (Join-Path $PSScriptRoot 'Generate-OpenXmlValueTypes.ps1') `
     -TypeNames $typeNames `
+    -SharedTypeNames $sharedTypeNames `
     -Namespace 'OfficeIMO.PowerPoint' `
     -ExtensionClassName 'PowerPointOpenXmlValueTypeExtensions' `
     -AssemblyDirectory $AssemblyDirectory `

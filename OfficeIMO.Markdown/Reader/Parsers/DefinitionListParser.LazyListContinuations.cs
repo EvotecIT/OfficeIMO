@@ -156,14 +156,14 @@ public static partial class MarkdownReader {
         var nodes = new List<IMarkdownInline>(item.Content.Nodes.Count + continuationNodes.Count + 1);
         nodes.AddRange(item.Content.Nodes);
         if (item.Content.Nodes.Count > 0 && continuationNodes.Count > 0) {
-            nodes.Add(new TextRun("\n"));
+            nodes.Add(new MarkdownTextRun("\n"));
         }
 
         nodes.AddRange(continuationNodes);
         item.Content.AutoSpacing = false;
         item.Content.ReplaceItems(nodes);
         item.DefinitionLazyParagraphTailContinuation = continuationNodes.Count == 1 &&
-            continuationNodes[0] is TextRun textRun &&
+            continuationNodes[0] is MarkdownTextRun textRun &&
             textRun.Text.IndexOf('\n') >= 0;
         return true;
     }
@@ -189,7 +189,7 @@ public static partial class MarkdownReader {
         if (TryGetDefinitionLazyParagraphSourceText(paragraphSyntax, sourceLines, out var sourceText)) {
             if (!ContainsBackslashEscapableCharacter(sourceText)) {
                 return new IMarkdownInline[] {
-                    new TextRun(sourceText)
+                    new MarkdownTextRun(sourceText)
                 };
             }
 

@@ -43,7 +43,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Gets the list of validation errors for the presentation.
         /// </summary>
-        public List<ValidationErrorInfo> DocumentValidationErrors {
+        public List<OfficeOpenXmlValidationError> DocumentValidationErrors {
             get {
                 return ValidateDocument();
             }
@@ -52,7 +52,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Validates the presentation using the specified file format version.
         /// </summary>
-        /// <param name="fileFormatVersions">File format version to validate against.</param>
+        /// <param name="fileFormatVersion">File format version to validate against.</param>
         /// <returns>List of validation errors.</returns>
         /// <example>
         /// <code>
@@ -64,12 +64,13 @@ namespace OfficeIMO.PowerPoint {
         /// }
         /// </code>
         /// </example>
-        public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+        public List<OfficeOpenXmlValidationError> ValidateDocument(
+            OfficeOpenXmlFileFormatVersion fileFormatVersion = OfficeOpenXmlFileFormatVersion.Microsoft365) {
             ThrowIfDisposed();
-            List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
-            OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
+            var listErrors = new List<OfficeOpenXmlValidationError>();
+            OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersion.ToOpenXml());
             foreach (ValidationErrorInfo error in validator.Validate(_document!)) {
-                listErrors.Add(error);
+                listErrors.Add(error.ToOfficeValidationError());
             }
 
             return listErrors;

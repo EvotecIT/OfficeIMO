@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with shape and text box in separate AlternateContent elements");
             string filePath = Path.Combine(folderPath, "ShapeMultipleAlternateContent.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddShapeDrawing(ShapeType.Rectangle, 40, 40);
+                document.AddShapeDrawing(WordShapeType.Rectangle, 40, 40);
                 document.AddTextBox("Text");
                 document.Save();
             }

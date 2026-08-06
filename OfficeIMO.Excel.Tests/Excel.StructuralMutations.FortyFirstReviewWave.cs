@@ -122,7 +122,8 @@ namespace OfficeIMO.Tests {
                 "<connection id=\"" + query.ConnectionId + "\" name=\"ExtendedConnection\" type=\"5\">" +
                 "<parameters count=\"1\"><parameter name=\"Input\" cell=\"A5\"/></parameters>" +
                 "</connection></connections>";
-            ExtendedPart part = Assert.IsType<ExtendedPart>(document.AddWorkbookConnectionMetadata(xml));
+            ExcelPackagePartInfo partInfo = document.AddWorkbookConnectionMetadata(xml);
+            ExtendedPart part = Assert.IsType<ExtendedPart>(document.WorkbookPartRoot.GetPartById(partInfo.RelationshipId));
 
             sheet.InsertRows(3, 2);
             Assert.Contains("cell=\"A7\"", ReadConnectionPartText(part), StringComparison.Ordinal);
@@ -166,7 +167,7 @@ namespace OfficeIMO.Tests {
                 sourceDocument,
                 source.Name,
                 "Copied",
-                SheetNameValidationMode.Sanitize,
+                ExcelSheetNameValidationMode.Sanitize,
                 new ExcelWorksheetCopyOptions { CopyMode = ExcelWorksheetCopyMode.Package });
 
             Assert.Equal(2, copied.GetInCellImages().Count);

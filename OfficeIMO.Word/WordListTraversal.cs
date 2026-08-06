@@ -5,7 +5,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Represents events emitted while traversing document lists.
     /// </summary>
-    public readonly struct WordListEvent {
+    internal readonly struct WordListEvent {
         /// <summary>
         /// Initializes a new instance of the <see cref="WordListEvent"/> struct.
         /// </summary>
@@ -13,7 +13,7 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">Paragraph associated with the event when applicable.</param>
         /// <param name="ordered"><c>true</c> when the current list is ordered.</param>
         /// <param name="level">Zero-based nesting level of the list.</param>
-        public WordListEvent(WordListEventType eventType, Paragraph? paragraph, bool ordered, int level) {
+        internal WordListEvent(WordListEventType eventType, Paragraph? paragraph, bool ordered, int level) {
             EventType = eventType;
             Paragraph = paragraph;
             Ordered = ordered;
@@ -44,7 +44,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Types of list traversal events.
     /// </summary>
-    public enum WordListEventType {
+    internal enum WordListEventType {
         /// <summary>Signals the start of a new list.</summary>
         StartList,
         /// <summary>Signals the end of the current list.</summary>
@@ -60,7 +60,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Provides utilities to traverse list structures within a document.
     /// </summary>
-    public static class WordListTraversal {
+    internal static class WordListTraversal {
         /// <summary>Default maximum number of nested Word list levels.</summary>
         public const int DefaultMaximumNestingDepth = 128;
 

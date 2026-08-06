@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Markdown {
         public static void Example_WordToMarkdownCodeBlocks(string folderPath, bool openWord) {
             string filePath = Path.Combine(folderPath, "WordToMarkdownCodeBlock.docx");
             using var doc = WordDocument.Create();
-            string mono = FontResolver.Resolve("monospace") ?? "Consolas";
+            string mono = WordFontResolver.Resolve("monospace") ?? "Consolas";
             doc.AddParagraph("Console.WriteLine(\"Hello\");").SetFontFamily(mono).SetStyleId("CodeLang_csharp");
 
             string markdown = doc.ToMarkdown(new WordToMarkdownOptions());

@@ -78,7 +78,7 @@ namespace OfficeIMO.Examples.Word {
                 cell.Paragraphs[0].Text = "This cell is outside a bit";
                 cell.TextDirection = WordTextDirection.TopToBottomLeftToRightRotated;
 
-                wordTable2.LayoutType = WordTableLayoutMode.Fixed;
+                wordTable2.LayoutMode = WordTableLayoutMode.Fixed;
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

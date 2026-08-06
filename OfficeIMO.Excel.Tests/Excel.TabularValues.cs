@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 sheet.InsertObjects(rows);
                 string range = sheet.UsedRangeA1;
                 Assert.Equal("A1:D3", range);
-                sheet.AddTable(range, hasHeader: true, name: "Sales", style: OfficeIMO.Excel.TableStyle.TableStyleMedium9, includeAutoFilter: true);
+                sheet.AddTable(range, hasHeader: true, name: "Sales", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, includeAutoFilter: true);
 
                 document.Save(memory);
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);

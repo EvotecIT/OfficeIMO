@@ -67,6 +67,7 @@
 
     <ItemGroup>
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlContractMappings.cs" Link="SharedSource\OpenXml\OfficeOpenXmlContractMappings.cs" />
     </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

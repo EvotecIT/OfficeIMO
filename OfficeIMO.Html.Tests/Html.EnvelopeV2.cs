@@ -44,7 +44,7 @@ public partial class Html {
         using OfficeIMO.Excel.ExcelDocument publicSafe = untrusted.RequireValue();
         Assert.Contains(untrusted.Report.Diagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticRestorationTrustRequired
-                && diagnostic.LossKind == HtmlConversionLossKind.Approximation);
+                && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
 
         HtmlConversionDocument trustedSource = HtmlConversionDocument.Parse(
             html,
@@ -74,7 +74,7 @@ public partial class Html {
         Assert.False(result.Succeeded);
         Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticSchemaUnsupported
-                && diagnostic.LossKind == HtmlConversionLossKind.Failure);
+                && diagnostic.LossKind == OfficeConversionLossKind.Failure);
         result.Value.Dispose();
     }
 }

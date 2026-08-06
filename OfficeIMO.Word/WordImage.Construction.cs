@@ -23,11 +23,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a new image from a file path.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", WordImageShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
+        public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
             FilePath = filePath;
             var fileName = System.IO.Path.GetFileName(filePath);
             using var imageStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            shape ??= WordImageShapeType.Rectangle;
+            shape ??= OfficePresetShapeType.Rectangle;
             compressionQuality ??= WordImageCompressionQuality.Print;
             AddImage(document, paragraph, imageStream, fileName, width, height, shape.Value.ToOpenXml(), compressionQuality.Value.ToOpenXml(), description, wrapImage);
         }
@@ -35,9 +35,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a new image from a stream.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", WordImageShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
+        public WordImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
             FilePath = fileName;
-            shape ??= WordImageShapeType.Rectangle;
+            shape ??= OfficePresetShapeType.Rectangle;
             compressionQuality ??= WordImageCompressionQuality.Print;
             AddImage(document, paragraph, imageStream, fileName, width, height, shape.Value.ToOpenXml(), compressionQuality.Value.ToOpenXml(), description, wrapImage);
         }
@@ -45,9 +45,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a new image from a base64 string.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, string base64String, string fileName, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", WordImageShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
+        public WordImage(WordDocument document, WordParagraph paragraph, string base64String, string fileName, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
             FilePath = fileName;
-            shape ??= WordImageShapeType.Rectangle;
+            shape ??= OfficePresetShapeType.Rectangle;
             compressionQuality ??= WordImageCompressionQuality.Print;
             var bytes = Convert.FromBase64String(base64String);
             using var ms = new MemoryStream(bytes);
@@ -57,14 +57,14 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes an image linked to an external URI.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", WordImageShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null)
+        public WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null)
             : this(document, paragraph, externalUri, width, height, wrapImage, description, shape, compressionQuality, allowFileUri: false) {
         }
 
-        internal WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WrapTextImage wrapImage, string description, WordImageShapeType? shape, WordImageCompressionQuality? compressionQuality, bool allowFileUri) {
+        internal WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WordImageTextWrapping wrapImage, string description, OfficePresetShapeType? shape, WordImageCompressionQuality? compressionQuality, bool allowFileUri) {
             if (externalUri == null) throw new ArgumentNullException(nameof(externalUri));
             FilePath = externalUri.ToString();
-            shape ??= WordImageShapeType.Rectangle;
+            shape ??= OfficePresetShapeType.Rectangle;
             compressionQuality ??= WordImageCompressionQuality.Print;
             AddExternalImage(document, paragraph, externalUri, width, height, shape.Value.ToOpenXml(), compressionQuality.Value.ToOpenXml(), description, wrapImage, allowFileUri);
         }
@@ -201,16 +201,16 @@ namespace OfficeIMO.Word {
             }
 
             switch (_fillMode) {
-                case ImageFillMode.Stretch:
+                case WordImageFillMode.Stretch:
                     blipFlip.Append(new Stretch(new FillRectangle()));
                     break;
-                case ImageFillMode.Tile:
+                case WordImageFillMode.Tile:
                     blipFlip.AppendChild(new Tile());
                     break;
-                case ImageFillMode.Fit:
+                case WordImageFillMode.Fit:
                     blipFlip.Append(new Stretch());
                     break;
-                case ImageFillMode.Center:
+                case WordImageFillMode.Center:
                     blipFlip.AppendChild(new Tile { Alignment = RectangleAlignmentValues.Center });
                     break;
             }
@@ -251,11 +251,11 @@ namespace OfficeIMO.Word {
             return inline;
         }
 
-        private Anchor GetAnchor(double emuWidth, double emuHeight, UInt32Value docPropertiesId, Graphic graphic, string imageName, string description, WrapTextImage wrapImage) {
+        private Anchor GetAnchor(double emuWidth, double emuHeight, UInt32Value docPropertiesId, Graphic graphic, string imageName, string description, WordImageTextWrapping wrapImage) {
             bool behindDoc;
-            if (wrapImage == WrapTextImage.BehindText) {
+            if (wrapImage == WordImageTextWrapping.BehindText) {
                 behindDoc = true;
-            } else if (wrapImage == WrapTextImage.InFrontOfText) {
+            } else if (wrapImage == WordImageTextWrapping.InFrontOfText) {
                 behindDoc = false;
             } else {
                 // i think this is default for other cases, except for InlineText which is handled outside of Anchor

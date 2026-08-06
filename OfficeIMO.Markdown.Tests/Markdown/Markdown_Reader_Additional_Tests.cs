@@ -213,7 +213,7 @@ _Caption_
 
             var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
             Assert.Single(paragraph.Inlines.Nodes);
-            var text = Assert.IsType<TextRun>(paragraph.Inlines.Nodes[0]);
+            var text = Assert.IsType<MarkdownTextRun>(paragraph.Inlines.Nodes[0]);
             Assert.Equal("First<br>Second", text.Text);
         }
 
@@ -226,7 +226,7 @@ _Caption_
 
             var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
             Assert.Single(paragraph.Inlines.Nodes);
-            var text = Assert.IsType<TextRun>(paragraph.Inlines.Nodes[0]);
+            var text = Assert.IsType<MarkdownTextRun>(paragraph.Inlines.Nodes[0]);
             Assert.Equal("<u>Decorated</u>", text.Text);
         }
 
@@ -241,10 +241,10 @@ _Caption_
             Assert.Equal(5, paragraph.Inlines.Nodes.Count);
             var openingTag = Assert.IsType<HtmlRawInline>(paragraph.Inlines.Nodes[0]);
             Assert.Equal("<div>", openingTag.Html);
-            var firstText = Assert.IsType<TextRun>(paragraph.Inlines.Nodes[1]);
+            var firstText = Assert.IsType<MarkdownTextRun>(paragraph.Inlines.Nodes[1]);
             Assert.Equal("First", firstText.Text);
             Assert.IsType<HardBreakInline>(paragraph.Inlines.Nodes[2]);
-            var secondText = Assert.IsType<TextRun>(paragraph.Inlines.Nodes[3]);
+            var secondText = Assert.IsType<MarkdownTextRun>(paragraph.Inlines.Nodes[3]);
             Assert.Equal("Second", secondText.Text);
             var closingTag = Assert.IsType<HtmlRawInline>(paragraph.Inlines.Nodes[4]);
             Assert.Equal("</div>", closingTag.Html);
@@ -260,7 +260,7 @@ _Caption_
             var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
             Assert.Equal("<div>Inline <br/> html</div>", html.Html);
             var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
-            var text = Assert.IsType<TextRun>(paragraph.Inlines.Nodes[0]);
+            var text = Assert.IsType<MarkdownTextRun>(paragraph.Inlines.Nodes[0]);
             Assert.Equal("Paragraph", text.Text);
         }
 
@@ -649,7 +649,7 @@ Quarterly Revenue {#quarterly-overview .wide .accent title="Quarterly Revenue" p
             AssertAttributes(Assert.Single(paragraph.Inlines.Nodes.OfType<ItalicSequenceInline>()).Attributes, "em", new[] { "marked" });
             AssertAttributes(Assert.Single(paragraph.Inlines.Nodes.OfType<BoldSequenceInline>()).Attributes, "strong", new[] { "marked" });
             AssertAttributes(Assert.Single(paragraph.Inlines.Nodes.OfType<CodeSpanInline>()).Attributes, "code", new[] { "token" });
-            Assert.DoesNotContain(paragraph.Inlines.Nodes.OfType<TextRun>(), text => text.Text.Contains("{#", StringComparison.Ordinal));
+            Assert.DoesNotContain(paragraph.Inlines.Nodes.OfType<MarkdownTextRun>(), text => text.Text.Contains("{#", StringComparison.Ordinal));
 
             var syntax = Assert.Single(result.SyntaxTree.Children);
             AssertAttributes(Assert.Single(syntax.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink).Attributes, "lnk", new[] { "primary" }, ("title", "Site"));
@@ -714,7 +714,7 @@ Quarterly Revenue {#quarterly-overview .wide .accent title="Quarterly Revenue" p
             var link = Assert.Single(paragraph.Inlines.Nodes.OfType<LinkInline>());
 
             Assert.True(link.Attributes.IsEmpty);
-            Assert.Contains(paragraph.Inlines.Nodes.OfType<TextRun>(), text => text.Text.Contains("{#lnk .primary}", StringComparison.Ordinal));
+            Assert.Contains(paragraph.Inlines.Nodes.OfType<MarkdownTextRun>(), text => text.Text.Contains("{#lnk .primary}", StringComparison.Ordinal));
             Assert.Equal(md, paragraph.Inlines.RenderMarkdown());
         }
 

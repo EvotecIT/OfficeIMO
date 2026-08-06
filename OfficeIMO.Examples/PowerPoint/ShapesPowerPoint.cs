@@ -79,7 +79,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 .Stroke("D35400", 1.5);
 
             PowerPointAutoShape arrow = slide.AddShapeCm(
-                    PowerPointShapeType.RightArrow,
+                    OfficePresetShapeType.RightArrow,
                     canvasBox.LeftCm + 0.4,
                     canvasBox.TopCm + canvasBox.HeightCm * 0.68,
                     canvasBox.WidthCm * 0.6,

@@ -53,7 +53,7 @@ namespace OfficeIMO.Word.Html {
             internal string? BackgroundBackdropColorHex { get; set; }
             internal bool PreserveHighlightOverBackground { get; set; }
             internal bool Marked { get; set; }
-            internal CapsStyle? Caps { get; set; }
+            internal WordCapsStyle? Caps { get; set; }
             internal int? LetterSpacing { get; set; }
             internal TextTransform Transform { get; set; }
             internal WhiteSpaceMode? WhiteSpace { get; set; }
@@ -215,7 +215,7 @@ namespace OfficeIMO.Word.Html {
                     continue;
                 }
                 if (IsGenericFont(trimmed)) {
-                    var resolved = FontResolver.Resolve(trimmed);
+                    var resolved = WordFontResolver.Resolve(trimmed);
                     if (!string.IsNullOrEmpty(resolved)) {
                         return resolved;
                     }
@@ -563,9 +563,9 @@ namespace OfficeIMO.Word.Html {
 
             var fontVariant = GetInlinePropertyValue(declaration, styleText, "font-variant").ToLowerInvariant();
             if (fontVariant == "small-caps") {
-                formatting.Caps = CapsStyle.SmallCaps;
+                formatting.Caps = WordCapsStyle.SmallCaps;
             } else if (fontVariant == "normal") {
-                formatting.Caps = CapsStyle.None;
+                formatting.Caps = WordCapsStyle.None;
             }
 
             var va = GetInlinePropertyValue(declaration, styleText, "vertical-align").ToLowerInvariant();
@@ -661,7 +661,7 @@ namespace OfficeIMO.Word.Html {
                 if (t == "italic" || t == "oblique") {
                     formatting.Italic = true;
                 } else if (t == "small-caps") {
-                    formatting.Caps = CapsStyle.SmallCaps;
+                    formatting.Caps = WordCapsStyle.SmallCaps;
                 } else if (t == "bold" || t == "bolder") {
                     formatting.Bold = true;
                 } else if (int.TryParse(t, out int weight)) {

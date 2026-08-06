@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             WorksheetImageRangeResolution range,
             ExcelWorksheetImageExportOptions options,
-            HeaderFooterSnapshot? headerFooterSnapshot,
+            ExcelHeaderFooterSnapshot? headerFooterSnapshot,
             ExcelSourceImageBudget sourceImageBudget,
             int pageNumber,
             int pageCount,

@@ -30,20 +30,23 @@ namespace OfficeIMO.Excel {
         /// OfficeIMO preserves this metadata but does not execute or refresh external connections.
         /// </summary>
         /// <param name="xml">Connection metadata XML.</param>
-        /// <returns>The added or updated package part.</returns>
-        public OpenXmlPart AddWorkbookConnectionMetadata(string xml) {
+        /// <returns>Information identifying the added or updated package part.</returns>
+        public ExcelPackagePartInfo AddWorkbookConnectionMetadata(string xml) {
             OpenXmlPart? existingPart = GetWorkbookConnectionPart();
             if (existingPart == null) {
-                return AddWorkbookMetadataPart(
+                ExtendedPart addedPart = AddMetadataPart(
+                    WorkbookPartRoot,
                     WorkbookConnectionRelationshipType,
                     WorkbookConnectionContentType,
-                    NormalizeWorkbookConnectionMetadata(xml));
+                    NormalizeWorkbookConnectionMetadata(xml),
+                    "xml");
+                return DescribePart(WorkbookPartRoot, addedPart);
             }
 
             string mergedXml = MergeWorkbookConnectionMetadata(ReadMetadataPart(existingPart), xml);
             WriteMetadataPart(existingPart, mergedXml);
             MarkMetadataPartChanged();
-            return existingPart;
+            return DescribePart(WorkbookPartRoot, existingPart);
         }
 
         /// <summary>
@@ -52,17 +55,18 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="worksheetName">Worksheet that owns the query-table metadata.</param>
         /// <param name="xml">Query-table metadata XML.</param>
-        /// <returns>The added package part.</returns>
-        public ExtendedPart AddWorksheetQueryTableMetadata(string worksheetName, string xml) {
+        /// <returns>Information identifying the added package part.</returns>
+        public ExcelPackagePartInfo AddWorksheetQueryTableMetadata(string worksheetName, string xml) {
             if (string.IsNullOrWhiteSpace(worksheetName)) throw new ArgumentNullException(nameof(worksheetName));
             var sheet = this[worksheetName];
-            ExtendedPart part = AddWorksheetMetadataPart(
-                sheet,
+            ExtendedPart part = AddMetadataPart(
+                sheet.WorksheetPart,
                 WorksheetQueryTableRelationshipType,
                 WorksheetQueryTableContentType,
-                xml);
+                xml,
+                "xml");
             LinkWorksheetQueryTablePart(sheet.WorksheetPart, part);
-            return part;
+            return DescribePart(sheet.WorksheetPart, part);
         }
 
         /// <summary>
@@ -70,8 +74,8 @@ namespace OfficeIMO.Excel {
         /// native cache structures and UI shapes must be materialized separately.
         /// </summary>
         /// <param name="options">Slicer cache metadata options.</param>
-        /// <returns>The added package part.</returns>
-        public ExtendedPart AddWorkbookSlicerCache(ExcelSlicerCacheOptions options) {
+        /// <returns>Information identifying the added package part.</returns>
+        public ExcelPackagePartInfo AddWorkbookSlicerCache(ExcelSlicerCacheOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
             return AddWorkbookMetadataPart(
                 WorkbookSlicerCacheRelationshipType,
@@ -84,8 +88,8 @@ namespace OfficeIMO.Excel {
         /// native cache structures and UI shapes must be materialized separately.
         /// </summary>
         /// <param name="options">Timeline cache metadata options.</param>
-        /// <returns>The added package part.</returns>
-        public ExtendedPart AddWorkbookTimelineCache(ExcelTimelineCacheOptions options) {
+        /// <returns>Information identifying the added package part.</returns>
+        public ExcelPackagePartInfo AddWorkbookTimelineCache(ExcelTimelineCacheOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
             return AddWorkbookMetadataPart(
                 WorkbookTimelineCacheRelationshipType,
@@ -100,9 +104,10 @@ namespace OfficeIMO.Excel {
         /// <param name="contentType">Package part content type.</param>
         /// <param name="xml">Metadata XML.</param>
         /// <param name="targetExtension">Target extension for the generated package part.</param>
-        /// <returns>The added package part.</returns>
-        public ExtendedPart AddWorkbookMetadataPart(string relationshipType, string contentType, string xml, string targetExtension = "xml") {
-            return AddMetadataPart(WorkbookPartRoot, relationshipType, contentType, xml, targetExtension);
+        /// <returns>Information identifying the added package part.</returns>
+        public ExcelPackagePartInfo AddWorkbookMetadataPart(string relationshipType, string contentType, string xml, string targetExtension = "xml") {
+            ExtendedPart part = AddMetadataPart(WorkbookPartRoot, relationshipType, contentType, xml, targetExtension);
+            return DescribePart(WorkbookPartRoot, part);
         }
 
         /// <summary>
@@ -113,14 +118,15 @@ namespace OfficeIMO.Excel {
         /// <param name="contentType">Package part content type.</param>
         /// <param name="xml">Metadata XML.</param>
         /// <param name="targetExtension">Target extension for the generated package part.</param>
-        /// <returns>The added package part.</returns>
-        public ExtendedPart AddWorksheetMetadataPart(ExcelSheet sheet, string relationshipType, string contentType, string xml, string targetExtension = "xml") {
+        /// <returns>Information identifying the added package part.</returns>
+        public ExcelPackagePartInfo AddWorksheetMetadataPart(ExcelSheet sheet, string relationshipType, string contentType, string xml, string targetExtension = "xml") {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (!ReferenceEquals(sheet.Document, this)) {
                 throw new ArgumentException("Worksheet metadata can only be added to a worksheet owned by this workbook.", nameof(sheet));
             }
 
-            return AddMetadataPart(sheet.WorksheetPart, relationshipType, contentType, xml, targetExtension);
+            ExtendedPart part = AddMetadataPart(sheet.WorksheetPart, relationshipType, contentType, xml, targetExtension);
+            return DescribePart(sheet.WorksheetPart, part);
         }
 
         private ExtendedPart AddMetadataPart(OpenXmlPartContainer container, string relationshipType, string contentType, string xml, string targetExtension) {
@@ -134,6 +140,8 @@ namespace OfficeIMO.Excel {
             MarkMetadataPartChanged();
             return part;
         }
+
+        private static ExcelPackagePartInfo DescribePart(OpenXmlPartContainer owner, OpenXmlPart part) => new(owner, part);
 
         private void LinkWorksheetQueryTablePart(WorksheetPart worksheetPart, OpenXmlPart queryTablePart) {
             string relationshipId = worksheetPart.GetIdOfPart(queryTablePart);

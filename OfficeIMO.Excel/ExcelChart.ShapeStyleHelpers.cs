@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyTrendline(OpenXmlCompositeElement series, ExcelChartTrendlineType type, int? order, int? period,
+        private static void ApplyTrendline(OpenXmlCompositeElement series, OfficeChartTrendlineType type, int? order, int? period,
             double? forward, double? backward, double? intercept, bool displayEquation, bool displayRSquared,
             string? lineColor, double? lineWidthPoints) {
             if (!IsTrendlineSupportedSeries(series)) {
@@ -55,10 +55,10 @@ namespace OfficeIMO.Excel {
 
             trendline.Append(new C.TrendlineType { Val = type.ToOpenXml() });
 
-            if (type == ExcelChartTrendlineType.Polynomial && order != null) {
+            if (type == OfficeChartTrendlineType.Polynomial && order != null) {
                 trendline.Append(new C.PolynomialOrder { Val = (byte)order.Value });
             }
-            if (type == ExcelChartTrendlineType.MovingAverage && period != null) {
+            if (type == OfficeChartTrendlineType.MovingAverage && period != null) {
                 trendline.Append(new C.Period { Val = (uint)period.Value });
             }
             if (forward != null) {
@@ -118,7 +118,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyAxisCrossing(OpenXmlCompositeElement axis, ExcelChartAxisCrossing crosses, double? crossesAt) {
+        private static void ApplyAxisCrossing(OpenXmlCompositeElement axis, OfficeChartAxisCrossingPosition crosses, double? crossesAt) {
             axis.GetFirstChild<C.Crosses>()?.Remove();
             axis.GetFirstChild<C.CrossesAt>()?.Remove();
 
@@ -375,7 +375,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyMarker(C.Marker marker, ExcelChartMarkerStyle style, int? size, string? fillColor, string? lineColor, double? lineWidthPoints) {
+        private static void ApplyMarker(C.Marker marker, OfficeChartMarkerShape style, int? size, string? fillColor, string? lineColor, double? lineWidthPoints) {
             marker.Symbol = new C.Symbol { Val = style.ToOpenXml() };
             if (size != null) {
                 marker.Size = new C.Size { Val = (byte)size.Value };

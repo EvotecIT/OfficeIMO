@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         public void CoverPageTemplates_AssignPositiveSdtIds() {
             using var document = WordDocument.Create();
 
-            document.AddCoverPage(CoverPageTemplate.Austin);
+            document.AddCoverPage(WordCoverPageTemplate.Austin);
 
             var coverBlocks = FindDocPartBlocks(document, "Cover Pages");
             Assert.NotEmpty(coverBlocks);
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
         public void TableOfContentTemplates_AssignPositiveSdtIds() {
             using var document = WordDocument.Create();
 
-            document.AddTableOfContent(TableOfContentStyle.Template2);
+            document.AddTableOfContent(WordTableOfContentsStyle.Template2);
 
             var tocBlocks = FindDocPartBlocks(document, "Table of Contents");
             Assert.NotEmpty(tocBlocks);

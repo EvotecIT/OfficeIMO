@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                     initialTablePart.Table!.TableColumns!.Elements<TableColumn>()
                         .Select(column => column.QueryTableFieldId!.Value));
                 ExcelFeatureFinding queryFeature = Assert.Single(document.InspectFeatures().FindFeatures("Query-backed tables"));
-                Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, queryFeature.SupportLevel);
+                Assert.Equal(OfficeFeatureSupportLevel.PartiallyEditable, queryFeature.SupportLevel);
                 Assert.Empty(document.InspectFeatures().FindFeatures("Connections and query tables"));
                 var authoredErrors = document.ValidateOpenXml().ToArray();
                 Assert.True(authoredErrors.Length == 0, string.Join(Environment.NewLine, authoredErrors));
@@ -246,7 +246,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet mappedSheet = document.AddWorksheet("Mapped");
             mappedSheet.CellValue(1, 1, "Value");
             mappedSheet.CellValue(2, 1, "kept");
-            mappedSheet.AddTable("A1:A2", true, "MappedResults", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+            mappedSheet.AddTable("A1:A2", true, "MappedResults", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             TableDefinitionPart mappedTablePart = mappedSheet.WorksheetPart.TableDefinitionParts.Single();
             mappedTablePart.Table!.ConnectionId = first.ConnectionId;
             mappedTablePart.Table.Save();

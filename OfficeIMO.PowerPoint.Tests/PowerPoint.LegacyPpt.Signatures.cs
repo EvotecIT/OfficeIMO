@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
             Assert.True(blocked.Report.HasLegacyXmlSignatureStorage);
 
             presentation.SignatureMutationPolicy =
-                PowerPointSignatureMutationPolicy.PreserveSignatureMarkup;
+                OfficeSignatureMutationPolicy.PreserveSignatureMarkup;
             byte[] preservedBytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
 
             LegacyPptPresentation preserved = LegacyPptPresentation.Load(preservedBytes);
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
             Assert.Single(presentation.Slides[0].TextBoxes,
                 textBox => textBox.Text == "Signed deck").Text = "Unsigned edited deck";
             presentation.SignatureMutationPolicy =
-                PowerPointSignatureMutationPolicy.RemoveInvalidatedSignatures;
+                OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures;
 
             byte[] unsignedBytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
 

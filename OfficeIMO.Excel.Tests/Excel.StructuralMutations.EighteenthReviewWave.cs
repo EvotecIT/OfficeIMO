@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Amount");
             sheet.CellValue(2, 1, 10);
-            sheet.AddTable("A1:A2", true, "Sales", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:A2", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
 
             DrawingsPart worksheetDrawings = sheet.WorksheetPart.AddNewPart<DrawingsPart>();
             worksheetDrawings.WorksheetDrawing = new Xdr.WorksheetDrawing();

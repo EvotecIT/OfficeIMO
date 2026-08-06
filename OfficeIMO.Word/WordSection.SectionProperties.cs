@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -8,7 +8,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the page orientation of the section.
         /// </summary>
-        public WordPageOrientation PageOrientation {
+        public OfficePageOrientation PageOrientation {
             get => WordPageSizes.GetOrientation(_sectionProperties).ToOfficeEnum();
             set => WordPageSizes.SetOrientation(_sectionProperties, value.ToOpenXml());
         }
@@ -82,7 +82,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the footnote properties for the section.
         /// </summary>
-        public FootnoteProperties FootnoteProperties {
+        internal FootnoteProperties FootnoteProperties {
             get {
                 var fp = _sectionProperties.GetFirstChild<FootnoteProperties>();
                 if (fp == null) {
@@ -103,7 +103,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the endnote properties for the section.
         /// </summary>
-        public EndnoteProperties EndnoteProperties {
+        internal EndnoteProperties EndnoteProperties {
             get {
                 var ep = _sectionProperties.GetFirstChild<EndnoteProperties>();
                 if (ep == null) {
@@ -130,7 +130,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the page numbering configuration for the section.
         /// </summary>
-        public PageNumberType PageNumberType {
+        internal PageNumberType PageNumberType {
             get {
                 var pn = _sectionProperties.GetFirstChild<PageNumberType>();
                 if (pn == null) {

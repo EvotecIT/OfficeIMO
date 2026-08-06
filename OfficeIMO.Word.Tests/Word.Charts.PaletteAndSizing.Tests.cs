@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                 pie.AddPie("Passed", 42);
                 pie.AddPie("Failed", 30);
                 pie.AddPie("Skipped", 5);
-                pie.AddLegend(WordChartLegendPosition.Right);
+                pie.AddLegend(OfficeChartLegendPosition.Right);
 
                 pie.ApplyPalette(WordChart.WordChartPalette.Professional, semanticOutcomes: true, applyToPies: true, applyToSeries: false)
                    .SetWidthToPageContent(1.0, 320);
@@ -110,9 +110,9 @@ namespace OfficeIMO.Tests {
             using (var doc = WordDocument.Load(filePath)) {
                 // Compute expected EMUs from page size (Letter) and Normal margins
                 var sect = doc.Sections.First();
-                double widthTwips = sect.PageSettings.Width!.Value!; // twips
-                double leftTwips = sect.Margins.Left!.Value!;
-                double rightTwips = sect.Margins.Right!.Value!;
+                double widthTwips = sect.PageSettings.Width.GetValueOrDefault(); // twips
+                double leftTwips = sect.Margins.Left!;
+                double rightTwips = sect.Margins.Right!;
                 double contentInches = (widthTwips - leftTwips - rightTwips) / 1440.0;
                 long expectedCx = (long)System.Math.Round(contentInches * 914400); // EMUs
                 long expectedCy = (long)System.Math.Round((240.0 / 96.0) * 914400); // 240px -> inches -> EMUs

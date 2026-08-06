@@ -52,14 +52,14 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (useSemantic && !envelope.IsSupported) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticSchemaUnsupported,
                 "The semantic HTML envelope does not use a supported PowerPoint source and schema version.",
-                HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Failure,
+                HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Failure,
                 detail: "source=" + envelope.ActualSource + "; version=" + envelope.SchemaVersion);
             return result;
         }
         if (useSemantic && !envelope.CanRestoreTargetSpecific(trust)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticRestorationTrustRequired,
                 "Target-specific PowerPoint restoration was not applied because the v2 envelope requires caller-trusted input.",
-                HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Approximation,
+                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation,
                 detail: "restoration=" + envelope.RestorationMode);
             ImportGenericDocument(semanticDocument, presentation, options, result, budget);
             return result;
@@ -78,7 +78,7 @@ public static partial class HtmlPowerPointConverterExtensions {
 
         if (slideSections.Count == 0) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticContentMissing,
-                "No semantic PowerPoint slide sections were found.", HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Failure);
+                "No semantic PowerPoint slide sections were found.", HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Failure);
             return result;
         }
 
@@ -86,7 +86,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             if (!budget.TryReserveSemanticContainer(out string containerLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                     "Additional semantic slides were omitted because the shared import limit was reached.",
-                    HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Omission, detail: containerLimit);
+                    HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, detail: containerLimit);
                 break;
             }
 
@@ -126,29 +126,29 @@ public static partial class HtmlPowerPointConverterExtensions {
             return;
         }
 
-        if (!TryGetImagePartType(dataUri.MediaType, out PptCore.ImagePartType imagePartType)) {
+        if (!TryGetImagePartType(dataUri.MediaType, out PptCore.PowerPointImagePartType imagePartType)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
-                "Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' used unsupported media type '" + dataUri.MediaType + "' and was not imported.", lossKind: HtmlConversionLossKind.Omission);
+                "Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' used unsupported media type '" + dataUri.MediaType + "' and was not imported.", lossKind: OfficeConversionLossKind.Omission);
             return;
         }
 
         if (!budget.IsImageWithinLimit(dataUri, out string imageLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An embedded slide picture was omitted because the shared image limit was reached.",
-                lossKind: HtmlConversionLossKind.Omission, detail: imageLimit);
+                lossKind: OfficeConversionLossKind.Omission, detail: imageLimit);
             return;
         }
 
         if (!budget.TryReserveImageWithShape(dataUri, out imageLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An embedded slide picture was omitted because the shared import limit was reached.",
-                lossKind: HtmlConversionLossKind.Omission, detail: imageLimit);
+                lossKind: OfficeConversionLossKind.Omission, detail: imageLimit);
             return;
         }
 
         if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
-                "Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.", lossKind: HtmlConversionLossKind.Omission);
+                "Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.", lossKind: OfficeConversionLossKind.Omission);
             return;
         }
 
@@ -196,7 +196,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (!reserved) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "Chart inventory item '" + title + "' was omitted because the shared chart limit was reached.",
-                lossKind: HtmlConversionLossKind.Omission, detail: chartLimit);
+                lossKind: OfficeConversionLossKind.Omission, detail: chartLimit);
             return;
         }
 
@@ -209,7 +209,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                     "Chart inventory item '" +
                     (title.Length == 0 ? "Imported chart" : title) +
                     "' was omitted because its bubble point count exceeded the shared chart limit.",
-                    lossKind: HtmlConversionLossKind.Omission,
+                    lossKind: OfficeConversionLossKind.Omission,
                     detail: "BubblePoints: Actual=" +
                         ((long)seriesCount * categoryCount)
                             .ToString(CultureInfo.InvariantCulture) +
@@ -230,7 +230,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                     "Chart inventory item '" +
                     (title.Length == 0 ? "Imported chart" : title) +
                     "' contained invalid semantic bubble data and was not imported.",
-                    lossKind: HtmlConversionLossKind.Omission);
+                    lossKind: OfficeConversionLossKind.Omission);
                 return;
             }
             uint bubbleScale = 100U;
@@ -241,7 +241,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                     "Chart inventory item '" +
                     (title.Length == 0 ? "Imported chart" : title) +
                     "' contained invalid bubble sizing metadata and was not imported.",
-                    lossKind: HtmlConversionLossKind.Omission);
+                    lossKind: OfficeConversionLossKind.Omission);
                 return;
             }
             bool showLegend = true;
@@ -256,7 +256,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                     "Chart inventory item '" +
                     (title.Length == 0 ? "Imported chart" : title) +
                     "' contained invalid bubble legend metadata and was not imported.",
-                    lossKind: HtmlConversionLossKind.Omission);
+                    lossKind: OfficeConversionLossKind.Omission);
                 return;
             }
             PptCore.PowerPointChartData data = semanticData ??
@@ -273,7 +273,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                         "Chart inventory item '" +
                         (title.Length == 0 ? "Imported chart" : title) +
                         "' was omitted because its bubble point count exceeded the shared chart limit.",
-                        lossKind: HtmlConversionLossKind.Omission,
+                        lossKind: OfficeConversionLossKind.Omission,
                         detail: "BubblePoints: Actual=" +
                             bubblePointCount.ToString(CultureInfo.InvariantCulture) +
                             "; Limit=" +
@@ -285,7 +285,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             ReadChartGeometry(item, 500D, fallbackTop, 320D, 180D, budget, result, out double left, out double chartTop, out double width, out double height);
             if (!TryAddChartByKind(slide, chartKind, data, left, chartTop, width, height, out PptCore.PowerPointChart? chart, out string? fallbackMessage) || chart == null) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
-                    "Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' used unsupported chart kind '" + chartKind + "' and was not imported.", lossKind: HtmlConversionLossKind.Omission);
+                    "Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' used unsupported chart kind '" + chartKind + "' and was not imported.", lossKind: OfficeConversionLossKind.Omission);
                 return;
             }
 
@@ -305,12 +305,12 @@ public static partial class HtmlPowerPointConverterExtensions {
             result.Charts++;
             if (!string.IsNullOrWhiteSpace(fallbackMessage)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
-                    "Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' " + fallbackMessage, lossKind: HtmlConversionLossKind.Approximation);
+                    "Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' " + fallbackMessage, lossKind: OfficeConversionLossKind.Approximation);
             }
 
             if (!restoredFromSemanticData) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
-                    "Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' was restored as a native chart with reconstructed placeholder values; exact source chart data was not present in semantic HTML.", lossKind: HtmlConversionLossKind.Approximation);
+                    "Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' was restored as a native chart with reconstructed placeholder values; exact source chart data was not present in semantic HTML.", lossKind: OfficeConversionLossKind.Approximation);
             }
 
             fallbackTop = Math.Max(fallbackTop + 198D, chartTop + height + 18D);
@@ -328,7 +328,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             || !budget.TryReserveAnnotation(out annotationLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
                 "Presenter notes were omitted because the shared semantic metadata limit was reached.",
-                lossKind: HtmlConversionLossKind.Omission,
+                lossKind: OfficeConversionLossKind.Omission,
                 detail: metadataLimit.Length > 0 ? metadataLimit : annotationLimit);
             return;
         }
@@ -649,7 +649,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         second = 0D;
         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
             "Invalid picture " + axis + " crop metadata used the zero fallback.",
-            lossKind: HtmlConversionLossKind.Approximation,
+            lossKind: OfficeConversionLossKind.Approximation,
             source: "picture crop " + axis);
     }
 
@@ -737,7 +737,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (budget.TryNormalizeGeometry(value, fallback, minimum, out double normalized)) return normalized;
         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
             "Invalid or out-of-range " + source + " metadata used its safe fallback.",
-            lossKind: HtmlConversionLossKind.Approximation, source: source);
+            lossKind: OfficeConversionLossKind.Approximation, source: source);
         return normalized;
     }
 
@@ -745,7 +745,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (budget.TryNormalizeRange(value, fallback, minimum, maximum, out double normalized)) return normalized;
         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
             "Invalid or out-of-range " + source + " metadata used its safe fallback.",
-            lossKind: HtmlConversionLossKind.Approximation, source: source);
+            lossKind: OfficeConversionLossKind.Approximation, source: source);
         return normalized;
     }
 
@@ -888,60 +888,60 @@ public static partial class HtmlPowerPointConverterExtensions {
         return value.Length == 0 ? "ClusteredColumn" : value;
     }
 
-    private static bool TryGetImagePartType(string mediaType, out PptCore.ImagePartType imagePartType) {
+    private static bool TryGetImagePartType(string mediaType, out PptCore.PowerPointImagePartType imagePartType) {
         if (mediaType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/jpg", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.ImagePartType.Jpeg;
+            imagePartType = PptCore.PowerPointImagePartType.Jpeg;
             return true;
         }
 
         if (mediaType.Equals("image/gif", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.ImagePartType.Gif;
+            imagePartType = PptCore.PowerPointImagePartType.Gif;
             return true;
         }
 
         if (mediaType.Equals("image/bmp", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.ImagePartType.Bmp;
+            imagePartType = PptCore.PowerPointImagePartType.Bmp;
             return true;
         }
 
         if (mediaType.Equals("image/tiff", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/tif", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.ImagePartType.Tiff;
+            imagePartType = PptCore.PowerPointImagePartType.Tiff;
             return true;
         }
 
         if (mediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.ImagePartType.Svg;
+            imagePartType = PptCore.PowerPointImagePartType.Svg;
             return true;
         }
 
         if (mediaType.Equals("image/x-emf", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/emf", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.ImagePartType.Emf;
+            imagePartType = PptCore.PowerPointImagePartType.Emf;
             return true;
         }
 
         if (mediaType.Equals("image/x-wmf", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/wmf", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.ImagePartType.Wmf;
+            imagePartType = PptCore.PowerPointImagePartType.Wmf;
             return true;
         }
 
         if (mediaType.Equals("image/x-icon", StringComparison.OrdinalIgnoreCase) ||
             mediaType.Equals("image/vnd.microsoft.icon", StringComparison.OrdinalIgnoreCase) ||
             mediaType.Equals("image/ico", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.ImagePartType.Icon;
+            imagePartType = PptCore.PowerPointImagePartType.Icon;
             return true;
         }
 
         if (mediaType.Equals("image/x-pcx", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/pcx", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.ImagePartType.Pcx;
+            imagePartType = PptCore.PowerPointImagePartType.Pcx;
             return true;
         }
 
         if (mediaType.Equals("image/png", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/x-png", StringComparison.OrdinalIgnoreCase)) {
-            imagePartType = PptCore.ImagePartType.Png;
+            imagePartType = PptCore.PowerPointImagePartType.Png;
             return true;
         }
 
-        imagePartType = PptCore.ImagePartType.Png;
+        imagePartType = PptCore.PowerPointImagePartType.Png;
         return false;
     }
 

@@ -18,11 +18,11 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 using (var first = new MemoryStream(image, writable: false)) {
                     PowerPointPicture picture = slide.AddPicture(first,
-                        ImagePartType.Png, 158750, 317500, 635000, 476250);
+                        PowerPointImagePartType.Png, 158750, 317500, 635000, 476250);
                     picture.Crop(10D, 20D, 5D, 15D);
                 }
                 using (var second = new MemoryStream(image, writable: false)) {
-                    slide.AddPicture(second, ImagePartType.Png,
+                    slide.AddPicture(second, PowerPointImagePartType.Png,
                         952500, 317500, 635000, 476250);
                 }
 
@@ -94,11 +94,11 @@ namespace OfficeIMO.Tests {
                 PowerPointPicture picture;
                 using (var stream = new MemoryStream(image,
                            writable: false)) {
-                    picture = slide.AddPicture(stream, ImagePartType.Png,
+                    picture = slide.AddPicture(stream, PowerPointImagePartType.Png,
                         158750, 317500, 635000, 476250);
                 }
                 PowerPointAutoShape frame = slide.AddShape(
-                    PowerPointShapeType.Rectangle,
+                    OfficePresetShapeType.Rectangle,
                     952500, 317500, 635000, 476250);
                 frame.Fill("ED7D31");
                 slide.GroupShapes(new PowerPointShape[] { picture, frame },
@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests {
                        0x01, 0x00
                    }, writable: false)) {
                 gifPresentation.AddSlide(PowerPointSlideLayoutType.Blank)
-                    .AddPicture(gif, ImagePartType.Gif);
+                    .AddPicture(gif, PowerPointImagePartType.Gif);
             }
             LegacyPptWritePreflightReport gifPreflight = gifPresentation
                 .AnalyzeLegacyPptWrite();
@@ -157,7 +157,7 @@ namespace OfficeIMO.Tests {
             using (var stream = new MemoryStream(png, writable: false)) {
                 PowerPointPicture picture = effectPresentation
                     .AddSlide(PowerPointSlideLayoutType.Blank)
-                    .AddPicture(stream, ImagePartType.Png);
+                    .AddPicture(stream, PowerPointImagePartType.Png);
                 P.Picture element = Assert.IsType<P.Picture>(picture.Element);
                 element.BlipFill!.Blip!.Append(new A.AlphaReplace {
                     Alpha = 50000
@@ -308,7 +308,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
                 using var stream = new MemoryStream(emf, writable: false);
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
-                    .AddPicture(stream, ImagePartType.Emf,
+                    .AddPicture(stream, PowerPointImagePartType.Emf,
                         PowerPointUnits.FromPoints(20D),
                         PowerPointUnits.FromPoints(30D),
                         PowerPointUnits.FromPoints(120D),
@@ -365,7 +365,7 @@ namespace OfficeIMO.Tests {
         private static PowerPointPicture AddPicture(PowerPointSlide slide,
             byte[] image, long left) {
             using var stream = new MemoryStream(image, writable: false);
-            return slide.AddPicture(stream, ImagePartType.Png, left, 0,
+            return slide.AddPicture(stream, PowerPointImagePartType.Png, left, 0,
                 600000, 450000);
         }
 

@@ -12,7 +12,7 @@ public partial class WordRtfConverterTests {
     [Fact]
     public void Word_To_Rtf_Bridge_Carries_PageSetup_Headers_And_Footers() {
         using WordDocument word = WordDocument.Create();
-        word.PageOrientation = WordPageOrientation.Landscape;
+        word.PageOrientation = OfficePageOrientation.Landscape;
         word.PageSettings.Width = 16838U;
         word.PageSettings.Height = 11906U;
         word.Margins.Left = 1440U;

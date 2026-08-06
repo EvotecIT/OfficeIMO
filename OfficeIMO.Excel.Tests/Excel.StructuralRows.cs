@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                     5,
                     "SUM(A2:A3)+$A$3+SUM(2:3)+SUM(A3:A2)+SUM(3:2)+SUM(Data!A2:Data!A3)+SUM(Data!2:Data!3)");
                 data.SetArrayFormula("C2:C3", "A2:A3*2");
-                data.AddTable("A1:B3", hasHeader: true, name: "DataTable", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                data.AddTable("A1:B3", hasHeader: true, name: "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 data.SetNamedRange("LocalData", "A2:A3", save: false);
                 summary.SetNamedRange("SummaryLocal", "A2:A3", save: false);
                 document.SetNamedRange("GlobalData", "'Data'!A2:A3", save: false);
@@ -464,7 +464,7 @@ namespace OfficeIMO.Tests {
             }
 
             sheet.SetArrayFormula("C2:C4", "A2:A4*2");
-            sheet.AddTable("A1:B4", hasHeader: true, name: "OwnedData", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B4", hasHeader: true, name: "OwnedData", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
 
             InvalidOperationException insertArray = Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(3));
             InvalidOperationException deleteArrayOwner = Assert.Throws<InvalidOperationException>(() => sheet.DeleteRows(2));

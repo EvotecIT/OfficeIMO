@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Settings.UpdateFieldsOnOpen = true;
 
-                document.AddCoverPage(CoverPageTemplate.Austin);
+                document.AddCoverPage(WordCoverPageTemplate.Austin);
 
                 var tableOfContent = document.AddTableOfContent();
 

@@ -25,10 +25,10 @@ public partial class Word {
             document.AddHeadersAndFooters();
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             header.AddParagraph("Native warning header text");
-            header.AddParagraph().AddTextBox(string.Empty, WrapTextImage.Square);
+            header.AddParagraph().AddTextBox(string.Empty, WordImageTextWrapping.Square);
 
             WordTable footerTable = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddTable(1, 1, WordTableStyle.TableNormal);
-            footerTable.Rows[0].Cells[0].Paragraphs[0].AddTextBox(string.Empty, WrapTextImage.Square);
+            footerTable.Rows[0].Cells[0].Paragraphs[0].AddTextBox(string.Empty, WordImageTextWrapping.Square);
 
             document.AddParagraph("Native warning body text");
             document.Save();
@@ -161,11 +161,11 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             WordTextBox headerTextBox = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddTextBox("Native header text box");
-            headerTextBox.HorizontalAlignment = WordHorizontalAlignmentValues.Center;
+            headerTextBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Center;
 
             WordParagraph footerParagraph = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph();
-            WordTextBox footerTextBox = footerParagraph.AddTextBox("Native footer text box", WrapTextImage.Square);
-            footerTextBox.HorizontalAlignment = WordHorizontalAlignmentValues.Right;
+            WordTextBox footerTextBox = footerParagraph.AddTextBox("Native footer text box", WordImageTextWrapping.Square);
+            footerTextBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Right;
 
             document.AddParagraph("Native text box body");
             document.Save();
@@ -216,12 +216,12 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
-            header.AddShape(ShapeType.Rectangle, 36, 16, "#99ccff", "#003366", 1.5);
+            header.AddShape(WordShapeType.Rectangle, 36, 16, "#99ccff", "#003366", 1.5);
 
             WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             WordParagraph footerParagraph = footer.AddParagraph();
             footerParagraph.ParagraphAlignment = WordParagraphAlignment.Right;
-            footerParagraph.AddShape(ShapeType.Rectangle, 34, 14, "#ffe699", "#663300", 1.25);
+            footerParagraph.AddShape(WordShapeType.Rectangle, 34, 14, "#ffe699", "#663300", 1.25);
 
             document.AddParagraph("Native header footer shape body");
             document.Save();

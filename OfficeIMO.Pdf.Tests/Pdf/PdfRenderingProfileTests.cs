@@ -806,7 +806,7 @@ public sealed class PdfRenderingProfileTests {
         PdfTextFallbackSegment segment = Assert.Single(plan.Segments);
         Assert.Equal(2, segment.StartIndex);
         Assert.Equal("A", segment.Text);
-        var styleTemplate = new TextRun(
+        var styleTemplate = new PdfTextRun(
             string.Empty,
             bold: true,
             underline: true,
@@ -818,7 +818,7 @@ public sealed class PdfRenderingProfileTests {
             baseline: PdfTextBaseline.Superscript,
             backgroundColor: PdfColor.FromRgb(40, 50, 60),
             fontFamily: "Scoped");
-        IReadOnlyList<TextRun> runs = plan.ToNamedTextRuns(
+        IReadOnlyList<PdfTextRun> runs = plan.ToNamedTextRuns(
             planner.FontFamilyNames,
             styleTemplate);
         Assert.Equal(" \u0301", runs[0].Text);
@@ -852,7 +852,7 @@ public sealed class PdfRenderingProfileTests {
 
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics =
             PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
-                new[] { TextRun.Normal("A\n\u2003", fontFamily: "Scoped") },
+                new[] { PdfTextRun.Normal("A\n\u2003", fontFamily: "Scoped") },
                 options,
                 PdfStandardFont.Helvetica,
                 "profile boundary preflight");
@@ -1079,7 +1079,7 @@ public sealed class PdfRenderingProfileTests {
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics =
             PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
                 new[] {
-                    TextRun.Normal("AB", fontFamily: "Caller, Profile")
+                    PdfTextRun.Normal("AB", fontFamily: "Caller, Profile")
                 },
                 options,
                 PdfStandardFont.Helvetica,
@@ -1111,7 +1111,7 @@ public sealed class PdfRenderingProfileTests {
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics =
             PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
                 new[] {
-                    TextRun.Normal("a\u0301", fontFamily: "Caller, Marks")
+                    PdfTextRun.Normal("a\u0301", fontFamily: "Caller, Marks")
                 },
                 options,
                 PdfStandardFont.Helvetica,
@@ -1353,7 +1353,7 @@ public sealed class PdfRenderingProfileTests {
         IReadOnlyList<PdfTextEncodingDiagnostic> covered =
             PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
                 new[] {
-                    TextRun.Bolded("\u0419", fontFamily: "Missing")
+                    PdfTextRun.Bolded("\u0419", fontFamily: "Missing")
                 },
                 options,
                 PdfStandardFont.Helvetica,
@@ -1361,7 +1361,7 @@ public sealed class PdfRenderingProfileTests {
         IReadOnlyList<PdfTextEncodingDiagnostic> uncovered =
             PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
                 new[] {
-                    TextRun.Bolded("\u0416", fontFamily: "Missing")
+                    PdfTextRun.Bolded("\u0416", fontFamily: "Missing")
                 },
                 options,
                 PdfStandardFont.Helvetica,
@@ -1486,7 +1486,7 @@ public sealed class PdfRenderingProfileTests {
 
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics =
             PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
-                new[] { TextRun.Normal("A", fontFamily: "Scoped") },
+                new[] { PdfTextRun.Normal("A", fontFamily: "Scoped") },
                 options,
                 PdfStandardFont.Helvetica,
                 "profile preflight");
@@ -1511,7 +1511,7 @@ public sealed class PdfRenderingProfileTests {
 
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics =
             PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
-                new[] { TextRun.Normal("B") },
+                new[] { PdfTextRun.Normal("B") },
                 options,
                 PdfStandardFont.Helvetica,
                 "profile fallback preflight");

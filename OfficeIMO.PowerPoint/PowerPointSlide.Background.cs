@@ -56,7 +56,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new FileNotFoundException("Image file not found.", imagePath);
             }
 
-            ImagePartType imageType = GetImagePartType(imagePath);
+            PowerPointImagePartType imageType = GetImagePartType(imagePath);
             string imageExtension = PowerPointPartFactory.GetImageExtension(imageType, imagePath);
             using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read);
             SetBackgroundImageCore(stream, imageType, imageExtension);
@@ -67,7 +67,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="image">Stream containing the image data.</param>
         /// <param name="imageType">Image format of the stream.</param>
-        public void SetBackgroundImage(Stream image, ImagePartType imageType) {
+        public void SetBackgroundImage(Stream image, PowerPointImagePartType imageType) {
             if (image == null) {
                 throw new ArgumentNullException(nameof(image));
             }
@@ -78,7 +78,7 @@ namespace OfficeIMO.PowerPoint {
             SetBackgroundImageCore(image, imageType, PowerPointPartFactory.GetImageExtension(imageType));
         }
 
-        private void SetBackgroundImageCore(Stream image, ImagePartType imageType, string imageExtension) {
+        private void SetBackgroundImageCore(Stream image, PowerPointImagePartType imageType, string imageExtension) {
             A.Blip? previousBlip = GetBackgroundBlip();
             string? previousRelationshipId = previousBlip?.Embed?.Value;
             PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();

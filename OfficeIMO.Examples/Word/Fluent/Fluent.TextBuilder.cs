@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Word {
                             .Highlight(WordHighlightColor.Yellow)
                             .FontSize(18)
                             .FontFamily("Arial")
-                            .CapsStyle(CapsStyle.SmallCaps)
+                            .CapsStyle(WordCapsStyle.SmallCaps)
                             .Strike()))
                     .End()
                     .Save();

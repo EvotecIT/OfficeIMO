@@ -24,7 +24,7 @@ namespace OfficeIMO.Word.Html {
 
         private static void ApplyListDefinition(
             IElement listElement,
-            DocumentTraversal.ListInfo listInfo,
+            WordDocumentTraversal.ListInfo listInfo,
             string? listStyleType,
             HashSet<HtmlListDefinition> listDefinitions) {
             var effectiveStyle = string.IsNullOrWhiteSpace(listStyleType)
@@ -82,7 +82,7 @@ namespace OfficeIMO.Word.Html {
             head.AppendChild(styleElement);
         }
 
-        private static string BuildListDefinitionClass(DocumentTraversal.ListInfo listInfo, string listStyleType) {
+        private static string BuildListDefinitionClass(WordDocumentTraversal.ListInfo listInfo, string listStyleType) {
             var kind = listInfo.Ordered ? "ol" : "ul";
             var style = SlugListDefinitionPart(listStyleType);
             var indent = listInfo.LeftIndentTwips.HasValue && listInfo.LeftIndentTwips.Value > 0

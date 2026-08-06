@@ -40,8 +40,8 @@ namespace OfficeIMO.Tests {
                 document.CustomDocumentProperties.Add("Number", new WordCustomProperty(1500));
                 document.CustomDocumentProperties.Add("NumberDouble", new WordCustomProperty(15.00));
 
-                document.CustomDocumentProperties.Add("TestDifferentWay", new WordCustomProperty("String", PropertyTypes.Text));
-                document.CustomDocumentProperties.Add("TestDifferentWayNumber", new WordCustomProperty(15, PropertyTypes.NumberInteger));
+                document.CustomDocumentProperties.Add("TestDifferentWay", new WordCustomProperty("String", WordCustomPropertyType.Text));
+                document.CustomDocumentProperties.Add("TestDifferentWayNumber", new WordCustomProperty(15, WordCustomPropertyType.NumberInteger));
 
                 Assert.True(document.BuiltinDocumentProperties.Creator == "Przemysław Kłys", "Wrong creator");
                 Assert.True(document.BuiltinDocumentProperties.Title == "Test document", "Wrong Title");
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordCustomProperty property = document.CustomDocumentProperties["BinaryPayload"];
-                Assert.Equal(PropertyTypes.Binary, property.PropertyType);
+                Assert.Equal(WordCustomPropertyType.Binary, property.PropertyType);
                 Assert.Equal(payload, property.Binary);
             }
         }

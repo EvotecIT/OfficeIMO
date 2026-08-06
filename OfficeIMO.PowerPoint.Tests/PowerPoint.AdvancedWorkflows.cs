@@ -188,7 +188,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(new[] { "Plan", "Run", "Learn", "Adapt" }, diagrams[2].GetNodeTexts());
                     var validation = presentation.ValidateDocument();
                     Assert.True(validation.Count == 0, string.Join(Environment.NewLine,
-                        validation.Select(error => error.Description + " | " + error.Path?.XPath)));
+                        validation.Select(error => error.Description + " | " + error.Path)));
                 }
             } finally {
                 if (File.Exists(path)) File.Delete(path);
@@ -704,7 +704,7 @@ namespace OfficeIMO.Tests {
             control.AddSlide().AddTitle("Filtered thumbnail");
             withPicture.AddSlide().AddTitle("Filtered thumbnail");
             withPicture.Slides[0].AddPicture(new MemoryStream(PdfPngTestImages.CreateRgbPng(255, 0, 0)),
-                OfficeIMO.PowerPoint.ImagePartType.Png, PowerPointUnits.FromPoints(72), PowerPointUnits.FromPoints(72),
+                OfficeIMO.PowerPoint.PowerPointImagePartType.Png, PowerPointUnits.FromPoints(72), PowerPointUnits.FromPoints(72),
                 PowerPointUnits.FromPoints(180), PowerPointUnits.FromPoints(120));
 
             var controlOptions = new PowerPointPdfSaveOptions { PageLayout = layout };
@@ -742,7 +742,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(PowerPointSignatureMutationAction.Blocked, blocked.Report.Action);
 
                     presentation.SignatureMutationPolicy =
-                        PowerPointSignatureMutationPolicy.RemoveInvalidatedSignatures;
+                        OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures;
                     presentation.Save();
                     Assert.Equal(PowerPointSignatureMutationAction.Removed,
                         presentation.LastSignatureReport!.Action);

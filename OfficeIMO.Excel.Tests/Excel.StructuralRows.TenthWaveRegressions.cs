@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 "A5:B7",
                 hasHeader: true,
                 name: "CalculatedData",
-                OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
 
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table;
             TableColumn resultColumn = table.Descendants<TableColumn>()

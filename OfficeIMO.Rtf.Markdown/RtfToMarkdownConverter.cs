@@ -178,7 +178,7 @@ internal static class RtfToMarkdownConverter {
 
         IMarkdownInline first = inlines.Nodes[0];
         string? text = first switch {
-            TextRun run => run.Text,
+            MarkdownTextRun run => run.Text,
             DecodedHtmlEntityTextRun run => run.Text,
             _ => null
         };
@@ -203,7 +203,7 @@ internal static class RtfToMarkdownConverter {
         content = CreateInlineSequence();
         string remaining = text.Substring(consume);
         if (remaining.Length > 0) {
-            content.AddRaw(first is TextRun ? new TextRun(remaining) : new DecodedHtmlEntityTextRun(remaining));
+            content.AddRaw(first is MarkdownTextRun ? new MarkdownTextRun(remaining) : new DecodedHtmlEntityTextRun(remaining));
         }
 
         for (int i = 1; i < inlines.Nodes.Count; i++) {

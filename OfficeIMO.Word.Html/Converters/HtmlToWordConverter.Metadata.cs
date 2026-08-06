@@ -76,15 +76,15 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static WordCustomProperty CreateCustomDocumentProperty(string content, string? typeName) {
-            if (!Enum.TryParse<PropertyTypes>(typeName, true, out var propertyType)) {
-                propertyType = PropertyTypes.Text;
+            if (!Enum.TryParse<WordCustomPropertyType>(typeName, true, out var propertyType)) {
+                propertyType = WordCustomPropertyType.Text;
             }
 
             return propertyType switch {
-                PropertyTypes.YesNo when bool.TryParse(content, out var value) => new WordCustomProperty(value),
-                PropertyTypes.DateTime when DateTime.TryParse(content, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value) => new WordCustomProperty(value),
-                PropertyTypes.NumberInteger when int.TryParse(content, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) => new WordCustomProperty(value),
-                PropertyTypes.NumberDouble when double.TryParse(content, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) => new WordCustomProperty(value),
+                WordCustomPropertyType.YesNo when bool.TryParse(content, out var value) => new WordCustomProperty(value),
+                WordCustomPropertyType.DateTime when DateTime.TryParse(content, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value) => new WordCustomProperty(value),
+                WordCustomPropertyType.NumberInteger when int.TryParse(content, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) => new WordCustomProperty(value),
+                WordCustomPropertyType.NumberDouble when double.TryParse(content, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) => new WordCustomProperty(value),
                 _ => new WordCustomProperty(content)
             };
         }

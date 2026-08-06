@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "SmartArtCustom1_Edit.docx");
             using WordDocument document = WordDocument.Create(filePath);
 
-            var sa = document.AddSmartArt(SmartArtType.CustomSmartArt1);
+            var sa = document.AddSmartArt(WordSmartArtType.CustomSmartArt1);
             // Replace all node texts in order
             sa.ReplaceTexts("Plan", "Build", "Test", "Deploy", "Monitor");
             // Emphasize a node with newline + formatting (use a safe index)
@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "SmartArtCustom2_Edit.docx");
             using WordDocument document = WordDocument.Create(filePath);
 
-            var sa = document.AddSmartArt(SmartArtType.CustomSmartArt2);
+            var sa = document.AddSmartArt(WordSmartArtType.CustomSmartArt2);
             sa.ReplaceTexts("Discover", "Design", "Develop", "Deliver", "Delight");
             if (sa.NodeCount > 0) {
                 var last = sa.NodeCount - 1;
@@ -48,7 +48,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "SmartArtBasic_Flexible.docx");
             using WordDocument document = WordDocument.Create(filePath);
 
-            var sa = document.AddSmartArt(SmartArtType.BasicProcess);
+            var sa = document.AddSmartArt(WordSmartArtType.BasicProcess);
             // Start with extra nodes
             sa.AddNode("Step 2");
             sa.AddNode("Step 3");
@@ -73,7 +73,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "SmartArtCycle_Flexible.docx");
             using WordDocument document = WordDocument.Create(filePath);
 
-            var sa = document.AddSmartArt(SmartArtType.Cycle);
+            var sa = document.AddSmartArt(WordSmartArtType.Cycle);
             // Add a few nodes to make a cycle
             sa.AddNode("A");
             sa.AddNode("B");

@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Word {
             var paragraph1 = document.AddParagraph("This paragraph starts with some text");
             paragraph1.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
             // lets add image to paragraph
-            var paragraphImage = paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22, WrapTextImage.BehindText);
+            var paragraphImage = paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22, WordImageTextWrapping.BehindText);
 
             var paragraph1Image = Guard.NotNull(paragraph1.Image, "Paragraph should contain the inserted image.");
             var paragraphImageImage = Guard.NotNull(paragraphImage.Image, "Paragraph should contain the inserted image.");
@@ -39,7 +39,7 @@ namespace OfficeIMO.Examples.Word {
             var paragraph3Image = Guard.NotNull(paragraph3.Image, "Paragraph should contain the large image.");
             //paragraph3Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
             paragraph3Image.Rotation = 180;
-            paragraph3Image.Shape = WordImageShapeType.ActionButtonMovie;
+            paragraph3Image.Shape = OfficePresetShapeType.ActionButtonMovie;
 
             document.AddParagraph("This adds another picture with 100x100");
             var paragraph4 = document.AddParagraph();

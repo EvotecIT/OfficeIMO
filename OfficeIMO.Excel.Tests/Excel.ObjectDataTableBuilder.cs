@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
                 new { Name = "B", Value = 2 }
             };
 
-            var table = ObjectDataTableBuilder.FromObjects(items, "Data");
+            var table = ExcelObjectDataTableBuilder.FromObjects(items, "Data");
 
             Assert.Equal(2, table.Columns.Count);
             Assert.Equal("Name", table.Columns[0].ColumnName);
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 new ObjectDataBaseRow { Name = "A", Value = 1 },
                 new ObjectDataBaseRow { Name = "B", Value = 2 });
 
-            var table = ObjectDataTableBuilder.FromObjects(items, "Data");
+            var table = ExcelObjectDataTableBuilder.FromObjects(items, "Data");
 
             Assert.Equal(2, table.Rows.Count);
             Assert.Equal("A", table.Rows[0]["Name"]);
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
                 }
             };
 
-            var table = ObjectDataTableBuilder.FromObjects(items, "Data");
+            var table = ExcelObjectDataTableBuilder.FromObjects(items, "Data");
 
             Assert.Equal(new[] { "Name", "Value", "Notes" }, table.Columns.Cast<System.Data.DataColumn>().Select(column => column.ColumnName).ToArray());
             Assert.Equal("A", table.Rows[0]["Name"]);
@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
                 }
             };
 
-            var table = ObjectDataTableBuilder.FromObjects(items, "Data");
+            var table = ExcelObjectDataTableBuilder.FromObjects(items, "Data");
 
             Assert.Equal("one, two", table.Rows[0]["Tags"]);
             Assert.Equal("1, 2, 3", table.Rows[1]["Tags"]);
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
                 ["Column31"] = 31
             };
 
-            var table = ObjectDataTableBuilder.FromObjects(new object?[] { first, second }, "Data");
+            var table = ExcelObjectDataTableBuilder.FromObjects(new object?[] { first, second }, "Data");
 
             Assert.Equal(32, table.Columns.Count);
             Assert.Equal("First", table.Rows[0]["Column0"]);
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
                 }
             };
 
-            var table = ObjectDataTableBuilder.FromObjects(items, "Data");
+            var table = ExcelObjectDataTableBuilder.FromObjects(items, "Data");
 
             Assert.Equal("B", table.Rows[1]["Name"]);
             Assert.Equal(2, table.Rows[1]["Value"]);
@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
                 ["column39"] = 39
             };
 
-            var table = ObjectDataTableBuilder.FromObjects(new object?[] { first, second }, "Data");
+            var table = ExcelObjectDataTableBuilder.FromObjects(new object?[] { first, second }, "Data");
 
             Assert.Equal(40, table.Columns.Count);
             Assert.Equal("Exact", table.Rows[1]["Column0"]);
@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests {
                 new() { Name = "B", Value = 2, Notes = "Second" }
             };
 
-            var table = ObjectDataTableBuilder.FromObjects(items, "Data");
+            var table = ExcelObjectDataTableBuilder.FromObjects(items, "Data");
 
             Assert.Contains("Name", table.Columns.Cast<System.Data.DataColumn>().Select(column => column.ColumnName));
             Assert.Contains("Value", table.Columns.Cast<System.Data.DataColumn>().Select(column => column.ColumnName));
@@ -169,7 +169,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_ObjectDataTableBuilder_FromObjects_HiddenDerivedPropertiesUseRuntimeMember() {
-            ObjectDataTableBuilder.FromObjects(new ObjectDataBaseRow[] {
+            ExcelObjectDataTableBuilder.FromObjects(new ObjectDataBaseRow[] {
                 new() { Name = "Warm", Value = 0 }
             }, "Warmup");
 
@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
                 new HiddenObjectRow { Name = "Derived", Value = 2 }
             };
 
-            var table = ObjectDataTableBuilder.FromObjects(items, "Data");
+            var table = ExcelObjectDataTableBuilder.FromObjects(items, "Data");
 
             Assert.Equal("Base", table.Rows[0]["Name"]);
             Assert.Equal(1, table.Rows[0]["Value"]);
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
         public void Test_ObjectDataTableBuilder_FromSingleEnumerableObject_PreservesTheRow() {
             var row = new EnumerableObjectRow { Name = "Single", Value = 42 };
 
-            var table = ObjectDataTableBuilder.FromObjects(new object?[] { row }, "Data");
+            var table = ExcelObjectDataTableBuilder.FromObjects(new object?[] { row }, "Data");
 
             Assert.Single(table.Rows.Cast<System.Data.DataRow>());
             Assert.Equal("Single", table.Rows[0]["Name"]);
@@ -199,13 +199,13 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_ObjectDataTableBuilder_FromObjects_ThrowsOnNullItems() {
-            var ex = Assert.Throws<ArgumentNullException>(() => ObjectDataTableBuilder.FromObjects(null!));
+            var ex = Assert.Throws<ArgumentNullException>(() => ExcelObjectDataTableBuilder.FromObjects(null!));
             Assert.Equal("items", ex.ParamName);
         }
 
         [Fact]
         public void Test_ObjectDataTableBuilder_FromObjects_ThrowsOnEmptyItems() {
-            var ex = Assert.Throws<ArgumentException>(() => ObjectDataTableBuilder.FromObjects(Array.Empty<object?>()));
+            var ex = Assert.Throws<ArgumentException>(() => ExcelObjectDataTableBuilder.FromObjects(Array.Empty<object?>()));
             Assert.StartsWith("Provide at least one data row.", ex.Message);
             Assert.Equal("items", ex.ParamName);
         }
@@ -218,21 +218,21 @@ namespace OfficeIMO.Tests {
                 new object?[] { new Dictionary<string, object?> { [" "] = 1 } },
                 new object?[] { new System.Collections.Hashtable { [" "] = 1 } }
             }) {
-                var ex = Assert.Throws<InvalidOperationException>(() => ObjectDataTableBuilder.FromObjects(items));
+                var ex = Assert.Throws<InvalidOperationException>(() => ExcelObjectDataTableBuilder.FromObjects(items));
                 Assert.Equal("Unable to infer column names. Use objects with properties or dictionaries.", ex.Message);
             }
         }
 
         [Fact]
         public void Test_ObjectDataTableBuilder_FromObjects_ThrowsOnNullFirstRow() {
-            var ex = Assert.Throws<ArgumentException>(() => ObjectDataTableBuilder.FromObjects(new object?[] { null }));
+            var ex = Assert.Throws<ArgumentException>(() => ExcelObjectDataTableBuilder.FromObjects(new object?[] { null }));
             Assert.StartsWith("Data rows cannot be null.", ex.Message);
             Assert.Equal("items", ex.ParamName);
         }
 
         [Fact]
         public void Test_ObjectDataTableBuilder_FromObjects_ThrowsOnNullEntry() {
-            var ex = Assert.Throws<InvalidOperationException>(() => ObjectDataTableBuilder.FromObjects(new object?[] { new { Name = "A" }, null }));
+            var ex = Assert.Throws<InvalidOperationException>(() => ExcelObjectDataTableBuilder.FromObjects(new object?[] { new { Name = "A" }, null }));
             Assert.Equal("Data rows cannot contain null entries.", ex.Message);
         }
 

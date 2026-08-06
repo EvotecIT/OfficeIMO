@@ -17,17 +17,17 @@ namespace OfficeIMO.Tests {
 
             Assert.NotEmpty(codes);
             Assert.All(codes, code =>
-                Assert.True(Enum.IsDefined(typeof(OfficeImageExportLossKind), WordImageExportDiagnosticClassifier.Classify(code))));
+                Assert.True(Enum.IsDefined(typeof(OfficeConversionLossKind), WordImageExportDiagnosticClassifier.Classify(code))));
         }
 
         [Theory]
-        [InlineData(WordImageExportDiagnosticCodes.LimitedSmartArt, OfficeImageExportLossKind.Approximation)]
-        [InlineData(WordImageExportDiagnosticCodes.UnsupportedShape, OfficeImageExportLossKind.Omission)]
-        [InlineData(WordImageExportDiagnosticCodes.UnsupportedHeaderFooterElement, OfficeImageExportLossKind.Omission)]
-        [InlineData(WordImageExportDiagnosticCodes.UnsupportedHeaderElement, OfficeImageExportLossKind.Omission)]
+        [InlineData(WordImageExportDiagnosticCodes.LimitedSmartArt, OfficeConversionLossKind.Approximation)]
+        [InlineData(WordImageExportDiagnosticCodes.UnsupportedShape, OfficeConversionLossKind.Omission)]
+        [InlineData(WordImageExportDiagnosticCodes.UnsupportedHeaderFooterElement, OfficeConversionLossKind.Omission)]
+        [InlineData(WordImageExportDiagnosticCodes.UnsupportedHeaderElement, OfficeConversionLossKind.Omission)]
         public void WordImageExportDiagnosticClassifier_SeparatesApproximationsFromOmissions(
             string code,
-            OfficeImageExportLossKind expected) {
+            OfficeConversionLossKind expected) {
             Assert.Equal(expected, WordImageExportDiagnosticClassifier.Classify(code));
         }
 
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
                 "strict-rotated-inline.png",
                 420,
                 420,
-                WrapTextImage.InLineWithText,
+                WordImageTextWrapping.InLineWithText,
                 "Strict rotated inline marker");
             image.Rotation = 45;
 
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
                 exception.Diagnostics,
                 diagnostic =>
                     diagnostic.Code == WordImageExportDiagnosticCodes.UnsupportedImage &&
-                    diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+                    diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
 
         [Fact]
@@ -89,14 +89,14 @@ namespace OfficeIMO.Tests {
                 exception.Diagnostics,
                 diagnostic =>
                     diagnostic.Code == WordImageExportDiagnosticCodes.UnsupportedHeaderElement &&
-                    diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+                    diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
 
         [Fact]
         public void WordDocument_StrictOmissionPolicyAllowsLimitedSmartArtFallback() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
-            WordSmartArt smartArt = document.AddParagraph().AddSmartArt(SmartArtType.BasicProcess);
+            WordSmartArt smartArt = document.AddParagraph().AddSmartArt(WordSmartArtType.BasicProcess);
             while (smartArt.NodeCount < 3) {
                 smartArt.AddNode("Node " + smartArt.NodeCount);
             }
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
                 result.Diagnostics,
                 diagnostic =>
                     diagnostic.Code == WordImageExportDiagnosticCodes.LimitedSmartArt &&
-                    diagnostic.LossKind == OfficeImageExportLossKind.Approximation);
+                    diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         }
     }
 }

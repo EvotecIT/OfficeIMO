@@ -460,7 +460,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .Table(new[] {
                 new[] {
-                    PdfTableCell.RichTextCell(new[] { TextRun.Normal("Direct table Times", font: PdfStandardFont.TimesRoman) })
+                    PdfTableCell.RichTextCell(new[] { PdfTextRun.Normal("Direct table Times", font: PdfStandardFont.TimesRoman) })
                 }
             })
             .Compose(document =>
@@ -470,7 +470,7 @@ public partial class PdfDocumentVisualQualityTests {
                             row.Column(100, column =>
                                 column.Table(new[] {
                                     new[] {
-                                        PdfTableCell.RichTextCell(new[] { TextRun.Normal("Column table Courier", font: PdfStandardFont.Courier) })
+                                        PdfTableCell.RichTextCell(new[] { PdfTextRun.Normal("Column table Courier", font: PdfStandardFont.Courier) })
                                     }
                                 }))))))
             .ToBytes();

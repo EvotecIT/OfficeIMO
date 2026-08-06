@@ -1,0 +1,218 @@
+using DocumentFormat.OpenXml.Wordprocessing;
+using Color = OfficeIMO.Drawing.OfficeColor;
+
+namespace OfficeIMO.Word.Fluent {
+    /// <summary>
+    /// Builder for paragraphs.
+    /// </summary>
+    public class WordParagraphBuilder {
+        private readonly WordFluentDocument _fluent;
+        private readonly WordParagraph _paragraph;
+
+        internal WordParagraphBuilder(WordFluentDocument fluent, WordParagraph paragraph) {
+            _fluent = fluent;
+            _paragraph = paragraph;
+        }
+
+        /// <summary>
+        /// Gets the underlying paragraph.
+        /// </summary>
+        public WordParagraph Paragraph => _paragraph;
+
+        /// <summary>
+        /// Adds a text run to the paragraph.
+        /// </summary>
+        /// <param name="text">Text to add.</param>
+        /// <param name="configure">Optional configuration for the run.</param>
+        public WordParagraphBuilder Text(string text, Action<TextBuilder>? configure = null) {
+            var run = _paragraph.AddText(text);
+            configure?.Invoke(new TextBuilder(run));
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a text run to the paragraph.
+        /// </summary>
+        /// <param name="text">Text to add.</param>
+        /// <param name="configure">Optional configuration for the run.</param>
+        public WordParagraphBuilder Run(string text, Action<TextBuilder>? configure = null) => Text(text, configure);
+
+        /// <summary>
+        /// Inserts an inline image into the paragraph.
+        /// </summary>
+        /// <param name="path">Path to the image file.</param>
+        /// <param name="widthPx">Optional width in pixels.</param>
+        /// <param name="heightPx">Optional height in pixels.</param>
+        /// <param name="alt">Alternative text.</param>
+        public WordParagraphBuilder InlineImage(string path, double? widthPx = null, double? heightPx = null, string alt = "") {
+            _paragraph.AddImage(path, widthPx, heightPx, WordImageTextWrapping.InLineWithText, alt);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a hyperlink to the paragraph.
+        /// </summary>
+        /// <param name="url">Destination URL.</param>
+        /// <param name="text">Optional text to display.</param>
+        /// <param name="style">True to apply hyperlink style.</param>
+        public WordParagraphBuilder Link(string url, string? text = null, bool style = false) {
+            _paragraph.AddHyperLink(text ?? url, new Uri(url), style);
+            return this;
+        }
+
+        /// <summary>
+        /// Appends bold text (Markdown parity helper).
+        /// </summary>
+        public WordParagraphBuilder Bold(string text) {
+            return Text(text, t => t.BoldOn());
+        }
+
+        /// <summary>
+        /// Appends italic text (Markdown parity helper).
+        /// </summary>
+        public WordParagraphBuilder Italic(string text) {
+            return Text(text, t => t.ItalicOn());
+        }
+
+        /// <summary>
+        /// Appends underlined text (Markdown parity helper).
+        /// </summary>
+        public WordParagraphBuilder Underline(string text) {
+            return Text(text, t => t.Underline(WordUnderlineStyle.Single));
+        }
+
+        /// <summary>
+        /// Appends strikethrough text (Markdown parity helper).
+        /// </summary>
+        public WordParagraphBuilder Strike(string text) {
+            return Text(text, t => t.Strike());
+        }
+
+        /// <summary>
+        /// Appends inline code using a monospace font (Markdown parity helper).
+        /// </summary>
+        public WordParagraphBuilder Code(string text) {
+            var mono = WordFontResolver.Resolve("monospace") ?? "Consolas";
+            return Text(text, t => t.FontFamily(mono));
+        }
+
+        /// <summary>
+        /// Inserts a break into the paragraph.
+        /// </summary>
+        /// <param name="breakType">Optional break type.</param>
+        public WordParagraphBuilder Break(WordBreakType? breakType = null) {
+            _paragraph.AddBreak(breakType);
+            return this;
+        }
+
+        /// <summary>
+        /// Inserts a tab character.
+        /// </summary>
+        public WordParagraphBuilder Tab() {
+            _paragraph.AddTab();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the paragraph alignment.
+        /// </summary>
+        /// <param name="alignment">Desired alignment.</param>
+        public WordParagraphBuilder Align(WordParagraphAlignment alignment) {
+            _paragraph.ParagraphAlignment = alignment;
+            return this;
+        }
+
+        /// <summary>
+        /// Applies justified alignment to the paragraph.
+        /// </summary>
+        public WordParagraphBuilder Justify() {
+            _paragraph.ParagraphAlignment = WordParagraphAlignment.Both;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets spacing before the paragraph.
+        /// </summary>
+        /// <param name="points">Spacing in points.</param>
+        public WordParagraphBuilder SpacingBefore(double points) {
+            _paragraph.LineSpacingBeforePoints = points;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets spacing after the paragraph.
+        /// </summary>
+        /// <param name="points">Spacing in points.</param>
+        public WordParagraphBuilder SpacingAfter(double points) {
+            _paragraph.LineSpacingAfterPoints = points;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets line spacing for the paragraph.
+        /// </summary>
+        /// <param name="points">Spacing in points.</param>
+        public WordParagraphBuilder LineSpacing(double points) {
+            _paragraph.LineSpacingPoints = points;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets indentation values for the paragraph.
+        /// </summary>
+        /// <param name="left">Left indentation in points.</param>
+        /// <param name="firstLine">First-line indentation in points.</param>
+        /// <param name="right">Right indentation in points.</param>
+        public WordParagraphBuilder Indentation(double? left = null, double? firstLine = null, double? right = null) {
+            if (left != null) {
+                _paragraph.IndentationBeforePoints = left.Value;
+            }
+
+            if (firstLine != null) {
+                _paragraph.IndentationFirstLinePoints = firstLine.Value;
+            }
+
+            if (right != null) {
+                _paragraph.IndentationAfterPoints = right.Value;
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Configures borders for the paragraph.
+        /// </summary>
+        /// <param name="configure">Callback to configure individual border settings.</param>
+        public WordParagraphBuilder Border(Action<WordParagraphBorders> configure) {
+            configure(_paragraph.Borders);
+            return this;
+        }
+
+        /// <summary>
+        /// Applies shading to the paragraph.
+        /// </summary>
+        /// <param name="color">Fill color.</param>
+        public WordParagraphBuilder Shading(Color color) {
+            _paragraph.ShadingFillColor = color;
+            return this;
+        }
+
+        /// <summary>
+        /// Applies a built-in style to the paragraph.
+        /// </summary>
+        /// <param name="style">Built-in style.</param>
+        public WordParagraphBuilder Style(WordParagraphStyles style) {
+            _paragraph.SetStyle(style);
+            return this;
+        }
+
+        /// <summary>
+        /// Applies a style by its identifier.
+        /// </summary>
+        /// <param name="styleId">Style identifier.</param>
+        public WordParagraphBuilder Style(string styleId) {
+            _paragraph.SetStyleId(styleId);
+            return this;
+        }
+    }
+}

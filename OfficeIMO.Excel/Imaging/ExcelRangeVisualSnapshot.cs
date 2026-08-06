@@ -329,7 +329,7 @@ namespace OfficeIMO.Excel {
     /// Conditional-formatting icon overlay in an Excel range snapshot.
     /// </summary>
     public sealed class ExcelVisualConditionalIcon {
-        internal ExcelVisualConditionalIcon(int row, int column, double x, double y, double width, double height, ExcelConditionalIconKind kind, bool showValue) {
+        internal ExcelVisualConditionalIcon(int row, int column, double x, double y, double width, double height, OfficeConditionalIconKind kind, bool showValue) {
             Row = row;
             Column = column;
             X = x;
@@ -359,68 +359,10 @@ namespace OfficeIMO.Excel {
         public double Height { get; }
 
         /// <summary>Rendered icon kind.</summary>
-        public ExcelConditionalIconKind Kind { get; }
+        public OfficeConditionalIconKind Kind { get; }
 
         /// <summary>Whether the formatted cell value should be rendered beside the icon.</summary>
         public bool ShowValue { get; }
-    }
-
-    /// <summary>
-    /// Dependency-free icon shapes used for conditional-formatting icon sets.
-    /// </summary>
-    public enum ExcelConditionalIconKind {
-        /// <summary>Green upward arrow.</summary>
-        GreenUpArrow = 0,
-        /// <summary>Yellow upward arrow.</summary>
-        YellowUpArrow = 9,
-        /// <summary>Yellow sideways arrow.</summary>
-        YellowSideArrow = 1,
-        /// <summary>Yellow downward arrow.</summary>
-        YellowDownArrow = 10,
-        /// <summary>Red downward arrow.</summary>
-        RedDownArrow = 2,
-        /// <summary>Green check mark.</summary>
-        GreenCheck = 3,
-        /// <summary>Yellow exclamation mark.</summary>
-        YellowExclamation = 4,
-        /// <summary>Red cross.</summary>
-        RedCross = 5,
-        /// <summary>Green circle.</summary>
-        GreenCircle = 6,
-        /// <summary>Light green circle.</summary>
-        LightGreenCircle = 11,
-        /// <summary>Yellow circle.</summary>
-        YellowCircle = 7,
-        /// <summary>Orange circle.</summary>
-        OrangeCircle = 12,
-        /// <summary>Red circle.</summary>
-        RedCircle = 8,
-        /// <summary>One filled rating bar.</summary>
-        RatingOne = 13,
-        /// <summary>Two filled rating bars.</summary>
-        RatingTwo = 14,
-        /// <summary>Three filled rating bars.</summary>
-        RatingThree = 15,
-        /// <summary>Four filled rating bars.</summary>
-        RatingFour = 16,
-        /// <summary>Five filled rating bars.</summary>
-        RatingFive = 17,
-        /// <summary>Empty quarter-pie indicator.</summary>
-        QuarterEmpty = 18,
-        /// <summary>One-quarter filled pie indicator.</summary>
-        QuarterOne = 19,
-        /// <summary>Half-filled pie indicator.</summary>
-        QuarterTwo = 20,
-        /// <summary>Three-quarter filled pie indicator.</summary>
-        QuarterThree = 21,
-        /// <summary>Fully filled pie indicator.</summary>
-        QuarterFull = 22,
-        /// <summary>Green flag indicator.</summary>
-        GreenFlag = 23,
-        /// <summary>Yellow flag indicator.</summary>
-        YellowFlag = 24,
-        /// <summary>Red flag indicator.</summary>
-        RedFlag = 25
     }
 
     /// <summary>

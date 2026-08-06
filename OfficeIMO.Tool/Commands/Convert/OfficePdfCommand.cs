@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
@@ -122,7 +121,7 @@ Conversion diagnostics are written to standard error.
         OfficePackageSecurityOptions packageSecurity = OfficePackageSecurityOptions.SecureDefaults;
         packageSecurity.MaxPackageBytes = arguments.MaxInputBytes;
         packageSecurity.MaxXmlCharactersInPart = arguments.MaxCharactersInPart;
-        var openSettings = new OpenSettings {
+        var openSettings = new OfficeOpenXmlLoadSettings {
             MaxCharactersInPart = arguments.MaxCharactersInPart
         };
 

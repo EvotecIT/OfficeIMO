@@ -58,6 +58,7 @@
         <Using Include="System.Globalization" />
         <Using Include="System.IO" />
         <Using Include="System.Linq" />
+        <Using Include="OfficeIMO.Drawing" />
     </ItemGroup>
 
 </Project>

@@ -30,8 +30,8 @@ namespace OfficeIMO.Word.Html {
                     "SectionMetadata:page-size");
             }
 
-            var widthTwips = section.PageSettings.Width?.Value;
-            var heightTwips = section.PageSettings.Height?.Value;
+            var widthTwips = section.PageSettings.Width;
+            var heightTwips = section.PageSettings.Height;
             if (widthTwips != null) {
                 SetOutputAttribute(
                     htmlDoc,
@@ -50,9 +50,9 @@ namespace OfficeIMO.Word.Html {
             }
 
             var top = section.Margins.Top;
-            var right = section.Margins.Right?.Value;
+            var right = section.Margins.Right;
             var bottom = section.Margins.Bottom;
-            var left = section.Margins.Left?.Value;
+            var left = section.Margins.Left;
             SetTwipsAttribute(htmlDoc, element, "data-margin-top-twips", top, "SectionMetadata:margin-top");
             SetTwipsAttribute(htmlDoc, element, "data-margin-right-twips", right, "SectionMetadata:margin-right");
             SetTwipsAttribute(htmlDoc, element, "data-margin-bottom-twips", bottom, "SectionMetadata:margin-bottom");
@@ -65,9 +65,7 @@ namespace OfficeIMO.Word.Html {
             if (heightTwips != null) {
                 styles.Add($"height:{FormatTwipsAsPixels(heightTwips.Value)}");
             }
-            if (top != null || right != null || bottom != null || left != null) {
-                styles.Add($"padding:{FormatTwipsAsPixels(top ?? 0)} {FormatTwipsAsPixels(right ?? 0)} {FormatTwipsAsPixels(bottom ?? 0)} {FormatTwipsAsPixels(left ?? 0)}");
-            }
+            styles.Add($"padding:{FormatTwipsAsPixels(top ?? 0)} {FormatTwipsAsPixels(right)} {FormatTwipsAsPixels(bottom ?? 0)} {FormatTwipsAsPixels(left)}");
             if (!isFirstSection) {
                 styles.Add("break-before:page");
             }

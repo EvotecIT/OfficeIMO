@@ -25,30 +25,30 @@ namespace OfficeIMO.Examples.PowerPoint {
             introTitle.Color = "1F4E79";
             intro.AddTextBoxCm("Built with the default Office theme and slide transitions.", marginCm, 3.2, content.WidthCm, 1.1);
             intro.AddTextBoxCm($"Theme: {presentation.ThemeName}", marginCm, 4.6, content.WidthCm, 1.0);
-            intro.Transition = SlideTransition.Fade;
+            intro.Transition = PowerPointSlideTransition.Fade;
 
-            IReadOnlyList<SlideTransition> transitions = new[] {
-                SlideTransition.Fade,
-                SlideTransition.Wipe,
-                SlideTransition.BlindsVertical,
-                SlideTransition.BlindsHorizontal,
-                SlideTransition.CombHorizontal,
-                SlideTransition.CombVertical,
-                SlideTransition.PushLeft,
-                SlideTransition.PushRight,
-                SlideTransition.PushUp,
-                SlideTransition.PushDown,
-                SlideTransition.Cut,
-                SlideTransition.Flash,
-                SlideTransition.WarpIn,
-                SlideTransition.WarpOut,
-                SlideTransition.Prism,
-                SlideTransition.FerrisLeft,
-                SlideTransition.FerrisRight,
-                SlideTransition.Morph
+            IReadOnlyList<PowerPointSlideTransition> transitions = new[] {
+                PowerPointSlideTransition.Fade,
+                PowerPointSlideTransition.Wipe,
+                PowerPointSlideTransition.BlindsVertical,
+                PowerPointSlideTransition.BlindsHorizontal,
+                PowerPointSlideTransition.CombHorizontal,
+                PowerPointSlideTransition.CombVertical,
+                PowerPointSlideTransition.PushLeft,
+                PowerPointSlideTransition.PushRight,
+                PowerPointSlideTransition.PushUp,
+                PowerPointSlideTransition.PushDown,
+                PowerPointSlideTransition.Cut,
+                PowerPointSlideTransition.Flash,
+                PowerPointSlideTransition.WarpIn,
+                PowerPointSlideTransition.WarpOut,
+                PowerPointSlideTransition.Prism,
+                PowerPointSlideTransition.FerrisLeft,
+                PowerPointSlideTransition.FerrisRight,
+                PowerPointSlideTransition.Morph
             };
 
-            foreach (SlideTransition transition in transitions) {
+            foreach (PowerPointSlideTransition transition in transitions) {
                 PowerPointSlide slide = presentation.AddSlide();
                 slide.Transition = transition;
 

@@ -265,8 +265,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
-                OpenXmlPart part = document.AddWorkbookConnectionMetadata(connectionXml);
-                Assert.IsType<ConnectionsPart>(part);
+                ExcelPackagePartInfo part = document.AddWorkbookConnectionMetadata(connectionXml);
+                Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.connections+xml", part.ContentType);
+                Assert.IsType<ConnectionsPart>(document.WorkbookPartRoot.GetPartById(part.RelationshipId));
                 document.Save();
             }
 
@@ -312,8 +313,8 @@ namespace OfficeIMO.Tests {
                 ExcelFeatureReport report = document.InspectFeatures();
                 Assert.Empty(report.FindFeatures("Slicers"));
                 Assert.Empty(report.FindFeatures("Timelines"));
-                Assert.Equal(ExcelFeatureSupportLevel.Editable, report.FindFeatures("Slicer binding metadata").Single().SupportLevel);
-                Assert.Equal(ExcelFeatureSupportLevel.Editable, report.FindFeatures("Timeline binding metadata").Single().SupportLevel);
+                Assert.Equal(OfficeFeatureSupportLevel.Editable, report.FindFeatures("Slicer binding metadata").Single().SupportLevel);
+                Assert.Equal(OfficeFeatureSupportLevel.Editable, report.FindFeatures("Timeline binding metadata").Single().SupportLevel);
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {

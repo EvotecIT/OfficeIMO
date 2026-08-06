@@ -14,21 +14,21 @@ namespace OfficeIMO.Word.Html {
         }
 
         private readonly struct BlockBorder {
-            internal BlockBorder(BorderValues style, UInt32Value size, SixColor? color) {
+            internal BlockBorder(BorderValues style, uint size, SixColor? color) {
                 Style = style;
                 Size = size;
                 Color = color;
             }
 
             internal BorderValues Style { get; }
-            internal UInt32Value Size { get; }
+            internal uint Size { get; }
             internal SixColor? Color { get; }
         }
 
         private struct BlockBorderState {
             internal BlockBorderState(
                 BorderValues style,
-                UInt32Value size,
+                uint size,
                 SixColor? color,
                 bool transparentColor = false) {
                 Style = style;
@@ -38,7 +38,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             internal BorderValues? Style { get; set; }
-            internal UInt32Value? Size { get; set; }
+            internal uint? Size { get; set; }
             internal SixColor? Color { get; set; }
             internal bool TransparentColor { get; set; }
 
@@ -516,7 +516,7 @@ namespace OfficeIMO.Word.Html {
                     border.Style = style;
                     break;
                 case "width":
-                    if (!TryParseBlockBorderWidth(value, out UInt32Value size)) {
+                    if (!TryParseBlockBorderWidth(value, out uint size)) {
                         return;
                     }
                     border.Size = size;
@@ -572,7 +572,7 @@ namespace OfficeIMO.Word.Html {
         private static bool TryParseBlockBorder(
             string value,
             out BorderValues style,
-            out UInt32Value size,
+            out uint size,
             out SixColor color,
             out bool hasExplicitStyle,
             out bool hasExplicitColor,
@@ -623,7 +623,7 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
-        private static bool TryParseBlockBorderWidth(string value, out UInt32Value size) {
+        private static bool TryParseBlockBorderWidth(string value, out uint size) {
             if (!TryParseRawBlockBorderWidth(value, out double width) || width < 0) {
                 size = 0U;
                 return false;

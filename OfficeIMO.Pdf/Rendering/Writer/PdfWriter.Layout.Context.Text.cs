@@ -120,9 +120,9 @@ internal static partial class PdfWriter {
         private double FirstTextBaselineFromTop(PdfStandardFont font, double fontSize, double topY) =>
             topY - GetAscenderForOptions(font, fontSize, currentOpts);
 
-        private void MarkRichFonts(System.Collections.Generic.IEnumerable<TextRun> runs) {
-            System.Collections.Generic.IReadOnlyList<TextRun> effectiveRuns = NormalizeFallbackRuns(runs, ChooseNormal(currentOpts.DefaultFont), currentOpts);
-            foreach (TextRun run in effectiveRuns) {
+        private void MarkRichFonts(System.Collections.Generic.IEnumerable<PdfTextRun> runs) {
+            System.Collections.Generic.IReadOnlyList<PdfTextRun> effectiveRuns = NormalizeFallbackRuns(runs, ChooseNormal(currentOpts.DefaultFont), currentOpts);
+            foreach (PdfTextRun run in effectiveRuns) {
                 if (run.InlineElement != null) {
                     continue;
                 }

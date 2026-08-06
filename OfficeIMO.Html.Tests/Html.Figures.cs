@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
             using var document = conversion.Value;
 
             var diagnostic = Assert.Single(conversion.Report.Diagnostics, item => item.Code == "HtmlFigureStructureFlattened");
-            Assert.Equal(HtmlConversionLossKind.Approximation, diagnostic.LossKind);
+            Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
             Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "First");
             Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "Second");
             Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "Grouped content");

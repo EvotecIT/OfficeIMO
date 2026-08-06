@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 PowerPointMedia media = slide.AddAudio(audio, "audio/wav",
                     ".wav", 15875L, 31750L, 158750L, 79375L);
                 media.Name = "Native WAV";
-                slide.Transition = SlideTransition.Fade;
+                slide.Transition = PowerPointSlideTransition.Fade;
                 using var transitionSound = new MemoryStream(wave,
                     writable: false);
                 slide.SetTransitionSound(transitionSound, "Native WAV");
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
-                slide.Transition = SlideTransition.Fade;
+                slide.Transition = PowerPointSlideTransition.Fade;
                 using (var audio = new MemoryStream(wave,
                            writable: false)) {
                     slide.SetTransitionSound(audio, "Media WAV");
@@ -250,7 +250,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 slide.AddTextBox("Editable companion");
-                slide.Transition = SlideTransition.Cut;
+                slide.Transition = PowerPointSlideTransition.Cut;
                 using (var audio = new MemoryStream(wave,
                            writable: false)) {
                     slide.SetTransitionSound(audio, "Preserved WAV");
@@ -367,7 +367,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(projected.Slides[0].Media);
             PowerPointFeatureFinding finding = Assert.Single(projected
                 .InspectFeatures().FindFeatures("Legacy media metadata"));
-            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+            Assert.Equal(OfficeFeatureSupportLevel.Preserved,
                 finding.SupportLevel);
             Assert.Equal(1, finding.Count);
             LegacyPptWritePreflightReport preflight = projected
@@ -379,7 +379,7 @@ namespace OfficeIMO.Tests {
                 projected.ToBytes(PowerPointFileFormat.Ppt));
             Assert.Equal(sourceBytes, projected.ToBytes(
                 PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
-                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                    LossPolicy = OfficeConversionLossPolicy.Allow
                 }));
         }
 
@@ -405,7 +405,7 @@ namespace OfficeIMO.Tests {
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
-                slide.Transition = SlideTransition.Cut;
+                slide.Transition = PowerPointSlideTransition.Cut;
                 using (var audio = new MemoryStream(wave,
                            writable: false)) {
                     slide.SetTransitionSound(audio, "Flags WAV");

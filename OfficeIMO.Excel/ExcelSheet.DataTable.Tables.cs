@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
             int startColumn = 1,
             bool includeHeaders = true,
             string? tableName = null,
-            TableStyle style = TableStyle.TableStyleMedium2,
+            ExcelTableStyle style = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = true,
             CancellationToken ct = default) {
             if (source == null) throw new ArgumentNullException(nameof(source));
@@ -67,14 +67,14 @@ namespace OfficeIMO.Excel {
             int startColumn = 1,
             bool includeHeaders = true,
             string? tableName = null,
-            TableStyle style = TableStyle.TableStyleMedium2,
+            ExcelTableStyle style = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = true,
-            ExecutionMode? mode = null,
+            ExcelExecutionMode? mode = null,
             CancellationToken ct = default) {
             if (table == null) throw new ArgumentNullException(nameof(table));
 
             bool canRegisterDirectSave = !_excelDocument.IsMaterializingDeferredDataSetImport
-                && mode != ExecutionMode.Parallel
+                && mode != ExcelExecutionMode.Parallel
                 && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, table.Columns.Count);
 
             int rowsCount = table.Rows.Count + (includeHeaders ? 1 : 0);
@@ -180,7 +180,7 @@ namespace OfficeIMO.Excel {
             DataTable dataTable,
             string tableName,
             bool matchColumnsByHeader = true,
-            ExecutionMode? mode = null,
+            ExcelExecutionMode? mode = null,
             CancellationToken ct = default) {
             if (dataTable == null) throw new ArgumentNullException(nameof(dataTable));
             if (tableName == null) throw new ArgumentNullException(nameof(tableName));

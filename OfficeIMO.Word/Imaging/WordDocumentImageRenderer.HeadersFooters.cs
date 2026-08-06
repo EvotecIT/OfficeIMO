@@ -56,8 +56,8 @@ namespace OfficeIMO.Word {
 
         private static WordHeaderFooterPageFrame CreateHeaderFooterPageFrame(WordSection section, OfficeDrawing drawing, int pageIndex, int sectionIndex, int sectionPageNumberStart, int sectionPageIndex, int totalPageCount, int sectionPageCount) {
             WordMargins margins = section.Margins;
-            double left = ToPoints(margins.Left?.Value, DefaultMarginPoints);
-            double right = ToPoints(margins.Right?.Value, DefaultMarginPoints);
+            double left = ToPoints(margins.Left, DefaultMarginPoints);
+            double right = ToPoints(margins.Right, DefaultMarginPoints);
             double topMargin = ToPoints(margins.Top, DefaultMarginPoints);
             double bottomMargin = ToPoints(margins.Bottom, DefaultMarginPoints);
             double contentWidth = Math.Max(1D, drawing.Width - left - right);
@@ -69,7 +69,7 @@ namespace OfficeIMO.Word {
             double headerTop = 0D;
             double headerRenderBottom = 0D;
             if (header != null) {
-                double headerDistance = ToPoints(margins.HeaderDistance?.Value, DefaultMarginPoints / 2D);
+                double headerDistance = ToPoints(margins.HeaderDistance, DefaultMarginPoints / 2D);
                 double headerHeight = EstimateHeaderFooterContentHeight(header, drawing.Width, left, contentWidth, pageIndex, sectionIndex, sectionPageCount, pageNumberValue, pageNumberText, totalPageCount);
                 headerTop = Math.Max(0D, Math.Min(headerDistance, topMargin) - (DefaultHeaderFooterLineHeightPoints / 2D));
                 double headerContentBottom = Math.Min(drawing.Height, headerTop + headerHeight);
@@ -83,7 +83,7 @@ namespace OfficeIMO.Word {
             double footerTop = drawing.Height;
             double footerRenderBottom = drawing.Height;
             if (footer != null) {
-                double footerDistance = ToPoints(margins.FooterDistance?.Value, DefaultMarginPoints / 2D);
+                double footerDistance = ToPoints(margins.FooterDistance, DefaultMarginPoints / 2D);
                 double footerHeight = EstimateHeaderFooterContentHeight(footer, drawing.Width, left, contentWidth, pageIndex, sectionIndex, sectionPageCount, pageNumberValue, pageNumberText, totalPageCount);
                 double footerTopFromDistance = drawing.Height - footerDistance - footerHeight;
                 footerTop = Math.Min(Math.Max(0D, footerTopFromDistance), Math.Max(0D, drawing.Height - footerHeight));
@@ -210,7 +210,7 @@ namespace OfficeIMO.Word {
 
         private static void AddHeaderFooterContent(WordHeaderFooter headerFooter, WordImageFlowContext context, List<OfficeImageExportDiagnostic> diagnostics, string kind) {
             WordDocument document = headerFooter.Document;
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = DocumentTraversal.BuildListMarkers(document);
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = WordDocumentTraversal.BuildListMarkers(document);
             foreach (OpenXmlElement element in headerFooter.ChildElements) {
                 bool added = AddHeaderFooterElementContent(document, element, context, diagnostics, listMarkers, kind);
 

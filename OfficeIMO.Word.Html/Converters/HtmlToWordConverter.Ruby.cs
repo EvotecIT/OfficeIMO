@@ -22,7 +22,7 @@ namespace OfficeIMO.Word.Html {
                     "HtmlRubyPairingApproximation",
                     "Ruby base and annotation segments could not be paired one-to-one and were combined into one Word ruby run.",
                     "ruby",
-                    lossKind: HtmlConversionLossKind.Approximation);
+                    lossKind: OfficeConversionLossKind.Approximation);
             }
             return true;
         }
@@ -265,8 +265,8 @@ namespace OfficeIMO.Word.Html {
             }
             if (formatting.Marked) properties.AppendChild(new RunStyle { Val = HtmlSemanticStyleIds.MarkedText });
             if (formatting.FontSize.HasValue) properties.AppendChild(new FontSize { Val = (formatting.FontSize.Value * 2).ToString(CultureInfo.InvariantCulture) });
-            if (formatting.Caps == CapsStyle.SmallCaps) properties.AppendChild(new SmallCaps());
-            if (formatting.Caps == CapsStyle.Caps) properties.AppendChild(new Caps());
+            if (formatting.Caps == WordCapsStyle.SmallCaps) properties.AppendChild(new SmallCaps());
+            if (formatting.Caps == WordCapsStyle.Caps) properties.AppendChild(new Caps());
             if (formatting.LetterSpacing.HasValue) properties.AppendChild(new Spacing { Val = formatting.LetterSpacing.Value });
             if (!string.IsNullOrWhiteSpace(formatting.Language)) properties.AppendChild(new Languages { Val = formatting.Language! });
 

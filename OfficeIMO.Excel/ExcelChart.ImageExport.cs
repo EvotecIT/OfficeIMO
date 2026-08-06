@@ -542,10 +542,10 @@ namespace OfficeIMO.Excel {
                 .OfType<C.MajorGridlines>();
 
         private static OpenXmlCompositeElement? ResolveImageExportCategoryAxis(C.PlotArea plotArea) =>
-            (OpenXmlCompositeElement?)ResolveCategoryAxis(plotArea, ExcelChartAxisGroup.Primary) ?? ResolveScatterXAxis(plotArea);
+            (OpenXmlCompositeElement?)ResolveCategoryAxis(plotArea, OfficeChartAxisGroup.Primary) ?? ResolveScatterXAxis(plotArea);
 
         private static OpenXmlCompositeElement? ResolveImageExportValueAxis(C.PlotArea plotArea) =>
-            (OpenXmlCompositeElement?)ResolveValueAxis(plotArea, ExcelChartAxisGroup.Primary) ?? ResolveScatterYAxis(plotArea);
+            (OpenXmlCompositeElement?)ResolveValueAxis(plotArea, OfficeChartAxisGroup.Primary) ?? ResolveScatterYAxis(plotArea);
 
         private static bool IsImageExportAxisVisible(OpenXmlCompositeElement? axis) =>
             axis == null || !IsEnabled(axis.GetFirstChild<C.Delete>());
@@ -1460,7 +1460,7 @@ namespace OfficeIMO.Excel {
 
         private static OfficeChartDataLabelPosition MapDataLabelPosition(C.DataLabelPositionValues? position) {
             if (position == null) {
-                return OfficeChartDataLabelPosition.Auto;
+                return OfficeChartDataLabelPosition.BestFit;
             }
 
             C.DataLabelPositionValues value = position.Value;
@@ -1496,7 +1496,7 @@ namespace OfficeIMO.Excel {
                 return OfficeChartDataLabelPosition.Bottom;
             }
 
-            return OfficeChartDataLabelPosition.Auto;
+            return OfficeChartDataLabelPosition.BestFit;
         }
 
         private sealed class ImageExportSeriesStyle {

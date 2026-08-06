@@ -64,7 +64,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="newImage">Stream containing the new image data.</param>
         /// <param name="type">Image format of the new image.</param>
-        public void UpdateImage(Stream newImage, ImagePartType type) {
+        public void UpdateImage(Stream newImage, PowerPointImagePartType type) {
             if (newImage == null) {
                 throw new ArgumentNullException(nameof(newImage));
             }
@@ -119,7 +119,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new FileNotFoundException("Image file not found.", imagePath);
             }
 
-            ImagePartType type = GetImagePartType(imagePath);
+            PowerPointImagePartType type = GetImagePartType(imagePath);
             using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             UpdateImage(stream, type);
         }
@@ -249,7 +249,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static ImagePartType GetImagePartType(string imagePath) {
+        private static PowerPointImagePartType GetImagePartType(string imagePath) {
             return ImagePartTypeExtensions.FromImagePath(imagePath);
         }
 

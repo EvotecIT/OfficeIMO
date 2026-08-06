@@ -22,9 +22,9 @@ namespace OfficeIMO.Word.Markdown {
 
         private static double EstimatePageContentWidthPixels(WordDocument document) {
             var section = document.Sections.FirstOrDefault();
-            var pageWidthTwips = (double?)section?.PageSettings?.Width?.Value ?? DefaultPageWidthTwips;
-            var leftMarginTwips = (double?)section?.Margins?.Left?.Value ?? DefaultHorizontalMarginTwips;
-            var rightMarginTwips = (double?)section?.Margins?.Right?.Value ?? DefaultHorizontalMarginTwips;
+            var pageWidthTwips = (double?)section?.PageSettings.Width ?? DefaultPageWidthTwips;
+            var leftMarginTwips = (double?)section?.Margins.Left ?? DefaultHorizontalMarginTwips;
+            var rightMarginTwips = (double?)section?.Margins.Right ?? DefaultHorizontalMarginTwips;
             var contentTwips = pageWidthTwips - leftMarginTwips - rightMarginTwips;
 
             if (contentTwips < MinimumContentWidthPixels) {
@@ -216,7 +216,7 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static bool IsRecoverableDataUriImageInsertionException(Exception ex) =>
-            ex is ImageFormatNotSupportedException ||
+            ex is WordImageFormatNotSupportedException ||
             ex is System.IO.InvalidDataException ||
             ex is ArgumentException ||
             ex is DocumentFormat.OpenXml.Packaging.OpenXmlPackageException;

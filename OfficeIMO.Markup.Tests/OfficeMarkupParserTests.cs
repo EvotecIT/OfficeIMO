@@ -657,8 +657,8 @@ Explain the revenue trend.
         Assert.Contains("chart1.SetCategoryAxisTitle(@\"Quarter\")", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetValueAxisTitle(@\"Amount\")", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetValueAxisNumberFormat(@\"#,##0\")", code, StringComparison.Ordinal);
-        Assert.Contains("chart1.SetLegend(PowerPointChartLegendPosition.Right)", code, StringComparison.Ordinal);
-        Assert.Contains("chart1.SetDataLabelPosition(PowerPointChartDataLabelPosition.OutsideEnd)", code, StringComparison.Ordinal);
+        Assert.Contains("chart1.SetLegend(OfficeChartLegendPosition.Right)", code, StringComparison.Ordinal);
+        Assert.Contains("chart1.SetDataLabelPosition(OfficeChartDataLabelPosition.OutsideEnd)", code, StringComparison.Ordinal);
         Assert.Contains("slide1.Notes.Text", code, StringComparison.Ordinal);
         Assert.Contains("Placement: x=@\"8%\"", code, StringComparison.Ordinal);
     }
@@ -737,9 +737,9 @@ A,120
         Assert.Contains("chart1.SetCategoryAxisTitle(@\"Product\")", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetValueAxisTitle(@\"Revenue\")", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetValueAxisNumberFormat(@\"#,##0\")", code, StringComparison.Ordinal);
-        Assert.Contains("chart1.SetLegend(ExcelChartLegendPosition.Right)", code, StringComparison.Ordinal);
+        Assert.Contains("chart1.SetLegend(OfficeChartLegendPosition.Right)", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetDataLabels(showValue: true", code, StringComparison.Ordinal);
-        Assert.Contains("ExcelChartDataLabelPosition.OutsideEnd", code, StringComparison.Ordinal);
+        Assert.Contains("OfficeChartDataLabelPosition.OutsideEnd", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetValueAxisGridlines(showMajor: true", code, StringComparison.Ordinal);
     }
 
@@ -1050,7 +1050,7 @@ Q3,260
             Assert.True(File.Exists(path));
             using (var presentation = PowerPointPresentation.Load(path)) {
                 Assert.Equal(3, presentation.Slides.Count);
-                Assert.Equal(SlideTransition.Fade, presentation.Slides[0].Transition);
+                Assert.Equal(PowerPointSlideTransition.Fade, presentation.Slides[0].Transition);
                 Assert.Equal("Open with the top-line result.", presentation.Slides[0].Notes.Text);
                 Assert.Contains(presentation.Slides[0].Shapes.OfType<PowerPointTextBox>(), box => box.Text.Contains("Quarterly Review", StringComparison.Ordinal));
                 Assert.Contains(presentation.Slides[0].Shapes.OfType<PowerPointAutoShape>(), shape =>
@@ -1330,14 +1330,14 @@ Body
 
             using var presentation = PowerPointPresentation.Load(path);
             Assert.Equal(3, presentation.Slides.Count);
-            Assert.Equal(SlideTransition.PushLeft, presentation.Slides[0].Transition);
-            Assert.Equal(SlideTransitionSpeed.Fast, presentation.Slides[0].TransitionSpeed);
+            Assert.Equal(PowerPointSlideTransition.PushLeft, presentation.Slides[0].Transition);
+            Assert.Equal(PowerPointSlideTransitionSpeed.Fast, presentation.Slides[0].TransitionSpeed);
             Assert.Equal(0.5, presentation.Slides[0].TransitionDurationSeconds);
             Assert.False(presentation.Slides[0].TransitionAdvanceOnClick);
             Assert.Equal(4.0, presentation.Slides[0].TransitionAdvanceAfterSeconds);
-            Assert.Equal(SlideTransition.WarpOut, presentation.Slides[1].Transition);
+            Assert.Equal(PowerPointSlideTransition.WarpOut, presentation.Slides[1].Transition);
             Assert.Equal(0.7, presentation.Slides[1].TransitionDurationSeconds);
-            Assert.Equal(SlideTransition.FerrisRight, presentation.Slides[2].Transition);
+            Assert.Equal(PowerPointSlideTransition.FerrisRight, presentation.Slides[2].Transition);
         } finally {
             if (File.Exists(path)) {
                 File.Delete(path);
@@ -1851,12 +1851,12 @@ profile: presentation
             using (var presentation = PowerPointPresentation.Load(path)) {
                 var slides = presentation.Slides.ToArray();
                 Assert.Equal(6, slides.Length);
-                Assert.Equal(SlideTransition.Fade, slides[0].Transition);
-                Assert.Equal(SlideTransition.PushLeft, slides[1].Transition);
-                Assert.Equal(SlideTransition.WarpOut, slides[2].Transition);
-                Assert.Equal(SlideTransition.FerrisRight, slides[3].Transition);
-                Assert.Equal(SlideTransition.BlindsVertical, slides[4].Transition);
-                Assert.Equal(SlideTransition.CombHorizontal, slides[5].Transition);
+                Assert.Equal(PowerPointSlideTransition.Fade, slides[0].Transition);
+                Assert.Equal(PowerPointSlideTransition.PushLeft, slides[1].Transition);
+                Assert.Equal(PowerPointSlideTransition.WarpOut, slides[2].Transition);
+                Assert.Equal(PowerPointSlideTransition.FerrisRight, slides[3].Transition);
+                Assert.Equal(PowerPointSlideTransition.BlindsVertical, slides[4].Transition);
+                Assert.Equal(PowerPointSlideTransition.CombHorizontal, slides[5].Transition);
             }
         } finally {
             if (File.Exists(path)) {
@@ -2524,8 +2524,8 @@ profile: document
             Assert.Equal(new[] { "Root four", "Nested bullet", "Root five" }, items.Select(paragraph => paragraph.Text).ToArray());
             Assert.Equal(new[] { 0, 1, 0 }, items.Select(paragraph => paragraph.ListItemLevel!.Value).ToArray());
 
-            var rootInfo = DocumentTraversal.GetListInfo(items[0])!.Value;
-            var nestedInfo = DocumentTraversal.GetListInfo(items[1])!.Value;
+            var rootInfo = WordDocumentTraversal.GetListInfo(items[0])!.Value;
+            var nestedInfo = WordDocumentTraversal.GetListInfo(items[1])!.Value;
             Assert.True(rootInfo.Ordered);
             Assert.Equal(4, rootInfo.Start);
             Assert.False(nestedInfo.Ordered);

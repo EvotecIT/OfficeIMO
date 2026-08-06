@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
         /// <param name="save">When true, saves the workbook after the change.</param>
         /// <param name="hidden">When true, marks the defined name as hidden.</param>
         /// <param name="validationMode">Controls how the name and range are validated: Sanitize (default) clamps/adjusts; Strict throws on invalid input.</param>
-        public void SetNamedRange(string name, string range, ExcelSheet? scope = null, bool save = true, bool hidden = false, NameValidationMode validationMode = NameValidationMode.Sanitize) {
+        public void SetNamedRange(string name, string range, ExcelSheet? scope = null, bool save = true, bool hidden = false, ExcelDefinedNameValidationMode validationMode = ExcelDefinedNameValidationMode.Sanitize) {
 #if NET8_0_OR_GREATER
             ArgumentNullException.ThrowIfNullOrWhiteSpace(name);
             ArgumentNullException.ThrowIfNullOrWhiteSpace(range);
@@ -382,10 +382,10 @@ namespace OfficeIMO.Excel {
         /// Throws <see cref="ArgumentException"/> if the input is not a valid A1 range or cell reference.
         /// </summary>
         private string NormalizeRange(string range) {
-            return NormalizeRange(range, NameValidationMode.Sanitize);
+            return NormalizeRange(range, ExcelDefinedNameValidationMode.Sanitize);
         }
 
-        private string NormalizeRange(string range, NameValidationMode validationMode) {
+        private string NormalizeRange(string range, ExcelDefinedNameValidationMode validationMode) {
             string? sheetPrefix = null;
             string a1 = range;
             int idx = range.LastIndexOf('!');
@@ -412,7 +412,7 @@ namespace OfficeIMO.Excel {
 
             // Bounds check: Excel supports 1..1,048,576 rows and 1..16,384 columns (XFD)
             bool outOfBounds = (r1 < 1 || c1 < 1 || r2 > A1.MaxRows || c2 > A1.MaxColumns || c1 > A1.MaxColumns || r1 > A1.MaxRows);
-            if (outOfBounds && validationMode == NameValidationMode.Strict)
+            if (outOfBounds && validationMode == ExcelDefinedNameValidationMode.Strict)
                 throw new ArgumentOutOfRangeException(nameof(range), "A1 range exceeds Excel bounds (rows ≤ 1,048,576; cols ≤ 16,384). Use Sanitize to clamp.");
             // Sanitize: clamp into valid range
             r1 = Math.Max(1, Math.Min(A1.MaxRows, r1));
@@ -430,7 +430,7 @@ namespace OfficeIMO.Excel {
             return (sheetPrefix != null ? sheetPrefix + "!" : string.Empty) + normalized;
         }
 
-        private string NormalizeLocalNamedRange(ExcelSheet scope, string range, NameValidationMode validationMode) {
+        private string NormalizeLocalNamedRange(ExcelSheet scope, string range, ExcelDefinedNameValidationMode validationMode) {
             if (SheetNameLookup.TryParseSheetQualifiedReference(range, out _, out _)) {
                 return NormalizeRange(range, validationMode);
             }
@@ -438,7 +438,7 @@ namespace OfficeIMO.Excel {
             string sheetQuoted = $"'{EscapeSheetName(scope.Name)}'!";
             return NormalizeRange(sheetQuoted + range, validationMode);
         }
-        private string NormalizeSheetPrefix(string sheetToken, NameValidationMode validationMode) {
+        private string NormalizeSheetPrefix(string sheetToken, ExcelDefinedNameValidationMode validationMode) {
             if (string.IsNullOrWhiteSpace(sheetToken)) {
                 return sheetToken;
             }
@@ -449,7 +449,7 @@ namespace OfficeIMO.Excel {
                 return trimmedToken;
             }
 
-            string effectiveSheetName = validationMode == NameValidationMode.Sanitize
+            string effectiveSheetName = validationMode == ExcelDefinedNameValidationMode.Sanitize
                 ? SheetNameLookup.ResolveExistingOrRequested(Sheets, requestedSheetName)
                 : requestedSheetName;
 
@@ -475,10 +475,10 @@ namespace OfficeIMO.Excel {
         /// - Cannot look like a cell reference (e.g., A1, AA10) or an R1C1 reference
         /// - Cannot be TRUE or FALSE (case-insensitive)
         /// </summary>
-        private static string EnsureValidDefinedName(string name, NameValidationMode mode) {
+        private static string EnsureValidDefinedName(string name, ExcelDefinedNameValidationMode mode) {
             const int MaxLen = 255;
             if (string.IsNullOrWhiteSpace(name)) {
-                if (mode == NameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be null or whitespace.", nameof(name));
+                if (mode == ExcelDefinedNameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be null or whitespace.", nameof(name));
                 name = "_";
             }
 
@@ -494,7 +494,7 @@ namespace OfficeIMO.Excel {
             // Disallow TRUE/FALSE exactly (case-insensitive)
             var normalized = sb.ToString();
             if (string.Equals(normalized, "TRUE", System.StringComparison.OrdinalIgnoreCase) || string.Equals(normalized, "FALSE", System.StringComparison.OrdinalIgnoreCase)) {
-                if (mode == NameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be TRUE or FALSE.", nameof(name));
+                if (mode == ExcelDefinedNameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be TRUE or FALSE.", nameof(name));
                 normalized = "_" + normalized;
             }
 
@@ -515,12 +515,12 @@ namespace OfficeIMO.Excel {
             }
 
             if (LooksLikeA1(normalized) || LooksLikeR1C1(normalized)) {
-                if (mode == NameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be a cell address or R1C1 reference.", nameof(name));
+                if (mode == ExcelDefinedNameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be a cell address or R1C1 reference.", nameof(name));
                 normalized = "_" + normalized;
             }
 
             if (normalized.Length > MaxLen) {
-                if (mode == NameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' exceeds maximum length of {MaxLen} characters (actual {normalized.Length}).", nameof(name));
+                if (mode == ExcelDefinedNameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' exceeds maximum length of {MaxLen} characters (actual {normalized.Length}).", nameof(name));
                 normalized = normalized.Substring(0, MaxLen);
             }
 

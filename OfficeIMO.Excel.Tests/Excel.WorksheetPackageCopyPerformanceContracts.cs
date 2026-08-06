@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
                 source.CellValue(2, 2, 125.5m);
                 source.CellBold(1, 1, true);
                 source.CellBold(1, 2, true);
-                source.AddTable("A1:B2", hasHeader: true, name: "SourceSales", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                source.AddTable("A1:B2", hasHeader: true, name: "SourceSales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
                 sourceDocument.Save();
             }
 
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                     sourceDocument,
                     "Source",
                     "Imported",
-                    SheetNameValidationMode.Sanitize,
+                    ExcelSheetNameValidationMode.Sanitize,
                     new ExcelWorksheetCopyOptions { CopyMode = ExcelWorksheetCopyMode.Package });
                 targetDocument.Save();
                 targetDocument.AddWorksheet("AfterCopy").CellValue(1, 1, "New shared string");

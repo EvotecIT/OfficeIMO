@@ -74,7 +74,7 @@ namespace OfficeIMO.Word {
                 // The caller has not requested a lossy export, so the public loss gate must not
                 // prevent inspection of the projection and its diagnostics.
                 projectedDocument.Save(packageStream, WordFileFormat.Docx, new WordSaveOptions {
-                    LossPolicy = WordConversionLossPolicy.Allow
+                    LossPolicy = OfficeConversionLossPolicy.Allow
                 });
                 packageStream.Seek(0, SeekOrigin.Begin);
                 projectedDocument.Dispose();
@@ -498,7 +498,7 @@ namespace OfficeIMO.Word {
                 .Select(row => row.TableAutofit)
                 .FirstOrDefault(autofit => autofit.HasValue);
             if (tableAutofit != null) {
-                table.LayoutType = tableAutofit.Value ? WordTableLayoutMode.Autofit : WordTableLayoutMode.Fixed;
+                table.LayoutMode = tableAutofit.Value ? WordTableLayoutMode.AutoFit : WordTableLayoutMode.Fixed;
             }
 
             int? tableCellSpacingTwips = tableBlock.Rows
@@ -1030,7 +1030,7 @@ namespace OfficeIMO.Word {
                 picture.FileName,
                 picture.WidthPixels,
                 picture.HeightPixels,
-                WrapTextImage.InLineWithText,
+                WordImageTextWrapping.InLineWithText,
                 "Imported legacy DOC inline picture");
             if (legacyRun.Revision.HasValue) {
                 Run? sourceRun = paragraph._paragraph.Elements<Run>()
@@ -2818,7 +2818,7 @@ namespace OfficeIMO.Word {
             }
 
             if (properties.Manager != null) {
-                document.ApplicationProperties.Manager = new Manager { Text = properties.Manager };
+                document.ApplicationProperties.Manager = properties.Manager;
             }
 
             foreach (KeyValuePair<string, LegacyDocDocumentPropertyValue> property in properties.CustomProperties) {

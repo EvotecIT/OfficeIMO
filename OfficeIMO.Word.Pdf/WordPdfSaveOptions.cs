@@ -76,7 +76,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>
         /// Optional page orientation for the generated PDF.
         /// </summary>
-        public PdfCore.PdfPageOrientation? Orientation { get; set; }
+        public OfficePageOrientation? Orientation { get; set; }
 
         /// <summary>
         /// Optional default page size applied when creating new documents.
@@ -86,7 +86,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>
         /// Optional default page orientation applied when creating new documents.
         /// </summary>
-        public WordPageOrientation? DefaultOrientation { get; set; }
+        public OfficePageOrientation? DefaultOrientation { get; set; }
 
         /// <summary>
         /// Optional PDF title that overrides the Word document title.

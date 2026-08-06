@@ -37,11 +37,11 @@ namespace OfficeIMO.Tests {
                 }
 
                 var importer = new GoogleSheetsImporter();
-                GoogleSheetsImportResult native = await importer.ImportAsync(fileId!, session, new GoogleSheetsImportOptions { Mode = GoogleSheetsImportMode.Native });
+                GoogleSheetsImportResult native = await importer.ImportAsync(fileId!, session, new GoogleSheetsImportOptions { Mode = GoogleWorkspaceImportMode.Native });
                 using (native.Document) {
                     Assert.Equal("OfficeIMO", native.Document.Sheets[0].CellAt(2, 1).GetValue<string>());
                 }
-                GoogleSheetsImportResult broad = await importer.ImportAsync(fileId!, session, new GoogleSheetsImportOptions { Mode = GoogleSheetsImportMode.DriveExport });
+                GoogleSheetsImportResult broad = await importer.ImportAsync(fileId!, session, new GoogleSheetsImportOptions { Mode = GoogleWorkspaceImportMode.DriveExport });
                 using (broad.Document) {
                     Assert.Equal("OfficeIMO", broad.Document.Sheets[0].CellAt(2, 1).GetValue<string>());
                 }

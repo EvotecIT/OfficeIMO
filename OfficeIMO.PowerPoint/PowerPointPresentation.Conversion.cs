@@ -42,7 +42,7 @@ public sealed partial class PowerPointPresentation {
         PowerPointFileFormat destinationFormat = PowerPointPresentationLoadRouting.GetFormat(paths.Destination);
         OfficeCompatibilityMode compatibilityMode = GetCompatibilityMode(options);
         bool allowsLoss = AllowsLoss(options, compatibilityMode);
-        List<PowerPointConversionDiagnostic> diagnostics = CreatePowerPointConversionDiagnostics(
+        List<OfficeConversionDiagnostic> diagnostics = CreateOfficeConversionDiagnostics(
             presentation,
             paths.Source,
             sourceDescriptor,
@@ -64,7 +64,7 @@ public sealed partial class PowerPointPresentation {
 
         if (sourceDescriptor.Equals(destinationDescriptor)) {
             throw new PowerPointPresentationConversionException(
-                PowerPointPresentationConversionFailureReason.SameFormat,
+                OfficeConversionFailureReason.SameFormat,
                 assessment,
                 $"The source is already {sourceDescriptor.Id}. Convert requires a different concrete source and destination format.");
         }
@@ -72,22 +72,22 @@ public sealed partial class PowerPointPresentation {
         if (diagnostics.Any(diagnostic => diagnostic.RepresentsDataLoss
                 && diagnostic.CompatibilityState == OfficeCompatibilityState.Blocked)) {
             throw new PowerPointPresentationConversionException(
-                PowerPointPresentationConversionFailureReason.DataLossBlocked,
+                OfficeConversionFailureReason.DataLossBlocked,
                 assessment,
                 $"PowerPoint conversion is blocked because {diagnostics.Count(diagnostic => diagnostic.RepresentsDataLoss && diagnostic.CompatibilityState == OfficeCompatibilityState.Blocked)} feature(s) have no representation accepted by the selected compatibility policy. Inspect Result.Report.Compatibility or select an explicit fallback policy.");
         }
 
         if (assessment.Report.Compatibility.HasBlockedFeatures) {
             throw new PowerPointPresentationConversionException(
-                PowerPointPresentationConversionFailureReason.DestinationFeatureUnsupported,
+                OfficeConversionFailureReason.DestinationFeatureUnsupported,
                 assessment,
                 $"The requested destination {destinationDescriptor.Id} is classified but is not a supported native write target. Inspect Result.Report.Compatibility for details.");
         }
 
         if (File.Exists(paths.Destination)
-            && options.FileConflictPolicy == PowerPointConversionFileConflictPolicy.FailIfExists) {
+            && options.FileConflictPolicy == OfficeConversionFileConflictPolicy.FailIfExists) {
             throw new PowerPointPresentationConversionException(
-                PowerPointPresentationConversionFailureReason.DestinationExists,
+                OfficeConversionFailureReason.DestinationExists,
                 assessment,
                 $"The destination file '{paths.Destination}' already exists. Set FileConflictPolicy to Replace to replace it atomically.");
         }
@@ -121,16 +121,16 @@ public sealed partial class PowerPointPresentation {
                         cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
             } catch (NotSupportedException exception) {
-                diagnostics.Add(new PowerPointConversionDiagnostic(
+                diagnostics.Add(new OfficeConversionDiagnostic(
                     "PowerPoint.DestinationFeatureUnsupported",
-                    PowerPointConversionDiagnosticCategory.DestinationFormat,
-                    PowerPointConversionDiagnosticSeverity.Error,
+                    OfficeConversionDiagnosticCategory.DestinationFormat,
+                    OfficeConversionDiagnosticSeverity.Error,
                     exception.Message,
                     OfficeCompatibilityState.Blocked,
                     OfficeCompatibilityImpact.Semantic,
                     representsDataLoss: false));
                 throw new PowerPointPresentationConversionException(
-                    PowerPointPresentationConversionFailureReason.DestinationFeatureUnsupported,
+                    OfficeConversionFailureReason.DestinationFeatureUnsupported,
                     CreatePowerPointConversionResult(
                         paths,
                         sourceFormat,
@@ -151,15 +151,15 @@ public sealed partial class PowerPointPresentation {
                 OfficeFileCommit.CommitTemporaryFile(
                     stagingPath,
                     paths.Destination,
-                    options.FileConflictPolicy == PowerPointConversionFileConflictPolicy.Replace
+                    options.FileConflictPolicy == OfficeConversionFileConflictPolicy.Replace
                         ? OfficeFileCommit.ConflictPolicy.Replace
                         : OfficeFileCommit.ConflictPolicy.FailIfExists);
                 stagingPath = string.Empty;
             } catch (IOException exception) when (
-                options.FileConflictPolicy == PowerPointConversionFileConflictPolicy.FailIfExists
+                options.FileConflictPolicy == OfficeConversionFileConflictPolicy.FailIfExists
                 && File.Exists(paths.Destination)) {
                 throw new PowerPointPresentationConversionException(
-                    PowerPointPresentationConversionFailureReason.DestinationExists,
+                    OfficeConversionFailureReason.DestinationExists,
                     assessment,
                     $"The destination file '{paths.Destination}' was created while conversion was running and was not replaced.",
                     exception);
@@ -180,7 +180,7 @@ public sealed partial class PowerPointPresentation {
         }
     }
 
-    private static List<PowerPointConversionDiagnostic> CreatePowerPointConversionDiagnostics(
+    private static List<OfficeConversionDiagnostic> CreateOfficeConversionDiagnostics(
         PowerPointPresentation presentation,
         string sourcePath,
         OfficeFormatDescriptor sourceDescriptor,
@@ -189,7 +189,7 @@ public sealed partial class PowerPointPresentation {
         OfficeCompatibilityMode compatibilityMode,
         bool allowsLoss,
         out bool embedSourceCarrier) {
-        var diagnostics = new List<PowerPointConversionDiagnostic>();
+        var diagnostics = new List<OfficeConversionDiagnostic>();
         bool preserveLossySource = allowsLoss
             && (options.EmbedSourceWhenLossy
                 || compatibilityMode == OfficeCompatibilityMode.PreservationOnly);
@@ -198,10 +198,10 @@ public sealed partial class PowerPointPresentation {
             or OfficeCompatibilityMode.PreservationOnly;
         OfficeFormatDescriptor declaredSource = PowerPointFormatCatalog.GetByExtension(sourcePath);
         if (!declaredSource.Equals(sourceDescriptor)) {
-            diagnostics.Add(new PowerPointConversionDiagnostic(
+            diagnostics.Add(new OfficeConversionDiagnostic(
                 "PowerPoint.SourceExtensionMismatch",
-                PowerPointConversionDiagnosticCategory.SourceFormat,
-                PowerPointConversionDiagnosticSeverity.Warning,
+                OfficeConversionDiagnosticCategory.SourceFormat,
+                OfficeConversionDiagnosticSeverity.Warning,
                 $"The source extension declares {declaredSource.Id}, but its package declares {sourceDescriptor.Id}. Package content was used.",
                 OfficeCompatibilityState.Equivalent,
                 OfficeCompatibilityImpact.None,
@@ -221,18 +221,18 @@ public sealed partial class PowerPointPresentation {
                 OfficeCompatibilityState state = representsLoss
                     ? GetPowerPointGenericLossState(compatibilityMode, preserveLossySource)
                     : OfficeCompatibilityState.Equivalent;
-                diagnostics.Add(new PowerPointConversionDiagnostic(
+                diagnostics.Add(new OfficeConversionDiagnostic(
                     diagnostic.Code,
                     representsLoss
-                        ? PowerPointConversionDiagnosticCategory.DataLoss
-                        : PowerPointConversionDiagnosticCategory.SourceFormat,
+                        ? OfficeConversionDiagnosticCategory.DataLoss
+                        : OfficeConversionDiagnosticCategory.SourceFormat,
                     state == OfficeCompatibilityState.Blocked
-                        ? PowerPointConversionDiagnosticSeverity.Error
+                        ? OfficeConversionDiagnosticSeverity.Error
                         : diagnostic.Severity == LegacyPptDiagnosticSeverity.Error
-                        ? PowerPointConversionDiagnosticSeverity.Error
+                        ? OfficeConversionDiagnosticSeverity.Error
                         : diagnostic.Severity == LegacyPptDiagnosticSeverity.Warning
-                            ? PowerPointConversionDiagnosticSeverity.Warning
-                            : PowerPointConversionDiagnosticSeverity.Information,
+                            ? OfficeConversionDiagnosticSeverity.Warning
+                            : OfficeConversionDiagnosticSeverity.Information,
                     encryptionRemoved
                         ? "The legacy presentation was decrypted for import, but the requested modern destination is not password-encrypted. Save the converted artifact with an explicit encryption API if confidentiality must continue."
                         : diagnostic.Message,
@@ -255,12 +255,12 @@ public sealed partial class PowerPointPresentation {
                     compatibilityMode,
                     permitsVisualFallback,
                     preserveLossySource);
-                diagnostics.Add(new PowerPointConversionDiagnostic(
+                diagnostics.Add(new OfficeConversionDiagnostic(
                     finding.Code,
-                    PowerPointConversionDiagnosticCategory.DataLoss,
+                    OfficeConversionDiagnosticCategory.DataLoss,
                     state == OfficeCompatibilityState.Blocked
-                        ? PowerPointConversionDiagnosticSeverity.Error
-                        : PowerPointConversionDiagnosticSeverity.Warning,
+                        ? OfficeConversionDiagnosticSeverity.Error
+                        : OfficeConversionDiagnosticSeverity.Warning,
                     finding.Description,
                     state,
                     GetLegacyPptFindingImpact(finding, state),
@@ -274,12 +274,12 @@ public sealed partial class PowerPointPresentation {
             OfficeCompatibilityState macroState = GetPowerPointGenericLossState(
                 compatibilityMode,
                 preserveLossySource);
-            diagnostics.Add(new PowerPointConversionDiagnostic(
+            diagnostics.Add(new OfficeConversionDiagnostic(
                 "PowerPoint.VbaProject.Removed",
-                PowerPointConversionDiagnosticCategory.DataLoss,
+                OfficeConversionDiagnosticCategory.DataLoss,
                 macroState == OfficeCompatibilityState.Blocked
-                    ? PowerPointConversionDiagnosticSeverity.Error
-                    : PowerPointConversionDiagnosticSeverity.Warning,
+                    ? OfficeConversionDiagnosticSeverity.Error
+                    : OfficeConversionDiagnosticSeverity.Warning,
                 $"The source contains VBA, but {destinationDescriptor.Extension} cannot carry a VBA project.",
                 macroState,
                 OfficeCompatibilityImpact.Behavioral | OfficeCompatibilityImpact.Carrier | OfficeCompatibilityImpact.Security,
@@ -292,16 +292,16 @@ public sealed partial class PowerPointPresentation {
             && destinationDescriptor.Generation == OfficeFormatGeneration.Legacy;
         if (signatures.HasSignatureMetadata && !legacySignatureCanRemainByteExact) {
             bool signatureRewriteAllowed = options.SignatureMutationPolicy
-                != PowerPointSignatureMutationPolicy.BlockSave;
+                != OfficeSignatureMutationPolicy.BlockSave;
             OfficeCompatibilityState signatureState = signatureRewriteAllowed
                 ? GetPowerPointGenericLossState(compatibilityMode, preserveLossySource)
                 : OfficeCompatibilityState.Blocked;
-            diagnostics.Add(new PowerPointConversionDiagnostic(
+            diagnostics.Add(new OfficeConversionDiagnostic(
                 "PowerPoint.DigitalSignature.Invalidated",
-                PowerPointConversionDiagnosticCategory.DataLoss,
+                OfficeConversionDiagnosticCategory.DataLoss,
                 signatureState == OfficeCompatibilityState.Blocked
-                    ? PowerPointConversionDiagnosticSeverity.Error
-                    : PowerPointConversionDiagnosticSeverity.Warning,
+                    ? OfficeConversionDiagnosticSeverity.Error
+                    : OfficeConversionDiagnosticSeverity.Warning,
                 signatureRewriteAllowed
                     ? "Rewriting the presentation invalidates its existing digital signature. Preserved signature markup must no longer be trusted."
                     : "The source carries digital-signature metadata and the configured mutation policy blocks conversion because rewriting the presentation can invalidate the signature.",
@@ -314,10 +314,10 @@ public sealed partial class PowerPointPresentation {
 
         if (destinationDescriptor.Generation == OfficeFormatGeneration.Legacy
             && string.Equals(destinationDescriptor.Extension, ".ppa", StringComparison.Ordinal)) {
-            diagnostics.Add(new PowerPointConversionDiagnostic(
+            diagnostics.Add(new OfficeConversionDiagnostic(
                 "PowerPoint.LegacyDestination.NotWritable",
-                PowerPointConversionDiagnosticCategory.DestinationFormat,
-                PowerPointConversionDiagnosticSeverity.Error,
+                OfficeConversionDiagnosticCategory.DestinationFormat,
+                OfficeConversionDiagnosticSeverity.Error,
                 ".ppa is classified for import and reporting, but native binary add-in authoring is not yet a supported write target.",
                 OfficeCompatibilityState.Blocked,
                 OfficeCompatibilityImpact.Behavioral | OfficeCompatibilityImpact.Carrier,
@@ -428,7 +428,7 @@ public sealed partial class PowerPointPresentation {
     private static PowerPointSaveOptions CreateConversionSaveOptions(
         PowerPointSaveOptions? source,
         bool allowsLoss) => new() {
-        LossPolicy = allowsLoss ? PowerPointConversionLossPolicy.Allow : PowerPointConversionLossPolicy.Block,
+        LossPolicy = allowsLoss ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block,
         LegacyPptEncryptionKeySizeBits = source?.LegacyPptEncryptionKeySizeBits ?? 128,
         LegacyPptEncryptDocumentProperties = source?.LegacyPptEncryptDocumentProperties ?? true,
         LegacyPptAllowUnencryptedCompoundStreams = source?
@@ -437,14 +437,14 @@ public sealed partial class PowerPointPresentation {
 
     private static OfficeCompatibilityMode GetCompatibilityMode(PowerPointPresentationConversionOptions options) {
         if (options.CompatibilityMode != OfficeCompatibilityMode.StrictNative) return options.CompatibilityMode;
-        return options.LossPolicy == PowerPointConversionLossPolicy.Allow
+        return options.LossPolicy == OfficeConversionLossPolicy.Allow
             ? OfficeCompatibilityMode.BestEffort
             : OfficeCompatibilityMode.StrictNative;
     }
 
     private static bool AllowsLoss(
         PowerPointPresentationConversionOptions options,
-        OfficeCompatibilityMode mode) => options.LossPolicy == PowerPointConversionLossPolicy.Allow
+        OfficeCompatibilityMode mode) => options.LossPolicy == OfficeConversionLossPolicy.Allow
         || mode == OfficeCompatibilityMode.PreferEditable
         || mode == OfficeCompatibilityMode.PreferVisual
         || mode == OfficeCompatibilityMode.BestEffort
@@ -471,13 +471,13 @@ public sealed partial class PowerPointPresentation {
             sourceBytes);
 
     private static void AddPowerPointSourceCarrierDiagnostic(
-        List<PowerPointConversionDiagnostic> diagnostics,
+        List<OfficeConversionDiagnostic> diagnostics,
         bool embedded,
         bool hasVba) {
-        diagnostics.Add(new PowerPointConversionDiagnostic(
+        diagnostics.Add(new OfficeConversionDiagnostic(
             embedded ? "PowerPoint.SourceCarrier.Embedded" : "PowerPoint.SourceCarrier.NotEmbedded",
-            PowerPointConversionDiagnosticCategory.DataLoss,
-            PowerPointConversionDiagnosticSeverity.Warning,
+            OfficeConversionDiagnosticCategory.DataLoss,
+            OfficeConversionDiagnosticSeverity.Warning,
             embedded
                 ? "The complete original source is retained in an inert, hash-verified OfficeIMO compatibility carrier. It is not executable or editable through the converted presentation model."
                 : "The complete original source is not retained. Set EmbedSourceWhenLossy when deliberate byte-level recovery is required.",
@@ -497,7 +497,7 @@ public sealed partial class PowerPointPresentation {
         OfficeFormatDescriptor sourceDescriptor,
         OfficeFormatDescriptor destinationDescriptor,
         OfficeCompatibilityMode compatibilityMode,
-        IReadOnlyList<PowerPointConversionDiagnostic> diagnostics,
+        IReadOnlyList<OfficeConversionDiagnostic> diagnostics,
         bool outputCreated,
         bool replacedExistingFile) => new(
             paths.Source,

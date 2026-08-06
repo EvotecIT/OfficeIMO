@@ -156,7 +156,7 @@ public class PowerPointSharedBubbleChartImportContractTests {
     [Fact]
     public void BubbleChart_UpdatedPointColorsPrecedePreservedTrendline() {
         using PowerPointPresentation presentation = CreatePresentation(out PowerPointChart chart);
-        chart.SetSeriesTrendline(0, PowerPointChartTrendlineType.Linear);
+        chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear);
 
         chart.UpdateData(CreateData(3D, 5D, 16D,
             new OfficeColor?[] { OfficeColor.Parse("#445566") }));

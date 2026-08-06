@@ -10,15 +10,15 @@ namespace OfficeIMO.Excel.Fluent {
             Workbook = workbook;
             // Favor stability for fluent scenarios: default to Sequential mode
             // Users can override (Workbook.Execution.Mode) if desired
-            Workbook.Execution.Mode = ExecutionMode.Sequential;
+            Workbook.Execution.Mode = ExcelExecutionMode.Sequential;
         }
 
         /// <summary>
         /// Sets workbook properties in a fluent style.
         /// </summary>
-        public ExcelFluentWorkbook Info(Action<InfoBuilder> action) {
+        public ExcelFluentWorkbook Info(Action<ExcelInfoBuilder> action) {
             if (action == null) return this;
-            var b = new InfoBuilder(Workbook);
+            var b = new ExcelInfoBuilder(Workbook);
             action(b);
             return this;
         }

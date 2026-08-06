@@ -282,7 +282,7 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentHeadersAndFooters() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeaders.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].PageOrientation = WordPageOrientation.Landscape;
+                document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
                 document.AddParagraph("Test Section0");
                 document.AddHeadersAndFooters();
 
@@ -374,7 +374,7 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentHeadersAndFootersAndDeletingHeadersAndFooters() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndRemoveThem.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].PageOrientation = WordPageOrientation.Landscape;
+                document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
                 document.AddParagraph("Test Section0");
                 document.AddHeadersAndFooters();
 

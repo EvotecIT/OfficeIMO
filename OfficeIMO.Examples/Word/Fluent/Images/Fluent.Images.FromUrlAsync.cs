@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Word {
                 await document.AsFluent()
                     .ImageAsync(async img => {
                         await img.AddFromUrlAsync("https://raw.githubusercontent.com/EvotecIT/OfficeIMO/master/OfficeIMO.Examples/Images/Kulek.jpg");
-                        img.Wrap(WrapTextImage.Tight).Align(HorizontalAlignment.Right);
+                        img.Wrap(WordImageTextWrapping.Tight).Align(WordParagraphAlignment.Right);
                     });
                 document.Save();
             }

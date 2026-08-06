@@ -7,14 +7,14 @@ namespace OfficeIMO.PowerPoint {
             LegacyPptTransition? source,
             LegacyPptSoundProjectionContext soundContext) {
             if (source == null) return;
-            SlideTransition? transition =
+            PowerPointSlideTransition? transition =
                 LegacyPptTransitionMapping.ToSlideTransition(source);
             if (!transition.HasValue) return;
             slide.Transition = transition.Value;
             slide.TransitionSpeed = source.Speed switch {
-                0 => SlideTransitionSpeed.Slow,
-                2 => SlideTransitionSpeed.Fast,
-                _ => SlideTransitionSpeed.Medium
+                0 => PowerPointSlideTransitionSpeed.Slow,
+                2 => PowerPointSlideTransitionSpeed.Fast,
+                _ => PowerPointSlideTransitionSpeed.Medium
             };
             slide.TransitionAdvanceOnClick = source.ManualAdvance;
             slide.TransitionAdvanceAfterSeconds = source.AutoAdvance

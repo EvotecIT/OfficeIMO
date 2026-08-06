@@ -988,7 +988,7 @@ namespace OfficeIMO.Tests {
             string html = $"<img src=\"data:image/png;base64,{base64}\" style=\"float:left\"/>";
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var img = Assert.Single(doc.Images);
-            Assert.Equal(WrapTextImage.Square, img.WrapText);
+            Assert.Equal(WordImageTextWrapping.Square, img.WrapText);
             var hPos = img.horizontalPosition;
             Assert.NotNull(hPos.HorizontalAlignment);
             Assert.Equal("left", hPos.HorizontalAlignment.Text);
@@ -1001,7 +1001,7 @@ namespace OfficeIMO.Tests {
             string html = $"<img src=\"data:image/png;base64,{base64}\" style=\"float:right\"/>";
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var img = Assert.Single(doc.Images);
-            Assert.Equal(WrapTextImage.Square, img.WrapText);
+            Assert.Equal(WordImageTextWrapping.Square, img.WrapText);
             var hPos = img.horizontalPosition;
             Assert.NotNull(hPos.HorizontalAlignment);
             Assert.Equal("right", hPos.HorizontalAlignment.Text);
@@ -1017,9 +1017,9 @@ namespace OfficeIMO.Tests {
 
             var img = Assert.Single(doc.Images);
             var section = doc.Sections.Last();
-            var contentWidthTwips = (section.PageSettings.Width?.Value ?? WordPageSizes.A4.Width!.Value)
-                - (section.Margins.Left?.Value ?? 1440U)
-                - (section.Margins.Right?.Value ?? 1440U);
+            var contentWidthTwips = (section.PageSettings.Width ?? WordPageSizes.A4.WidthTwips)
+                - section.Margins.Left
+                - section.Margins.Right;
             var expectedWidthPixels = contentWidthTwips / 15D * 0.5D;
             Assert.NotNull(img.Width);
             Assert.InRange(img.Width!.Value, expectedWidthPixels - 0.5D, expectedWidthPixels + 0.5D);

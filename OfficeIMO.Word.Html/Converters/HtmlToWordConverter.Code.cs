@@ -11,7 +11,7 @@ namespace OfficeIMO.Word.Html {
             while (start < end && string.IsNullOrEmpty(lines[start])) start++;
             while (end > start && string.IsNullOrEmpty(lines[end - 1])) end--;
 
-            var mono = FontResolver.Resolve("monospace");
+            var mono = WordFontResolver.Resolve("monospace");
             bool bookmarkAdded = false;
             if (options.RenderPreAsTable) {
                 WordTable preTable;
@@ -68,7 +68,7 @@ namespace OfficeIMO.Word.Html {
 
             var fmt = formatting;
             ApplySpanStyles(element, ref fmt);
-            var mono = FontResolver.Resolve("monospace");
+            var mono = WordFontResolver.Resolve("monospace");
             if (!string.IsNullOrEmpty(mono)) {
                 fmt.FontFamily = mono;
             }

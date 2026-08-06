@@ -198,7 +198,7 @@ public sealed class ReaderOfficeRichMappingTests {
             sheet.Cell(1, 2, "Qty");
             sheet.Cell(2, 1, "Bandage");
             sheet.Cell(2, 2, 4);
-            sheet.AddTable("A1:B2", hasHeader: true, name: "InventoryTable", style: TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B2", hasHeader: true, name: "InventoryTable", style: ExcelTableStyle.TableStyleMedium2);
             sheet.SetHyperlink(2, 1, "https://example.test/bandage", display: "Bandage");
             sheet.Cell(1, 4, "Loose");
             sheet.Cell(1, 5, "Value");
@@ -245,7 +245,7 @@ public sealed class ReaderOfficeRichMappingTests {
             sheet.CellFormula(2, 2, "1+1");
             sheet.Cell(3, 1, "Gauze");
             sheet.Cell(3, 2, 3);
-            sheet.AddTable("A1:B3", hasHeader: true, name: "InventoryTable", style: TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B3", hasHeader: true, name: "InventoryTable", style: ExcelTableStyle.TableStyleMedium2);
             sheet.SetHyperlink(2, 1, "https://example.test/inside", display: "Bandage");
             sheet.SetComment(2, 1, "Inside comment");
             sheet.CellFormula(2, 4, "2+2");
@@ -361,10 +361,10 @@ public sealed class ReaderOfficeRichMappingTests {
             hiddenChart.Hidden = true;
 
             PowerPointPicture visiblePicture = slide.AddPicture(
-                new MemoryStream(png, writable: false), OfficeIMO.PowerPoint.ImagePartType.Png);
+                new MemoryStream(png, writable: false), OfficeIMO.PowerPoint.PowerPointImagePartType.Png);
             visiblePicture.AltText = "Visible direct picture";
             PowerPointPicture hiddenPicture = slide.AddPicture(
-                new MemoryStream(png, writable: false), OfficeIMO.PowerPoint.ImagePartType.Png);
+                new MemoryStream(png, writable: false), OfficeIMO.PowerPoint.PowerPointImagePartType.Png);
             hiddenPicture.AltText = "Hidden direct picture";
             hiddenPicture.Hidden = true;
 
@@ -374,7 +374,7 @@ public sealed class ReaderOfficeRichMappingTests {
 
             PowerPointTextBox hiddenGroupText = slide.AddTextBox("Hidden group guidance");
             PowerPointPicture hiddenGroupPicture = slide.AddPicture(
-                new MemoryStream(png, writable: false), OfficeIMO.PowerPoint.ImagePartType.Png);
+                new MemoryStream(png, writable: false), OfficeIMO.PowerPoint.PowerPointImagePartType.Png);
             hiddenGroupPicture.AltText = "Hidden group picture";
             PowerPointGroupShape hiddenGroup = slide.GroupShapes(
                 new PowerPointShape[] { hiddenGroupText, hiddenGroupPicture }, "Hidden group");
@@ -382,10 +382,10 @@ public sealed class ReaderOfficeRichMappingTests {
 
             PowerPointTextBox visibleGroupText = slide.AddTextBox("Visible group guidance");
             PowerPointPicture visibleGroupPicture = slide.AddPicture(
-                new MemoryStream(png, writable: false), OfficeIMO.PowerPoint.ImagePartType.Png);
+                new MemoryStream(png, writable: false), OfficeIMO.PowerPoint.PowerPointImagePartType.Png);
             visibleGroupPicture.AltText = "Visible group picture";
             PowerPointPicture hiddenGroupChildPicture = slide.AddPicture(
-                new MemoryStream(png, writable: false), OfficeIMO.PowerPoint.ImagePartType.Png);
+                new MemoryStream(png, writable: false), OfficeIMO.PowerPoint.PowerPointImagePartType.Png);
             hiddenGroupChildPicture.AltText = "Hidden group child picture";
             hiddenGroupChildPicture.Hidden = true;
             slide.GroupShapes(

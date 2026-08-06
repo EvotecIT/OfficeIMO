@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests {
                 document.AddWorksheet("Data");
                 document.SetNamedRange("OriginalName", "'Data'!A1:A2", save: false);
 
-                Assert.Throws<ArgumentException>(() => document.RenameNamedRange("OriginalName", "A1", validationMode: NameValidationMode.Strict, save: false));
+                Assert.Throws<ArgumentException>(() => document.RenameNamedRange("OriginalName", "A1", validationMode: ExcelDefinedNameValidationMode.Strict, save: false));
                 Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRange("OriginalName"));
                 Assert.Null(document.GetNamedRange("A1"));
             }

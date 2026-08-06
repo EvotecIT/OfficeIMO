@@ -17,7 +17,7 @@ public class HeaderTextBuilder {
     /// <summary>Adds a visually styled text run to the header.</summary>
     /// <param name="run">Styled text to render. Interactive links, inline visuals, and paragraph tabs are not supported.</param>
     /// <returns>The same builder for chaining.</returns>
-    public HeaderTextBuilder Run(TextRun run) {
+    public HeaderTextBuilder Run(PdfTextRun run) {
         Guard.NotNull(run, nameof(run));
         _segments.Add(FooterSegment.RichText(run));
         return this;
@@ -33,7 +33,7 @@ public class HeaderTextBuilder {
     /// <summary>Adds a current-page token with the supplied visual text style.</summary>
     /// <param name="style">Text run whose visual styling is applied; its text is ignored.</param>
     /// <returns>The same builder for chaining.</returns>
-    public HeaderTextBuilder CurrentPage(TextRun style) {
+    public HeaderTextBuilder CurrentPage(PdfTextRun style) {
         Guard.NotNull(style, nameof(style));
         _segments.Add(FooterSegment.PageNumber(style));
         return this;
@@ -49,7 +49,7 @@ public class HeaderTextBuilder {
     /// <summary>Adds a total-pages token with the supplied visual text style.</summary>
     /// <param name="style">Text run whose visual styling is applied; its text is ignored.</param>
     /// <returns>The same builder for chaining.</returns>
-    public HeaderTextBuilder TotalPages(TextRun style) {
+    public HeaderTextBuilder TotalPages(PdfTextRun style) {
         Guard.NotNull(style, nameof(style));
         _segments.Add(FooterSegment.TotalPages(style));
         return this;

@@ -3,7 +3,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.Xlsb;
 using OfficeIMO.Excel.Xlsb.Write;
 using Xunit;
-using ExcelTableStyle = OfficeIMO.Excel.TableStyle;
+using ExcelTableStyle = OfficeIMO.Excel.ExcelTableStyle;
 
 namespace OfficeIMO.Tests;
 

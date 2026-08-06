@@ -5,7 +5,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Provides helpers for detecting bullet and numbered lists within a document.
     /// </summary>
-    public static class ListParser {
+    internal static class ListParser {
         /// <summary>
         /// Returns a dictionary describing list types keyed by numbering ID.
         /// </summary>

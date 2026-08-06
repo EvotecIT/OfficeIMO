@@ -68,7 +68,7 @@ namespace OfficeIMO.Excel {
         /// <param name="showColumnStripes">Optional column stripe flag.</param>
         public void SetTableStyle(
             string tableOrRange,
-            TableStyle style,
+            ExcelTableStyle style,
             bool? showFirstColumn = null,
             bool? showLastColumn = null,
             bool? showRowStripes = null,
@@ -357,7 +357,7 @@ namespace OfficeIMO.Excel {
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="range"/> is null or empty.</exception>
         /// <exception cref="ArgumentException">Thrown when <paramref name="range"/> is not in a valid format.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the specified range overlaps with an existing table.</exception>
-        public void AddTable(string range, bool hasHeader, string name, TableStyle style) {
+        public void AddTable(string range, bool hasHeader, string name, ExcelTableStyle style) {
             AddTableCore(range, hasHeader, name, style, includeAutoFilter: true, ensureRangeCellsExist: true);
         }
 
@@ -392,23 +392,23 @@ namespace OfficeIMO.Excel {
         /// <param name="style">Table style to apply.</param>
         /// <param name="includeAutoFilter">Whether to include AutoFilter dropdowns in the table headers.</param>
         /// <param name="validationMode">Controls how invalid table names are handled:
-        /// <see cref="TableNameValidationMode.Sanitize"/> (default) replaces invalid characters and adjusts the name;
-        /// <see cref="TableNameValidationMode.Strict"/> throws descriptive exceptions for invalid names.</param>
+        /// <see cref="ExcelTableNameValidationMode.Sanitize"/> (default) replaces invalid characters and adjusts the name;
+        /// <see cref="ExcelTableNameValidationMode.Strict"/> throws descriptive exceptions for invalid names.</param>
         /// <remarks>
         /// Smart AutoFilter handling:
         /// - If includeAutoFilter is true and a worksheet-level AutoFilter exists on the same range, it's moved to the table (preserving any filter criteria).
         /// - If includeAutoFilter is false and a worksheet-level AutoFilter exists, it's removed (Excel doesn't allow both worksheet AutoFilter and a table on the same range).
         /// - Order doesn't matter — the final state will be consistent regardless of operation order.
         /// </remarks>
-        public void AddTable(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize) {
+        public void AddTable(string range, bool hasHeader, string name, ExcelTableStyle style, bool includeAutoFilter, ExcelTableNameValidationMode validationMode = ExcelTableNameValidationMode.Sanitize) {
             AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode, ensureRangeCellsExist: true);
         }
 
-        internal string AddTableAndGetName(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true, IReadOnlyList<string>? headerNames = null, bool deferPartSave = false, bool skipExistingTableScan = false) {
+        internal string AddTableAndGetName(string range, bool hasHeader, string name, ExcelTableStyle style, bool includeAutoFilter, ExcelTableNameValidationMode validationMode = ExcelTableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true, IReadOnlyList<string>? headerNames = null, bool deferPartSave = false, bool skipExistingTableScan = false) {
             return AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode, ensureRangeCellsExist, headerNames, deferPartSave, skipExistingTableScan);
         }
 
-        private string AddTableCore(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true, IReadOnlyList<string>? headerNames = null, bool deferPartSave = false, bool skipExistingTableScan = false) {
+        private string AddTableCore(string range, bool hasHeader, string name, ExcelTableStyle style, bool includeAutoFilter, ExcelTableNameValidationMode validationMode = ExcelTableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true, IReadOnlyList<string>? headerNames = null, bool deferPartSave = false, bool skipExistingTableScan = false) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
@@ -675,18 +675,18 @@ namespace OfficeIMO.Excel {
         /// - Allowed characters: letters, digits, underscore; spaces become underscores.
         /// - Names cannot start with a digit; an underscore is prefixed if necessary.
         /// - Names are scoped per workbook and checked case-insensitively.
-        /// - When <paramref name="mode"/> is <see cref="TableNameValidationMode.Strict"/>, throws for invalid input.
+        /// - When <paramref name="mode"/> is <see cref="ExcelTableNameValidationMode.Strict"/>, throws for invalid input.
         /// Examples:
         /// - "My Table" ⇒ "My_Table"
         /// - "Sales#2025" ⇒ "Sales_2025"
         /// - "123Report" ⇒ "_123Report"
         /// - If "Table" already exists, next becomes "Table2" ("Table3", ...)
         /// </summary>
-        private string EnsureValidUniqueTableName(string name, TableNameValidationMode mode) {
+        private string EnsureValidUniqueTableName(string name, ExcelTableNameValidationMode mode) {
             const int MaxLen = 255; // Excel UI limit; conservative
 
             if (string.IsNullOrWhiteSpace(name)) {
-                if (mode == TableNameValidationMode.Strict)
+                if (mode == ExcelTableNameValidationMode.Strict)
                     throw new ArgumentException("Table name cannot be null, empty, or whitespace.", nameof(name));
                 name = "Table";
             }
@@ -706,25 +706,25 @@ namespace OfficeIMO.Excel {
                 }
             }
             if (sanitized.Length == 0) {
-                if (mode == TableNameValidationMode.Strict)
+                if (mode == ExcelTableNameValidationMode.Strict)
                     throw new ArgumentException("Table name must contain at least one letter, digit or underscore.", nameof(name));
                 sanitized.Append("Table");
                 changed = true;
             }
             if (char.IsDigit(sanitized[0])) {
-                if (mode == TableNameValidationMode.Strict)
+                if (mode == ExcelTableNameValidationMode.Strict)
                     throw new ArgumentException("Table name cannot start with a digit.", nameof(name));
                 sanitized.Insert(0, '_');
                 changed = true;
             }
 
             // If any character required sanitation, and in strict mode, throw
-            if (mode == TableNameValidationMode.Strict && changed)
+            if (mode == ExcelTableNameValidationMode.Strict && changed)
                 throw new ArgumentException("Table name contains invalid characters or spaces. Allowed: letters, digits, and underscore.", nameof(name));
 
             // Trim to max length
             if (sanitized.Length > MaxLen) {
-                if (mode == TableNameValidationMode.Strict)
+                if (mode == ExcelTableNameValidationMode.Strict)
                     throw new ArgumentException($"Table name exceeds maximum length of {MaxLen} characters.", nameof(name));
                 sanitized.Length = MaxLen;
                 changed = true;

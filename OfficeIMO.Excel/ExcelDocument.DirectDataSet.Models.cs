@@ -131,7 +131,7 @@ namespace OfficeIMO.Excel {
             internal bool TryWithTableStyle(
                 string sheetName,
                 string tableOrRange,
-                TableStyle tableStyle,
+                ExcelTableStyle tableStyle,
                 bool? showFirstColumn,
                 bool? showLastColumn,
                 bool? showRowStripes,
@@ -219,7 +219,7 @@ namespace OfficeIMO.Excel {
                 string sheetName,
                 string tableName,
                 bool includeHeaders,
-                TableStyle tableStyle,
+                ExcelTableStyle tableStyle,
                 bool includeAutoFilter,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 CancellationToken ct) {
@@ -287,7 +287,7 @@ namespace OfficeIMO.Excel {
             internal static DirectDataSetWorkbookModel Create(
                 DataSet dataSet,
                 bool createTables,
-                TableStyle tableStyle,
+                ExcelTableStyle tableStyle,
                 bool includeHeaders,
                 bool includeAutoFilter,
                 bool autoFit,
@@ -347,7 +347,7 @@ namespace OfficeIMO.Excel {
                 string range,
                 DirectDataSetTableModel tableModel,
                 bool createTable,
-                TableStyle tableStyle,
+                ExcelTableStyle tableStyle,
                 bool includeHeaders,
                 bool includeAutoFilter,
                 bool autoFit,
@@ -479,7 +479,7 @@ namespace OfficeIMO.Excel {
                 string? tableName,
                 string range,
                 DirectDataSetTableModel table,
-                TableStyle tableStyle,
+                ExcelTableStyle tableStyle,
                 bool includeHeaders,
                 bool includeAutoFilter,
                 bool hasTable,
@@ -545,7 +545,7 @@ namespace OfficeIMO.Excel {
             }
 
             internal DirectDataSetSheetModel WithTableStyle(
-                TableStyle tableStyle,
+                ExcelTableStyle tableStyle,
                 bool? showFirstColumn,
                 bool? showLastColumn,
                 bool? showRowStripes,
@@ -622,7 +622,7 @@ namespace OfficeIMO.Excel {
 
             internal DirectDataSetTableModel Table { get; }
 
-            internal TableStyle TableStyle { get; }
+            internal ExcelTableStyle TableStyle { get; }
 
             internal bool IncludeHeaders { get; }
 

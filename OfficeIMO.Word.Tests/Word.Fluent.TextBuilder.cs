@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
                         .Text(" Highlight", t => t.Highlight(WordHighlightColor.Yellow))
                         .Text(" Sub", t => t.SubScript())
                         .Text(" Super", t => t.SuperScript())
-                        .Text(" Caps", t => t.CapsStyle(CapsStyle.Caps))
+                        .Text(" Caps", t => t.CapsStyle(WordCapsStyle.Caps))
                         .Text(" Outline", t => t.Outline())
                         .Text(" Shadow", t => t.Shadow())
                         .Text(" Emboss", t => t.Emboss())
@@ -66,11 +66,11 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordHighlightColor.Yellow, runs[5].Highlight);
                 Assert.Equal(WordVerticalTextPosition.Subscript, runs[6].VerticalTextAlignment);
                 Assert.Equal(WordVerticalTextPosition.Superscript, runs[7].VerticalTextAlignment);
-                Assert.Equal(CapsStyle.Caps, runs[8].CapsStyle);
+                Assert.Equal(WordCapsStyle.Caps, runs[8].CapsStyle);
                 Assert.True(runs[9].Outline);
                 Assert.True(runs[10].Shadow);
                 Assert.True(runs[11].Emboss);
-                Assert.Equal(CapsStyle.SmallCaps, runs[12].CapsStyle);
+                Assert.Equal(WordCapsStyle.SmallCaps, runs[12].CapsStyle);
             }
         }
     }

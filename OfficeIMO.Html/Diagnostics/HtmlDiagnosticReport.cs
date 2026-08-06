@@ -59,7 +59,7 @@ public sealed class HtmlDiagnosticReport : IReadOnlyList<HtmlDiagnostic> {
         HtmlDiagnosticSeverity severity = HtmlDiagnosticSeverity.Warning,
         string? source = null,
         string? detail = null,
-        HtmlConversionLossKind lossKind = HtmlConversionLossKind.None) {
+        OfficeConversionLossKind lossKind = OfficeConversionLossKind.None) {
         Add(new HtmlDiagnostic(component, code, message, severity, source, detail, lossKind));
     }
 
@@ -80,7 +80,7 @@ public sealed class HtmlDiagnosticReport : IReadOnlyList<HtmlDiagnostic> {
         HtmlDiagnosticSeverity severity,
         string? source,
         string? detail,
-        HtmlConversionLossKind lossKind,
+        OfficeConversionLossKind lossKind,
         HtmlSemanticSourceLocation? sourceLocation,
         string? targetAddress) {
         Add(new HtmlDiagnostic(component, code, message, severity, source, detail, lossKind, sourceLocation, targetAddress));

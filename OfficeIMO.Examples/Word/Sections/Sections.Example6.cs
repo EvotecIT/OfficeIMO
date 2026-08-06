@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Settings.Language = "pl-PL";
 
                 var section0 = document.Sections[0];
-                section0.PageOrientation = WordPageOrientation.Portrait;
+                section0.PageOrientation = OfficePageOrientation.Portrait;
                 section0.AddParagraph("Test Section0");
 
                 // Default header is created on demand; keep it simple
@@ -42,7 +42,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddPageBreak();
 
                 var section1Created = document.AddSection();
-                section1Created.PageOrientation = WordPageOrientation.Landscape;
+                section1Created.PageOrientation = OfficePageOrientation.Landscape;
 
                 document.AddPageBreak();
                 document.AddPageBreak();

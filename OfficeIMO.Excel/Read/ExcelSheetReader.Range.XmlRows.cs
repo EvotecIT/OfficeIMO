@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
                 && _canStreamWorksheetPart;
         }
 
-        private bool CanUseAutomaticXmlReadFastPath(ExecutionPolicy policy) {
+        private bool CanUseAutomaticXmlReadFastPath(ExcelExecutionPolicy policy) {
             return policy.OnDecision == null;
         }
 

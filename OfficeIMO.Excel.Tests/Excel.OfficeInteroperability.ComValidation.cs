@@ -39,8 +39,8 @@ public partial class Excel {
                     $"{collection.Id}-{index:D3}-{Path.GetFileNameWithoutExtension(artifact.File)}.xlsx");
                 ExcelDocument.Convert(source, destination, new ExcelDocumentConversionOptions {
                     CompatibilityMode = OfficeCompatibilityMode.BestEffort,
-                    LossPolicy = ExcelConversionLossPolicy.Allow,
-                    FileConflictPolicy = ExcelConversionFileConflictPolicy.Replace
+                    LossPolicy = OfficeConversionLossPolicy.Allow,
+                    FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace
                 });
                 convertedPaths.Add(destination);
             }
@@ -56,7 +56,7 @@ public partial class Excel {
         foreach (string extension in new[] { ".xls", ".xlsb" }) {
             string generatedBinary = Path.Combine(outputDirectory, "officeimo-modern-to-binary" + extension);
             ExcelDocument.Convert(generatedModern, generatedBinary, new ExcelDocumentConversionOptions {
-                FileConflictPolicy = ExcelConversionFileConflictPolicy.Replace
+                FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace
             }).RequireNoLoss();
             convertedPaths.Add(generatedBinary);
         }

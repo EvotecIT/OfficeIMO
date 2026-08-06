@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint.LegacyPpt;
 
@@ -15,7 +14,7 @@ namespace OfficeIMO.PowerPoint {
         public long? MaxInputBytes { get; set; } = 512L * 1024L * 1024L;
 
         /// <summary>Provides optional low-level Open XML package settings.</summary>
-        public OpenSettings? OpenSettings { get; set; }
+        public OfficeOpenXmlLoadSettings? OpenSettings { get; set; }
 
         /// <summary>Provides optional limits and diagnostics settings for binary PPT/POT/PPS sources.</summary>
         public LegacyPptImportOptions? LegacyPptImportOptions { get; set; }

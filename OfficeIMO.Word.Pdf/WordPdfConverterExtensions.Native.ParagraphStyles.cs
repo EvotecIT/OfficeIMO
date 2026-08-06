@@ -508,10 +508,10 @@ namespace OfficeIMO.Word.Pdf {
         private static NativeParagraphBorders GetNativeDirectParagraphBorders(WordParagraph paragraph) {
             WordParagraphBorders borders = paragraph.Borders;
             return new NativeParagraphBorders(
-                new NativeParagraphBorderSide(borders.TopStyle.ToOpenXml(), NormalizeNativeBorderColor(borders.TopColorHex), borders.TopSize?.Value, borders.TopSpace?.Value),
-                new NativeParagraphBorderSide(borders.RightStyle.ToOpenXml(), NormalizeNativeBorderColor(borders.RightColorHex), borders.RightSize?.Value, borders.RightSpace?.Value),
-                new NativeParagraphBorderSide(borders.BottomStyle.ToOpenXml(), NormalizeNativeBorderColor(borders.BottomColorHex), borders.BottomSize?.Value, borders.BottomSpace?.Value),
-                new NativeParagraphBorderSide(borders.LeftStyle.ToOpenXml(), NormalizeNativeBorderColor(borders.LeftColorHex), borders.LeftSize?.Value, borders.LeftSpace?.Value));
+                new NativeParagraphBorderSide(borders.TopStyle.ToOpenXml(), NormalizeNativeBorderColor(borders.TopColorHex), borders.TopSize, borders.TopSpace),
+                new NativeParagraphBorderSide(borders.RightStyle.ToOpenXml(), NormalizeNativeBorderColor(borders.RightColorHex), borders.RightSize, borders.RightSpace),
+                new NativeParagraphBorderSide(borders.BottomStyle.ToOpenXml(), NormalizeNativeBorderColor(borders.BottomColorHex), borders.BottomSize, borders.BottomSpace),
+                new NativeParagraphBorderSide(borders.LeftStyle.ToOpenXml(), NormalizeNativeBorderColor(borders.LeftColorHex), borders.LeftSize, borders.LeftSpace));
         }
 
         private static NativeParagraphBorders MergeNativeParagraphBorders(NativeParagraphBorders styleBorders, NativeParagraphBorders directBorders) =>
@@ -628,8 +628,10 @@ namespace OfficeIMO.Word.Pdf {
                 if (options.Orientation == null) {
                     return size;
                 }
-            } else if (section.PageSettings.Width?.Value > 0 && section.PageSettings.Height?.Value > 0) {
-                size = new PdfCore.PageSize(section.PageSettings.Width.Value / 20D, section.PageSettings.Height.Value / 20D);
+            } else if (section.PageSettings.Width > 0 && section.PageSettings.Height > 0) {
+                size = new PdfCore.PageSize(
+                    section.PageSettings.Width.GetValueOrDefault() / 20D,
+                    section.PageSettings.Height.GetValueOrDefault() / 20D);
             } else if (section.PageSettings.PageSize.HasValue) {
                 size = MapNativePageSize(section.PageSettings.PageSize.Value);
             } else if (options?.DefaultPageSize.HasValue == true) {
@@ -638,18 +640,18 @@ namespace OfficeIMO.Word.Pdf {
                 size = PdfCore.PageSizes.A4;
             }
 
-            PdfCore.PdfPageOrientation orientation;
+            OfficePageOrientation orientation;
             if (options?.Orientation != null) {
                 orientation = options.Orientation.Value;
-            } else if (section.PageSettings.Orientation == WordPageOrientation.Landscape) {
-                orientation = PdfCore.PdfPageOrientation.Landscape;
+            } else if (section.PageSettings.Orientation == OfficePageOrientation.Landscape) {
+                orientation = OfficePageOrientation.Landscape;
             } else if (options?.DefaultOrientation != null) {
-                orientation = options.DefaultOrientation == WordPageOrientation.Landscape ? PdfCore.PdfPageOrientation.Landscape : PdfCore.PdfPageOrientation.Portrait;
+                orientation = options.DefaultOrientation == OfficePageOrientation.Landscape ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
             } else {
-                orientation = PdfCore.PdfPageOrientation.Portrait;
+                orientation = OfficePageOrientation.Portrait;
             }
 
-            return orientation == PdfCore.PdfPageOrientation.Landscape ? size.Landscape() : size.Portrait();
+            return orientation == OfficePageOrientation.Landscape ? size.Landscape() : size.Portrait();
         }
 
         private static PdfCore.PageSize MapNativePageSize(WordPageSize pageSize) =>
@@ -676,9 +678,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return new PdfCore.PageMargins(
-                (section.Margins.Left?.Value ?? 0) / 20D,
+                section.Margins.Left / 20D,
                 (section.Margins.Top ?? 0) / 20D + headerFooterMarginExpansion.Header,
-                (section.Margins.Right?.Value ?? 0) / 20D,
+                section.Margins.Right / 20D,
                 (section.Margins.Bottom ?? 0) / 20D + headerFooterMarginExpansion.Footer);
         }
 
@@ -850,7 +852,7 @@ namespace OfficeIMO.Word.Pdf {
             return format!.Replace("{current}", "{page}").Replace("{total}", "{pages}");
         }
 
-        private static string? BuildNativeKeywords(WordPdfSaveOptions? options, BuiltinDocumentProperties properties) {
+        private static string? BuildNativeKeywords(WordPdfSaveOptions? options, WordBuiltinDocumentProperties properties) {
             return options?.Keywords ?? properties.Keywords;
         }
 

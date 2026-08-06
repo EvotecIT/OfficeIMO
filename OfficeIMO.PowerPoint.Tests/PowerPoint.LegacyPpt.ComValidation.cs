@@ -38,7 +38,7 @@ public sealed class PowerPointLegacyPptComValidationTests {
                     converted,
                     new PowerPointPresentationConversionOptions {
                         CompatibilityMode = OfficeCompatibilityMode.BestEffort,
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
                 AssertPowerPointDesktopRenders(
                     converted,

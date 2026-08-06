@@ -440,13 +440,13 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new object?[] { "Header", "InRange" }, column);
 
                 var sequentialChunks = sheetReader
-                    .ReadRangeStream("A1:A2", chunkRows: 1, mode: ExecutionMode.Sequential)
+                    .ReadRangeStream("A1:A2", chunkRows: 1, mode: ExcelExecutionMode.Sequential)
                     .ToList();
                 Assert.Equal(new[] { 1, 2 }, sequentialChunks.Select(chunk => chunk.StartRow).ToArray());
                 Assert.Equal("InRange", sequentialChunks[1].Rows[0][0]);
 
                 var parallelChunks = sheetReader
-                    .ReadRangeStream("A1:A2", chunkRows: 1, mode: ExecutionMode.Parallel)
+                    .ReadRangeStream("A1:A2", chunkRows: 1, mode: ExcelExecutionMode.Parallel)
                     .ToList();
                 Assert.Equal(new[] { 1, 2 }, parallelChunks.Select(chunk => chunk.StartRow).ToArray());
                 Assert.Equal("InRange", parallelChunks[1].Rows[0][0]);
@@ -603,7 +603,7 @@ namespace OfficeIMO.Tests {
 
                 var options = new ExcelReadOptions { InferDataTableColumnTypes = false };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
-                var table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:B2", headersInFirstRow: false, mode: ExecutionMode.Sequential);
+                var table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:B2", headersInFirstRow: false, mode: ExcelExecutionMode.Sequential);
 
                 Assert.Equal(new[] { "Column1", "Column2" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray());
                 Assert.All(table.Columns.Cast<DataColumn>(), column => Assert.Equal(typeof(object), column.DataType));
@@ -636,7 +636,7 @@ namespace OfficeIMO.Tests {
 
                 var options = new ExcelReadOptions { InferDataTableColumnTypes = false };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
-                var table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:B3", headersInFirstRow: true, mode: ExecutionMode.Sequential);
+                var table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:B3", headersInFirstRow: true, mode: ExcelExecutionMode.Sequential);
 
                 Assert.Equal(new[] { "Name", "Count" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray());
                 Assert.All(table.Columns.Cast<DataColumn>(), column => Assert.Equal(typeof(object), column.DataType));
@@ -669,7 +669,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reader = ExcelDocumentReader.Open(filePath);
-                var table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:B3", headersInFirstRow: true, mode: ExecutionMode.Sequential);
+                var table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:B3", headersInFirstRow: true, mode: ExcelExecutionMode.Sequential);
 
                 Assert.Equal(new[] { "Key", "Value" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray());
                 Assert.All(table.Columns.Cast<DataColumn>(), column => Assert.Equal(typeof(object), column.DataType));
@@ -881,7 +881,7 @@ namespace OfficeIMO.Tests {
                 MoveWorksheetRowToEnd(filePath, 1U);
 
                 using var reader = ExcelDocumentReader.Open(filePath);
-                var rows = reader.GetSheet("Data").ReadObjects("A1:B4", ExecutionMode.Sequential).ToList();
+                var rows = reader.GetSheet("Data").ReadObjects("A1:B4", ExcelExecutionMode.Sequential).ToList();
 
                 Assert.Equal(3, rows.Count);
                 Assert.Equal("Alpha", rows[0]["Name"]);
@@ -915,7 +915,7 @@ namespace OfficeIMO.Tests {
                     CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("forty-two") : ExcelCellValue.NotHandled
                 };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
-                var row = Assert.Single(reader.GetSheet("Data").ReadObjects("A1:B2", ExecutionMode.Sequential));
+                var row = Assert.Single(reader.GetSheet("Data").ReadObjects("A1:B2", ExcelExecutionMode.Sequential));
 
                 Assert.Equal("Alpha", row["Name"]);
                 Assert.Equal("forty-two", row["Count"]);
@@ -1074,7 +1074,7 @@ namespace OfficeIMO.Tests {
                     CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("forty-two") : ExcelCellValue.NotHandled
                 };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
-                var chunks = reader.GetSheet("Data").ReadRangeStream("A1:B2", chunkRows: 1, mode: ExecutionMode.Sequential).ToList();
+                var chunks = reader.GetSheet("Data").ReadRangeStream("A1:B2", chunkRows: 1, mode: ExcelExecutionMode.Sequential).ToList();
 
                 Assert.Equal(2, chunks.Count);
                 Assert.Equal("Alpha", chunks[1].Rows[0][0]);
@@ -1112,7 +1112,7 @@ namespace OfficeIMO.Tests {
                     CellValueConverter = static _ => ExcelCellValue.NotHandled
                 };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
-                var chunk = Assert.Single(reader.GetSheet("Data").ReadRangeStream("A1:A2", chunkRows: 2, mode: ExecutionMode.Sequential));
+                var chunk = Assert.Single(reader.GetSheet("Data").ReadRangeStream("A1:A2", chunkRows: 2, mode: ExcelExecutionMode.Sequential));
 
                 Assert.Equal(1.23d, Assert.IsType<double>(chunk.Rows[0][0]), precision: 2);
                 Assert.Equal(123.45d, Assert.IsType<double>(chunk.Rows[1][0]), precision: 2);
@@ -1143,7 +1143,7 @@ namespace OfficeIMO.Tests {
                     CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("forty-two") : ExcelCellValue.NotHandled
                 };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
-                DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:B3", mode: ExecutionMode.Sequential);
+                DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:B3", mode: ExcelExecutionMode.Sequential);
 
                 Assert.Equal("Alpha", table.Rows[0]["Name"]);
                 Assert.Equal("forty-two", table.Rows[0]["Count"]);
@@ -1183,7 +1183,7 @@ namespace OfficeIMO.Tests {
                     CellValueConverter = static _ => ExcelCellValue.NotHandled
                 };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
-                DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:A3", mode: ExecutionMode.Sequential);
+                DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:A3", mode: ExcelExecutionMode.Sequential);
 
                 Assert.Equal(1.23d, Assert.IsType<double>(table.Rows[0]["Amount"]), precision: 2);
                 Assert.Equal(123.45d, Assert.IsType<double>(table.Rows[1]["Amount"]), precision: 2);
@@ -1315,7 +1315,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { UseCachedFormulaResult = false });
-                object?[,] values = reader.GetSheet("Data").ReadRange("A3:A3", ExecutionMode.Sequential);
+                object?[,] values = reader.GetSheet("Data").ReadRange("A3:A3", ExcelExecutionMode.Sequential);
 
                 Assert.Equal("SUM(A1:A2)", values[0, 0]);
             } finally {
@@ -1401,7 +1401,7 @@ namespace OfficeIMO.Tests {
                 cts.Cancel();
 
                 Assert.Throws<OperationCanceledException>(() =>
-                    reader.GetSheet("Data").ReadRange("A1:A1", ExecutionMode.Sequential, cts.Token));
+                    reader.GetSheet("Data").ReadRange("A1:A1", ExcelExecutionMode.Sequential, cts.Token));
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1555,7 +1555,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Reader_ReadRange_ReportsOwnExecutionDecision() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderRangeDecision.xlsx");
-            var decisions = new List<(string Operation, int Items, ExecutionMode Mode)>();
+            var decisions = new List<(string Operation, int Items, ExcelExecutionMode Mode)>();
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
@@ -1577,7 +1577,7 @@ namespace OfficeIMO.Tests {
                 var decision = Assert.Single(decisions);
                 Assert.Equal("ReadRange", decision.Operation);
                 Assert.Equal(2, decision.Items);
-                Assert.Equal(ExecutionMode.Parallel, decision.Mode);
+                Assert.Equal(ExcelExecutionMode.Parallel, decision.Mode);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1588,7 +1588,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Reader_ReadRangeStream_ReportsOwnExecutionDecision() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderRangeStreamDecision.xlsx");
-            var decisions = new List<(string Operation, int Items, ExecutionMode Mode)>();
+            var decisions = new List<(string Operation, int Items, ExcelExecutionMode Mode)>();
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
@@ -1609,7 +1609,7 @@ namespace OfficeIMO.Tests {
                 var decision = Assert.Single(decisions);
                 Assert.Equal("ReadRangeStream", decision.Operation);
                 Assert.Equal(2, decision.Items);
-                Assert.Equal(ExecutionMode.Parallel, decision.Mode);
+                Assert.Equal(ExcelExecutionMode.Parallel, decision.Mode);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1620,7 +1620,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Reader_ReadObjectsAs_ReportsOwnExecutionDecision() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderObjectsAsDecision.xlsx");
-            var decisions = new List<(string Operation, int Items, ExecutionMode Mode)>();
+            var decisions = new List<(string Operation, int Items, ExcelExecutionMode Mode)>();
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
@@ -1644,7 +1644,7 @@ namespace OfficeIMO.Tests {
                 var decision = Assert.Single(decisions);
                 Assert.Equal("ReadObjectsAs", decision.Operation);
                 Assert.Equal(4, decision.Items);
-                Assert.Equal(ExecutionMode.Parallel, decision.Mode);
+                Assert.Equal(ExcelExecutionMode.Parallel, decision.Mode);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1668,7 +1668,7 @@ namespace OfficeIMO.Tests {
 
                 using var reader = ExcelDocumentReader.Open(filePath);
                 var chunks = reader.GetSheet("Data")
-                    .ReadRangeStream("A1:B2", chunkRows: 1, mode: ExecutionMode.Sequential)
+                    .ReadRangeStream("A1:B2", chunkRows: 1, mode: ExcelExecutionMode.Sequential)
                     .ToList();
 
                 Assert.Equal(2, chunks.Count);
@@ -1703,7 +1703,7 @@ namespace OfficeIMO.Tests {
 
                 using var reader = ExcelDocumentReader.Open(filePath);
                 var chunks = reader.GetSheet("Data")
-                    .ReadRangeStream("A1:B5", chunkRows: 2, mode: ExecutionMode.Parallel)
+                    .ReadRangeStream("A1:B5", chunkRows: 2, mode: ExcelExecutionMode.Parallel)
                     .ToList();
 
                 Assert.Equal(3, chunks.Count);
@@ -1741,7 +1741,7 @@ namespace OfficeIMO.Tests {
                 var sheetReader = reader.GetSheet("Data");
 
                 var sequentialChunk = Assert.Single(sheetReader
-                    .ReadRangeStream("A1:A3", chunkRows: 3, mode: ExecutionMode.Sequential));
+                    .ReadRangeStream("A1:A3", chunkRows: 3, mode: ExcelExecutionMode.Sequential));
                 Assert.Equal(1, sequentialChunk.StartRow);
                 Assert.Equal(3, sequentialChunk.RowCount);
                 Assert.Equal("Header", sequentialChunk.Rows[0][0]);
@@ -1749,7 +1749,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Tail", sequentialChunk.Rows[2][0]);
 
                 var parallelChunk = Assert.Single(sheetReader
-                    .ReadRangeStream("A1:A3", chunkRows: 3, mode: ExecutionMode.Parallel));
+                    .ReadRangeStream("A1:A3", chunkRows: 3, mode: ExcelExecutionMode.Parallel));
                 Assert.Equal(1, parallelChunk.StartRow);
                 Assert.Equal(3, parallelChunk.RowCount);
                 Assert.Equal("Header", parallelChunk.Rows[0][0]);
@@ -1781,13 +1781,13 @@ namespace OfficeIMO.Tests {
                 var sheetReader = reader.GetSheet("Data");
 
                 var sequentialChunks = sheetReader
-                    .ReadRangeStream("A1:A3", chunkRows: 1, mode: ExecutionMode.Sequential)
+                    .ReadRangeStream("A1:A3", chunkRows: 1, mode: ExcelExecutionMode.Sequential)
                     .ToList();
                 Assert.Equal(new[] { 1, 2, 3 }, sequentialChunks.Select(chunk => chunk.StartRow).ToArray());
                 Assert.Equal(new[] { "One", "Two", "Three" }, sequentialChunks.Select(chunk => (string?)chunk.Rows[0][0]).ToArray());
 
                 var parallelChunks = sheetReader
-                    .ReadRangeStream("A1:A3", chunkRows: 1, mode: ExecutionMode.Parallel)
+                    .ReadRangeStream("A1:A3", chunkRows: 1, mode: ExcelExecutionMode.Parallel)
                     .ToList();
                 Assert.Equal(new[] { 1, 2, 3 }, parallelChunks.Select(chunk => chunk.StartRow).ToArray());
                 Assert.Equal(new[] { "One", "Two", "Three" }, parallelChunks.Select(chunk => (string?)chunk.Rows[0][0]).ToArray());
@@ -1817,13 +1817,13 @@ namespace OfficeIMO.Tests {
                 var sheetReader = reader.GetSheet("Data");
 
                 var sequentialChunks = sheetReader
-                    .ReadRangeStream("A1:A4097", chunkRows: 2048, mode: ExecutionMode.Sequential)
+                    .ReadRangeStream("A1:A4097", chunkRows: 2048, mode: ExcelExecutionMode.Sequential)
                     .ToList();
                 Assert.Equal(new[] { 1, 2049, 4097 }, sequentialChunks.Select(chunk => chunk.StartRow).ToArray());
                 Assert.Equal(new[] { "One", "Middle", "Last" }, sequentialChunks.Select(chunk => (string?)chunk.Rows[0][0]).ToArray());
 
                 var parallelChunks = sheetReader
-                    .ReadRangeStream("A1:A4097", chunkRows: 2048, mode: ExecutionMode.Parallel)
+                    .ReadRangeStream("A1:A4097", chunkRows: 2048, mode: ExcelExecutionMode.Parallel)
                     .ToList();
                 Assert.Equal(new[] { 1, 2049, 4097 }, parallelChunks.Select(chunk => chunk.StartRow).ToArray());
                 Assert.Equal(new[] { "One", "Middle", "Last" }, parallelChunks.Select(chunk => (string?)chunk.Rows[0][0]).ToArray());
@@ -1877,7 +1877,7 @@ namespace OfficeIMO.Tests {
 
                 using var reader = ExcelDocumentReader.Open(filePath);
                 var chunks = reader.GetSheet("Data")
-                    .ReadRangeStream("A1:A10", chunkRows: 3, mode: ExecutionMode.Parallel)
+                    .ReadRangeStream("A1:A10", chunkRows: 3, mode: ExcelExecutionMode.Parallel)
                     .ToList();
 
                 Assert.Equal(2, chunks.Count);

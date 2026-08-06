@@ -16,7 +16,7 @@ public class PdfCanvasStampTests {
             canvas.Text("Canvas page " + context.PageNumber, 36D, 36D, 220D, 30D, fontSize: 14D)
                 .Table(new[] {
                     new[] { PdfTableCell.TextCell("Name"), PdfTableCell.TextCell("Value") },
-                    new[] { PdfTableCell.TextCell("Mode"), PdfTableCell.RichTextCell(new[] { TextRun.Bolded("General visual canvas") }) }
+                    new[] { PdfTableCell.TextCell("Mode"), PdfTableCell.RichTextCell(new[] { PdfTextRun.Bolded("General visual canvas") }) }
                 }, 36D, 90D, Math.Min(420D, context.Width - 72D), 100D)
                 .Image(PdfPngTestImages.CreateRgbPng(20, 80, 180), 36D, 210D, 24D, 24D, alternativeText: "Blue marker");
         });
@@ -118,7 +118,7 @@ public class PdfCanvasStampTests {
 
         NotSupportedException linkException = Assert.Throws<NotSupportedException>(() =>
             target.Stamp.Content(canvas => canvas.Text(
-                new[] { TextRun.Link("Link", "https://example.com") },
+                new[] { PdfTextRun.Link("Link", "https://example.com") },
                 10D,
                 10D,
                 120D,
@@ -215,7 +215,7 @@ public class PdfCanvasStampTests {
 
         PdfDocument stamped = PdfDocument.Open(target).Stamp.Content(
             canvas => canvas.Text(
-                new[] { TextRun.Normal("Named font stamp", fontFamily: familyName) },
+                new[] { PdfTextRun.Normal("Named font stamp", fontFamily: familyName) },
                 36D,
                 36D,
                 220D,

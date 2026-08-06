@@ -52,15 +52,15 @@ namespace OfficeIMO.Tests {
             paragraph.AddImage(Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22);
             var paragraphImage = paragraph.Image;
             Assert.NotNull(paragraphImage);
-            Assert.True(paragraphImage!.WrapText == WrapTextImage.InLineWithText);
+            Assert.True(paragraphImage!.WrapText == WordImageTextWrapping.InLineWithText);
 
-            paragraphImage.WrapText = WrapTextImage.BehindText;
+            paragraphImage.WrapText = WordImageTextWrapping.BehindText;
 
-            Assert.True(paragraphImage.WrapText == WrapTextImage.BehindText);
+            Assert.True(paragraphImage.WrapText == WordImageTextWrapping.BehindText);
 
-            paragraphImage.WrapText = WrapTextImage.InLineWithText;
+            paragraphImage.WrapText = WordImageTextWrapping.InLineWithText;
 
-            Assert.True(paragraphImage.WrapText == WrapTextImage.InLineWithText);
+            Assert.True(paragraphImage.WrapText == WordImageTextWrapping.InLineWithText);
 
             var paragraph5 = paragraph.AddText("and more text");
             paragraph5.Bold = true;
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
 #pragma warning restore CS0618
             Assert.Equal(WordImageBlackWhiteMode.GrayWhite, paragraph2Image.BlackWhiteMode);
             paragraph2Image!.Rotation = 180;
-            paragraph2Image.Shape = WordImageShapeType.ActionButtonMovie;
+            paragraph2Image.Shape = OfficePresetShapeType.ActionButtonMovie;
 
             Assert.Equal(500d, paragraph2Image.Height ?? default, 15);
             Assert.Equal(500d, paragraph2Image.Width ?? default, 15);
@@ -225,7 +225,7 @@ namespace OfficeIMO.Tests {
             var filePathImageEvotec = System.IO.Path.Combine(imagePaths, fileNameImageEvotec);
             var paragraphHeader = evenHeader.AddParagraph();
             using (var imageStream = System.IO.File.OpenRead(filePathImageEvotec)) {
-                paragraphHeader.AddImage(imageStream, fileNameImageEvotec, 300, 300, WrapTextImage.InLineWithText, "This is a test");
+                paragraphHeader.AddImage(imageStream, fileNameImageEvotec, 300, 300, WordImageTextWrapping.InLineWithText, "This is a test");
                 var headerImage = paragraphHeader.Image;
                 Assert.NotNull(headerImage);
                 Assert.True(headerImage!.CompressionQuality == WordImageCompressionQuality.Print);
@@ -268,20 +268,20 @@ namespace OfficeIMO.Tests {
                 Assert.True(defaultHeader.Images.Count == 1);
                 Assert.True(defaultFooter.Images.Count == 0);
 
-                Assert.True(document.Images[0].WrapText == WrapTextImage.InLineWithText);
-                Assert.True(document.Images[1].WrapText == WrapTextImage.Square);
-                Assert.True(document.Images[2].WrapText == WrapTextImage.InFrontOfText);
-                Assert.True(document.Images[3].WrapText == WrapTextImage.BehindText);
-                Assert.True(defaultHeader.Images[0].WrapText == WrapTextImage.InLineWithText);
+                Assert.True(document.Images[0].WrapText == WordImageTextWrapping.InLineWithText);
+                Assert.True(document.Images[1].WrapText == WordImageTextWrapping.Square);
+                Assert.True(document.Images[2].WrapText == WordImageTextWrapping.InFrontOfText);
+                Assert.True(document.Images[3].WrapText == WordImageTextWrapping.BehindText);
+                Assert.True(defaultHeader.Images[0].WrapText == WordImageTextWrapping.InLineWithText);
 
                 Assert.NotNull(document.Images[0].Shape);
                 Assert.NotNull(document.Images[1].Shape);
                 Assert.NotNull(document.Images[2].Shape);
                 Assert.NotNull(document.Images[3].Shape);
 
-                document.Images[0].Shape = WordImageShapeType.Cloud;
+                document.Images[0].Shape = OfficePresetShapeType.Cloud;
 
-                Assert.True(document.Images[0].Shape == WordImageShapeType.Cloud);
+                Assert.True(document.Images[0].Shape == OfficePresetShapeType.Cloud);
                 document.Save();
             }
         }
@@ -296,10 +296,10 @@ namespace OfficeIMO.Tests {
             var filePathImage = System.IO.Path.Combine(imagePaths, fileNameImage);
 
             var paragraph1 = document.AddParagraph("This is a test document with images wraps");
-            paragraph1.AddImage(filePathImage, 100, 100, WrapTextImage.InLineWithText);
+            paragraph1.AddImage(filePathImage, 100, 100, WordImageTextWrapping.InLineWithText);
 
             var paragraph2 = document.AddParagraph("This is a test document with images wraps");
-            paragraph2.AddImage(filePathImage, 100, 100, WrapTextImage.BehindText);
+            paragraph2.AddImage(filePathImage, 100, 100, WordImageTextWrapping.BehindText);
             var paragraph2Image = paragraph2.Image;
             Assert.NotNull(paragraph2Image);
             Assert.True(paragraph2Image!.CompressionQuality == WordImageCompressionQuality.Print);
@@ -307,35 +307,35 @@ namespace OfficeIMO.Tests {
             Assert.True(paragraph2Image.CompressionQuality == WordImageCompressionQuality.HighQualityPrint);
 
             var paragraph3 = document.AddParagraph("This is a test document with images wraps");
-            paragraph3.AddImage(filePathImage, 100, 100, WrapTextImage.InFrontOfText);
+            paragraph3.AddImage(filePathImage, 100, 100, WordImageTextWrapping.InFrontOfText);
 
             var paragraph4 = document.AddParagraph("This is a test document with images wraps");
-            paragraph4.AddImage(filePathImage, 100, 100, WrapTextImage.TopAndBottom);
+            paragraph4.AddImage(filePathImage, 100, 100, WordImageTextWrapping.TopAndBottom);
 
             var paragraph5 = document.AddParagraph("This is a test document with images wraps");
-            paragraph5.AddImage(filePathImage, 100, 100, WrapTextImage.Square);
+            paragraph5.AddImage(filePathImage, 100, 100, WordImageTextWrapping.Square);
 
             var paragraph6 = document.AddParagraph("This is a test document with images wraps");
-            paragraph6.AddImage(filePathImage, 100, 100, WrapTextImage.Tight);
+            paragraph6.AddImage(filePathImage, 100, 100, WordImageTextWrapping.Tight);
 
             var paragraph7 = document.AddParagraph("This is a test document with images wraps");
-            paragraph7.AddImage(filePathImage, 100, 100, WrapTextImage.Through);
+            paragraph7.AddImage(filePathImage, 100, 100, WordImageTextWrapping.Through);
 
             Assert.True(document.Paragraphs.Count == 7);
             Assert.NotNull(document.Paragraphs[0].Image);
-            Assert.True(document.Paragraphs[0].Image!.WrapText == WrapTextImage.InLineWithText);
+            Assert.True(document.Paragraphs[0].Image!.WrapText == WordImageTextWrapping.InLineWithText);
             Assert.NotNull(document.Paragraphs[1].Image);
-            Assert.True(document.Paragraphs[1].Image!.WrapText == WrapTextImage.BehindText);
+            Assert.True(document.Paragraphs[1].Image!.WrapText == WordImageTextWrapping.BehindText);
             Assert.NotNull(document.Paragraphs[2].Image);
-            Assert.True(document.Paragraphs[2].Image!.WrapText == WrapTextImage.InFrontOfText);
+            Assert.True(document.Paragraphs[2].Image!.WrapText == WordImageTextWrapping.InFrontOfText);
             Assert.NotNull(document.Paragraphs[3].Image);
-            Assert.True(document.Paragraphs[3].Image!.WrapText == WrapTextImage.TopAndBottom);
+            Assert.True(document.Paragraphs[3].Image!.WrapText == WordImageTextWrapping.TopAndBottom);
             Assert.NotNull(document.Paragraphs[4].Image);
-            Assert.True(document.Paragraphs[4].Image!.WrapText == WrapTextImage.Square);
+            Assert.True(document.Paragraphs[4].Image!.WrapText == WordImageTextWrapping.Square);
             Assert.NotNull(document.Paragraphs[5].Image);
-            Assert.True(document.Paragraphs[5].Image!.WrapText == WrapTextImage.Tight);
+            Assert.True(document.Paragraphs[5].Image!.WrapText == WordImageTextWrapping.Tight);
             Assert.NotNull(document.Paragraphs[6].Image);
-            Assert.True(document.Paragraphs[6].Image!.WrapText == WrapTextImage.Through);
+            Assert.True(document.Paragraphs[6].Image!.WrapText == WordImageTextWrapping.Through);
 
             document.Save();
 
@@ -352,18 +352,18 @@ namespace OfficeIMO.Tests {
             var filePathImage = System.IO.Path.Combine(imagePaths, fileNameImage);
 
             var paragraph1 = document.AddParagraph("This is a test document with images wraps");
-            paragraph1.AddImage(filePathImage, 100, 100, WrapTextImage.InLineWithText);
+            paragraph1.AddImage(filePathImage, 100, 100, WordImageTextWrapping.InLineWithText);
 
             var paragraph2 = document.AddParagraph("This is a test document with images wraps");
-            paragraph2.AddImage(filePathImage, 100, 100, WrapTextImage.Square);
+            paragraph2.AddImage(filePathImage, 100, 100, WordImageTextWrapping.Square);
 
             Assert.True(document.Paragraphs.Count == 2);
             var firstParaImage = document.Paragraphs[0].Image;
             var secondParaImage = document.Paragraphs[1].Image;
             Assert.NotNull(firstParaImage);
-            Assert.True(firstParaImage!.WrapText == WrapTextImage.InLineWithText);
+            Assert.True(firstParaImage!.WrapText == WordImageTextWrapping.InLineWithText);
             Assert.NotNull(secondParaImage);
-            Assert.True(secondParaImage!.WrapText == WrapTextImage.Square);
+            Assert.True(secondParaImage!.WrapText == WordImageTextWrapping.Square);
             Assert.Throws<System.InvalidOperationException>(() => firstParaImage.horizontalPosition);
             Assert.Throws<System.InvalidOperationException>(() => firstParaImage.verticalPosition);
 
@@ -458,17 +458,17 @@ namespace OfficeIMO.Tests {
             paragraph.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
 
             // lets add image to paragraph
-            var imageParagraph = paragraph.AddImage(Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22, WrapTextImage.InLineWithText);
+            var imageParagraph = paragraph.AddImage(Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22, WordImageTextWrapping.InLineWithText);
 
-            Assert.True(document.Images[0].WrapText == WrapTextImage.InLineWithText);
+            Assert.True(document.Images[0].WrapText == WordImageTextWrapping.InLineWithText);
 
             var inlineImage = imageParagraph.Image;
             Assert.NotNull(inlineImage);
-            Assert.True(inlineImage!.WrapText == WrapTextImage.InLineWithText);
+            Assert.True(inlineImage!.WrapText == WordImageTextWrapping.InLineWithText);
 
-            inlineImage.WrapText = WrapTextImage.Square;
+            inlineImage.WrapText = WordImageTextWrapping.Square;
 
-            Assert.True(inlineImage.WrapText == WrapTextImage.Square);
+            Assert.True(inlineImage.WrapText == WordImageTextWrapping.Square);
 
             var paragraph5 = paragraph.AddText("and more text");
             paragraph5.Bold = true;
@@ -599,13 +599,13 @@ namespace OfficeIMO.Tests {
                 paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
                 var image = paragraph.Image;
                 Assert.NotNull(image);
-                image!.FillMode = ImageFillMode.Tile;
+                image!.FillMode = WordImageFillMode.Tile;
                 image.UseLocalDpi = true;
                 document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
-                Assert.Equal(ImageFillMode.Tile, document.Images[0].FillMode);
+                Assert.Equal(WordImageFillMode.Tile, document.Images[0].FillMode);
                 Assert.True(document.Images[0].UseLocalDpi == true);
             }
 
@@ -628,12 +628,12 @@ namespace OfficeIMO.Tests {
                 paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 50);
                 var image = paragraph.Image;
                 Assert.NotNull(image);
-                image!.FillMode = ImageFillMode.Fit;
+                image!.FillMode = WordImageFillMode.Fit;
                 document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
-                Assert.Equal(ImageFillMode.Fit, document.Images[0].FillMode);
+                Assert.Equal(WordImageFillMode.Fit, document.Images[0].FillMode);
             }
 
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {
@@ -654,12 +654,12 @@ namespace OfficeIMO.Tests {
                 paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 50);
                 var image = paragraph.Image;
                 Assert.NotNull(image);
-                image!.FillMode = ImageFillMode.Center;
+                image!.FillMode = WordImageFillMode.Center;
                 document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
-                Assert.Equal(ImageFillMode.Center, document.Images[0].FillMode);
+                Assert.Equal(WordImageFillMode.Center, document.Images[0].FillMode);
             }
 
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {

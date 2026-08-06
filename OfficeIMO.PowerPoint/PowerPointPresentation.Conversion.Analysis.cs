@@ -33,7 +33,7 @@ public sealed partial class PowerPointPresentation {
         OfficeFormatDescriptor destinationDescriptor = PowerPointFormatCatalog.GetByExtension(paths.Destination);
         OfficeCompatibilityMode mode = GetCompatibilityMode(options);
         bool allowsLoss = AllowsLoss(options, mode);
-        IReadOnlyList<PowerPointConversionDiagnostic> diagnostics = CreatePowerPointConversionDiagnostics(
+        IReadOnlyList<OfficeConversionDiagnostic> diagnostics = CreateOfficeConversionDiagnostics(
             presentation,
             paths.Source,
             sourceDescriptor,

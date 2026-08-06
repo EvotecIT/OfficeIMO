@@ -88,7 +88,7 @@ public partial class Excel {
             sheet.CellValue(1, 1, "Amount");
             sheet.CellValue(2, 1, 10.5d);
             sheet.CellValue(3, 1, 20.25d);
-            sheet.AddTable("A1:A3", hasHeader: true, name: "Amounts", style: TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:A3", hasHeader: true, name: "Amounts", style: ExcelTableStyle.TableStyleMedium2);
 
             GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
             GoogleSheetsAddTableRequest table = Assert.Single(batch.Requests.OfType<GoogleSheetsAddTableRequest>());

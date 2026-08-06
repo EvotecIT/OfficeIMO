@@ -1,9 +1,7 @@
 using System;
 using System.IO;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Color = OfficeIMO.Drawing.OfficeColor;
-using WColor = DocumentFormat.OpenXml.Wordprocessing.Color;
 
 namespace OfficeIMO.Examples.Word;
 
@@ -12,13 +10,11 @@ internal static partial class Paragraphs {
         Console.WriteLine("[*] Creating document with custom style");
         string filePath = Path.Combine(folderPath, "CustomParagraphStyle.docx");
 
-        var custom = new Style { Type = StyleValues.Paragraph, StyleId = "MyStyle" };
-        custom.Append(new StyleName { Val = "MyStyle" });
-        var runProps = new StyleRunProperties();
-        runProps.Append(new RunFonts { Ascii = "Courier New" });
-        runProps.Append(new WColor { Val = Color.Red.ToRgbHex() });
-        runProps.Append(new FontSize { Val = "28" });
-        custom.Append(runProps);
+        var custom = new WordParagraphStyleDefinition("MyStyle") {
+            FontName = "Courier New",
+            ColorHex = Color.Red.ToRgbHex(),
+            FontSizePoints = 14
+        };
 
         WordParagraphStyle.RegisterCustomStyle("MyStyle", custom);
 
@@ -33,22 +29,18 @@ internal static partial class Paragraphs {
         Console.WriteLine("[*] Creating document with multiple custom styles");
         string filePath = Path.Combine(folderPath, "MultipleCustomParagraphStyles.docx");
 
-        var centeredRed = new Style { Type = StyleValues.Paragraph, StyleId = "CenteredRed" };
-        centeredRed.Append(new StyleName { Val = "CenteredRed" });
-        centeredRed.Append(new StyleParagraphProperties(new Justification { Val = JustificationValues.Center }));
-        var centeredRedRun = new StyleRunProperties();
-        centeredRedRun.Append(new WColor { Val = "FF0000" });
-        centeredRedRun.Append(new Bold());
-        centeredRed.Append(centeredRedRun);
+        var centeredRed = new WordParagraphStyleDefinition("CenteredRed") {
+            Alignment = WordParagraphAlignment.Center,
+            ColorHex = "FF0000",
+            Bold = true
+        };
         WordParagraphStyle.RegisterCustomStyle("CenteredRed", centeredRed);
 
-        var greenIndented = new Style { Type = StyleValues.Paragraph, StyleId = "GreenIndented" };
-        greenIndented.Append(new StyleName { Val = "GreenIndented" });
-        greenIndented.Append(new StyleParagraphProperties(new Indentation { Left = "720" }));
-        var greenIndentedRun = new StyleRunProperties();
-        greenIndentedRun.Append(new WColor { Val = "00AA00" });
-        greenIndentedRun.Append(new Italic());
-        greenIndented.Append(greenIndentedRun);
+        var greenIndented = new WordParagraphStyleDefinition("GreenIndented") {
+            LeftIndentTwips = 720,
+            ColorHex = "00AA00",
+            Italic = true
+        };
         WordParagraphStyle.RegisterCustomStyle("GreenIndented", greenIndented);
 
         using (WordDocument document = WordDocument.Create(filePath)) {
@@ -64,11 +56,10 @@ internal static partial class Paragraphs {
         string filePath = Path.Combine(folderPath, "OverrideNormalStyle.docx");
         var original = WordParagraphStyle.GetStyleDefinition(WordParagraphStyles.Normal) ?? throw new InvalidOperationException("Normal style definition was not found.");
 
-        var custom = new Style { Type = StyleValues.Paragraph, StyleId = "Normal" };
-        var run = new StyleRunProperties();
-        run.Append(new WColor { Val = "0000FF" });
-        run.Append(new Bold());
-        custom.Append(run);
+        var custom = new WordParagraphStyleDefinition("Normal") {
+            ColorHex = "0000FF",
+            Bold = true
+        };
         WordParagraphStyle.OverrideBuiltInStyle(WordParagraphStyles.Normal, custom);
 
         using (WordDocument document = WordDocument.Create(filePath)) {

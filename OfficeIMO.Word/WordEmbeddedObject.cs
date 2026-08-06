@@ -239,7 +239,7 @@ namespace OfficeIMO.Word {
         /// <param name="width">Width of the object icon in points.</param>
         /// <param name="height">Height of the object icon in points.</param>
         /// <returns>The constructed <see cref="EmbeddedObject"/> instance.</returns>
-        public EmbeddedObject GenerateEmbeddedObject(string imageId, string packageEmbedId, string programId, double width, double height) {
+        internal EmbeddedObject GenerateEmbeddedObject(string imageId, string packageEmbedId, string programId, double width, double height) {
             EmbeddedObject embeddedObject1 = new EmbeddedObject() { DxaOriginal = "1297", DyaOriginal = "816", AnchorId = "595268A8" };
 
             V.Shapetype shapetype1 = new V.Shapetype() { Id = "_x0000_t75", CoordinateSize = "21600,21600", Filled = false, Stroked = false, OptionalNumber = 75, PreferRelative = true, EdgePath = "m@4@5l@4@11@9@11@9@5xe" };

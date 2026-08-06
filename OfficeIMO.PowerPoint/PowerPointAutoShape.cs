@@ -14,7 +14,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Gets the preset geometry type of the shape.
         /// </summary>
-        public PowerPointShapeType? ShapeType => Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value.ToOfficeEnum();
+        public OfficePresetShapeType? ShapeType => Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value.ToOfficeEnum();
 
         /// <summary>
         ///     Sets the fill color and returns the shape for chaining.

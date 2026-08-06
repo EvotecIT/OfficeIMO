@@ -28,7 +28,7 @@ public sealed class PdfTextFallbackPlan {
     /// <param name="fontSlots">Generated standard-font slots ordered the same way as the fallback candidates.</param>
     /// <param name="styleTemplate">Optional run whose styling is copied to each generated text run.</param>
     /// <returns>Text runs that can be used with rich paragraphs, lists, tables, panels, and canvas text boxes.</returns>
-    public IReadOnlyList<TextRun> ToTextRuns(IReadOnlyList<PdfStandardFont> fontSlots, TextRun? styleTemplate = null) {
+    public IReadOnlyList<PdfTextRun> ToTextRuns(IReadOnlyList<PdfStandardFont> fontSlots, PdfTextRun? styleTemplate = null) {
         Guard.NotNull(fontSlots, nameof(fontSlots));
         return ToTextRuns(index => {
             if (index < 0 || index >= fontSlots.Count) {
@@ -47,7 +47,7 @@ public sealed class PdfTextFallbackPlan {
     /// <param name="fontSlots">Generated standard-font slots keyed by fallback candidate index.</param>
     /// <param name="styleTemplate">Optional run whose styling is copied to each generated text run.</param>
     /// <returns>Text runs that can be used with rich paragraphs, lists, tables, panels, and canvas text boxes.</returns>
-    public IReadOnlyList<TextRun> ToTextRuns(IReadOnlyDictionary<int, PdfStandardFont> fontSlots, TextRun? styleTemplate = null) {
+    public IReadOnlyList<PdfTextRun> ToTextRuns(IReadOnlyDictionary<int, PdfStandardFont> fontSlots, PdfTextRun? styleTemplate = null) {
         Guard.NotNull(fontSlots, nameof(fontSlots));
         return ToTextRuns(index => {
             if (!fontSlots.TryGetValue(index, out PdfStandardFont slot)) {
@@ -65,7 +65,7 @@ public sealed class PdfTextFallbackPlan {
     /// <param name="fontFamilyNames">Registered named font families ordered the same way as the fallback candidates.</param>
     /// <param name="styleTemplate">Optional run whose styling is copied to each generated text run.</param>
     /// <returns>Text runs that can be used with rich paragraphs, lists, tables, panels, and canvas text boxes.</returns>
-    public IReadOnlyList<TextRun> ToNamedTextRuns(IReadOnlyList<string> fontFamilyNames, TextRun? styleTemplate = null) {
+    public IReadOnlyList<PdfTextRun> ToNamedTextRuns(IReadOnlyList<string> fontFamilyNames, PdfTextRun? styleTemplate = null) {
         Guard.NotNull(fontFamilyNames, nameof(fontFamilyNames));
         return ToNamedTextRuns(index => {
             if (index < 0 || index >= fontFamilyNames.Count) {
@@ -78,12 +78,12 @@ public sealed class PdfTextFallbackPlan {
         }, styleTemplate);
     }
 
-    private System.Collections.ObjectModel.ReadOnlyCollection<TextRun> ToTextRuns(Func<int, PdfStandardFont> resolveFont, TextRun? styleTemplate) {
+    private System.Collections.ObjectModel.ReadOnlyCollection<PdfTextRun> ToTextRuns(Func<int, PdfStandardFont> resolveFont, PdfTextRun? styleTemplate) {
         if (!IsFullyCovered) {
             throw new InvalidOperationException("Cannot convert an incomplete embedded-font fallback plan to renderable text runs. Inspect Diagnostics and add fallback font coverage first.");
         }
 
-        var runs = new List<TextRun>();
+        var runs = new List<PdfTextRun>();
         int cursor = 0;
         foreach (PdfTextFallbackSegment segment in Segments) {
             if (segment.StartIndex > cursor) {
@@ -104,12 +104,12 @@ public sealed class PdfTextFallbackPlan {
         return runs.AsReadOnly();
     }
 
-    private System.Collections.ObjectModel.ReadOnlyCollection<TextRun> ToNamedTextRuns(Func<int, string> resolveFontFamily, TextRun? styleTemplate) {
+    private System.Collections.ObjectModel.ReadOnlyCollection<PdfTextRun> ToNamedTextRuns(Func<int, string> resolveFontFamily, PdfTextRun? styleTemplate) {
         if (!IsFullyCovered) {
             throw new InvalidOperationException("Cannot convert an incomplete embedded-font fallback plan to renderable text runs. Inspect Diagnostics and add fallback font coverage first.");
         }
 
-        var runs = new List<TextRun>();
+        var runs = new List<PdfTextRun>();
         int cursor = 0;
         foreach (PdfTextFallbackSegment segment in Segments) {
             if (segment.StartIndex > cursor) {
@@ -130,15 +130,15 @@ public sealed class PdfTextFallbackPlan {
         return runs.AsReadOnly();
     }
 
-    private static TextRun CreateStyledRun(string text, PdfStandardFont font, TextRun? styleTemplate) {
+    private static PdfTextRun CreateStyledRun(string text, PdfStandardFont font, PdfTextRun? styleTemplate) {
         if (styleTemplate == null) {
-            return TextRun.Normal(text, font: font);
+            return PdfTextRun.Normal(text, font: font);
         }
 
         bool keepLink = !string.IsNullOrWhiteSpace(text) &&
             (styleTemplate.LinkUri != null || styleTemplate.LinkDestinationName != null);
 
-        return new TextRun(
+        return new PdfTextRun(
             text,
             styleTemplate.Bold,
             styleTemplate.Underline,
@@ -154,15 +154,15 @@ public sealed class PdfTextFallbackPlan {
             backgroundColor: styleTemplate.BackgroundColor);
     }
 
-    private static TextRun CreateStyledNamedRun(string text, string fontFamily, TextRun? styleTemplate) {
+    private static PdfTextRun CreateStyledNamedRun(string text, string fontFamily, PdfTextRun? styleTemplate) {
         if (styleTemplate == null) {
-            return TextRun.Normal(text, fontFamily: fontFamily);
+            return PdfTextRun.Normal(text, fontFamily: fontFamily);
         }
 
         bool keepLink = !string.IsNullOrWhiteSpace(text) &&
             (styleTemplate.LinkUri != null || styleTemplate.LinkDestinationName != null);
 
-        return new TextRun(
+        return new PdfTextRun(
             text,
             styleTemplate.Bold,
             styleTemplate.Underline,
@@ -179,12 +179,12 @@ public sealed class PdfTextFallbackPlan {
             fontFamily: fontFamily);
     }
 
-    private static TextRun CreateStyledLayoutRun(string text, TextRun? styleTemplate) {
+    private static PdfTextRun CreateStyledLayoutRun(string text, PdfTextRun? styleTemplate) {
         if (styleTemplate == null) {
-            return TextRun.Normal(text);
+            return PdfTextRun.Normal(text);
         }
 
-        return new TextRun(
+        return new PdfTextRun(
             text,
             styleTemplate.Bold,
             styleTemplate.Underline,
@@ -197,17 +197,17 @@ public sealed class PdfTextFallbackPlan {
             backgroundColor: styleTemplate.BackgroundColor);
     }
 
-    private static void AddLayoutControlRuns(List<TextRun> runs, string text, TextRun? styleTemplate) {
+    private static void AddLayoutControlRuns(List<PdfTextRun> runs, string text, PdfTextRun? styleTemplate) {
         for (int i = 0; i < text.Length;) {
             char ch = text[i];
             if (ch == '\n' || ch == '\r') {
-                runs.Add(TextRun.LineBreak());
+                runs.Add(PdfTextRun.LineBreak());
                 if (ch == '\r' && i + 1 < text.Length && text[i + 1] == '\n') {
                     i++;
                 }
                 i++;
             } else if (ch == '\t') {
-                runs.Add(TextRun.Tab());
+                runs.Add(PdfTextRun.Tab());
                 i++;
             } else if (!char.IsControl(ch)) {
                 string textElement = System.Globalization.StringInfo.GetNextTextElement(text, i);

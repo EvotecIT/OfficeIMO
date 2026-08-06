@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Worksheet page orientation when present.
         /// </summary>
-        public ExcelPageOrientation? Orientation { get; internal set; }
+        public OfficePageOrientation? Orientation { get; internal set; }
 
         /// <summary>
         /// Worksheet print margins in inches when present.
@@ -108,9 +108,9 @@ namespace OfficeIMO.Excel {
             var result = new ExcelSheetPageSetup();
             PageSetup? pageSetup = WorksheetRoot.GetFirstChild<PageSetup>();
             if (pageSetup?.Orientation?.Value == OrientationValues.Landscape) {
-                result.Orientation = ExcelPageOrientation.Landscape;
+                result.Orientation = OfficePageOrientation.Landscape;
             } else if (pageSetup?.Orientation?.Value == OrientationValues.Portrait) {
-                result.Orientation = ExcelPageOrientation.Portrait;
+                result.Orientation = OfficePageOrientation.Portrait;
             }
 
             if (pageSetup != null) {

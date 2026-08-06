@@ -15,12 +15,12 @@ namespace OfficeIMO.Tests.Pdf {
             double fontSize = 12;
             double maxWidth = 70;
             var mixedRuns = new[] {
-                new TextRun("Alpha ", bold: true),
-                new TextRun("Beta "),
-                new TextRun("Gamma ", bold: true),
-                new TextRun("Delta")
+                new PdfTextRun("Alpha ", bold: true),
+                new PdfTextRun("Beta "),
+                new PdfTextRun("Gamma ", bold: true),
+                new PdfTextRun("Delta")
             };
-            var plainRuns = new[] { new TextRun("Alpha Beta Gamma Delta") };
+            var plainRuns = new[] { new PdfTextRun("Alpha Beta Gamma Delta") };
 
             var mixedResult = InvokeWrapRichRuns(mixedRuns, maxWidth, fontSize, baseFont);
             var plainResult = InvokeWrapRichRuns(plainRuns, maxWidth, fontSize, baseFont);
@@ -62,14 +62,14 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_UsesStandardGlyphWidthsForProportionalWrapping() {
             var narrowResult = InvokeWrapRichRuns(new[] {
-                new TextRun("Illii Illii")
+                new PdfTextRun("Illii Illii")
             }, 30, 10, PdfStandardFont.Helvetica);
 
             var narrowLine = Assert.Single(ExtractLines(narrowResult));
             Assert.Equal(new[] { "Illii", "Illii" }, narrowLine.ConvertAll(ExtractText).ToArray());
 
             var wideResult = InvokeWrapRichRuns(new[] {
-                new TextRun("WWWW")
+                new PdfTextRun("WWWW")
             }, 30, 10, PdfStandardFont.Helvetica);
 
             var wideLines = ExtractLines(wideResult);
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_UsesHelveticaBoldGlyphWidthsForStyledRuns() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("nnnnn", bold: true)
+                new PdfTextRun("nnnnn", bold: true)
             }, 30, 10, PdfStandardFont.Helvetica);
 
             var lines = ExtractLines(result);
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_UsesTimesGlyphWidthsForWideCharacters() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("WWWW")
+                new PdfTextRun("WWWW")
             }, 25, 10, PdfStandardFont.TimesRoman);
 
             var lines = ExtractLines(result);
@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_UsesWinAnsiPunctuationWidthsForWrapping() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("\u201CWait\u201D\u2014ok\u2026")
+                new PdfTextRun("\u201CWait\u201D\u2014ok\u2026")
             }, 50, 10, PdfStandardFont.TimesRoman);
 
             var lines = ExtractLines(result);
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_UsesWinAnsiAccentedLetterWidthsForWrapping() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("r\u00E9sum\u00E9")
+                new PdfTextRun("r\u00E9sum\u00E9")
             }, 29, 10, PdfStandardFont.TimesRoman);
 
             var lines = ExtractLines(result);
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_UsesTimesBoldGlyphWidthsForStyledRuns() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("WWW", bold: true)
+                new PdfTextRun("WWW", bold: true)
             }, 29, 10, PdfStandardFont.TimesRoman);
 
             var lines = ExtractLines(result);
@@ -175,13 +175,13 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_UsesScaledWidthsForSuperscriptAndSubscriptRuns() {
             var superscriptResult = InvokeWrapRichRuns(new[] {
-                new TextRun("Wide"),
-                TextRun.Superscript("9999")
+                new PdfTextRun("Wide"),
+                PdfTextRun.Superscript("9999")
             }, 45, 12, PdfStandardFont.Helvetica);
 
             var normalResult = InvokeWrapRichRuns(new[] {
-                new TextRun("Wide"),
-                new TextRun("9999")
+                new PdfTextRun("Wide"),
+                new PdfTextRun("9999")
             }, 45, 12, PdfStandardFont.Helvetica);
 
             var superscriptLine = Assert.Single(ExtractLines(superscriptResult));

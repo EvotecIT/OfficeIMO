@@ -8,7 +8,7 @@ namespace OfficeIMO.Shared.Tests;
 public class FontResolverTests {
     [Fact]
     public void Resolve_GenericFonts() {
-        string resolved = FontResolver.Resolve("monospace")!;
+        string resolved = WordFontResolver.Resolve("monospace")!;
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
             Assert.Contains(resolved, new[] { "Consolas", "Calibri" });
@@ -21,7 +21,7 @@ public class FontResolverTests {
 
     [Fact]
     public void Resolve_FallbackFonts() {
-        string resolved = FontResolver.Resolve("DefinitelyMissingFont")!;
+        string resolved = WordFontResolver.Resolve("DefinitelyMissingFont")!;
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
             Assert.Equal("Calibri", resolved);
@@ -36,7 +36,7 @@ public class FontResolverTests {
     [InlineData("cursive")]
     [InlineData("fantasy")]
     public void Resolve_ExtendedGenericFonts(string generic) {
-        string resolved = FontResolver.Resolve(generic)!;
+        string resolved = WordFontResolver.Resolve(generic)!;
         Assert.False(string.Equals(resolved, generic, StringComparison.OrdinalIgnoreCase));
     }
 }

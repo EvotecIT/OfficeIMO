@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "FluentSectionLayout.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .PageSetup(ps => ps.Orientation(WordPageOrientation.Landscape)
+                    .PageSetup(ps => ps.Orientation(OfficePageOrientation.Landscape)
                                          .Size(WordPageSize.A4)
                                          .Margins(WordMargin.Normal)
                                          .DifferentFirstPage()

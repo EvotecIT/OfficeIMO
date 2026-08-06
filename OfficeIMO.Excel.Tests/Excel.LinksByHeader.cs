@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
                 s.Cell(1, 1, "Domain"); s.Cell(1, 2, "RFC");
                 s.Cell(2, 1, "domain-001.example"); s.Cell(2, 2, "rfc7208");
                 s.Cell(3, 1, "domain-002.example"); s.Cell(3, 2, "rfc6376");
-                s.AddTable("A1:B3", hasHeader: true, name: "TblSummary", style: OfficeIMO.Excel.TableStyle.TableStyleMedium9, includeAutoFilter: true);
+                s.AddTable("A1:B3", hasHeader: true, name: "TblSummary", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, includeAutoFilter: true);
                 // Destination sheets
                 doc.AddWorksheet("domain-001.example");
                 doc.AddWorksheet("domain-002.example");

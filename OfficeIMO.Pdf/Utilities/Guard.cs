@@ -121,8 +121,8 @@ internal static class Guard {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void PageOrientation(PdfPageOrientation value, string paramName) {
-        if (value != PdfPageOrientation.Portrait && value != PdfPageOrientation.Landscape) {
+    public static void PageOrientation(OfficePageOrientation value, string paramName) {
+        if (value != OfficePageOrientation.Portrait && value != OfficePageOrientation.Landscape) {
             throw new System.ArgumentException("PDF page orientation must be Portrait or Landscape.", paramName);
         }
     }

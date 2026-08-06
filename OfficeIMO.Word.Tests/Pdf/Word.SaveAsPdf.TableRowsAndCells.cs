@@ -48,7 +48,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 2);
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             table.Rows[0].Cells[0].Width = 2400;
             table.Rows[0].Cells[1].Width = 2400;
 
@@ -99,7 +99,7 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(1, 2);
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.Rows[0].Cells[0].Width = 2400;
             table.Rows[0].Cells[1].Width = 2400;
@@ -148,7 +148,7 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(1, 1);
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.Rows[0].Cells[0].Width = 3600;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "TableStyledSub";
@@ -414,7 +414,7 @@ public partial class Word {
             WordTable table = document.AddTable(2, 3);
             table.Width = 4320;
             table.WidthType = WordTableWidthUnit.Dxa;
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             table.GridColumnWidth = new List<int> { 1440, 1440, 1440 };
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
@@ -464,7 +464,7 @@ public partial class Word {
             WordTable table = document.AddTable(1, 3);
             table.Width = 4320;
             table.WidthType = WordTableWidthUnit.Dxa;
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             table.GridColumnWidth = new List<int> { 1440, 1440, 1440 };
             foreach (WordTableCell cell in table.Rows[0].Cells) {
                 cell.Width = 1440;
@@ -504,7 +504,7 @@ public partial class Word {
             WordTable table = document.AddTable(2, 7);
             table.WidthType = WordTableWidthUnit.Pct;
             table.Width = 5000;
-            table.LayoutType = WordTableLayoutMode.Autofit;
+            table.LayoutMode = WordTableLayoutMode.AutoFit;
             string[] headers = {
                 "Item",
                 "IssuedOn",
@@ -595,7 +595,7 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1);
             table.Width = 900;
             table.WidthType = WordTableWidthUnit.Dxa;
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Width = 900;
             cell.WidthType = WordTableWidthUnit.Dxa;
@@ -679,7 +679,7 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1);
             table.Width = 900;
             table.WidthType = WordTableWidthUnit.Dxa;
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Width = 900;
             cell.WidthType = WordTableWidthUnit.Dxa;
@@ -727,7 +727,7 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1);
             table.Width = 3000;
             table.WidthType = WordTableWidthUnit.Dxa;
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Width = 3000;
             cell.WidthType = WordTableWidthUnit.Dxa;
@@ -891,7 +891,7 @@ public partial class Word {
             WordTable table = document.AddTable(2, 2);
             table.Width = 3600;
             table.WidthType = WordTableWidthUnit.Dxa;
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstColumn = true;
             foreach (WordTableRow row in table.Rows) {
@@ -954,7 +954,7 @@ public partial class Word {
             WordTable table = document.AddTable(2, 1);
             table.Width = 3600;
             table.WidthType = WordTableWidthUnit.Dxa;
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstRow = true;
             foreach (WordTableRow row in table.Rows) {
@@ -1012,7 +1012,7 @@ public partial class Word {
             WordTable table = document.AddTable(2, 1);
             table.Width = 900;
             table.WidthType = WordTableWidthUnit.Dxa;
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstRow = true;
             foreach (WordTableRow row in table.Rows) {
@@ -1068,7 +1068,7 @@ public partial class Word {
             WordTable table = document.AddTable(2, 1);
             table.Width = 3600;
             table.WidthType = WordTableWidthUnit.Dxa;
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstRow = true;
             foreach (WordTableRow row in table.Rows) {
@@ -1106,7 +1106,7 @@ public partial class Word {
             WordTable table = document.AddTable(2, 1);
             table.Width = 3000;
             table.WidthType = WordTableWidthUnit.Dxa;
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             foreach (WordTableRow row in table.Rows) {
                 row.Cells[0].Width = 3000;
                 row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
@@ -1144,7 +1144,7 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1);
             table.Width = 5200;
             table.WidthType = WordTableWidthUnit.Dxa;
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             table.Rows[0].Cells[0].Width = 5200;
             table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
 
@@ -1347,7 +1347,7 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1);
             table.Width = 5200;
             table.WidthType = WordTableWidthUnit.Dxa;
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             table.Rows[0].Cells[0].Width = 5200;
             table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "WWW\tDefaultCellTab";

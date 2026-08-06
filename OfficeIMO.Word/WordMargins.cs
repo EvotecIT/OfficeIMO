@@ -55,10 +55,10 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set the left margin in Twips
         /// </summary>
-        public UInt32Value Left {
+        public uint Left {
             get {
                 var left = _section._sectionProperties.GetFirstChild<PageMargin>()?.Left ?? WordMargins.Normal.Left;
-                return left ?? new UInt32Value();
+                return (left ?? new UInt32Value()).Value;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -74,10 +74,10 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set the right margin in Twips
         /// </summary>
-        public UInt32Value Right {
+        public uint Right {
             get {
                 var right = _section._sectionProperties.GetFirstChild<PageMargin>()?.Right ?? WordMargins.Normal.Right;
-                return right ?? new UInt32Value();
+                return (right ?? new UInt32Value()).Value;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -160,7 +160,7 @@ namespace OfficeIMO.Word {
         public double? LeftCentimeters {
             get {
                 var left = Left;
-                return left != null ? Helpers.ConvertTwipsToCentimeters(left.Value) : (double?)null;
+                return Helpers.ConvertTwipsToCentimeters(left);
             }
             set {
                 if (value.HasValue) {
@@ -175,7 +175,7 @@ namespace OfficeIMO.Word {
         public double? RightCentimeters {
             get {
                 var right = Right;
-                return right != null ? Helpers.ConvertTwipsToCentimeters(right.Value) : (double?)null;
+                return Helpers.ConvertTwipsToCentimeters(right);
             }
             set {
                 if (value.HasValue) {
@@ -187,10 +187,10 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set the header distance in Twips
         /// </summary>
-        public UInt32Value HeaderDistance {
+        public uint HeaderDistance {
             get {
                 var header = _section._sectionProperties.GetFirstChild<PageMargin>()?.Header ?? WordMargins.Normal.Header;
-                return header ?? new UInt32Value();
+                return (header ?? new UInt32Value()).Value;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -206,10 +206,10 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set the footer distance in Twips
         /// </summary>
-        public UInt32Value FooterDistance {
+        public uint FooterDistance {
             get {
                 var footer = _section._sectionProperties.GetFirstChild<PageMargin>()?.Footer ?? WordMargins.Normal.Footer;
-                return footer ?? new UInt32Value();
+                return (footer ?? new UInt32Value()).Value;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -225,10 +225,10 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the gutter size in Twips.
         /// </summary>
-        public UInt32Value Gutter {
+        public uint Gutter {
             get {
                 var gutter = _section._sectionProperties.GetFirstChild<PageMargin>()?.Gutter ?? WordMargins.Normal.Gutter;
-                return gutter ?? new UInt32Value();
+                return (gutter ?? new UInt32Value()).Value;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();

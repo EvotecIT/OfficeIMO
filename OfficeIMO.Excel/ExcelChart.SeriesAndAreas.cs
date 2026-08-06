@@ -188,7 +188,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the marker style for a chart series by index.
         /// </summary>
-        public ExcelChart SetSeriesMarker(int seriesIndex, ExcelChartMarkerStyle style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null) {
+        public ExcelChart SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
@@ -217,7 +217,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the marker style for a chart series by name.
         /// </summary>
-        public ExcelChart SetSeriesMarker(string seriesName, ExcelChartMarkerStyle style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) {
+        public ExcelChart SetSeriesMarker(string seriesName, OfficeChartMarkerShape style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
             }
@@ -292,7 +292,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds or replaces a trendline for a chart series by index.
         /// </summary>
-        public ExcelChart SetSeriesTrendline(int seriesIndex, ExcelChartTrendlineType type,
+        public ExcelChart SetSeriesTrendline(int seriesIndex, OfficeChartTrendlineType type,
             int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
             bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null) {
             if (seriesIndex < 0) {
@@ -315,7 +315,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds or replaces a trendline for a chart series by name.
         /// </summary>
-        public ExcelChart SetSeriesTrendline(string seriesName, ExcelChartTrendlineType type,
+        public ExcelChart SetSeriesTrendline(string seriesName, OfficeChartTrendlineType type,
             int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
             bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null,
             bool ignoreCase = true) {

@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Load(stream,
                        new PowerPointLoadOptions {
-                           OpenSettings = new OpenSettings { AutoSave = true }
+                           OpenSettings = new OfficeOpenXmlLoadSettings()
                        })) {
                 presentation.Slides[0].AddTextBox("Unsaved");
                 Assert.Equal(originalPosition, stream.Position);

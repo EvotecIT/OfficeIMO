@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
                     "D1:E4",
                     hasHeader: true,
                     name: "SortedData",
-                    OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                    OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table;
                 table.GetFirstChild<AutoFilter>()!.Append(new SortState(
                     new SortCondition { Reference = "D2:D4" }) {
@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
                 "A1:A3",
                 hasHeader: true,
                 name: "TotalsData",
-                OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table;
             table.TotalsRowCount = 1U;
             table.TotalsRowShown = false;

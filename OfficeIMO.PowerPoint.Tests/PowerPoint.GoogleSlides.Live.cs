@@ -30,9 +30,9 @@ namespace OfficeIMO.Tests {
                     });
                     id = created.PresentationId;
                 }
-                GoogleSlidesImportResult native = await new GoogleSlidesImporter().ImportAsync(id!, session, new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.Native });
+                GoogleSlidesImportResult native = await new GoogleSlidesImporter().ImportAsync(id!, session, new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
                 using (native.Presentation) Assert.Contains(native.Presentation.Slides[0].TextBoxes, box => box.Text.Contains("OfficeIMO Google Slides", StringComparison.Ordinal));
-                GoogleSlidesImportResult broad = await new GoogleSlidesImporter().ImportAsync(id!, session, new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.DriveExport });
+                GoogleSlidesImportResult broad = await new GoogleSlidesImporter().ImportAsync(id!, session, new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.DriveExport });
                 using (broad.Presentation) Assert.NotEmpty(broad.Presentation.Slides);
             } finally {
                 if (!string.IsNullOrWhiteSpace(id)) { using var drive = new GoogleDriveClient(session); await drive.DeleteFileAsync(id!); }

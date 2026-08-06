@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Provides methods for embedding images into Wordprocessing documents.
     /// </summary>
-    public static class ImageEmbedder {
+    internal static class ImageEmbedder {
         /// <summary>
         /// Creates a run element containing an image loaded from the specified source.
         /// </summary>

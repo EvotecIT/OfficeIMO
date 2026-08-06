@@ -109,7 +109,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         var right = Math.Min(metrics.Width - metrics.Horizontal(0.18), box.Left + box.Width + metrics.Horizontal(padding));
         var bottom = Math.Min(metrics.Height - metrics.Vertical(0.18), box.Top + box.Height + metrics.Vertical(padding));
         var panel = slide.AddShapeInches(
-            PowerPointShapeType.Rectangle,
+            OfficePresetShapeType.Rectangle,
             left,
             top,
             Math.Max(0.5, right - left),

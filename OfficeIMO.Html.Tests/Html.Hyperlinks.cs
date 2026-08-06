@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("Example", hyperlink.Tooltip);
 
-            Assert.Equal(TargetFrame._self, hyperlink.TargetFrame);
+            Assert.Equal(WordHyperlinkTargetFrame._self, hyperlink.TargetFrame);
 
         }
 
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("Back", hyperlink.Tooltip);
 
-            Assert.Equal(TargetFrame._blank, hyperlink.TargetFrame);
+            Assert.Equal(WordHyperlinkTargetFrame._blank, hyperlink.TargetFrame);
 
             Assert.Equal("_top", hyperlink.Anchor);
 

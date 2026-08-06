@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
         public string RenameTable(
             string tableOrRange,
             string newName,
-            TableNameValidationMode validationMode = TableNameValidationMode.Strict) {
+            ExcelTableNameValidationMode validationMode = ExcelTableNameValidationMode.Strict) {
             if (string.IsNullOrWhiteSpace(tableOrRange)) throw new ArgumentNullException(nameof(tableOrRange));
             string? result = null;
             WriteLock(() => {

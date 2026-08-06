@@ -26,8 +26,8 @@ public partial class WordRtfConverterTests {
         word.BuiltinDocumentProperties.Modified = modified;
         word.BuiltinDocumentProperties.LastPrinted = printed;
         word.ApplicationProperties.Company = "Bridge Company";
-        word.ApplicationProperties.Manager = new DocumentFormat.OpenXml.ExtendedProperties.Manager { Text = "Bridge Manager" };
-        word.ApplicationProperties.HyperlinkBase = new DocumentFormat.OpenXml.ExtendedProperties.HyperlinkBase { Text = "https://example.test/" };
+        word.ApplicationProperties.Manager = "Bridge Manager";
+        word.ApplicationProperties.HyperlinkBase = "https://example.test/";
         word.ApplicationProperties.Pages = "9";
         word.ApplicationProperties.Characters = "123";
         word.ApplicationProperties.CharactersWithSpaces = "150";
@@ -56,7 +56,7 @@ public partial class WordRtfConverterTests {
         Assert.Equal("Bridge Title", roundTrip.BuiltinDocumentProperties.Title);
         Assert.Equal("Bridge Author", roundTrip.BuiltinDocumentProperties.Creator);
         Assert.Equal("Bridge Company", roundTrip.ApplicationProperties.Company);
-        Assert.Equal("Bridge Manager", roundTrip.ApplicationProperties.Manager?.Text);
+        Assert.Equal("Bridge Manager", roundTrip.ApplicationProperties.Manager);
         Assert.Equal("Bridge Operator", roundTrip.BuiltinDocumentProperties.LastModifiedBy);
         Assert.Equal(created, roundTrip.BuiltinDocumentProperties.Created);
         Assert.Equal(modified, roundTrip.BuiltinDocumentProperties.Modified);
@@ -139,7 +139,7 @@ public partial class WordRtfConverterTests {
         using WordDocument word = rtfDocument.ToWordDocument();
 
         WordCustomProperty customProperty = word.CustomDocumentProperties["External"];
-        Assert.Equal(PropertyTypes.Text, customProperty.PropertyType);
+        Assert.Equal(WordCustomPropertyType.Text, customProperty.PropertyType);
         Assert.Equal("Sheet1!A1", customProperty.Text);
     }
 }

@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
         public string? TableName { get; set; }
 
         /// <summary>Excel table style used when <see cref="CreateTable"/> is enabled.</summary>
-        public TableStyle TableStyle { get; set; } = TableStyle.TableStyleMedium2;
+        public ExcelTableStyle TableStyle { get; set; } = ExcelTableStyle.TableStyleMedium2;
 
         /// <summary>Includes table filter buttons when a table is created.</summary>
         public bool IncludeAutoFilter { get; set; } = true;

@@ -169,23 +169,23 @@ namespace OfficeIMO.Word {
                 LeftBorder = BuildParagraphBorderSnapshot(
                     NormalizeOpenXmlEnumValue(paragraph.Borders.LeftStyle),
                     NormalizeColorHex(paragraph.Borders.LeftColorHex),
-                    paragraph.Borders.LeftSize?.Value,
-                    paragraph.Borders.LeftSpace?.Value),
+                    paragraph.Borders.LeftSize,
+                    paragraph.Borders.LeftSpace),
                 RightBorder = BuildParagraphBorderSnapshot(
                     NormalizeOpenXmlEnumValue(paragraph.Borders.RightStyle),
                     NormalizeColorHex(paragraph.Borders.RightColorHex),
-                    paragraph.Borders.RightSize?.Value,
-                    paragraph.Borders.RightSpace?.Value),
+                    paragraph.Borders.RightSize,
+                    paragraph.Borders.RightSpace),
                 TopBorder = BuildParagraphBorderSnapshot(
                     NormalizeOpenXmlEnumValue(paragraph.Borders.TopStyle),
                     NormalizeColorHex(paragraph.Borders.TopColorHex),
-                    paragraph.Borders.TopSize?.Value,
-                    paragraph.Borders.TopSpace?.Value),
+                    paragraph.Borders.TopSize,
+                    paragraph.Borders.TopSpace),
                 BottomBorder = BuildParagraphBorderSnapshot(
                     NormalizeOpenXmlEnumValue(paragraph.Borders.BottomStyle),
                     NormalizeColorHex(paragraph.Borders.BottomColorHex),
-                    paragraph.Borders.BottomSize?.Value,
-                    paragraph.Borders.BottomSpace?.Value),
+                    paragraph.Borders.BottomSize,
+                    paragraph.Borders.BottomSpace),
                 IsRightToLeft = paragraph.BiDi,
                 KeepWithNext = paragraph.KeepWithNext,
                 KeepLinesTogether = paragraph.KeepLinesTogether,
@@ -212,7 +212,7 @@ namespace OfficeIMO.Word {
                     ColorHex = NormalizeColorHex(run.ColorHex),
                     HighlightColor = NormalizeOpenXmlEnumValue(run.Highlight),
                     VerticalTextAlignment = NormalizeOpenXmlEnumValue(run.VerticalTextAlignment),
-                    CapsStyle = run.CapsStyle == CapsStyle.None ? null : run.CapsStyle.ToString(),
+                    CapsStyle = run.CapsStyle == WordCapsStyle.None ? null : run.CapsStyle.ToString(),
                     IsHyperlink = hyperlink != null,
                     HyperlinkUri = hyperlink?.Uri?.ToString(),
                     HyperlinkAnchor = hyperlink?.Anchor,
@@ -227,7 +227,7 @@ namespace OfficeIMO.Word {
                         Title = image.Title,
                         Width = image.Width,
                         Height = image.Height,
-                        IsInline = image.WrapText == WrapTextImage.InLineWithText,
+                        IsInline = image.WrapText == WordImageTextWrapping.InLineWithText,
                         WrapText = image.WrapText?.ToString(),
                     },
                 });
@@ -281,19 +281,19 @@ namespace OfficeIMO.Word {
                         LeftBorder = BuildBorderSnapshot(
                             NormalizeOpenXmlEnumValue(cell.Borders.LeftStyle),
                             NormalizeColorHex(cell.Borders.LeftColorHex),
-                            cell.Borders.LeftSize?.Value),
+                            cell.Borders.LeftSize),
                         RightBorder = BuildBorderSnapshot(
                             NormalizeOpenXmlEnumValue(cell.Borders.RightStyle),
                             NormalizeColorHex(cell.Borders.RightColorHex),
-                            cell.Borders.RightSize?.Value),
+                            cell.Borders.RightSize),
                         TopBorder = BuildBorderSnapshot(
                             NormalizeOpenXmlEnumValue(cell.Borders.TopStyle),
                             NormalizeColorHex(cell.Borders.TopColorHex),
-                            cell.Borders.TopSize?.Value),
+                            cell.Borders.TopSize),
                         BottomBorder = BuildBorderSnapshot(
                             NormalizeOpenXmlEnumValue(cell.Borders.BottomStyle),
                             NormalizeColorHex(cell.Borders.BottomColorHex),
-                            cell.Borders.BottomSize?.Value),
+                            cell.Borders.BottomSize),
                         HasHorizontalMerge = cell.HasHorizontalMerge,
                         HasVerticalMerge = cell.HasVerticalMerge,
                     };

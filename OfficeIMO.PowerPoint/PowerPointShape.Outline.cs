@@ -138,7 +138,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets arrowheads for line-based shapes.
         /// </summary>
-        public void SetLineEnds(PowerPointLineEndType? startType, PowerPointLineEndType? endType, PowerPointLineEndWidth? width = null, PowerPointLineEndLength? length = null) {
+        public void SetLineEnds(OfficeLineMarkerKind? startType, OfficeLineMarkerKind? endType, PowerPointLineEndWidth? width = null, PowerPointLineEndLength? length = null) {
             bool create = startType != null || endType != null || width != null || length != null;
             A.Outline? outline = GetOutline(create: create);
             if (outline == null) {
@@ -322,7 +322,7 @@ namespace OfficeIMO.PowerPoint {
             };
         }
 
-        private static void ApplyLineEnd(A.Outline outline, PowerPointLineEndType? type, PowerPointLineEndWidth? width, PowerPointLineEndLength? length, bool isStart) {
+        private static void ApplyLineEnd(A.Outline outline, OfficeLineMarkerKind? type, PowerPointLineEndWidth? width, PowerPointLineEndLength? length, bool isStart) {
             bool hasData = type != null || width != null || length != null;
             if (isStart) {
                 A.HeadEnd? head = outline.GetFirstChild<A.HeadEnd>();
@@ -332,7 +332,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 head ??= new A.HeadEnd();
-                head.Type = (type ?? PowerPointLineEndType.None).ToOpenXml();
+                head.Type = (type ?? OfficeLineMarkerKind.None).ToOpenXml();
                 if (width != null) {
                     head.Width = width.Value.ToOpenXml();
                 }
@@ -350,7 +350,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 tail ??= new A.TailEnd();
-                tail.Type = (type ?? PowerPointLineEndType.None).ToOpenXml();
+                tail.Type = (type ?? OfficeLineMarkerKind.None).ToOpenXml();
                 if (width != null) {
                     tail.Width = width.Value.ToOpenXml();
                 }

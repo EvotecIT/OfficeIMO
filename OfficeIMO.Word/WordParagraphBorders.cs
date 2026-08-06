@@ -58,8 +58,8 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the left border width in points.
         /// </summary>
-        public UInt32Value? LeftSize {
-            get => GetParagraphBorders()?.LeftBorder?.Size;
+        public uint? LeftSize {
+            get => GetParagraphBorders()?.LeftBorder?.Size?.Value;
             set {
                 var pageBorder = GetOrCreateParagraphBorders();
                 var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
@@ -121,8 +121,8 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the left border spacing.
         /// </summary>
-        public UInt32Value? LeftSpace {
-            get => GetParagraphBorders()?.LeftBorder?.Space;
+        public uint? LeftSpace {
+            get => GetParagraphBorders()?.LeftBorder?.Space?.Value;
             set {
                 var pageBorder = GetOrCreateParagraphBorders();
                 var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
@@ -157,8 +157,8 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the right border width in points.
         /// </summary>
-        public UInt32Value? RightSize {
-            get => GetParagraphBorders()?.RightBorder?.Size;
+        public uint? RightSize {
+            get => GetParagraphBorders()?.RightBorder?.Size?.Value;
             set {
                 var pageBorder = GetOrCreateParagraphBorders();
                 var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
@@ -220,8 +220,8 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the right border spacing.
         /// </summary>
-        public UInt32Value? RightSpace {
-            get => GetParagraphBorders()?.RightBorder?.Space;
+        public uint? RightSpace {
+            get => GetParagraphBorders()?.RightBorder?.Space?.Value;
             set {
                 var pageBorder = GetOrCreateParagraphBorders();
                 var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
@@ -256,8 +256,8 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the top border width in points.
         /// </summary>
-        public UInt32Value? TopSize {
-            get => GetParagraphBorders()?.TopBorder?.Size;
+        public uint? TopSize {
+            get => GetParagraphBorders()?.TopBorder?.Size?.Value;
             set {
                 var pageBorder = GetOrCreateParagraphBorders();
                 var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
@@ -319,8 +319,8 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the top border spacing.
         /// </summary>
-        public UInt32Value? TopSpace {
-            get => GetParagraphBorders()?.TopBorder?.Space;
+        public uint? TopSpace {
+            get => GetParagraphBorders()?.TopBorder?.Space?.Value;
             set {
                 var pageBorder = GetOrCreateParagraphBorders();
                 var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
@@ -356,8 +356,8 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the bottom border width in points.
         /// </summary>
-        public UInt32Value? BottomSize {
-            get => GetParagraphBorders()?.BottomBorder?.Size;
+        public uint? BottomSize {
+            get => GetParagraphBorders()?.BottomBorder?.Size?.Value;
             set {
                 var pageBorder = GetOrCreateParagraphBorders();
                 var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
@@ -419,8 +419,8 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the bottom border spacing.
         /// </summary>
-        public UInt32Value? BottomSpace {
-            get => GetParagraphBorders()?.BottomBorder?.Space;
+        public uint? BottomSpace {
+            get => GetParagraphBorders()?.BottomBorder?.Space?.Value;
             set {
                 var pageBorder = GetOrCreateParagraphBorders();
                 var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
@@ -575,7 +575,7 @@ namespace OfficeIMO.Word {
         /// <param name="color">Border color.</param>
         /// <param name="size">Border width.</param>
         /// <param name="shadow">Whether the border has a shadow.</param>
-        public void SetBorder(WordParagraphBorderType type, WordBorderStyle style, Color color, UInt32Value size, bool shadow) {
+        public void SetBorder(WordParagraphBorderType type, WordBorderStyle style, Color color, uint size, bool shadow) {
             if (type == WordParagraphBorderType.Left) {
                 LeftStyle = style;
                 LeftColor = color;

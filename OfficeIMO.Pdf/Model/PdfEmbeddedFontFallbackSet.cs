@@ -161,11 +161,11 @@ public sealed class PdfEmbeddedFontFallbackSet {
     /// <param name="source">Optional caller-provided source label such as a block, field, sheet, slide, or converter area.</param>
     /// <param name="styleTemplate">Optional run whose styling is copied to each generated text run.</param>
     /// <returns>Text runs that can be used with rich paragraphs, lists, tables, panels, and canvas text boxes.</returns>
-    public IReadOnlyList<TextRun> PlanTextRuns(string text, string source, TextRun? styleTemplate) =>
+    public IReadOnlyList<PdfTextRun> PlanTextRuns(string text, string source, PdfTextRun? styleTemplate) =>
         PlanTextRuns(text, source, styleTemplate, PdfTextShapingMode.UnicodeScalar);
 
     /// <summary>Plans text runs with an explicit text shaping mode.</summary>
-    public IReadOnlyList<TextRun> PlanTextRuns(string text, string source = "", TextRun? styleTemplate = null, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) =>
+    public IReadOnlyList<PdfTextRun> PlanTextRuns(string text, string source = "", PdfTextRun? styleTemplate = null, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) =>
         UsesNamedFontFamilies
             ? PlanText(text, source, shapingMode).ToNamedTextRuns(_fontFamilyNames, styleTemplate)
             : PlanText(text, source, shapingMode).ToTextRuns(_fontSlots, styleTemplate);
@@ -182,9 +182,9 @@ public sealed class PdfEmbeddedFontFallbackSet {
     /// <returns><c>true</c> when <paramref name="runs"/> contains a fully covered renderable plan; otherwise <c>false</c>.</returns>
     public bool TryPlanTextRuns(
         string text,
-        out IReadOnlyList<TextRun> runs,
+        out IReadOnlyList<PdfTextRun> runs,
         string source,
-        TextRun? styleTemplate,
+        PdfTextRun? styleTemplate,
         PdfConversionReport? report,
         string converter) =>
         TryPlanTextRuns(text, out runs, source, styleTemplate, report, converter, PdfTextShapingMode.UnicodeScalar);
@@ -192,9 +192,9 @@ public sealed class PdfEmbeddedFontFallbackSet {
     /// <summary>Tries to plan renderable text runs with an explicit text shaping mode.</summary>
     public bool TryPlanTextRuns(
         string text,
-        out IReadOnlyList<TextRun> runs,
+        out IReadOnlyList<PdfTextRun> runs,
         string source = "",
-        TextRun? styleTemplate = null,
+        PdfTextRun? styleTemplate = null,
         PdfConversionReport? report = null,
         string converter = "OfficeIMO.Pdf",
         PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
@@ -205,7 +205,7 @@ public sealed class PdfEmbeddedFontFallbackSet {
         }
 
         if (!plan.IsFullyCovered) {
-            runs = Array.Empty<TextRun>();
+            runs = Array.Empty<PdfTextRun>();
             return false;
         }
 

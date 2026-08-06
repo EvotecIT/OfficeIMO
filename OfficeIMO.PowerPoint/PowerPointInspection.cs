@@ -32,7 +32,7 @@ namespace OfficeIMO.PowerPoint {
         public bool InspectVisuals { get; set; }
 
         /// <summary>Open XML version used by package validation.</summary>
-        public FileFormatVersions FileFormatVersion { get; set; } = FileFormatVersions.Microsoft365;
+        public OfficeOpenXmlFileFormatVersion FileFormatVersion { get; set; } = OfficeOpenXmlFileFormatVersion.Microsoft365;
 
         /// <summary>Optional preflight policy.</summary>
         public PowerPointDeckPreflightOptions? Preflight { get; set; }
@@ -46,13 +46,13 @@ namespace OfficeIMO.PowerPoint {
 
     /// <summary>Unified inspection result over the same presentation model used for authoring and editing.</summary>
     public sealed class PowerPointInspectionReport {
-        internal PowerPointInspectionReport(IList<ValidationErrorInfo> packageErrors,
+        internal PowerPointInspectionReport(IList<OfficeOpenXmlValidationError> packageErrors,
             PowerPointDeckPreflightReport? preflight, PowerPointAccessibilityReport? accessibility,
             PowerPointFeatureReport? features, PowerPointReviewReport? reviewComments,
             PowerPointAnimationReport? animations, PowerPointSignatureReport? signatures,
             PowerPointVisualProofReport? visuals) {
-            PackageErrors = new ReadOnlyCollection<ValidationErrorInfo>(
-                new List<ValidationErrorInfo>(packageErrors ?? throw new ArgumentNullException(nameof(packageErrors))));
+            PackageErrors = new ReadOnlyCollection<OfficeOpenXmlValidationError>(
+                new List<OfficeOpenXmlValidationError>(packageErrors ?? throw new ArgumentNullException(nameof(packageErrors))));
             Preflight = preflight;
             Accessibility = accessibility;
             Features = features;
@@ -63,7 +63,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Open XML package validation errors.</summary>
-        public IReadOnlyList<ValidationErrorInfo> PackageErrors { get; }
+        public IReadOnlyList<OfficeOpenXmlValidationError> PackageErrors { get; }
 
         /// <summary>Layout and visual preflight, when requested.</summary>
         public PowerPointDeckPreflightReport? Preflight { get; }
@@ -100,9 +100,9 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointInspectionReport Inspect(PowerPointInspectionOptions? options = null) {
             ThrowIfDisposed();
             PowerPointInspectionOptions resolved = options ?? new PowerPointInspectionOptions();
-            List<ValidationErrorInfo> packageErrors = resolved.ValidatePackage
+            List<OfficeOpenXmlValidationError> packageErrors = resolved.ValidatePackage
                 ? ValidateDocument(resolved.FileFormatVersion)
-                : new List<ValidationErrorInfo>();
+                : new List<OfficeOpenXmlValidationError>();
             PowerPointDeckPreflightReport? preflight = resolved.InspectPreflight
                 ? InspectPreflight(resolved.Preflight)
                 : null;

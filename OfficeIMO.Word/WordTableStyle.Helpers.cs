@@ -148,7 +148,7 @@ public static partial class WordTableStyles {
     /// </summary>
     /// <param name="style">The <see cref="WordTableStyle"/> to convert.</param>
     /// <returns>A <see cref="TableStyle"/> element configured for the given style.</returns>
-    public static TableStyle GetStyle(WordTableStyle style) {
+    internal static TableStyle GetStyle(WordTableStyle style) {
         switch (style) {
             // Grid Tables - Line 1
             case WordTableStyle.TableNormal: return new TableStyle() { Val = "TableNormal" };
@@ -302,7 +302,7 @@ public static partial class WordTableStyles {
     /// </summary>
     /// <param name="style">The style to retrieve.</param>
     /// <returns>The <see cref="Style"/> definition that represents the provided enumeration value.</returns>
-    public static Style GetStyleDefinition(WordTableStyle style) {
+    internal static Style GetStyleDefinition(WordTableStyle style) {
         switch (style) {
             // Grid Tables - Line 1
             case WordTableStyle.TableNormal: return StyleTableNormal;

@@ -115,15 +115,15 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentWithSectionsPageOrientation() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithSections1.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                Assert.True(document.Sections[0].PageOrientation == WordPageOrientation.Portrait, "Page orientation should match");
+                Assert.True(document.Sections[0].PageOrientation == OfficePageOrientation.Portrait, "Page orientation should match");
                 Assert.True(document.Paragraphs.Count == 0, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
 
-                document.Sections[0].PageOrientation = WordPageOrientation.Landscape;
+                document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
                 document.AddParagraph("Test Section1").SetColor(Color.LightPink);
 
                 var section1 = document.AddSection();
-                section1.PageOrientation = WordPageOrientation.Portrait;
+                section1.PageOrientation = OfficePageOrientation.Portrait;
 
                 section1.AddParagraph("Test Section2").SetFontFamily("Tahoma").SetFontSize(20);
 
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
 
                 section2.AddParagraph("Test Section3").SetFontFamily("Tahoma").SetFontSize(20);
 
-                section2.PageOrientation = WordPageOrientation.Landscape;
+                section2.PageOrientation = OfficePageOrientation.Landscape;
 
                 Assert.True(document.Paragraphs.Count == 53, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 3, "Number of sections during creation is wrong.");
@@ -144,9 +144,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[1].Paragraphs.Count == 51, "Number of paragraphs on 2nd section is wrong.");
                 Assert.True(document.Sections[2].Paragraphs.Count == 1, "Number of paragraphs on 3rd section is wrong.");
 
-                Assert.True(document.Sections[0].PageOrientation == WordPageOrientation.Landscape, "Page orientation should match");
-                Assert.True(document.Sections[1].PageOrientation == WordPageOrientation.Portrait, "Page orientation should match");
-                Assert.True(document.Sections[2].PageOrientation == WordPageOrientation.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[0].PageOrientation == OfficePageOrientation.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[1].PageOrientation == OfficePageOrientation.Portrait, "Page orientation should match");
+                Assert.True(document.Sections[2].PageOrientation == OfficePageOrientation.Landscape, "Page orientation should match");
 
                 Assert.True(document.Sections[0].ColumnCount == null, "Columns count for section should match");
                 Assert.True(document.Sections[1].ColumnCount == 2, "Columns count for section should match");
@@ -161,9 +161,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[1].Paragraphs.Count == 51, "Number of paragraphs on 2nd section is wrong.");
                 Assert.True(document.Sections[2].Paragraphs.Count == 1, "Number of paragraphs on 3rd section is wrong.");
 
-                Assert.True(document.Sections[0].PageOrientation == WordPageOrientation.Landscape, "Page orientation should match");
-                Assert.True(document.Sections[1].PageOrientation == WordPageOrientation.Portrait, "Page orientation should match");
-                Assert.True(document.Sections[2].PageOrientation == WordPageOrientation.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[0].PageOrientation == OfficePageOrientation.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[1].PageOrientation == OfficePageOrientation.Portrait, "Page orientation should match");
+                Assert.True(document.Sections[2].PageOrientation == OfficePageOrientation.Landscape, "Page orientation should match");
 
                 Assert.True(document.Sections[0].ColumnCount == null, "Columns count for section should match");
                 Assert.True(document.Sections[1].ColumnCount == 2, "Columns count for section should match");
@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
 
                 var section3 = document.AddSection();
                 section3.AddParagraph("Test Section6");
-                section3.PageOrientation = WordPageOrientation.Portrait;
+                section3.PageOrientation = OfficePageOrientation.Portrait;
 
                 Assert.True(document.Paragraphs.Count == 56, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 6, "Number of sections during creation is wrong.");
@@ -199,12 +199,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[4].Paragraphs[0].Text == "Test Section5", "Paragraph text must match.");
                 Assert.True(document.Sections[5].Paragraphs[0].Text == "Test Section6", "Paragraph text must match.");
 
-                Assert.True(document.Sections[0].PageOrientation == WordPageOrientation.Landscape, "Page orientation should match");
-                Assert.True(document.Sections[1].PageOrientation == WordPageOrientation.Portrait, "Page orientation should match");
-                Assert.True(document.Sections[2].PageOrientation == WordPageOrientation.Landscape, "Page orientation should match");
-                Assert.True(document.Sections[3].PageOrientation == WordPageOrientation.Landscape, "Page orientation should match");
-                Assert.True(document.Sections[4].PageOrientation == WordPageOrientation.Landscape, "Page orientation should match");
-                Assert.True(document.Sections[5].PageOrientation == WordPageOrientation.Portrait, "Page orientation should match");
+                Assert.True(document.Sections[0].PageOrientation == OfficePageOrientation.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[1].PageOrientation == OfficePageOrientation.Portrait, "Page orientation should match");
+                Assert.True(document.Sections[2].PageOrientation == OfficePageOrientation.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[3].PageOrientation == OfficePageOrientation.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[4].PageOrientation == OfficePageOrientation.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[5].PageOrientation == OfficePageOrientation.Portrait, "Page orientation should match");
 
                 document.AddParagraph("This goes to last section 1");
                 document.AddParagraph("This goes to last section 2");
@@ -235,12 +235,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[4].Paragraphs[0].Text == "Test Section5", "Paragraph text must match.");
                 Assert.True(document.Sections[5].Paragraphs[0].Text == "Test Section6", "Paragraph text must match.");
 
-                Assert.True(document.Sections[0].PageOrientation == WordPageOrientation.Landscape, "Page orientation should match");
-                Assert.True(document.Sections[1].PageOrientation == WordPageOrientation.Portrait, "Page orientation should match");
-                Assert.True(document.Sections[2].PageOrientation == WordPageOrientation.Landscape, "Page orientation should match");
-                Assert.True(document.Sections[3].PageOrientation == WordPageOrientation.Landscape, "Page orientation should match");
-                Assert.True(document.Sections[4].PageOrientation == WordPageOrientation.Landscape, "Page orientation should match");
-                Assert.True(document.Sections[5].PageOrientation == WordPageOrientation.Portrait, "Page orientation should match");
+                Assert.True(document.Sections[0].PageOrientation == OfficePageOrientation.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[1].PageOrientation == OfficePageOrientation.Portrait, "Page orientation should match");
+                Assert.True(document.Sections[2].PageOrientation == OfficePageOrientation.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[3].PageOrientation == OfficePageOrientation.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[4].PageOrientation == OfficePageOrientation.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[5].PageOrientation == OfficePageOrientation.Portrait, "Page orientation should match");
 
                 Assert.True(document.Sections[5].Paragraphs[1].Text == "This goes to last section 1", "Paragraph text must match.");
                 Assert.True(document.Sections[5].Paragraphs[2].Text == "This goes to last section 2", "Paragraph text must match.");
@@ -258,7 +258,7 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentWithPageMargins() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithSectionsPageMargins.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                Assert.True(document.Sections[0].PageOrientation == WordPageOrientation.Portrait, "Page orientation should match");
+                Assert.True(document.Sections[0].PageOrientation == OfficePageOrientation.Portrait, "Page orientation should match");
                 Assert.True(document.Paragraphs.Count == 0, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
 
@@ -485,19 +485,19 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Test 1");
 
                 var section1 = document.AddSection();
-                section1.PageOrientation = WordPageOrientation.Landscape;
+                section1.PageOrientation = OfficePageOrientation.Landscape;
                 section1.PageSettings.PageSize = WordPageSize.A4;
                 section1.AddParagraph("Test 1");
 
-                Assert.True(section1.PageOrientation == WordPageOrientation.Landscape);
-                Assert.True(section1.PageSettings.Orientation == WordPageOrientation.Landscape);
-                Assert.True(document.Sections[1].PageOrientation == WordPageOrientation.Landscape);
+                Assert.True(section1.PageOrientation == OfficePageOrientation.Landscape);
+                Assert.True(section1.PageSettings.Orientation == OfficePageOrientation.Landscape);
+                Assert.True(document.Sections[1].PageOrientation == OfficePageOrientation.Landscape);
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentSections.docx"))) {
 
 
-                Assert.True(document.Sections[1].PageOrientation == WordPageOrientation.Landscape);
+                Assert.True(document.Sections[1].PageOrientation == OfficePageOrientation.Landscape);
             }
         }
 

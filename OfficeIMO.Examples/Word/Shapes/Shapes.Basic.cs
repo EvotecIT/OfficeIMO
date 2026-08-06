@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Word {
 
                 // Add a couple more simple shapes, spaced vertically
                 var p2 = document.AddParagraph("Ellipse below");
-                p2.AddShape(ShapeType.Ellipse, 80, 50, Color.Orange, Color.Black, 1.25);
+                p2.AddShape(WordShapeType.Ellipse, 80, 50, Color.Orange, Color.Black, 1.25);
 
                 var p3 = document.AddParagraph("Line below");
                 p3.AddLine(0, 0, 120, 0, Color.Blue, 2);

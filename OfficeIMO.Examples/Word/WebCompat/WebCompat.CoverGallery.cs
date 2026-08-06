@@ -6,9 +6,9 @@ namespace OfficeIMO.Examples.Word {
         public static void Example_CoverTemplates_Basic(string folderPath, bool openWord) {
             // A small set of templates to evaluate in Word Online / Google Docs
             var templates = new[] {
-                CoverPageTemplate.IonLight,
-                CoverPageTemplate.SideLine,
-                CoverPageTemplate.Retrospect
+                WordCoverPageTemplate.IonLight,
+                WordCoverPageTemplate.SideLine,
+                WordCoverPageTemplate.Retrospect
             };
 
             foreach (var tpl in templates) {
@@ -39,7 +39,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Generating: " + filePath);
             using var doc = WordDocument.Create(filePath);
             doc.BuiltinDocumentProperties.Title = "Confidential Report";
-            doc.AddCoverPage(CoverPageTemplate.IonDark);
+            doc.AddCoverPage(WordCoverPageTemplate.IonDark);
 
             // Optional: add text watermark so we can observe how Online renders it
             try { doc.Sections[0].AddWatermark(WordWatermarkStyle.Text, "CONFIDENTIAL", scale: 1.2); } catch { }

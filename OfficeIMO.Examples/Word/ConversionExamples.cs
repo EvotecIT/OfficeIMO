@@ -32,7 +32,7 @@ namespace OfficeIMO.Examples.Word {
                 
                 string pdfPath = Path.Combine(folderPath, "UnifiedExample.pdf");
                 document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
-                    Orientation = PdfPageOrientation.Portrait 
+                    Orientation = OfficePageOrientation.Portrait
                 });
                 Console.WriteLine($"✓ Saved as PDF: {pdfPath}");
                 

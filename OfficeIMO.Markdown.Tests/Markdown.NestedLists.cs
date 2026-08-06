@@ -27,8 +27,8 @@ namespace OfficeIMO.Tests {
                 .ToArray();
             Assert.Equal(new[] { "Outer", "Nested four", "Nested five", "Next" }, paragraphs.Select(paragraph => paragraph.Text.Trim()).ToArray());
 
-            DocumentTraversal.ListInfo outer = DocumentTraversal.GetListInfo(paragraphs[0])!.Value;
-            DocumentTraversal.ListInfo nested = DocumentTraversal.GetListInfo(paragraphs[1])!.Value;
+            WordDocumentTraversal.ListInfo outer = WordDocumentTraversal.GetListInfo(paragraphs[0])!.Value;
+            WordDocumentTraversal.ListInfo nested = WordDocumentTraversal.GetListInfo(paragraphs[1])!.Value;
             Assert.Equal(0, outer.Level);
             Assert.Equal(1, outer.Start);
             Assert.Equal(1, nested.Level);

@@ -38,7 +38,7 @@ namespace OfficeIMO.Examples.Excel {
                 });
                 document.Calculate();
 
-                sheet.AddTable("A2:D4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4);
+                sheet.AddTable("A2:D4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4);
                 sheet.AddChartFromRange("A2:D4", row: 6, column: 1, widthPixels: 420, heightPixels: 240,
                     type: ExcelChartType.ColumnClustered, title: "Revenue and Margin");
                 sheet.AddPivotTable(

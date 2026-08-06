@@ -367,9 +367,9 @@ namespace OfficeIMO.Excel.Pdf {
                 ? authoredFontSize * fontScale
                 : null;
             string? fontFamily = string.IsNullOrWhiteSpace(style?.FontName) ? null : style!.FontName;
-            IReadOnlyList<PdfCore.TextRun> runs = (style != null && (style.Bold || style.Italic || style.Underline || style.Strikethrough || fontSize.HasValue || font.HasValue || fontFamily != null)) || bold || textColor.HasValue
-                ? new[] { new PdfCore.TextRun(text, bold: bold, underline: style?.Underline == true, color: textColor, italic: style?.Italic == true, strike: style?.Strikethrough == true, fontSize: fontSize, font: font, fontFamily: fontFamily) }
-                : new[] { PdfCore.TextRun.Normal(text) };
+            IReadOnlyList<PdfCore.PdfTextRun> runs = (style != null && (style.Bold || style.Italic || style.Underline || style.Strikethrough || fontSize.HasValue || font.HasValue || fontFamily != null)) || bold || textColor.HasValue
+                ? new[] { new PdfCore.PdfTextRun(text, bold: bold, underline: style?.Underline == true, color: textColor, italic: style?.Italic == true, strike: style?.Strikethrough == true, fontSize: fontSize, font: font, fontFamily: fontFamily) }
+                : new[] { PdfCore.PdfTextRun.Normal(text) };
 
             PdfCore.PdfTableCell cell = new PdfCore.PdfTableCell(
                 runs,

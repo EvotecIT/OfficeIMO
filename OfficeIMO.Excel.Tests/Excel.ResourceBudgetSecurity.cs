@@ -101,7 +101,7 @@ public sealed class ExcelResourceBudgetSecurityTests {
                 sheet.CellValue(1, 2, "B");
                 sheet.CellValue(2, 1, 1);
                 sheet.CellValue(2, 2, 2);
-                sheet.AddTable("A1:B2", hasHeader: true, name: "BudgetTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                sheet.AddTable("A1:B2", hasHeader: true, name: "BudgetTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 document.Save();
             }
 

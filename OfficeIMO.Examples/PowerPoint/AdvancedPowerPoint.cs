@@ -52,12 +52,12 @@ namespace OfficeIMO.Examples.PowerPoint {
             intro.FontSize = 18;
             intro.Color = "1F4E79";
             slide1.BackgroundColor = "F7F7F7";
-            slide1.Transition = SlideTransition.Fade;
+            slide1.Transition = PowerPointSlideTransition.Fade;
 
             // Slide 2: highlights with image
             PowerPointSlide slide2 = presentation.AddSlide();
             slide2.AddTitle("Highlights", titleBox);
-            slide2.Transition = SlideTransition.PushLeft;
+            slide2.Transition = PowerPointSlideTransition.PushLeft;
             PowerPointTextBox highlights = slide2.AddTextBox("This slide demonstrates:", leftColumn);
             highlights.TextAutoFit = PowerPointTextAutoFit.Normal;
             highlights.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
@@ -95,7 +95,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             // Slide 3: KPI table
             PowerPointSlide slide3 = presentation.AddSlide();
             slide3.AddTitle("KPI Table", titleBox);
-            slide3.Transition = SlideTransition.Wipe;
+            slide3.Transition = PowerPointSlideTransition.Wipe;
             PowerPointTable kpiTable = slide3.AddTableCm(
                 kpis,
                 o => {
@@ -120,7 +120,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             // Slide 4: KPI chart
             PowerPointSlide slide4 = presentation.AddSlide();
             slide4.AddTitle("KPI Chart", titleBox);
-            slide4.Transition = SlideTransition.CombHorizontal;
+            slide4.Transition = PowerPointSlideTransition.CombHorizontal;
             OfficeChartData chartData = new OfficeChartData(
                 kpis.Select(k => k.Metric),
                 new[] {
@@ -134,7 +134,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 bodyBox.WidthCm,
                 bodyBox.HeightCm);
             chart.SetTitle("Current vs Target")
-                .SetLegend(PowerPointChartLegendPosition.Right)
+                .SetLegend(OfficeChartLegendPosition.Right)
                 .SetDataLabels(showValue: true)
                 .SetCategoryAxisTitle("Metric")
                 .SetValueAxisTitle("Score");

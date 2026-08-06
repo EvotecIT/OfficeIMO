@@ -5,7 +5,7 @@ namespace OfficeIMO.Word.Markdown {
     public class WordToMarkdownOptions {
         /// <summary>
         /// Font family whose runs should be rendered as inline code. When <c>null</c>,
-        /// <see cref="FontResolver.Resolve(string)"/> is used with "monospace" to determine the code font.
+        /// <see cref="WordFontResolver.Resolve(string)"/> is used with "monospace" to determine the code font.
         /// </summary>
         public string? FontFamily { get; set; }
 

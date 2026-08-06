@@ -3,21 +3,21 @@ using OfficeIMO.Word.SmartArt.Templates;
 
 namespace OfficeIMO.Word {
     internal static class SmartArtBuiltIn {
-        internal static (string relLayout, string relColors, string relStyle, string relData) AddParts(MainDocumentPart mainPart, SmartArtType type) {
+        internal static (string relLayout, string relColors, string relStyle, string relData) AddParts(MainDocumentPart mainPart, WordSmartArtType type) {
             switch (type) {
-                case SmartArtType.Cycle:
+                case WordSmartArtType.Cycle:
                     return AddCycle(mainPart);
-                case SmartArtType.BasicProcess:
+                case WordSmartArtType.BasicProcess:
                     return AddBasicProcess(mainPart);
-                case SmartArtType.CustomSmartArt1:
+                case WordSmartArtType.CustomSmartArt1:
                     return AddCustom1(mainPart);
-                case SmartArtType.CustomSmartArt2:
+                case WordSmartArtType.CustomSmartArt2:
                     return AddCustom2(mainPart);
-                case SmartArtType.Hierarchy:
+                case WordSmartArtType.Hierarchy:
                     return AddHierarchy(mainPart);
-                case SmartArtType.PictureOrgChart:
+                case WordSmartArtType.PictureOrgChart:
                     return AddPictureOrgChart(mainPart);
-                case SmartArtType.ContinuousBlockProcess:
+                case WordSmartArtType.ContinuousBlockProcess:
                     return AddContinuousBlockProcess(mainPart);
                 default:
                     return AddBasicProcess(mainPart);

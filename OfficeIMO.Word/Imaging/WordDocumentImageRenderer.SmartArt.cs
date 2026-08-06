@@ -77,13 +77,13 @@ namespace OfficeIMO.Word {
         }
 
         private static bool IsHorizontalProcessSmartArt(WordSmartArt smartArt) =>
-            smartArt.LayoutType == SmartArtType.BasicProcess || smartArt.LayoutType == SmartArtType.ContinuousBlockProcess;
+            smartArt.LayoutType == WordSmartArtType.BasicProcess || smartArt.LayoutType == WordSmartArtType.ContinuousBlockProcess;
 
         private static bool IsCycleSmartArt(WordSmartArt smartArt) =>
-            smartArt.LayoutType == SmartArtType.Cycle;
+            smartArt.LayoutType == WordSmartArtType.Cycle;
 
         private static bool IsHierarchySmartArt(WordSmartArt smartArt) =>
-            smartArt.LayoutType == SmartArtType.Hierarchy || smartArt.LayoutType == SmartArtType.PictureOrgChart;
+            smartArt.LayoutType == WordSmartArtType.Hierarchy || smartArt.LayoutType == WordSmartArtType.PictureOrgChart;
 
         private static bool TryAddSmartArtPersistedLayoutDrawing(WordSmartArt smartArt, WordImageFlowContext context, double width, double height) {
             IReadOnlyList<WordSmartArtPersistedShape> persistedShapes = smartArt.GetPersistedLayoutShapes();

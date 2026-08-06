@@ -3,14 +3,14 @@ using OfficeIMO.Excel.LegacyXls.Model;
 namespace OfficeIMO.Excel.LegacyXls.Projection {
     internal static partial class LegacyXlsWorkbookProjector {
         private readonly struct HeaderFooterImagePlacement {
-            internal HeaderFooterImagePlacement(bool isHeader, HeaderFooterPosition position) {
+            internal HeaderFooterImagePlacement(bool isHeader, ExcelHeaderFooterPosition position) {
                 IsHeader = isHeader;
                 Position = position;
             }
 
             internal bool IsHeader { get; }
 
-            internal HeaderFooterPosition Position { get; }
+            internal ExcelHeaderFooterPosition Position { get; }
         }
 
         private static void ProjectWorksheetImages(LegacyXlsWorkbook workbook, LegacyXlsWorksheet legacySheet, ExcelSheet sheet) {
@@ -107,15 +107,15 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             (string? Left, string? Center, string? Right) sections = SplitHeaderFooterText(text);
-            AddHeaderFooterImagePlacement(sections.Left, isHeader, HeaderFooterPosition.Left, placements);
-            AddHeaderFooterImagePlacement(sections.Center, isHeader, HeaderFooterPosition.Center, placements);
-            AddHeaderFooterImagePlacement(sections.Right, isHeader, HeaderFooterPosition.Right, placements);
+            AddHeaderFooterImagePlacement(sections.Left, isHeader, ExcelHeaderFooterPosition.Left, placements);
+            AddHeaderFooterImagePlacement(sections.Center, isHeader, ExcelHeaderFooterPosition.Center, placements);
+            AddHeaderFooterImagePlacement(sections.Right, isHeader, ExcelHeaderFooterPosition.Right, placements);
         }
 
         private static void AddHeaderFooterImagePlacement(
             string? sectionText,
             bool isHeader,
-            HeaderFooterPosition position,
+            ExcelHeaderFooterPosition position,
             List<HeaderFooterImagePlacement> placements) {
             if (string.IsNullOrEmpty(sectionText) || sectionText!.IndexOf("&G", StringComparison.Ordinal) < 0) {
                 return;

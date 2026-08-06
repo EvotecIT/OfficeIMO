@@ -95,7 +95,7 @@ namespace OfficeIMO.Excel {
         /// <param name="a1Range">Inclusive A1 range (e.g., "A1:C10").</param>
         /// <param name="mode">Execution override (affects conversion only).</param>
         /// <param name="ct">Cancellation token.</param>
-        public T[,] ReadRangeAs<T>(string a1Range, OfficeIMO.Excel.ExecutionMode? mode = null, CancellationToken ct = default) {
+        public T[,] ReadRangeAs<T>(string a1Range, OfficeIMO.Excel.ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             var values = ReadRange(a1Range, mode, ct);
             int rows = values.GetLength(0);
             int cols = values.GetLength(1);

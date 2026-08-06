@@ -471,17 +471,8 @@ namespace OfficeIMO.PowerPoint {
             return LoadPackage(bytes, filePath, sourceStream, options);
         }
 
-        private static OpenSettings CreateOpenSettings(OpenSettings? openSettings) {
-            if (openSettings == null) {
-                return new OpenSettings { AutoSave = false };
-            }
-            return new OpenSettings {
-                AutoSave = false,
-                CompatibilityLevel = openSettings.CompatibilityLevel,
-                MarkupCompatibilityProcessSettings = openSettings.MarkupCompatibilityProcessSettings,
-                MaxCharactersInPart = openSettings.MaxCharactersInPart
-            };
-        }
+        private static OpenSettings CreateOpenSettings(OfficeOpenXmlLoadSettings? openSettings) =>
+            openSettings.ToOpenXml();
 
         private static void EnsureEncryptedLoadUsesExplicitPersistence(PowerPointLoadOptions options) {
             if (options.PersistenceMode != DocumentPersistenceMode.Explicit) {

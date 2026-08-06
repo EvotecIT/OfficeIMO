@@ -10,7 +10,7 @@ internal static class MarkdownInlineToLatexConverter {
         for (int index = 0; index < source.Nodes.Count; index++) {
             IMarkdownInline node = source.Nodes[index];
             switch (node) {
-                case TextRun text: output.Append(EscapeText(text.Text)); break;
+                case MarkdownTextRun text: output.Append(EscapeText(text.Text)); break;
                 case BoldInline bold: output.Append("\\textbf{").Append(EscapeText(bold.Text)).Append('}'); break;
                 case BoldSequenceInline bold: output.Append("\\textbf{").Append(Convert(bold.Inlines, state, diagnostics, owner)).Append('}'); break;
                 case BoldItalicInline boldItalic: output.Append("\\textbf{\\emph{").Append(EscapeText(boldItalic.Text)).Append("}}"); break;

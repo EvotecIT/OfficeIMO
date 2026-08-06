@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         /// <remarks>
         /// This authors and validates cache metadata. Excel-compatible software is still required to materialize the slicer UI shape.
         /// </remarks>
-        public ExtendedPart AddPivotSlicerCache(string pivotTableName, string sourceField, string? cacheName = null) {
+        public ExcelPackagePartInfo AddPivotSlicerCache(string pivotTableName, string sourceField, string? cacheName = null) {
             ExcelPivotTableInfo pivot = ValidatePivotInteractionBinding(pivotTableName, sourceField);
             IReadOnlyList<ExcelPivotInteractionCacheInfo> existingCaches = GetWorkbookSlicerCaches();
             string name = string.IsNullOrWhiteSpace(cacheName)
@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel {
         /// <remarks>
         /// This authors and validates cache metadata. Excel-compatible software is still required to materialize the timeline UI shape.
         /// </remarks>
-        public ExtendedPart AddPivotTimelineCache(string pivotTableName, string sourceField, string? cacheName = null) {
+        public ExcelPackagePartInfo AddPivotTimelineCache(string pivotTableName, string sourceField, string? cacheName = null) {
             ExcelPivotTableInfo pivot = ValidatePivotInteractionBinding(pivotTableName, sourceField);
             if (!IsDateOnlyPivotSourceField(pivot, sourceField.Trim())) {
                 throw new ArgumentException(

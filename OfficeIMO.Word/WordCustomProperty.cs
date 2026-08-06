@@ -19,7 +19,7 @@ namespace OfficeIMO.Word {
         /// This determines how <see cref="Value"/> is interpreted when reading or
         /// writing the property to a document.
         /// </remarks>
-        public PropertyTypes PropertyType { get; set; }
+        public WordCustomPropertyType PropertyType { get; set; }
 
         /// <summary>
         /// Gets the value as a <see cref="DateTime"/> when the property type is a date.
@@ -80,7 +80,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets the value as a boolean when the property type is <see cref="PropertyTypes.YesNo"/>.
+        /// Gets the value as a boolean when the property type is <see cref="WordCustomPropertyType.YesNo"/>.
         /// </summary>
         /// <remarks>Returns <see langword="null"/> when the value is not a boolean.</remarks>
         public bool? Bool {
@@ -94,7 +94,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets the value as binary data when the property type is <see cref="PropertyTypes.Binary"/>.
+        /// Gets the value as binary data when the property type is <see cref="WordCustomPropertyType.Binary"/>.
         /// </summary>
         /// <remarks>Returns <see langword="null"/> when the value is not binary data.</remarks>
         public byte[]? Binary {
@@ -110,7 +110,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="value">Property value.</param>
         /// <param name="propertyType">Type of the property.</param>
-        public WordCustomProperty(Object value, PropertyTypes propertyType) {
+        public WordCustomProperty(Object value, WordCustomPropertyType propertyType) {
             this.PropertyType = propertyType;
             this.Value = value;
         }
@@ -120,7 +120,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="value">Boolean value.</param>
         public WordCustomProperty(bool value) {
-            this.PropertyType = PropertyTypes.YesNo;
+            this.PropertyType = WordCustomPropertyType.YesNo;
             this.Value = value;
         }
 
@@ -129,7 +129,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="value">Date/time value.</param>
         public WordCustomProperty(DateTime value) {
-            this.PropertyType = PropertyTypes.DateTime;
+            this.PropertyType = WordCustomPropertyType.DateTime;
             this.Value = value;
         }
 
@@ -138,7 +138,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="value">Text value.</param>
         public WordCustomProperty(string value) {
-            this.PropertyType = PropertyTypes.Text;
+            this.PropertyType = WordCustomPropertyType.Text;
             this.Value = value;
         }
 
@@ -147,7 +147,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="value">Numeric value.</param>
         public WordCustomProperty(double value) {
-            this.PropertyType = PropertyTypes.NumberDouble;
+            this.PropertyType = WordCustomPropertyType.NumberDouble;
             this.Value = value;
         }
 
@@ -156,7 +156,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="value">Integer value.</param>
         public WordCustomProperty(int value) {
-            this.PropertyType = PropertyTypes.NumberInteger;
+            this.PropertyType = WordCustomPropertyType.NumberInteger;
             this.Value = value;
         }
 
@@ -165,7 +165,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="value">Integer value.</param>
         public WordCustomProperty(long value) {
-            this.PropertyType = PropertyTypes.NumberInteger;
+            this.PropertyType = WordCustomPropertyType.NumberInteger;
             this.Value = value;
         }
 
@@ -175,7 +175,7 @@ namespace OfficeIMO.Word {
         /// <param name="value">Binary value.</param>
         public WordCustomProperty(byte[] value) {
             if (value == null) throw new ArgumentNullException(nameof(value));
-            this.PropertyType = PropertyTypes.Binary;
+            this.PropertyType = WordCustomPropertyType.Binary;
             this.Value = (byte[])value.Clone();
         }
 
@@ -188,40 +188,40 @@ namespace OfficeIMO.Word {
             if (customDocumentProperty != null) {
                 if (customDocumentProperty.VTInt32 != null) {
                     this.Value = int.Parse(customDocumentProperty.VTInt32.Text);
-                    this.PropertyType = PropertyTypes.NumberInteger;
+                    this.PropertyType = WordCustomPropertyType.NumberInteger;
                 } else if (customDocumentProperty.VTFileTime != null) {
                     this.Value = DateTime.Parse(customDocumentProperty.VTFileTime.Text).ToUniversalTime();
-                    this.PropertyType = PropertyTypes.DateTime;
+                    this.PropertyType = WordCustomPropertyType.DateTime;
                 } else if (customDocumentProperty.VTFloat != null) {
                     this.Value = double.Parse(customDocumentProperty.VTFloat.Text, System.Globalization.CultureInfo.InvariantCulture);
-                    this.PropertyType = PropertyTypes.NumberDouble;
+                    this.PropertyType = WordCustomPropertyType.NumberDouble;
                 } else if (customDocumentProperty.VTLPWSTR != null) {
                     this.Value = customDocumentProperty.VTLPWSTR.Text;
-                    this.PropertyType = PropertyTypes.Text;
+                    this.PropertyType = WordCustomPropertyType.Text;
                 } else if (customDocumentProperty.VTBool != null) {
                     this.Value = bool.Parse(customDocumentProperty.VTBool.Text);
-                    this.PropertyType = PropertyTypes.YesNo;
+                    this.PropertyType = WordCustomPropertyType.YesNo;
                 } else if (customDocumentProperty.VTDouble != null) {
                     this.Value = double.Parse(customDocumentProperty.VTDouble.Text, System.Globalization.CultureInfo.InvariantCulture);
-                    this.PropertyType = PropertyTypes.NumberDouble;
+                    this.PropertyType = WordCustomPropertyType.NumberDouble;
                 } else if (customDocumentProperty.VTInt64 != null) {
                     this.Value = long.Parse(customDocumentProperty.VTInt64.Text);
-                    this.PropertyType = PropertyTypes.NumberInteger;
+                    this.PropertyType = WordCustomPropertyType.NumberInteger;
                 } else if (customDocumentProperty.VTBlob != null) {
                     this.Value = ParseBinaryProperty(customDocumentProperty.VTBlob.Text);
-                    this.PropertyType = PropertyTypes.Binary;
+                    this.PropertyType = WordCustomPropertyType.Binary;
                 } else if (customDocumentProperty.VTOBlob != null) {
                     this.Value = ParseBinaryProperty(customDocumentProperty.VTOBlob.Text);
-                    this.PropertyType = PropertyTypes.Binary;
+                    this.PropertyType = WordCustomPropertyType.Binary;
                 } else if (customDocumentProperty.VTVector != null) {
                     this.Value = customDocumentProperty.VTVector;
-                    this.PropertyType = PropertyTypes.Text;
+                    this.PropertyType = WordCustomPropertyType.Text;
                 } else if (customDocumentProperty.VTEmpty != null) {
                     this.Value = "";
-                    this.PropertyType = PropertyTypes.Text;
+                    this.PropertyType = WordCustomPropertyType.Text;
                 } else if (customDocumentProperty.VTDate != null) {
                     this.Value = DateTime.Parse(customDocumentProperty.VTDate.Text).ToUniversalTime();
-                    this.PropertyType = PropertyTypes.DateTime;
+                    this.PropertyType = WordCustomPropertyType.DateTime;
                 } else {
                     Debug.WriteLine("Please add new type handling for customDocumentProperty. ");
                 }

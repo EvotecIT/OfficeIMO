@@ -644,7 +644,7 @@ namespace OfficeIMO.Tests {
             ExcelFeatureReport report = document.InspectFeatures();
             ExcelFeatureFinding finding = Assert.Single(report.FindFeatures("Legacy XLS unsupported features"));
 
-            Assert.Equal(ExcelFeatureSupportLevel.Unsupported, finding.SupportLevel);
+            Assert.Equal(OfficeFeatureSupportLevel.Unsupported, finding.SupportLevel);
             Assert.NotEmpty(finding.Details);
             Assert.True(report.HasAdvancedFeatures);
             Assert.Throws<InvalidOperationException>(() => report.EnsureNoUnsupportedFeatures());

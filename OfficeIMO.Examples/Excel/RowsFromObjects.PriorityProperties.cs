@@ -42,7 +42,7 @@ namespace OfficeIMO.Examples.Excel {
                         o.ExpandProperties.Add(nameof(User.Address));
                         o.HeaderCase = HeaderCase.Title;
                     })
-                    .Table("Users", t => t.Style(TableStyle.TableStyleMedium9))
+                    .Table("Users", t => t.Style(ExcelTableStyle.TableStyleMedium9))
                     .AutoFit(columns: true, rows: false))
                 .End();
 
@@ -56,7 +56,7 @@ namespace OfficeIMO.Examples.Excel {
                         o.IncludeProperties = new[] { nameof(User.Id), nameof(User.FirstName), nameof(User.LastName), "Address.City" };
                         o.ExcludeProperties = new[] { nameof(User.Email), nameof(User.Age) };
                     })
-                    .Table("Users", t => t.Style(TableStyle.TableStyleMedium2))
+                    .Table("Users", t => t.Style(ExcelTableStyle.TableStyleMedium2))
                     .AutoFit(columns: true, rows: false))
                 .End();
 
@@ -71,7 +71,7 @@ namespace OfficeIMO.Examples.Excel {
                          .PriorityOrder(nameof(User.LastName), nameof(User.FirstName), "Address.City")
                          .PinLast(nameof(User.Email));
                     })
-                    .Table("Users", t => t.Style(TableStyle.TableStyleMedium9))
+                    .Table("Users", t => t.Style(ExcelTableStyle.TableStyleMedium9))
                     .AutoFit(columns: true, rows: false))
                 .End();
 
@@ -83,7 +83,7 @@ namespace OfficeIMO.Examples.Excel {
                         o.HeaderCase = HeaderCase.Title;
                         o.PinLast(nameof(User.Email));
                     })
-                    .Table("Users", t => t.Style(TableStyle.TableStyleMedium4))
+                    .Table("Users", t => t.Style(ExcelTableStyle.TableStyleMedium4))
                     .AutoFit(columns: true, rows: false))
                 .End();
 
@@ -96,7 +96,7 @@ namespace OfficeIMO.Examples.Excel {
                  .PinLast(nameof(User.Email));
                 o.HeaderCase = HeaderCase.Title;
                 o.ExpandProperties.Add(nameof(User.Address));
-            }, style: TableStyle.TableStyleMedium9, visuals: v => { });
+            }, style: ExcelTableStyle.TableStyleMedium9, visuals: v => { });
             composer.Finish(autoFitColumns: true);
 
             // Sheet 6: Single-call Order(pinFirst, priority, pinLast)
@@ -111,7 +111,7 @@ namespace OfficeIMO.Examples.Excel {
                             pinLast: new[] { nameof(User.Email) }
                         );
                     })
-                    .Table("Users", t => t.Style(TableStyle.TableStyleMedium6))
+                    .Table("Users", t => t.Style(ExcelTableStyle.TableStyleMedium6))
                     .AutoFit(columns: true, rows: false))
                 .End();
 

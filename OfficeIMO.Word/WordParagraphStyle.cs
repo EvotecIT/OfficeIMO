@@ -76,12 +76,12 @@ namespace OfficeIMO.Word {
         /// Registers a custom paragraph style for later retrieval.
         /// </summary>
         /// <param name="styleId">The style identifier used by paragraphs.</param>
-        /// <param name="styleDefinition">The Open XML style definition to register.</param>
+        /// <param name="styleDefinition">The OfficeIMO style definition to register.</param>
         /// <example>
         /// <code><![CDATA[
-        /// Style style = new() {
-        ///     Type = StyleValues.Paragraph,
-        ///     StyleId = "MyStyle"
+        /// WordParagraphStyleDefinition style = new("MyStyle") {
+        ///     FontName = "Aptos",
+        ///     Bold = true
         /// };
         ///
         /// WordParagraphStyle.RegisterCustomStyle("MyStyle", style);
@@ -91,9 +91,17 @@ namespace OfficeIMO.Word {
         /// document.Save();
         /// ]]></code>
         /// </example>
-        public static void RegisterCustomStyle(string styleId, Style styleDefinition) {
+        public static void RegisterCustomStyle(string styleId, WordParagraphStyleDefinition styleDefinition) {
             if (string.IsNullOrWhiteSpace(styleId)) throw new ArgumentException("StyleId cannot be empty", nameof(styleId));
             if (styleDefinition == null) throw new ArgumentNullException(nameof(styleDefinition));
+            if (!string.Equals(styleId, styleDefinition.StyleId, StringComparison.Ordinal)) {
+                throw new ArgumentException("The style ID must match the definition's StyleId.", nameof(styleId));
+            }
+
+            RegisterOpenXmlStyle(styleId, styleDefinition.ToOpenXml());
+        }
+
+        internal static void RegisterOpenXmlStyle(string styleId, Style styleDefinition) {
 
             // Normalize: ensure StyleName exists (fallback to id)
             var incoming = (Style)styleDefinition.CloneNode(true);
@@ -121,22 +129,20 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Creates a simple paragraph style that uses the specified font and returns it.
+        /// Creates a simple paragraph style that uses the specified font.
         /// </summary>
         /// <param name="styleId">Identifier of the style.</param>
         /// <param name="fontName">Font family to apply to runs.</param>
         /// <param name="styleName">Optional friendly style name.</param>
         /// <returns>The created style.</returns>
-        public static Style CreateFontStyle(string styleId, string fontName, string? styleName = null) {
+        public static WordParagraphStyleDefinition CreateFontStyle(string styleId, string fontName, string? styleName = null) {
             if (string.IsNullOrWhiteSpace(styleId)) throw new ArgumentException("StyleId cannot be empty", nameof(styleId));
             if (string.IsNullOrWhiteSpace(fontName)) throw new ArgumentException("Font name cannot be empty", nameof(fontName));
 
-            var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId };
-            style.Append(new StyleName { Val = styleName ?? styleId });
-            var runProps = new StyleRunProperties();
-            runProps.Append(new RunFonts { Ascii = fontName, HighAnsi = fontName, ComplexScript = fontName, EastAsia = fontName });
-            style.Append(runProps);
-            return style;
+            return new WordParagraphStyleDefinition(styleId) {
+                Name = styleName ?? styleId,
+                FontName = fontName
+            };
         }
 
         /// <summary>
@@ -150,18 +156,27 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Replaces a built-in style definition with a custom one.
         /// </summary>
-        public static void OverrideBuiltInStyle(WordParagraphStyles style, Style styleDefinition) {
+        public static void OverrideBuiltInStyle(WordParagraphStyles style, WordParagraphStyleDefinition styleDefinition) {
             if (style == WordParagraphStyles.Custom) throw new ArgumentException("Cannot override custom style placeholder", nameof(style));
             if (styleDefinition == null) throw new ArgumentNullException(nameof(styleDefinition));
+            OverrideBuiltInOpenXmlStyle(style, styleDefinition.ToOpenXml());
+        }
+
+        internal static void OverrideBuiltInOpenXmlStyle(WordParagraphStyles style, Style styleDefinition) {
             lock (_stylesLock) {
                 _overrides[style] = (Style)styleDefinition.CloneNode(true);
             }
         }
 
         /// <summary>
-        /// Returns the Open XML style definition for the specified style.
+        /// Returns an OfficeIMO-owned definition for the specified style.
         /// </summary>
-        public static Style? GetStyleDefinition(WordParagraphStyles style) {
+        public static WordParagraphStyleDefinition? GetStyleDefinition(WordParagraphStyles style) {
+            Style? definition = GetOpenXmlStyleDefinition(style);
+            return definition == null ? null : new WordParagraphStyleDefinition(definition);
+        }
+
+        internal static Style? GetOpenXmlStyleDefinition(WordParagraphStyles style) {
             lock (_stylesLock) {
                 if (_overrides.TryGetValue(style, out var overrideStyle)) return (Style)overrideStyle.CloneNode(true);
                 if (_customStyles.TryGetValue(style.ToStringStyle(), out var customStyle)) return (Style)customStyle.CloneNode(true);

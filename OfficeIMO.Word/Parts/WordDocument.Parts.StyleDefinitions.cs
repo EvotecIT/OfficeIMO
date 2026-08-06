@@ -192,7 +192,7 @@ namespace OfficeIMO.Word {
             // TODO: load all styles to document, probably we should load those in use
             var listOfStyles = global::OfficeIMO.Internal.EnumCompat.GetValues<WordParagraphStyles>();
             foreach (var style in listOfStyles) {
-                var styleDef = WordParagraphStyle.GetStyleDefinition(style);
+                var styleDef = WordParagraphStyle.GetOpenXmlStyleDefinition(style);
                 if (styleDef != null) {
                     styles1.Append(styleDef);
                 }

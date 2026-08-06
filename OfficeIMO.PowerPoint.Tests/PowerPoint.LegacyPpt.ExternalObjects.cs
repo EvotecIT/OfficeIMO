@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Editable companion", textBox.Text);
                 PowerPointFeatureFinding finding = Assert.Single(imported
                     .InspectFeatures().FindFeatures("Linked OLE objects"));
-                Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                Assert.Equal(OfficeFeatureSupportLevel.Preserved,
                     finding.SupportLevel);
                 Assert.Equal(1, finding.Count);
                 LegacyPptWritePreflightReport exactPreflight = imported
@@ -80,12 +80,12 @@ namespace OfficeIMO.Tests {
                     imported.ToBytes(PowerPointFileFormat.Ppt));
                 Assert.Equal(sourceBytes, imported.ToBytes(
                     PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     }));
                 textBox.Text = "Edited companion";
                 savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Editable companion", textBox.Text);
                 PowerPointFeatureFinding finding = Assert.Single(imported
                     .InspectFeatures().FindFeatures("ActiveX controls"));
-                Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+                Assert.Equal(OfficeFeatureSupportLevel.Preserved,
                     finding.SupportLevel);
                 Assert.Equal(1, finding.Count);
                 LegacyPptWritePreflightReport exactPreflight = imported
@@ -154,12 +154,12 @@ namespace OfficeIMO.Tests {
                     imported.ToBytes(PowerPointFileFormat.Ppt));
                 Assert.Equal(sourceBytes, imported.ToBytes(
                     PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     }));
                 textBox.Text = "Edited companion";
                 savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 
@@ -228,7 +228,7 @@ namespace OfficeIMO.Tests {
                 projected.ToBytes(PowerPointFileFormat.Ppt));
             Assert.Equal(sourceBytes, projected.ToBytes(
                 PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
-                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                    LossPolicy = OfficeConversionLossPolicy.Allow
                 }));
         }
 

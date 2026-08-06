@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "Major", "Medium", "Minor" }, paretoData.Categories);
                 Assert.Equal(new[] { 0.6d, 0.9d, 1d }, paretoData.Series[1].Values);
                 Assert.Equal(ExcelChartType.Line, paretoData.Series[1].ChartType);
-                Assert.Equal(ExcelChartAxisGroup.Secondary, paretoData.Series[1].AxisGroup);
+                Assert.Equal(OfficeChartAxisGroup.Secondary, paretoData.Series[1].AxisGroup);
 
                 ExcelChart funnel = sheet.AddFunnelChart(
                     new[] { "Leads", "Qualified", "Won" },

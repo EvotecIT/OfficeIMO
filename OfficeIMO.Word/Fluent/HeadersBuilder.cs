@@ -103,16 +103,16 @@ namespace OfficeIMO.Word.Fluent {
         /// <summary>
         /// Adds a paragraph configured using the supplied action.
         /// </summary>
-        public HeaderContentBuilder Paragraph(Action<ParagraphBuilder> action) {
+        public HeaderContentBuilder Paragraph(Action<WordParagraphBuilder> action) {
             var paragraph = _header.AddParagraph();
-            action(new ParagraphBuilder(_fluent, paragraph));
+            action(new WordParagraphBuilder(_fluent, paragraph));
             return this;
         }
 
         /// <summary>
         /// Adds an image to the header.
         /// </summary>
-        public HeaderContentBuilder Image(string path, double? width = null, double? height = null, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "") {
+        public HeaderContentBuilder Image(string path, double? width = null, double? height = null, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "") {
             var paragraph = _header.AddParagraph();
             paragraph.AddImage(path, width, height, wrapImage, description);
             return this;

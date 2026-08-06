@@ -583,7 +583,7 @@ internal static class MarkdownToRtfConverter {
             return true;
         }
 
-        if (inline is TextRun textRun && ContainsRawHtmlTagLikeText(textRun.Text)) {
+        if (inline is MarkdownTextRun textRun && ContainsRawHtmlTagLikeText(textRun.Text)) {
             return true;
         }
 
@@ -636,7 +636,7 @@ internal static class MarkdownToRtfConverter {
 
     private static void AppendInline(RtfParagraph paragraph, IMarkdownInline inline, RtfDocument document, MarkdownToRtfConversionContext context, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions, HashSet<string>? activeFootnotes = null, bool allowTextRunMerging = true) {
         switch (inline) {
-            case TextRun text:
+            case MarkdownTextRun text:
                 AddStyledText(paragraph, text.Text, style, allowTextRunMerging);
                 break;
             case DecodedHtmlEntityTextRun decodedText:

@@ -129,7 +129,7 @@ internal static class ExcelRealWorldProfileRunner {
     }
 
     private static void ApplyTable(ExcelSheet sheet, int rowCount) {
-        sheet.AddTable(BuildSalesRange(rowCount), hasHeader: true, name: "SalesData", style: TableStyle.TableStyleMedium2, includeAutoFilter: true);
+        sheet.AddTable(BuildSalesRange(rowCount), hasHeader: true, name: "SalesData", style: ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
         sheet.AutoFitColumns();
     }
 

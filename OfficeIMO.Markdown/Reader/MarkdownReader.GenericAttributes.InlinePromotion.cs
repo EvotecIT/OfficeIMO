@@ -163,7 +163,7 @@ public static partial class MarkdownReader {
             }
         }
 
-        if (sequence.Nodes[lastIndex] is not TextRun textRun) {
+        if (sequence.Nodes[lastIndex] is not MarkdownTextRun textRun) {
             return false;
         }
 
@@ -186,7 +186,7 @@ public static partial class MarkdownReader {
         }
 
         if (!string.IsNullOrEmpty(textWithoutAttributeBlock)) {
-            var remainingText = new TextRun(textWithoutAttributeBlock);
+            var remainingText = new MarkdownTextRun(textWithoutAttributeBlock);
             MarkdownInlineSourceSpans.Set(remainingText, remainingTextSpan);
             replacement.Add(remainingText);
         }

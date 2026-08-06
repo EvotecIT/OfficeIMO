@@ -8,7 +8,7 @@ public sealed class FooterSegment {
     public string? Text { get; }
     /// <summary>Optional visual styling for this segment.</summary>
     /// <remarks>Header/footer rich text supports text styling only. Links, inline visuals, and paragraph tabs are not accepted.</remarks>
-    public TextRun? StyledRun { get; }
+    public PdfTextRun? StyledRun { get; }
 
     /// <summary>Creates a new footer segment.</summary>
     public FooterSegment(FooterSegmentKind kind, string? text = null) {
@@ -26,7 +26,7 @@ public sealed class FooterSegment {
         Text = text;
     }
 
-    private FooterSegment(FooterSegmentKind kind, string? text, TextRun styledRun) {
+    private FooterSegment(FooterSegmentKind kind, string? text, PdfTextRun styledRun) {
         ValidateStyledRun(styledRun, nameof(styledRun));
         Kind = kind;
         Text = text;
@@ -35,26 +35,26 @@ public sealed class FooterSegment {
 
     /// <summary>Creates a styled literal text segment.</summary>
     /// <param name="run">Visual text run to render.</param>
-    public static FooterSegment RichText(TextRun run) {
+    public static FooterSegment RichText(PdfTextRun run) {
         Guard.NotNull(run, nameof(run));
         return new FooterSegment(FooterSegmentKind.Text, run.Text, run);
     }
 
     /// <summary>Creates a current-page token using the supplied visual text style.</summary>
     /// <param name="style">Text run whose visual styling is applied; its text is ignored.</param>
-    public static FooterSegment PageNumber(TextRun style) {
+    public static FooterSegment PageNumber(PdfTextRun style) {
         Guard.NotNull(style, nameof(style));
         return new FooterSegment(FooterSegmentKind.PageNumber, null, style);
     }
 
     /// <summary>Creates a total-pages token using the supplied visual text style.</summary>
     /// <param name="style">Text run whose visual styling is applied; its text is ignored.</param>
-    public static FooterSegment TotalPages(TextRun style) {
+    public static FooterSegment TotalPages(PdfTextRun style) {
         Guard.NotNull(style, nameof(style));
         return new FooterSegment(FooterSegmentKind.TotalPages, null, style);
     }
 
-    internal static void ValidateStyledRun(TextRun run, string paramName) {
+    internal static void ValidateStyledRun(PdfTextRun run, string paramName) {
         Guard.NotNull(run, paramName);
         if (run.InlineElement != null) {
             throw new System.ArgumentException("PDF header/footer rich text cannot contain inline visuals. Use the header/footer image or shape APIs instead.", paramName);

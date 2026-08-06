@@ -112,7 +112,7 @@ OfficeIMO throws a preflight error with the unsupported feature name so the
 caller can save as `.xlsx`, remove the feature, or choose a different workflow.
 `ExcelDocument.Convert(...)` uses those same load and save paths and blocks
 legacy sources with unsupported or preserve-only content by default. Set
-`LossPolicy` to `ExcelConversionLossPolicy.Allow` on conversion or save options
+`LossPolicy` to `OfficeConversionLossPolicy.Allow` on conversion or save options
 only after reviewing that loss. See
 [XLS and XLSX compatibility](../Docs/officeimo.excel.legacy-xls-compatibility.md) for
 the current capability matrix and safety contract. Use the
@@ -579,7 +579,7 @@ than silently discarding them.
 
 ```csharp
 using var document = ExcelDocument.Create("large-report.xlsx");
-document.Execution.Mode = ExecutionMode.Automatic;
+document.Execution.Mode = ExcelExecutionMode.Automatic;
 document.Execution.MaxDegreeOfParallelism = Environment.ProcessorCount;
 document.Execution.SaveWorksheetAfterAutoFit = false;
 ```

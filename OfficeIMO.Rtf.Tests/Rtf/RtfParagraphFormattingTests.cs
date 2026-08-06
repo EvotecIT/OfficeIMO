@@ -146,10 +146,10 @@ public class RtfParagraphFormattingTests {
         WordParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs);
         Assert.Equal("E6F2FF", roundTripParagraph.ShadingFillColorHex);
         Assert.Equal(WordBorderStyle.Single, roundTripParagraph.Borders.TopStyle);
-        Assert.Equal(12U, roundTripParagraph.Borders.TopSize?.Value);
+        Assert.Equal(12U, roundTripParagraph.Borders.TopSize);
         Assert.Equal("4472C4", roundTripParagraph.Borders.TopColorHex);
         Assert.Equal(WordBorderStyle.Double, roundTripParagraph.Borders.LeftStyle);
-        Assert.Equal(8U, roundTripParagraph.Borders.LeftSize?.Value);
+        Assert.Equal(8U, roundTripParagraph.Borders.LeftSize);
         Assert.Equal("00AA55", roundTripParagraph.Borders.LeftColorHex);
     }
 
@@ -169,10 +169,10 @@ public class RtfParagraphFormattingTests {
         WordParagraph wordParagraph = Assert.Single(word.Paragraphs);
         Assert.Equal("E6F2FF", wordParagraph.ShadingFillColorHex);
         Assert.Equal(WordBorderStyle.Single, wordParagraph.Borders.TopStyle);
-        Assert.Equal(12U, wordParagraph.Borders.TopSize?.Value);
+        Assert.Equal(12U, wordParagraph.Borders.TopSize);
         Assert.Equal("4472C4", wordParagraph.Borders.TopColorHex);
         Assert.Equal(WordBorderStyle.Double, wordParagraph.Borders.LeftStyle);
-        Assert.Equal(8U, wordParagraph.Borders.LeftSize?.Value);
+        Assert.Equal(8U, wordParagraph.Borders.LeftSize);
         Assert.Equal("00AA55", wordParagraph.Borders.LeftColorHex);
     }
 

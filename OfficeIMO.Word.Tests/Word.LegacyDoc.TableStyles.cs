@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal((short)720, reloadedTable.StyleDetails!.TableIndentationWidth);
                 Assert.Equal(WordTableWidthUnit.Dxa, reloadedTable.WidthType);
                 Assert.Equal(2160, reloadedTable.Width);
-                Assert.Equal(WordTableLayoutMode.Fixed, reloadedTable.LayoutType);
+                Assert.Equal(WordTableLayoutMode.Fixed, reloadedTable.LayoutMode);
                 Assert.Equal((short)240, reloadedTable.StyleDetails.CellSpacing);
 
                 WordTableRow row = Assert.Single(reloadedTable.Rows);

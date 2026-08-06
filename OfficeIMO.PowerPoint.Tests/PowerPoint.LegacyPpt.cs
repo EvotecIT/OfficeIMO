@@ -360,7 +360,7 @@ namespace OfficeIMO.Tests {
             PowerPointPicture picture = Assert.Single(presentation.Slides[0].Pictures);
             using var replacement = new MemoryStream(picture.GetImageBytes(), writable: false);
 
-            picture.UpdateImage(replacement, ImagePartType.Png);
+            picture.UpdateImage(replacement, PowerPointImagePartType.Png);
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.False(preflight.CanWrite);
@@ -660,7 +660,7 @@ namespace OfficeIMO.Tests {
             first.AddTextBox("Line one\nLine two", 540000, 1200000, 6000000, 1800000);
             first.AddRectangle(600000, 3300000, 1200000, 700000);
             first.AddEllipse(2100000, 3300000, 1200000, 700000);
-            first.AddShape(PowerPointShapeType.Line, 3600000, 3300000, 1600000, 400000);
+            first.AddShape(OfficePresetShapeType.Line, 3600000, 3300000, 1600000, 400000);
             presentation.AddSlide().AddTextBox("Second slide", 700000, 700000, 5000000, 1000000);
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
@@ -746,7 +746,7 @@ namespace OfficeIMO.Tests {
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
                 presentation.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     }));
             Assert.Equal(new[] { "Second", "Third", "First" }, saved.Slides.Select(slide =>
                 slide.Shapes.Single(shape => shape.Kind == LegacyPptShapeKind.TextBox).Text));
@@ -781,7 +781,7 @@ namespace OfficeIMO.Tests {
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
                 presentation.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     }));
             Assert.Equal(new[] { "Keep first", "Keep last" }, saved.Slides.Select(slide =>
                 slide.Shapes.Single(shape => shape.Kind == LegacyPptShapeKind.TextBox).Text));
@@ -808,7 +808,7 @@ namespace OfficeIMO.Tests {
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
                 presentation.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     }));
 
             Assert.Equal(2, saved.Slides.Count);
@@ -854,7 +854,7 @@ namespace OfficeIMO.Tests {
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
                 presentation.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     }));
 
             Assert.Equal(selectedMaster.MasterId, saved.Slides[1].MasterId);
@@ -871,7 +871,7 @@ namespace OfficeIMO.Tests {
             Assert.Throws<NotSupportedException>(() => presentation.ToBytes(PowerPointFileFormat.Ppt));
 
             byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt,
-                new PowerPointSaveOptions { LossPolicy = PowerPointConversionLossPolicy.Allow });
+                new PowerPointSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
             Assert.NotEmpty(bytes);
             Assert.Single(LegacyPptPresentation.Load(bytes).Slides);
         }
@@ -880,7 +880,7 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_PreflightReportsUnsupportedTransitionAndVisualStyleLoss() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            slide.Transition = SlideTransition.Morph;
+            slide.Transition = PowerPointSlideTransition.Morph;
             PowerPointAutoShape shape = slide.AddRectangle(
                 100000, 100000, 1000000, 500000);
             shape.Fill("FF0000");
@@ -903,7 +903,7 @@ namespace OfficeIMO.Tests {
                 presentation.Slides[0].AddTextBox("Saved back as binary");
                 Assert.Throws<NotSupportedException>(() => presentation.Save());
                 presentation.Save(stream, presentation.SourceFormat,
-                    new PowerPointSaveOptions { LossPolicy = PowerPointConversionLossPolicy.Allow });
+                    new PowerPointSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(stream.ToArray());

@@ -18,8 +18,9 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            var settings = new OpenSettings {
-                MarkupCompatibilityProcessSettings = new MarkupCompatibilityProcessSettings(MarkupCompatibilityProcessMode.ProcessAllParts, FileFormatVersions.Office2010)
+            var settings = new OfficeOpenXmlLoadSettings {
+                MarkupCompatibilityMode = OfficeOpenXmlMarkupCompatibilityMode.ProcessAllParts,
+                MarkupCompatibilityTargetVersion = OfficeOpenXmlFileFormatVersion.Office2010
             };
 
             using (var document = WordDocument.Load(filePath, new WordLoadOptions { OpenSettings = settings })) {
@@ -42,8 +43,9 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            var settings = new OpenSettings {
-                MarkupCompatibilityProcessSettings = new MarkupCompatibilityProcessSettings(MarkupCompatibilityProcessMode.ProcessAllParts, FileFormatVersions.Office2013)
+            var settings = new OfficeOpenXmlLoadSettings {
+                MarkupCompatibilityMode = OfficeOpenXmlMarkupCompatibilityMode.ProcessAllParts,
+                MarkupCompatibilityTargetVersion = OfficeOpenXmlFileFormatVersion.Office2013
             };
 
             await using (var document = await WordDocument.LoadAsync(filePath, new WordLoadOptions { OpenSettings = settings }, cancellationToken: CancellationToken.None)) {

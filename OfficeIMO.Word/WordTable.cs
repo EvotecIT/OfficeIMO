@@ -193,29 +193,6 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets layout of a table
-        /// </summary>
-        public WordTableLayoutMode? LayoutType {
-            get {
-                if (_tableProperties != null && _tableProperties.TableLayout != null) {
-                    return _tableProperties.TableLayout.Type?.Value.ToOfficeEnum();
-                }
-                return WordTableLayoutMode.Autofit;
-            }
-            set {
-                CheckTableProperties();
-                if (_tableProperties!.TableLayout == null) {
-                    _tableProperties.TableLayout = new TableLayout();
-                }
-                if (value != null) {
-                    _tableProperties.TableLayout.Type = value.Value.ToOpenXml();
-                } else {
-                    _tableProperties.TableLayout.Remove();
-                }
-            }
-        }
-
-        /// <summary>
         /// Specifies that the first row conditional formatting shall be applied to the table.
         /// </summary>
         public bool? ConditionalFormattingFirstRow {
@@ -479,7 +456,7 @@ namespace OfficeIMO.Word {
         /// <param name="rows">Number of rows.</param>
         /// <param name="columns">Number of columns.</param>
         /// <param name="tableStyle">Style applied to the table.</param>
-        public WordTable(WordDocument document, TableCell wordTableCell, int rows, int columns, WordTableStyle tableStyle) {
+        internal WordTable(WordDocument document, TableCell wordTableCell, int rows, int columns, WordTableStyle tableStyle) {
             _document = document;
 
             _table = GenerateTable(document, rows, columns, tableStyle);

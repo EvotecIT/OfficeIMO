@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
             document.PageSettings.PageSize = WordPageSize.A4;
             document.Margins.Type = WordMargin.Narrow;
             document.AddParagraph("Before shape");
-            WordShape wordShape = document.AddParagraph().AddShapeDrawing(ShapeType.RightArrow, 96D, 40D);
+            WordShape wordShape = document.AddParagraph().AddShapeDrawing(WordShapeType.RightArrow, 96D, 40D);
             wordShape.FillColor = OfficeColor.FromRgb(14, 165, 233);
             wordShape.StrokeColor = OfficeColor.FromRgb(15, 23, 42);
             wordShape.StrokeWeight = 2D;
@@ -193,7 +193,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(stream);
             document.PageSettings.PageSize = WordPageSize.A4;
             document.Margins.Type = WordMargin.Narrow;
-            WordShape wordShape = document.AddParagraph().AddShapeDrawing(ShapeType.RightArrow, 96D, 40D, 144D, 36D);
+            WordShape wordShape = document.AddParagraph().AddShapeDrawing(WordShapeType.RightArrow, 96D, 40D, 144D, 36D);
             wordShape.FillColor = OfficeColor.FromRgb(34, 197, 94);
             wordShape.StrokeColor = OfficeColor.FromRgb(21, 128, 61);
             wordShape.StrokeWeight = 2D;
@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(stream);
             document.PageSettings.PageSize = WordPageSize.A4;
             document.Margins.Type = WordMargin.Narrow;
-            WordShape wordShape = document.AddParagraph().AddShapeDrawing(ShapeType.RightArrow, 96D, 40D, 144D, 36D);
+            WordShape wordShape = document.AddParagraph().AddShapeDrawing(WordShapeType.RightArrow, 96D, 40D, 144D, 36D);
             wordShape.FillColor = OfficeColor.FromRgb(14, 165, 233);
             wordShape.StrokeColor = OfficeColor.FromRgb(12, 74, 110);
             wordShape.StrokeWeight = 2D;
@@ -274,7 +274,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(stream);
             document.PageSettings.PageSize = WordPageSize.A4;
             document.Margins.Type = WordMargin.Narrow;
-            WordShape wordShape = document.AddParagraph().AddShapeDrawing(ShapeType.RightArrow, 96D, 40D, 144D, 18D);
+            WordShape wordShape = document.AddParagraph().AddShapeDrawing(WordShapeType.RightArrow, 96D, 40D, 144D, 18D);
             wordShape.FillColor = OfficeColor.FromRgb(168, 85, 247);
             wordShape.StrokeColor = OfficeColor.FromRgb(88, 28, 135);
             wordShape.StrokeWeight = 2D;
@@ -317,7 +317,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(stream);
             document.PageSettings.PageSize = WordPageSize.A4;
             document.Margins.Type = WordMargin.Narrow;
-            WordShape wordShape = document.AddParagraph().AddShapeDrawing(ShapeType.RightArrow, 96D, 40D, 144D, 36D);
+            WordShape wordShape = document.AddParagraph().AddShapeDrawing(WordShapeType.RightArrow, 96D, 40D, 144D, 36D);
             wordShape.FillColor = OfficeColor.FromRgb(245, 158, 11);
             wordShape.StrokeColor = OfficeColor.FromRgb(146, 64, 14);
             wordShape.StrokeWeight = 2D;
@@ -357,7 +357,7 @@ namespace OfficeIMO.Tests {
             document.Margins.Type = WordMargin.Narrow;
 
             document.AddParagraph("Foreground text should paint above the behind shape.");
-            WordShape wordShape = document.AddParagraph().AddShapeDrawing(ShapeType.RightArrow, 96D, 40D, 144D, 36D);
+            WordShape wordShape = document.AddParagraph().AddShapeDrawing(WordShapeType.RightArrow, 96D, 40D, 144D, 36D);
             wordShape.FillColor = OfficeColor.FromRgb(59, 130, 246);
             wordShape.StrokeColor = OfficeColor.FromRgb(30, 64, 175);
             DW.Anchor anchor = wordShape._drawing!.GetFirstChild<DW.Anchor>()!;
@@ -392,7 +392,7 @@ namespace OfficeIMO.Tests {
             document.PageSettings.PageSize = WordPageSize.A4;
             document.Margins.Type = WordMargin.Narrow;
 
-            WordShape drawingShape = document.AddParagraph().AddShapeDrawing(ShapeType.RightArrow, 96D, 40D);
+            WordShape drawingShape = document.AddParagraph().AddShapeDrawing(WordShapeType.RightArrow, 96D, 40D);
             drawingShape.FillColor = OfficeColor.FromRgb(99, 102, 241);
             drawingShape.StrokeColor = OfficeColor.FromRgb(49, 46, 129);
             drawingShape.StrokeWeight = 2D;
@@ -403,7 +403,7 @@ namespace OfficeIMO.Tests {
             drawingTransform.HorizontalFlip = true;
 
             WordShape vmlShape = document.AddParagraph().AddShape(
-                ShapeType.Rectangle,
+                WordShapeType.Rectangle,
                 84D,
                 30D,
                 OfficeColor.FromRgb(251, 146, 60),
@@ -451,10 +451,10 @@ namespace OfficeIMO.Tests {
             document.PageSettings.PageSize = WordPageSize.A4;
             document.Margins.Type = WordMargin.Narrow;
 
-            document.AddParagraph().AddShape(ShapeType.Rectangle, 84D, 30D, OfficeColor.FromRgb(248, 113, 113), OfficeColor.FromRgb(127, 29, 29), 2D);
-            document.AddParagraph().AddShape(ShapeType.Ellipse, 72D, 32D, OfficeColor.FromRgb(96, 165, 250), OfficeColor.FromRgb(30, 64, 175), 1.5D);
-            document.AddParagraph().AddShape(ShapeType.RoundedRectangle, 90D, 34D, OfficeColor.FromRgb(250, 204, 21), OfficeColor.FromRgb(161, 98, 7), 2D, 0.2D);
-            document.AddParagraph().AddShape(ShapeType.Line, 70D, 18D, OfficeColor.Transparent, OfficeColor.FromRgb(22, 163, 74), 3D);
+            document.AddParagraph().AddShape(WordShapeType.Rectangle, 84D, 30D, OfficeColor.FromRgb(248, 113, 113), OfficeColor.FromRgb(127, 29, 29), 2D);
+            document.AddParagraph().AddShape(WordShapeType.Ellipse, 72D, 32D, OfficeColor.FromRgb(96, 165, 250), OfficeColor.FromRgb(30, 64, 175), 1.5D);
+            document.AddParagraph().AddShape(WordShapeType.RoundedRectangle, 90D, 34D, OfficeColor.FromRgb(250, 204, 21), OfficeColor.FromRgb(161, 98, 7), 2D, 0.2D);
+            document.AddParagraph().AddShape(WordShapeType.Line, 70D, 18D, OfficeColor.Transparent, OfficeColor.FromRgb(22, 163, 74), 3D);
             WordShape.AddPolygon(document.AddParagraph(), "0,30 30,0 60,30", "#C084FC", "#6B21A8");
 
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
@@ -496,7 +496,7 @@ namespace OfficeIMO.Tests {
             document.Margins.Type = WordMargin.Narrow;
 
             document.AddParagraph("Before text boxes");
-            document.AddParagraph().AddTextBox("DrawingML text box content", WrapTextImage.InLineWithText);
+            document.AddParagraph().AddTextBox("DrawingML text box content", WordImageTextWrapping.InLineWithText);
             document.AddParagraph().AddTextBoxVml("Legacy VML text box content");
             document.AddParagraph("After text boxes");
 
@@ -530,8 +530,8 @@ namespace OfficeIMO.Tests {
             document.PageSettings.PageSize = WordPageSize.A4;
             document.Margins.Type = WordMargin.Narrow;
 
-            WordTextBox textBox = document.AddParagraph().AddTextBox("Tight floating text box", WrapTextImage.Tight);
-            textBox.HorizontalAlignment = WordHorizontalAlignmentValues.Left;
+            WordTextBox textBox = document.AddParagraph().AddTextBox("Tight floating text box", WordImageTextWrapping.Tight);
+            textBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Left;
             document.AddParagraph("After tight text box wraps beside the marker.");
 
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
@@ -564,8 +564,8 @@ namespace OfficeIMO.Tests {
             document.PageSettings.PageSize = WordPageSize.A4;
             document.Margins.Type = WordMargin.Narrow;
 
-            WordTextBox textBox = document.AddParagraph().AddTextBox("Top-bottom floating text box", WrapTextImage.TopAndBottom);
-            textBox.HorizontalAlignment = WordHorizontalAlignmentValues.Left;
+            WordTextBox textBox = document.AddParagraph().AddTextBox("Top-bottom floating text box", WordImageTextWrapping.TopAndBottom);
+            textBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Left;
             document.AddParagraph("After top-bottom text box flows below the marker.");
 
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
@@ -597,8 +597,8 @@ namespace OfficeIMO.Tests {
             document.Margins.Type = WordMargin.Narrow;
 
             document.AddParagraph("Foreground text should paint above the behind text box.");
-            WordTextBox textBox = document.AddParagraph().AddTextBox("Behind box", WrapTextImage.BehindText);
-            textBox.HorizontalAlignment = WordHorizontalAlignmentValues.Left;
+            WordTextBox textBox = document.AddParagraph().AddTextBox("Behind box", WordImageTextWrapping.BehindText);
+            textBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Left;
 
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
@@ -632,13 +632,13 @@ namespace OfficeIMO.Tests {
             document.Margins.Type = WordMargin.Narrow;
 
             document.AddParagraph("Foreground text should stay above the changed behind text box.");
-            WordTextBox textBox = document.AddParagraph().AddTextBox("Changed behind box", WrapTextImage.Square);
-            textBox.HorizontalAlignment = WordHorizontalAlignmentValues.Left;
-            textBox.WrapText = WrapTextImage.BehindText;
+            WordTextBox textBox = document.AddParagraph().AddTextBox("Changed behind box", WordImageTextWrapping.Square);
+            textBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Left;
+            textBox.WrapText = WordImageTextWrapping.BehindText;
 
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Equal(WrapTextImage.BehindText, textBox.WrapText);
+            Assert.Equal(WordImageTextWrapping.BehindText, textBox.WrapText);
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             List<OfficeDrawingElement> elements = snapshot.Drawing.Elements.ToList();
             int behindTextIndex = elements.FindIndex(element =>
@@ -656,7 +656,7 @@ namespace OfficeIMO.Tests {
             document.PageSettings.PageSize = WordPageSize.A4;
             document.Margins.Type = WordMargin.Narrow;
 
-            WordTextBox drawingTextBox = document.AddParagraph().AddTextBox("DrawingML bottom text box", WrapTextImage.InLineWithText);
+            WordTextBox drawingTextBox = document.AddParagraph().AddTextBox("DrawingML bottom text box", WordImageTextWrapping.InLineWithText);
             drawingTextBox.TextBodyProperties.Anchor = A.TextAnchoringTypeValues.Bottom;
 
             document.AddParagraph().AddTextBoxVml("VML middle text box");
@@ -696,7 +696,7 @@ namespace OfficeIMO.Tests {
             document.PageSettings.PageSize = WordPageSize.A4;
             document.Margins.Type = WordMargin.Narrow;
 
-            WordTextBox drawingTextBox = document.AddParagraph().AddTextBox("placeholder", WrapTextImage.InLineWithText);
+            WordTextBox drawingTextBox = document.AddParagraph().AddTextBox("placeholder", WordImageTextWrapping.InLineWithText);
             TextBoxContent drawingContent = drawingTextBox.Content!;
             Paragraph drawingParagraph = drawingContent.GetFirstChild<Paragraph>()!;
             drawingParagraph.RemoveAllChildren<Run>();
@@ -755,12 +755,12 @@ namespace OfficeIMO.Tests {
             document.PageSettings.PageSize = WordPageSize.A4;
             document.Margins.Type = WordMargin.Narrow;
 
-            WordTextBox drawingTextBox = document.AddParagraph().AddTextBox("Rotated Word text", WrapTextImage.InLineWithText);
+            WordTextBox drawingTextBox = document.AddParagraph().AddTextBox("Rotated Word text", WordImageTextWrapping.InLineWithText);
             A.Transform2D drawingTransform = drawingTextBox.DrawingShapeProperties!.GetFirstChild<A.Transform2D>()!;
             drawingTransform.Rotation = 900000;
             drawingTransform.HorizontalFlip = true;
 
-            WordTextBox richTextBox = document.AddParagraph().AddTextBox("placeholder", WrapTextImage.InLineWithText);
+            WordTextBox richTextBox = document.AddParagraph().AddTextBox("placeholder", WordImageTextWrapping.InLineWithText);
             Paragraph richParagraph = richTextBox.Content!.GetFirstChild<Paragraph>()!;
             richParagraph.RemoveAllChildren<Run>();
             richParagraph.Append(
@@ -2666,7 +2666,7 @@ namespace OfficeIMO.Tests {
             document.Margins.Type = WordMargin.Narrow;
             document.AddParagraph("First page marker before text box");
             document.AddPageBreak();
-            WordTextBox textBox = document.AddParagraph().AddTextBox("placeholder", WrapTextImage.InLineWithText);
+            WordTextBox textBox = document.AddParagraph().AddTextBox("placeholder", WordImageTextWrapping.InLineWithText);
             TextBoxContent content = textBox.Content!;
             content.RemoveAllChildren<Paragraph>();
             content.Append(
@@ -3121,7 +3121,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
             document.Margins.Type = WordMargin.Narrow;
-            WordSmartArt smartArt = document.AddParagraph().AddSmartArt(SmartArtType.BasicProcess);
+            WordSmartArt smartArt = document.AddParagraph().AddSmartArt(WordSmartArtType.BasicProcess);
             while (smartArt.NodeCount < 3) {
                 smartArt.AddNode("Node " + smartArt.NodeCount.ToString(CultureInfo.InvariantCulture));
             }
@@ -3160,7 +3160,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
             document.Margins.Type = WordMargin.Narrow;
-            WordSmartArt smartArt = document.AddParagraph().AddSmartArt(SmartArtType.CustomSmartArt1);
+            WordSmartArt smartArt = document.AddParagraph().AddSmartArt(WordSmartArtType.CustomSmartArt1);
             smartArt.ReplaceTexts("One", "Two", "Three", "Four", "Five");
 
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
@@ -3196,7 +3196,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
             document.Margins.Type = WordMargin.Narrow;
-            WordSmartArt smartArt = document.AddParagraph().AddSmartArt(SmartArtType.Cycle);
+            WordSmartArt smartArt = document.AddParagraph().AddSmartArt(WordSmartArtType.Cycle);
             while (smartArt.NodeCount < 4) {
                 smartArt.AddNode("Cycle " + smartArt.NodeCount.ToString(CultureInfo.InvariantCulture));
             }
@@ -3230,9 +3230,9 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData(SmartArtType.Hierarchy)]
-        [InlineData(SmartArtType.PictureOrgChart)]
-        public void WordDocument_ProjectsHierarchySmartArtNodeTextThroughFallbackOrganizationDrawing(SmartArtType type) {
+        [InlineData(WordSmartArtType.Hierarchy)]
+        [InlineData(WordSmartArtType.PictureOrgChart)]
+        public void WordDocument_ProjectsHierarchySmartArtNodeTextThroughFallbackOrganizationDrawing(WordSmartArtType type) {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
             document.Margins.Type = WordMargin.Narrow;
@@ -3557,7 +3557,7 @@ namespace OfficeIMO.Tests {
             using var headerStream = new MemoryStream(headerPng);
             WordImage headerImage = document.HeaderFirstOrCreate
                 .AddParagraph()
-                .InsertImage(headerStream, "header-floating-red.png", 32, 24, WrapTextImage.Square, "Header floating red marker");
+                .InsertImage(headerStream, "header-floating-red.png", 32, 24, WordImageTextWrapping.Square, "Header floating red marker");
             headerImage.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
             headerImage.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(72D) };
             headerImage.verticalPosition.RelativeFrom = DW.VerticalRelativePositionValues.Page;
@@ -3568,7 +3568,7 @@ namespace OfficeIMO.Tests {
             using var footerStream = new MemoryStream(footerPng);
             WordImage footerImage = document.FooterFirstOrCreate
                 .AddParagraph()
-                .InsertImage(footerStream, "footer-floating-green.png", 28, 20, WrapTextImage.Square, "Footer floating green marker");
+                .InsertImage(footerStream, "footer-floating-green.png", 28, 20, WordImageTextWrapping.Square, "Footer floating green marker");
             footerImage.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
             footerImage.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(72D) };
             footerImage.verticalPosition.RelativeFrom = DW.VerticalRelativePositionValues.Page;
@@ -3622,7 +3622,7 @@ namespace OfficeIMO.Tests {
 
             WordShape headerShape = document.HeaderFirstOrCreate
                 .AddParagraph()
-                .AddShapeDrawing(ShapeType.RightArrow, 54D, 24D, 72D, 24D);
+                .AddShapeDrawing(WordShapeType.RightArrow, 54D, 24D, 72D, 24D);
             headerShape.FillColor = OfficeColor.FromRgb(248, 113, 113);
             headerShape.StrokeColor = OfficeColor.FromRgb(127, 29, 29);
             headerShape.StrokeWeight = 2D;
@@ -3630,7 +3630,7 @@ namespace OfficeIMO.Tests {
 
             WordShape footerShape = document.FooterFirstOrCreate
                 .AddParagraph()
-                .AddShapeDrawing(ShapeType.RightArrow, 50D, 22D, 72D, 758D);
+                .AddShapeDrawing(WordShapeType.RightArrow, 50D, 22D, 72D, 758D);
             footerShape.FillColor = OfficeColor.FromRgb(34, 197, 94);
             footerShape.StrokeColor = OfficeColor.FromRgb(21, 128, 61);
             footerShape.StrokeWeight = 2D;
@@ -3688,7 +3688,7 @@ namespace OfficeIMO.Tests {
 
             WordTextBox headerTextBox = document.HeaderFirstOrCreate
                 .AddParagraph()
-                .AddTextBox("Header floating text box", WrapTextImage.Square);
+                .AddTextBox("Header floating text box", WordImageTextWrapping.Square);
             headerTextBox.Width = (long)Math.Round(120D * 12700D);
             headerTextBox.Height = (long)Math.Round(32D * 12700D);
             headerTextBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
@@ -3699,7 +3699,7 @@ namespace OfficeIMO.Tests {
 
             WordTextBox footerTextBox = document.FooterFirstOrCreate
                 .AddParagraph()
-                .AddTextBox("Footer floating text box", WrapTextImage.Square);
+                .AddTextBox("Footer floating text box", WordImageTextWrapping.Square);
             footerTextBox.Width = (long)Math.Round(116D * 12700D);
             footerTextBox.Height = (long)Math.Round(32D * 12700D);
             footerTextBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
@@ -4607,7 +4607,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Automatic anchored image first page marker.");
             byte[] sourcePng = CreateSolidPng(48, 96, OfficeColor.FromRgb(37, 99, 235));
             using var imageStream = new MemoryStream(sourcePng);
-            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "automatic-top-bottom.png", 48, 96, WrapTextImage.TopAndBottom, "Automatic top bottom marker");
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "automatic-top-bottom.png", 48, 96, WordImageTextWrapping.TopAndBottom, "Automatic top bottom marker");
             anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
             anchored.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(72D) };
             anchored.verticalPosition.RelativeFrom = DW.VerticalRelativePositionValues.Page;
@@ -4636,7 +4636,7 @@ namespace OfficeIMO.Tests {
             section.PageSettings.Width = (UInt32Value)5000U;
             section.PageSettings.Height = (UInt32Value)3000U;
             section.SetMargins(WordMargin.Narrow);
-            WordTextBox textBox = document.AddParagraph().AddTextBox("First page floating text box", WrapTextImage.Square);
+            WordTextBox textBox = document.AddParagraph().AddTextBox("First page floating text box", WordImageTextWrapping.Square);
             textBox.Width = (long)Math.Round(250D * 12700D);
             textBox.Height = (long)Math.Round(96D * 12700D);
             textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
@@ -4668,7 +4668,7 @@ namespace OfficeIMO.Tests {
             section.PageSettings.Width = (UInt32Value)5000U;
             section.PageSettings.Height = (UInt32Value)3000U;
             section.SetMargins(WordMargin.Narrow);
-            WordShape shape = document.AddParagraph().AddShapeDrawing(ShapeType.RightArrow, 250D, 96D, 36D, 36D);
+            WordShape shape = document.AddParagraph().AddShapeDrawing(WordShapeType.RightArrow, 250D, 96D, 36D, 36D);
             shape.FillColor = OfficeColor.FromRgb(248, 113, 113);
             shape.StrokeColor = OfficeColor.FromRgb(127, 29, 29);
             document.AddParagraph(
@@ -5504,8 +5504,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void WordDocument_ProjectsTightAndThroughWrappedImagesWithLimitedTextExclusionDiagnostics() {
-            AssertLimitedSideWrappedImageProjection(WrapTextImage.Tight, "Tight");
-            AssertLimitedSideWrappedImageProjection(WrapTextImage.Through, "Through");
+            AssertLimitedSideWrappedImageProjection(WordImageTextWrapping.Tight, "Tight");
+            AssertLimitedSideWrappedImageProjection(WordImageTextWrapping.Through, "Through");
         }
 
         [Fact]
@@ -5537,7 +5537,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Line two before rotated image.");
             byte[] sourcePng = CreateSolidPng(240, 60, OfficeColor.FromRgb(37, 99, 235));
             using var imageStream = new MemoryStream(sourcePng);
-            WordImage image = document.AddParagraph().InsertImage(imageStream, "rotated-inline-page.png", 240, 60, WrapTextImage.InLineWithText, "Rotated inline pagination marker");
+            WordImage image = document.AddParagraph().InsertImage(imageStream, "rotated-inline-page.png", 240, 60, WordImageTextWrapping.InLineWithText, "Rotated inline pagination marker");
             image.Rotation = 45;
 
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
@@ -5555,7 +5555,7 @@ namespace OfficeIMO.Tests {
             document.Margins.Type = WordMargin.Narrow;
             byte[] sourcePng = CreateSolidPng(420, 420, OfficeColor.FromRgb(37, 99, 235));
             using var imageStream = new MemoryStream(sourcePng);
-            WordImage image = document.AddParagraph().InsertImage(imageStream, "rotated-inline.png", 420, 420, WrapTextImage.InLineWithText, "Rotated inline marker");
+            WordImage image = document.AddParagraph().InsertImage(imageStream, "rotated-inline.png", 420, 420, WordImageTextWrapping.InLineWithText, "Rotated inline marker");
             image.Rotation = 45;
 
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
@@ -5564,7 +5564,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-image" && diagnostic.Source == "Rotated inline marker");
         }
 
-        private static void AssertLimitedSideWrappedImageProjection(WrapTextImage wrapText, string label) {
+        private static void AssertLimitedSideWrappedImageProjection(WordImageTextWrapping wrapText, string label) {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
             document.Margins.Type = WordMargin.Narrow;
@@ -5608,7 +5608,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Before square image");
             byte[] sourcePng = CreateSolidPng(48, 36, OfficeColor.FromRgb(37, 99, 235));
             using var imageStream = new MemoryStream(sourcePng);
-            document.AddParagraph().AddImage(imageStream, "square.png", 48, 36, WrapTextImage.Square, "Square blue marker");
+            document.AddParagraph().AddImage(imageStream, "square.png", 48, 36, WordImageTextWrapping.Square, "Square blue marker");
             document.AddParagraph("After square image wraps beside the marker.");
 
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
@@ -5646,7 +5646,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Before polygon image");
             byte[] sourcePng = CreateSolidPng(160, 80, OfficeColor.FromRgb(37, 99, 235));
             using var imageStream = new MemoryStream(sourcePng);
-            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "tight-polygon.png", 160, 80, WrapTextImage.Tight, "Tight polygon marker");
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "tight-polygon.png", 160, 80, WordImageTextWrapping.Tight, "Tight polygon marker");
             anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
             anchored.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(96D) };
             DW.WrapTight tightWrap = anchored._Image.Anchor!.Elements<DW.WrapTight>().Single();
@@ -5691,7 +5691,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Before transparent through image");
             byte[] sourcePng = CreateHalfTransparentPng(160, 80, OfficeColor.FromRgb(37, 99, 235), transparentRightHalf: true);
             using var imageStream = new MemoryStream(sourcePng);
-            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "through-transparent.png", 160, 80, WrapTextImage.Through, "Transparent through marker");
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "through-transparent.png", 160, 80, WordImageTextWrapping.Through, "Transparent through marker");
             anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
             anchored.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(96D) };
             string afterTextValue = "After transparent through image uses alpha space.";
@@ -5733,7 +5733,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Before transparent tight image");
             byte[] sourcePng = CreateHalfTransparentPng(160, 80, OfficeColor.FromRgb(37, 99, 235), transparentRightHalf: true);
             using var imageStream = new MemoryStream(sourcePng);
-            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "tight-transparent.png", 160, 80, WrapTextImage.Tight, "Transparent tight marker");
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "tight-transparent.png", 160, 80, WordImageTextWrapping.Tight, "Transparent tight marker");
             anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
             anchored.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(96D) };
             string afterTextValue = "After transparent tight image uses alpha space.";
@@ -5781,7 +5781,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Before square image distance margin");
             byte[] sourcePng = CreateSolidPng(48, 36, OfficeColor.FromRgb(37, 99, 235));
             using var imageStream = new MemoryStream(sourcePng);
-            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "square-distance.png", 48, 36, WrapTextImage.Square, "square distance marker");
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "square-distance.png", 48, 36, WordImageTextWrapping.Square, "square distance marker");
             anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
             anchored.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(220D) };
             anchored._Image.Anchor!.Elements<DW.WrapSquare>().Single().WrapText = DW.WrapTextValues.Right;
@@ -5823,13 +5823,13 @@ namespace OfficeIMO.Tests {
 
             byte[] leftPng = CreateSolidPng(48, 36, OfficeColor.FromRgb(37, 99, 235));
             using var leftStream = new MemoryStream(leftPng);
-            WordImage leftImage = document.AddParagraph().InsertImage(leftStream, "left-square.png", 48, 36, WrapTextImage.Square, "Left square marker");
+            WordImage leftImage = document.AddParagraph().InsertImage(leftStream, "left-square.png", 48, 36, WordImageTextWrapping.Square, "Left square marker");
             leftImage.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
             leftImage.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(96D) };
 
             byte[] rightPng = CreateSolidPng(160, 80, OfficeColor.FromRgb(220, 38, 38));
             using var rightStream = new MemoryStream(rightPng);
-            WordImage rightImage = document.AddParagraph().InsertImage(rightStream, "right-square.png", 160, 80, WrapTextImage.Square, "Right square marker");
+            WordImage rightImage = document.AddParagraph().InsertImage(rightStream, "right-square.png", 160, 80, WordImageTextWrapping.Square, "Right square marker");
             rightImage.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
             rightImage.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(420D) };
 
@@ -5874,7 +5874,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Before " + sideLabel + " square image");
             byte[] sourcePng = CreateSolidPng(48, 36, OfficeColor.FromRgb(37, 99, 235));
             using var imageStream = new MemoryStream(sourcePng);
-            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "square-side.png", 48, 36, WrapTextImage.Square, sideLabel + " square marker");
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "square-side.png", 48, 36, WordImageTextWrapping.Square, sideLabel + " square marker");
             anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
             anchored.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(220D) };
             anchored._Image.Anchor!.Elements<DW.WrapSquare>().Single().WrapText = wrapSide;
@@ -5919,7 +5919,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Before top-bottom image");
             byte[] sourcePng = CreateSolidPng(30, 20, OfficeColor.FromRgb(37, 99, 235));
             using var imageStream = new MemoryStream(sourcePng);
-            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "topbottom.png", 30, 20, WrapTextImage.TopAndBottom, "Top bottom blue marker");
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "topbottom.png", 30, 20, WordImageTextWrapping.TopAndBottom, "Top bottom blue marker");
             anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
             anchored.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(144D) };
             anchored.verticalPosition.RelativeFrom = DW.VerticalRelativePositionValues.Page;
@@ -5959,7 +5959,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Before top-bottom image distance");
             byte[] sourcePng = CreateSolidPng(30, 20, OfficeColor.FromRgb(37, 99, 235));
             using var imageStream = new MemoryStream(sourcePng);
-            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "topbottom-distance.png", 30, 20, WrapTextImage.TopAndBottom, "Top bottom distance marker");
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "topbottom-distance.png", 30, 20, WordImageTextWrapping.TopAndBottom, "Top bottom distance marker");
             anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
             anchored.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(144D) };
             anchored.verticalPosition.RelativeFrom = DW.VerticalRelativePositionValues.Page;
@@ -5998,7 +5998,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Before anchored image");
             byte[] sourcePng = CreateSolidPng(32, 24, OfficeColor.FromRgb(37, 99, 235));
             using var imageStream = new MemoryStream(sourcePng);
-            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "behind.png", 32, 24, WrapTextImage.BehindText, "Behind blue marker");
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "behind.png", 32, 24, WordImageTextWrapping.BehindText, "Behind blue marker");
             anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
             anchored.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(126D) };
             anchored.verticalPosition.RelativeFrom = DW.VerticalRelativePositionValues.Page;
@@ -6049,7 +6049,7 @@ namespace OfficeIMO.Tests {
 
             byte[] sourcePng = CreateSolidPng(32, 24, OfficeColor.FromRgb(37, 99, 235));
             using var imageStream = new MemoryStream(sourcePng);
-            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "margin-relative.png", 32, 24, WrapTextImage.Square, "Margin relative marker");
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "margin-relative.png", 32, 24, WordImageTextWrapping.Square, "Margin relative marker");
             anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Margin;
             anchored.horizontalPosition.HorizontalAlignment = new DW.HorizontalAlignment { Text = "left" };
             anchored.verticalPosition.RelativeFrom = DW.VerticalRelativePositionValues.Margin;
@@ -6075,7 +6075,7 @@ namespace OfficeIMO.Tests {
 
             byte[] sourcePng = CreateSolidPng(32, 24, OfficeColor.FromRgb(37, 99, 235));
             using var imageStream = new MemoryStream(sourcePng);
-            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "side-margin-relative.png", 32, 24, WrapTextImage.Square, "Side margin relative marker");
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "side-margin-relative.png", 32, 24, WordImageTextWrapping.Square, "Side margin relative marker");
             anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.RightMargin;
             anchored.horizontalPosition.HorizontalAlignment = new DW.HorizontalAlignment { Text = "right" };
             anchored.verticalPosition.RelativeFrom = DW.VerticalRelativePositionValues.BottomMargin;
@@ -6117,7 +6117,7 @@ namespace OfficeIMO.Tests {
 
             byte[] sourcePng = CreateSolidPng(32, 24, OfficeColor.FromRgb(37, 99, 235));
             using var imageStream = new MemoryStream(sourcePng);
-            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "inside-margin-relative.png", 32, 24, WrapTextImage.Square, "Inside margin relative marker");
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "inside-margin-relative.png", 32, 24, WordImageTextWrapping.Square, "Inside margin relative marker");
             anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.InsideMargin;
             anchored.horizontalPosition.HorizontalAlignment = new DW.HorizontalAlignment { Text = "left" };
             anchored.verticalPosition.RelativeFrom = DW.VerticalRelativePositionValues.Page;

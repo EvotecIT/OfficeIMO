@@ -234,10 +234,9 @@ namespace OfficeIMO.Word {
                 var pageSize = WordPageSizes.Letter;
                 // Clone to avoid sharing instances between sections.
                 PageSize pageSizeClone = new PageSize() {
-                    Width = pageSize.Width,
-                    Height = pageSize.Height,
-                    Code = pageSize.Code,
-                    Orient = pageSize.Orient
+                    Width = pageSize.WidthTwips,
+                    Height = pageSize.HeightTwips,
+                    Code = pageSize.PaperCode
                 };
 
                 // Match WordMargins.Normal so that margin presets are detected correctly.

@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
-using TableStyle = OfficeIMO.Excel.TableStyle;
+using ExcelTableStyle = OfficeIMO.Excel.ExcelTableStyle;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 11, "B");
             sheet.CellFormula(2, 10, "1+1");
             sheet.CellFormula(2, 11, "ROWS([@B])");
-            sheet.AddTable("J1:K2", hasHeader: true, name: "ShapeTable", style: TableStyle.TableStyleMedium2);
+            sheet.AddTable("J1:K2", hasHeader: true, name: "ShapeTable", style: ExcelTableStyle.TableStyleMedium2);
             document.SetNamedRange("ShapeRows", "'Reference Shapes'!C1:C3", save: false);
 
             ExcelSheet quotedShapeName = document.AddWorksheet("ROW(A1)");
@@ -224,7 +224,7 @@ namespace OfficeIMO.Tests {
                 "A1:B2",
                 hasHeader: true,
                 name: "IntersectionData",
-                style: TableStyle.TableStyleMedium2);
+                style: ExcelTableStyle.TableStyleMedium2);
 
             ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
             ExcelFormulaDependencyNode intersection = Assert.IsType<ExcelFormulaDependencyNode>(
@@ -277,7 +277,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "B");
             sheet.CellFormula(2, 1, "CurrentRowData[@B]");
             sheet.CellFormula(2, 2, "CurrentRowData[[#This Row],[A]]");
-            sheet.AddTable("A1:B2", hasHeader: true, name: "CurrentRowData", style: TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B2", hasHeader: true, name: "CurrentRowData", style: ExcelTableStyle.TableStyleMedium2);
 
             ExcelSheet crossSource = document.AddWorksheet("Cross Source");
             crossSource.CellFormula(2, 1, "CrossRowData[@B]");
@@ -286,7 +286,7 @@ namespace OfficeIMO.Tests {
             crossTable.CellValue(1, 2, "B");
             crossTable.CellValue(2, 1, 1d);
             crossTable.CellFormula(2, 2, "'Cross Source'!A2");
-            crossTable.AddTable("A1:B2", hasHeader: true, name: "CrossRowData", style: TableStyle.TableStyleMedium2);
+            crossTable.AddTable("A1:B2", hasHeader: true, name: "CrossRowData", style: ExcelTableStyle.TableStyleMedium2);
 
             ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
             ExcelFormulaDependencyNode first = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Current Row", "A2"));
@@ -317,7 +317,7 @@ namespace OfficeIMO.Tests {
             sheet.CellFormula(2, 2, "A2");
             sheet.CellValue(2, 3, 1d);
             sheet.CellFormula(2, 5, "SUM(Sales[[#Data],[B]:[C]])");
-            sheet.AddTable("A1:C2", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:C2", hasHeader: true, name: "Sales", style: ExcelTableStyle.TableStyleMedium2);
 
             ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
             ExcelFormulaDependencyNode implicitData = Assert.IsType<ExcelFormulaDependencyNode>(
@@ -343,7 +343,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 2, 2d);
             sheet.CellFormula(1, 4, "SUM(BracketData[Cost '[ old])");
             sheet.CellFormula(2, 4, "SUM(BracketData[Cost '] new])");
-            sheet.AddTable("A1:B2", hasHeader: true, name: "BracketData", style: TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B2", hasHeader: true, name: "BracketData", style: ExcelTableStyle.TableStyleMedium2);
 
             ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
             ExcelFormulaDependencyNode escapedOpening = Assert.IsType<ExcelFormulaDependencyNode>(
@@ -376,7 +376,7 @@ namespace OfficeIMO.Tests {
             sheet.CellFormula(2, 7, "IF([@B]>10,1,0)");
             sheet.CellFormula(2, 8, "[@B]");
             sheet.CellFormula(4, 8, "[@B]");
-            sheet.AddTable("A1:H2", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:H2", hasHeader: true, name: "Sales", style: ExcelTableStyle.TableStyleMedium2);
 
             int calculated = document.Calculate();
             Assert.True(sheet.TryGetCachedFormulaValue(2, 3, out string? atValue));
@@ -411,7 +411,7 @@ namespace OfficeIMO.Tests {
             sheet.CellFormula(1, 5, "SUM(Sales[[#Data], [A] : [C]])");
             sheet.CellFormula(2, 5, "SUM(Sales[[#Headers],[#Data],[B]])");
             sheet.CellFormula(3, 5, "SUM(Sales[[#Data],[#Totals],[B]])");
-            sheet.AddTable("A1:C3", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:C3", hasHeader: true, name: "Sales", style: ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(
                 document.WorkbookPartRoot.WorksheetParts.SelectMany(part => part.TableDefinitionParts)).Table;
             table.TotalsRowShown = true;
@@ -465,7 +465,7 @@ namespace OfficeIMO.Tests {
                 "A1:E3",
                 hasHeader: true,
                 name: "UnqualifiedCurrentRowData",
-                style: TableStyle.TableStyleMedium2);
+                style: ExcelTableStyle.TableStyleMedium2);
 
             ExcelFormulaInspection inspection = document.InspectFormulas();
             ExcelFormulaDependencyGraph graph = inspection.DependencyGraph;
@@ -520,7 +520,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 5, "Other");
             sheet.CellValue(2, 4, 1d);
             sheet.CellValue(2, 5, 2d);
-            sheet.AddTable("D1:E2", hasHeader: true, name: "LexicalData", style: TableStyle.TableStyleMedium2);
+            sheet.AddTable("D1:E2", hasHeader: true, name: "LexicalData", style: ExcelTableStyle.TableStyleMedium2);
             sheet.CellFormula(4, 1, "LET(Input,LexicalData[[#Headers],[Amount]],Input)");
             ExcelSheet quotedQualifier = document.AddWorksheet("O'A,B)");
             quotedQualifier.CellValue(1, 1, 5d);
@@ -560,7 +560,7 @@ namespace OfficeIMO.Tests {
             other.CellValue(2, 1, 2d);
             other.CellValue(2, 2, "Row");
             other.CellFormula(2, 3, "OtherSales[@Amount]+1");
-            other.AddTable("A1:C2", hasHeader: true, name: "OtherSales", style: TableStyle.TableStyleMedium2);
+            other.AddTable("A1:C2", hasHeader: true, name: "OtherSales", style: ExcelTableStyle.TableStyleMedium2);
             Assert.Equal(1, other.RecalculateSupportedFormulas());
 
             ExcelFormulaInspection inspection = document.InspectFormulas();
@@ -628,7 +628,7 @@ namespace OfficeIMO.Tests {
                 structured.CellValue(1, 2, "A1");
                 structured.CellValue(2, 2, 2d);
                 structured.CellFormula(2, 3, "SUM(Sales[A1])");
-                structured.AddTable("A1:B2", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
+                structured.AddTable("A1:B2", hasHeader: true, name: "Sales", style: ExcelTableStyle.TableStyleMedium2);
 
                 ExcelSheet sales = document.AddWorksheet("Sales");
                 sales.CellValue(1, 1, 5d);
@@ -756,7 +756,7 @@ namespace OfficeIMO.Tests {
             sheet.CellFormula(2, 1, "C2");
             sheet.CellFormula(2, 3, "SUM(TableAlias)");
             sheet.CellFormula(1, 4, "SUM(\\Sales[Amount])");
-            sheet.AddTable("A1:A2", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:A2", hasHeader: true, name: "Sales", style: ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(
                 document.WorkbookPartRoot.WorksheetParts.SelectMany(part => part.TableDefinitionParts)).Table;
             table.Name = "\\Sales";

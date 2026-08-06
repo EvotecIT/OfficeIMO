@@ -1621,7 +1621,7 @@ namespace OfficeIMO.Tests {
                 scale: 80U,
                 pageOrder: ExcelPageOrder.OverThenDown,
                 paperSize: ExcelPaperSize.Letter);
-            sheet.SetOrientation(ExcelPageOrientation.Landscape);
+            sheet.SetOrientation(OfficePageOrientation.Landscape);
             sheet.SetTabColor("336699");
             sheet.SetOutlineSummary(summaryBelow: false, summaryRight: true);
             SheetProperties properties = Assert.IsType<SheetProperties>(
@@ -1733,7 +1733,7 @@ namespace OfficeIMO.Tests {
             Assert.False(projectedPrintOptions.VerticalCentered);
             PageMargins projectedMargins = Assert.IsType<PageMargins>(
                 reloadedSheet.WorksheetPart.Worksheet.GetFirstChild<PageMargins>());
-            Assert.Equal(0.25D, projectedMargins.Left?.Value);
+            Assert.Equal(0.25D, projectedMargins.Left!.Value);
             Assert.Equal(0.3D, projectedMargins.Footer?.Value);
             SheetProperties projectedProperties = Assert.IsType<SheetProperties>(
                 reloadedSheet.WorksheetPart.Worksheet.GetFirstChild<SheetProperties>());

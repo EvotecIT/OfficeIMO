@@ -65,6 +65,7 @@
     <ItemGroup>
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlPackagePayload.cs" Link="SharedSource\OpenXml\OfficeOpenXmlPackagePayload.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlContractMappings.cs" Link="SharedSource\OpenXml\OfficeOpenXmlContractMappings.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\Processes\OfficeWindowsSuspendedProcess.cs" Link="SharedSource\Processes\OfficeWindowsSuspendedProcess.cs" />
     </ItemGroup>
 
@@ -89,6 +90,8 @@
         <Using Include="System.Collections" />
         <Using Include="System.Linq" />
         <Using Include="System.IO" />
+        <Using Include="OfficeIMO.Drawing" />
+        <Using Include="OfficeIMO.OpenXml.Internal" />
         <Using Include="DocumentFormat.OpenXml" />
     </ItemGroup>
 

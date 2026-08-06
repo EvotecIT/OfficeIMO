@@ -188,8 +188,8 @@ namespace OfficeIMO.Tests {
                 var sheetReader = reader.GetSheet("Data");
 
                 object?[,] automatic = sheetReader.ReadRange("A1:C3");
-                object?[,] sequential = sheetReader.ReadRange("A1:C3", ExecutionMode.Sequential);
-                object?[,] parallel = sheetReader.ReadRange("A1:C3", ExecutionMode.Parallel);
+                object?[,] sequential = sheetReader.ReadRange("A1:C3", ExcelExecutionMode.Sequential);
+                object?[,] parallel = sheetReader.ReadRange("A1:C3", ExcelExecutionMode.Parallel);
 
                 AssertRangeEqual(automatic, sequential);
                 AssertRangeEqual(automatic, parallel);
@@ -221,8 +221,8 @@ namespace OfficeIMO.Tests {
                 var sheetReader = reader.GetSheet("Data");
 
                 DataTable automatic = sheetReader.ReadRangeAsDataTable("A1:C3");
-                DataTable sequential = sheetReader.ReadRangeAsDataTable("A1:C3", mode: ExecutionMode.Sequential);
-                DataTable parallel = sheetReader.ReadRangeAsDataTable("A1:C3", mode: ExecutionMode.Parallel);
+                DataTable sequential = sheetReader.ReadRangeAsDataTable("A1:C3", mode: ExcelExecutionMode.Sequential);
+                DataTable parallel = sheetReader.ReadRangeAsDataTable("A1:C3", mode: ExcelExecutionMode.Parallel);
 
                 AssertDataTablesEqual(automatic, sequential);
                 AssertDataTablesEqual(automatic, parallel);
@@ -385,7 +385,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Reader_ReadRangeAsDataTable_ReportsOwnExecutionDecision() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderDataTableDecision.xlsx");
-            var decisions = new List<(string Operation, int Items, ExecutionMode Mode)>();
+            var decisions = new List<(string Operation, int Items, ExcelExecutionMode Mode)>();
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
@@ -408,7 +408,7 @@ namespace OfficeIMO.Tests {
                 var decision = Assert.Single(decisions);
                 Assert.Equal("ReadRangeAsDataTable", decision.Operation);
                 Assert.Equal(4, decision.Items);
-                Assert.Equal(ExecutionMode.Parallel, decision.Mode);
+                Assert.Equal(ExcelExecutionMode.Parallel, decision.Mode);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -419,7 +419,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Reader_TypedObjects_ReportsOwnExecutionDecision() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderTypedObjectsDecision.xlsx");
-            var decisions = new List<(string Operation, int Items, ExecutionMode Mode)>();
+            var decisions = new List<(string Operation, int Items, ExcelExecutionMode Mode)>();
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
@@ -442,7 +442,7 @@ namespace OfficeIMO.Tests {
                 var decision = Assert.Single(decisions);
                 Assert.Equal("ReadObjectsAs", decision.Operation);
                 Assert.Equal(4, decision.Items);
-                Assert.Equal(ExecutionMode.Parallel, decision.Mode);
+                Assert.Equal(ExcelExecutionMode.Parallel, decision.Mode);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -603,7 +603,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reader = ExcelDocumentReader.Open(filePath);
-                object?[,] values = reader.GetSheet("Data").ReadRange("A1:A2", ExecutionMode.Sequential);
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:A2", ExcelExecutionMode.Sequential);
 
                 Assert.Equal("Header", values[0, 0]);
                 Assert.Equal("InRange", values[1, 0]);
@@ -637,7 +637,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reader = ExcelDocumentReader.Open(filePath);
-                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<StrictMappedRow>("A1:A2", ExecutionMode.Sequential));
+                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<StrictMappedRow>("A1:A2", ExcelExecutionMode.Sequential));
 
                 Assert.Equal("InRange", row.Name);
             } finally {
@@ -808,7 +808,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reader = ExcelDocumentReader.Open(filePath);
-                object?[,] values = reader.GetSheet("Data").ReadRange("A1:B1", ExecutionMode.Sequential);
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:B1", ExcelExecutionMode.Sequential);
 
                 Assert.Null(values[0, 0]);
                 Assert.Null(values[0, 1]);
@@ -1172,7 +1172,7 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(1, 2, "Value");
                     sheet.CellValue(2, 1, "Alpha");
                     sheet.CellValue(2, 2, 10);
-                    sheet.AddTable("A1:B2", hasHeader: true, name: "DataTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                    sheet.AddTable("A1:B2", hasHeader: true, name: "DataTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                     document.Save();
                 }
 
@@ -1540,7 +1540,7 @@ namespace OfficeIMO.Tests {
                 loadedSheet.CellValues(new[] {
                     (1, 1, (object)"Name"),
                     (1, 2, (object)"Value")
-                }, ExecutionMode.Parallel);
+                }, ExcelExecutionMode.Parallel);
 
                 var refreshedMap = loadedSheet.GetHeaderMap();
                 Assert.False(refreshedMap.ContainsKey("OldName"));
@@ -1580,7 +1580,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Owner");
                 table.Rows.Add("Closed", "Bob");
 
-                loadedSheet.InsertDataTable(table, startRow: 1, startColumn: 1, includeHeaders: true, mode: ExecutionMode.Parallel);
+                loadedSheet.InsertDataTable(table, startRow: 1, startColumn: 1, includeHeaders: true, mode: ExcelExecutionMode.Parallel);
 
                 var refreshedMap = loadedSheet.GetHeaderMap();
                 Assert.False(refreshedMap.ContainsKey("OldStatus"));
@@ -2058,7 +2058,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reader = ExcelDocumentReader.Open(filePath);
-                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:C2", ExecutionMode.Parallel));
+                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:C2", ExcelExecutionMode.Parallel));
 
                 Assert.Equal(serialValue, row.NumericValue);
                 Assert.Equal(DateTime.FromOADate(serialValue), row.DateValue);
@@ -2091,8 +2091,8 @@ namespace OfficeIMO.Tests {
 
                 using var sequentialReader = ExcelDocumentReader.Open(filePath, options);
                 using var parallelReader = ExcelDocumentReader.Open(filePath, options);
-                var sequentialRow = Assert.Single(sequentialReader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:A2", ExecutionMode.Sequential));
-                var row = Assert.Single(parallelReader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:A2", ExecutionMode.Parallel));
+                var sequentialRow = Assert.Single(sequentialReader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:A2", ExcelExecutionMode.Sequential));
+                var row = Assert.Single(parallelReader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:A2", ExcelExecutionMode.Parallel));
 
                 Assert.Equal(sequentialRow.NumericValue, row.NumericValue);
                 Assert.Equal(0d, row.NumericValue);
@@ -2126,8 +2126,8 @@ namespace OfficeIMO.Tests {
 
                 using var sequentialReader = ExcelDocumentReader.Open(filePath, options);
                 using var parallelReader = ExcelDocumentReader.Open(filePath, options);
-                var sequentialRow = Assert.Single(sequentialReader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:A2", ExecutionMode.Sequential));
-                var row = Assert.Single(parallelReader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:A2", ExecutionMode.Parallel));
+                var sequentialRow = Assert.Single(sequentialReader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:A2", ExcelExecutionMode.Sequential));
+                var row = Assert.Single(parallelReader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:A2", ExcelExecutionMode.Parallel));
 
                 Assert.Equal(sequentialRow.NumericValue, row.NumericValue);
                 Assert.Equal(0d, row.NumericValue);
@@ -2240,7 +2240,7 @@ namespace OfficeIMO.Tests {
                 };
 
                 using var reader = ExcelDocumentReader.Open(filePath, options);
-                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<NullableTypedRow>("A1:A2", ExecutionMode.Sequential));
+                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<NullableTypedRow>("A1:A2", ExcelExecutionMode.Sequential));
 
                 Assert.Equal(100, row.Score);
             } finally {
@@ -2271,7 +2271,7 @@ namespace OfficeIMO.Tests {
                 };
 
                 using var reader = ExcelDocumentReader.Open(filePath, options);
-                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<NullableTypedRow>("A1:A2", ExecutionMode.Sequential));
+                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<NullableTypedRow>("A1:A2", ExcelExecutionMode.Sequential));
 
                 Assert.Equal(100, row.Score);
             } finally {
@@ -2310,7 +2310,7 @@ namespace OfficeIMO.Tests {
                 };
 
                 using var reader = ExcelDocumentReader.Open(filePath, options);
-                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<NullableTypedRow>("A1:A2", ExecutionMode.Sequential));
+                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<NullableTypedRow>("A1:A2", ExcelExecutionMode.Sequential));
 
                 Assert.Equal(100, row.Score);
             } finally {

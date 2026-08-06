@@ -119,7 +119,7 @@ internal static partial class PdfStamper {
         return false;
     }
 
-    private static bool HasInteractiveTextRuns(IReadOnlyList<TextRun> runs) {
+    private static bool HasInteractiveTextRuns(IReadOnlyList<PdfTextRun> runs) {
         for (int i = 0; i < runs.Count; i++) {
             if (runs[i].LinkUri != null || runs[i].LinkDestinationName != null) return true;
         }

@@ -119,12 +119,12 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             WordShape shape = WordShape.AddDrawingShapeAnchored(
                 document.AddParagraph("shape"),
-                ShapeType.Rectangle,
+                WordShapeType.Rectangle,
                 80,
                 40,
                 18,
                 27);
-            WordSmartArt smartArt = document.AddSmartArt(SmartArtType.BasicProcess);
+            WordSmartArt smartArt = document.AddSmartArt(WordSmartArtType.BasicProcess);
 
             Assert.True(shape.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot shapeLayout));
             Assert.Equal(WordDrawingPlacementKind.Anchored, shapeLayout.Placement);

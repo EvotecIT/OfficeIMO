@@ -1,6 +1,6 @@
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        private static void AddUnsupportedHeaderFooterFormatting(ExcelSheet.HeaderFooterSnapshot headerFooter, string sheetName, ref int count, List<string> details) {
+        private static void AddUnsupportedHeaderFooterFormatting(ExcelSheet.ExcelHeaderFooterSnapshot headerFooter, string sheetName, ref int count, List<string> details) {
             var sections = EnumerateHeaderFooterSections(headerFooter).ToArray();
             var stylesByLocation = new Dictionary<string, string?>(StringComparer.Ordinal);
             var hasTextByLocation = new Dictionary<string, bool>(StringComparer.Ordinal);
@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
             AddMixedHeaderFooterStyle("even footer", new[] { "even footer left", "even footer center", "even footer right" }, stylesByLocation, hasTextByLocation, sheetName, ref count, details);
         }
 
-        private static IEnumerable<(string Location, string Text)> EnumerateHeaderFooterSections(ExcelSheet.HeaderFooterSnapshot headerFooter) {
+        private static IEnumerable<(string Location, string Text)> EnumerateHeaderFooterSections(ExcelSheet.ExcelHeaderFooterSnapshot headerFooter) {
             yield return ("header left", headerFooter.HeaderLeft);
             yield return ("header center", headerFooter.HeaderCenter);
             yield return ("header right", headerFooter.HeaderRight);

@@ -413,15 +413,15 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the capitalization style for the run.
         /// </summary>
-        public CapsStyle CapsStyle {
+        public WordCapsStyle CapsStyle {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
                 if (IsOnOffPropertyEnabled(runProperties?.Caps)) {
-                    return CapsStyle.Caps;
+                    return WordCapsStyle.Caps;
                 } else if (IsOnOffPropertyEnabled(runProperties?.SmallCaps)) {
-                    return CapsStyle.SmallCaps;
+                    return WordCapsStyle.SmallCaps;
                 } else {
-                    return CapsStyle.None;
+                    return WordCapsStyle.None;
                 }
             }
             set {
@@ -432,13 +432,13 @@ namespace OfficeIMO.Word {
                 } else {
                     runProperties = VerifyRunProperties();
                 }
-                if (value == CapsStyle.None) {
+                if (value == WordCapsStyle.None) {
                     runProperties.Caps = null;
                     runProperties.SmallCaps = null;
-                } else if (value == CapsStyle.Caps) {
+                } else if (value == WordCapsStyle.Caps) {
                     runProperties.Caps = new Caps();
                     runProperties.SmallCaps = null;
-                } else if (value == CapsStyle.SmallCaps) {
+                } else if (value == WordCapsStyle.SmallCaps) {
                     runProperties.SmallCaps = new SmallCaps();
                     runProperties.Caps = null;
                 }

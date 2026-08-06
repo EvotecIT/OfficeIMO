@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
                     ("Region", item => item.Region),
                     ("CreatedOn", item => item.CreatedOn),
                     ("Amount", item => item.Amount));
-                sheet.AddTable("A1:D3", hasHeader: true, name: "SalesData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                sheet.AddTable("A1:D3", hasHeader: true, name: "SalesData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                 sheet.AutoFitColumns();
             }
 
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
                 string range = sheet.InsertDataTableAsTable(
                     orders,
                     tableName: "OrdersExport",
-                    style: OfficeIMO.Excel.TableStyle.TableStyleMedium9,
+                    style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9,
                     includeAutoFilter: true);
                 sheet.AddAutoFilter(range, new Dictionary<uint, IEnumerable<string>> {
                     { 3U, new[] { "Open" } }
@@ -294,7 +294,7 @@ namespace OfficeIMO.Tests {
                     ("CreatedOn", item => item.CreatedOn),
                     ("Amount", item => item.Amount));
                 sheet.SortUsedRangeByHeader("Amount", ascending: false);
-                sheet.AddTable("A1:D4", hasHeader: true, name: "SalesExport", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AddTable("A1:D4", hasHeader: true, name: "SalesExport", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AddAutoFilter("A1:D4", new Dictionary<uint, IEnumerable<string>> {
                     { 1U, new[] { "West", "South" } }
                 });

@@ -39,18 +39,8 @@ namespace OfficeIMO.Word {
             return filePath;
         }
 
-        private static OpenSettings CreateOpenSettings(OpenSettings? openSettings) {
-            if (openSettings is null) {
-                return new OpenSettings { AutoSave = false };
-            }
-
-            return new OpenSettings {
-                AutoSave = false,
-                CompatibilityLevel = openSettings.CompatibilityLevel,
-                MarkupCompatibilityProcessSettings = openSettings.MarkupCompatibilityProcessSettings,
-                MaxCharactersInPart = openSettings.MaxCharactersInPart,
-            };
-        }
+        private static OpenSettings CreateOpenSettings(OfficeOpenXmlLoadSettings? openSettings) =>
+            openSettings.ToOpenXml();
 
         private static byte[] ReadSourceBytes(Stream stream, WordLoadOptions options) {
             ValidateMaxInputBytes(options);
@@ -99,7 +89,7 @@ namespace OfficeIMO.Word {
             if (resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose) {
                 throw new ArgumentException("SaveOnDispose requires an associated file path or writable stream.", nameof(options));
             }
-            return CreateInternal(filePath: null, stream: null, resolved.DocumentType, resolved.PersistenceMode);
+            return CreateInternal(filePath: null, stream: null, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode);
         }
 
         /// <summary>Creates a Word document associated with a path that is written on explicit save.</summary>
@@ -230,8 +220,8 @@ namespace OfficeIMO.Word {
 
             new WordSettings(word);
             new WordCompatibilitySettings(word);
-            new ApplicationProperties(word);
-            new BuiltinDocumentProperties(word);
+            new WordApplicationProperties(word);
+            new WordBuiltinDocumentProperties(word);
             new WordSection(word, null!);
             new WordBackground(word);
             new WordDocumentStatistics(word);
@@ -251,7 +241,7 @@ namespace OfficeIMO.Word {
         public static WordDocument Create(Stream stream, WordCreateOptions? options = null) {
             OfficeDocumentLifecycle.EnsureAssociatedDestination(stream, nameof(stream));
             WordCreateOptions resolved = options ?? new WordCreateOptions();
-            var word = CreateInternal(null, stream, resolved.DocumentType, resolved.PersistenceMode);
+            var word = CreateInternal(null, stream, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode);
             return word;
         }
 
@@ -263,8 +253,8 @@ namespace OfficeIMO.Word {
             InitializeSdtIdState();
             // add settings if not existing
             new WordSettings(this);
-            new ApplicationProperties(this);
-            new BuiltinDocumentProperties(this);
+            new WordApplicationProperties(this);
+            new WordBuiltinDocumentProperties(this);
             new WordCustomProperties(this);
             new WordDocumentVariables(this);
             new WordBibliography(this);

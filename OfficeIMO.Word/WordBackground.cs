@@ -103,7 +103,7 @@ namespace OfficeIMO.Word {
             var paragraph = new DocumentFormat.OpenXml.Wordprocessing.Paragraph();
             _document._document.Body!.Append(paragraph);
             var wordParagraph = new WordParagraph(_document, paragraph);
-            var wordImage = new WordImage(_document, wordParagraph, imageStream, fileName, width, height, WrapTextImage.BehindText);
+            var wordImage = new WordImage(_document, wordParagraph, imageStream, fileName, width, height, WordImageTextWrapping.BehindText);
             paragraph.Remove();
 
             _document._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!.DisplayBackgroundShape = new DisplayBackgroundShape();

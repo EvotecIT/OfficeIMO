@@ -6,26 +6,26 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfKeyValueRow {
     /// <summary>Creates a plain text label/value row.</summary>
     public PdfKeyValueRow(string? key, string? value)
-        : this(new[] { TextRun.Normal(key ?? string.Empty) }, new[] { TextRun.Normal(value ?? string.Empty) }) {
+        : this(new[] { PdfTextRun.Normal(key ?? string.Empty) }, new[] { PdfTextRun.Normal(value ?? string.Empty) }) {
     }
 
     /// <summary>Creates a rich text label/value row.</summary>
-    public PdfKeyValueRow(IEnumerable<TextRun> keyRuns, IEnumerable<TextRun> valueRuns) {
+    public PdfKeyValueRow(IEnumerable<PdfTextRun> keyRuns, IEnumerable<PdfTextRun> valueRuns) {
         KeyRuns = SnapshotRuns(keyRuns, nameof(keyRuns));
         ValueRuns = SnapshotRuns(valueRuns, nameof(valueRuns));
     }
 
     /// <summary>Rich text runs used by the label cell.</summary>
-    public IReadOnlyList<TextRun> KeyRuns { get; }
+    public IReadOnlyList<PdfTextRun> KeyRuns { get; }
 
     /// <summary>Rich text runs used by the value cell.</summary>
-    public IReadOnlyList<TextRun> ValueRuns { get; }
+    public IReadOnlyList<PdfTextRun> ValueRuns { get; }
 
     /// <summary>Creates a plain text label/value row.</summary>
     public static PdfKeyValueRow Text(string? key, string? value) => new PdfKeyValueRow(key, value);
 
     /// <summary>Creates a rich text label/value row.</summary>
-    public static PdfKeyValueRow Rich(IEnumerable<TextRun> keyRuns, IEnumerable<TextRun> valueRuns) => new PdfKeyValueRow(keyRuns, valueRuns);
+    public static PdfKeyValueRow Rich(IEnumerable<PdfTextRun> keyRuns, IEnumerable<PdfTextRun> valueRuns) => new PdfKeyValueRow(keyRuns, valueRuns);
 
     internal PdfTableCell[] ToTableCells() {
         return new[] {
@@ -34,10 +34,10 @@ public sealed class PdfKeyValueRow {
         };
     }
 
-    private static System.Collections.ObjectModel.ReadOnlyCollection<TextRun> SnapshotRuns(IEnumerable<TextRun> runs, string paramName) {
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfTextRun> SnapshotRuns(IEnumerable<PdfTextRun> runs, string paramName) {
         Guard.NotNull(runs, paramName);
-        var snapshot = new List<TextRun>();
-        foreach (TextRun run in runs) {
+        var snapshot = new List<PdfTextRun>();
+        foreach (PdfTextRun run in runs) {
             if (run == null) {
                 throw new ArgumentException("PDF key/value row text runs cannot contain null entries.", paramName);
             }

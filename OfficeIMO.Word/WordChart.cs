@@ -36,7 +36,7 @@ namespace OfficeIMO.Word {
         /// <param name="document">Parent document that owns the chart.</param>
         /// <param name="paragraph">Paragraph containing the chart.</param>
         /// <param name="drawing">Existing WordDrawing element with chart data.</param>
-        public WordChart(WordDocument document, WordParagraph paragraph, WordDrawing drawing) {
+        internal WordChart(WordDocument document, WordParagraph paragraph, WordDrawing drawing) {
             _document = document;
             _drawing = drawing;
             _paragraph = paragraph;

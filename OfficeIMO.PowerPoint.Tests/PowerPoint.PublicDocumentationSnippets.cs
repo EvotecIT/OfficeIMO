@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
                                 AlternativeText = "Quarterly revenue increased from 3.2 to 4.9"
                             })
                         .SetTitle("2025 revenue")
-                        .SetLegend(PowerPointChartLegendPosition.Bottom);
+                        .SetLegend(OfficeChartLegendPosition.Bottom);
 
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());

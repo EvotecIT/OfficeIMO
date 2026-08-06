@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Word.Converters {
             paragraph.AddText(", ");
             paragraph.AddText("strikethrough").Strike = true;
             paragraph.AddText(", and inline ");
-            var codeFont = FontResolver.Resolve("monospace") ?? "Consolas";
+            var codeFont = WordFontResolver.Resolve("monospace") ?? "Consolas";
             paragraph.AddText("code").SetFontFamily(codeFont);
             paragraph.AddText(" plus a ");
             paragraph.AddHyperLink("link", new Uri("https://example.com"));

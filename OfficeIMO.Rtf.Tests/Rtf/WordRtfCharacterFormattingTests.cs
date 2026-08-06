@@ -59,7 +59,7 @@ public class WordRtfCharacterFormattingTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         paragraph.AddText("Double").SetDoubleStrike();
-        paragraph.AddText("Caps").SetCapsStyle(CapsStyle.Caps);
+        paragraph.AddText("Caps").SetCapsStyle(WordCapsStyle.Caps);
         paragraph.AddText("Small").SetSmallCaps();
         paragraph.AddText("Plain");
 
@@ -76,9 +76,9 @@ public class WordRtfCharacterFormattingTests {
         Assert.Contains(@"\caps Caps\caps0", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\scaps Small\scaps0", rtf, StringComparison.Ordinal);
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Double" && run.DoubleStrike);
-        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Caps" && run.CapsStyle == CapsStyle.Caps);
-        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Small" && run.CapsStyle == CapsStyle.SmallCaps);
-        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Plain" && !run.DoubleStrike && run.CapsStyle == CapsStyle.None);
+        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Caps" && run.CapsStyle == WordCapsStyle.Caps);
+        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Small" && run.CapsStyle == WordCapsStyle.SmallCaps);
+        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Plain" && !run.DoubleStrike && run.CapsStyle == WordCapsStyle.None);
     }
 
     [Fact]
@@ -93,9 +93,9 @@ public class WordRtfCharacterFormattingTests {
         using WordDocument word = rtfDocument.ToWordDocument();
 
         Assert.Contains(word.Paragraphs, run => run.Text == "Double" && run.DoubleStrike);
-        Assert.Contains(word.Paragraphs, run => run.Text == "Caps" && run.CapsStyle == CapsStyle.Caps);
-        Assert.Contains(word.Paragraphs, run => run.Text == "Small" && run.CapsStyle == CapsStyle.SmallCaps);
-        Assert.Contains(word.Paragraphs, run => run.Text == "Plain" && !run.DoubleStrike && run.CapsStyle == CapsStyle.None);
+        Assert.Contains(word.Paragraphs, run => run.Text == "Caps" && run.CapsStyle == WordCapsStyle.Caps);
+        Assert.Contains(word.Paragraphs, run => run.Text == "Small" && run.CapsStyle == WordCapsStyle.SmallCaps);
+        Assert.Contains(word.Paragraphs, run => run.Text == "Plain" && !run.DoubleStrike && run.CapsStyle == WordCapsStyle.None);
     }
 
     [Fact]

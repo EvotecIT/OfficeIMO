@@ -37,9 +37,9 @@ namespace OfficeIMO.Word {
         public WordChart SetWidthToPageContent(double fraction = 1.0, int? heightPx = null) {
             try {
                 var sect = _document.Sections.FirstOrDefault();
-                var widthTwips = (double)(sect?.PageSettings.Width?.Value ?? WordPageSizes.Letter.Width!.Value);
-                var leftTwips = (double)(sect?.Margins.Left?.Value ?? 1440U);
-                var rightTwips = (double)(sect?.Margins.Right?.Value ?? 1440U);
+                var widthTwips = (double)(sect?.PageSettings.Width ?? WordPageSizes.Letter.WidthTwips);
+                var leftTwips = (double)(sect?.Margins.Left ?? 1440U);
+                var rightTwips = (double)(sect?.Margins.Right ?? 1440U);
                 var contentTwips = System.Math.Max(0, widthTwips - leftTwips - rightTwips);
                 var inches = contentTwips / 1440.0 * System.Math.Max(0.05, System.Math.Min(1.0, fraction));
                 var px = (int)System.Math.Round(inches * PixelsPerInch);
@@ -321,7 +321,7 @@ namespace OfficeIMO.Word {
         /// Adds a legend to the chart at the specified position.
         /// </summary>
         /// <param name="legendPosition">Desired legend position.</param>
-        public void AddLegend(WordChartLegendPosition legendPosition) {
+        public void AddLegend(OfficeChartLegendPosition legendPosition) {
             if (_chart != null) {
                 Legend legend = new Legend();
                 LegendPosition postion = new LegendPosition() { Val = legendPosition.ToOpenXml() };

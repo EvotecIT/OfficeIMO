@@ -21,7 +21,7 @@ public sealed class HtmlDiagnostic {
         HtmlDiagnosticSeverity severity = HtmlDiagnosticSeverity.Warning,
         string? source = null,
         string? detail = null,
-        HtmlConversionLossKind lossKind = HtmlConversionLossKind.None)
+        OfficeConversionLossKind lossKind = OfficeConversionLossKind.None)
         : this(component, code, message, severity, source, detail, lossKind, null, null) {
     }
 
@@ -42,7 +42,7 @@ public sealed class HtmlDiagnostic {
         HtmlDiagnosticSeverity severity,
         string? source,
         string? detail,
-        HtmlConversionLossKind lossKind,
+        OfficeConversionLossKind lossKind,
         HtmlSemanticSourceLocation? sourceLocation,
         string? targetAddress) {
         Component = component ?? throw new ArgumentNullException(nameof(component));
@@ -94,7 +94,7 @@ public sealed class HtmlDiagnostic {
     /// <summary>
     /// Describes whether this diagnostic represents approximation, omission, or complete conversion failure.
     /// </summary>
-    public HtmlConversionLossKind LossKind { get; }
+    public OfficeConversionLossKind LossKind { get; }
 
     /// <summary>Stable source-to-target provenance. This is always present, with document/component fallbacks.</summary>
     public HtmlDiagnosticProvenance Provenance { get; }

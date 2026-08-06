@@ -79,15 +79,15 @@ public static partial class MarkdownReader {
 
         int i = 0;
         while (i < nodes.Count) {
-            if (nodes[i] is TextRun openTick && openTick.Text == "`") {
+            if (nodes[i] is MarkdownTextRun openTick && openTick.Text == "`") {
                 int j = i + 1;
                 var body = new StringBuilder();
                 bool validBody = true;
 
                 while (j < nodes.Count) {
-                    if (nodes[j] is TextRun closeTick && closeTick.Text == "`") break;
+                    if (nodes[j] is MarkdownTextRun closeTick && closeTick.Text == "`") break;
 
-                    if (nodes[j] is TextRun textRun) {
+                    if (nodes[j] is MarkdownTextRun textRun) {
                         if (!IsEscapedCodeBodyText(textRun.Text)) {
                             validBody = false;
                             break;
@@ -104,7 +104,7 @@ public static partial class MarkdownReader {
 
                 if (validBody &&
                     j < nodes.Count &&
-                    nodes[j] is TextRun finalTick &&
+                    nodes[j] is MarkdownTextRun finalTick &&
                     finalTick.Text == "`" &&
                     body.Length > 0) {
                     rewritten.Add(new CodeSpanInline(NormalizeCodeSpanContent(body.ToString())));
@@ -126,10 +126,10 @@ public static partial class MarkdownReader {
 
         for (int i = 0; i < nodes.Count - 1; i++) {
             if (!IsStrongInlineNode(nodes[i])) continue;
-            if (nodes[i + 1] is not TextRun textRun) continue;
+            if (nodes[i + 1] is not MarkdownTextRun textRun) continue;
             if (!NeedsLeadingSpaceAfterStrong(textRun.Text)) continue;
 
-            nodes[i + 1] = new TextRun(" " + textRun.Text);
+            nodes[i + 1] = new MarkdownTextRun(" " + textRun.Text);
             changed = true;
         }
 
@@ -140,7 +140,7 @@ public static partial class MarkdownReader {
         bool changed = false;
 
         for (int i = 0; i < nodes.Count - 1; i++) {
-            if (nodes[i] is not TextRun textRun) {
+            if (nodes[i] is not MarkdownTextRun textRun) {
                 continue;
             }
 
@@ -153,7 +153,7 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            nodes[i] = new TextRun(normalized);
+            nodes[i] = new MarkdownTextRun(normalized);
             changed = true;
         }
 
@@ -164,13 +164,13 @@ public static partial class MarkdownReader {
         bool changed = false;
 
         for (int i = 0; i < nodes.Count; i++) {
-            if (nodes[i] is not TextRun textRun) continue;
+            if (nodes[i] is not MarkdownTextRun textRun) continue;
             if (string.IsNullOrEmpty(textRun.Text) || textRun.Text.IndexOf(':') < 0) continue;
 
             var normalized = NormalizeTightColonSpacing(textRun.Text);
             if (normalized == textRun.Text) continue;
 
-            nodes[i] = new TextRun(normalized);
+            nodes[i] = new MarkdownTextRun(normalized);
             changed = true;
         }
 
@@ -181,11 +181,11 @@ public static partial class MarkdownReader {
         bool changed = false;
 
         for (int i = 0; i < nodes.Count; i++) {
-            if (nodes[i] is TextRun textRun) {
+            if (nodes[i] is MarkdownTextRun textRun) {
                 var normalized = NormalizeTightParentheticalSpacing(textRun.Text);
                 if (normalized != textRun.Text) {
-                    nodes[i] = new TextRun(normalized);
-                    textRun = (TextRun)nodes[i];
+                    nodes[i] = new MarkdownTextRun(normalized);
+                    textRun = (MarkdownTextRun)nodes[i];
                     changed = true;
                 }
             }
@@ -198,11 +198,11 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            if (nodes[i] is not TextRun nextTextRun || !StartsWithTightParenthetical(nextTextRun.Text)) {
+            if (nodes[i] is not MarkdownTextRun nextTextRun || !StartsWithTightParenthetical(nextTextRun.Text)) {
                 continue;
             }
 
-            nodes[i] = new TextRun(" " + nextTextRun.Text);
+            nodes[i] = new MarkdownTextRun(" " + nextTextRun.Text);
             changed = true;
         }
 
@@ -240,7 +240,7 @@ public static partial class MarkdownReader {
         var items = new List<IMarkdownInline>(sequence.Nodes);
         bool changed = false;
 
-        while (items.Count > 0 && items[0] is TextRun leading) {
+        while (items.Count > 0 && items[0] is MarkdownTextRun leading) {
             var trimmed = leading.Text.TrimStart();
             if (trimmed == leading.Text) {
                 break;
@@ -252,11 +252,11 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            items[0] = new TextRun(trimmed);
+            items[0] = new MarkdownTextRun(trimmed);
             break;
         }
 
-        while (items.Count > 0 && items[items.Count - 1] is TextRun trailing) {
+        while (items.Count > 0 && items[items.Count - 1] is MarkdownTextRun trailing) {
             var trimmed = trailing.Text.TrimEnd();
             if (trimmed == trailing.Text) {
                 break;
@@ -268,7 +268,7 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            items[items.Count - 1] = new TextRun(trimmed);
+            items[items.Count - 1] = new MarkdownTextRun(trimmed);
             break;
         }
 
@@ -392,13 +392,13 @@ public static partial class MarkdownReader {
 
         void FlushTextBuffer() {
             if (textBuffer == null) return;
-            compact.Add(new TextRun(textBuffer.ToString()));
+            compact.Add(new MarkdownTextRun(textBuffer.ToString()));
             textBuffer = null;
         }
 
         for (int i = 0; i < nodes.Count; i++) {
             var node = nodes[i];
-            if (node is TextRun textRun) {
+            if (node is MarkdownTextRun textRun) {
                 textBuffer ??= new StringBuilder();
                 textBuffer.Append(textRun.Text);
                 continue;

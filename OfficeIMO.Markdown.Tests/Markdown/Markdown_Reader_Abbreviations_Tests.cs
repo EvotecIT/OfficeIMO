@@ -199,8 +199,8 @@ public class Markdown_Reader_Abbreviations_Tests {
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
         var abbreviation = Assert.IsType<AbbreviationInline>(paragraph.Inlines.Nodes[1]);
 
-        Assert.IsType<TextRun>(paragraph.Inlines.Nodes[0]);
-        Assert.IsType<TextRun>(paragraph.Inlines.Nodes[2]);
+        Assert.IsType<MarkdownTextRun>(paragraph.Inlines.Nodes[0]);
+        Assert.IsType<MarkdownTextRun>(paragraph.Inlines.Nodes[2]);
         Assert.Equal("HTML", abbreviation.Text);
         Assert.Equal("Hyper Text", abbreviation.Title);
         Assert.Equal(new MarkdownSourceSpan(3, 2, 3, 5), MarkdownInlineSourceSpans.Get(abbreviation));

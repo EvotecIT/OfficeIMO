@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
                 projected.ToBytes(PowerPointFileFormat.Ppt));
             Assert.Equal(binary, projected.ToBytes(PowerPointFileFormat.Ppt,
                 new PowerPointSaveOptions {
-                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                    LossPolicy = OfficeConversionLossPolicy.Allow
                 }));
         }
 
@@ -182,7 +182,7 @@ namespace OfficeIMO.Tests {
                 projected.ToBytes(PowerPointFileFormat.Ppt));
             Assert.Equal(binary, projected.ToBytes(PowerPointFileFormat.Ppt,
                 new PowerPointSaveOptions {
-                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                    LossPolicy = OfficeConversionLossPolicy.Allow
                 }));
         }
 
@@ -340,7 +340,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(preflight.CanWrite);
                 savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 
@@ -637,14 +637,14 @@ namespace OfficeIMO.Tests {
                     imported.ToBytes(PowerPointFileFormat.Ppt));
                 Assert.Equal(sourceBytes, imported.ToBytes(
                     PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     }));
                 PowerPointOleObject ole = Assert.Single(
                     imported.Slides[0].OleObjects);
                 ole.Left += 15875L;
                 savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 
@@ -677,7 +677,7 @@ namespace OfficeIMO.Tests {
             PowerPointFeatureReport report = presentation.InspectFeatures();
             PowerPointFeatureFinding finding = Assert.Single(
                 report.FindFeatures("Embedded OLE objects"));
-            Assert.Equal(PowerPointFeatureSupportLevel.Editable,
+            Assert.Equal(OfficeFeatureSupportLevel.Editable,
                 finding.SupportLevel);
             Assert.Equal(1, finding.Count);
             Assert.Empty(report.FindFeatures("Embedded packages"));

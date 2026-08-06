@@ -244,7 +244,7 @@ namespace OfficeIMO.PowerPoint {
             bool HasOmissionContaining(string text) => diagnostics.Any(
                 diagnostic => diagnostic.Code
                         == PowerPointImageExportDiagnosticCodes.UnsupportedShape
-                    && diagnostic.LossKind == OfficeImageExportLossKind.Omission
+                    && diagnostic.LossKind == OfficeConversionLossKind.Omission
                     && diagnostic.Message.IndexOf(text,
                         StringComparison.OrdinalIgnoreCase) >= 0);
 

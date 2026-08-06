@@ -17,11 +17,11 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordParagraph paragraph = document.AddParagraph();
                 WordShapeGroup group = paragraph.AddShapeGroup(new[] {
-                    new WordShapeGroupItem(ShapeType.Rectangle, 0, 0, 72, 36) {
+                    new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 72, 36) {
                         FillColorHex = "#336699",
                         StrokeColorHex = "112233"
                     },
-                    new WordShapeGroupItem(ShapeType.Ellipse, 90, 18, 54, 54) {
+                    new WordShapeGroupItem(WordShapeType.Ellipse, 90, 18, 54, 54) {
                         FillColorHex = "F0A000"
                     }
                 });
@@ -55,9 +55,9 @@ namespace OfficeIMO.Tests {
             string filePath = System.IO.Path.Combine(_directoryWithFiles, "ShapeGroup.Anchored.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordShapeGroup group = document.AddParagraph().AddShapeGroup(new[] {
-                    new WordShapeGroupItem(ShapeType.Chevron, 0, 0, 80, 40),
-                    new WordShapeGroupItem(ShapeType.Chevron, 72, 0, 80, 40),
-                    new WordShapeGroupItem(ShapeType.Chevron, 144, 0, 80, 40)
+                    new WordShapeGroupItem(WordShapeType.Chevron, 0, 0, 80, 40),
+                    new WordShapeGroupItem(WordShapeType.Chevron, 72, 0, 80, 40),
+                    new WordShapeGroupItem(WordShapeType.Chevron, 144, 0, 80, 40)
                 }, 24, 48);
                 Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot layout));
                 Assert.Equal(WordDrawingPlacementKind.Anchored, layout.Placement);
@@ -82,22 +82,22 @@ namespace OfficeIMO.Tests {
         public void DrawingShapes_AllocateIdsAboveExistingPackageIdsAfterReload() {
             string filePath = System.IO.Path.Combine(_directoryWithFiles, "ShapeGroup.DocumentScopedIds.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                WordShape existing = WordShape.AddDrawingShape(document.AddParagraph(), ShapeType.Rectangle, 40, 20);
+                WordShape existing = WordShape.AddDrawingShape(document.AddParagraph(), WordShapeType.Rectangle, 40, 20);
                 existing._drawing!.Inline!.DocProperties!.Id = 100U;
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.AddParagraph().AddShapeGroup(new[] {
-                    new WordShapeGroupItem(ShapeType.Rectangle, 0, 0, 20, 20),
-                    new WordShapeGroupItem(ShapeType.Ellipse, 30, 0, 20, 20),
+                    new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 20, 20),
+                    new WordShapeGroupItem(WordShapeType.Ellipse, 30, 0, 20, 20),
                 });
-                WordShape.AddDrawingShape(document.AddParagraph(), ShapeType.Diamond, 30, 30);
-                WordShape.AddDrawingShapeAnchored(document.AddParagraph(), ShapeType.Chevron, 30, 20, 10, 10);
+                WordShape.AddDrawingShape(document.AddParagraph(), WordShapeType.Diamond, 30, 30);
+                WordShape.AddDrawingShapeAnchored(document.AddParagraph(), WordShapeType.Chevron, 30, 20, 10, 10);
                 WordChart chart = document.AddChart("ID allocation");
                 chart.AddCategories(new List<string> { "A" });
                 chart.AddBar("Series", new List<int> { 1 }, OfficeIMO.Drawing.OfficeColor.Blue);
-                document.AddSmartArt(SmartArtType.BasicProcess);
+                document.AddSmartArt(WordSmartArtType.BasicProcess);
                 document.AddParagraph().AddImage(
                     System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"),
                     20,

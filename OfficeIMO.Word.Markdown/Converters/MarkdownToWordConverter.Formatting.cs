@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.Markdown {
                 return null;
             }
 
-            return FontResolver.Resolve(options.FontFamily) ?? options.FontFamily;
+            return WordFontResolver.Resolve(options.FontFamily) ?? options.FontFamily;
         }
 
         private static void ApplyBlockParagraphFormatting(WordParagraph paragraph, int quoteDepth, Omd.ColumnAlignment alignment) {

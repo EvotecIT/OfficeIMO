@@ -219,7 +219,7 @@ namespace OfficeIMO.Excel {
 
         private static bool TryCreateDirectCellValuesSaveCandidate(
             IReadOnlyList<(int Row, int Column, object Value)> cells,
-            ExecutionMode? mode,
+            ExcelExecutionMode? mode,
             out DirectCellValuesSaveCandidate? candidate) {
             candidate = null;
 
@@ -227,13 +227,13 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (mode == ExecutionMode.Parallel && (rowCount <= 1 || columnCount <= 1)) {
+            if (mode == ExcelExecutionMode.Parallel && (rowCount <= 1 || columnCount <= 1)) {
                 return false;
             }
 
             bool includeHeaders = CanTreatFirstCellValuesRowAsHeaders(cells, columnCount, rowCount);
             if (!includeHeaders
-                && mode != ExecutionMode.Parallel
+                && mode != ExcelExecutionMode.Parallel
                 && FirstCellValuesRowLooksLikeHeaderText(cells, columnCount)) {
                 return false;
             }

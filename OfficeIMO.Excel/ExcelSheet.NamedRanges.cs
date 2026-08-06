@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
         /// <param name="save">When true, saves the workbook after the change.</param>
         /// <param name="hidden">When true, marks the defined name as hidden.</param>
         /// <param name="validationMode">Controls how the name and range are validated: Sanitize (default) clamps/adjusts; Strict throws on invalid input.</param>
-        public void SetNamedRange(string name, string range, bool save, bool hidden, NameValidationMode validationMode) {
+        public void SetNamedRange(string name, string range, bool save, bool hidden, ExcelDefinedNameValidationMode validationMode) {
             _excelDocument.SetNamedRange(name, range, this, save, hidden, validationMode);
         }
 

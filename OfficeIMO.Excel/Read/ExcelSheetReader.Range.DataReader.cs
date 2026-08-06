@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel {
             bool headersInFirstRow = true,
             int chunkRows = 1024,
             int schemaSampleRows = 1024,
-            OfficeIMO.Excel.ExecutionMode? mode = null,
+            OfficeIMO.Excel.ExcelExecutionMode? mode = null,
             CancellationToken ct = default) {
             if (chunkRows <= 0 || chunkRows > _opt.MaxDataReaderChunkRows) {
                 throw new ArgumentOutOfRangeException(nameof(chunkRows),
@@ -145,7 +145,7 @@ namespace OfficeIMO.Excel {
             }
             if (schemaSampleRows == 0
                 && rows > BufferedRangeStreamRowLimit
-                && mode != OfficeIMO.Excel.ExecutionMode.Parallel
+                && mode != OfficeIMO.Excel.ExcelExecutionMode.Parallel
                 && CanUseRangeStreamXmlReader()) {
                 if (cols > _opt.MaxDataReaderBufferedCells) {
                     throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
@@ -166,7 +166,7 @@ namespace OfficeIMO.Excel {
         private IEnumerable<RangeChunk> ReadRangeStreamForDataReader(
             string a1Range,
             int chunkRows,
-            OfficeIMO.Excel.ExecutionMode? mode,
+            OfficeIMO.Excel.ExcelExecutionMode? mode,
             CancellationToken ct) {
             if (chunkRows <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(chunkRows), "Chunk row count must be greater than zero.");
@@ -181,7 +181,7 @@ namespace OfficeIMO.Excel {
                 ct.ThrowIfCancellationRequested();
             }
 
-            if (mode != OfficeIMO.Excel.ExecutionMode.Parallel
+            if (mode != OfficeIMO.Excel.ExcelExecutionMode.Parallel
                 && CanUseRangeStreamXmlReader()
                 && RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
                 foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct)) {
@@ -196,7 +196,7 @@ namespace OfficeIMO.Excel {
                 yield break;
             }
 
-            if (mode != OfficeIMO.Excel.ExecutionMode.Parallel
+            if (mode != OfficeIMO.Excel.ExcelExecutionMode.Parallel
                 && RowsAreSortedWithinRange(sheetData, r1, r2, ct)) {
                 foreach (var chunk in ReadSortedDomRangeStream(sheetData, r1, c1, r2, c2, chunkRows, ct)) {
                     yield return chunk;

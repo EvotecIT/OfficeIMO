@@ -23,7 +23,7 @@ public static partial class HtmlExcelConverterExtensions {
             int rowIndex = firstRow + rowOffset;
             if (rowIndex > A1.MaxRows) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                    "HTML table rows exceeded the Excel worksheet row limit; remaining rows were skipped.", lossKind: HtmlConversionLossKind.Omission);
+                    "HTML table rows exceeded the Excel worksheet row limit; remaining rows were skipped.", lossKind: OfficeConversionLossKind.Omission);
                 break;
             }
 
@@ -35,7 +35,7 @@ public static partial class HtmlExcelConverterExtensions {
 
                 if (columnIndex > A1.MaxColumns) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                        "HTML table columns exceeded the Excel worksheet column limit in row " + rowIndex.ToString(CultureInfo.InvariantCulture) + "; remaining cells in the row were skipped.", lossKind: HtmlConversionLossKind.Omission);
+                        "HTML table columns exceeded the Excel worksheet column limit in row " + rowIndex.ToString(CultureInfo.InvariantCulture) + "; remaining cells in the row were skipped.", lossKind: OfficeConversionLossKind.Omission);
                     break;
                 }
 
@@ -49,12 +49,12 @@ public static partial class HtmlExcelConverterExtensions {
                     cellColumn = semanticColumn;
                 } else if (!string.IsNullOrWhiteSpace(semanticReference)) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
-                        "Cell coordinate '" + semanticReference + "' was outside the Excel worksheet grid and the table position was used instead.", lossKind: HtmlConversionLossKind.Approximation);
+                        "Cell coordinate '" + semanticReference + "' was outside the Excel worksheet grid and the table position was used instead.", lossKind: OfficeConversionLossKind.Approximation);
                 }
 
                 if (occupiedCells.Contains(GetImportCellKey(cellRow, cellColumn))) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TableSpanInvalid,
-                        "Cell " + BuildCellReference(cellRow, cellColumn) + " overlapped an earlier HTML table span and was moved to the next available column.", lossKind: HtmlConversionLossKind.Approximation);
+                        "Cell " + BuildCellReference(cellRow, cellColumn) + " overlapped an earlier HTML table span and was moved to the next available column.", lossKind: OfficeConversionLossKind.Approximation);
                     cellRow = rowIndex;
                     cellColumn = columnIndex;
                 }
@@ -65,19 +65,19 @@ public static partial class HtmlExcelConverterExtensions {
                 if (spanArea > maxTableCells - occupiedCells.Count) {
                     if (occupiedCells.Count >= maxTableCells) {
                         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                            "HTML table exceeded the configured MaxTableCells limit; remaining cells were skipped.", lossKind: HtmlConversionLossKind.Omission);
+                            "HTML table exceeded the configured MaxTableCells limit; remaining cells were skipped.", lossKind: OfficeConversionLossKind.Omission);
                         return;
                     }
 
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                        "Cell " + BuildCellReference(cellRow, cellColumn) + " contained a span that exceeded the configured MaxTableCells limit; the span was ignored.", lossKind: HtmlConversionLossKind.Approximation);
+                        "Cell " + BuildCellReference(cellRow, cellColumn) + " contained a span that exceeded the configured MaxTableCells limit; the span was ignored.", lossKind: OfficeConversionLossKind.Approximation);
                     rowSpan = 1;
                     columnSpan = 1;
                 }
 
                 if (SpanOverlaps(occupiedCells, cellRow, cellColumn, rowSpan, columnSpan)) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TableSpanInvalid,
-                        "Cell " + BuildCellReference(cellRow, cellColumn) + " contained an overlapping HTML table span; the span was ignored.", lossKind: HtmlConversionLossKind.Approximation);
+                        "Cell " + BuildCellReference(cellRow, cellColumn) + " contained an overlapping HTML table span; the span was ignored.", lossKind: OfficeConversionLossKind.Approximation);
                     rowSpan = 1;
                     columnSpan = 1;
                 }
@@ -143,7 +143,7 @@ public static partial class HtmlExcelConverterExtensions {
             || start > maximum
             || span > maximum - start + 1) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TableSpanInvalid,
-                "Cell " + BuildCellReference(cellRow, cellColumn) + " contained an invalid " + attributeName + " value; a span of 1 was used.", lossKind: HtmlConversionLossKind.Approximation);
+                "Cell " + BuildCellReference(cellRow, cellColumn) + " contained an invalid " + attributeName + " value; a span of 1 was used.", lossKind: OfficeConversionLossKind.Approximation);
             return 1;
         }
 

@@ -85,7 +85,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                             styleNoticeAdded = true;
                         }
 
-                        if (!capsNoticeAdded && paragraph.Runs.Any(run => string.Equals(run.CapsStyle, nameof(CapsStyle.Caps), StringComparison.OrdinalIgnoreCase))) {
+                        if (!capsNoticeAdded && paragraph.Runs.Any(run => string.Equals(run.CapsStyle, nameof(WordCapsStyle.Caps), StringComparison.OrdinalIgnoreCase))) {
                             report.Add(
                                 TranslationSeverity.Info,
                                 "TextStyles",
@@ -460,7 +460,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             };
 
             foreach (var run in paragraph.Runs) {
-                string text = string.Equals(run.CapsStyle, nameof(CapsStyle.Caps), StringComparison.OrdinalIgnoreCase)
+                string text = string.Equals(run.CapsStyle, nameof(WordCapsStyle.Caps), StringComparison.OrdinalIgnoreCase)
                     ? (run.Text ?? string.Empty).ToUpperInvariant()
                     : run.Text ?? string.Empty;
                 text = MaterializeTabLeaders(text, paragraph.TabStops);

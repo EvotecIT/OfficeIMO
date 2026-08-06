@@ -567,7 +567,7 @@ internal static partial class PdfWriter {
         return Math.Max(spaceWidth, advance);
     }
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRuns(System.Collections.Generic.IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts = null, double tabStopWidth = DefaultParagraphTabStopWidth) =>
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRuns(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts = null, double tabStopWidth = DefaultParagraphTabStopWidth) =>
         WrapRichRunsCore(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, tabStopWidth, options: null);
 
     private static PdfTabStop[]? NormalizeExplicitTabStops(System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops) {
@@ -582,12 +582,12 @@ internal static partial class PdfWriter {
             .ToArray();
     }
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCore(System.Collections.Generic.IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null) {
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCore(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null) {
         return WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, tabStops);
     }
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCoreWithFirstLineOrigin(System.Collections.Generic.IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double? firstLineOriginOffsetPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null) {
-        System.Collections.Generic.IEnumerable<TextRun> effectiveRuns = NormalizeFallbackRuns(runs, baseFont, options);
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCoreWithFirstLineOrigin(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double? firstLineOriginOffsetPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null) {
+        System.Collections.Generic.IEnumerable<PdfTextRun> effectiveRuns = NormalizeFallbackRuns(runs, baseFont, options);
         PdfTabStop[]? explicitTabStops = NormalizeExplicitTabStops(tabStops);
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new() };
         var heights = new System.Collections.Generic.List<double>();
@@ -1372,11 +1372,11 @@ internal static partial class PdfWriter {
     private static bool IsLongTokenDelimiterBreakChar(char value) =>
         Array.IndexOf(LongTokenDelimiterBreakChars, value) >= 0;
 
-    private static TextRun CreateStyledTextRun(string text, TextRun styleTemplate, PdfStandardFont? font, string? fallbackFontFamily = null) {
+    private static PdfTextRun CreateStyledTextRun(string text, PdfTextRun styleTemplate, PdfStandardFont? font, string? fallbackFontFamily = null) {
         bool keepLink = !string.IsNullOrWhiteSpace(text) &&
             (styleTemplate.LinkUri != null || styleTemplate.LinkDestinationName != null);
 
-        return new TextRun(
+        return new PdfTextRun(
             text,
             styleTemplate.Bold,
             styleTemplate.Underline,
@@ -1393,7 +1393,7 @@ internal static partial class PdfWriter {
             fontFamily: styleTemplate.FontFamily ?? fallbackFontFamily);
     }
 
-    private static bool CanWriteRunWithSelectedFont(TextRun run, PdfStandardFont baseFont, PdfOptions? options) {
+    private static bool CanWriteRunWithSelectedFont(PdfTextRun run, PdfStandardFont baseFont, PdfOptions? options) {
         string text = run.Text ?? string.Empty;
         if (text.Length == 0 || IsLayoutControlRun(run)) {
             return true;
@@ -1432,7 +1432,7 @@ internal static partial class PdfWriter {
         return PdfWinAnsiEncoding.CanEncode(text, out _);
     }
 
-    private static PdfStandardFont ResolveFontForRun(TextRun run, PdfStandardFont baseFont) {
+    private static PdfStandardFont ResolveFontForRun(PdfTextRun run, PdfStandardFont baseFont) {
         PdfStandardFont runBaseFont = run.Font.HasValue ? ChooseNormal(run.Font.Value) : baseFont;
         return (run.Bold && run.Italic)
             ? ChooseBoldItalic(runBaseFont)
@@ -1529,7 +1529,7 @@ internal static partial class PdfWriter {
         return fontProgram.TryGetGlyphId(scalar, out int glyphId) && glyphId > 0;
     }
 
-    private static bool IsLayoutControlRun(TextRun run) =>
+    private static bool IsLayoutControlRun(PdfTextRun run) =>
         string.Equals(run.Text, "\n", StringComparison.Ordinal) ||
         string.Equals(run.Text, "\t", StringComparison.Ordinal);
 

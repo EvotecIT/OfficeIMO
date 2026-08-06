@@ -197,7 +197,7 @@ internal sealed class OfficeMarkupWordExporter {
 
     private static void AddTableOfContents(WordExportContext context, OfficeMarkupTableOfContentsBlock toc) {
         var tableOfContent = context.Document.AddTableOfContent(
-            TableOfContentStyle.Template1,
+            WordTableOfContentsStyle.Template1,
             Math.Max(1, toc.MinLevel ?? 1),
             Math.Max(toc.MinLevel ?? 1, toc.MaxLevel ?? 3));
         if (!string.IsNullOrWhiteSpace(toc.Title)) {

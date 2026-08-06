@@ -58,7 +58,7 @@ public static class OfficeImageExportFontDiagnostics {
             "Font family '" + families[0] +
             "' could not be resolved with glyph coverage for this text; the dependency-free managed stroke fallback was used.",
             source,
-            OfficeImageExportLossKind.Approximation);
+            OfficeConversionLossKind.Approximation);
     }
 
     /// <summary>Adds de-duplicated font diagnostics for all text in a drawing, including nested groups and patterns.</summary>
@@ -160,7 +160,7 @@ public static class OfficeImageExportFontDiagnostics {
             "Font family '" + requestedFamily + "' was substituted with the " + origin +
             " '" + resolvedFamily + "' " + DescribeStyle(resolvedStyle) + " face because " + reason + ".",
             source,
-            OfficeImageExportLossKind.Approximation);
+            OfficeConversionLossKind.Approximation);
     }
 
     private static List<string> ParseFamilies(string familyNames) {

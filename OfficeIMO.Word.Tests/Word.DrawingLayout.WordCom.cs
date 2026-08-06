@@ -19,9 +19,9 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(path)) {
                 WordShapeGroup group = document.AddParagraph().AddShapeGroup(new[] {
-                    new WordShapeGroupItem(ShapeType.Chevron, 0, 0, 80, 40),
-                    new WordShapeGroupItem(ShapeType.Chevron, 72, 0, 80, 40),
-                    new WordShapeGroupItem(ShapeType.Chevron, 144, 0, 80, 40)
+                    new WordShapeGroupItem(WordShapeType.Chevron, 0, 0, 80, 40),
+                    new WordShapeGroupItem(WordShapeType.Chevron, 72, 0, 80, 40),
+                    new WordShapeGroupItem(WordShapeType.Chevron, 144, 0, 80, 40)
                 }, 24, 48);
                 Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot packageLayout));
                 Assert.Equal(224D, packageLayout.WidthPoints, 6);

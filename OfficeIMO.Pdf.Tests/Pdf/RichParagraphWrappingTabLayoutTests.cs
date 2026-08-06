@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_TreatsTabsAsWordLikeSpacing() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("Alpha\tBeta")
+                new PdfTextRun("Alpha\tBeta")
             }, 200, 12, PdfStandardFont.Helvetica);
 
             var line = Assert.Single(ExtractLines(result));
@@ -26,8 +26,8 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_PreservesLeadingTabOnEmptyLine() {
             var result = InvokeWrapRichRuns(new[] {
-                TextRun.Tab(),
-                TextRun.Normal("Indented")
+                PdfTextRun.Tab(),
+                PdfTextRun.Normal("Indented")
             }, 200, 12, PdfStandardFont.Helvetica);
 
             var line = Assert.Single(ExtractLines(result));
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_AdvancesTabsToDefaultHalfInchStops() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("A\tB")
+                new PdfTextRun("A\tB")
             }, 200, 12, PdfStandardFont.Helvetica);
 
             var line = Assert.Single(ExtractLines(result));
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_UsesConfiguredDefaultTabStopWidth() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("A\tB")
+                new PdfTextRun("A\tB")
             }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
 
             var line = Assert.Single(ExtractLines(result));
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_UsesExplicitParagraphTabStopsBeforeDefaultTabWidth() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("A\tB\tC")
+                new PdfTextRun("A\tB\tC")
             }, 240, 12, PdfStandardFont.Helvetica, tabStopWidth: 36, tabStops: new[] {
                 new PdfTabStop(90),
                 new PdfTabStop(150)
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_ReResolvesExplicitTabStopAfterWrappingTabbedToken() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("A\tB\tWrapped")
+                new PdfTextRun("A\tB\tWrapped")
             }, 115, 12, PdfStandardFont.Helvetica, tabStopWidth: 36, tabStops: new[] {
                 new PdfTabStop(60),
                 new PdfTabStop(120)
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.NotNull(method);
 
             var result = method!.Invoke(null, new object?[] {
-                new[] { new TextRun("A\tB") },
+                new[] { new PdfTextRun("A\tB") },
                 180D,
                 12D,
                 PdfStandardFont.Helvetica,
@@ -118,9 +118,9 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_UsesExplicitRightAlignedTabStopAndLeader() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("Revenue"),
-                TextRun.Tab(),
-                new TextRun("123")
+                new PdfTextRun("Revenue"),
+                PdfTextRun.Tab(),
+                new PdfTextRun("123")
             }, 240, 12, PdfStandardFont.Helvetica, tabStops: new[] {
                 new PdfTabStop(180, PdfTabAlignment.Right, PdfTabLeaderStyle.Dots)
             });
@@ -137,9 +137,9 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_CarriesDotLeaderFromExplicitTabRun() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("A"),
-                TextRun.Tab(PdfTabLeaderStyle.Dots),
-                new TextRun("B")
+                new PdfTextRun("A"),
+                PdfTextRun.Tab(PdfTabLeaderStyle.Dots),
+                new PdfTextRun("B")
             }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
 
             var line = Assert.Single(ExtractLines(result));
@@ -155,9 +155,9 @@ namespace OfficeIMO.Tests.Pdf {
         [InlineData(PdfTabLeaderStyle.Underscores)]
         public void WrapRichRuns_CarriesNonDotLeaderFromExplicitTabRun(PdfTabLeaderStyle leaderStyle) {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("A"),
-                TextRun.Tab(leaderStyle),
-                new TextRun("B")
+                new PdfTextRun("A"),
+                PdfTextRun.Tab(leaderStyle),
+                new PdfTextRun("B")
             }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
 
             var line = Assert.Single(ExtractLines(result));
@@ -171,14 +171,14 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_RightAlignedTabsAccountForFollowingTokenWidth() {
             var shortResult = InvokeWrapRichRuns(new[] {
-                new TextRun("A"),
-                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),
-                new TextRun("12")
+                new PdfTextRun("A"),
+                PdfTextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),
+                new PdfTextRun("12")
             }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
             var longResult = InvokeWrapRichRuns(new[] {
-                new TextRun("A"),
-                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),
-                new TextRun("12345")
+                new PdfTextRun("A"),
+                PdfTextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),
+                new PdfTextRun("12345")
             }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
 
             var shortLine = Assert.Single(ExtractLines(shortResult));
@@ -195,9 +195,9 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_RightAlignedTabsClampOversizedStopsToTextFrame() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("Column evidence"),
-                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),
-                new TextRun("1")
+                new PdfTextRun("Column evidence"),
+                PdfTextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),
+                new PdfTextRun("1")
             }, 180, 12, PdfStandardFont.Helvetica, tabStopWidth: 432);
 
             var line = Assert.Single(ExtractLines(result));
@@ -232,12 +232,12 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_RightAlignedLeadingTabAccountsForFollowingTokenWidth() {
             var shortResult = InvokeWrapRichRuns(new[] {
-                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),
-                new TextRun("12")
+                PdfTextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),
+                new PdfTextRun("12")
             }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
             var longResult = InvokeWrapRichRuns(new[] {
-                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),
-                new TextRun("12345")
+                PdfTextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),
+                new PdfTextRun("12345")
             }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
 
             var shortLine = Assert.Single(ExtractLines(shortResult));
@@ -256,14 +256,14 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_CenterAlignedTabsCenterFollowingTokenOnStop() {
             var shortResult = InvokeWrapRichRuns(new[] {
-                new TextRun("A"),
-                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Center),
-                new TextRun("AB")
+                new PdfTextRun("A"),
+                PdfTextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Center),
+                new PdfTextRun("AB")
             }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
             var longResult = InvokeWrapRichRuns(new[] {
-                new TextRun("A"),
-                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Center),
-                new TextRun("ABCDE")
+                new PdfTextRun("A"),
+                PdfTextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Center),
+                new PdfTextRun("ABCDE")
             }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
 
             var shortLine = Assert.Single(ExtractLines(shortResult));
@@ -280,14 +280,14 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_DecimalAlignedTabsAlignDecimalSeparator() {
             var shortResult = InvokeWrapRichRuns(new[] {
-                new TextRun("A"),
-                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator),
-                new TextRun("12.30")
+                new PdfTextRun("A"),
+                PdfTextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator),
+                new PdfTextRun("12.30")
             }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
             var longResult = InvokeWrapRichRuns(new[] {
-                new TextRun("A"),
-                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator),
-                new TextRun("1234.50")
+                new PdfTextRun("A"),
+                PdfTextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator),
+                new PdfTextRun("1234.50")
             }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
 
             var shortLine = Assert.Single(ExtractLines(shortResult));

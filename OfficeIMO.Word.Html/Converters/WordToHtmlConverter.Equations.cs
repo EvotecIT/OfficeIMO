@@ -163,12 +163,12 @@ namespace OfficeIMO.Word.Html {
                 span.AppendChild(node);
                 node = span;
             }
-            if (run.CapsStyle == CapsStyle.SmallCaps || run.CapsStyle == CapsStyle.Caps) {
+            if (run.CapsStyle == WordCapsStyle.SmallCaps || run.CapsStyle == WordCapsStyle.Caps) {
                 var span = CreateOutputElement(htmlDocument, "span");
                 SetOutputAttribute(
                     span,
                     "style",
-                    run.CapsStyle == CapsStyle.SmallCaps
+                    run.CapsStyle == WordCapsStyle.SmallCaps
                         ? "font-variant:small-caps"
                         : "text-transform:uppercase",
                     "EquationRunFormatting:caps");

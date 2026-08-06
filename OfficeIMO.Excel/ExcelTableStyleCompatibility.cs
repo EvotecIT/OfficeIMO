@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public sealed class ExcelTableStyleCompatibilityInfo {
         internal ExcelTableStyleCompatibilityInfo(
-            TableStyle style,
+            ExcelTableStyle style,
             string name,
             ExcelTableStyleCompatibilityProfile profile,
             bool isBuiltIn,
@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Gets the table style enum value.</summary>
-        public TableStyle Style { get; }
+        public ExcelTableStyle Style { get; }
 
         /// <summary>Gets the workbook style name written to table XML.</summary>
         public string Name { get; }
@@ -56,23 +56,23 @@ namespace OfficeIMO.Excel {
     /// Provides built-in Excel table style names and compatibility recommendations.
     /// </summary>
     public static class ExcelTableStyleCatalog {
-        private static readonly HashSet<TableStyle> CrossHostRecommendedStyles = new HashSet<TableStyle> {
-            TableStyle.TableStyleLight1,
-            TableStyle.TableStyleLight2,
-            TableStyle.TableStyleLight9,
-            TableStyle.TableStyleLight11,
-            TableStyle.TableStyleMedium2,
-            TableStyle.TableStyleMedium4,
-            TableStyle.TableStyleMedium9,
-            TableStyle.TableStyleMedium15,
-            TableStyle.TableStyleMedium21
+        private static readonly HashSet<ExcelTableStyle> CrossHostRecommendedStyles = new HashSet<ExcelTableStyle> {
+            ExcelTableStyle.TableStyleLight1,
+            ExcelTableStyle.TableStyleLight2,
+            ExcelTableStyle.TableStyleLight9,
+            ExcelTableStyle.TableStyleLight11,
+            ExcelTableStyle.TableStyleMedium2,
+            ExcelTableStyle.TableStyleMedium4,
+            ExcelTableStyle.TableStyleMedium9,
+            ExcelTableStyle.TableStyleMedium15,
+            ExcelTableStyle.TableStyleMedium21
         };
 
         /// <summary>
         /// Returns all built-in Excel table style names.
         /// </summary>
         public static IReadOnlyList<string> GetNames() {
-            return Enum.GetNames(typeof(TableStyle));
+            return Enum.GetNames(typeof(ExcelTableStyle));
         }
 
         /// <summary>
@@ -92,16 +92,16 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Tries to parse a built-in table style name.
         /// </summary>
-        public static bool TryParse(string? name, out TableStyle style) {
+        public static bool TryParse(string? name, out ExcelTableStyle style) {
             return Enum.TryParse(name, ignoreCase: true, out style)
-                && Enum.IsDefined(typeof(TableStyle), style);
+                && Enum.IsDefined(typeof(ExcelTableStyle), style);
         }
 
         /// <summary>
         /// Gets compatibility information for a built-in table style.
         /// </summary>
         public static ExcelTableStyleCompatibilityInfo Analyze(
-            TableStyle style,
+            ExcelTableStyle style,
             ExcelTableStyleCompatibilityProfile profile = ExcelTableStyleCompatibilityProfile.CrossHost) {
             bool recommended = profile == ExcelTableStyleCompatibilityProfile.Desktop
                 || CrossHostRecommendedStyles.Contains(style);
@@ -124,7 +124,7 @@ namespace OfficeIMO.Excel {
         public static ExcelTableStyleCompatibilityInfo Analyze(
             string name,
             ExcelTableStyleCompatibilityProfile profile = ExcelTableStyleCompatibilityProfile.CrossHost) {
-            if (!TryParse(name, out TableStyle style)) {
+            if (!TryParse(name, out ExcelTableStyle style)) {
                 return new ExcelTableStyleCompatibilityInfo(
                     default,
                     name,

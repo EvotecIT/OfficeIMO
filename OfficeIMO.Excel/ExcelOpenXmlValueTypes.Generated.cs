@@ -4,138 +4,6 @@ using System.Globalization;
 
 namespace OfficeIMO.Excel;
 
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues.</summary>
-public enum ExcelChartDisplayUnit {
-    /// <summary>Represents the Open XML value <c>hundreds</c>.</summary>
-    Hundreds,
-    /// <summary>Represents the Open XML value <c>thousands</c>.</summary>
-    Thousands,
-    /// <summary>Represents the Open XML value <c>tenThousands</c>.</summary>
-    TenThousands,
-    /// <summary>Represents the Open XML value <c>hundredThousands</c>.</summary>
-    HundredThousands,
-    /// <summary>Represents the Open XML value <c>millions</c>.</summary>
-    Millions,
-    /// <summary>Represents the Open XML value <c>tenMillions</c>.</summary>
-    TenMillions,
-    /// <summary>Represents the Open XML value <c>hundredMillions</c>.</summary>
-    HundredMillions,
-    /// <summary>Represents the Open XML value <c>billions</c>.</summary>
-    Billions,
-    /// <summary>Represents the Open XML value <c>trillions</c>.</summary>
-    Trillions,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues.</summary>
-public enum ExcelChartAxisCrossBetween {
-    /// <summary>Represents the Open XML value <c>between</c>.</summary>
-    Between,
-    /// <summary>Represents the Open XML value <c>midCat</c>.</summary>
-    MidpointCategory,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.CrossesValues.</summary>
-public enum ExcelChartAxisCrossing {
-    /// <summary>Represents the Open XML value <c>autoZero</c>.</summary>
-    AutoZero,
-    /// <summary>Represents the Open XML value <c>max</c>.</summary>
-    Maximum,
-    /// <summary>Represents the Open XML value <c>min</c>.</summary>
-    Minimum,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues.</summary>
-public enum ExcelChartDataLabelPosition {
-    /// <summary>Represents the Open XML value <c>bestFit</c>.</summary>
-    BestFit,
-    /// <summary>Represents the Open XML value <c>b</c>.</summary>
-    Bottom,
-    /// <summary>Represents the Open XML value <c>ctr</c>.</summary>
-    Center,
-    /// <summary>Represents the Open XML value <c>inBase</c>.</summary>
-    InsideBase,
-    /// <summary>Represents the Open XML value <c>inEnd</c>.</summary>
-    InsideEnd,
-    /// <summary>Represents the Open XML value <c>l</c>.</summary>
-    Left,
-    /// <summary>Represents the Open XML value <c>outEnd</c>.</summary>
-    OutsideEnd,
-    /// <summary>Represents the Open XML value <c>r</c>.</summary>
-    Right,
-    /// <summary>Represents the Open XML value <c>t</c>.</summary>
-    Top,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues.</summary>
-public enum ExcelChartLegendPosition {
-    /// <summary>Represents the Open XML value <c>b</c>.</summary>
-    Bottom,
-    /// <summary>Represents the Open XML value <c>tr</c>.</summary>
-    TopRight,
-    /// <summary>Represents the Open XML value <c>l</c>.</summary>
-    Left,
-    /// <summary>Represents the Open XML value <c>r</c>.</summary>
-    Right,
-    /// <summary>Represents the Open XML value <c>t</c>.</summary>
-    Top,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues.</summary>
-public enum ExcelChartMarkerStyle {
-    /// <summary>Represents the Open XML value <c>auto</c>.</summary>
-    Auto,
-    /// <summary>Represents the Open XML value <c>circle</c>.</summary>
-    Circle,
-    /// <summary>Represents the Open XML value <c>dash</c>.</summary>
-    Dash,
-    /// <summary>Represents the Open XML value <c>diamond</c>.</summary>
-    Diamond,
-    /// <summary>Represents the Open XML value <c>dot</c>.</summary>
-    Dot,
-    /// <summary>Represents the Open XML value <c>none</c>.</summary>
-    None,
-    /// <summary>Represents the Open XML value <c>picture</c>.</summary>
-    Picture,
-    /// <summary>Represents the Open XML value <c>plus</c>.</summary>
-    Plus,
-    /// <summary>Represents the Open XML value <c>square</c>.</summary>
-    Square,
-    /// <summary>Represents the Open XML value <c>star</c>.</summary>
-    Star,
-    /// <summary>Represents the Open XML value <c>triangle</c>.</summary>
-    Triangle,
-    /// <summary>Represents the Open XML value <c>x</c>.</summary>
-    X,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues.</summary>
-public enum ExcelChartTickLabelPosition {
-    /// <summary>Represents the Open XML value <c>high</c>.</summary>
-    High,
-    /// <summary>Represents the Open XML value <c>low</c>.</summary>
-    Low,
-    /// <summary>Represents the Open XML value <c>nextTo</c>.</summary>
-    NextTo,
-    /// <summary>Represents the Open XML value <c>none</c>.</summary>
-    None,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues.</summary>
-public enum ExcelChartTrendlineType {
-    /// <summary>Represents the Open XML value <c>exp</c>.</summary>
-    Exponential,
-    /// <summary>Represents the Open XML value <c>linear</c>.</summary>
-    Linear,
-    /// <summary>Represents the Open XML value <c>log</c>.</summary>
-    Logarithmic,
-    /// <summary>Represents the Open XML value <c>movingAvg</c>.</summary>
-    MovingAverage,
-    /// <summary>Represents the Open XML value <c>poly</c>.</summary>
-    Polynomial,
-    /// <summary>Represents the Open XML value <c>power</c>.</summary>
-    Power,
-}
-
 /// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Office2010.Excel.SparklineTypeValues.</summary>
 public enum ExcelSparklineType {
     /// <summary>Represents the Open XML value <c>line</c>.</summary>
@@ -665,176 +533,6 @@ public enum ExcelVerticalAlignment {
 }
 
 internal static class ExcelOpenXmlValueTypeExtensions {
-    private static readonly string[] ExcelChartDisplayUnitTokens = {
-        "hundreds",
-        "thousands",
-        "tenThousands",
-        "hundredThousands",
-        "millions",
-        "tenMillions",
-        "hundredMillions",
-        "billions",
-        "trillions",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues ToOpenXml(this ExcelChartDisplayUnit value) =>
-        new(GetToken(value, ExcelChartDisplayUnitTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues? ToOpenXml(this ExcelChartDisplayUnit? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static ExcelChartDisplayUnit ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues value) =>
-        (ExcelChartDisplayUnit)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, ExcelChartDisplayUnitTokens, nameof(ExcelChartDisplayUnit));
-
-    internal static ExcelChartDisplayUnit? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] ExcelChartAxisCrossBetweenTokens = {
-        "between",
-        "midCat",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues ToOpenXml(this ExcelChartAxisCrossBetween value) =>
-        new(GetToken(value, ExcelChartAxisCrossBetweenTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues? ToOpenXml(this ExcelChartAxisCrossBetween? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static ExcelChartAxisCrossBetween ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues value) =>
-        (ExcelChartAxisCrossBetween)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, ExcelChartAxisCrossBetweenTokens, nameof(ExcelChartAxisCrossBetween));
-
-    internal static ExcelChartAxisCrossBetween? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] ExcelChartAxisCrossingTokens = {
-        "autoZero",
-        "max",
-        "min",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossesValues ToOpenXml(this ExcelChartAxisCrossing value) =>
-        new(GetToken(value, ExcelChartAxisCrossingTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossesValues? ToOpenXml(this ExcelChartAxisCrossing? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static ExcelChartAxisCrossing ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossesValues value) =>
-        (ExcelChartAxisCrossing)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, ExcelChartAxisCrossingTokens, nameof(ExcelChartAxisCrossing));
-
-    internal static ExcelChartAxisCrossing? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossesValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] ExcelChartDataLabelPositionTokens = {
-        "bestFit",
-        "b",
-        "ctr",
-        "inBase",
-        "inEnd",
-        "l",
-        "outEnd",
-        "r",
-        "t",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues ToOpenXml(this ExcelChartDataLabelPosition value) =>
-        new(GetToken(value, ExcelChartDataLabelPositionTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues? ToOpenXml(this ExcelChartDataLabelPosition? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static ExcelChartDataLabelPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues value) =>
-        (ExcelChartDataLabelPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, ExcelChartDataLabelPositionTokens, nameof(ExcelChartDataLabelPosition));
-
-    internal static ExcelChartDataLabelPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] ExcelChartLegendPositionTokens = {
-        "b",
-        "tr",
-        "l",
-        "r",
-        "t",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues ToOpenXml(this ExcelChartLegendPosition value) =>
-        new(GetToken(value, ExcelChartLegendPositionTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues? ToOpenXml(this ExcelChartLegendPosition? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static ExcelChartLegendPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues value) =>
-        (ExcelChartLegendPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, ExcelChartLegendPositionTokens, nameof(ExcelChartLegendPosition));
-
-    internal static ExcelChartLegendPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] ExcelChartMarkerStyleTokens = {
-        "auto",
-        "circle",
-        "dash",
-        "diamond",
-        "dot",
-        "none",
-        "picture",
-        "plus",
-        "square",
-        "star",
-        "triangle",
-        "x",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues ToOpenXml(this ExcelChartMarkerStyle value) =>
-        new(GetToken(value, ExcelChartMarkerStyleTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues? ToOpenXml(this ExcelChartMarkerStyle? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static ExcelChartMarkerStyle ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues value) =>
-        (ExcelChartMarkerStyle)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, ExcelChartMarkerStyleTokens, nameof(ExcelChartMarkerStyle));
-
-    internal static ExcelChartMarkerStyle? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] ExcelChartTickLabelPositionTokens = {
-        "high",
-        "low",
-        "nextTo",
-        "none",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues ToOpenXml(this ExcelChartTickLabelPosition value) =>
-        new(GetToken(value, ExcelChartTickLabelPositionTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues? ToOpenXml(this ExcelChartTickLabelPosition? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static ExcelChartTickLabelPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues value) =>
-        (ExcelChartTickLabelPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, ExcelChartTickLabelPositionTokens, nameof(ExcelChartTickLabelPosition));
-
-    internal static ExcelChartTickLabelPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] ExcelChartTrendlineTypeTokens = {
-        "exp",
-        "linear",
-        "log",
-        "movingAvg",
-        "poly",
-        "power",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues ToOpenXml(this ExcelChartTrendlineType value) =>
-        new(GetToken(value, ExcelChartTrendlineTypeTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues? ToOpenXml(this ExcelChartTrendlineType? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static ExcelChartTrendlineType ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues value) =>
-        (ExcelChartTrendlineType)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, ExcelChartTrendlineTypeTokens, nameof(ExcelChartTrendlineType));
-
-    internal static ExcelChartTrendlineType? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
     private static readonly string[] ExcelSparklineTypeTokens = {
         "line",
         "column",
@@ -1357,6 +1055,176 @@ internal static class ExcelOpenXmlValueTypeExtensions {
         (ExcelVerticalAlignment)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, ExcelVerticalAlignmentTokens, nameof(ExcelVerticalAlignment));
 
     internal static ExcelVerticalAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartDisplayUnitTokens = {
+        "hundreds",
+        "thousands",
+        "tenThousands",
+        "hundredThousands",
+        "millions",
+        "tenMillions",
+        "hundredMillions",
+        "billions",
+        "trillions",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues ToOpenXml(this OfficeChartDisplayUnit value) =>
+        new(GetToken(value, OfficeChartDisplayUnitTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues? ToOpenXml(this OfficeChartDisplayUnit? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartDisplayUnit ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues value) =>
+        (OfficeChartDisplayUnit)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartDisplayUnitTokens, nameof(OfficeChartDisplayUnit));
+
+    internal static OfficeChartDisplayUnit? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartAxisCrossBetweenTokens = {
+        "between",
+        "midCat",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues ToOpenXml(this OfficeChartAxisCrossBetween value) =>
+        new(GetToken(value, OfficeChartAxisCrossBetweenTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues? ToOpenXml(this OfficeChartAxisCrossBetween? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartAxisCrossBetween ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues value) =>
+        (OfficeChartAxisCrossBetween)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartAxisCrossBetweenTokens, nameof(OfficeChartAxisCrossBetween));
+
+    internal static OfficeChartAxisCrossBetween? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartAxisCrossingPositionTokens = {
+        "autoZero",
+        "max",
+        "min",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossesValues ToOpenXml(this OfficeChartAxisCrossingPosition value) =>
+        new(GetToken(value, OfficeChartAxisCrossingPositionTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossesValues? ToOpenXml(this OfficeChartAxisCrossingPosition? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartAxisCrossingPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossesValues value) =>
+        (OfficeChartAxisCrossingPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartAxisCrossingPositionTokens, nameof(OfficeChartAxisCrossingPosition));
+
+    internal static OfficeChartAxisCrossingPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossesValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartDataLabelPositionTokens = {
+        "bestFit",
+        "b",
+        "ctr",
+        "inBase",
+        "inEnd",
+        "l",
+        "outEnd",
+        "r",
+        "t",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues ToOpenXml(this OfficeChartDataLabelPosition value) =>
+        new(GetToken(value, OfficeChartDataLabelPositionTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues? ToOpenXml(this OfficeChartDataLabelPosition? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartDataLabelPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues value) =>
+        (OfficeChartDataLabelPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartDataLabelPositionTokens, nameof(OfficeChartDataLabelPosition));
+
+    internal static OfficeChartDataLabelPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartLegendPositionTokens = {
+        "b",
+        "tr",
+        "l",
+        "r",
+        "t",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues ToOpenXml(this OfficeChartLegendPosition value) =>
+        new(GetToken(value, OfficeChartLegendPositionTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues? ToOpenXml(this OfficeChartLegendPosition? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartLegendPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues value) =>
+        (OfficeChartLegendPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartLegendPositionTokens, nameof(OfficeChartLegendPosition));
+
+    internal static OfficeChartLegendPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartMarkerShapeTokens = {
+        "auto",
+        "circle",
+        "dash",
+        "diamond",
+        "dot",
+        "none",
+        "picture",
+        "plus",
+        "square",
+        "star",
+        "triangle",
+        "x",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues ToOpenXml(this OfficeChartMarkerShape value) =>
+        new(GetToken(value, OfficeChartMarkerShapeTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues? ToOpenXml(this OfficeChartMarkerShape? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartMarkerShape ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues value) =>
+        (OfficeChartMarkerShape)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartMarkerShapeTokens, nameof(OfficeChartMarkerShape));
+
+    internal static OfficeChartMarkerShape? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartAxisTickLabelPositionTokens = {
+        "high",
+        "low",
+        "nextTo",
+        "none",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues ToOpenXml(this OfficeChartAxisTickLabelPosition value) =>
+        new(GetToken(value, OfficeChartAxisTickLabelPositionTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues? ToOpenXml(this OfficeChartAxisTickLabelPosition? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartAxisTickLabelPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues value) =>
+        (OfficeChartAxisTickLabelPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartAxisTickLabelPositionTokens, nameof(OfficeChartAxisTickLabelPosition));
+
+    internal static OfficeChartAxisTickLabelPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartTrendlineTypeTokens = {
+        "exp",
+        "linear",
+        "log",
+        "movingAvg",
+        "poly",
+        "power",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues ToOpenXml(this OfficeChartTrendlineType value) =>
+        new(GetToken(value, OfficeChartTrendlineTypeTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues? ToOpenXml(this OfficeChartTrendlineType? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartTrendlineType ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues value) =>
+        (OfficeChartTrendlineType)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartTrendlineTypeTokens, nameof(OfficeChartTrendlineType));
+
+    internal static OfficeChartTrendlineType? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
     private static string GetToken<TEnum>(TEnum value, string[] tokens) where TEnum : struct, Enum {

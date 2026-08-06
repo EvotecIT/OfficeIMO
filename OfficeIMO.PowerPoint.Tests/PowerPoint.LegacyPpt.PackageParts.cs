@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
                 presentation.ToBytes(PowerPointFileFormat.Ppt));
 
             presentation.SignatureMutationPolicy =
-                PowerPointSignatureMutationPolicy.RemoveInvalidatedSignatures;
+                OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures;
             byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
             Assert.NotEmpty(bytes);
             Assert.False(presentation.InspectSignatures().HasSignatureMetadata);

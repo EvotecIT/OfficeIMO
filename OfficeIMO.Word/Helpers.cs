@@ -103,19 +103,19 @@ namespace OfficeIMO.Word {
                 return new ImageCharacteristics(imageInfo.Width, imageInfo.Height, ConvertToImagePartType(imageInfo.Format));
             }
 
-            return new ImageCharacteristics(0, 0, CustomImagePartType.Png);
+            return new ImageCharacteristics(0, 0, WordImagePartType.Png);
         }
 
-        private static CustomImagePartType ConvertToImagePartType(OfficeImageFormat imageFormat) =>
+        private static WordImagePartType ConvertToImagePartType(OfficeImageFormat imageFormat) =>
             imageFormat switch {
-                OfficeImageFormat.Bmp => CustomImagePartType.Bmp,
-                OfficeImageFormat.Gif => CustomImagePartType.Gif,
-                OfficeImageFormat.Jpeg => CustomImagePartType.Jpeg,
-                OfficeImageFormat.Png => CustomImagePartType.Png,
-                OfficeImageFormat.Tiff => CustomImagePartType.Tiff,
-                OfficeImageFormat.Emf => CustomImagePartType.Emf,
-                OfficeImageFormat.Wmf => CustomImagePartType.Wmf,
-                OfficeImageFormat.Svg => CustomImagePartType.Svg,
+                OfficeImageFormat.Bmp => WordImagePartType.Bmp,
+                OfficeImageFormat.Gif => WordImagePartType.Gif,
+                OfficeImageFormat.Jpeg => WordImagePartType.Jpeg,
+                OfficeImageFormat.Png => WordImagePartType.Png,
+                OfficeImageFormat.Tiff => WordImagePartType.Tiff,
+                OfficeImageFormat.Emf => WordImagePartType.Emf,
+                OfficeImageFormat.Wmf => WordImagePartType.Wmf,
+                OfficeImageFormat.Svg => WordImagePartType.Svg,
                 _ => throw new NotSupportedException($"Word image parts do not support {imageFormat} images.")
             };
 
@@ -299,5 +299,5 @@ namespace OfficeIMO.Word {
         }
     }
 
-    internal record ImageCharacteristics(double Width, double Height, CustomImagePartType Type);
+    internal record ImageCharacteristics(double Width, double Height, WordImagePartType Type);
 }

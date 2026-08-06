@@ -28,7 +28,7 @@ internal static class HtmlConversionPreflightAnalyzer {
                 HtmlDiagnosticSeverity.Warning,
                 source: evidence.Location?.Selector,
                 detail: "target=" + target + "; feature=" + feature + "; occurrences=" + evidence.Count,
-                lossKind: omitted ? HtmlConversionLossKind.Omission : HtmlConversionLossKind.Approximation,
+                lossKind: omitted ? OfficeConversionLossKind.Omission : OfficeConversionLossKind.Approximation,
                 sourceLocation: evidence.Location,
                 targetAddress: "preflight:" + target.ToString().ToLowerInvariant()));
         }

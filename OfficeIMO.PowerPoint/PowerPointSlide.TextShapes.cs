@@ -7,7 +7,7 @@ namespace OfficeIMO.PowerPoint {
         /// Adds a text-bearing shape with the specified preset geometry.
         /// </summary>
         public PowerPointTextBox AddTextShape(
-            PowerPointShapeType shapeType,
+            OfficePresetShapeType shapeType,
             string text,
             long left = 0L,
             long top = 0L,
@@ -40,7 +40,7 @@ namespace OfficeIMO.PowerPoint {
         /// Adds a text-bearing shape using centimeter measurements.
         /// </summary>
         public PowerPointTextBox AddTextShapeCm(
-            PowerPointShapeType shapeType,
+            OfficePresetShapeType shapeType,
             string text,
             double leftCm,
             double topCm,
@@ -61,7 +61,7 @@ namespace OfficeIMO.PowerPoint {
         /// Adds a text-bearing shape using inch measurements.
         /// </summary>
         public PowerPointTextBox AddTextShapeInches(
-            PowerPointShapeType shapeType,
+            OfficePresetShapeType shapeType,
             string text,
             double leftInches,
             double topInches,
@@ -82,7 +82,7 @@ namespace OfficeIMO.PowerPoint {
         /// Adds a text-bearing shape using point measurements.
         /// </summary>
         public PowerPointTextBox AddTextShapePoints(
-            PowerPointShapeType shapeType,
+            OfficePresetShapeType shapeType,
             string text,
             double leftPoints,
             double topPoints,

@@ -8,8 +8,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
         private static bool AddImage(WordImage image, WordImageFlowContext context, List<OfficeImageExportDiagnostic> diagnostics) {
-            WrapTextImage? wrapText = image.WrapText;
-            if (wrapText.HasValue && wrapText.Value != WrapTextImage.InLineWithText) {
+            WordImageTextWrapping? wrapText = image.WrapText;
+            if (wrapText.HasValue && wrapText.Value != WordImageTextWrapping.InLineWithText) {
                 if (IsNoWrapAnchoredImage(wrapText.Value)) {
                     if (!context.IsTargetPage) {
                         return false;
@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
                     return AddNoWrapAnchoredImage(image, context, diagnostics);
                 }
 
-                if (wrapText.Value == WrapTextImage.TopAndBottom) {
+                if (wrapText.Value == WordImageTextWrapping.TopAndBottom) {
                     return AddTopAndBottomAnchoredImage(image, context, diagnostics);
                 }
 
@@ -100,7 +100,7 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            if (image.WrapText == WrapTextImage.BehindText) {
+            if (image.WrapText == WordImageTextWrapping.BehindText) {
                 context.Drawing.AddImageBehindContent(bytes, image.ContentType, projection, DescribeImage(image));
             } else {
                 context.Drawing.AddImage(bytes, image.ContentType, projection, DescribeImage(image));
@@ -162,7 +162,7 @@ namespace OfficeIMO.Word {
             return true;
         }
 
-        private static bool AddSideWrappedAnchoredImage(WordImage image, WrapTextImage wrapText, WordImageFlowContext context, List<OfficeImageExportDiagnostic> diagnostics) {
+        private static bool AddSideWrappedAnchoredImage(WordImage image, WordImageTextWrapping wrapText, WordImageFlowContext context, List<OfficeImageExportDiagnostic> diagnostics) {
             if (!TryReadEmbeddedImage(image, diagnostics, out byte[] bytes, out double width, out double height)) {
                 return false;
             }
@@ -199,12 +199,12 @@ namespace OfficeIMO.Word {
             double exclusionBottom = Math.Min(context.ContentBottom, boundsBottom + GetAnchorDistancePoints(anchor?.DistanceFromBottom));
             WordTextWrapSide wrapSide = GetTextWrapSide(anchor, wrapText);
             IReadOnlyList<OfficePoint> polygon = Array.Empty<OfficePoint>();
-            bool usedAuthoredPolygon = (wrapText == WrapTextImage.Tight || wrapText == WrapTextImage.Through) &&
+            bool usedAuthoredPolygon = (wrapText == WordImageTextWrapping.Tight || wrapText == WordImageTextWrapping.Through) &&
                 TryCreateAuthoredWrapPolygonTextExclusion(anchor, exclusionLeft, exclusionTop, exclusionRight, exclusionBottom, out polygon);
             bool usedTransparentPolygon = false;
             if (usedAuthoredPolygon) {
                 context.AddTextExclusion(polygon, wrapSide);
-            } else if ((wrapText == WrapTextImage.Tight || wrapText == WrapTextImage.Through) &&
+            } else if ((wrapText == WordImageTextWrapping.Tight || wrapText == WordImageTextWrapping.Through) &&
                 TryCreateTransparentImageWrapPolygon(bytes, projection, out IReadOnlyList<OfficePoint> transparentPolygon)) {
                 context.AddTextExclusion(transparentPolygon, wrapSide);
                 usedTransparentPolygon = true;
@@ -212,7 +212,7 @@ namespace OfficeIMO.Word {
                 context.AddTextExclusion(exclusionLeft, exclusionTop, exclusionRight, exclusionBottom, wrapSide);
             }
 
-            if (context.IsTargetPage && (wrapText == WrapTextImage.Tight || wrapText == WrapTextImage.Through) && !usedAuthoredPolygon && !usedTransparentPolygon) {
+            if (context.IsTargetPage && (wrapText == WordImageTextWrapping.Tight || wrapText == WordImageTextWrapping.Through) && !usedAuthoredPolygon && !usedTransparentPolygon) {
                 AddDiagnostic(
                     diagnostics,
                     "limited-word-floating-image-wrap",
@@ -300,19 +300,19 @@ namespace OfficeIMO.Word {
             return IsFinite(left) && IsFinite(top);
         }
 
-        private static bool IsNoWrapAnchoredImage(WrapTextImage wrapText) =>
-            wrapText == WrapTextImage.BehindText || wrapText == WrapTextImage.InFrontOfText;
+        private static bool IsNoWrapAnchoredImage(WordImageTextWrapping wrapText) =>
+            wrapText == WordImageTextWrapping.BehindText || wrapText == WordImageTextWrapping.InFrontOfText;
 
-        private static bool IsSideWrappedAnchoredImage(WrapTextImage wrapText) =>
-            wrapText == WrapTextImage.Square || wrapText == WrapTextImage.Tight || wrapText == WrapTextImage.Through;
+        private static bool IsSideWrappedAnchoredImage(WordImageTextWrapping wrapText) =>
+            wrapText == WordImageTextWrapping.Square || wrapText == WordImageTextWrapping.Tight || wrapText == WordImageTextWrapping.Through;
 
-        private static WordTextWrapSide GetTextWrapSide(Anchor? anchor, WrapTextImage wrapText) {
+        private static WordTextWrapSide GetTextWrapSide(Anchor? anchor, WordImageTextWrapping wrapText) {
             WrapTextValues? wrapValue = null;
-            if (wrapText == WrapTextImage.Square) {
+            if (wrapText == WordImageTextWrapping.Square) {
                 wrapValue = anchor?.Elements<WrapSquare>().FirstOrDefault()?.WrapText?.Value;
-            } else if (wrapText == WrapTextImage.Tight) {
+            } else if (wrapText == WordImageTextWrapping.Tight) {
                 wrapValue = anchor?.Elements<WrapTight>().FirstOrDefault()?.WrapText?.Value;
-            } else if (wrapText == WrapTextImage.Through) {
+            } else if (wrapText == WordImageTextWrapping.Through) {
                 wrapValue = anchor?.Elements<WrapThrough>().FirstOrDefault()?.WrapText?.Value;
             }
 
@@ -327,13 +327,13 @@ namespace OfficeIMO.Word {
             return WordTextWrapSide.Largest;
         }
 
-        private static string DescribeWrapText(WrapTextImage wrapText) {
+        private static string DescribeWrapText(WordImageTextWrapping wrapText) {
             switch (wrapText) {
-                case WrapTextImage.Square:
+                case WordImageTextWrapping.Square:
                     return "square-wrap";
-                case WrapTextImage.Tight:
+                case WordImageTextWrapping.Tight:
                     return "tight-wrap";
-                case WrapTextImage.Through:
+                case WordImageTextWrapping.Through:
                     return "through-wrap";
                 default:
                     return "wrapped";

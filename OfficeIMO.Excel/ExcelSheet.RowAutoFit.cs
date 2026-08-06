@@ -308,7 +308,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="mode">Overrides how the auto-fit work is scheduled across rows.</param>
         /// <param name="ct">Cancels the row auto-fit pass while heights are being calculated or applied.</param>
-        public void AutoFitRows(ExecutionMode? mode = null, CancellationToken ct = default) {
+        public void AutoFitRows(ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             // CalculateRowHeight reads shared Open XML nodes. Keep the read-and-apply pass
             // serialized even when callers request parallel execution; parallelizing the DOM
             // traversal is not safe and the public mode remains a scheduling hint.

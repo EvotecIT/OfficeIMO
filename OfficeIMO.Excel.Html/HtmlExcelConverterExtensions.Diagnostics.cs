@@ -10,7 +10,7 @@ public static partial class HtmlExcelConverterExtensions {
         string code,
         string message,
         HtmlDiagnosticSeverity severity = HtmlDiagnosticSeverity.Warning,
-        HtmlConversionLossKind lossKind = HtmlConversionLossKind.None,
+        OfficeConversionLossKind lossKind = OfficeConversionLossKind.None,
         string? source = null,
         string? detail = null) {
         result.AddImportDiagnostic(new HtmlDiagnostic(ImportComponentName, code, message, severity, source, detail, lossKind));
@@ -23,7 +23,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (ExcelSheet.IsSupportedImageContentType(dataUri.MediaType)) return true;
         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
             "An embedded worksheet image was omitted because its media type is not supported by Excel image parts.",
-            lossKind: HtmlConversionLossKind.Omission,
+            lossKind: OfficeConversionLossKind.Omission,
             source: source,
             detail: "mediaType=" + dataUri.MediaType);
         return false;

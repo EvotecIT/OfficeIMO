@@ -671,7 +671,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellAt(4, 2).SetValue("Amount");
                 sheet.CellAt(5, 1).SetValue("A");
                 sheet.CellAt(5, 2).SetValue(10);
-                sheet.AddTable("A4:B5", hasHeader: true, name: "SalesTable", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                sheet.AddTable("A4:B5", hasHeader: true, name: "SalesTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 document.SetNamedRange("GlobalSales", "'Invoice'!A4:B5", save: false);
                 sheet.SetNamedRange("LocalSales", "A4:B5", save: false);
                 document.Save();
@@ -720,7 +720,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellAt(5, 2).SetValue("Amount");
                 sheet.CellAt(6, 1).SetValue("A");
                 sheet.CellAt(6, 2).SetValue(10);
-                sheet.AddTable("A5:B6", hasHeader: true, name: "SalesTable", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                sheet.AddTable("A5:B6", hasHeader: true, name: "SalesTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 document.SetNamedRange("GlobalSales", "'Invoice'!A5:B6", save: false);
                 sheet.SetNamedRange("LocalSales", "A5:B6", save: false);
                 document.Save();
@@ -777,7 +777,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellAt(6, 2).SetValue("Amount");
                 sheet.CellAt(7, 1).SetValue("{{Owner}}");
                 sheet.CellAt(7, 2).SetValue("{{Amount}}");
-                sheet.AddTable("A6:B7", hasHeader: true, name: "RegionTable", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                sheet.AddTable("A6:B7", hasHeader: true, name: "RegionTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 sheet.SetHyperlink("A9", "https://example.com/help", "Help");
                 sheet.SetInternalLink(11, 1, "'Region Template'!A1", "Back to top");
                 sheet.SetComment("A10", "Template note", author: "Template");

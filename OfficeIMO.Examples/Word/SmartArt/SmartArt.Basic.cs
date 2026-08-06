@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with a SmartArt diagram");
             string filePath = System.IO.Path.Combine(folderPath, "SmartArtBasic.docx");
             using WordDocument document = WordDocument.Create(filePath);
-            document.AddSmartArt(SmartArtType.BasicProcess);
+            document.AddSmartArt(WordSmartArtType.BasicProcess);
             document.Save();
             if (openWord) document.OpenInApplication();
             OfficeIMO.Examples.Utils.Validation.ValidateDoc(filePath);

@@ -159,21 +159,21 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Applies borders to all cells.
         /// </summary>
-        public void SetCellBorders(TableCellBorders borders, string color, double? widthPoints = null) {
+        public void SetCellBorders(PowerPointTableCellBorders borders, string color, double? widthPoints = null) {
             ApplyToCells(cell => cell.SetBorders(borders, color, widthPoints));
         }
 
         /// <summary>
         ///     Applies dashed borders to all cells.
         /// </summary>
-        public void SetCellBorders(TableCellBorders borders, string color, double? widthPoints, PowerPointLineDashStyle dash) {
+        public void SetCellBorders(PowerPointTableCellBorders borders, string color, double? widthPoints, PowerPointLineDashStyle dash) {
             ApplyToCells(cell => cell.SetBorders(borders, color, widthPoints, dash));
         }
 
         /// <summary>
         ///     Clears borders for all cells.
         /// </summary>
-        public void ClearCellBorders(TableCellBorders borders) {
+        public void ClearCellBorders(PowerPointTableCellBorders borders) {
             ApplyToCells(cell => cell.ClearBorders(borders));
         }
 

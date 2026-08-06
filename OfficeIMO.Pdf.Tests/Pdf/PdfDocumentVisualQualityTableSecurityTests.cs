@@ -30,9 +30,9 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTableCell[][] rows = {
             new[] {
                 PdfTableCell.RichTextCell(new[] {
-                    TextRun.Normal("VisibleLine"),
-                    TextRun.LineBreak(),
-                    TextRun.Normal("ClippedSecret")
+                    PdfTextRun.Normal("VisibleLine"),
+                    PdfTextRun.LineBreak(),
+                    PdfTextRun.Normal("ClippedSecret")
                 })
             }
         };
@@ -79,7 +79,7 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTableCell[][] rows = {
             new[] {
                 PdfTableCell.RichTextCell(new[] {
-                    TextRun.Link(new string('W', 256), uri)
+                    PdfTextRun.Link(new string('W', 256), uri)
                 }).WithNoWrap()
             }
         };

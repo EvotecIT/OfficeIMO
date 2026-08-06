@@ -73,7 +73,7 @@ public partial class Word {
         table._tableProperties!.TableStyle?.Remove();
         table.WidthType = WordTableWidthUnit.Pct;
         table.Width = 5000;
-        table.LayoutType = WordTableLayoutMode.Autofit;
+        table.LayoutMode = WordTableLayoutMode.AutoFit;
         table.Rows[0].Cells[0].Width = 1200;
         table.Rows[0].Cells[1].Width = 2400;
         table.Rows[0].Cells[2].Width = 1200;
@@ -186,7 +186,7 @@ public partial class Word {
         WordTable table = document.AddTable(1, 3);
         table.WidthType = WordTableWidthUnit.Pct;
         table.Width = 5000;
-        table.LayoutType = WordTableLayoutMode.Autofit;
+        table.LayoutMode = WordTableLayoutMode.AutoFit;
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Date";
         table.Rows[0].Cells[1].Paragraphs[0].Text = "Narrative";
         table.Rows[0].Cells[2].Paragraphs[0].Text = "State";
@@ -224,7 +224,7 @@ public partial class Word {
 
         WordTable directFixedTable = document.AddTable(1, 2);
         directFixedTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericAutofitLayoutTable" };
-        directFixedTable.LayoutType = WordTableLayoutMode.Fixed;
+        directFixedTable.LayoutMode = WordTableLayoutMode.Fixed;
         directFixedTable.Rows[0].Cells[0].Width = 2160;
         directFixedTable.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
         directFixedTable.Rows[0].Cells[1].Width = 2160;

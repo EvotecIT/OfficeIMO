@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             byte[] pngBytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Sheet1");
-                sheet.SetHeaderImage(HeaderFooterPosition.Center, pngBytes, "image/png");
+                sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, pngBytes, "image/png");
                 document.Save();
             }
 
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 """);
 
             using ExcelDocument loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-            ExcelSheet.HeaderFooterSnapshot snapshot = loaded.Sheets.Single().GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterSnapshot snapshot = loaded.Sheets.Single().GetHeaderFooter();
 
             Assert.True(snapshot.HeaderHasPicturePlaceholder);
             Assert.Null(snapshot.HeaderCenterImage);

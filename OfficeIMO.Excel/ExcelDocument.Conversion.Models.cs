@@ -13,102 +13,6 @@ namespace OfficeIMO.Excel {
         Xlsb
     }
 
-    /// <summary>Controls whether a conversion may continue when content loss is known.</summary>
-    public enum ExcelConversionLossPolicy {
-        /// <summary>Reject conversion when known content would be omitted.</summary>
-        Block,
-        /// <summary>Continue and report known omitted content in the result.</summary>
-        Allow
-    }
-
-    /// <summary>Controls how conversion handles an existing destination file.</summary>
-    public enum ExcelConversionFileConflictPolicy {
-        /// <summary>Reject conversion if the destination exists.</summary>
-        FailIfExists,
-        /// <summary>Replace an existing destination through an atomic commit.</summary>
-        Replace
-    }
-
-    /// <summary>Identifies the purpose of a conversion diagnostic.</summary>
-    public enum ExcelConversionDiagnosticCategory {
-        /// <summary>Source format detection or extension findings.</summary>
-        SourceFormat,
-        /// <summary>Content that cannot survive conversion.</summary>
-        DataLoss,
-        /// <summary>Destination format or writer findings.</summary>
-        DestinationFormat
-    }
-
-    /// <summary>Identifies the severity of a conversion diagnostic.</summary>
-    public enum ExcelConversionDiagnosticSeverity {
-        /// <summary>Informational finding.</summary>
-        Information,
-        /// <summary>Finding requiring user review.</summary>
-        Warning,
-        /// <summary>Finding that prevented conversion.</summary>
-        Error
-    }
-
-    /// <summary>Describes a structured Excel conversion finding.</summary>
-    public sealed class ExcelConversionDiagnostic {
-        internal ExcelConversionDiagnostic(
-            string code,
-            ExcelConversionDiagnosticCategory category,
-            ExcelConversionDiagnosticSeverity severity,
-            string message,
-            bool representsDataLoss,
-            OfficeCompatibilityState? compatibilityState = null,
-            OfficeCompatibilityImpact compatibilityImpact = OfficeCompatibilityImpact.None,
-            string? sourceLocation = null,
-            string? fallbackArtifact = null) {
-            Code = code;
-            Category = category;
-            Severity = severity;
-            Message = message;
-            RepresentsDataLoss = representsDataLoss;
-            CompatibilityState = compatibilityState ?? InferCompatibilityState(category, representsDataLoss);
-            CompatibilityImpact = compatibilityImpact == OfficeCompatibilityImpact.None && representsDataLoss
-                ? OfficeCompatibilityImpact.Semantic | OfficeCompatibilityImpact.Carrier
-                : compatibilityImpact;
-            SourceLocation = sourceLocation;
-            FallbackArtifact = fallbackArtifact;
-        }
-
-        /// <summary>Gets the stable diagnostic code.</summary>
-        public string Code { get; }
-
-        /// <summary>Gets the diagnostic category.</summary>
-        public ExcelConversionDiagnosticCategory Category { get; }
-
-        /// <summary>Gets the diagnostic severity.</summary>
-        public ExcelConversionDiagnosticSeverity Severity { get; }
-
-        /// <summary>Gets the human-readable diagnostic message.</summary>
-        public string Message { get; }
-
-        /// <summary>Gets whether the diagnostic describes content that will not survive conversion.</summary>
-        public bool RepresentsDataLoss { get; }
-
-        /// <summary>Gets the shared feature-level representation state.</summary>
-        public OfficeCompatibilityState CompatibilityState { get; }
-
-        /// <summary>Gets the fidelity dimensions affected by the finding.</summary>
-        public OfficeCompatibilityImpact CompatibilityImpact { get; }
-
-        /// <summary>Gets the related source part, sheet, range, record, or other location.</summary>
-        public string? SourceLocation { get; }
-
-        /// <summary>Gets the generated fallback artifact, when one exists.</summary>
-        public string? FallbackArtifact { get; }
-
-        private static OfficeCompatibilityState InferCompatibilityState(
-            ExcelConversionDiagnosticCategory category,
-            bool representsDataLoss) {
-            if (category == ExcelConversionDiagnosticCategory.DestinationFormat) return OfficeCompatibilityState.Blocked;
-            return representsDataLoss ? OfficeCompatibilityState.Dropped : OfficeCompatibilityState.Equivalent;
-        }
-    }
-
     /// <summary>Represents the destination artifact and report produced by an Excel file conversion.</summary>
     public sealed class ExcelDocumentConversionResult {
         internal ExcelDocumentConversionResult(
@@ -118,7 +22,7 @@ namespace OfficeIMO.Excel {
             ExcelFileFormat destinationFormat,
             OfficeFormatDescriptor sourceDescriptor,
             OfficeFormatDescriptor destinationDescriptor,
-            IReadOnlyList<ExcelConversionDiagnostic> diagnostics,
+            IReadOnlyList<OfficeConversionDiagnostic> diagnostics,
             OfficeCompatibilityMode compatibilityMode,
             bool outputCreated,
             bool replacedExistingFile) {
@@ -164,7 +68,7 @@ namespace OfficeIMO.Excel {
             ExcelFileFormat destinationFormat,
             OfficeFormatDescriptor sourceDescriptor,
             OfficeFormatDescriptor destinationDescriptor,
-            IReadOnlyList<ExcelConversionDiagnostic> diagnostics,
+            IReadOnlyList<OfficeConversionDiagnostic> diagnostics,
             OfficeCompatibilityMode compatibilityMode,
             bool replacedExistingFile) {
             SourcePath = sourcePath;
@@ -201,7 +105,7 @@ namespace OfficeIMO.Excel {
         public OfficeFormatDescriptor DestinationFormatDescriptor { get; }
 
         /// <summary>Gets a snapshot of conversion diagnostics.</summary>
-        public IReadOnlyList<ExcelConversionDiagnostic> Diagnostics { get; }
+        public IReadOnlyList<OfficeConversionDiagnostic> Diagnostics { get; }
 
         /// <summary>Gets the shared feature-level fidelity assessment for this conversion.</summary>
         public OfficeCompatibilityReport Compatibility { get; }
@@ -217,11 +121,11 @@ namespace OfficeIMO.Excel {
             Compatibility.RequireNoLoss();
         }
 
-        private static OfficeCompatibilityFinding CreateCompatibilityFinding(ExcelConversionDiagnostic diagnostic) {
+        private static OfficeCompatibilityFinding CreateCompatibilityFinding(OfficeConversionDiagnostic diagnostic) {
             OfficeCompatibilityState state = diagnostic.CompatibilityState;
             OfficeCompatibilitySeverity severity = diagnostic.Severity switch {
-                ExcelConversionDiagnosticSeverity.Warning => OfficeCompatibilitySeverity.Warning,
-                ExcelConversionDiagnosticSeverity.Error => OfficeCompatibilitySeverity.Error,
+                OfficeConversionDiagnosticSeverity.Warning => OfficeCompatibilitySeverity.Warning,
+                OfficeConversionDiagnosticSeverity.Error => OfficeCompatibilitySeverity.Error,
                 _ => OfficeCompatibilitySeverity.Information
             };
             return new OfficeCompatibilityFinding(
@@ -237,22 +141,10 @@ namespace OfficeIMO.Excel {
         }
     }
 
-    /// <summary>Identifies why an Excel conversion was rejected.</summary>
-    public enum ExcelDocumentConversionFailureReason {
-        /// <summary>Source and destination physical formats are identical.</summary>
-        SameFormat,
-        /// <summary>The destination exists and replacement was not allowed.</summary>
-        DestinationExists,
-        /// <summary>Known content loss was blocked by policy.</summary>
-        DataLossBlocked,
-        /// <summary>The destination writer cannot represent source content.</summary>
-        DestinationFeatureUnsupported
-    }
-
     /// <summary>Raised when a validated Excel conversion cannot be completed safely.</summary>
     public sealed class ExcelDocumentConversionException : InvalidOperationException {
         internal ExcelDocumentConversionException(
-            ExcelDocumentConversionFailureReason reason,
+            OfficeConversionFailureReason reason,
             ExcelDocumentConversionResult result,
             string message,
             Exception? innerException = null)
@@ -262,7 +154,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Gets the structured failure reason.</summary>
-        public ExcelDocumentConversionFailureReason Reason { get; }
+        public OfficeConversionFailureReason Reason { get; }
 
         /// <summary>Gets the conversion assessment available when the operation was rejected.</summary>
         public ExcelDocumentConversionResult Result { get; }
@@ -271,10 +163,10 @@ namespace OfficeIMO.Excel {
     /// <summary>Controls file-to-file Excel workbook conversion.</summary>
     public sealed class ExcelDocumentConversionOptions {
         /// <summary>Gets or sets how an existing destination is handled. The default is to fail.</summary>
-        public ExcelConversionFileConflictPolicy FileConflictPolicy { get; set; } = ExcelConversionFileConflictPolicy.FailIfExists;
+        public OfficeConversionFileConflictPolicy FileConflictPolicy { get; set; } = OfficeConversionFileConflictPolicy.FailIfExists;
 
         /// <summary>Gets or sets how known conversion loss is handled. The default is to block it.</summary>
-        public ExcelConversionLossPolicy LossPolicy { get; set; } = ExcelConversionLossPolicy.Block;
+        public OfficeConversionLossPolicy LossPolicy { get; set; } = OfficeConversionLossPolicy.Block;
 
         /// <summary>
         /// Gets or sets the requested fidelity strategy. Existing <see cref="LossPolicy"/> behavior remains
@@ -299,7 +191,7 @@ namespace OfficeIMO.Excel {
         /// Gets or sets optional Open XML load settings for XLSX sources. Conversion always disables
         /// <see cref="OpenSettings.AutoSave"/> so source files are never modified as a load side effect.
         /// </summary>
-        public OpenSettings? OpenSettings { get; set; }
+        public OfficeOpenXmlLoadSettings? OpenSettings { get; set; }
 
         /// <summary>
         /// Gets or sets optional legacy XLS import settings. Conversion always enables unsupported-content

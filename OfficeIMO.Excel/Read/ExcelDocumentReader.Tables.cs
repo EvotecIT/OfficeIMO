@@ -112,7 +112,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Reads an Excel table by name into a DataTable.
         /// </summary>
-        public DataTable ReadTableAsDataTable(string tableName, bool? headersInFirstRow = null, ExecutionMode? mode = null, CancellationToken ct = default) {
+        public DataTable ReadTableAsDataTable(string tableName, bool? headersInFirstRow = null, ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             var table = GetTable(tableName);
             return GetSheet(table.SheetName).ReadRangeAsDataTable(table.Range, headersInFirstRow ?? table.HasHeaderRow, mode, ct);
         }
@@ -120,7 +120,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Reads an Excel table by name as dictionaries using the table header row.
         /// </summary>
-        public IEnumerable<Dictionary<string, object?>> ReadTableObjects(string tableName, ExecutionMode? mode = null, CancellationToken ct = default) {
+        public IEnumerable<Dictionary<string, object?>> ReadTableObjects(string tableName, ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             var table = GetTable(tableName);
             EnsureTableHasHeaderRow(table, nameof(ReadTableObjects));
             return GetSheet(table.SheetName).ReadObjects(table.Range, mode, ct);
@@ -131,7 +131,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IEnumerable<T> ReadTableObjects<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             string tableName,
-            ExecutionMode? mode = null,
+            ExcelExecutionMode? mode = null,
             CancellationToken ct = default) where T : new() {
             var table = GetTable(tableName);
             EnsureTableHasHeaderRow(table, nameof(ReadTableObjects));

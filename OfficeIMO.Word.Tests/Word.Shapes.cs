@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddShapeFromDocument() {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentAddShape.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var shape = document.AddShape(ShapeType.Rectangle, 80, 40, Color.Lime, Color.Black, 2);
+                var shape = document.AddShape(WordShapeType.Rectangle, 80, 40, Color.Lime, Color.Black, 2);
                 Assert.True(document.Paragraphs[0].IsShape);
                 Assert.Equal(Color.Lime.ToRgbHex(), shape.FillColorHex);
                 Assert.Equal(Color.Black.ToRgbHex(), shape.StrokeColorHex);
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ParagraphAddShape.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
-                var shape = paragraph.AddShape(ShapeType.Ellipse, 60, 30, Color.Aqua, Color.Red, 1.5);
+                var shape = paragraph.AddShape(WordShapeType.Ellipse, 60, 30, Color.Aqua, Color.Red, 1.5);
                 Assert.True(paragraph.IsShape);
                 Assert.Equal(Color.Aqua.ToRgbHex(), shape.FillColorHex);
                 Assert.Equal(Color.Red.ToRgbHex(), shape.StrokeColorHex);
@@ -108,8 +108,8 @@ namespace OfficeIMO.Tests {
         public void Test_ShapeCollectionsAndRemoval() {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentShapesCollections.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var rect = document.AddShape(ShapeType.Rectangle, 50, 20);
-                var ellipse = document.AddShape(ShapeType.Ellipse, 40, 40, Color.Green, Color.Blue);
+                var rect = document.AddShape(WordShapeType.Rectangle, 50, 20);
+                var ellipse = document.AddShape(WordShapeType.Ellipse, 40, 40, Color.Green, Color.Blue);
                 ellipse.FillColor = Color.Yellow;
 
                 Assert.True(document.Shapes.Count == 2);
@@ -136,15 +136,15 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SectionHeaderShapes.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var section = document.Sections[0];
-                section.AddShape(ShapeType.Rectangle, 40, 20, Color.Red, Color.Black);
-                section.AddShape(ShapeType.RoundedRectangle, 30, 15, Color.Yellow, Color.Black, 1, arcSize: 0.3);
-                section.AddShapeDrawing(ShapeType.Ellipse, 20, 20);
+                section.AddShape(WordShapeType.Rectangle, 40, 20, Color.Red, Color.Black);
+                section.AddShape(WordShapeType.RoundedRectangle, 30, 15, Color.Yellow, Color.Black, 1, arcSize: 0.3);
+                section.AddShapeDrawing(WordShapeType.Ellipse, 20, 20);
 
                 section.AddHeadersAndFooters();
                 var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
-                defaultHeader.AddShape(ShapeType.Rectangle, 30, 15, Color.Blue, Color.Black);
-                defaultHeader.AddShape(ShapeType.RoundedRectangle, 25, 15, Color.Green, Color.Black, 1, arcSize: 0.3);
-                defaultHeader.AddShapeDrawing(ShapeType.Ellipse, 20, 20);
+                defaultHeader.AddShape(WordShapeType.Rectangle, 30, 15, Color.Blue, Color.Black);
+                defaultHeader.AddShape(WordShapeType.RoundedRectangle, 25, 15, Color.Green, Color.Black, 1, arcSize: 0.3);
+                defaultHeader.AddShapeDrawing(WordShapeType.Ellipse, 20, 20);
 
                 document.Save();
             }
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddRoundedRectangleShape() {
             string filePath = Path.Combine(_directoryWithFiles, "RoundedRectangleShape.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var shape = document.AddShape(ShapeType.RoundedRectangle, 60, 30, Color.Lime, Color.Black, 1, arcSize: 0.3);
+                var shape = document.AddShape(WordShapeType.RoundedRectangle, 60, 30, Color.Lime, Color.Black, 1, arcSize: 0.3);
                 Assert.True(document.Paragraphs[0].IsShape);
                 Assert.NotNull(shape.ArcSize);
                 Assert.InRange(shape.ArcSize!.Value, 0.29, 0.31);

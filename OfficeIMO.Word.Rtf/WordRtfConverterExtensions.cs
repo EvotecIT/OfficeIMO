@@ -1089,7 +1089,7 @@ public static partial class WordRtfConverterExtensions {
         string? targetFrameValue = field.HyperlinkField?.TargetFrame;
         if (linkedHyperlink != null &&
             !string.IsNullOrEmpty(targetFrameValue) &&
-            Enum.TryParse<TargetFrame>(targetFrameValue, true, out TargetFrame targetFrame)) {
+            Enum.TryParse<WordHyperlinkTargetFrame>(targetFrameValue, true, out WordHyperlinkTargetFrame targetFrame)) {
             linkedHyperlink.TargetFrame = targetFrame;
         }
     }

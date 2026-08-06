@@ -9,15 +9,15 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class PowerPointPictureUpdate {
         public static IEnumerable<object[]> ImageData => new[] {
-            new object[] { "BackgroundImage.png", ImagePartType.Png, "image/png" },
-            new object[] { "Kulek.jpg", ImagePartType.Jpeg, "image/jpeg" },
-            new object[] { "example.gif", ImagePartType.Gif, "image/gif" },
-            new object[] { "snail.bmp", ImagePartType.Bmp, "image/bmp" },
+            new object[] { "BackgroundImage.png", PowerPointImagePartType.Png, "image/png" },
+            new object[] { "Kulek.jpg", PowerPointImagePartType.Jpeg, "image/jpeg" },
+            new object[] { "example.gif", PowerPointImagePartType.Gif, "image/gif" },
+            new object[] { "snail.bmp", PowerPointImagePartType.Bmp, "image/bmp" },
         };
 
         [Theory]
         [MemberData(nameof(ImageData))]
-        public void CanAddPictureFromPathWithSharedImageExtensionMapping(string image, ImagePartType expectedType, string expectedContentType) {
+        public void CanAddPictureFromPathWithSharedImageExtensionMapping(string image, PowerPointImagePartType expectedType, string expectedContentType) {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", image);
             Assert.Equal(expectedType, ImagePartTypeExtensions.FromImagePath(imagePath));
@@ -42,12 +42,12 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PowerPointImagePartExtensionsUseSharedDrawingPolicy() {
-            Assert.Equal(ImagePartType.Png, ImagePartTypeExtensions.FromOfficeImageFormat(OfficeImageFormat.Png));
-            Assert.Equal(".png", PowerPointPartFactory.GetImageExtension(ImagePartType.Png));
-            Assert.Equal(".jpeg", PowerPointPartFactory.GetImageExtension(ImagePartType.Jpeg));
-            Assert.Equal(".svg", PowerPointPartFactory.GetImageExtension(ImagePartType.Svg));
-            Assert.Equal(".emf", PowerPointPartFactory.GetImageExtension(ImagePartType.Emf));
-            Assert.Equal(".jpg", PowerPointPartFactory.GetImageExtension(ImagePartType.Jpeg, @"C:\Temp\photo.JPG"));
+            Assert.Equal(PowerPointImagePartType.Png, ImagePartTypeExtensions.FromOfficeImageFormat(OfficeImageFormat.Png));
+            Assert.Equal(".png", PowerPointPartFactory.GetImageExtension(PowerPointImagePartType.Png));
+            Assert.Equal(".jpeg", PowerPointPartFactory.GetImageExtension(PowerPointImagePartType.Jpeg));
+            Assert.Equal(".svg", PowerPointPartFactory.GetImageExtension(PowerPointImagePartType.Svg));
+            Assert.Equal(".emf", PowerPointPartFactory.GetImageExtension(PowerPointImagePartType.Emf));
+            Assert.Equal(".jpg", PowerPointPartFactory.GetImageExtension(PowerPointImagePartType.Jpeg, @"C:\Temp\photo.JPG"));
         }
 
         [Fact]
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
 
         [Theory]
         [MemberData(nameof(ImageData))]
-        public void CanUpdatePicture(string newImage, ImagePartType type, string expectedContentType) {
+        public void CanUpdatePicture(string newImage, PowerPointImagePartType type, string expectedContentType) {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string originalImage = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
             string newImagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", newImage);
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
                 PowerPointPicture duplicate = Assert.IsType<PowerPointPicture>(slide.DuplicateShape(original, 250000, 0));
 
                 using FileStream stream = new(replacementImage, FileMode.Open, FileAccess.Read);
-                original.UpdateImage(stream, ImagePartType.Jpeg);
+                original.UpdateImage(stream, PowerPointImagePartType.Jpeg);
 
                 Assert.Equal("image/jpeg", original.ContentType);
                 Assert.Equal("image/png", duplicate.ContentType);

@@ -40,7 +40,7 @@ public class HtmlOfficeAdaptersStructuredResults {
         HtmlDiagnostic diagnostic = Assert.Single(exception.Diagnostics);
         Assert.Equal(HtmlConversionDiagnosticCodes.SemanticContentMissing, diagnostic.Code);
         Assert.Equal(HtmlDiagnosticSeverity.Error, diagnostic.Severity);
-        Assert.Equal(HtmlConversionLossKind.Failure, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
     }
 
     [Fact]
@@ -51,6 +51,6 @@ public class HtmlOfficeAdaptersStructuredResults {
         HtmlDiagnostic diagnostic = Assert.Single(exception.Diagnostics);
         Assert.Equal(HtmlConversionDiagnosticCodes.SemanticContentMissing, diagnostic.Code);
         Assert.Equal(HtmlDiagnosticSeverity.Error, diagnostic.Severity);
-        Assert.Equal(HtmlConversionLossKind.Failure, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
     }
 }

@@ -224,13 +224,13 @@ namespace OfficeIMO.PowerPoint {
                     projectedShape = textBox;
                     break;
                 case LegacyPptShapeKind.Rectangle:
-                    projectedShape = slide.AddShape(PowerPointShapeType.Rectangle, left, top, width, height);
+                    projectedShape = slide.AddShape(OfficePresetShapeType.Rectangle, left, top, width, height);
                     break;
                 case LegacyPptShapeKind.Ellipse:
-                    projectedShape = slide.AddShape(PowerPointShapeType.Ellipse, left, top, width, height);
+                    projectedShape = slide.AddShape(OfficePresetShapeType.Ellipse, left, top, width, height);
                     break;
                 case LegacyPptShapeKind.Line:
-                    projectedShape = slide.AddShape(PowerPointShapeType.Line, left, top, width, height);
+                    projectedShape = slide.AddShape(OfficePresetShapeType.Line, left, top, width, height);
                     break;
                 case LegacyPptShapeKind.AutoShape:
                     if (LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
@@ -423,13 +423,13 @@ namespace OfficeIMO.PowerPoint {
             ApplyLegacyPictureEffects(picture.BlipFill.Blip, source);
         }
 
-        private static ImagePartType GetLegacyPicturePartType(string contentType) => contentType switch {
-            "image/png" => ImagePartType.Png,
-            "image/jpeg" => ImagePartType.Jpeg,
-            "image/bmp" => ImagePartType.Bmp,
-            "image/tiff" => ImagePartType.Tiff,
-            "image/x-emf" => ImagePartType.Emf,
-            "image/x-wmf" => ImagePartType.Wmf,
+        private static PowerPointImagePartType GetLegacyPicturePartType(string contentType) => contentType switch {
+            "image/png" => PowerPointImagePartType.Png,
+            "image/jpeg" => PowerPointImagePartType.Jpeg,
+            "image/bmp" => PowerPointImagePartType.Bmp,
+            "image/tiff" => PowerPointImagePartType.Tiff,
+            "image/x-emf" => PowerPointImagePartType.Emf,
+            "image/x-wmf" => PowerPointImagePartType.Wmf,
             _ => throw new NotSupportedException($"Legacy picture content type '{contentType}' is not supported.")
         };
 

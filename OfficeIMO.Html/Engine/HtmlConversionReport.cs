@@ -17,7 +17,7 @@ public sealed class HtmlConversionReport {
     public bool Succeeded => !_diagnostics.Any(static diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
 
     /// <summary>Whether the conversion approximated, omitted, or failed any source content.</summary>
-    public bool HasLoss => _diagnostics.Any(static diagnostic => diagnostic.LossKind != HtmlConversionLossKind.None);
+    public bool HasLoss => _diagnostics.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Throws when the conversion failed or did not preserve the source faithfully.</summary>
     public void RequireNoLoss() {

@@ -197,7 +197,7 @@ internal static partial class PdfWriter {
             double leading = text.LineHeight ?? size * 1.2D;
             PdfColor? color = ToPdfColor(text.Color);
             var runs = new[] {
-                new TextRun(
+                new PdfTextRun(
                     text.Text,
                     bold: text.Font.IsBold,
                     underline: text.Font.IsUnderline,

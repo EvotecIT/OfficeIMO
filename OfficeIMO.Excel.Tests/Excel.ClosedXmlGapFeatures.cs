@@ -8,7 +8,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
-using ExcelTableStyle = OfficeIMO.Excel.TableStyle;
+using ExcelTableStyle = OfficeIMO.Excel.ExcelTableStyle;
 using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
 
 namespace OfficeIMO.Tests {
@@ -978,7 +978,7 @@ namespace OfficeIMO.Tests {
                 ExcelFeatureReport report = document.InspectFeatures();
 
                 ExcelFeatureFinding worksheets = Assert.Single(report.Features, feature => feature.Name == "Worksheets");
-                Assert.Equal(ExcelFeatureSupportLevel.Editable, worksheets.SupportLevel);
+                Assert.Equal(OfficeFeatureSupportLevel.Editable, worksheets.SupportLevel);
 
                 Assert.Contains(report.EditableFeatures, feature => feature.Name == "Tables" && feature.Count == 1);
                 Assert.Contains(report.EditableFeatures, feature => feature.Name == "Data validations" && feature.Count == 1);
@@ -1067,12 +1067,12 @@ namespace OfficeIMO.Tests {
                 ExcelFeatureReport report = document.InspectFeatures();
 
                 ExcelFeatureFinding slicers = Assert.Single(report.FindFeatures("Slicers"));
-                Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, slicers.SupportLevel);
+                Assert.Equal(OfficeFeatureSupportLevel.PartiallyEditable, slicers.SupportLevel);
                 Assert.Equal(1, slicers.Count);
                 Assert.Contains(slicers.Details, detail => detail.Contains("slicerCache", StringComparison.OrdinalIgnoreCase));
 
                 ExcelFeatureFinding timelines = Assert.Single(report.FindFeatures("Timelines"));
-                Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, timelines.SupportLevel);
+                Assert.Equal(OfficeFeatureSupportLevel.PartiallyEditable, timelines.SupportLevel);
                 Assert.Equal(1, timelines.Count);
                 Assert.Contains(timelines.Details, detail => detail.Contains("timelineCache", StringComparison.OrdinalIgnoreCase));
 
@@ -1117,7 +1117,7 @@ namespace OfficeIMO.Tests {
                 ExcelFeatureReport report = document.InspectFeatures();
 
                 ExcelFeatureFinding connections = Assert.Single(report.FindFeatures("Connections and query tables"));
-                Assert.Equal(ExcelFeatureSupportLevel.Preserved, connections.SupportLevel);
+                Assert.Equal(OfficeFeatureSupportLevel.Preserved, connections.SupportLevel);
                 Assert.Equal(2, connections.Count);
                 Assert.Contains(connections.Details, detail => detail.Contains("connections", StringComparison.OrdinalIgnoreCase));
                 Assert.Contains(connections.Details, detail => detail.Contains("queryTable", StringComparison.OrdinalIgnoreCase));
@@ -1322,7 +1322,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
                 ExcelFeatureFinding threadedComments = Assert.Single(report.FindFeatures("Threaded comments"));
-                Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, threadedComments.SupportLevel);
+                Assert.Equal(OfficeFeatureSupportLevel.PartiallyEditable, threadedComments.SupportLevel);
                 Assert.Equal(1, threadedComments.Count);
                 Assert.Contains(threadedComments.Details, detail => detail.Contains("Review: A1 by Modern Reviewer", StringComparison.OrdinalIgnoreCase));
 
@@ -1391,7 +1391,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Empty(report.FindFeatures("VBA macros"));
                 ExcelFeatureFinding externalLinks = Assert.Single(report.FindFeatures("External hyperlinks"));
-                Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, externalLinks.SupportLevel);
+                Assert.Equal(OfficeFeatureSupportLevel.PartiallyEditable, externalLinks.SupportLevel);
                 Assert.Same(report, report.EnsureNoFeatures("VBA macros"));
 
                 InvalidOperationException namedException = Assert.Throws<InvalidOperationException>(
@@ -1400,7 +1400,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("https://example.org/spec", namedException.Message);
 
                 InvalidOperationException levelException = Assert.Throws<InvalidOperationException>(
-                    () => report.EnsureNoFeatures(ExcelFeatureSupportLevel.PartiallyEditable));
+                    () => report.EnsureNoFeatures(OfficeFeatureSupportLevel.PartiallyEditable));
                 Assert.Contains("PartiallyEditable", levelException.Message);
                 Assert.Contains("External hyperlinks", levelException.Message);
             }
@@ -1541,7 +1541,7 @@ namespace OfficeIMO.Tests {
                     document.Save());
                 Assert.True(blocked.SignatureInfo.HasSignatures);
                 document.Save(new ExcelSaveOptions {
-                    SignatureMutationPolicy = ExcelSignatureMutationPolicy.PreserveSignatureMarkup
+                    SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup
                 });
             }
 
@@ -1561,7 +1561,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
                 ExcelFeatureFinding signatures = Assert.Single(report.FindFeatures("Digital signatures"));
-                Assert.Equal(ExcelFeatureSupportLevel.Preserved, signatures.SupportLevel);
+                Assert.Equal(OfficeFeatureSupportLevel.Preserved, signatures.SupportLevel);
                 Assert.Contains(signatures.Details, detail => detail.Contains("/origin.sigs", StringComparison.OrdinalIgnoreCase));
                 Assert.Contains(signatures.Details, detail => detail.Contains("/_xmlsignatures/", StringComparison.OrdinalIgnoreCase));
                 Assert.Contains(signatures.Details, detail => detail.Contains("extended application properties", StringComparison.OrdinalIgnoreCase));

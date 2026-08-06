@@ -341,7 +341,7 @@ internal static class MarkdownNativeInlineProjection {
     }
 
     private static void AddEscapedTextMetadata(MarkdownSyntaxNode node, List<MarkdownNativeInlineMetadata> metadata) {
-        if (node.AssociatedObject is not TextRun text) {
+        if (node.AssociatedObject is not MarkdownTextRun text) {
             return;
         }
 

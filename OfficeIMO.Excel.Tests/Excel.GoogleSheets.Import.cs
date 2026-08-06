@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
             var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
             InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                session.ImportGoogleSheetAsync("sheet-blocked", new GoogleSheetsImportOptions { Mode = GoogleSheetsImportMode.Native }));
+                session.ImportGoogleSheetAsync("sheet-blocked", new GoogleSheetsImportOptions { Mode = GoogleWorkspaceImportMode.Native }));
 
             Assert.Contains("cannot be downloaded", exception.Message, StringComparison.Ordinal);
             Assert.Equal(0, nativeReads);
@@ -76,12 +76,12 @@ namespace OfficeIMO.Tests {
 
             await Assert.ThrowsAsync<InvalidDataException>(() =>
                 session.ImportGoogleSheetAsync("sheet-large", new GoogleSheetsImportOptions {
-                    Mode = GoogleSheetsImportMode.Native,
+                    Mode = GoogleWorkspaceImportMode.Native,
                     MaxResponseBytes = 32,
                 }));
             await Assert.ThrowsAsync<InvalidDataException>(() =>
                 session.ImportGoogleSheetAsync("sheet-large", new GoogleSheetsImportOptions {
-                    Mode = GoogleSheetsImportMode.Native,
+                    Mode = GoogleWorkspaceImportMode.Native,
                     MaxCells = 1,
                 }));
         }
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
 
             await Assert.ThrowsAsync<InvalidDataException>(() =>
                 session.ImportGoogleSheetAsync("sheet-metadata", new GoogleSheetsImportOptions {
-                    Mode = GoogleSheetsImportMode.Native,
+                    Mode = GoogleWorkspaceImportMode.Native,
                     MaxCells = 2,
                 }));
         }
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
 
             await Assert.ThrowsAsync<InvalidDataException>(() =>
                 session.ImportGoogleSheetAsync("sheet-groups", new GoogleSheetsImportOptions {
-                    Mode = GoogleSheetsImportMode.Native,
+                    Mode = GoogleWorkspaceImportMode.Native,
                     MaxDimensionGroupMembers = 100,
                 }));
         }
@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
             var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
             GoogleSheetsImportResult result = await session.ImportGoogleSheetAsync("native123", new GoogleSheetsImportOptions {
-                Mode = GoogleSheetsImportMode.Native,
+                Mode = GoogleWorkspaceImportMode.Native,
                 Ranges = new[] { "Summary!A1:B2" },
             });
 
@@ -276,7 +276,7 @@ namespace OfficeIMO.Tests {
                 GoogleSheetsDiffPlan plan = await GoogleSheetsDiffPlanner.BuildAsync(source, "diff-sheet", session, checkpoint);
 
                 GoogleSheetsDiffItem versionChange = Assert.Single(plan.Items, item => item.Path == "spreadsheet/driveVersion");
-                Assert.Equal(GoogleSheetsDiffKind.RemoteChange, versionChange.Kind);
+                Assert.Equal(GoogleWorkspaceDiffKind.RemoteChange, versionChange.Kind);
                 Assert.Equal(6, plan.Remote.DriveVersion);
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);

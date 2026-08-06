@@ -225,7 +225,7 @@ namespace OfficeIMO.Tests {
 
             using var allowedOutput = new MemoryStream();
             document.Save(allowedOutput, ExcelFileFormat.Xls, new ExcelSaveOptions {
-                LossPolicy = ExcelConversionLossPolicy.Allow
+                LossPolicy = OfficeConversionLossPolicy.Allow
             });
             Assert.Equal(
                 olePayload,
@@ -253,7 +253,7 @@ namespace OfficeIMO.Tests {
 
             using var allowedOutput = new MemoryStream();
             document.Save(allowedOutput, ExcelFileFormat.Xls, new ExcelSaveOptions {
-                LossPolicy = ExcelConversionLossPolicy.Allow
+                LossPolicy = OfficeConversionLossPolicy.Allow
             });
             Assert.Equal(
                 signatureStream,
@@ -790,7 +790,7 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(1, 1, "Printable sheet");
                     sheet.CellValue(20, 5, 42d);
                     sheet.SetMargins(0.25d, 0.35d, 0.45d, 0.55d, 0.2d, 0.25d);
-                    sheet.SetOrientation(ExcelPageOrientation.Landscape);
+                    sheet.SetOrientation(OfficePageOrientation.Landscape);
                     sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U, scale: 90U, pageOrder: ExcelPageOrder.OverThenDown);
                     sheet.SetPrintOptions(printGridLines: true, printHeadings: true, horizontalCentered: true, verticalCentered: false);
                     sheet.SetHeaderFooter("Left header", "Page &P", "Right header", "Left footer", "Generated", "Page &P of &N");
@@ -806,7 +806,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(loaded.SourceFormat == ExcelFileFormat.Xls);
 
                 ExcelSheetPageSetup pageSetup = loadedSheet.GetPageSetup();
-                Assert.Equal(ExcelPageOrientation.Landscape, pageSetup.Orientation);
+                Assert.Equal(OfficePageOrientation.Landscape, pageSetup.Orientation);
                 Assert.Equal(1U, pageSetup.FitToWidth);
                 Assert.Equal(0U, pageSetup.FitToHeight);
                 Assert.Equal(90U, pageSetup.Scale);
@@ -825,7 +825,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(printOptions.HorizontalCentered);
                 Assert.False(printOptions.VerticalCentered);
 
-                ExcelSheet.HeaderFooterSnapshot headerFooter = loadedSheet.GetHeaderFooter();
+                ExcelSheet.ExcelHeaderFooterSnapshot headerFooter = loadedSheet.GetHeaderFooter();
                 Assert.Equal("Left header", headerFooter.HeaderLeft);
                 Assert.Equal("Page &P", headerFooter.HeaderCenter);
                 Assert.Equal("Right header", headerFooter.HeaderRight);
@@ -1004,7 +1004,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(legacySheet.PageSetup.AlignHeaderFooterWithMargins);
 
                 using ExcelDocument loaded = ExcelDocument.Load(xlsOutputPath);
-                ExcelSheet.HeaderFooterSnapshot headerFooter = loaded.Sheets.Single().GetHeaderFooter();
+                ExcelSheet.ExcelHeaderFooterSnapshot headerFooter = loaded.Sheets.Single().GetHeaderFooter();
                 Assert.Equal("Odd header", headerFooter.HeaderCenter);
                 Assert.Equal("Odd footer", headerFooter.FooterRight);
                 Assert.Equal("First left", headerFooter.FirstHeaderLeft);
@@ -4078,7 +4078,7 @@ namespace OfficeIMO.Tests {
             AssertNativeXlsSaveNotSupported("tables", (document, sheet) => {
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 1, "Alpha");
-                sheet.AddTable("A1:A2", hasHeader: true, name: "UnsupportedTable", TableStyle.TableStyleMedium2);
+                sheet.AddTable("A1:A2", hasHeader: true, name: "UnsupportedTable", ExcelTableStyle.TableStyleMedium2);
             });
         }
 

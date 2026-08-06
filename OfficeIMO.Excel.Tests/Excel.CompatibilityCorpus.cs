@@ -426,9 +426,9 @@ namespace OfficeIMO.Tests {
                 });
 
                 using var reader = ExcelDocumentReader.Open(filePath);
-                object?[,] values = reader.GetSheet("Data").ReadRange("A1:B3", ExecutionMode.Sequential);
-                var objects = reader.GetSheet("Data").ReadObjects("A1:B3", ExecutionMode.Sequential).ToList();
-                var typedObjects = reader.GetSheet("Data").ReadObjects<CompatibilityScoreRow>("A1:B3", ExecutionMode.Sequential).ToList();
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:B3", ExcelExecutionMode.Sequential);
+                var objects = reader.GetSheet("Data").ReadObjects("A1:B3", ExcelExecutionMode.Sequential).ToList();
+                var typedObjects = reader.GetSheet("Data").ReadObjects<CompatibilityScoreRow>("A1:B3", ExcelExecutionMode.Sequential).ToList();
 
                 Assert.Equal("First", values[1, 0]);
                 Assert.Equal(10d, values[1, 1]);
@@ -461,7 +461,7 @@ namespace OfficeIMO.Tests {
                         (row, 2, (object)("Distinct " + row)),
                         (row, 3, (object)("Long " + new string((char)('A' + row % 26), 80)))
                     }).ToArray();
-                    sheet.CellValues(cells, ExecutionMode.Parallel);
+                    sheet.CellValues(cells, ExcelExecutionMode.Parallel);
                     sheet.AutoFitColumns();
                     document.Save();
 

@@ -27,7 +27,7 @@ public class PdfPageCompose {
         return this;
     }
     /// <summary>Sets page orientation while preserving the current page size dimensions.</summary>
-    public PdfPageCompose Orientation(PdfPageOrientation orientation) {
+    public PdfPageCompose Orientation(OfficePageOrientation orientation) {
         var oriented = new PageSize(Options.PageWidth, Options.PageHeight).WithOrientation(orientation);
         Options.PageWidth = oriented.Width;
         Options.PageHeight = oriented.Height;
@@ -230,9 +230,9 @@ public class PdfPageCompose {
     public PdfPageCompose BackgroundRightBand(double width, PdfColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
         BackgroundShape(PdfPageBackgroundShape.RightBand(Options.PageWidth, Options.PageHeight, width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
     /// <summary>Sets page orientation to portrait while preserving the current page size dimensions.</summary>
-    public PdfPageCompose Portrait() => Orientation(PdfPageOrientation.Portrait);
+    public PdfPageCompose Portrait() => Orientation(OfficePageOrientation.Portrait);
     /// <summary>Sets page orientation to landscape while preserving the current page size dimensions.</summary>
-    public PdfPageCompose Landscape() => Orientation(PdfPageOrientation.Landscape);
+    public PdfPageCompose Landscape() => Orientation(OfficePageOrientation.Landscape);
     /// <summary>Sets uniform page margins (all sides in points).</summary>
     public PdfPageCompose Margin(double all) {
         Guard.NonNegative(all, nameof(all));

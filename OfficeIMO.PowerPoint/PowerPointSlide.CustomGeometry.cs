@@ -59,7 +59,7 @@ namespace OfficeIMO.PowerPoint {
                 geometry, commands);
 
             PowerPointAutoShape result = AddShape(
-                PowerPointShapeType.Rectangle, left, top, width, height, name);
+                OfficePresetShapeType.Rectangle, left, top, width, height, name);
             Shape shape = (Shape)result.Element;
             ShapeProperties properties = shape.ShapeProperties
                 ?? throw new InvalidOperationException("The added shape has no shape properties.");

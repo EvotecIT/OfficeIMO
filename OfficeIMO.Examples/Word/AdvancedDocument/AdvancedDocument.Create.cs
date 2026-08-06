@@ -24,10 +24,10 @@ namespace OfficeIMO.Examples.Word {
                 document.Settings.UpdateFieldsOnOpen = true;
 
                 // lets add one of multiple added Cover Pages
-                document.AddCoverPage(CoverPageTemplate.IonDark);
+                document.AddCoverPage(WordCoverPageTemplate.IonDark);
 
                 // lets add Table of Content (1 of 2)
-                document.AddTableOfContent(TableOfContentStyle.Template1);
+                document.AddTableOfContent(WordTableOfContentsStyle.Template1);
 
                 // lets add page break
                 document.AddPageBreak();
@@ -83,7 +83,7 @@ namespace OfficeIMO.Examples.Word {
                 listNumbered.AddItem("Different list number 4", 1);
 
                 var section = document.AddSection();
-                section.PageOrientation = WordPageOrientation.Landscape;
+                section.PageOrientation = OfficePageOrientation.Landscape;
                 section.PageSettings.PageSize = WordPageSize.A4;
 
                 wordListToc.AddItem("Adding headers / footers");
@@ -92,7 +92,7 @@ namespace OfficeIMO.Examples.Word {
                 document.HeaderDefaultOrCreate.AddParagraph("Text added to header - Default");
 
                 var section1 = document.AddSection();
-                section1.PageOrientation = WordPageOrientation.Portrait;
+                section1.PageOrientation = OfficePageOrientation.Portrait;
                 section1.PageSettings.PageSize = WordPageSize.A5;
 
                 wordListToc.AddItem("Adding custom properties and page numbers to document");

@@ -1229,7 +1229,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private static LegacyXlsWorksheetPageSetup ExtractPageSetup(ExcelSheet sheet) {
             ExcelSheetPageSetup pageSetup = sheet.GetPageSetup();
             ExcelSheetPrintOptions printOptions = sheet.GetPrintOptions();
-            ExcelSheet.HeaderFooterSnapshot headerFooter = sheet.GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterSnapshot headerFooter = sheet.GetHeaderFooter();
             Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
             SheetProperties? sheetProperties = worksheet.GetFirstChild<SheetProperties>();
             OutlineProperties? outlineProperties = sheetProperties?.GetFirstChild<OutlineProperties>();
@@ -1550,7 +1550,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 flags |= 0x0001;
             }
 
-            if (pageSetup.Orientation == ExcelPageOrientation.Portrait) {
+            if (pageSetup.Orientation == OfficePageOrientation.Portrait) {
                 flags |= 0x0002;
             }
 
@@ -2423,7 +2423,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         private sealed class LegacyXlsWorksheetPageSetup {
             internal LegacyXlsWorksheetPageSetup(
-                ExcelPageOrientation? orientation,
+                OfficePageOrientation? orientation,
                 double? leftMargin,
                 double? rightMargin,
                 double? topMargin,
@@ -2491,7 +2491,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 PrinterSettingsPayload = printerSettingsPayload;
             }
 
-            internal ExcelPageOrientation? Orientation { get; }
+            internal OfficePageOrientation? Orientation { get; }
 
             internal double? LeftMargin { get; }
 

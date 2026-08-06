@@ -328,7 +328,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide();
         using var tiff = new MemoryStream(new byte[] { 0x49, 0x49, 0x2A, 0x00, 0x00, 0x00, 0x00, 0x00 });
-        slide.AddPicture(tiff, ImagePartType.Tiff);
+        slide.AddPicture(tiff, PowerPointImagePartType.Tiff);
 
         OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
         OdpPresentation target = conversion.Value;

@@ -56,7 +56,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="style">Character style to retrieve.</param>
         /// <returns>The Open XML <see cref="Style"/> definition.</returns>
-        public static Style GetStyleDefinition(WordCharacterStyles style) {
+        internal static Style GetStyleDefinition(WordCharacterStyles style) {
             switch (style) {
                 case WordCharacterStyles.DefaultParagraphFont: return DefaultParagraphFont;
                 case WordCharacterStyles.Heading1Char: return StyleHeading1;

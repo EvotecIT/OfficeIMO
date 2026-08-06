@@ -98,8 +98,8 @@ public class BasicDocumentTests : VerifyTestBase {
         document.Settings.Language = "pt-Br";
         document.Settings.ZoomPreset = WordZoomPreset.BestFit;
 
-        document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.Word2013;
-        document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.None;
+        document.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2013;
+        document.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.None;
 
         const string title = "INSTRUMENTO PARTICULAR DE CONSTITUIÇÃO DE GARANTIA DE ALIENAÇÃO FIDUCIÁRIA DE IMÓVEL";
 

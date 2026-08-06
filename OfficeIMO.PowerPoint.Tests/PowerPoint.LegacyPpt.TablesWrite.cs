@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                 sourceTable.LastColumn = true;
                 sourceTable.BandedRows = true;
                 sourceTable.BandedColumns = false;
-                sourceTable.SetCellBorders(TableCellBorders.All,
+                sourceTable.SetCellBorders(PowerPointTableCellBorders.All,
                     "C1121F", widthPoints: 1.75D);
 
                 LegacyPptWritePreflightReport preflight = source
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests {
 
             byte[] converted = source.ToBytes(PowerPointFileFormat.Ppt,
                 new PowerPointSaveOptions {
-                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                    LossPolicy = OfficeConversionLossPolicy.Allow
                 });
             using var input = new MemoryStream(converted, writable: false);
             using PowerPointPresentation reopened =
@@ -125,9 +125,9 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation source = PowerPointPresentation
                 .Create();
             PowerPointTable table = source.AddSlide().AddTable(1, 2);
-            table.GetCell(0, 0).SetBorders(TableCellBorders.Right,
+            table.GetCell(0, 0).SetBorders(PowerPointTableCellBorders.Right,
                 "C1121F", widthPoints: 1.25D);
-            table.GetCell(0, 1).SetBorders(TableCellBorders.Left,
+            table.GetCell(0, 1).SetBorders(PowerPointTableCellBorders.Left,
                 "2563EB", widthPoints: 2D);
 
             LegacyPptWriteFinding finding = Assert.Single(
@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 PowerPointTable table = source.AddSlide().AddTable(1, 1);
-                table.SetCellBorders(TableCellBorders.All, "2563EB", 1.25D);
+                table.SetCellBorders(PowerPointTableCellBorders.All, "2563EB", 1.25D);
                 A.TableCellProperties properties = table.GetCell(0, 0)
                     .Cell.TableCellProperties!;
                 properties.LeftBorderLineProperties =

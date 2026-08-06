@@ -67,7 +67,7 @@ public sealed class OfficeRasterImageFallbackCodec : IOfficeRasterImageCodec {
             OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback,
             message,
             _source,
-            OfficeImageExportLossKind.Omission));
+            OfficeConversionLossKind.Omission));
     }
 
     private static OfficeRasterImage CreatePlaceholder() {

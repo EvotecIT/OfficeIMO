@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 table.ConditionalFormatting(
                     "Status",
                     "Done",
-                    TextMatchType.Equals,
+                    WordTextMatchType.Equals,
                     matchFillColorHex: "92D050",
                     noMatchFillColorHex: "FF0000",
                     matchTextFormat: p => p.SetBold(),
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
                 builder.AddRule(
                     "Status",
                     "Done",
-                    TextMatchType.Equals,
+                    WordTextMatchType.Equals,
                     Color.LightGreen,
                     Color.Black,
                     Color.LightPink,
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
                 builder.AddRule(
                     "Status",
                     "Pending",
-                    TextMatchType.Equals,
+                    WordTextMatchType.Equals,
                     Color.Yellow,
                     null,
                     highlightColumns: new[] { "Name" },
@@ -84,8 +84,8 @@ namespace OfficeIMO.Tests {
 
                 builder.AddRule(
                     new[] {
-                        ("Status", "Done", TextMatchType.Equals),
-                        ("Name", "Task4", TextMatchType.StartsWith)
+                        ("Status", "Done", WordTextMatchType.Equals),
+                        ("Name", "Task4", WordTextMatchType.StartsWith)
                     },
                     matchAll: true,
                     Color.LightSkyBlue,

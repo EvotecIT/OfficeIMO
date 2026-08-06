@@ -119,7 +119,7 @@ public sealed partial class HtmlRenderingTests {
         string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
 
         HtmlDiagnostic fallback = Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgRasterFallback);
-        Assert.Equal(HtmlConversionLossKind.Approximation, fallback.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Approximation, fallback.LossKind);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
         HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         Assert.Single(visual.Drawing.Images);

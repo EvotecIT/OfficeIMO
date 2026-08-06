@@ -115,13 +115,13 @@ namespace OfficeIMO.PowerPoint {
                     targetCell.BorderColor = sourceCell.SourceShape.LineColor;
                 } else {
                     ApplyLegacyTableBorder(targetCell,
-                        TableCellBorders.Left, sourceCell.LeftBorder);
+                        PowerPointTableCellBorders.Left, sourceCell.LeftBorder);
                     ApplyLegacyTableBorder(targetCell,
-                        TableCellBorders.Top, sourceCell.TopBorder);
+                        PowerPointTableCellBorders.Top, sourceCell.TopBorder);
                     ApplyLegacyTableBorder(targetCell,
-                        TableCellBorders.Right, sourceCell.RightBorder);
+                        PowerPointTableCellBorders.Right, sourceCell.RightBorder);
                     ApplyLegacyTableBorder(targetCell,
-                        TableCellBorders.Bottom, sourceCell.BottomBorder);
+                        PowerPointTableCellBorders.Bottom, sourceCell.BottomBorder);
                 }
             }
             foreach (LegacyPptTableCell sourceCell in tableSource.Cells.Where(
@@ -134,7 +134,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ApplyLegacyTableBorder(
-            PowerPointTableCell cell, TableCellBorders side,
+            PowerPointTableCell cell, PowerPointTableCellBorders side,
             LegacyPptTableBorder? border) {
             if (!border.HasValue || !border.Value.IsVisible) {
                 ApplyInvisibleLegacyTableBorder(cell, side);
@@ -145,19 +145,19 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ApplyInvisibleLegacyTableBorder(
-            PowerPointTableCell cell, TableCellBorders side) {
+            PowerPointTableCell cell, PowerPointTableCellBorders side) {
             A.TableCellProperties properties = cell.Cell.TableCellProperties
                 ??= new A.TableCellProperties();
-            if (side == TableCellBorders.Left) {
+            if (side == PowerPointTableCellBorders.Left) {
                 properties.LeftBorderLineProperties =
                     new A.LeftBorderLineProperties(new A.NoFill());
-            } else if (side == TableCellBorders.Top) {
+            } else if (side == PowerPointTableCellBorders.Top) {
                 properties.TopBorderLineProperties =
                     new A.TopBorderLineProperties(new A.NoFill());
-            } else if (side == TableCellBorders.Right) {
+            } else if (side == PowerPointTableCellBorders.Right) {
                 properties.RightBorderLineProperties =
                     new A.RightBorderLineProperties(new A.NoFill());
-            } else if (side == TableCellBorders.Bottom) {
+            } else if (side == PowerPointTableCellBorders.Bottom) {
                 properties.BottomBorderLineProperties =
                     new A.BottomBorderLineProperties(new A.NoFill());
             } else {

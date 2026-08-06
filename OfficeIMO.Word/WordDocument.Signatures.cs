@@ -17,7 +17,7 @@ namespace OfficeIMO.Word {
                 snapshot.ToArray(), new OfficePackageSignatureInspectionOptions { VerifyDigests = false });
             return CreateWordSignatureInfo(shared,
                 _wordprocessingDocument.DigitalSignatureOriginPart != null,
-                ApplicationProperties.DigitalSignature != null);
+                ApplicationProperties.HasDigitalSignatureMetadata);
         }
 
         private static WordSignatureInfo CreateWordSignatureInfo(
@@ -95,7 +95,7 @@ namespace OfficeIMO.Word {
             options ??= new WordSignatureValidationOptions();
             OfficePackageSignatureValidator.ValidateOptions(options);
             var originPart = _wordprocessingDocument.DigitalSignatureOriginPart;
-            bool hasApplicationSignatureMetadata = ApplicationProperties.DigitalSignature != null;
+            bool hasApplicationSignatureMetadata = ApplicationProperties.HasDigitalSignatureMetadata;
             if (originPart == null || !originPart.XmlSignatureParts.Any()) {
                 WordSignatureInfo unsignedInfo = WordSignatureInspector.Inspect(
                     _wordprocessingDocument,

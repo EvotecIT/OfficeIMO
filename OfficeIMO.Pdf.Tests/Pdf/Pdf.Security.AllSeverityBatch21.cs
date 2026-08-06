@@ -33,14 +33,14 @@ public class PdfAllSeverityBatch21Tests {
         Type stringValues = typeof(IReadOnlyDictionary<string, string>);
 
         AssertMethod(typeof(PdfEmbeddedFontFallbackSet), nameof(PdfEmbeddedFontFallbackSet.PlanText), typeof(string), typeof(string));
-        AssertMethod(typeof(PdfEmbeddedFontFallbackSet), nameof(PdfEmbeddedFontFallbackSet.PlanTextRuns), typeof(string), typeof(string), typeof(TextRun));
+        AssertMethod(typeof(PdfEmbeddedFontFallbackSet), nameof(PdfEmbeddedFontFallbackSet.PlanTextRuns), typeof(string), typeof(string), typeof(PdfTextRun));
         AssertMethod(
             typeof(PdfEmbeddedFontFallbackSet),
             nameof(PdfEmbeddedFontFallbackSet.TryPlanTextRuns),
             typeof(string),
-            typeof(IReadOnlyList<TextRun>).MakeByRefType(),
+            typeof(IReadOnlyList<PdfTextRun>).MakeByRefType(),
             typeof(string),
-            typeof(TextRun),
+            typeof(PdfTextRun),
             typeof(PdfConversionReport),
             typeof(string));
 
@@ -67,8 +67,8 @@ public class PdfAllSeverityBatch21Tests {
             typeof(double));
 
         AssertMethod(typeof(PdfParagraphBuilder), nameof(PdfParagraphBuilder.Tab), typeof(PdfTabLeaderStyle));
-        AssertMethod(typeof(TextRun), nameof(TextRun.Tab), typeof(PdfTabLeaderStyle));
-        Assert.NotNull(typeof(TextRun).GetConstructor(new[] {
+        AssertMethod(typeof(PdfTextRun), nameof(PdfTextRun.Tab), typeof(PdfTabLeaderStyle));
+        Assert.NotNull(typeof(PdfTextRun).GetConstructor(new[] {
             typeof(string),
             typeof(bool),
             typeof(bool),

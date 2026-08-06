@@ -17,7 +17,7 @@ public class HtmlPowerPointBubbleChartTests {
         presentation.AddSlide().AddChart(
                 OfficeChartKind.Bubble, CreateBubbleData())
             .SetTitle("Positioned")
-            .SetLegend(OfficeIMO.PowerPoint.PowerPointChartLegendPosition.Top, overlay: true);
+            .SetLegend(OfficeChartLegendPosition.Top, overlay: true);
         presentation.AddSlide().AddChart(
                 OfficeChartKind.Bubble, CreateBubbleData())
             .SetTitle("Hidden")

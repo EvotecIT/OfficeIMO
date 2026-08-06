@@ -248,7 +248,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static void ApplyOfficeImoReportWorkbookCore(ExcelSheet sheet, int rowCount) {
         int lastRow = rowCount + 1;
         string range = BuildReportWorkbookRange(rowCount);
-        sheet.AddTable(range, hasHeader: true, name: ReportWorkbookTableName, style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+        sheet.AddTable(range, hasHeader: true, name: ReportWorkbookTableName, style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
         sheet.AutoFitColumns();
         sheet.Freeze(topRows: 1);
         sheet.AddConditionalRule($"G2:G{lastRow.ToString(CultureInfo.InvariantCulture)}", ExcelConditionalFormattingOperator.GreaterThan, "700");

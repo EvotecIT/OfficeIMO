@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(document._spreadSheetDocument.WorkbookPart.TimeLineCacheParts);
                 Assert.Empty(document.ValidateOpenXml());
                 Assert.Equal(
-                    ExcelFeatureSupportLevel.PartiallyEditable,
+                    OfficeFeatureSupportLevel.PartiallyEditable,
                     Assert.Single(document.InspectFeatures().FindFeatures("Slicers")).SupportLevel);
 
                 SlicerCachePart originalCache = document._spreadSheetDocument.WorkbookPart.SlicerCacheParts.First();

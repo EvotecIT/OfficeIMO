@@ -118,7 +118,7 @@ namespace OfficeIMO.Excel {
         /// Execution policy used to decide Sequential vs Parallel conversion.
         /// Reuses the writer-side policy for symmetry.
         /// </summary>
-        public OfficeIMO.Excel.ExecutionPolicy Execution { get; } = new();
+        public OfficeIMO.Excel.ExcelExecutionPolicy Execution { get; } = new();
 
         /// <summary>
         /// Use cached formula results when present; otherwise returns the formula string.

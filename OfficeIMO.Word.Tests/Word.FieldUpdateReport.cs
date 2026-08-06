@@ -597,7 +597,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.DocumentStatistics.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.ApplicationProperties.Words = new DocumentFormat.OpenXml.ExtendedProperties.Words { Text = "42" };
+                document.ApplicationProperties.Words = 42;
                 document.ApplicationProperties.Characters = "1234";
 
                 document.AddParagraph("Words: ").AddField(WordFieldType.NumWords);

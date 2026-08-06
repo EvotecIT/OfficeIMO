@@ -302,12 +302,12 @@ namespace OfficeIMO.Tests {
             string.Concat(bytes.Select(value => value.ToString("x2")));
 
         private static string[] GetValidationSignature(
-            IEnumerable<ValidationErrorInfo> errors) {
+            IEnumerable<OfficeOpenXmlValidationError> errors) {
             return errors.Select(error => string.Join("|",
                     error.Id ?? string.Empty,
                     error.ErrorType.ToString(),
-                    error.Part?.Uri.ToString() ?? string.Empty,
-                    error.Path?.XPath ?? string.Empty,
+                    error.PartUri ?? string.Empty,
+                    error.Path ?? string.Empty,
                     error.Description ?? string.Empty))
                 .OrderBy(value => value, StringComparer.Ordinal)
                 .ToArray();

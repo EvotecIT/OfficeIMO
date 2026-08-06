@@ -64,7 +64,7 @@ namespace OfficeIMO.Excel {
         internal static ExcelChart ApplyKpiScorecardDefaults(ExcelChart chart) {
             return chart.HideLegend()
                 .SetTitleTextStyle(fontSizePoints: 12, bold: true, color: "1F2937")
-                .SetSeriesDataLabels(0, showValue: true, position: ExcelChartDataLabelPosition.OutsideEnd, numberFormat: "#,##0")
+                .SetSeriesDataLabels(0, showValue: true, position: OfficeChartDataLabelPosition.OutsideEnd, numberFormat: "#,##0")
                 .SetSeriesDataLabelTextStyle(0, fontSizePoints: 10, bold: true, color: "1F2937")
                 .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "E5E7EB", lineWidthPoints: 0.5)
                 .SetValueAxisNumberFormat("#,##0", sourceLinked: false);
@@ -72,16 +72,16 @@ namespace OfficeIMO.Excel {
 
         internal static ExcelChart ApplyContributionChartDefaults(ExcelChart chart) {
             return chart.SetTitleTextStyle(fontSizePoints: 12, bold: true, color: "1F2937")
-                .SetLegend(ExcelChartLegendPosition.Right)
-                .SetSeriesDataLabels(0, showValue: false, showCategoryName: true, showPercent: true, position: ExcelChartDataLabelPosition.BestFit, numberFormat: "0%")
+                .SetLegend(OfficeChartLegendPosition.Right)
+                .SetSeriesDataLabels(0, showValue: false, showCategoryName: true, showPercent: true, position: OfficeChartDataLabelPosition.BestFit, numberFormat: "0%")
                 .SetSeriesDataLabelSeparator(0, "\n")
                 .SetSeriesDataLabelTextStyle(0, fontSizePoints: 9, color: "374151");
         }
 
         internal static ExcelChart ApplyVarianceWaterfallDefaults(ExcelChart chart) {
             return chart.SetTitleTextStyle(fontSizePoints: 12, bold: true, color: "1F2937")
-                .SetLegend(ExcelChartLegendPosition.Bottom)
-                .SetSeriesDataLabels(0, showValue: true, position: ExcelChartDataLabelPosition.OutsideEnd, numberFormat: "#,##0")
+                .SetLegend(OfficeChartLegendPosition.Bottom)
+                .SetSeriesDataLabels(0, showValue: true, position: OfficeChartDataLabelPosition.OutsideEnd, numberFormat: "#,##0")
                 .SetSeriesDataLabelTextStyle(0, fontSizePoints: 9, color: "374151")
                 .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "E5E7EB", lineWidthPoints: 0.5)
                 .SetValueAxisNumberFormat("#,##0", sourceLinked: false);

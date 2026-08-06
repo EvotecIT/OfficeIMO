@@ -225,10 +225,10 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         /// <summary>Adds a table over the last added block (from RowsFrom) using the specified name.</summary>
-        public SheetBuilder Table(string name, Action<TableBuilder>? configure = null) {
+        public SheetBuilder Table(string name, Action<ExcelTableBuilder>? configure = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             if (string.IsNullOrEmpty(_lastRange)) throw new InvalidOperationException("RowsFrom must be called before Table");
-            var builder = new TableBuilder(Sheet);
+            var builder = new ExcelTableBuilder(Sheet);
             configure?.Invoke(builder);
             builder.Build(_lastRange!, name);
             return this;
@@ -311,11 +311,11 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         /// <summary>Adds and configures a table via the table builder.</summary>
-        public SheetBuilder Table(Action<TableBuilder> action) {
+        public SheetBuilder Table(Action<ExcelTableBuilder> action) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
-            var builder = new TableBuilder(Sheet);
+            var builder = new ExcelTableBuilder(Sheet);
             action(builder);
-            // Note: The TableBuilder will handle AutoFilter conflicts internally
+            // Note: The ExcelTableBuilder will handle AutoFilter conflicts internally
             return this;
         }
 

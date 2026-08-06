@@ -33,24 +33,24 @@ namespace OfficeIMO.Tests {
 
             using (var document = WordDocument.Create(filePath)) {
                 WordFluentDocument fluent = document.AsFluent()
-                    .Image(i => i.Add(imagePath).Size(50, 50).Wrap(WrapTextImage.Square).Align(HorizontalAlignment.Center))
+                    .Image(i => i.Add(imagePath).Size(50, 50).Wrap(WordImageTextWrapping.Square).Align(WordParagraphAlignment.Center))
                     .Image(i => {
                         using var stream = File.OpenRead(imagePath);
-                        i.Add(stream, "stream.jpg").Size(60, 60).Align(HorizontalAlignment.Right);
+                        i.Add(stream, "stream.jpg").Size(60, 60).Align(WordParagraphAlignment.Right);
                     })
-                    .Image(i => i.Add(bytes, "bytes.jpg").Size(70, 70).Align(HorizontalAlignment.Left));
+                    .Image(i => i.Add(bytes, "bytes.jpg").Size(70, 70).Align(WordParagraphAlignment.Left));
                 await fluent.ImageAsync(async i => {
                     await i.AddFromUrlAsync(
                         $"http://localhost:{port}/",
                         new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true });
-                    i.Size(80, 80).Align(HorizontalAlignment.Center);
+                    i.Size(80, 80).Align(WordParagraphAlignment.Center);
                 });
                 fluent.End();
 
                 // Validate in-memory instead of reloading from disk
                 Assert.Equal(4, document.Images.Count);
                 Assert.Equal(50, document.Images[0].Width);
-                Assert.Equal(WrapTextImage.Square, document.Images[0].WrapText);
+                Assert.Equal(WordImageTextWrapping.Square, document.Images[0].WrapText);
                 Assert.Equal(WordParagraphAlignment.Center, document.Paragraphs[0].ParagraphAlignment);
                 Assert.Equal(60, document.Images[1].Width);
                 Assert.Equal(WordParagraphAlignment.Right, document.Paragraphs[1].ParagraphAlignment);

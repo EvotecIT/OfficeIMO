@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                     PowerPointFileFormat.Ppt));
                 bytes = source.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 

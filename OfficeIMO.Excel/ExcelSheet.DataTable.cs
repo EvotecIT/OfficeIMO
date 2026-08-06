@@ -60,24 +60,24 @@ namespace OfficeIMO.Excel {
         /// <param name="mode">Optional execution mode override.</param>
         /// <param name="ct">Cancellation token.</param>
         public void InsertDataTable(DataTable table, int startRow = 1, int startColumn = 1, bool includeHeaders = true,
-            ExecutionMode? mode = null, CancellationToken ct = default) {
+            ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             InsertDataTableCore(table, startRow, startColumn, includeHeaders, mode, ct, copyDirectSaveTable: true);
         }
 
         internal void InsertOwnedDataTable(DataTable table, int startRow = 1, int startColumn = 1, bool includeHeaders = true,
-            ExecutionMode? mode = null, CancellationToken ct = default, bool registerDirectSaveCandidate = true) {
+            ExcelExecutionMode? mode = null, CancellationToken ct = default, bool registerDirectSaveCandidate = true) {
             InsertDataTableCore(table, startRow, startColumn, includeHeaders, mode, ct, copyDirectSaveTable: false, registerDirectSaveCandidate);
         }
 
         private void InsertDataTableCore(DataTable table, int startRow, int startColumn, bool includeHeaders,
-            ExecutionMode? mode, CancellationToken ct, bool copyDirectSaveTable, bool registerDirectSaveCandidate = true) {
+            ExcelExecutionMode? mode, CancellationToken ct, bool copyDirectSaveTable, bool registerDirectSaveCandidate = true) {
             if (table == null) throw new ArgumentNullException(nameof(table));
             if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
             if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
 
             bool canRegisterDirectSave = registerDirectSaveCandidate
                 && !_excelDocument.IsMaterializingDeferredDataSetImport
-                && mode != ExecutionMode.Parallel
+                && mode != ExcelExecutionMode.Parallel
                 && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, table.Columns.Count);
 
             if (canRegisterDirectSave
@@ -89,7 +89,7 @@ namespace OfficeIMO.Excel {
                     copyDirectSaveTable,
                     createTable: false,
                     tableName: null,
-                    style: TableStyle.TableStyleMedium2,
+                    style: ExcelTableStyle.TableStyleMedium2,
                     includeAutoFilter: false,
                     ct)) {
                 return;
@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel {
 
             _excelDocument.MaterializeDeferredDataSetImport();
 
-            if (mode != ExecutionMode.Parallel && TryInsertDataTableByAppendingRows(table, startRow, startColumn, includeHeaders, ct)) {
+            if (mode != ExcelExecutionMode.Parallel && TryInsertDataTableByAppendingRows(table, startRow, startColumn, includeHeaders, ct)) {
                 RegisterDirectDataTableSaveCandidateIfPossible(table, startRow, startColumn, includeHeaders, canRegisterDirectSave, copyDirectSaveTable);
                 return;
             }
@@ -227,7 +227,7 @@ namespace OfficeIMO.Excel {
             bool copyDirectSaveTable,
             bool createTable,
             string? tableName,
-            TableStyle style,
+            ExcelTableStyle style,
             bool includeAutoFilter,
             CancellationToken ct) {
             string range = BuildDataTableInsertedRange(table, startRow, startColumn, includeHeaders);

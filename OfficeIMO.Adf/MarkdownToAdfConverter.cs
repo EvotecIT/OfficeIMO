@@ -126,7 +126,7 @@ internal static class MarkdownToAdfConverter {
             IMarkdownInline inline = sequence.Nodes[i];
             string inlinePath = path + ".inlines[" + i + "]";
             switch (inline) {
-                case TextRun text:
+                case MarkdownTextRun text:
                     target.Add(AdfNode.TextNode(text.Text, CloneMarks(inheritedMarks)));
                     break;
                 case ILiteralTextMarkdownInline literalText:

@@ -141744,13 +141744,13 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <maml:description>
             <maml:para>Axis group to configure.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelChartAxisGroup</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeChartAxisGroup</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Primary</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Secondary</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>ExcelChartAxisGroup</maml:name>
+            <maml:name>OfficeChartAxisGroup</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -142015,13 +142015,13 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <maml:description>
           <maml:para>Axis group to configure.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">ExcelChartAxisGroup</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeChartAxisGroup</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Primary</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Secondary</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>ExcelChartAxisGroup</maml:name>
+          <maml:name>OfficeChartAxisGroup</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>

@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel {
             }
 
             var packageStream = new MemoryStream(StreamBufferSize);
-            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(packageStream, resolved.DocumentType, autoSave: false);
+            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(packageStream, resolved.DocumentType.ToOpenXml(), autoSave: false);
             return CreateNewDocument(
                 spreadSheetDocument,
                 filePath: null,
@@ -59,7 +59,7 @@ namespace OfficeIMO.Excel {
             Stream packageStream = saveOnDispose
                 ? new NonDisposingMemoryStream(StreamBufferSize)
                 : new MemoryStream(StreamBufferSize);
-            SpreadsheetDocumentType documentType = ResolveSpreadsheetDocumentType(filePath) ?? resolved.DocumentType;
+            SpreadsheetDocumentType documentType = ResolveSpreadsheetDocumentType(filePath) ?? resolved.DocumentType.ToOpenXml();
             SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(packageStream, documentType, autoSave: false);
             return CreateNewDocument(
                 spreadSheetDocument,
@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel {
                 ? new NonDisposingMemoryStream(StreamBufferSize)
                 : new MemoryStream(StreamBufferSize);
 
-            var spreadSheetDocument = SpreadsheetDocument.Create(packageStream, resolved.DocumentType, false);
+            var spreadSheetDocument = SpreadsheetDocument.Create(packageStream, resolved.DocumentType.ToOpenXml(), false);
             return CreateNewDocument(spreadSheetDocument, filePath: null, packageStream, stream, resolved.PersistenceMode, saveOnDispose, leaveSourceStreamOpen: true);
         }
 
@@ -164,8 +164,8 @@ namespace OfficeIMO.Excel {
             document._unchangedPackageBytes = null;
 
             // Initialize document property helpers
-            document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
-            document.ApplicationProperties = new ApplicationProperties(document);
+            document.BuiltinDocumentProperties = new ExcelBuiltinDocumentProperties(document);
+            document.ApplicationProperties = new ExcelApplicationProperties(document);
             document.CustomDocumentProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
             document.LoadCustomDocumentProperties();
 
@@ -203,8 +203,8 @@ namespace OfficeIMO.Excel {
                 _persistenceMode = persistenceMode,
             };
 
-            document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
-            document.ApplicationProperties = new ApplicationProperties(document);
+            document.BuiltinDocumentProperties = new ExcelBuiltinDocumentProperties(document);
+            document.ApplicationProperties = new ExcelApplicationProperties(document);
             document.CustomDocumentProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
             document.LoadCustomDocumentProperties();
             ExcelChartAxisIdGenerator.Initialize(document._spreadSheetDocument);

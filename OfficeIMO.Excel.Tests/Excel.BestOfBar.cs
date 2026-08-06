@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
 using Xunit;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
-using ExcelTableStyle = OfficeIMO.Excel.TableStyle;
+using ExcelTableStyle = OfficeIMO.Excel.ExcelTableStyle;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {

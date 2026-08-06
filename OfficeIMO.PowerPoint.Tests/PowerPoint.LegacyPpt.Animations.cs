@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
                 var sourceErrors = source.ValidateDocument();
                 Assert.True(sourceErrors.Count == 0, string.Join(Environment.NewLine,
                     sourceErrors.Select(error => error.Description + " | "
-                        + error.Path?.XPath)) + Environment.NewLine
+                        + error.Path)) + Environment.NewLine
                     + slide.SlidePart.Slide!.OuterXml);
                 bytes = source.ToBytes(PowerPointFileFormat.Ppt);
             }
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
             var projectedErrors = projected.ValidateDocument();
             Assert.True(projectedErrors.Count == 0, string.Join(Environment.NewLine,
                 projectedErrors.Select(error => error.Description + " | "
-                    + error.Path?.XPath)));
+                    + error.Path)));
         }
 
         [Fact]
@@ -437,7 +437,7 @@ namespace OfficeIMO.Tests {
                 PowerPointFeatureReport features = source.InspectFeatures();
                 PowerPointFeatureFinding classic = Assert.Single(
                     features.FindFeatures("Classic animations"));
-                Assert.Equal(PowerPointFeatureSupportLevel.Editable,
+                Assert.Equal(OfficeFeatureSupportLevel.Editable,
                     classic.SupportLevel);
                 Assert.Equal(1, classic.Count);
                 Assert.Empty(features.FindFeatures("Animations and timing"));

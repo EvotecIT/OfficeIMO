@@ -11,18 +11,18 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Creates a chart series with the specified name and values.
         /// </summary>
-        public ExcelChartSeries(string name, IEnumerable<double> values, ExcelChartType? chartType = null, ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary, string? seriesColorArgb = null)
+        public ExcelChartSeries(string name, IEnumerable<double> values, ExcelChartType? chartType = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary, string? seriesColorArgb = null)
             : this(name, (values ?? Array.Empty<double>()).ToList(), xValues: null, chartType, axisGroup, seriesColorArgb, seriesLineWidth: null, seriesLineDashStyle: null, pointColorArgb: null, showMarkers: true, connectLine: true, markerSize: null, markerShape: null, markerOutlineColorArgb: null, markerOutlineWidth: null, ownsValues: true) {
         }
 
         /// <summary>
         /// Creates a chart series with explicit per-point X values for scatter-style charts.
         /// </summary>
-        public ExcelChartSeries(string name, IEnumerable<double> values, IEnumerable<double> xValues, ExcelChartType? chartType = null, ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary, string? seriesColorArgb = null)
+        public ExcelChartSeries(string name, IEnumerable<double> values, IEnumerable<double> xValues, ExcelChartType? chartType = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary, string? seriesColorArgb = null)
             : this(name, (values ?? Array.Empty<double>()).ToList(), (xValues ?? Array.Empty<double>()).ToList(), chartType, axisGroup, seriesColorArgb, seriesLineWidth: null, seriesLineDashStyle: null, pointColorArgb: null, showMarkers: true, connectLine: true, markerSize: null, markerShape: null, markerOutlineColorArgb: null, markerOutlineWidth: null, ownsValues: true) {
         }
 
-        private ExcelChartSeries(string name, IReadOnlyList<double> values, IReadOnlyList<double>? xValues, ExcelChartType? chartType, ExcelChartAxisGroup axisGroup, string? seriesColorArgb, double? seriesLineWidth, OfficeStrokeDashStyle? seriesLineDashStyle, IReadOnlyList<string?>? pointColorArgb, bool showMarkers, bool connectLine, int? markerSize, OfficeChartMarkerShape? markerShape, string? markerOutlineColorArgb, double? markerOutlineWidth, bool ownsValues) {
+        private ExcelChartSeries(string name, IReadOnlyList<double> values, IReadOnlyList<double>? xValues, ExcelChartType? chartType, OfficeChartAxisGroup axisGroup, string? seriesColorArgb, double? seriesLineWidth, OfficeStrokeDashStyle? seriesLineDashStyle, IReadOnlyList<string?>? pointColorArgb, bool showMarkers, bool connectLine, int? markerSize, OfficeChartMarkerShape? markerShape, string? markerOutlineColorArgb, double? markerOutlineWidth, bool ownsValues) {
             Name = name ?? string.Empty;
             Values = values ?? Array.Empty<double>();
             XValues = xValues;
@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
             MarkerOutlineWidth = markerOutlineWidth;
         }
 
-        internal static ExcelChartSeries CreateOwned(string name, IReadOnlyList<double> values, ExcelChartType? chartType = null, ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary)
+        internal static ExcelChartSeries CreateOwned(string name, IReadOnlyList<double> values, ExcelChartType? chartType = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)
             => new(name, values, xValues: null, chartType, axisGroup, seriesColorArgb: null, seriesLineWidth: null, seriesLineDashStyle: null, pointColorArgb: null, showMarkers: true, connectLine: true, markerSize: null, markerShape: null, markerOutlineColorArgb: null, markerOutlineWidth: null, ownsValues: true);
 
         internal ExcelChartSeries WithXValues(IReadOnlyList<double>? xValues) =>
@@ -75,7 +75,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the axis group for this series.
         /// </summary>
-        public ExcelChartAxisGroup AxisGroup { get; }
+        public OfficeChartAxisGroup AxisGroup { get; }
 
         /// <summary>
         /// Gets the optional authored series color in RGB or ARGB hexadecimal form.

@@ -50,8 +50,8 @@ namespace OfficeIMO.Word {
                         null, finding.Note));
                     break;
                 default:
-                    if (finding.SupportLevel == WordFeatureSupportLevel.Preserved
-                        || finding.SupportLevel == WordFeatureSupportLevel.Unsupported) {
+                    if (finding.SupportLevel == OfficeFeatureSupportLevel.Preserved
+                        || finding.SupportLevel == OfficeFeatureSupportLevel.Unsupported) {
                         hints.Add(new WordPreflightRepairHint(capability, finding.Name,
                             "Use a preserve-only workflow, remove the feature, or route the document through Word-compatible software.",
                             "SaveCopy(...) or package-preserving save", finding.Note));

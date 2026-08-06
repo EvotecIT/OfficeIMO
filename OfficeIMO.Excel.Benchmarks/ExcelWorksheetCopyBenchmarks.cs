@@ -32,7 +32,7 @@ public class ExcelWorksheetCopyBenchmarks {
                 sourceDocument,
                 "Data",
                 "DataCopy",
-                SheetNameValidationMode.Sanitize,
+                ExcelSheetNameValidationMode.Sanitize,
                 new ExcelWorksheetCopyOptions { CopyMode = copyMode });
             targetDocument.Save(targetStream);
         }

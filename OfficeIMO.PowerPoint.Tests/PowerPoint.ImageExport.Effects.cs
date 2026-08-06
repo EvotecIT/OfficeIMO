@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
 
-            PowerPointAutoShape shape = slide.AddShapePoints(PowerPointShapeType.Rectangle, 20, 20, 60, 30);
+            PowerPointAutoShape shape = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 20, 20, 60, 30);
             shape.FillColor = "E0F2FE";
             shape.OutlineColor = "0284C7";
             shape.SetShadow("000000", distancePoints: 8, angleDegrees: 45, transparencyPercent: 0);
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
 
-            PowerPointAutoShape shape = slide.AddShapePoints(PowerPointShapeType.Rectangle, 32, 24, 48, 28);
+            PowerPointAutoShape shape = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 32, 24, 48, 28);
             shape.FillColor = "E0F2FE";
             shape.OutlineColor = "0284C7";
             shape.SetGlow("FF00FF", radiusPoints: 6, transparencyPercent: 25);

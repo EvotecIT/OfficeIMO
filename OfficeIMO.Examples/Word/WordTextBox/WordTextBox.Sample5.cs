@@ -11,15 +11,15 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Adding paragraph with some text");
 
-                var textBox = document.AddTextBox("My textbox right - inline", WrapTextImage.InLineWithText);
+                var textBox = document.AddTextBox("My textbox right - inline", WordImageTextWrapping.InLineWithText);
 
                 Console.WriteLine("[i] TextBox2 (inline): " + textBox.WrapText);
 
-                textBox.WrapText = WrapTextImage.Square;
+                textBox.WrapText = WordImageTextWrapping.Square;
 
                 Console.WriteLine("[i] TextBox2 (square): " + textBox.WrapText);
 
-                textBox.WrapText = WrapTextImage.InLineWithText;
+                textBox.WrapText = WordImageTextWrapping.InLineWithText;
 
                 Console.WriteLine("[i] TextBox2 (square): " + textBox.WrapText);
 

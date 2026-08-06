@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
         public void Test_DigitalSignature_MissingPart_ReturnsNull() {
             string tempFile = Path.GetTempFileName();
             using (WordDocument document = WordDocument.Create(tempFile)) {
-                Assert.True(document.ApplicationProperties.DigitalSignature == null);
+                Assert.False(document.ApplicationProperties.HasDigitalSignatureMetadata);
                 WordSignatureInfo signatures = document.InspectSignatures();
                 Assert.False(signatures.HasSignatures);
                 Assert.Equal(0, signatures.FindingCount);
@@ -89,12 +89,12 @@ namespace OfficeIMO.Tests {
         public void Test_DigitalSignature_PartDeleted_ReturnsNull() {
             string tempFile = Path.GetTempFileName();
             using (WordDocument document = WordDocument.Create(tempFile)) {
-                document.ApplicationProperties.DigitalSignature = new DigitalSignature();
-                Assert.True(document.ApplicationProperties.DigitalSignature != null);
+                document.ApplicationProperties.HasDigitalSignatureMetadata = true;
+                Assert.True(document.ApplicationProperties.HasDigitalSignatureMetadata);
                 var extendedPart = document._wordprocessingDocument!.ExtendedFilePropertiesPart;
                 Assert.NotNull(extendedPart);
                 document._wordprocessingDocument!.DeletePart(extendedPart);
-                Assert.True(document.ApplicationProperties.DigitalSignature == null);
+                Assert.False(document.ApplicationProperties.HasDigitalSignatureMetadata);
             }
         }
 
@@ -1071,7 +1071,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Application signature metadata only");
-                document.ApplicationProperties.DigitalSignature = new DigitalSignature();
+                document.ApplicationProperties.HasDigitalSignatureMetadata = true;
                 document.Save(new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
             }
 
@@ -1116,7 +1116,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordFeatureFinding signatures = Assert.Single(document.InspectFeatures().FindFeatures("Digital signatures"));
 
-                Assert.Equal(WordFeatureSupportLevel.PartiallyEditable, signatures.SupportLevel);
+                Assert.Equal(OfficeFeatureSupportLevel.PartiallyEditable, signatures.SupportLevel);
                 Assert.Contains(signatures.Details, detail => detail.Contains("origin.sigs", System.StringComparison.OrdinalIgnoreCase));
                 Assert.Contains(signatures.Details, detail => detail.Contains("_xmlsignatures", System.StringComparison.OrdinalIgnoreCase));
                 Assert.Contains("validated", signatures.Note, System.StringComparison.OrdinalIgnoreCase);

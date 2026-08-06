@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
                 "A1:A1",
                 hasHeader: true,
                 name: "ImportedResults",
-                style: OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             TableDefinitionPart importedTablePart = Assert.Single(
                 importedSheet.WorksheetPart.TableDefinitionParts);
             QueryTablePart importedQueryPart = importedTablePart.AddNewPart<QueryTablePart>();
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
                 sourceDocument,
                 "Images",
                 "RejectedCopy",
-                SheetNameValidationMode.Sanitize,
+                ExcelSheetNameValidationMode.Sanitize,
                 sameWorkbookOptions));
             Assert.Single(sourceDocument.Sheets);
 
@@ -229,7 +229,7 @@ namespace OfficeIMO.Tests {
                     sourceDocument,
                     "Images",
                     "Copied",
-                    SheetNameValidationMode.Sanitize,
+                    ExcelSheetNameValidationMode.Sanitize,
                     options));
 
             Assert.Contains(expectedMessage, exception.Message, StringComparison.OrdinalIgnoreCase);

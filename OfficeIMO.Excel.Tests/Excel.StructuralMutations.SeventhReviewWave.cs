@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
-using TableStyle = OfficeIMO.Excel.TableStyle;
+using ExcelTableStyle = OfficeIMO.Excel.ExcelTableStyle;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Tests {
@@ -72,20 +72,20 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(2, 2, 2);
-            sheet.AddTable("A1:B2", true, "Sales", TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B2", true, "Sales", ExcelTableStyle.TableStyleMedium2);
             sheet.CellValue(1, 5, "X");
             sheet.CellValue(1, 6, "Y");
             sheet.CellValue(2, 5, 1);
             sheet.CellValue(2, 6, 2);
-            sheet.AddTable("E1:F2", true, "Costs", TableStyle.TableStyleMedium2);
+            sheet.AddTable("E1:F2", true, "Costs", ExcelTableStyle.TableStyleMedium2);
 
             ExcelTable table = sheet.Table("A1:B2")
                 .Resize("A1:C2")
                 .SetSchema(new[] { "A", "B", "C" }, "A1:C3")
-                .SetStyle(TableStyle.TableStyleMedium4);
+                .SetStyle(ExcelTableStyle.TableStyleMedium4);
             ExcelTable schemaTable = sheet.Table("E1:F2")
                 .SetSchema(new[] { "Net", "Tax", "Gross" }, "E1:G2")
-                .SetStyle(TableStyle.TableStyleMedium4);
+                .SetStyle(ExcelTableStyle.TableStyleMedium4);
 
             Assert.Equal("Sales", table.NameOrRange);
             Assert.Equal("A1:C3", table.Range);
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Amount");
             sheet.CellValue(2, 1, 1);
-            sheet.AddTable("A1:A2", true, "Input", TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:A2", true, "Input", ExcelTableStyle.TableStyleMedium2);
             sheet.CellFormula(4, 1, "LET(Input,1,Input)");
             sheet.CellFormula(5, 1, "Input+LET(Input,1,Input)");
             sheet.CellFormula(6, 1, "LET(Input,1,SUM(Input[Amount])+Input)");

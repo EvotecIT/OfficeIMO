@@ -152,7 +152,7 @@ public partial class Html {
         Assert.Equal("東京", ruby.RubyBase!.InnerText);
         Assert.Equal("とうきょう", ruby.RubyContent!.InnerText);
         var diagnostic = Assert.Single(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "HtmlRubyPairingApproximation");
-        Assert.Equal(OfficeIMO.Html.HtmlConversionLossKind.Approximation, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
     }
 
     [Fact]

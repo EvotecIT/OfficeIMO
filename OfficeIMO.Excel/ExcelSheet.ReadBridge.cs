@@ -85,7 +85,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="options">Optional read options.</param>
         /// <param name="cancellationToken">Cancellation token observed during enumeration.</param>
-        public IEnumerable<CellValueInfo> EnumerateCells(
+        public IEnumerable<ExcelCellValueInfo> EnumerateCells(
             ExcelReadOptions? options = null,
             CancellationToken cancellationToken = default) {
             return EnumerateCellsIterator(options, cancellationToken);
@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel {
         /// <param name="a1Range">Inclusive A1 range (for example, "A1:C100").</param>
         /// <param name="options">Optional read options.</param>
         /// <param name="cancellationToken">Cancellation token observed during enumeration.</param>
-        public IEnumerable<CellValueInfo> EnumerateRange(
+        public IEnumerable<ExcelCellValueInfo> EnumerateRange(
             string a1Range,
             ExcelReadOptions? options = null,
             CancellationToken cancellationToken = default) {
@@ -174,7 +174,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private IEnumerable<CellValueInfo> EnumerateCellsIterator(
+        private IEnumerable<ExcelCellValueInfo> EnumerateCellsIterator(
             ExcelReadOptions? options,
             CancellationToken ct) {
             ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
@@ -184,12 +184,12 @@ namespace OfficeIMO.Excel {
             CancellationToken token = linkedCancellation.Token;
             using var rdr = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
             var sh = rdr.GetSheet(Name);
-            foreach (CellValueInfo cell in sh.EnumerateCells(token)) {
+            foreach (ExcelCellValueInfo cell in sh.EnumerateCells(token)) {
                 yield return cell;
             }
         }
 
-        private IEnumerable<CellValueInfo> EnumerateRangeIterator(
+        private IEnumerable<ExcelCellValueInfo> EnumerateRangeIterator(
             string a1Range,
             ExcelReadOptions? options,
             CancellationToken ct) {
@@ -200,7 +200,7 @@ namespace OfficeIMO.Excel {
             CancellationToken token = linkedCancellation.Token;
             using var rdr = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
             var sh = rdr.GetSheet(Name);
-            foreach (CellValueInfo cell in sh.EnumerateRange(a1Range, token)) {
+            foreach (ExcelCellValueInfo cell in sh.EnumerateRange(a1Range, token)) {
                 yield return cell;
             }
         }

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
 
-                Assert.Throws<ArgumentNullException>(() => slide.AddPicture(null!, ImagePartType.Png, 0, 0, 1000, 1000));
+                Assert.Throws<ArgumentNullException>(() => slide.AddPicture(null!, PowerPointImagePartType.Png, 0, 0, 1000, 1000));
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
 
                 using FileStream stream = new(tempImage, FileMode.Open, FileAccess.Write, FileShare.Read);
-                Assert.Throws<ArgumentException>(() => slide.AddPicture(stream, ImagePartType.Png, 0, 0, 1000, 1000));
+                Assert.Throws<ArgumentException>(() => slide.AddPicture(stream, PowerPointImagePartType.Png, 0, 0, 1000, 1000));
             } finally {
                 if (File.Exists(tempImage)) {
                     File.Delete(tempImage);
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 using MemoryStream stream = new(new byte[] { 0x00, 0x01, 0x02 });
 
-                Assert.Throws<ArgumentOutOfRangeException>(() => slide.AddPicture(stream, ImagePartType.Png, 0, 0, width, height));
+                Assert.Throws<ArgumentOutOfRangeException>(() => slide.AddPicture(stream, PowerPointImagePartType.Png, 0, 0, width, height));
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

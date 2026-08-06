@@ -15,7 +15,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (!budget.TryReserveTableWithShape(out string tableLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "A slide table was omitted because the shared import limit was reached.",
-                lossKind: HtmlConversionLossKind.Omission, detail: tableLimit);
+                lossKind: OfficeConversionLossKind.Omission, detail: tableLimit);
             return top;
         }
 
@@ -111,7 +111,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 int columnSpan = ReadPowerPointSpan(element, "colspan", result);
                 if ((long)rowSpan * columnSpan > maxTableCells) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                        "An HTML table span exceeded the configured MaxTableCells limit; the span was ignored.", lossKind: HtmlConversionLossKind.Approximation);
+                        "An HTML table span exceeded the configured MaxTableCells limit; the span was ignored.", lossKind: OfficeConversionLossKind.Approximation);
                     rowSpan = 1;
                     columnSpan = 1;
                 }
@@ -125,17 +125,17 @@ public static partial class HtmlPowerPointConverterExtensions {
                     int candidateColumns = Math.Max(columnExtent, columnIndex + 1);
                     if ((long)candidateRows * candidateColumns > maxTableCells) {
                         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                            "HTML table exceeded the configured MaxTableCells limit; remaining cells were skipped.", lossKind: HtmlConversionLossKind.Omission);
+                            "HTML table exceeded the configured MaxTableCells limit; remaining cells were skipped.", lossKind: OfficeConversionLossKind.Omission);
                         return new PowerPointHtmlTableGrid(rowExtent, columnExtent, cells);
                     }
 
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                        "An HTML table span exceeded the configured MaxTableCells limit; the span was ignored.", lossKind: HtmlConversionLossKind.Approximation);
+                        "An HTML table span exceeded the configured MaxTableCells limit; the span was ignored.", lossKind: OfficeConversionLossKind.Approximation);
                 }
 
                 if (PowerPointSpanOverlaps(occupied, rowIndex, columnIndex, rowSpan, columnSpan)) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TableSpanInvalid,
-                        "An HTML table cell contained an overlapping span; the span was ignored.", lossKind: HtmlConversionLossKind.Approximation);
+                        "An HTML table cell contained an overlapping span; the span was ignored.", lossKind: OfficeConversionLossKind.Approximation);
                     rowSpan = 1;
                     columnSpan = 1;
                 }
@@ -145,7 +145,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 if (!budget.IsMetadataWithinLimit(text, out string metadataLimit)) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
                         "A slide table cell was imported without text because it exceeded the shared field limit.",
-                        lossKind: HtmlConversionLossKind.Omission, detail: metadataLimit);
+                        lossKind: OfficeConversionLossKind.Omission, detail: metadataLimit);
                     text = string.Empty;
                 }
                 cells.Add(new PowerPointHtmlTableCell(
@@ -163,7 +163,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             rowExtent = Math.Max(rowExtent, rowIndex);
             if ((long)Math.Max(1, rowExtent) * Math.Max(1, columnExtent) > maxTableCells) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                    "HTML table exceeded the configured MaxTableCells limit; remaining rows were skipped.", lossKind: HtmlConversionLossKind.Omission);
+                    "HTML table exceeded the configured MaxTableCells limit; remaining rows were skipped.", lossKind: OfficeConversionLossKind.Omission);
                 break;
             }
         }
@@ -193,7 +193,7 @@ public static partial class HtmlPowerPointConverterExtensions {
 
         if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int span) || span <= 0) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TableSpanInvalid,
-                "An HTML table cell contained an invalid " + attributeName + " value; a span of 1 was used.", lossKind: HtmlConversionLossKind.Approximation);
+                "An HTML table cell contained an invalid " + attributeName + " value; a span of 1 was used.", lossKind: OfficeConversionLossKind.Approximation);
             return 1;
         }
 

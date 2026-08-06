@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(landscape.Height, new PageSize(842, 595).Landscape().Height);
 
             var exception = Assert.Throws<ArgumentException>(() =>
-                PageSizes.A4.WithOrientation((PdfPageOrientation)99));
+                PageSizes.A4.WithOrientation((OfficePageOrientation)99));
 
             Assert.Equal("orientation", exception.ParamName);
             Assert.Contains("PDF page orientation must be Portrait or Landscape.", exception.Message, StringComparison.Ordinal);
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Contains("Portraitpagebody", Normalize(portraitPage.Text), StringComparison.OrdinalIgnoreCase);
 
             var exception = Assert.Throws<ArgumentException>(() =>
-                PdfDocument.Create().Compose(c => c.Page(page => page.Orientation((PdfPageOrientation)99))));
+                PdfDocument.Create().Compose(c => c.Page(page => page.Orientation((OfficePageOrientation)99))));
 
             Assert.Equal("orientation", exception.ParamName);
         }

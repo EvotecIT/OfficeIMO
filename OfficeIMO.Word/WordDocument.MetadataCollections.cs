@@ -130,12 +130,12 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Manages application related properties.
         /// </summary>
-        public ApplicationProperties ApplicationProperties { get; internal set; } = null!;
+        public WordApplicationProperties ApplicationProperties { get; internal set; } = null!;
 
         /// <summary>
         /// Provides access to built-in document properties.
         /// </summary>
-        public BuiltinDocumentProperties BuiltinDocumentProperties { get; internal set; } = null!;
+        public WordBuiltinDocumentProperties BuiltinDocumentProperties { get; internal set; } = null!;
 
         private WordCoverPageProperties? _coverPageProperties;
 

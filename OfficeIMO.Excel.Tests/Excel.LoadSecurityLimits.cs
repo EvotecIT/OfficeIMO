@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(package, writable: false);
             var options = new ExcelLoadOptions {
                 AccessMode = DocumentAccessMode.ReadOnly,
-                OpenSettings = new OpenSettings { MaxCharactersInPart = 128 }
+                OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = 128 }
             };
 
             IOException exception = Assert.Throws<IOException>(() => ExcelDocument.Load(input, options));
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
                 }
                 var options = new ExcelLoadOptions {
                     AccessMode = DocumentAccessMode.ReadOnly,
-                    OpenSettings = new OpenSettings { MaxCharactersInPart = 128 }
+                    OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = 128 }
                 };
 
                 InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>

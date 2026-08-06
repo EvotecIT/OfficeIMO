@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
                 data.CellValue(2, 2, 42);
                 data.CellValue(2, 3, 0.2);
                 data.CellFormula(3, 2, "Data!B2");
-                data.AddTable("A1:B2", hasHeader: true, name: "People", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                data.AddTable("A1:B2", hasHeader: true, name: "People", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
                 source.SetNamedRange("TaxRate", "C2", data, save: false);
 
                 ExcelSheet importedData = source.AddWorksheet("Imported Data");
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet existing = target.AddWorksheet("Existing");
                 existing.CellValue(1, 1, "Name");
                 existing.CellValue(2, 1, "Grace");
-                existing.AddTable("A1:A2", hasHeader: true, name: "People", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                existing.AddTable("A1:A2", hasHeader: true, name: "People", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
                 target.MergeWorkbookFrom(source, new ExcelWorkbookMergeOptions {
                     SheetNamePrefix = "Imported ",
                     CopyMode = ExcelWorksheetCopyMode.Package
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "Amount");
                 source.CellValue(2, 1, 10);
-                source.AddTable("A1:A2", hasHeader: true, name: "Sales", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                source.AddTable("A1:A2", hasHeader: true, name: "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
                 source.CellFormula(3, 1, "SUM(Sales[Amount])");
 
                 ExcelWorkbookMergeResult result = document.MergeWorkbookFrom(document, new ExcelWorkbookMergeOptions {

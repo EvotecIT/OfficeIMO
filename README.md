@@ -1132,7 +1132,7 @@ sheet.CellValue(2, 1, "Alpha");
 sheet.CellValue(2, 2, 120);
 sheet.CellValue(3, 1, "Beta");
 sheet.CellValue(3, 2, 92);
-sheet.AddTable("A1:B3", hasHeader: true, name: "SalesTable", style: TableStyle.TableStyleMedium2);
+sheet.AddTable("A1:B3", hasHeader: true, name: "SalesTable", style: ExcelTableStyle.TableStyleMedium2);
 sheet.AutoFitColumns();
 
 workbook.Save();

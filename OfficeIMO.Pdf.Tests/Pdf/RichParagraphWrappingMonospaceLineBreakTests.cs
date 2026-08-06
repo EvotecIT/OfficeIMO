@@ -26,8 +26,8 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_DoesNotInsertSpaceBeforePunctuationAcrossRuns() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("Hello", bold: true),
-                new TextRun(", world")
+                new PdfTextRun("Hello", bold: true),
+                new PdfTextRun(", world")
             }, 200, 12, PdfStandardFont.Helvetica);
 
             var line = Assert.Single(ExtractLines(result));
@@ -39,9 +39,9 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_HonorsExplicitLineBreakRuns() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("Status", bold: true),
-                TextRun.LineBreak(),
-                new TextRun("Healthy")
+                new PdfTextRun("Status", bold: true),
+                PdfTextRun.LineBreak(),
+                new PdfTextRun("Healthy")
             }, 200, 12, PdfStandardFont.Helvetica);
 
             var lines = ExtractLines(result);
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WrapRichRuns_NormalizesCarriageReturnLineBreaks() {
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun("Alpha\r\nBeta\rGamma")
+                new PdfTextRun("Alpha\r\nBeta\rGamma")
             }, 200, 12, PdfStandardFont.Helvetica);
 
             var lines = ExtractLines(result);

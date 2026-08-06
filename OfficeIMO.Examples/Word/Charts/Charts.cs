@@ -145,7 +145,7 @@ namespace OfficeIMO.Examples.Word {
                 areaChart.AddArea("Brazil", new List<int>() { 100, 1, 18, 230 }, OfficeIMO.Drawing.OfficeColor.Brown);
                 areaChart.AddArea("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
                 areaChart.AddArea("USA", new List<int>() { 10, 305, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
-                areaChart.AddLegend(WordChartLegendPosition.Top);
+                areaChart.AddLegend(OfficeChartLegendPosition.Top);
 
                 var scatterChart = document.AddChart("Scatter chart");
                 scatterChart.AddScatter("Data", new List<double>() { 1, 2, 3 }, new List<double>() { 3, 2, 1 }, OfficeIMO.Drawing.OfficeColor.Red);

@@ -92,7 +92,7 @@ public sealed partial class OfficeRasterCanvas {
                 OfficeImageExportDiagnosticCodes.TextShapingFallback,
                 "Rendered complex text with a bounded fallback that cannot provide complete OpenType shaping or Unicode bidi behavior. Supply TextShapingProvider for premium script fidelity.",
                 _diagnosticSource,
-                OfficeImageExportLossKind.Approximation));
+                OfficeConversionLossKind.Approximation));
             return;
         }
 
@@ -103,7 +103,7 @@ public sealed partial class OfficeRasterCanvas {
             OfficeImageExportDiagnosticCodes.TextShapingFallback,
             "Rendered complex text with the dependency-free core-Arabic and bidirectional fallback. Supply TextShapingProvider for full OpenType shaping.",
             _diagnosticSource,
-            OfficeImageExportLossKind.Approximation));
+            OfficeConversionLossKind.Approximation));
     }
 
     private bool HasTextShapingFallbackDiagnostic() {

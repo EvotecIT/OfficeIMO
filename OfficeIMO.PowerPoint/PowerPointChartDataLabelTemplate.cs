@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Toggle percent labels.</summary>
         public bool? ShowPercent { get; set; }
         /// <summary>Sets label position.</summary>
-        public PowerPointChartDataLabelPosition? Position { get; set; }
+        public OfficeChartDataLabelPosition? Position { get; set; }
         /// <summary>Number format code for labels.</summary>
         public string? NumberFormat { get; set; }
         /// <summary>Separator between label parts.</summary>

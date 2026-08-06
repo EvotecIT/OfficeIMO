@@ -137,9 +137,9 @@ public class PdfDocumentBulletListTests {
 
     [Fact]
     public void RichListBlocks_SnapshotInputRunsBeforeRendering() {
-        var runs = new System.Collections.Generic.List<TextRun> {
-            TextRun.Normal("Original"),
-            TextRun.Bolded(" Bold")
+        var runs = new System.Collections.Generic.List<PdfTextRun> {
+            PdfTextRun.Normal("Original"),
+            PdfTextRun.Bolded(" Bold")
         };
         var items = new System.Collections.Generic.List<PdfListItem> {
             new PdfListItem(runs)
@@ -149,8 +149,8 @@ public class PdfDocumentBulletListTests {
             .RichBullets(items)
             .RichNumbered(items);
 
-        runs[0] = TextRun.Normal("Mutated");
-        runs.Add(TextRun.Normal(" Late"));
+        runs[0] = PdfTextRun.Normal("Mutated");
+        runs.Add(PdfTextRun.Normal(" Late"));
         items[0] = PdfListItem.Plain("Late item");
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
@@ -166,7 +166,7 @@ public class PdfDocumentBulletListTests {
         byte[] bytes = PdfDocument.Create()
             .RichBullets(new[] {
                 PdfListItem.Plain("Bookmarked bullet", "BulletAnchor"),
-                PdfListItem.Rich(new[] { TextRun.Normal("Second bookmarked bullet") }, "SecondBulletAnchor")
+                PdfListItem.Rich(new[] { PdfTextRun.Normal("Second bookmarked bullet") }, "SecondBulletAnchor")
             })
             .Paragraph(p => p.LinkToBookmark("Jump to second bullet", "SecondBulletAnchor", contents: "List bookmark jump"))
             .ToBytes();
@@ -208,14 +208,14 @@ public class PdfDocumentBulletListTests {
         byte[] bytes = PdfDocument.Create()
             .RichBullets(new[] {
                 new PdfListItem(new[] {
-                    TextRun.Normal("Plain "),
-                    TextRun.Bolded("Bold"),
-                    TextRun.Normal(" "),
-                    TextRun.Normal("Red", PdfColor.FromRgb(255, 0, 0)),
-                    TextRun.Normal(" "),
-                    TextRun.Normal("Marked", backgroundColor: PdfColor.FromRgb(255, 255, 0)),
-                    TextRun.Normal(" "),
-                    TextRun.Link("Linked", linkUri, contents: "Rich list metadata")
+                    PdfTextRun.Normal("Plain "),
+                    PdfTextRun.Bolded("Bold"),
+                    PdfTextRun.Normal(" "),
+                    PdfTextRun.Normal("Red", PdfColor.FromRgb(255, 0, 0)),
+                    PdfTextRun.Normal(" "),
+                    PdfTextRun.Normal("Marked", backgroundColor: PdfColor.FromRgb(255, 255, 0)),
+                    PdfTextRun.Normal(" "),
+                    PdfTextRun.Link("Linked", linkUri, contents: "Rich list metadata")
                 })
             })
             .ToBytes();

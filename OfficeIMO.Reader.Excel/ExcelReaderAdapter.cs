@@ -81,7 +81,7 @@ internal static class ExcelReaderAdapter {
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
-                ? new OpenSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
+                ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null
         };
         try {
@@ -99,7 +99,7 @@ internal static class ExcelReaderAdapter {
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
-                ? new OpenSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
+                ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null
         };
         if (stream.CanSeek) stream.Position = 0;

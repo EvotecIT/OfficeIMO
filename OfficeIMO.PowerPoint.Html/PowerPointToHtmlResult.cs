@@ -24,10 +24,10 @@ public sealed class PowerPointToHtmlResult : HtmlConversionResult<string> {
             OfficeImageExportDiagnosticSeverity.Warning => HtmlDiagnosticSeverity.Warning,
             _ => HtmlDiagnosticSeverity.Info
         };
-        HtmlConversionLossKind lossKind = diagnostic.Severity switch {
-            OfficeImageExportDiagnosticSeverity.Error => HtmlConversionLossKind.Failure,
-            OfficeImageExportDiagnosticSeverity.Warning => HtmlConversionLossKind.Approximation,
-            _ => HtmlConversionLossKind.None
+        OfficeConversionLossKind lossKind = diagnostic.Severity switch {
+            OfficeImageExportDiagnosticSeverity.Error => OfficeConversionLossKind.Failure,
+            OfficeImageExportDiagnosticSeverity.Warning => OfficeConversionLossKind.Approximation,
+            _ => OfficeConversionLossKind.None
         };
         return new HtmlDiagnostic(
             "OfficeIMO.PowerPoint.Html",

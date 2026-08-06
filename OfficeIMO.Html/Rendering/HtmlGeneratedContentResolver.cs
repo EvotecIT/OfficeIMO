@@ -93,7 +93,7 @@ internal static class HtmlGeneratedContentResolver {
                 HtmlDiagnosticSeverity.Warning,
                 pseudoSource,
                 detail.Length > 0 ? detail : expression,
-                HtmlConversionLossKind.Omission);
+                OfficeConversionLossKind.Omission);
             return;
         }
 
@@ -134,7 +134,7 @@ internal static class HtmlGeneratedContentResolver {
                 HtmlDiagnosticSeverity.Warning,
                 source,
                 property + "=" + value,
-                HtmlConversionLossKind.Omission);
+                OfficeConversionLossKind.Omission);
             return;
         }
 

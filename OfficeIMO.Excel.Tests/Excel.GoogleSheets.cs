@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(4, 5, "East");
                     summary.CellValue(4, 6, 30d);
                     summary.CellValue(4, 7, 28d);
-                    summary.AddTable("A1:B2", hasHeader: true, name: "SummaryTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                    summary.AddTable("A1:B2", hasHeader: true, name: "SummaryTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                     summary.SetTableTotals("A1:B2", new Dictionary<string, ExcelTableTotalsFunction> {
                         ["Name"] = ExcelTableTotalsFunction.Count,
                         ["Column2"] = ExcelTableTotalsFunction.Sum,
@@ -313,7 +313,7 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(4, 8, "East");
                     summary.CellValue(4, 9, 30d);
                     summary.CellValue(4, 10, 28d);
-                    summary.AddTable("A1:B3", hasHeader: true, name: "SummaryTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                    summary.AddTable("A1:B3", hasHeader: true, name: "SummaryTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                     summary.SetTableTotals("A1:B3", new Dictionary<string, ExcelTableTotalsFunction> {
                         ["Name"] = ExcelTableTotalsFunction.Count,
                         ["Count"] = ExcelTableTotalsFunction.Sum,
@@ -597,7 +597,7 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(4, 1, "Total");
                     summary.CellValue(4, 2, 30d);
 
-                    summary.AddTable("A1:B4", hasHeader: true, name: "StyledTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                    summary.AddTable("A1:B4", hasHeader: true, name: "StyledTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                     summary.SetTableTotals("A1:B4", new Dictionary<string, ExcelTableTotalsFunction> {
                         ["Name"] = ExcelTableTotalsFunction.Count,
                         ["Amount"] = ExcelTableTotalsFunction.Sum,
@@ -671,7 +671,7 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(3, 1, "Beta");
                     summary.CellValue(3, 2, "Closed");
 
-                    summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                    summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                     summary.ValidationList("B2:B3", new[] { "Open", "Closed", "Pending" });
 
                     document.Save();
@@ -735,7 +735,7 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(3, 1, "Beta");
                     summary.CellValue(3, 2, "Closed");
 
-                    summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                    summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                     summary.ValidationListNamedRange("B2:B3", "StatusOptions");
 
                     document.Save();
@@ -793,7 +793,7 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(3, 1, "Beta");
                     summary.CellValue(3, 2, "Closed");
 
-                    summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                    summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                     summary.ValidationListRange("B2:B3", "A1:A3", "Options");
 
                     document.Save();
@@ -850,7 +850,7 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(3, 4, "Closed");
                     summary.CellValue(4, 4, "Pending");
 
-                    summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                    summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                     summary.ValidationListRange("B2:B3", "D2:D4");
 
                     document.Save();
@@ -1275,7 +1275,7 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(4, 8, "East");
                     summary.CellValue(4, 9, 30d);
                     summary.CellValue(4, 10, 28d);
-                    summary.AddTable("A1:B3", hasHeader: true, name: "SummaryTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                    summary.AddTable("A1:B3", hasHeader: true, name: "SummaryTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                     summary.SetTableTotals("A1:B3", new Dictionary<string, ExcelTableTotalsFunction> {
                         ["Name"] = ExcelTableTotalsFunction.Count,
                         ["Count"] = ExcelTableTotalsFunction.Sum,

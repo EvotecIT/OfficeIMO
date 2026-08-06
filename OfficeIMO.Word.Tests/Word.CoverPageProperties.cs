@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
                 document.CoverPageProperties.CompanyAddress = "1 Main St";
                 document.CoverPageProperties.CompanyEmail = "info@example.com";
 
-                document.AddCoverPage(CoverPageTemplate.Element);
+                document.AddCoverPage(WordCoverPageTemplate.Element);
 
                 var part = document._wordprocessingDocument.MainDocumentPart!.CustomXmlParts
                     .FirstOrDefault(p => string.Equals(

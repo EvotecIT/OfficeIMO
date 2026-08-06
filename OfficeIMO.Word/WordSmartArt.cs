@@ -14,9 +14,9 @@ namespace OfficeIMO.Word {
         internal WordDrawing _drawing = null!;
         private readonly WordDocument _document;
         private readonly WordParagraph _paragraph;
-        private readonly SmartArtType? _type;
+        private readonly WordSmartArtType? _type;
 
-        internal WordSmartArt(WordDocument document, WordParagraph paragraph, SmartArtType type) {
+        internal WordSmartArt(WordDocument document, WordParagraph paragraph, WordSmartArtType type) {
             _document = document;
             _paragraph = paragraph;
             _type = type;
@@ -31,7 +31,7 @@ namespace OfficeIMO.Word {
             _type = TryDetectType();
         }
 
-        private void InsertSmartArt(SmartArtType type) {
+        private void InsertSmartArt(WordSmartArtType type) {
             var mainPart = _document._wordprocessingDocument.MainDocumentPart!;
 
             // Build SmartArt parts in-memory (no external templates)
@@ -47,9 +47,9 @@ namespace OfficeIMO.Word {
 
             // Match exported templates effect extents for visual parity
             EffectExtent eff;
-            if (type == SmartArtType.CustomSmartArt1) {
+            if (type == WordSmartArtType.CustomSmartArt1) {
                 eff = new EffectExtent { LeftEdge = 38100L, TopEdge = 0L, RightEdge = 57150L, BottomEdge = 0L };
-            } else if (type == SmartArtType.CustomSmartArt2) {
+            } else if (type == WordSmartArtType.CustomSmartArt2) {
                 eff = new EffectExtent { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 19050L };
             } else {
                 eff = new EffectExtent { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L };
@@ -412,9 +412,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Indicates whether this SmartArt type supports adding/removing/reordering nodes.
         /// </summary>
-        public bool CanModifyNodes => _type == SmartArtType.BasicProcess || _type == SmartArtType.Cycle;
+        public bool CanModifyNodes => _type == WordSmartArtType.BasicProcess || _type == WordSmartArtType.Cycle;
 
-        internal SmartArtType? LayoutType => _type;
+        internal WordSmartArtType? LayoutType => _type;
 
         private (XDocument xdoc, (XNamespace dgm, XNamespace a) ns, List<XElement> paras) LoadNodeParagraphs() {
             var dataPart = GetDiagramDataPart();
@@ -574,7 +574,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private SmartArtType? TryDetectType() {
+        private WordSmartArtType? TryDetectType() {
             try {
                 var rel = _drawing.Descendants<RelationshipIds>().FirstOrDefault();
                 var main = _document._wordprocessingDocument.MainDocumentPart!;
@@ -583,11 +583,11 @@ namespace OfficeIMO.Word {
                 var part = main.GetPartById(layoutId) as DiagramLayoutDefinitionPart;
                 if (part?.LayoutDefinition == null) return null;
                 var uid = part.LayoutDefinition.UniqueId?.Value ?? string.Empty;
-                if (uid.EndsWith("/layout/cycle2")) return SmartArtType.Cycle;
-                if (uid.EndsWith("/layout/default")) return SmartArtType.BasicProcess;
-                if (uid.EndsWith("/layout/hierarchy1")) return SmartArtType.Hierarchy;
-                if (uid.EndsWith("/layout/pictureorgchart")) return SmartArtType.PictureOrgChart;
-                if (uid.EndsWith("/layout/process6") || uid.EndsWith("/layout/continuousblockprocess")) return SmartArtType.ContinuousBlockProcess;
+                if (uid.EndsWith("/layout/cycle2")) return WordSmartArtType.Cycle;
+                if (uid.EndsWith("/layout/default")) return WordSmartArtType.BasicProcess;
+                if (uid.EndsWith("/layout/hierarchy1")) return WordSmartArtType.Hierarchy;
+                if (uid.EndsWith("/layout/pictureorgchart")) return WordSmartArtType.PictureOrgChart;
+                if (uid.EndsWith("/layout/process6") || uid.EndsWith("/layout/continuousblockprocess")) return WordSmartArtType.ContinuousBlockProcess;
                 return null;
             } catch { return null; }
         }

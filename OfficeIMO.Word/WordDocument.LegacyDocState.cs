@@ -96,14 +96,14 @@ namespace OfficeIMO.Word {
         private void EnsureLegacyDocSaveDoesNotDropImportedContent(WordSaveOptions? options) {
             if (SourceFormat != WordFileFormat.Doc
                 || !HasLossyLegacyDocImportState()
-                || options?.LossPolicy == WordConversionLossPolicy.Allow) {
+                || options?.LossPolicy == OfficeConversionLossPolicy.Allow) {
                 return;
             }
 
             string source = string.IsNullOrWhiteSpace(_legacyDocSourcePath)
                 ? "a legacy binary DOC source"
                 : $"legacy binary DOC source '{_legacyDocSourcePath}'";
-            throw new NotSupportedException($"Saving is blocked because this document was loaded from {source} with unsupported or preserve-only content. Review LegacyDocUnsupportedFeatures, LegacyDocPreservedFeatures, and LegacyDocCompoundFeatures, or set WordSaveOptions.LossPolicy to WordConversionLossPolicy.Allow when that loss is intentional.");
+            throw new NotSupportedException($"Saving is blocked because this document was loaded from {source} with unsupported or preserve-only content. Review LegacyDocUnsupportedFeatures, LegacyDocPreservedFeatures, and LegacyDocCompoundFeatures, or set WordSaveOptions.LossPolicy to OfficeConversionLossPolicy.Allow when that loss is intentional.");
         }
     }
 }

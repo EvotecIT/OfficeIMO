@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.OpenDocument;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.PowerPoint.OpenDocument;
@@ -98,13 +99,13 @@ public static class PowerPointOpenDocumentConversionExtensions {
                     tables++;
                 } else if (shape is PowerPointAutoShape autoShape) {
                     OdpShape converted;
-                    if (autoShape.ShapeType == PowerPointShapeType.Ellipse) converted = targetSlide.AddEllipse(ToOdfRect(autoShape), autoShape.Name);
-                    else if (autoShape.ShapeType == PowerPointShapeType.Line) {
+                    if (autoShape.ShapeType == OfficePresetShapeType.Ellipse) converted = targetSlide.AddEllipse(ToOdfRect(autoShape), autoShape.Name);
+                    else if (autoShape.ShapeType == OfficePresetShapeType.Line) {
                         converted = targetSlide.AddLine(OdfLength.Points(autoShape.LeftPoints), OdfLength.Points(autoShape.TopPoints),
                             OdfLength.Points(autoShape.RightPoints), OdfLength.Points(autoShape.BottomPoints), autoShape.Name);
                     } else {
                         converted = targetSlide.AddRectangle(ToOdfRect(autoShape), autoShape.Name);
-                        if (autoShape.ShapeType != PowerPointShapeType.Rectangle) transformedShapes++;
+                        if (autoShape.ShapeType != OfficePresetShapeType.Rectangle) transformedShapes++;
                     }
                     CopyShapeAppearance(autoShape, converted, effective);
                     autoShapes++;
@@ -221,7 +222,7 @@ public static class PowerPointOpenDocumentConversionExtensions {
                     }
                     try {
                         byte[] imageBytes = image.GetImageBytes();
-                        if (!TryGetImagePartType(image.Path, imageBytes, out ImagePartType imageType)) {
+                        if (!TryGetImagePartType(image.Path, imageBytes, out PowerPointImagePartType imageType)) {
                             unsupportedPictures++;
                             continue;
                         }
@@ -356,13 +357,13 @@ public static class PowerPointOpenDocumentConversionExtensions {
         } else if (background.Kind != PowerPointSlideBackgroundKind.None) unsupported++;
     }
 
-    private static bool MapTransition(SlideTransition transition, OdpSlide target) {
-        if (transition == SlideTransition.None) return false;
+    private static bool MapTransition(PowerPointSlideTransition transition, OdpSlide target) {
+        if (transition == PowerPointSlideTransition.None) return false;
         target.TransitionType = "automatic";
         switch (transition) {
-            case SlideTransition.Fade: target.TransitionStyle = "fade"; break;
-            case SlideTransition.Wipe: target.TransitionStyle = "wipe"; break;
-            case SlideTransition.Cut: target.TransitionStyle = "none"; break;
+            case PowerPointSlideTransition.Fade: target.TransitionStyle = "fade"; break;
+            case PowerPointSlideTransition.Wipe: target.TransitionStyle = "wipe"; break;
+            case PowerPointSlideTransition.Cut: target.TransitionStyle = "none"; break;
             default: target.TransitionStyle = transition.ToString().ToLowerInvariant(); break;
         }
         return true;
@@ -371,9 +372,9 @@ public static class PowerPointOpenDocumentConversionExtensions {
     private static bool MapTransition(OdpSlide source, PowerPointSlide target) {
         string value = (source.TransitionStyle ?? source.TransitionType ?? string.Empty).ToLowerInvariant();
         if (value.Length == 0) return false;
-        if (value.Contains("fade")) target.Transition = SlideTransition.Fade;
-        else if (value.Contains("wipe")) target.Transition = SlideTransition.Wipe;
-        else if (value.Contains("cut") || value == "none") target.Transition = SlideTransition.Cut;
+        if (value.Contains("fade")) target.Transition = PowerPointSlideTransition.Fade;
+        else if (value.Contains("wipe")) target.Transition = PowerPointSlideTransition.Wipe;
+        else if (value.Contains("cut") || value == "none") target.Transition = PowerPointSlideTransition.Cut;
         else return false;
         return true;
     }
@@ -416,37 +417,37 @@ public static class PowerPointOpenDocumentConversionExtensions {
         }
     }
 
-    private static bool TryGetImagePartType(string path, byte[] bytes, out ImagePartType type) {
+    private static bool TryGetImagePartType(string path, byte[] bytes, out PowerPointImagePartType type) {
         string normalizedPath = path;
         int suffix = normalizedPath.IndexOfAny(new[] { '?', '#' });
         if (suffix >= 0) normalizedPath = normalizedPath.Substring(0, suffix);
         try { normalizedPath = Uri.UnescapeDataString(normalizedPath); } catch (UriFormatException) { }
         switch (System.IO.Path.GetExtension(normalizedPath).ToLowerInvariant()) {
-            case ".png": type = ImagePartType.Png; return true;
+            case ".png": type = PowerPointImagePartType.Png; return true;
             case ".jpg":
-            case ".jpeg": type = ImagePartType.Jpeg; return true;
-            case ".gif": type = ImagePartType.Gif; return true;
-            case ".bmp": type = ImagePartType.Bmp; return true;
+            case ".jpeg": type = PowerPointImagePartType.Jpeg; return true;
+            case ".gif": type = PowerPointImagePartType.Gif; return true;
+            case ".bmp": type = PowerPointImagePartType.Bmp; return true;
             case ".tif":
-            case ".tiff": type = ImagePartType.Tiff; return true;
+            case ".tiff": type = PowerPointImagePartType.Tiff; return true;
         }
         if (bytes.Length >= 8 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) {
-            type = ImagePartType.Png; return true;
+            type = PowerPointImagePartType.Png; return true;
         }
         if (bytes.Length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) {
-            type = ImagePartType.Jpeg; return true;
+            type = PowerPointImagePartType.Jpeg; return true;
         }
         if (bytes.Length >= 6 && bytes[0] == (byte)'G' && bytes[1] == (byte)'I' && bytes[2] == (byte)'F') {
-            type = ImagePartType.Gif; return true;
+            type = PowerPointImagePartType.Gif; return true;
         }
         if (bytes.Length >= 2 && bytes[0] == (byte)'B' && bytes[1] == (byte)'M') {
-            type = ImagePartType.Bmp; return true;
+            type = PowerPointImagePartType.Bmp; return true;
         }
         if (bytes.Length >= 4 && ((bytes[0] == (byte)'I' && bytes[1] == (byte)'I' && bytes[2] == 42 && bytes[3] == 0) ||
                                 (bytes[0] == (byte)'M' && bytes[1] == (byte)'M' && bytes[2] == 0 && bytes[3] == 42))) {
-            type = ImagePartType.Tiff; return true;
+            type = PowerPointImagePartType.Tiff; return true;
         }
-        type = ImagePartType.Png; return false;
+        type = PowerPointImagePartType.Png; return false;
     }
 
     private static IEnumerable<string> SplitParagraphs(string text) => text.Replace("\r\n", "\n")

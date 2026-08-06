@@ -63,9 +63,9 @@ internal static partial class PdfWriter {
                     : "0000";
                 entries.Add(new RichParagraphBlock(
                     new[] {
-                        TextRun.LinkToBookmark(section.Title, section.DestinationName, underline: false),
-                        TextRun.Tab(options.Leader, PdfTabAlignment.Right),
-                        TextRun.Normal(pageText)
+                        PdfTextRun.LinkToBookmark(section.Title, section.DestinationName, underline: false),
+                        PdfTextRun.Tab(options.Leader, PdfTabAlignment.Right),
+                        PdfTextRun.Normal(pageText)
                     },
                     PdfAlign.Left,
                     defaultColor: null,

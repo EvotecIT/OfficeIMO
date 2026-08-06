@@ -10,7 +10,7 @@ using OfficeIMO.PowerPoint;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
-using PptImagePartType = OfficeIMO.PowerPoint.ImagePartType;
+using PptImagePartType = OfficeIMO.PowerPoint.PowerPointImagePartType;
 
 namespace OfficeIMO.Tests {
     public class PowerPointFunctionalSmokeTests {
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
 
                     PowerPointSlide cover = presentation.AddSlide(PowerPointSlideLayoutType.TitleOnly);
                     cover.BackgroundColor = "F8F5EF";
-                    cover.Transition = SlideTransition.Morph;
+                    cover.Transition = PowerPointSlideTransition.Morph;
                     PowerPointTextBox title = cover.AddTitle("Commercial Snapshot",
                         new PowerPointLayoutBox(PowerPointUnits.FromCentimeters(1.4), PowerPointUnits.FromCentimeters(1.0),
                             PowerPointUnits.FromCentimeters(18.0), PowerPointUnits.FromCentimeters(1.2)));
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
 
                     PowerPointSlide dashboard = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
                     dashboard.SetBackgroundImage(backgroundPath);
-                    dashboard.Transition = SlideTransition.Fade;
+                    dashboard.Transition = PowerPointSlideTransition.Fade;
 
                     PowerPointAutoShape panel = dashboard.AddRectangleCm(0.9, 0.7, 24.0, 12.0, "Dashboard Surface");
                     panel.FillColor = "F8F5EF";
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
                         });
                     PowerPointChart chart = dashboard.AddLineChartCm(data, 1.4, 1.3, 14.5, 7.0);
                     chart.SetTitle("Momentum Over Time");
-                    chart.SetLegend(PowerPointChartLegendPosition.Bottom);
+                    chart.SetLegend(OfficeChartLegendPosition.Bottom);
                     chart.SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "EFE8DA");
                     chart.SetPlotAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF");
                     chart.SetSeriesLineColor("Revenue", "156082", widthPoints: 2.5);
@@ -231,6 +231,16 @@ namespace OfficeIMO.Tests {
                     $"ErrorType: {error.ErrorType}\n" +
                     $"Part: {error.Part?.Uri}\n" +
                     $"Path: {error.Path?.XPath}"));
+        }
+
+        private static string FormatValidationErrors(IEnumerable<OfficeOpenXmlValidationError> errors) {
+            return string.Join(Environment.NewLine + Environment.NewLine,
+                errors.Select(error =>
+                    $"Description: {error.Description}\n" +
+                    $"Id: {error.Id}\n" +
+                    $"ErrorType: {error.ErrorType}\n" +
+                    $"Part: {error.PartUri}\n" +
+                    $"Path: {error.Path}"));
         }
 
         private static string CreateTempFilePath(string extension) {

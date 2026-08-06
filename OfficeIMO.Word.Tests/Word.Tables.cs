@@ -1426,21 +1426,21 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "TableAutoFitProperty.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordTable table = document.AddTable(1, 1);
-                table.LayoutMode = WordTableLayoutType.AutoFitToContents;
-                Assert.Equal(WordTableLayoutType.AutoFitToContents, table.LayoutMode);
+                table.LayoutMode = WordTableLayoutMode.AutoFit;
+                Assert.Equal(WordTableLayoutMode.AutoFit, table.LayoutMode);
 
-                table.LayoutMode = WordTableLayoutType.AutoFitToWindow;
-                Assert.Equal(WordTableLayoutType.AutoFitToWindow, table.LayoutMode);
+                table.AutoFitToWindow();
+                Assert.Equal(WordTableLayoutMode.Fixed, table.LayoutMode);
 
-                table.LayoutMode = WordTableLayoutType.FixedWidth;
-                Assert.Equal(WordTableLayoutType.AutoFitToWindow, table.LayoutMode);
+                table.LayoutMode = WordTableLayoutMode.Fixed;
+                Assert.Equal(WordTableLayoutMode.Fixed, table.LayoutMode);
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordTable table = document.Tables[0];
-                Assert.Equal(WordTableLayoutType.AutoFitToWindow, table.LayoutMode);
+                Assert.Equal(WordTableLayoutMode.Fixed, table.LayoutMode);
             }
         }
 

@@ -21,7 +21,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         if (!string.IsNullOrWhiteSpace(spec.OverlayColor)) {
             var overlay = slide.AddShapeInches(
-                PowerPointShapeType.Rectangle,
+                OfficePresetShapeType.Rectangle,
                 0,
                 0,
                 metrics.Width,

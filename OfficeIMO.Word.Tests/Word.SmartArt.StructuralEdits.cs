@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void SmartArt_MoveNode_ChangesLogicalOrderAcrossReload() {
             string filePath = Path.Combine(_directoryWithFiles, "SmartArt.MoveNode.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                WordSmartArt smartArt = document.AddSmartArt(SmartArtType.BasicProcess);
+                WordSmartArt smartArt = document.AddSmartArt(WordSmartArtType.BasicProcess);
                 smartArt.SetNodeText(0, "A");
                 smartArt.AddNode("B");
                 smartArt.AddNode("C");
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
         public void SmartArt_DuplicateNodeModelIds_FallBackToDocumentOrder() {
             string filePath = Path.Combine(_directoryWithFiles, "SmartArt.DuplicateNodeModelIds.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                WordSmartArt createdSmartArt = document.AddSmartArt(SmartArtType.BasicProcess);
+                WordSmartArt createdSmartArt = document.AddSmartArt(WordSmartArtType.BasicProcess);
                 createdSmartArt.SetNodeText(0, "A");
                 createdSmartArt.AddNode("B");
                 createdSmartArt.AddNode("C");
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
         public void SmartArt_MoveNode_UpdatesDuplicateDocumentChildConnections() {
             string filePath = Path.Combine(_directoryWithFiles, "SmartArt.DuplicateDocumentChildConnections.docx");
             using WordDocument document = WordDocument.Create(filePath);
-            WordSmartArt smartArt = document.AddSmartArt(SmartArtType.BasicProcess);
+            WordSmartArt smartArt = document.AddSmartArt(WordSmartArtType.BasicProcess);
             smartArt.SetNodeText(0, "A");
             smartArt.AddNode("B");
             smartArt.AddNode("C");
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
             string docId;
             string duplicateDestination;
             using (WordDocument document = WordDocument.Create(filePath)) {
-                WordSmartArt smartArt = document.AddSmartArt(SmartArtType.BasicProcess);
+                WordSmartArt smartArt = document.AddSmartArt(WordSmartArtType.BasicProcess);
                 smartArt.SetNodeText(0, "A");
                 smartArt.AddNode("B");
                 smartArt.AddNode("C");
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests {
         public void SmartArt_RemoveNode_RemovesIncomingAndOutgoingConnections() {
             string filePath = Path.Combine(_directoryWithFiles, "SmartArt.RemoveIncidentConnections.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                WordSmartArt smartArt = document.AddSmartArt(SmartArtType.Cycle);
+                WordSmartArt smartArt = document.AddSmartArt(WordSmartArtType.Cycle);
                 smartArt.SetNodeText(0, "A");
                 smartArt.AddNode("B");
                 smartArt.AddNode("C");

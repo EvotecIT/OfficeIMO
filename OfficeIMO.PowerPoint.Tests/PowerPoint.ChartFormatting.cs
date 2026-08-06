@@ -21,10 +21,10 @@ namespace OfficeIMO.Tests {
                     PowerPointChart chart = slide.AddChart();
                     chart.SetTitle("Sales Trend")
                         .SetTitleTextStyle(fontSizePoints: 18, bold: true, color: "1F4E79", fontName: "Calibri")
-                        .SetLegend(PowerPointChartLegendPosition.Right)
+                        .SetLegend(OfficeChartLegendPosition.Right)
                         .SetLegendTextStyle(fontSizePoints: 9, italic: true, color: "404040", fontName: "Calibri")
                         .SetDataLabels(showValue: true)
-                        .SetDataLabelPosition(PowerPointChartDataLabelPosition.OutsideEnd)
+                        .SetDataLabelPosition(OfficeChartDataLabelPosition.OutsideEnd)
                         .SetDataLabelNumberFormat("#,##0.0", sourceLinked: false)
                         .SetCategoryAxisTitle("Quarter")
                         .SetValueAxisTitle("Revenue");
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
                         new[] { new PowerPointChartSeries("Share", new[] { 42d, 27d, 31d }) });
                     PowerPointChart chart = slide.AddDoughnutChart(data);
                     chart.SetDataLabels(showPercent: true)
-                        .SetDataLabelPosition(PowerPointChartDataLabelPosition.OutsideEnd);
+                        .SetDataLabelPosition(OfficeChartDataLabelPosition.OutsideEnd);
 
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());
@@ -166,8 +166,8 @@ namespace OfficeIMO.Tests {
                         new[] { new PowerPointChartSeries("Share", new[] { 42d, 27d, 31d }) });
                     PowerPointChart chart = slide.AddDoughnutChart(data);
                     chart.SetDataLabels(showPercent: true)
-                        .SetDataLabelPosition(PowerPointChartDataLabelPosition.OutsideEnd)
-                        .SetDataLabelPosition(PowerPointChartDataLabelPosition.BestFit);
+                        .SetDataLabelPosition(OfficeChartDataLabelPosition.OutsideEnd)
+                        .SetDataLabelPosition(OfficeChartDataLabelPosition.BestFit);
 
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());
@@ -203,7 +203,7 @@ namespace OfficeIMO.Tests {
                     PowerPointChart chart = slide.AddChart();
                     chart.SetTitle("Sales Trend")
                         .SetTitleTextStyle(fontSizePoints: 18, bold: true, color: "1F4E79", fontName: "Calibri")
-                        .SetLegend(PowerPointChartLegendPosition.Right)
+                        .SetLegend(OfficeChartLegendPosition.Right)
                         .SetLegendTextStyle(fontSizePoints: 9, italic: true, color: "404040", fontName: "Calibri")
                         .ClearTitleTextStyle()
                         .ClearLegendTextStyle();
@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
                 var template = new PowerPointChartDataLabelTemplate {
                     ShowValue = true,
                     ShowCategoryName = true,
-                    Position = PowerPointChartDataLabelPosition.OutsideEnd,
+                    Position = OfficeChartDataLabelPosition.OutsideEnd,
                     NumberFormat = "0.0",
                     Separator = " - ",
                     SourceLinked = false,
@@ -451,7 +451,7 @@ namespace OfficeIMO.Tests {
                         .SetDataLabelTemplate(new PowerPointChartDataLabelTemplate {
                             ShowValue = true,
                             ShowCategoryName = true,
-                            Position = PowerPointChartDataLabelPosition.OutsideEnd,
+                            Position = OfficeChartDataLabelPosition.OutsideEnd,
                             Separator = " - ",
                             TextColor = "1F4E79"
                         })
@@ -533,7 +533,7 @@ namespace OfficeIMO.Tests {
                 var template = new PowerPointChartDataLabelTemplate {
                     ShowValue = true,
                     ShowCategoryName = true,
-                    Position = PowerPointChartDataLabelPosition.OutsideEnd,
+                    Position = OfficeChartDataLabelPosition.OutsideEnd,
                     NumberFormat = "0.0",
                     Separator = " - ",
                     SourceLinked = false,
@@ -623,7 +623,7 @@ namespace OfficeIMO.Tests {
                         .SetSeriesDataLabelTemplate("Forecast", new PowerPointChartDataLabelTemplate {
                             ShowValue = true,
                             ShowCategoryName = true,
-                            Position = PowerPointChartDataLabelPosition.Top,
+                            Position = OfficeChartDataLabelPosition.Top,
                             Separator = " / ",
                             TextColor = "C00000",
                             FontName = "Calibri",
@@ -744,7 +744,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddLineChart(data);
-                    chart.SetSeriesDataLabels("Forecast", showValue: true, showCategoryName: true, position: PowerPointChartDataLabelPosition.Top,
+                    chart.SetSeriesDataLabels("Forecast", showValue: true, showCategoryName: true, position: OfficeChartDataLabelPosition.Top,
                             numberFormat: "0.0", sourceLinked: false)
                         .SetSeriesDataLabelCallouts(0, enabled: true, lineColor: "C00000", lineWidthPoints: 0.75);
                     presentation.Save();
@@ -801,11 +801,11 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddPieChart(data);
-                    chart.SetSeriesDataLabels(0, showValue: true, position: PowerPointChartDataLabelPosition.BestFit, numberFormat: "0.0", sourceLinked: false)
+                    chart.SetSeriesDataLabels(0, showValue: true, position: OfficeChartDataLabelPosition.BestFit, numberFormat: "0.0", sourceLinked: false)
                         .SetSeriesDataLabelSeparator(0, " - ")
                         .SetSeriesDataLabelLeaderLines(0, showLeaderLines: true, lineColor: "C00000", lineWidthPoints: 0.75)
                         .SetSeriesDataLabelCalloutsForPoint(0, 1, enabled: true)
-                        .SetSeriesDataLabelForPoint(0, 1, showValue: true, showCategoryName: true, position: PowerPointChartDataLabelPosition.OutsideEnd,
+                        .SetSeriesDataLabelForPoint(0, 1, showValue: true, showCategoryName: true, position: OfficeChartDataLabelPosition.OutsideEnd,
                             numberFormat: "0.00", sourceLinked: false)
                         .SetSeriesDataLabelSeparatorForPoint(0, 1, " | ")
                         .SetSeriesDataLabelTextStyleForPoint(0, 1, fontSizePoints: 11, bold: true, color: "C00000", fontName: "Calibri")
@@ -922,7 +922,7 @@ namespace OfficeIMO.Tests {
                 var template = new PowerPointChartDataLabelTemplate {
                     ShowValue = true,
                     ShowCategoryName = true,
-                    Position = PowerPointChartDataLabelPosition.OutsideEnd,
+                    Position = OfficeChartDataLabelPosition.OutsideEnd,
                     NumberFormat = "0.00",
                     Separator = " | ",
                     SourceLinked = false,
@@ -1008,11 +1008,11 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddPieChart(data);
-                    chart.SetSeriesDataLabels(0, showValue: true, position: PowerPointChartDataLabelPosition.BestFit, numberFormat: "0.0", sourceLinked: false)
+                    chart.SetSeriesDataLabels(0, showValue: true, position: OfficeChartDataLabelPosition.BestFit, numberFormat: "0.0", sourceLinked: false)
                         .SetSeriesDataLabelTemplateForPoint(0, 1, new PowerPointChartDataLabelTemplate {
                             ShowValue = true,
                             ShowCategoryName = true,
-                            Position = PowerPointChartDataLabelPosition.OutsideEnd,
+                            Position = OfficeChartDataLabelPosition.OutsideEnd,
                             NumberFormat = "0.00",
                             Separator = " | ",
                             FontSizePoints = 11,
@@ -1063,9 +1063,9 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddLineChart(data);
-                    chart.SetSeriesTrendline(0, PowerPointChartTrendlineType.Polynomial, order: 2, forward: 1.5, backward: 0.5,
+                    chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Polynomial, order: 2, forward: 1.5, backward: 0.5,
                             intercept: 10, displayEquation: true, displayRSquared: true, lineColor: "ED7D31", lineWidthPoints: 1.5)
-                        .SetSeriesMarker(0, PowerPointChartMarkerStyle.Circle, size: 7, fillColor: "FFFFFF", lineColor: "ED7D31");
+                        .SetSeriesMarker(0, OfficeChartMarkerShape.Circle, size: 7, fillColor: "FFFFFF", lineColor: "ED7D31");
                     presentation.Save();
                 }
 
@@ -1118,7 +1118,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddScatterChart(data);
-                    chart.SetSeriesTrendline("Revenue", PowerPointChartTrendlineType.Linear, lineColor: "5B9BD5", lineWidthPoints: 2)
+                    chart.SetSeriesTrendline("Revenue", OfficeChartTrendlineType.Linear, lineColor: "5B9BD5", lineWidthPoints: 2)
                         .ClearSeriesTrendline("Revenue");
                     presentation.Save();
                 }

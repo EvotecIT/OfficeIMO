@@ -454,7 +454,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 presentation.SlideSize.WidthPoints,
                 presentation.SlideSize.HeightPoints);
             using var image = new MemoryStream(bytes, writable: false);
-            slide.AddPicturePoints(image, PptCore.ImagePartType.Png, placement.Left, placement.Top, placement.Width, placement.Height);
+            slide.AddPicturePoints(image, PptCore.PowerPointImagePartType.Png, placement.Left, placement.Top, placement.Width, placement.Height);
         } else {
             slide.AddTitle("PDF page " + page.PageNumber.ToString(CultureInfo.InvariantCulture));
             slide.AddTextBox("This page could not be rendered by the managed PDF renderer.");

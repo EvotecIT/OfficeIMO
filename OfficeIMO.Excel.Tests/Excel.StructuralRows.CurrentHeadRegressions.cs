@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
                 "A1:A2",
                 hasHeader: true,
                 name: "Table1",
-                OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             sheet.CellFormula(1, 3, "A1048577+SUM(Table1[A3 Total])");
             sheet.SetHyperlink(2, 1, "https://example.org/book.xlsx", display: "External");
             Hyperlink hyperlink = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Hyperlink>());
@@ -208,7 +208,7 @@ namespace OfficeIMO.Tests {
                 "A1:B3",
                 hasHeader: true,
                 name: "PivotSourceData",
-                OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             sheet.AddPivotTable(
                 sourceRange: "A1:B3",
                 destinationCell: "E10",

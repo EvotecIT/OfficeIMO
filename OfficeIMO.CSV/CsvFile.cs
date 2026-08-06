@@ -10,7 +10,7 @@ namespace OfficeIMO.CSV;
 /// <summary>
 /// Opens CSV file readers and writers with OfficeIMO CSV encoding and compression options.
 /// </summary>
-internal static class CsvFile
+public static class CsvFile
 {
     /// <summary>
     /// Opens a text reader for a CSV file, applying compression from the supplied options or file extension.
@@ -72,7 +72,7 @@ internal static class CsvFile
     /// <summary>
     /// Creates a text writer for a CSV file, applying compression from the supplied options or file extension.
     /// </summary>
-    internal static TextWriter CreateTextWriter(string path, CsvSaveOptions? options = null, bool append = false, int bufferSize = 256 * 1024)
+    public static TextWriter CreateTextWriter(string path, CsvSaveOptions? options = null, bool append = false, int bufferSize = 256 * 1024)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -117,7 +117,7 @@ internal static class CsvFile
     /// <summary>
     /// Resolves an explicit or extension-inferred compression type for a CSV path.
     /// </summary>
-    internal static CsvCompressionType ResolveCompression(CsvCompressionType compressionType, string path)
+    public static CsvCompressionType ResolveCompression(CsvCompressionType compressionType, string path)
     {
         if (compressionType != CsvCompressionType.Auto)
         {

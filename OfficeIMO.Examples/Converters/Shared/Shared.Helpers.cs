@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Shared {
                 paragraph.AddFormattedText("World", italic: true);
                 document.Save();
 
-                foreach (var section in DocumentTraversal.EnumerateSections(document)) {
+                foreach (var section in WordDocumentTraversal.EnumerateSections(document)) {
                     foreach (var p in section.Paragraphs) {
                         foreach (var run in p.GetFormattedRuns()) {
                             if (!string.IsNullOrEmpty(run.Text)) {

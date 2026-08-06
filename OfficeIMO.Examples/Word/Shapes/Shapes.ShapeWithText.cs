@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with ellipse shape that contains text");
             string filePath = System.IO.Path.Combine(folderPath, "ShapeWithText.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddShape(ShapeType.Ellipse, 40, 40, Color.Red, Color.Blue);
+                document.AddShape(WordShapeType.Ellipse, 40, 40, Color.Red, Color.Blue);
                 document.Save();
             }
             using (WordprocessingDocument word = WordprocessingDocument.Open(filePath, true)) {

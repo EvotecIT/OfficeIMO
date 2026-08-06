@@ -1036,7 +1036,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 return;
             }
 
-            OfficeIMO.Excel.TableStyle style = ResolveDefaultTableStyle(workbook);
+            OfficeIMO.Excel.ExcelTableStyle style = ResolveDefaultTableStyle(workbook);
             foreach (LegacyXlsTableDefinition tableDefinition in legacySheet.TableDefinitions) {
                 sheet.AddTable(
                     tableDefinition.Range,
@@ -1124,14 +1124,14 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             table.Save();
         }
 
-        private static OfficeIMO.Excel.TableStyle ResolveDefaultTableStyle(LegacyXlsWorkbook workbook) {
+        private static OfficeIMO.Excel.ExcelTableStyle ResolveDefaultTableStyle(LegacyXlsWorkbook workbook) {
             string? defaultTableStyleName = workbook.TableStyleCollections.LastOrDefault()?.DefaultTableStyleName;
             if (!string.IsNullOrWhiteSpace(defaultTableStyleName)
-                && Enum.TryParse(defaultTableStyleName, ignoreCase: true, out OfficeIMO.Excel.TableStyle tableStyle)) {
+                && Enum.TryParse(defaultTableStyleName, ignoreCase: true, out OfficeIMO.Excel.ExcelTableStyle tableStyle)) {
                 return tableStyle;
             }
 
-            return OfficeIMO.Excel.TableStyle.TableStyleMedium2;
+            return OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2;
         }
 
         private static void ProjectProtectedRanges(LegacyXlsWorksheet legacySheet, ExcelSheet sheet) {
@@ -1714,7 +1714,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     scope,
                     save: false,
                     hidden: definedName.Hidden,
-                    validationMode: NameValidationMode.Strict);
+                    validationMode: ExcelDefinedNameValidationMode.Strict);
                 return true;
             } catch (ArgumentException) {
                 return false;
@@ -2134,7 +2134,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             if (pageSetup.Landscape.HasValue) {
-                sheet.SetOrientation(pageSetup.Landscape.Value ? ExcelPageOrientation.Landscape : ExcelPageOrientation.Portrait);
+                sheet.SetOrientation(pageSetup.Landscape.Value ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait);
             }
 
             if (pageSetup.PrintGridLines.HasValue

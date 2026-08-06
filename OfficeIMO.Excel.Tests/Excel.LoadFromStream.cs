@@ -270,7 +270,7 @@ namespace OfficeIMO.Tests
                 memory.Write(bytes, 0, bytes.Length);
                 memory.Seek(0, SeekOrigin.Begin);
 
-                var openSettings = new OpenSettings { AutoSave = true };
+                var openSettings = new OfficeOpenXmlLoadSettings();
                 using (var document = ExcelDocument.Load(memory, new ExcelLoadOptions { OpenSettings = openSettings }))
                 {
                     var sheet = document.Sheets[0];
@@ -311,7 +311,7 @@ namespace OfficeIMO.Tests
                 memory.Write(bytes, 0, bytes.Length);
                 memory.Seek(0, SeekOrigin.Begin);
 
-                var openSettings = new OpenSettings { AutoSave = true };
+                var openSettings = new OfficeOpenXmlLoadSettings();
                 await using (var document = await ExcelDocument.LoadAsync(memory, new ExcelLoadOptions { OpenSettings = openSettings }))
                 {
                     var sheet = document.Sheets[0];

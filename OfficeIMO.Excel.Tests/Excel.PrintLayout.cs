@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document["Report"];
                 ExcelSheetPageSetup setup = sheet.GetPageSetup();
-                Assert.Equal(ExcelPageOrientation.Landscape, setup.Orientation);
+                Assert.Equal(OfficePageOrientation.Landscape, setup.Orientation);
                 Assert.Equal(1U, setup.FitToWidth);
                 Assert.Equal(0U, setup.FitToHeight);
                 Assert.Equal(ExcelPageOrder.DownThenOver, setup.PageOrder);

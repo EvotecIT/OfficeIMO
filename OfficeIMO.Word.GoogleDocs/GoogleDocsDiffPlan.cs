@@ -3,21 +3,14 @@ using System.Text;
 using OfficeIMO.GoogleWorkspace;
 
 namespace OfficeIMO.Word.GoogleDocs {
-    public enum GoogleDocsDiffKind {
-        SourceChange = 0,
-        RemoteChange = 1,
-        Conflict = 2,
-        LossyAction = 3,
-    }
-
     public sealed class GoogleDocsDiffItem {
-        public GoogleDocsDiffItem(GoogleDocsDiffKind kind, string path, string message) {
+        public GoogleDocsDiffItem(GoogleWorkspaceDiffKind kind, string path, string message) {
             Kind = kind;
             Path = path;
             Message = message;
         }
 
-        public GoogleDocsDiffKind Kind { get; }
+        public GoogleWorkspaceDiffKind Kind { get; }
         public string Path { get; }
         public string Message { get; }
     }
@@ -40,8 +33,8 @@ namespace OfficeIMO.Word.GoogleDocs {
         public GoogleDocumentReference Remote { get; }
         public IReadOnlyList<GoogleDocsDiffItem> Items { get; }
         public TranslationReport Report { get; }
-        public bool HasConflicts => Items.Any(item => item.Kind == GoogleDocsDiffKind.Conflict);
-        public bool HasLossyActions => Items.Any(item => item.Kind == GoogleDocsDiffKind.LossyAction);
+        public bool HasConflicts => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.Conflict);
+        public bool HasLossyActions => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.LossyAction);
         public bool CanApply => !HasConflicts && !Report.HasErrors;
     }
 
@@ -63,20 +56,20 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleDocsImportResult imported = await new GoogleDocsImporter().ImportAsync(
                 documentId,
                 session,
-                new GoogleDocsImportOptions { Mode = GoogleDocsImportMode.Native, TabMode = GoogleDocsImportTabMode.FlattenWithHeadings },
+                new GoogleDocsImportOptions { Mode = GoogleWorkspaceImportMode.Native, TabMode = GoogleDocsImportTabMode.FlattenWithHeadings },
                 cancellationToken).ConfigureAwait(false);
             using (imported.Document) {
                 var items = Compare(BuildHashes(source), BuildHashes(imported.Document), checkpoint).ToList();
                 foreach (TranslationNotice notice in imported.Report.Notices.Where(notice => notice.Severity >= TranslationSeverity.Warning)) {
-                    items.Add(new GoogleDocsDiffItem(GoogleDocsDiffKind.LossyAction, notice.TargetId ?? notice.Feature, notice.Message));
+                    items.Add(new GoogleDocsDiffItem(GoogleWorkspaceDiffKind.LossyAction, notice.TargetId ?? notice.Feature, notice.Message));
                 }
                 if (checkpoint?.RevisionId != null && imported.Source.RevisionId != null
                     && !string.Equals(checkpoint.RevisionId, imported.Source.RevisionId, StringComparison.Ordinal)) {
-                    items.Add(new GoogleDocsDiffItem(GoogleDocsDiffKind.RemoteChange, "document/revision", "The Google document revision changed after the checkpoint."));
+                    items.Add(new GoogleDocsDiffItem(GoogleWorkspaceDiffKind.RemoteChange, "document/revision", "The Google document revision changed after the checkpoint."));
                 }
                 if (checkpoint?.DriveVersion != null && imported.Source.DriveVersion != null
                     && checkpoint.DriveVersion != imported.Source.DriveVersion) {
-                    items.Add(new GoogleDocsDiffItem(GoogleDocsDiffKind.RemoteChange, "document/driveVersion", "The Google document Drive version changed after the checkpoint."));
+                    items.Add(new GoogleDocsDiffItem(GoogleWorkspaceDiffKind.RemoteChange, "document/driveVersion", "The Google document Drive version changed after the checkpoint."));
                 }
                 return new GoogleDocsDiffPlan(imported.Source, items, imported.Report);
             }
@@ -98,11 +91,11 @@ namespace OfficeIMO.Word.GoogleDocs {
                 bool remoteChanged = checkpoint == null ? !string.Equals(remoteHash, sourceHash, StringComparison.Ordinal) : !string.Equals(remoteHash, baseHash, StringComparison.Ordinal);
                 if (!sourceChanged && !remoteChanged) continue;
                 if (sourceChanged && remoteChanged && !string.Equals(sourceHash, remoteHash, StringComparison.Ordinal)) {
-                    result.Add(new GoogleDocsDiffItem(GoogleDocsDiffKind.Conflict, path, "The OfficeIMO source and Google document changed this item differently."));
+                    result.Add(new GoogleDocsDiffItem(GoogleWorkspaceDiffKind.Conflict, path, "The OfficeIMO source and Google document changed this item differently."));
                 } else if (sourceChanged) {
-                    result.Add(new GoogleDocsDiffItem(GoogleDocsDiffKind.SourceChange, path, "The OfficeIMO source changed this item."));
+                    result.Add(new GoogleDocsDiffItem(GoogleWorkspaceDiffKind.SourceChange, path, "The OfficeIMO source changed this item."));
                 } else {
-                    result.Add(new GoogleDocsDiffItem(GoogleDocsDiffKind.RemoteChange, path, "The Google document changed this item."));
+                    result.Add(new GoogleDocsDiffItem(GoogleWorkspaceDiffKind.RemoteChange, path, "The Google document changed this item."));
                 }
             }
             return result;

@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples.Word {
                 builder.AddRule(
                     "Status",
                     "Done",
-                    TextMatchType.Equals,
+                    WordTextMatchType.Equals,
                     Color.LightGreen,
                     Color.Black,
                     Color.LightPink,
@@ -44,7 +44,7 @@ namespace OfficeIMO.Examples.Word {
                 builder.AddRule(
                     "Status",
                     "Pending",
-                    TextMatchType.Equals,
+                    WordTextMatchType.Equals,
                     Color.Yellow,
                     null,
                     highlightColumns: new[] { "Name" },
@@ -53,8 +53,8 @@ namespace OfficeIMO.Examples.Word {
                 // rule 3: highlight row when task is done and name starts with Task4
                 builder.AddRule(
                     new[] {
-                        ("Status", "Done", TextMatchType.Equals),
-                        ("Name", "Task4", TextMatchType.StartsWith)
+                        ("Status", "Done", WordTextMatchType.Equals),
+                        ("Name", "Task4", WordTextMatchType.StartsWith)
                     },
                     matchAll: true,
                     Color.LightSkyBlue,

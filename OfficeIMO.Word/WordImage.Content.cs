@@ -26,7 +26,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Wraps an existing WordDrawing as a WordImage.
         /// </summary>
-        public WordImage(WordDocument document, WordDrawing drawing) {
+        internal WordImage(WordDocument document, WordDrawing drawing) {
             _document = document;
             _Image = drawing;
 
@@ -220,7 +220,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private void AddImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WrapTextImage wrapImage) {
+        private void AddImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WordImageTextWrapping wrapImage) {
             _document = document;
             var imageLocation = AddImageToLocation(document, paragraph, imageStream, fileName, width, height);
 
@@ -235,7 +235,7 @@ namespace OfficeIMO.Word {
             UInt32Value docPropertiesId = firstDrawingId;
             uint picturePropertiesId = firstDrawingId + 1U;
 
-            if (wrapImage == WrapTextImage.InLineWithText) {
+            if (wrapImage == WordImageTextWrapping.InLineWithText) {
                 var inline = GetInline(emuWidth, emuHeight, docPropertiesId, picturePropertiesId, imageLocation.ImageName, fileName, imageLocation.RelationshipId, shape, compressionQuality, description);
                 drawing.Append(inline);
             } else {
@@ -320,7 +320,7 @@ namespace OfficeIMO.Word {
             });
         }
 
-        private void AddExternalImage(WordDocument document, WordParagraph paragraph, Uri uri, double width, double height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WrapTextImage wrapImage, bool allowFileUri = false) {
+        private void AddExternalImage(WordDocument document, WordParagraph paragraph, Uri uri, double width, double height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WordImageTextWrapping wrapImage, bool allowFileUri = false) {
             if (uri == null) throw new ArgumentNullException(nameof(uri));
             if (!uri.IsAbsoluteUri ||
                 (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
@@ -364,7 +364,7 @@ namespace OfficeIMO.Word {
             uint firstDrawingId = WordDrawingIdAllocator.Reserve(document, 2U);
             UInt32Value docPropertiesId = firstDrawingId;
             uint picturePropertiesId = firstDrawingId + 1U;
-            if (wrapImage == WrapTextImage.InLineWithText) {
+            if (wrapImage == WordImageTextWrapping.InLineWithText) {
                 var inline = GetInline(emuWidth, emuHeight, docPropertiesId, picturePropertiesId, System.IO.Path.GetFileNameWithoutExtension(uri.ToString()), System.IO.Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description, true);
                 drawing.Append(inline);
             } else {

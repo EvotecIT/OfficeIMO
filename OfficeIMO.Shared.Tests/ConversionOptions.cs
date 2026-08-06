@@ -100,7 +100,7 @@ public class ConversionOptionsTests {
         options.QuotePrefix = "[";
         options.QuoteSuffix = "]";
         options.DefaultPageSize = WordPageSize.A4;
-        options.DefaultOrientation = WordPageOrientation.Landscape;
+        options.DefaultOrientation = OfficePageOrientation.Landscape;
         options.IncludeListStyles = true;
         options.ContinueNumbering = true;
         options.SupportsHeadingNumbering = true;
@@ -252,10 +252,10 @@ public class ConversionOptionsTests {
     [Fact]
     public void Options_ExposeDefaultPageSettings() {
         var options = new HtmlToWordOptions {
-            DefaultOrientation = WordPageOrientation.Landscape,
+            DefaultOrientation = OfficePageOrientation.Landscape,
             DefaultPageSize = WordPageSize.A3
         };
-        Assert.Equal(WordPageOrientation.Landscape, options.DefaultOrientation);
+        Assert.Equal(OfficePageOrientation.Landscape, options.DefaultOrientation);
         Assert.Equal(WordPageSize.A3, options.DefaultPageSize);
     }
 }

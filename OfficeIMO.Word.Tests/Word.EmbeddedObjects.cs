@@ -119,7 +119,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Load(filePath)) {
             Assert.Equal(replacement, document.ExtractEmbeddedPayload(payloadId));
-            Assert.Equal(WordFeatureSupportLevel.PartiallyEditable, Assert.Single(document.InspectFeatures().FindFeatures("Embedded packages")).SupportLevel);
+            Assert.Equal(OfficeFeatureSupportLevel.PartiallyEditable, Assert.Single(document.InspectFeatures().FindFeatures("Embedded packages")).SupportLevel);
             Assert.True(document.RemoveEmbeddedPayload(payloadId));
             Assert.False(document.RemoveEmbeddedPayload(payloadId));
             Assert.Empty(document.GetEmbeddedPayloads());

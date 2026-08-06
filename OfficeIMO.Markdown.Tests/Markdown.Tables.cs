@@ -63,7 +63,7 @@ Narrative body text.
             var table = doc.Tables[0];
             Assert.Equal("FEDCBA", table.Rows[0].Cells[0].ShadingFillColorHex);
             Assert.Equal("123456", table.Rows[0].Cells[0].Borders.TopColorHex);
-            Assert.Equal(10U, table.Rows[0].Cells[0].Borders.TopSize?.Value);
+            Assert.Equal(10U, table.Rows[0].Cells[0].Borders.TopSize);
             Assert.Equal((short?)180, table.Rows[0].Cells[0].MarginLeftWidth);
             Assert.Equal((short?)180, table.Rows[0].Cells[0].MarginRightWidth);
             Assert.Equal((short?)80, table.Rows[0].Cells[0].MarginTopWidth);
@@ -133,9 +133,9 @@ Narrative body text.
 
             var cell = doc.Tables[0].Rows[0].Cells[0];
             Assert.Equal(WordBorderStyle.None, cell.Borders.TopStyle);
-            Assert.Equal(0U, cell.Borders.TopSize?.Value);
+            Assert.Equal(0U, cell.Borders.TopSize);
             Assert.Equal(WordBorderStyle.None, cell.Borders.BottomStyle);
-            Assert.Equal(0U, cell.Borders.BottomSize?.Value);
+            Assert.Equal(0U, cell.Borders.BottomSize);
         }
 
         [Fact]
@@ -153,10 +153,10 @@ Narrative body text.
 
             var cell = doc.Tables[0].Rows[0].Cells[0];
             Assert.Equal(WordBorderStyle.None, cell.Borders.TopStyle);
-            Assert.Equal(0U, cell.Borders.TopSize?.Value);
+            Assert.Equal(0U, cell.Borders.TopSize);
             Assert.True(string.IsNullOrEmpty(cell.Borders.TopColorHex));
             Assert.Equal(WordBorderStyle.None, cell.Borders.BottomStyle);
-            Assert.Equal(0U, cell.Borders.BottomSize?.Value);
+            Assert.Equal(0U, cell.Borders.BottomSize);
             Assert.True(string.IsNullOrEmpty(cell.Borders.BottomColorHex));
         }
 

@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with shape in choice and text box in fallback");
             string filePath = Path.Combine(folderPath, "ShapeChoiceFallbackTextBox.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddShapeDrawing(ShapeType.Rectangle, 40, 40);
+                document.AddShapeDrawing(WordShapeType.Rectangle, 40, 40);
                 document.AddTextBox("Text");
                 document.Save();
             }

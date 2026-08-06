@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests.Pdf {
             double maxWidth = InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", "\u65E5\u672C\u6771\u4EAC", PdfStandardFont.Helvetica, 10.0);
 
             var result = InvokeWrapRichRuns(new[] {
-                new TextRun(text)
+                new PdfTextRun(text)
             }, maxWidth, 10, PdfStandardFont.Helvetica);
 
             var lines = ExtractLines(result);

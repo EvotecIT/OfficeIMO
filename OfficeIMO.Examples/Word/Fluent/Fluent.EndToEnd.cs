@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AsFluent()
                     .Info(i => i.Title("Quarterly Review").Author("OfficeIMO"))
-                    .PageSetup(ps => ps.Orientation(WordPageOrientation.Portrait)
+                    .PageSetup(ps => ps.Orientation(OfficePageOrientation.Portrait)
                                         .Size(WordPageSize.A4)
                                         .Margins(WordMargin.Normal))
                     .Paragraph(p => p.Text("Hello ").Text("World", t => t.BoldOn().Color("#ff0000")).Text("!"))
@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
                         .Row("Alice", "Dev", 98)
                         .Row("Bob", "Ops", 91)
                         .Style(WordTableStyle.TableGrid)
-                        .Align(HorizontalAlignment.Center))
+                        .Align(WordTableAlignment.Center))
                     .Image(i => i.Add(Path.Combine(imagesPath, "Kulek.jpg")).Size(100).Alt("Chart", "Quarterly chart"))
                     .End()
                     .Save();

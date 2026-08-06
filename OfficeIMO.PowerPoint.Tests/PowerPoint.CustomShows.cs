@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
             PowerPointFeatureFinding finding = Assert.Single(
                 report.FindFeatures("Custom shows"));
 
-            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+            Assert.Equal(OfficeFeatureSupportLevel.Preserved,
                 finding.SupportLevel);
             Assert.Contains(finding.Details, detail => detail.Contains(
                 "duplicates identifier", StringComparison.OrdinalIgnoreCase));
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
             PowerPointFeatureFinding finding = Assert.Single(
                 report.FindFeatures("Custom shows"));
 
-            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+            Assert.Equal(OfficeFeatureSupportLevel.Preserved,
                 finding.SupportLevel);
             Assert.Equal(1, finding.Count);
             Assert.Throws<InvalidOperationException>(() =>
@@ -177,7 +177,7 @@ namespace OfficeIMO.Tests {
             PowerPointFeatureFinding finding = Assert.Single(
                 presentation.InspectFeatures().FindFeatures("Custom shows"));
 
-            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+            Assert.Equal(OfficeFeatureSupportLevel.Preserved,
                 finding.SupportLevel);
             Assert.Contains(finding.Details, detail => detail.Contains(
                 "attributes", StringComparison.OrdinalIgnoreCase));

@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
             using var document = WordDocument.Create(filePath);
             var paragraph1 = document.AddParagraph("Tiled image with local DPI");
             var paragraph1Image = paragraph1.InsertImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 100);
-            paragraph1Image.FillMode = ImageFillMode.Tile;
+            paragraph1Image.FillMode = WordImageFillMode.Tile;
             paragraph1Image.UseLocalDpi = true;
             paragraph1Image.Title = "Sample image";
             paragraph1Image.Hidden = false;
@@ -36,10 +36,10 @@ namespace OfficeIMO.Examples.Word {
             paragraph1Image.TintHue = 300;
 
             var paragraph2 = document.AddParagraph("Fit image");
-            paragraph2.InsertImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50).FillMode = ImageFillMode.Fit;
+            paragraph2.InsertImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50).FillMode = WordImageFillMode.Fit;
 
             var paragraph3 = document.AddParagraph("Centered image");
-            paragraph3.InsertImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50).FillMode = ImageFillMode.Center;
+            paragraph3.InsertImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50).FillMode = WordImageFillMode.Center;
 
             var paragraph4 = document.AddParagraph("Linked image from web");
             paragraph4.InsertImage(new Uri("http://example.com/logo.png"), 100, 100);

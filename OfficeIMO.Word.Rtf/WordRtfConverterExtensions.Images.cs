@@ -79,7 +79,7 @@ public static partial class WordRtfConverterExtensions {
             GetImageFileName(image.Format),
             ToPixels(image.DesiredWidthTwips),
             ToPixels(image.DesiredHeightTwips),
-            WrapTextImage.InLineWithText,
+            WordImageTextWrapping.InLineWithText,
             image.Description ?? string.Empty);
     }
 

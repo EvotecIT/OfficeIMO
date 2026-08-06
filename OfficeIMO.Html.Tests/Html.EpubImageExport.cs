@@ -172,7 +172,7 @@ public sealed class HtmlEpubImageExportTests {
             diagnostic => diagnostic.Code ==
                           "EPUB_IMAGE_RAW_HTML_UNAVAILABLE" &&
                           diagnostic.LossKind ==
-                          OfficeImageExportLossKind.Approximation);
+                          OfficeConversionLossKind.Approximation);
     }
 
     [Fact]
@@ -209,7 +209,7 @@ public sealed class HtmlEpubImageExportTests {
             exception.Diagnostics,
             diagnostic =>
                 diagnostic.Code == "EPUB_IMAGE_EPUB_RESOURCE_MISSING" &&
-                diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Fact]
@@ -233,7 +233,7 @@ public sealed class HtmlEpubImageExportTests {
             result.Diagnostics,
             diagnostic =>
                 diagnostic.Code == "EPUB_IMAGE_EPUB_PACKAGE_VERSION_MISSING" &&
-                diagnostic.LossKind == OfficeImageExportLossKind.Approximation);
+                diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }
 
     [Fact]
@@ -257,7 +257,7 @@ public sealed class HtmlEpubImageExportTests {
             exception.Diagnostics,
             diagnostic =>
                 diagnostic.Code == "EPUB_IMAGE_EPUB_CHAPTER_RAW_HTML_TOTAL_LIMIT" &&
-                diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
     private static byte[] CreateEpub(

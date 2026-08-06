@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using System;
 using System.IO;
@@ -14,11 +13,9 @@ namespace OfficeIMO.Examples.Word {
                 return;
             }
 
-            var style = new Style { Type = StyleValues.Paragraph, StyleId = "EmbeddedStyle" };
-            style.Append(new StyleName { Val = "EmbeddedStyle" });
-            var runProps = new StyleRunProperties();
-            runProps.Append(new RunFonts { Ascii = "DejaVu Sans" });
-            style.Append(runProps);
+            var style = new WordParagraphStyleDefinition("EmbeddedStyle") {
+                FontName = "DejaVu Sans"
+            };
             WordParagraphStyle.RegisterCustomStyle("EmbeddedStyle", style);
 
             using (WordDocument document = WordDocument.Create(filePath)) {

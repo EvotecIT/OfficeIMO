@@ -40,7 +40,7 @@ public partial class ExcelDocument {
         OfficeFormatDescriptor destinationFormat,
         OfficeCompatibilityMode mode,
         ExcelDocumentConversionOptions options,
-        List<ExcelConversionDiagnostic> diagnostics) {
+        List<OfficeConversionDiagnostic> diagnostics) {
         if (!IsBoundedNativeBinaryDestination(destinationFormat)) return null;
         ValidateVisualFallbackDimensions(options);
 
@@ -52,10 +52,10 @@ public partial class ExcelDocument {
                 or OfficeCompatibilityMode.BestEffort
                 or OfficeCompatibilityMode.PreservationOnly;
             if (!permitsVisualFallback) {
-                diagnostics.Add(new ExcelConversionDiagnostic(
+                diagnostics.Add(new OfficeConversionDiagnostic(
                     "Excel.BinaryWriter.Unsupported",
-                    ExcelConversionDiagnosticCategory.DestinationFormat,
-                    ExcelConversionDiagnosticSeverity.Error,
+                    OfficeConversionDiagnosticCategory.DestinationFormat,
+                    OfficeConversionDiagnosticSeverity.Error,
                     exception.Message,
                     representsDataLoss: false,
                     OfficeCompatibilityState.Blocked,
@@ -87,10 +87,10 @@ public partial class ExcelDocument {
                     .Select(item => item.Code)
                     .Distinct(StringComparer.Ordinal)
                     .Take(8));
-                diagnostics.Add(new ExcelConversionDiagnostic(
+                diagnostics.Add(new OfficeConversionDiagnostic(
                     "Excel.BinaryWriter.VisualFallbackUnavailable",
-                    ExcelConversionDiagnosticCategory.DestinationFormat,
-                    ExcelConversionDiagnosticSeverity.Error,
+                    OfficeConversionDiagnosticCategory.DestinationFormat,
+                    OfficeConversionDiagnosticSeverity.Error,
                     $"Native binary output is unsupported and the worksheet renderer has omissions ({codes}). Native writer: {exception.Message}",
                     representsDataLoss: false,
                     OfficeCompatibilityState.Blocked,
@@ -99,10 +99,10 @@ public partial class ExcelDocument {
             }
 
             if (sheets.Count == 0) {
-                diagnostics.Add(new ExcelConversionDiagnostic(
+                diagnostics.Add(new OfficeConversionDiagnostic(
                     "Excel.BinaryWriter.VisualFallbackUnavailable",
-                    ExcelConversionDiagnosticCategory.DestinationFormat,
-                    ExcelConversionDiagnosticSeverity.Error,
+                    OfficeConversionDiagnosticCategory.DestinationFormat,
+                    OfficeConversionDiagnosticSeverity.Error,
                     "Native binary output is unsupported and the visual fallback found no worksheets to render. Native writer: " + exception.Message,
                     representsDataLoss: false,
                     OfficeCompatibilityState.Blocked,
@@ -110,10 +110,10 @@ public partial class ExcelDocument {
                 return null;
             }
 
-            diagnostics.Add(new ExcelConversionDiagnostic(
+            diagnostics.Add(new OfficeConversionDiagnostic(
                 "Excel.BinaryWriter.CellRasterFallback",
-                ExcelConversionDiagnosticCategory.DataLoss,
-                ExcelConversionDiagnosticSeverity.Warning,
+                OfficeConversionDiagnosticCategory.DataLoss,
+                OfficeConversionDiagnosticSeverity.Warning,
                 $"The workbook is represented by {sheets.Count} palette-quantized cell-raster worksheet(s) because the native binary writer rejected part of the editable model. {exception.Message}",
                 representsDataLoss: true,
                 OfficeCompatibilityState.Rasterized,
@@ -192,7 +192,7 @@ public partial class ExcelDocument {
             : ExcelFileFormat.Xlsb;
         byte[] bytes = fallback.ToBytes(
             target,
-            new ExcelSaveOptions { LossPolicy = ExcelConversionLossPolicy.Allow });
+            new ExcelSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
         if (!plan.EmbedSource) return bytes;
         if (sourceBytes == null) throw new InvalidOperationException("Embedded-source fallback requires source bytes.");
         return AttachExcelSourceCarrier(
@@ -280,14 +280,14 @@ public partial class ExcelDocument {
     }
 
     private static void AddExcelSourceCarrierDiagnostic(
-        List<ExcelConversionDiagnostic> diagnostics,
+        List<OfficeConversionDiagnostic> diagnostics,
         bool embedded,
         bool hasMacros,
         bool visualFallback) {
-        diagnostics.Add(new ExcelConversionDiagnostic(
+        diagnostics.Add(new OfficeConversionDiagnostic(
             embedded ? "Excel.SourceCarrier.Embedded" : "Excel.SourceCarrier.NotEmbedded",
-            ExcelConversionDiagnosticCategory.DataLoss,
-            ExcelConversionDiagnosticSeverity.Warning,
+            OfficeConversionDiagnosticCategory.DataLoss,
+            OfficeConversionDiagnosticSeverity.Warning,
             embedded
                 ? "The complete original source is retained in an inert, hash-verified OfficeIMO compatibility carrier. It is not executable or editable through the fallback workbook model."
                 : "The original source carrier is not retained. Set EmbedSourceWhenLossy when deliberate byte-level recovery is required.",
