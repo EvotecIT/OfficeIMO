@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 var paragraph = document.AddParagraph();
-                paragraph.AddShape(ShapeType.Rectangle, 80, 40, Color.Aqua, Color.Black, 1);
+                paragraph.AddShape(WordShapeType.Rectangle, 80, 40, Color.Aqua, Color.Black, 1);
                 WordShape.AddLine(paragraph, 0, 50, 80, 50, Color.Red, 2);
                 document.Save();
                 document.SaveAsPdf(pdfPath);

@@ -1126,9 +1126,9 @@ public partial class Word {
         Paragraph textBoxParagraph = CreateNativeVmlTextBoxParagraph(paragraph);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("GetNativeVmlTextRuns", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var runs = (IReadOnlyList<TextRun>)method.Invoke(null, new object[] { document, textBoxParagraph })!;
+        var runs = (IReadOnlyList<PdfTextRun>)method.Invoke(null, new object[] { document, textBoxParagraph })!;
 
-        TextRun run = Assert.Single(runs);
+        PdfTextRun run = Assert.Single(runs);
         Assert.Equal("Monospace VML text", run.Text);
         Assert.Equal(PdfStandardFont.Courier, run.Font);
     }
@@ -1156,11 +1156,11 @@ public partial class Word {
 
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("GetNativeVmlTextRuns", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var runs = (IReadOnlyList<TextRun>)method.Invoke(null, new object[] { document, textBoxParagraph })!;
+        var runs = (IReadOnlyList<PdfTextRun>)method.Invoke(null, new object[] { document, textBoxParagraph })!;
 
-        TextRun plain = Assert.Single(runs, run => run.Text == "Not underlined");
+        PdfTextRun plain = Assert.Single(runs, run => run.Text == "Not underlined");
         Assert.False(plain.Underline);
-        TextRun textPath = Assert.Single(runs, run => run.Text == "TextPath cover label");
+        PdfTextRun textPath = Assert.Single(runs, run => run.Text == "TextPath cover label");
         Assert.Equal(PdfStandardFont.Courier, textPath.Font);
         Assert.Equal(18D, textPath.FontSize);
     }
@@ -1477,7 +1477,7 @@ public partial class Word {
         chart.AddCategories(new[] { "Q1", "Q2" }.ToList());
         chart.AddBar("HiddenLegend", new[] { 10, 20 }, OfficeColor.ParseHex("#4472c4"));
         chart.AddBar("VisibleLegend", new[] { 12, 24 }, OfficeColor.ParseHex("#70ad47"));
-        chart.AddLegend(WordChartLegendPosition.Right);
+        chart.AddLegend(OfficeChartLegendPosition.Right);
 
         ChartPart chartPart = (ChartPart)typeof(WordChart)
             .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
@@ -1892,7 +1892,7 @@ public partial class Word {
                 .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
                 .GetValue(chart)!;
             chartPart.ChartSpace!.Descendants<Legend>().ToList().ForEach(legend => legend.Remove());
-            chart.AddLegend(WordChartLegendPosition.Bottom);
+            chart.AddLegend(OfficeChartLegendPosition.Bottom);
             document.AddParagraph("After bottom legend chart");
 
             object snapshot = CreateNativeWordChartSnapshot(chart);
@@ -1926,7 +1926,7 @@ public partial class Word {
                 .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
                 .GetValue(chart)!;
             chartPart.ChartSpace!.Descendants<Legend>().ToList().ForEach(legend => legend.Remove());
-            chart.AddLegend(WordChartLegendPosition.Left);
+            chart.AddLegend(OfficeChartLegendPosition.Left);
             document.AddParagraph("After left legend chart");
 
             object snapshot = CreateNativeWordChartSnapshot(chart);

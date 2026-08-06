@@ -38,8 +38,8 @@ public class PdfDocumentWorkflowTests {
             })
             .KeyValueTable(new[] {
                 PdfKeyValueRow.Rich(
-                    new[] { TextRun.Bolded("Invoice") },
-                    new[] { TextRun.Normal("FV/2026/001"), TextRun.Bolded(" paid") }),
+                    new[] { PdfTextRun.Bolded("Invoice") },
+                    new[] { PdfTextRun.Normal("FV/2026/001"), PdfTextRun.Bolded(" paid") }),
                 PdfKeyValueRow.Text("Customer", "Evotec")
             }, style: style, includeHeader: true, keyHeader: "Field", valueHeader: "Value")
             .ToBytes();
@@ -90,7 +90,7 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        TextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -123,7 +123,7 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        TextRun.Normal(longValue, fontSize: 8, font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(longValue, fontSize: 8, font: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -156,7 +156,7 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        TextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -191,8 +191,8 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        TextRun.Normal(tinyValue, fontSize: 4, font: PdfStandardFont.Courier),
-                        TextRun.Normal(longValue)
+                        PdfTextRun.Normal(tinyValue, fontSize: 4, font: PdfStandardFont.Courier),
+                        PdfTextRun.Normal(longValue)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -220,8 +220,8 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        TextRun.Normal(prefix),
-                        TextRun.Normal(largeValue, fontSize: 30, font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(prefix),
+                        PdfTextRun.Normal(largeValue, fontSize: 30, font: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -256,8 +256,8 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        TextRun.Normal(prefix),
-                        TextRun.Normal(largeValue, fontSize: 20, font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(prefix),
+                        PdfTextRun.Normal(largeValue, fontSize: 20, font: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {

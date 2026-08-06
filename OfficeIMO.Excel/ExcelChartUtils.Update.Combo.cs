@@ -51,8 +51,8 @@ namespace OfficeIMO.Excel {
 
             var usedCharts = new List<OpenXmlCompositeElement>();
             foreach (SeriesDescriptorGroup group in GroupSeriesDescriptors(descriptors)) {
-                uint categoryAxisId = group.AxisGroup == ExcelChartAxisGroup.Secondary ? axisIds.SecondaryCategoryId : axisIds.PrimaryCategoryId;
-                uint valueAxisId = group.AxisGroup == ExcelChartAxisGroup.Secondary ? axisIds.SecondaryValueId : axisIds.PrimaryValueId;
+                uint categoryAxisId = group.AxisGroup == OfficeChartAxisGroup.Secondary ? axisIds.SecondaryCategoryId : axisIds.PrimaryCategoryId;
+                uint valueAxisId = group.AxisGroup == OfficeChartAxisGroup.Secondary ? axisIds.SecondaryValueId : axisIds.PrimaryValueId;
 
                 switch (group.ChartType) {
                     case ExcelChartType.ColumnClustered:

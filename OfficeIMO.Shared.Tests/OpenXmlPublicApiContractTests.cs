@@ -8,6 +8,12 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class OpenXmlPublicApiContractTests {
+    private static readonly HashSet<string> AllowedOpenXmlEscapeHatches = new(StringComparer.Ordinal) {
+        "OfficeIMO.Word.WordDocument.OpenXmlDocument property type",
+        "OfficeIMO.Excel.ExcelDocument.OpenXmlDocument property type",
+        "OfficeIMO.PowerPoint.PowerPointPresentation.OpenXmlDocument property type"
+    };
+
     private static readonly string[] RequiredOpenXmlBackedAssemblies = {
         "OfficeIMO.Word",
         "OfficeIMO.Word.GoogleDocs",
@@ -36,7 +42,7 @@ public class OpenXmlPublicApiContractTests {
     };
 
     [Fact]
-    public void PublicApisDoNotExposeOpenXmlGeneratedValueStructs() {
+    public void PublicApisExposeOnlyTheDocumentLevelOpenXmlEscapeHatches() {
         var leaks = new List<string>();
         string[] assemblyNames = Directory.EnumerateFiles(AppContext.BaseDirectory, "OfficeIMO*.dll")
             .Select(path => AssemblyName.GetAssemblyName(path).Name)
@@ -63,6 +69,10 @@ public class OpenXmlPublicApiContractTests {
                 }
 
                 foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)) {
+                    if (method.IsSpecialName) {
+                        continue;
+                    }
+
                     string member = $"{type.FullName}.{method.Name}";
                     InspectTypeShape(method.ReturnType, $"{member} return type", leaks);
                     InspectParameters(method.GetParameters(), member, leaks);
@@ -90,7 +100,7 @@ public class OpenXmlPublicApiContractTests {
         }
 
         Assert.True(leaks.Count == 0,
-            "OfficeIMO public APIs expose OpenXML SDK generated value structs:" + Environment.NewLine +
+            "OfficeIMO public APIs expose Open XML SDK types outside the three document-level escape hatches:" + Environment.NewLine +
             string.Join(Environment.NewLine, leaks.OrderBy(value => value, StringComparer.Ordinal)));
     }
 
@@ -149,7 +159,7 @@ public class OpenXmlPublicApiContractTests {
     private static void InspectTypeShape(Type? type, string location, ICollection<string> leaks) {
         if (type is null || type.IsGenericParameter) return;
 
-        if (IsOpenXmlGeneratedValueStruct(type)) {
+        if (IsOpenXmlSdkType(type) && !AllowedOpenXmlEscapeHatches.Contains(location)) {
             leaks.Add($"{location}: {type.FullName}");
             return;
         }
@@ -170,4 +180,7 @@ public class OpenXmlPublicApiContractTests {
         !type.IsEnum &&
         type.GetInterfaces().Any(implementedInterface =>
             implementedInterface.FullName == "DocumentFormat.OpenXml.IEnumValue");
+
+    private static bool IsOpenXmlSdkType(Type type) =>
+        type.Namespace?.StartsWith("DocumentFormat.OpenXml", StringComparison.Ordinal) == true;
 }

@@ -34,7 +34,7 @@ namespace OfficeIMO.Word {
         /// <param name="document"></param>
         /// <param name="paragraph"></param>
         /// <param name="run"></param>
-        public WordBreak(WordDocument document, Paragraph paragraph, Run run) {
+        internal WordBreak(WordDocument document, Paragraph paragraph, Run run) {
             this._document = document;
             this._paragraph = paragraph;
             this._run = run;

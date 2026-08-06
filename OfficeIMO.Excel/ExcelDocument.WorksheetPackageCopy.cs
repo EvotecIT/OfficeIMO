@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        private ExcelSheet CopyWorksheetFromValues(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode) {
+        private ExcelSheet CopyWorksheetFromValues(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode) {
             ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
             string usedRange = sourceSheet.UsedRangeA1;
             var (startRow, startColumn, _, _) = A1.ParseRange(usedRange);
@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
             ExcelDocument sourceDocument,
             string sourceSheetName,
             string newSheetName,
-            SheetNameValidationMode validationMode,
+            ExcelSheetNameValidationMode validationMode,
             ExcelWorksheetCopyOptions options,
             DefinedNameCopyBudget definedNameBudget) {
             ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel {
             ExcelDocument sourceDocument,
             string sourceSheetName,
             string newSheetName,
-            SheetNameValidationMode validationMode,
+            ExcelSheetNameValidationMode validationMode,
             bool rewriteCopiedReferences,
             bool copyReferencedDefinedNames,
             bool copyExternalWorkbookReferences,

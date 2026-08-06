@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
         public string? PrintArea { get; set; }
 
         /// <summary>Optional orientation override.</summary>
-        public ExcelPageOrientation? Orientation { get; set; }
+        public OfficePageOrientation? Orientation { get; set; }
 
         /// <summary>Optional margin preset override.</summary>
         public ExcelMarginPreset? Margins { get; set; }
@@ -127,7 +127,7 @@ namespace OfficeIMO.Excel {
             switch (preset) {
                 case ExcelPrintLayoutPreset.Worksheet:
                     return new ResolvedPrintLayoutPreset(
-                        ExcelPageOrientation.Portrait,
+                        OfficePageOrientation.Portrait,
                         ExcelMarginPreset.Normal,
                         fitToWidth: null,
                         fitToHeight: null,
@@ -140,7 +140,7 @@ namespace OfficeIMO.Excel {
                         repeatLastColumn: null);
                 case ExcelPrintLayoutPreset.Dashboard:
                     return new ResolvedPrintLayoutPreset(
-                        ExcelPageOrientation.Landscape,
+                        OfficePageOrientation.Landscape,
                         ExcelMarginPreset.Narrow,
                         fitToWidth: 1,
                         fitToHeight: 1,
@@ -153,7 +153,7 @@ namespace OfficeIMO.Excel {
                         repeatLastColumn: null);
                 case ExcelPrintLayoutPreset.DataTable:
                     return new ResolvedPrintLayoutPreset(
-                        ExcelPageOrientation.Landscape,
+                        OfficePageOrientation.Landscape,
                         ExcelMarginPreset.Normal,
                         fitToWidth: 1,
                         fitToHeight: 0,
@@ -166,7 +166,7 @@ namespace OfficeIMO.Excel {
                         repeatLastColumn: null);
                 default:
                     return new ResolvedPrintLayoutPreset(
-                        ExcelPageOrientation.Landscape,
+                        OfficePageOrientation.Landscape,
                         ExcelMarginPreset.Narrow,
                         fitToWidth: 1,
                         fitToHeight: 0,
@@ -182,7 +182,7 @@ namespace OfficeIMO.Excel {
 
         private sealed class ResolvedPrintLayoutPreset {
             internal ResolvedPrintLayoutPreset(
-                ExcelPageOrientation orientation,
+                OfficePageOrientation orientation,
                 ExcelMarginPreset margins,
                 uint? fitToWidth,
                 uint? fitToHeight,
@@ -206,7 +206,7 @@ namespace OfficeIMO.Excel {
                 RepeatLastColumn = repeatLastColumn;
             }
 
-            internal ExcelPageOrientation Orientation { get; }
+            internal OfficePageOrientation Orientation { get; }
             internal ExcelMarginPreset Margins { get; }
             internal uint? FitToWidth { get; }
             internal uint? FitToHeight { get; }

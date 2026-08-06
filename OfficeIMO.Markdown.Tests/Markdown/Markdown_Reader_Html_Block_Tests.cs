@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
 
             var details = Assert.IsType<DetailsBlock>(doc.Blocks[0]);
-            Assert.Equal("Summary", Assert.IsType<TextRun>(details.Summary!.Inlines.Nodes[0]).Text);
+            Assert.Equal("Summary", Assert.IsType<MarkdownTextRun>(details.Summary!.Inlines.Nodes[0]).Text);
             Assert.Equal("<details>\n<summary>Summary</summary>\n\n<div>Body</div>\n</details>", ((IMarkdownBlock)details).RenderMarkdown());
             Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
         }
@@ -208,7 +208,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
 
             var details = Assert.IsType<DetailsBlock>(doc.Blocks[0]);
-            Assert.Equal("One", Assert.IsType<TextRun>(details.Summary!.Inlines.Nodes[0]).Text);
+            Assert.Equal("One", Assert.IsType<MarkdownTextRun>(details.Summary!.Inlines.Nodes[0]).Text);
             Assert.Equal("<details>\n<summary>One</summary>\n\n<section>\n<p>Inner</p>\n</section>\n\n</details>", ((IMarkdownBlock)details).RenderMarkdown());
             Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
         }
@@ -277,17 +277,17 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             Assert.DoesNotContain(doc.Blocks, block => block is HtmlRawBlock);
             var firstParagraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
-            var firstText = Assert.IsType<TextRun>(firstParagraph.Inlines.Nodes[0]);
+            var firstText = Assert.IsType<MarkdownTextRun>(firstParagraph.Inlines.Nodes[0]);
             Assert.Contains("<div>Inline", firstText.Text);
 
             bool hasClosingTag = false;
             foreach (var inline in firstParagraph.Inlines.Nodes) {
-                if (inline is TextRun run && run.Text.IndexOf("</div>", StringComparison.Ordinal) >= 0) { hasClosingTag = true; break; }
+                if (inline is MarkdownTextRun run && run.Text.IndexOf("</div>", StringComparison.Ordinal) >= 0) { hasClosingTag = true; break; }
             }
             Assert.True(hasClosingTag, "Closing tag should remain in the paragraph text.");
 
             var secondParagraph = Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
-            var secondText = Assert.IsType<TextRun>(secondParagraph.Inlines.Nodes[0]);
+            var secondText = Assert.IsType<MarkdownTextRun>(secondParagraph.Inlines.Nodes[0]);
             Assert.Equal("Paragraph", secondText.Text);
         }
 

@@ -13,30 +13,30 @@ namespace OfficeIMO.Examples.Word {
             using var document = WordDocument.Create(filePath);
 
             var paragraph1 = document.AddParagraph("This paragraph starts with some text");
-            paragraph1.InsertImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200).Shape = WordImageShapeType.Cube;
+            paragraph1.InsertImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200).Shape = OfficePresetShapeType.Cube;
 
             var paragraph2 = document.AddParagraph("Image will be placed behind text");
-            paragraph2.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapTextImage.BehindText, "Przemek and Kulek on an image");
+            paragraph2.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WordImageTextWrapping.BehindText, "Przemek and Kulek on an image");
 
 
             var paragraph3 = document.AddParagraph("Image will be in front of text");
-            paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapTextImage.InFrontOfText, "Przemek and Kulek on an image");
+            paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WordImageTextWrapping.InFrontOfText, "Przemek and Kulek on an image");
 
 
             var paragraph5 = document.AddParagraph("Image will be Square");
-            paragraph5.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapTextImage.Square, "Przemek and Kulek on an image");
+            paragraph5.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WordImageTextWrapping.Square, "Przemek and Kulek on an image");
 
 
             var paragraph6 = document.AddParagraph("Image will be Through");
-            paragraph6.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapTextImage.Through, "Przemek and Kulek on an image");
+            paragraph6.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WordImageTextWrapping.Through, "Przemek and Kulek on an image");
 
 
             var paragraph7 = document.AddParagraph("Image will be Tight");
-            paragraph7.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapTextImage.Tight, "Przemek and Kulek on an image");
+            paragraph7.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WordImageTextWrapping.Tight, "Przemek and Kulek on an image");
 
 
             var paragraph8 = document.AddParagraph("Image will be Top And Bottom");
-            paragraph8.InsertImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapTextImage.TopAndBottom, "Przemek and Kulek on an image").Shape = WordImageShapeType.Can;
+            paragraph8.InsertImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WordImageTextWrapping.TopAndBottom, "Przemek and Kulek on an image").Shape = OfficePresetShapeType.Can;
 
             document.Save();
             if (openWord) document.OpenInApplication();

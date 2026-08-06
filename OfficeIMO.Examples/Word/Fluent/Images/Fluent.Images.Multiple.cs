@@ -16,10 +16,10 @@ namespace OfficeIMO.Examples.Word {
                     .Image(img => img
                         .Add(Path.Combine(imagesPath, "PrzemyslawKlysAndKulkozaurr.jpg"))
                             .Size(200)
-                            .Align(HorizontalAlignment.Left)
+                            .Align(WordParagraphAlignment.Left)
                         .Add(Path.Combine(imagesPath, "Kulek.jpg"))
                             .MaxWidth(300)
-                            .Align(HorizontalAlignment.Right))
+                            .Align(WordParagraphAlignment.Right))
                     .End();
                 document.Save();
             }

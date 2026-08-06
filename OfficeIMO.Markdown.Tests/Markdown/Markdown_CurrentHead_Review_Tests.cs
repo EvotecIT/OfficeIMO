@@ -9,7 +9,7 @@ using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Markdown;
 using OfficeIMO.Word.Markdown;
 using Xunit;
-using PdfTextRun = OfficeIMO.Pdf.TextRun;
+using PdfTextRun = OfficeIMO.Pdf.PdfTextRun;
 
 namespace OfficeIMO.Tests.MarkdownSuite;
 

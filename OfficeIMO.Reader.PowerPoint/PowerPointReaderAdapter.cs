@@ -82,7 +82,7 @@ internal static class PowerPointReaderAdapter {
         return new PowerPointLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
-                ? new OpenSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
+                ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null,
             PackageSecurity = new OfficePackageSecurityOptions { MaxPackageBytes = maxInputBytes },
             LegacyPptImportOptions = new LegacyPptImportOptions {

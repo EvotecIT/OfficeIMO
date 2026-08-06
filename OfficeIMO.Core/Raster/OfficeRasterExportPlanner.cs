@@ -118,7 +118,7 @@ public static class OfficeRasterExportPlanner {
             " to satisfy the effective limit of " + maximumPixels.ToString(CultureInfo.InvariantCulture) +
             " pixels and " + maximumDimension.ToString(CultureInfo.InvariantCulture) + " pixels per dimension.",
             source,
-            OfficeImageExportLossKind.Approximation);
+            OfficeConversionLossKind.Approximation);
         return new OfficeRasterExportPlan(
             limit,
             maximumPixels,

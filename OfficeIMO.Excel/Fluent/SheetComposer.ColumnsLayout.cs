@@ -85,7 +85,7 @@ namespace OfficeIMO.Excel.Fluent {
             /// </summary>
             public string TableFrom<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> items, string? title = null,
                 System.Action<ObjectFlattenerOptions>? configure = null,
-                TableStyle style = TableStyle.TableStyleMedium9,
+                ExcelTableStyle style = ExcelTableStyle.TableStyleMedium9,
                 bool autoFilter = true,
                 System.Action<TableVisualOptions>? visuals = null) {
                 if (!string.IsNullOrWhiteSpace(title)) Section(title!);

@@ -354,7 +354,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            DocumentTraversal.ListInfo? listInfo = DocumentTraversal.GetListInfo(paragraph);
+            WordDocumentTraversal.ListInfo? listInfo = WordDocumentTraversal.GetListInfo(paragraph);
             if (listInfo.HasValue &&
                 !ShouldUseNativeListTextFontForNormalizedMarker(
                     listInfo.Value,

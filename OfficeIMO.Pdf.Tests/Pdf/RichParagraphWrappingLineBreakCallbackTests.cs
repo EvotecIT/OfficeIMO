@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             object result = InvokePrivateFontMethod<object>(
                 "WrapRichRunsCore",
-                new[] { new TextRun(text) },
+                new[] { new PdfTextRun(text) },
                 maxWidth,
                 10.0,
                 PdfStandardFont.Helvetica,

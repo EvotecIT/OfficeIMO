@@ -140,7 +140,7 @@ public class PdfDocumentDeferredTableTests {
             .TableDeferred(
                 () => new[] {
                     new[] { new PdfTableCell("Header") },
-                    new[] { new PdfTableCell(new[] { TextRun.Bolded("Rich body") }) },
+                    new[] { new PdfTableCell(new[] { PdfTextRun.Bolded("Rich body") }) },
                     new[] { new PdfTableCell("Last body") }
                 },
                 batchSize: 1)

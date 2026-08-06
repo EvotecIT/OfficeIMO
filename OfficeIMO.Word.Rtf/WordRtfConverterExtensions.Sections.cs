@@ -59,7 +59,7 @@ public static partial class WordRtfConverterExtensions {
         destination.PageSetup.SetHeaderFooterDistance(
             ToInt32(source.Margins.HeaderDistance),
             ToInt32(source.Margins.FooterDistance));
-        destination.PageSetup.SetLandscape(source.PageOrientation == WordPageOrientation.Landscape);
+        destination.PageSetup.SetLandscape(source.PageOrientation == OfficePageOrientation.Landscape);
         destination.PageSetup.SetDifferentFirstPageHeaderFooter(source.DifferentFirstPage);
         CopyPageNumbering(source._sectionProperties.GetFirstChild<PageNumberType>(), destination.PageSetup);
         CopyPageBorders(source._sectionProperties.GetFirstChild<PageBorders>(), destination.PageSetup.PageBorders, document);
@@ -108,7 +108,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static void ApplyPageSetup(RtfSection source, WordSection destination, RtfDocument rtfDocument) {
         if (source.PageSetup.Landscape) {
-            destination.PageOrientation = WordPageOrientation.Landscape;
+            destination.PageOrientation = OfficePageOrientation.Landscape;
         }
 
         if (source.PageSetup.PaperWidthTwips.HasValue) {

@@ -25,7 +25,7 @@ namespace OfficeIMO.PowerPoint {
             NormalizeDataLabelsOrder(labels);
         }
 
-        private static void SetDataLabelPosition(C.DataLabels labels, PowerPointChartDataLabelPosition? position) {
+        private static void SetDataLabelPosition(C.DataLabels labels, OfficeChartDataLabelPosition? position) {
             labels.GetFirstChild<C.DataLabelPosition>()?.Remove();
             if (position != null) {
                 ReplaceChild(labels, new C.DataLabelPosition { Val = position.Value.ToOpenXml() });
@@ -33,10 +33,10 @@ namespace OfficeIMO.PowerPoint {
             NormalizeDataLabelsOrder(labels);
         }
 
-        private static PowerPointChartDataLabelPosition? GetPowerPointCompatibleDataLabelPosition(
+        private static OfficeChartDataLabelPosition? GetPowerPointCompatibleDataLabelPosition(
             OpenXmlElement chartElement,
-            PowerPointChartDataLabelPosition position) {
-            if (chartElement is C.DoughnutChart && position == PowerPointChartDataLabelPosition.BestFit) {
+            OfficeChartDataLabelPosition position) {
+            if (chartElement is C.DoughnutChart && position == OfficeChartDataLabelPosition.BestFit) {
                 // PowerPoint repairs doughnut charts that explicitly serialize bestFit; omitting it keeps the default behavior.
                 return null;
             }
@@ -54,7 +54,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ApplyDataLabelOverrides(OpenXmlCompositeElement label, bool? showLegendKey, bool? showValue,
             bool? showCategoryName, bool? showSeriesName, bool? showPercent,
-            PowerPointChartDataLabelPosition? position, string? numberFormat, bool sourceLinked) {
+            OfficeChartDataLabelPosition? position, string? numberFormat, bool sourceLinked) {
             if (showLegendKey != null) {
                 ReplaceChild(label, new C.ShowLegendKey { Val = showLegendKey.Value });
             }

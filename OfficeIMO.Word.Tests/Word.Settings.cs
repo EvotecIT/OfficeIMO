@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2013);
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == WordCompatibilityMode.Word2013);
 
                 document.Settings.ProtectionPassword = "Test";
 
@@ -84,8 +84,8 @@ namespace OfficeIMO.Tests {
                 document.Settings.FontFamilyComplexScript = null!;
                 Assert.True(document.Settings.FontFamilyComplexScript == null);
 
-                document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.Word2003;
-                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2003);
+                document.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2003;
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == WordCompatibilityMode.Word2003);
 
                 Assert.True(document.Settings.ReadOnlyRecommended == false);
                 document.Settings.ReadOnlyRecommended = true;
@@ -93,9 +93,9 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
-                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2003);
-                document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.Word2007;
-                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2007);
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == WordCompatibilityMode.Word2003);
+                document.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2007;
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == WordCompatibilityMode.Word2007);
 
                 Assert.True(document.Settings.FontFamilyHighAnsi == "Arial");
                 Assert.True(document.Settings.Language == "pl-PL");
@@ -134,9 +134,9 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
-                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2007);
-                document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.Word2010;
-                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2010);
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == WordCompatibilityMode.Word2007);
+                document.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2010;
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == WordCompatibilityMode.Word2010);
 
                 Assert.True(document.Settings.FontFamilyHighAnsi == "Abadi");
                 Assert.True(document.Settings.FontFamily == "Times New Roman");
@@ -156,9 +156,9 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
 
-                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2010);
-                document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.None;
-                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.None);
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == WordCompatibilityMode.Word2010);
+                document.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.None;
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == WordCompatibilityMode.None);
 
                 document.Settings.ZoomPreset = WordZoomPreset.BestFit;
 

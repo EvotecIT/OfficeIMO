@@ -90,7 +90,7 @@ namespace OfficeIMO.Word.Markdown {
                 var headingParagraph = _host.CreateParagraph();
                 ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment);
                 ProcessInlinesOmd(block.Inlines, headingParagraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
-                headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(block.Level);
+                headingParagraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(block.Level);
                 ApplyHeadingTheme(headingParagraph, _options);
             }
 
@@ -126,7 +126,7 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitCodeBlock(Omd.CodeBlock block) {
                 var codeParagraph = _host.CreateParagraph();
                 ApplyBlockParagraphFormatting(codeParagraph, _quoteDepth, _alignment);
-                var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
+                var monoFont = WordFontResolver.Resolve("monospace") ?? "Consolas";
                 codeParagraph.AddFormattedText(block.Content ?? string.Empty).SetFontFamily(monoFont);
                 ApplyCodeTheme(codeParagraph, _options);
                 if (!string.IsNullOrWhiteSpace(block.Caption)) {
@@ -148,7 +148,7 @@ namespace OfficeIMO.Word.Markdown {
 
                 var paragraph = _host.CreateParagraph();
                 ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
-                var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
+                var monoFont = WordFontResolver.Resolve("monospace") ?? "Consolas";
                 paragraph.AddFormattedText(block.Content ?? string.Empty).SetFontFamily(monoFont);
                 ApplyCodeTheme(paragraph, _options);
                 if (!string.IsNullOrWhiteSpace(block.Caption)) {
@@ -231,7 +231,7 @@ namespace OfficeIMO.Word.Markdown {
                 var headingParagraph = _host.CreateParagraph();
                 ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment);
                 headingParagraph.AddText(block.Title.Trim());
-                headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(NormalizeTocTitleLevel(block.TitleLevel));
+                headingParagraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(NormalizeTocTitleLevel(block.TitleLevel));
                 ApplyHeadingTheme(headingParagraph, _options);
             }
 
@@ -336,7 +336,7 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 var lines = block.Render().Replace("\r", string.Empty).Split('\n');
-                var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
+                var monoFont = WordFontResolver.Resolve("monospace") ?? "Consolas";
 
                 for (int i = 0; i < lines.Length; i++) {
                     var paragraph = _host.CreateParagraph();

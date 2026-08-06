@@ -2,85 +2,6 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint;
 
-/// <summary>Controls how conversion handles an existing PowerPoint destination.</summary>
-public enum PowerPointConversionFileConflictPolicy {
-    /// <summary>Reject conversion if the destination exists.</summary>
-    FailIfExists,
-    /// <summary>Replace an existing destination through an atomic commit.</summary>
-    Replace
-}
-
-/// <summary>Identifies the purpose of a PowerPoint conversion diagnostic.</summary>
-public enum PowerPointConversionDiagnosticCategory {
-    /// <summary>Source format detection or extension findings.</summary>
-    SourceFormat,
-    /// <summary>Content that cannot survive conversion unchanged.</summary>
-    DataLoss,
-    /// <summary>Destination format or writer findings.</summary>
-    DestinationFormat
-}
-
-/// <summary>Identifies the severity of a PowerPoint conversion diagnostic.</summary>
-public enum PowerPointConversionDiagnosticSeverity {
-    /// <summary>Informational finding.</summary>
-    Information,
-    /// <summary>Finding requiring user review.</summary>
-    Warning,
-    /// <summary>Finding that prevented conversion.</summary>
-    Error
-}
-
-/// <summary>Describes one structured PowerPoint conversion finding.</summary>
-public sealed class PowerPointConversionDiagnostic {
-    internal PowerPointConversionDiagnostic(
-        string code,
-        PowerPointConversionDiagnosticCategory category,
-        PowerPointConversionDiagnosticSeverity severity,
-        string message,
-        OfficeCompatibilityState compatibilityState,
-        OfficeCompatibilityImpact compatibilityImpact,
-        bool representsDataLoss,
-        string? sourceLocation = null,
-        string? fallbackArtifact = null) {
-        Code = code;
-        Category = category;
-        Severity = severity;
-        Message = message;
-        CompatibilityState = compatibilityState;
-        CompatibilityImpact = compatibilityImpact;
-        RepresentsDataLoss = representsDataLoss;
-        SourceLocation = sourceLocation;
-        FallbackArtifact = fallbackArtifact;
-    }
-
-    /// <summary>Gets the stable diagnostic code.</summary>
-    public string Code { get; }
-
-    /// <summary>Gets the diagnostic category.</summary>
-    public PowerPointConversionDiagnosticCategory Category { get; }
-
-    /// <summary>Gets the diagnostic severity.</summary>
-    public PowerPointConversionDiagnosticSeverity Severity { get; }
-
-    /// <summary>Gets the human-readable diagnostic message.</summary>
-    public string Message { get; }
-
-    /// <summary>Gets how the source feature is represented in the target.</summary>
-    public OfficeCompatibilityState CompatibilityState { get; }
-
-    /// <summary>Gets the affected fidelity dimensions.</summary>
-    public OfficeCompatibilityImpact CompatibilityImpact { get; }
-
-    /// <summary>Gets whether the finding represents source fidelity loss.</summary>
-    public bool RepresentsDataLoss { get; }
-
-    /// <summary>Gets the related source slide, shape, stream offset, or package part.</summary>
-    public string? SourceLocation { get; }
-
-    /// <summary>Gets the generated fallback artifact, when one exists.</summary>
-    public string? FallbackArtifact { get; }
-}
-
 /// <summary>Represents the destination artifact and report produced by a PowerPoint conversion.</summary>
 public sealed class PowerPointPresentationConversionResult {
     internal PowerPointPresentationConversionResult(
@@ -91,7 +12,7 @@ public sealed class PowerPointPresentationConversionResult {
         OfficeFormatDescriptor sourceDescriptor,
         OfficeFormatDescriptor destinationDescriptor,
         OfficeCompatibilityMode compatibilityMode,
-        IReadOnlyList<PowerPointConversionDiagnostic> diagnostics,
+        IReadOnlyList<OfficeConversionDiagnostic> diagnostics,
         bool outputCreated,
         bool replacedExistingFile) {
         Value = outputCreated ? destinationPath : null;
@@ -137,7 +58,7 @@ public sealed class PowerPointPresentationConversionReport {
         OfficeFormatDescriptor sourceDescriptor,
         OfficeFormatDescriptor destinationDescriptor,
         OfficeCompatibilityMode compatibilityMode,
-        IReadOnlyList<PowerPointConversionDiagnostic> diagnostics,
+        IReadOnlyList<OfficeConversionDiagnostic> diagnostics,
         bool replacedExistingFile) {
         SourcePath = sourcePath;
         DestinationPath = destinationPath;
@@ -173,7 +94,7 @@ public sealed class PowerPointPresentationConversionReport {
     public OfficeFormatDescriptor DestinationFormatDescriptor { get; }
 
     /// <summary>Gets all PowerPoint-specific diagnostics.</summary>
-    public IReadOnlyList<PowerPointConversionDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<OfficeConversionDiagnostic> Diagnostics { get; }
 
     /// <summary>Gets the shared feature-level fidelity assessment.</summary>
     public OfficeCompatibilityReport Compatibility { get; }
@@ -187,14 +108,14 @@ public sealed class PowerPointPresentationConversionReport {
     /// <summary>Throws when the conversion reports loss or a blocked feature.</summary>
     public void RequireNoLoss() => Compatibility.RequireNoLoss();
 
-    private static OfficeCompatibilityFinding ToCompatibilityFinding(PowerPointConversionDiagnostic diagnostic) => new(
+    private static OfficeCompatibilityFinding ToCompatibilityFinding(OfficeConversionDiagnostic diagnostic) => new(
         diagnostic.Code,
         diagnostic.Category.ToString(),
         diagnostic.Message,
         diagnostic.CompatibilityState,
         diagnostic.Severity switch {
-            PowerPointConversionDiagnosticSeverity.Warning => OfficeCompatibilitySeverity.Warning,
-            PowerPointConversionDiagnosticSeverity.Error => OfficeCompatibilitySeverity.Error,
+            OfficeConversionDiagnosticSeverity.Warning => OfficeCompatibilitySeverity.Warning,
+            OfficeConversionDiagnosticSeverity.Error => OfficeCompatibilitySeverity.Error,
             _ => OfficeCompatibilitySeverity.Information
         },
         diagnostic.CompatibilityImpact,
@@ -203,22 +124,10 @@ public sealed class PowerPointPresentationConversionReport {
         diagnostic.FallbackArtifact);
 }
 
-/// <summary>Identifies why a PowerPoint conversion was rejected.</summary>
-public enum PowerPointPresentationConversionFailureReason {
-    /// <summary>The source already uses the requested concrete format.</summary>
-    SameFormat,
-    /// <summary>The destination exists and replacement was not allowed.</summary>
-    DestinationExists,
-    /// <summary>Known fidelity loss was blocked by policy.</summary>
-    DataLossBlocked,
-    /// <summary>The destination writer cannot represent source content.</summary>
-    DestinationFeatureUnsupported
-}
-
 /// <summary>Raised when a validated PowerPoint conversion cannot be completed safely.</summary>
 public sealed class PowerPointPresentationConversionException : InvalidOperationException {
     internal PowerPointPresentationConversionException(
-        PowerPointPresentationConversionFailureReason reason,
+        OfficeConversionFailureReason reason,
         PowerPointPresentationConversionResult result,
         string message,
         Exception? innerException = null)
@@ -228,7 +137,7 @@ public sealed class PowerPointPresentationConversionException : InvalidOperation
     }
 
     /// <summary>Gets the structured failure reason.</summary>
-    public PowerPointPresentationConversionFailureReason Reason { get; }
+    public OfficeConversionFailureReason Reason { get; }
 
     /// <summary>Gets the assessment available when conversion was rejected.</summary>
     public PowerPointPresentationConversionResult Result { get; }
@@ -237,10 +146,10 @@ public sealed class PowerPointPresentationConversionException : InvalidOperation
 /// <summary>Controls file-to-file PowerPoint conversion.</summary>
 public sealed class PowerPointPresentationConversionOptions {
     /// <summary>Gets or sets how an existing destination is handled.</summary>
-    public PowerPointConversionFileConflictPolicy FileConflictPolicy { get; set; } = PowerPointConversionFileConflictPolicy.FailIfExists;
+    public OfficeConversionFileConflictPolicy FileConflictPolicy { get; set; } = OfficeConversionFileConflictPolicy.FailIfExists;
 
     /// <summary>Gets or sets whether known conversion loss is blocked.</summary>
-    public PowerPointConversionLossPolicy LossPolicy { get; set; } = PowerPointConversionLossPolicy.Block;
+    public OfficeConversionLossPolicy LossPolicy { get; set; } = OfficeConversionLossPolicy.Block;
 
     /// <summary>Gets or sets the requested editability, visual-fidelity, and preservation strategy.</summary>
     public OfficeCompatibilityMode CompatibilityMode { get; set; } = OfficeCompatibilityMode.StrictNative;
@@ -261,8 +170,8 @@ public sealed class PowerPointPresentationConversionOptions {
     /// Gets or sets how conversion handles existing digital-signature metadata. The safe default blocks
     /// package rewriting; removing or preserving invalidated markup still produces a reported security loss.
     /// </summary>
-    public PowerPointSignatureMutationPolicy SignatureMutationPolicy { get; set; } =
-        PowerPointSignatureMutationPolicy.BlockSave;
+    public OfficeSignatureMutationPolicy SignatureMutationPolicy { get; set; } =
+        OfficeSignatureMutationPolicy.BlockSave;
 
     /// <summary>Gets or sets optional source load settings.</summary>
     public PowerPointLoadOptions? LoadOptions { get; set; }

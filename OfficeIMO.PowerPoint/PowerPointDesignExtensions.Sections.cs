@@ -64,7 +64,7 @@ namespace OfficeIMO.PowerPoint {
                     theme.SecondaryTextColor, theme.BodyFontName);
             }
 
-            PowerPointAutoShape accentPanel = slide.AddShapeCm(PowerPointShapeType.Parallelogram,
+            PowerPointAutoShape accentPanel = slide.AddShapeCm(OfficePresetShapeType.Parallelogram,
                 slideWidthCm * 0.64, 0, slideWidthCm * 0.26, slideHeightCm, "Section Editorial Accent Plane");
             accentPanel.FillColor = theme.AccentLightColor;
             accentPanel.FillTransparency = 30;
@@ -220,7 +220,7 @@ namespace OfficeIMO.PowerPoint {
             band.OutlineColor = theme.AccentColor;
             band.SetSoftEdges(1.1);
 
-            PowerPointAutoShape wash = slide.AddShapeCm(PowerPointShapeType.Parallelogram, 8.0, bandTop + 0.25,
+            PowerPointAutoShape wash = slide.AddShapeCm(OfficePresetShapeType.Parallelogram, 8.0, bandTop + 0.25,
                 7.2, bandHeight - 0.5, "Case Study Band Wash");
             wash.FillColor = theme.Accent2Color;
             wash.FillTransparency = 45;

@@ -52,7 +52,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (useSemantic && !envelope.IsSupported) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticSchemaUnsupported,
                 "The semantic HTML envelope does not use a supported Excel source and schema version.",
-                HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Failure,
+                HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Failure,
                 detail: "source=" + envelope.ActualSource + "; version=" + envelope.SchemaVersion);
             workbook.AddWorksheet("Imported");
             return result;
@@ -60,7 +60,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (useSemantic && !envelope.CanRestoreTargetSpecific(trust)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticRestorationTrustRequired,
                 "Target-specific Excel restoration was not applied because the v2 envelope requires caller-trusted input.",
-                HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Approximation,
+                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation,
                 detail: "restoration=" + envelope.RestorationMode);
             ImportGenericDocument(semanticDocument, workbook, result, options, budget);
             return result;
@@ -79,7 +79,7 @@ public static partial class HtmlExcelConverterExtensions {
 
         if (sheetSections.Count == 0) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticContentMissing,
-                "No semantic Excel sheet sections were found.", HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Failure);
+                "No semantic Excel sheet sections were found.", HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Failure);
             workbook.AddWorksheet("Imported");
             return result;
         }
@@ -91,7 +91,7 @@ public static partial class HtmlExcelConverterExtensions {
             if (!budget.TryReserveSemanticContainer(out string containerLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                     "Additional semantic worksheets were omitted because the shared import limit was reached.",
-                    HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Omission, detail: containerLimit);
+                    HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, detail: containerLimit);
                 break;
             }
 
@@ -142,7 +142,7 @@ public static partial class HtmlExcelConverterExtensions {
         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticRestorationTrustRequired,
             "Excel formulas were imported as visible text because formula restoration requires caller-trusted input or an explicit AllowUntrustedFormulas opt-in.",
             HtmlDiagnosticSeverity.Warning,
-            HtmlConversionLossKind.Approximation);
+            OfficeConversionLossKind.Approximation);
     }
 
     private static ExcelDocument GetWorkbookOrThrow(HtmlToExcelResult result) {
@@ -175,7 +175,7 @@ public static partial class HtmlExcelConverterExtensions {
         IElement? table = section.Children.FirstOrDefault(child => IsElement(child, "table"));
         if (table == null) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticBlockMissing,
-                "Sheet '" + sheet.Name + "' did not contain a direct semantic table.", lossKind: HtmlConversionLossKind.Omission);
+                "Sheet '" + sheet.Name + "' did not contain a direct semantic table.", lossKind: OfficeConversionLossKind.Omission);
             return;
         }
 
@@ -184,7 +184,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (!budget.TryReserveTable(out string tableLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "Sheet '" + sheet.Name + "' table was omitted because the shared import limit was reached.",
-                lossKind: HtmlConversionLossKind.Omission, detail: tableLimit);
+                lossKind: OfficeConversionLossKind.Omission, detail: tableLimit);
             return;
         }
 
@@ -234,7 +234,7 @@ public static partial class HtmlExcelConverterExtensions {
                 || !budget.TryReserveAnnotation(out annotationLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
                     "A formula was omitted because the shared semantic metadata limit was reached.",
-                    lossKind: HtmlConversionLossKind.Omission,
+                    lossKind: OfficeConversionLossKind.Omission,
                     detail: metadataLimit.Length > 0 ? metadataLimit : annotationLimit);
                 continue;
             }
@@ -273,7 +273,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (!budget.IsMetadataWithinLimit(rawValue, out string metadataLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
                 "Cell " + BuildCellReference(row, column) + " semantic value exceeded the shared metadata limit and was imported from visible text.",
-                lossKind: HtmlConversionLossKind.Approximation, detail: metadataLimit);
+                lossKind: OfficeConversionLossKind.Approximation, detail: metadataLimit);
             return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);
         }
 
@@ -286,7 +286,7 @@ public static partial class HtmlExcelConverterExtensions {
             }
 
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
-                "Cell " + BuildCellReference(row, column) + " contained a semantic number value that could not be parsed and was imported as text.", lossKind: HtmlConversionLossKind.Approximation);
+                "Cell " + BuildCellReference(row, column) + " contained a semantic number value that could not be parsed and was imported as text.", lossKind: OfficeConversionLossKind.Approximation);
         } else if (kind.Equals("boolean", StringComparison.OrdinalIgnoreCase)) {
             if (rawValue.Equals("1", StringComparison.OrdinalIgnoreCase) || rawValue.Equals("true", StringComparison.OrdinalIgnoreCase)) {
                 sheet.CellValue(row, column, true);
@@ -299,7 +299,7 @@ public static partial class HtmlExcelConverterExtensions {
             }
 
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
-                "Cell " + BuildCellReference(row, column) + " contained a semantic boolean value that could not be parsed and was imported as text.", lossKind: HtmlConversionLossKind.Approximation);
+                "Cell " + BuildCellReference(row, column) + " contained a semantic boolean value that could not be parsed and was imported as text.", lossKind: OfficeConversionLossKind.Approximation);
         } else if (kind.Equals("text", StringComparison.OrdinalIgnoreCase)) {
             return TrySetCellTextValue(sheet, row, column, rawValue, result, budget);
         } else if (kind.Equals("date-time", StringComparison.OrdinalIgnoreCase)) {
@@ -309,7 +309,7 @@ public static partial class HtmlExcelConverterExtensions {
             }
 
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
-                "Cell " + BuildCellReference(row, column) + " contained a semantic date/time value that could not be parsed and was imported as text.", lossKind: HtmlConversionLossKind.Approximation);
+                "Cell " + BuildCellReference(row, column) + " contained a semantic date/time value that could not be parsed and was imported as text.", lossKind: OfficeConversionLossKind.Approximation);
         } else if (isFormula) {
             if (!options.ImportFormulas) {
                 return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);
@@ -321,7 +321,7 @@ public static partial class HtmlExcelConverterExtensions {
                 || !budget.TryReserveAnnotation(out annotationLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
                     "Cell " + BuildCellReference(row, column) + " formula was omitted because a semantic or native formula limit was reached.",
-                    lossKind: HtmlConversionLossKind.Omission, detail: formulaLimit.Length > 0 ? formulaLimit : annotationLimit);
+                    lossKind: OfficeConversionLossKind.Omission, detail: formulaLimit.Length > 0 ? formulaLimit : annotationLimit);
                 return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);
             }
 
@@ -357,7 +357,7 @@ public static partial class HtmlExcelConverterExtensions {
                 || !budget.TryReserveAnnotation(out annotationLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
                     "A cell comment was omitted because the shared semantic metadata limit was reached.",
-                    lossKind: HtmlConversionLossKind.Omission,
+                    lossKind: OfficeConversionLossKind.Omission,
                     detail: metadataLimit.Length > 0 ? metadataLimit : annotationLimit);
                 continue;
             }
@@ -403,7 +403,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (!budget.IsImageWithinLimit(dataUri, out string imageLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An embedded worksheet image was omitted because the shared import limit was reached.",
-                lossKind: HtmlConversionLossKind.Omission,
+                lossKind: OfficeConversionLossKind.Omission,
                 detail: imageLimit);
             return;
         }
@@ -411,14 +411,14 @@ public static partial class HtmlExcelConverterExtensions {
         if (!budget.TryReserveImageWithShape(dataUri, out imageLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An embedded worksheet image was omitted because the shared import limit was reached.",
-                lossKind: HtmlConversionLossKind.Omission,
+                lossKind: OfficeConversionLossKind.Omission,
                 detail: imageLimit);
             return;
         }
 
         if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
-                "Image inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.", lossKind: HtmlConversionLossKind.Omission);
+                "Image inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.", lossKind: OfficeConversionLossKind.Omission);
             return;
         }
 
@@ -437,7 +437,7 @@ public static partial class HtmlExcelConverterExtensions {
             importedImage = sheet.AddImageAbsolute(xPixels, yPixels, bytes, dataUri.MediaType, width, height, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
         } else if (IsAbsoluteImageAnchor(item)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
-                "Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used an absolute anchor without semantic x/y coordinates and was restored to its fallback cell anchor.", lossKind: HtmlConversionLossKind.Approximation);
+                "Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used an absolute anchor without semantic x/y coordinates and was restored to its fallback cell anchor.", lossKind: OfficeConversionLossKind.Approximation);
             importedImage = sheet.AddImage(row, column, bytes, dataUri.MediaType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
         } else if (IsTwoCellImageAnchor(item)) {
             importedImage = AddTwoCellImage(item, sheet, result, budget, bytes, dataUri.MediaType, row, column, width, height, offsetX, offsetY, name, description);
@@ -474,7 +474,7 @@ public static partial class HtmlExcelConverterExtensions {
             if (anchoredCells > budget.Limits.MaxTableCells) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
                     "Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' exceeded MaxTableCells for its two-cell anchor and was restored to its fallback cell anchor.",
-                    lossKind: HtmlConversionLossKind.Approximation);
+                    lossKind: OfficeConversionLossKind.Approximation);
                 return sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY,
                     name: name.Length == 0 ? null : name,
                     altText: description.Length == 0 ? null : description);
@@ -500,7 +500,7 @@ public static partial class HtmlExcelConverterExtensions {
         }
 
         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
-            "Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used a two-cell anchor without semantic ending marker coordinates and was restored to its fallback cell anchor.", lossKind: HtmlConversionLossKind.Approximation);
+            "Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used a two-cell anchor without semantic ending marker coordinates and was restored to its fallback cell anchor.", lossKind: OfficeConversionLossKind.Approximation);
         return sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
     }
 
@@ -510,7 +510,7 @@ public static partial class HtmlExcelConverterExtensions {
         bool hasUsableRange = !string.IsNullOrWhiteSpace(range) && !string.Equals(range, "A1", StringComparison.OrdinalIgnoreCase);
         if (!hasSemanticData && !hasUsableRange) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
-                "Chart inventory item '" + title + "' on sheet '" + sheet.Name + "' did not contain semantic chart data and no usable table range was available.", lossKind: HtmlConversionLossKind.Omission);
+                "Chart inventory item '" + title + "' on sheet '" + sheet.Name + "' did not contain semantic chart data and no usable table range was available.", lossKind: OfficeConversionLossKind.Omission);
             return;
         }
 
@@ -520,7 +520,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (!budget.TryReserveChartWithShape(seriesCount, categoryCount, out HtmlImportBudgetReservation reservation, out string chartLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "Chart inventory item '" + title + "' was omitted because the shared chart limit was reached.",
-                lossKind: HtmlConversionLossKind.Omission,
+                lossKind: OfficeConversionLossKind.Omission,
                 detail: chartLimit);
             return;
         }
@@ -539,7 +539,7 @@ public static partial class HtmlExcelConverterExtensions {
             } catch (Exception ex) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ArtifactCreationFailed,
                     "Chart inventory item '" + title + "' could not be restored as a native chart: " + ex.Message,
-                    lossKind: HtmlConversionLossKind.Omission, detail: ex.GetType().Name);
+                    lossKind: OfficeConversionLossKind.Omission, detail: ex.GetType().Name);
             }
         }
     }
@@ -752,7 +752,7 @@ public static partial class HtmlExcelConverterExtensions {
                 image.SetRotation(normalizedRotation);
             } else {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
-                    "Invalid image rotation used the neutral fallback.", lossKind: HtmlConversionLossKind.Approximation);
+                    "Invalid image rotation used the neutral fallback.", lossKind: OfficeConversionLossKind.Approximation);
             }
         }
 
@@ -783,7 +783,7 @@ public static partial class HtmlExcelConverterExtensions {
         second = 0D;
         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
             "Invalid image " + axis + " crop metadata used the zero fallback.",
-            lossKind: HtmlConversionLossKind.Approximation,
+            lossKind: OfficeConversionLossKind.Approximation,
             source: "image crop " + axis);
     }
 
@@ -791,7 +791,7 @@ public static partial class HtmlExcelConverterExtensions {
         double value = ReadOptionalDoubleAttribute(item, attributeName) ?? 0D;
         if (budget.TryNormalizeRange(value, 0D, 0D, 1D, out double normalized)) return normalized;
         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
-            "Invalid image crop metadata used the zero fallback.", lossKind: HtmlConversionLossKind.Approximation, source: attributeName);
+            "Invalid image crop metadata used the zero fallback.", lossKind: OfficeConversionLossKind.Approximation, source: attributeName);
         return 0D;
     }
 
@@ -806,7 +806,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (value >= minimum && value <= maximum) return value;
         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
             "Invalid " + source + " metadata used a bounded fallback.",
-            lossKind: HtmlConversionLossKind.Approximation,
+            lossKind: OfficeConversionLossKind.Approximation,
             source: source,
             detail: "value=" + value.ToString(CultureInfo.InvariantCulture) + "; maximum=" + maximum.ToString(CultureInfo.InvariantCulture));
         return fallback;
@@ -911,7 +911,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (!IsWithinExcelFieldLimit(text, budget, ExcelCellTextCharacterLimit, "ExcelCellTextCharacterLimit", out string detail)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
                 "Cell " + BuildCellReference(row, column) + " text was omitted because a semantic or native Excel field limit was reached.",
-                lossKind: HtmlConversionLossKind.Omission, detail: detail);
+                lossKind: OfficeConversionLossKind.Omission, detail: detail);
             return false;
         }
 
@@ -940,7 +940,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (string.IsNullOrWhiteSpace(reference)) return;
         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
             "The " + contentKind + " coordinate '" + reference + "' was outside the Excel worksheet grid and was omitted.",
-            lossKind: HtmlConversionLossKind.Omission,
+            lossKind: OfficeConversionLossKind.Omission,
             detail: "Rows=1-" + A1.MaxRows.ToString(CultureInfo.InvariantCulture)
                 + "; Columns=1-" + A1.MaxColumns.ToString(CultureInfo.InvariantCulture));
     }

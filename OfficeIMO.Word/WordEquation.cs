@@ -23,21 +23,21 @@ namespace OfficeIMO.Word {
         private List<Run>? _runs;
 
         /// <summary>Initializes an equation backed by an Office Math element.</summary>
-        public WordEquation(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.OfficeMath officeMath) {
+        internal WordEquation(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.OfficeMath officeMath) {
             _document = document;
             _paragraph = paragraph;
             _officeMath = officeMath;
         }
 
         /// <summary>Initializes an equation backed by an Office Math paragraph.</summary>
-        public WordEquation(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.Paragraph mathParagraph) {
+        internal WordEquation(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.Paragraph mathParagraph) {
             _document = document;
             _paragraph = paragraph;
             _mathParagraph = mathParagraph;
         }
 
         /// <summary>Initializes an equation backed by an Office Math element and its paragraph.</summary>
-        public WordEquation(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.OfficeMath officeMath, DocumentFormat.OpenXml.Math.Paragraph mathParagraph) {
+        internal WordEquation(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.OfficeMath officeMath, DocumentFormat.OpenXml.Math.Paragraph mathParagraph) {
             _document = document;
             _paragraph = paragraph;
             _officeMath = officeMath;

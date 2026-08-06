@@ -54,7 +54,7 @@ public partial class WordImageExportTests {
         OfficeImageExportDiagnostic diagnostic = Assert.Single(
             exception.Diagnostics,
             item => item.Code == OfficeImageExportDiagnosticCodes.TextShapingFallback);
-        Assert.Equal(OfficeImageExportLossKind.Approximation, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
         Assert.Equal("Word document", diagnostic.Source);
     }
 
@@ -76,7 +76,7 @@ public partial class WordImageExportTests {
         OfficeImageExportDiagnostic diagnostic = Assert.Single(
             exception.Diagnostics,
             item => item.Code == OfficeImageExportDiagnosticCodes.TextShapingFallback);
-        Assert.Equal(OfficeImageExportLossKind.Approximation, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
         Assert.Contains("cannot provide complete", diagnostic.Message, StringComparison.Ordinal);
     }
 
@@ -98,7 +98,7 @@ public partial class WordImageExportTests {
         OfficeImageExportDiagnostic diagnostic = Assert.Single(
             exception.Diagnostics,
             item => item.Code == OfficeImageExportDiagnosticCodes.TextShapingFallback);
-        Assert.Equal(OfficeImageExportLossKind.Approximation, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
         Assert.Contains("cannot provide complete", diagnostic.Message, StringComparison.Ordinal);
     }
 }

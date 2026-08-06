@@ -79,30 +79,30 @@ public partial class WordDocument {
         return text != null;
     }
 
-    private static int CleanupParagraph(Paragraph paragraph, DocumentCleanupOptions options) {
+    private static int CleanupParagraph(Paragraph paragraph, WordDocumentCleanupOptions options) {
         int count = 0;
 
-        if (options.HasFlag(DocumentCleanupOptions.RemoveEmptyRuns) || options.HasFlag(DocumentCleanupOptions.RemoveRedundantRunProperties)) {
+        if (options.HasFlag(WordDocumentCleanupOptions.RemoveEmptyRuns) || options.HasFlag(WordDocumentCleanupOptions.RemoveRedundantRunProperties)) {
             foreach (var run in paragraph.Elements<Run>().ToList()) {
-                if (options.HasFlag(DocumentCleanupOptions.RemoveEmptyRuns) && IsRunEmpty(run)) {
+                if (options.HasFlag(WordDocumentCleanupOptions.RemoveEmptyRuns) && IsRunEmpty(run)) {
                     run.Remove();
                     count++;
                     continue;
                 }
 
-                if (options.HasFlag(DocumentCleanupOptions.RemoveRedundantRunProperties) && run.RunProperties != null && !run.RunProperties.ChildElements.Any()) {
+                if (options.HasFlag(WordDocumentCleanupOptions.RemoveRedundantRunProperties) && run.RunProperties != null && !run.RunProperties.ChildElements.Any()) {
                     run.RunProperties.Remove();
                     count++;
                 }
             }
         }
 
-        if (options.HasFlag(DocumentCleanupOptions.RemoveEmptyParagraphs) && IsParagraphEmpty(paragraph)) {
+        if (options.HasFlag(WordDocumentCleanupOptions.RemoveEmptyParagraphs) && IsParagraphEmpty(paragraph)) {
             paragraph.Remove();
             return count + 1;
         }
 
-        if (options.HasFlag(DocumentCleanupOptions.MergeIdenticalRuns)) {
+        if (options.HasFlag(WordDocumentCleanupOptions.MergeIdenticalRuns)) {
             count += CombineIdenticalRuns(paragraph);
         }
 

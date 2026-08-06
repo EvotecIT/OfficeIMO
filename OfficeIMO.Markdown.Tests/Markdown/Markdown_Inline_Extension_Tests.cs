@@ -118,7 +118,7 @@ public sealed class Markdown_Inline_Extension_Tests {
 
                 calls.Add("first:" + sequence.Nodes.Count + ":" + sequence.Nodes[1].GetType().Name);
                 sequence.ReplaceItems(new IMarkdownInline[] {
-                    new TextRun("one")
+                    new MarkdownTextRun("one")
                 });
                 return sequence;
             }));
@@ -131,7 +131,7 @@ public sealed class Markdown_Inline_Extension_Tests {
 
                 calls.Add("second:" + sequence.RenderMarkdown());
                 sequence.ReplaceItems(new IMarkdownInline[] {
-                    new TextRun(sequence.RenderMarkdown() + " two")
+                    new MarkdownTextRun(sequence.RenderMarkdown() + " two")
                 });
                 return sequence;
             }));
@@ -139,7 +139,7 @@ public sealed class Markdown_Inline_Extension_Tests {
         var document = OfficeIMO.Markdown.MarkdownReader.Parse("Lead **bold**", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
-        var text = Assert.IsType<TextRun>(Assert.Single(paragraph.Inlines.Nodes));
+        var text = Assert.IsType<MarkdownTextRun>(Assert.Single(paragraph.Inlines.Nodes));
         Assert.Equal("one two", text.Text);
         Assert.Equal(new[] { "first:2:BoldSequenceInline", "second:one" }, calls);
     }
@@ -151,8 +151,8 @@ public sealed class Markdown_Inline_Extension_Tests {
             "nested-text",
             static (sequence, _) => {
                 sequence.ReplaceItems(sequence.Nodes.Select(node =>
-                    node is TextRun text && string.Equals(text.Text, "core", StringComparison.Ordinal)
-                        ? new TextRun("nested")
+                    node is MarkdownTextRun text && string.Equals(text.Text, "core", StringComparison.Ordinal)
+                        ? new MarkdownTextRun("nested")
                         : node));
                 return sequence;
             }));
@@ -161,7 +161,7 @@ public sealed class Markdown_Inline_Extension_Tests {
 
         var quote = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
-        var text = Assert.IsType<TextRun>(Assert.Single(paragraph.Inlines.Nodes));
+        var text = Assert.IsType<MarkdownTextRun>(Assert.Single(paragraph.Inlines.Nodes));
         Assert.Equal("nested", text.Text);
     }
 
@@ -207,7 +207,7 @@ public sealed class Markdown_Inline_Extension_Tests {
         var document = OfficeIMO.Markdown.MarkdownReader.Parse("original", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
-        var text = Assert.IsType<TextRun>(Assert.Single(paragraph.Inlines.Nodes));
+        var text = Assert.IsType<MarkdownTextRun>(Assert.Single(paragraph.Inlines.Nodes));
         Assert.Equal("replacement", text.Text);
     }
 
@@ -242,8 +242,8 @@ public sealed class Markdown_Inline_Extension_Tests {
                 }
 
                 sequence.ReplaceItems(sequence.Nodes.Select(node =>
-                    node is TextRun textRun
-                        ? new TextRun(textRun.Text.ToUpperInvariant())
+                    node is MarkdownTextRun textRun
+                        ? new MarkdownTextRun(textRun.Text.ToUpperInvariant())
                         : node));
                 return sequence;
             }));
@@ -252,7 +252,7 @@ public sealed class Markdown_Inline_Extension_Tests {
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         var custom = Assert.IsType<DoubleBraceInline>(paragraph.Inlines.Nodes[1]);
-        var text = Assert.IsType<TextRun>(Assert.Single(custom.Inlines.Nodes));
+        var text = Assert.IsType<MarkdownTextRun>(Assert.Single(custom.Inlines.Nodes));
         Assert.Equal("CORE", text.Text);
     }
 
@@ -267,7 +267,7 @@ public sealed class Markdown_Inline_Extension_Tests {
                 }
 
                 var nodes = sequence.Nodes.ToList();
-                nodes.Add(new TextRun(" tail"));
+                nodes.Add(new MarkdownTextRun(" tail"));
                 sequence.ReplaceItems(nodes);
                 return sequence;
             }));

@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
 
             var paragraph = document.AddParagraph();
             var imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "Kulek.jpg");
-            paragraph.AddImage(imagePath, 50, 50, WrapTextImage.Square);
+            paragraph.AddImage(imagePath, 50, 50, WordImageTextWrapping.Square);
             var paraImage = paragraph.Image;
             Assert.NotNull(paraImage);
             int offset = 914400;

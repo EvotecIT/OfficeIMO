@@ -227,9 +227,10 @@ namespace OfficeIMO.Tests {
             var destinationPath = Path.Combine(_directoryWithFiles, "MergeDocCustomStyleBase.docx");
             var sourcePath = Path.Combine(_directoryWithFiles, "MergeDocCustomStyleSource.docx");
 
-            var style = new Style { Type = StyleValues.Paragraph, StyleId = "MergedStyle" };
-            style.Append(new StyleName { Val = "Merged Style" });
-            style.Append(new BasedOn { Val = "Normal" });
+            var style = new WordParagraphStyleDefinition("MergedStyle") {
+                Name = "Merged Style",
+                BasedOnStyleId = "Normal"
+            };
             WordParagraphStyle.RegisterCustomStyle("MergedStyle", style);
 
             try {

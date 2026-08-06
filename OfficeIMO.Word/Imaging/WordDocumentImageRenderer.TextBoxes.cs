@@ -209,7 +209,7 @@ namespace OfficeIMO.Word {
                 frame.Transform = CreateLocalTextBoxFrameTransform(width, height, transform);
             }
 
-            bool drawBehindContent = textBox.WrapText == WrapTextImage.BehindText;
+            bool drawBehindContent = textBox.WrapText == WordImageTextWrapping.BehindText;
             if (drawBehindContent) {
                 context.Drawing.AddShapeBehindContent(frame, left, top);
             } else {

@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private static double[] BuildPageTextLineBaselines(
-        System.Collections.Generic.List<System.Collections.Generic.IReadOnlyList<TextRun>> lines,
+        System.Collections.Generic.List<System.Collections.Generic.IReadOnlyList<PdfTextRun>> lines,
         double firstBaseline,
         double defaultFontSize) {
         var baselines = new double[lines.Count];
@@ -15,9 +15,9 @@ internal static partial class PdfWriter {
         return baselines;
     }
 
-    private static double GetPageTextLineLeading(System.Collections.Generic.IReadOnlyList<TextRun> line, double defaultFontSize) {
+    private static double GetPageTextLineLeading(System.Collections.Generic.IReadOnlyList<PdfTextRun> line, double defaultFontSize) {
         double leading = defaultFontSize * 1.2D;
-        foreach (TextRun run in line) {
+        foreach (PdfTextRun run in line) {
             double requestedFontSize = run.FontSize ?? defaultFontSize;
             leading = Math.Max(leading, EffectiveRichFontSize(requestedFontSize, run.Baseline) * 1.2D);
         }
@@ -27,7 +27,7 @@ internal static partial class PdfWriter {
 
     private static void AppendPageTextRunDecorations(
         StringBuilder sb,
-        System.Collections.Generic.List<System.Collections.Generic.IReadOnlyList<TextRun>> lines,
+        System.Collections.Generic.List<System.Collections.Generic.IReadOnlyList<PdfTextRun>> lines,
         double[] baselines,
         PdfStandardFont baseFont,
         double defaultFontSize,
@@ -37,7 +37,7 @@ internal static partial class PdfWriter {
         double? lineBoxWidth,
         PdfAlign align) {
         for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
-            System.Collections.Generic.IReadOnlyList<TextRun> line = lines[lineIndex];
+            System.Collections.Generic.IReadOnlyList<PdfTextRun> line = lines[lineIndex];
             double lineWidth = MeasurePageTextLineRuns(line, baseFont, defaultFontSize, options);
             double dx = lineBoxWidth.HasValue
                 ? align == PdfAlign.Center
@@ -48,7 +48,7 @@ internal static partial class PdfWriter {
                 : 0D;
             double cursorX = x + dx;
 
-            foreach (TextRun run in line) {
+            foreach (PdfTextRun run in line) {
                 string text = run.Text ?? string.Empty;
                 if (text.Length == 0) {
                     continue;

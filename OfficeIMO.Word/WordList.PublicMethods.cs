@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
@@ -367,7 +368,7 @@ namespace OfficeIMO.Word {
 
             string relId = Helpers.UseSeekableImageStream(imageStream, preparedImageStream => {
                 var characteristics = Helpers.GetImageCharacteristics(preparedImageStream, fileName);
-                var imagePart = numberingPart.AddImagePart(characteristics.Type.ToOpenXmlImagePartType());
+                var imagePart = numberingPart.AddImagePart(OfficeImageInfo.GetMimeType(characteristics.Type));
                 preparedImageStream.Position = 0;
                 imagePart.FeedData(preparedImageStream);
                 return numberingPart.GetIdOfPart(imagePart);

@@ -635,7 +635,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             || shape.Element.Descendants<A.HyperlinkOnMouseOver>().Any();
 
         internal static void ThrowIfBlocked(LegacyPptWritePreflightReport report, PowerPointSaveOptions? options) {
-            if (!report.HasConversionLoss || options?.LossPolicy == PowerPointConversionLossPolicy.Allow) return;
+            if (!report.HasConversionLoss || options?.LossPolicy == OfficeConversionLossPolicy.Allow) return;
             string details = string.Join("; ", report.Findings.Take(8));
             throw new NotSupportedException(
                 "Native PPT/POT/PPS saving is blocked because known content cannot be encoded without loss. "

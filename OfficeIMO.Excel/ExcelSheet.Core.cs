@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
                 return _sheet.Name?.Value ?? string.Empty;
             }
             set {
-                _excelDocument.RenameWorksheet(this, value, SheetNameValidationMode.Strict);
+                _excelDocument.RenameWorksheet(this, value, ExcelSheetNameValidationMode.Strict);
             }
         }
         private readonly UInt32Value _id;
@@ -68,17 +68,14 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Override execution policy for this sheet. Null = inherit from document.
         /// </summary>
-        public ExecutionPolicy? ExecutionOverride { get; set; }
+        public ExcelExecutionPolicy? ExecutionOverride { get; set; }
 
         /// <summary>
         /// Gets the effective execution policy for this sheet.
         /// </summary>
-        internal ExecutionPolicy EffectiveExecution => ExecutionOverride ?? _excelDocument.Execution;
+        internal ExcelExecutionPolicy EffectiveExecution => ExecutionOverride ?? _excelDocument.Execution;
 
-        /// <summary>
-        /// Begin a no-lock context where operations bypass locking.
-        /// </summary>
-        public NoLockContext BeginNoLock() => new();
+        internal NoLockContext BeginNoLock() => new();
 
         /// <summary>
         /// Executes multiple worksheet mutations under a single workbook write lock.
@@ -120,16 +117,10 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        /// <summary>
-        /// Represents a scope where worksheet operations bypass locking.
-        /// </summary>
-        public sealed class NoLockContext : IDisposable {
+        internal sealed class NoLockContext : IDisposable {
             private readonly IDisposable _scope;
             internal NoLockContext() => _scope = Locking.EnterNoLockScope();
 
-            /// <summary>
-            /// Ends the no-lock scope and restores normal locking behavior.
-            /// </summary>
             public void Dispose() => _scope.Dispose();
         }
 
@@ -152,7 +143,7 @@ namespace OfficeIMO.Excel {
         /// <param name="excelDocument">Parent document.</param>
         /// <param name="spreadSheetDocument">Open XML spreadsheet document.</param>
         /// <param name="sheet">Underlying sheet element.</param>
-        public ExcelSheet(ExcelDocument excelDocument, SpreadsheetDocument spreadSheetDocument, Sheet sheet)
+        internal ExcelSheet(ExcelDocument excelDocument, SpreadsheetDocument spreadSheetDocument, Sheet sheet)
             : this(excelDocument, spreadSheetDocument, sheet, registerSheetWrapper: true) {
         }
 
@@ -183,7 +174,7 @@ namespace OfficeIMO.Excel {
         /// <param name="workbookpart">Workbook part to add the worksheet to.</param>
         /// <param name="spreadSheetDocument">Open XML spreadsheet document.</param>
         /// <param name="name">Worksheet name.</param>
-        public ExcelSheet(ExcelDocument excelDocument, WorkbookPart workbookpart, SpreadsheetDocument spreadSheetDocument, string name) {
+        internal ExcelSheet(ExcelDocument excelDocument, WorkbookPart workbookpart, SpreadsheetDocument spreadSheetDocument, string name) {
             _excelDocument = excelDocument;
             _spreadSheetDocument = spreadSheetDocument;
             _hasWorksheetMutations = true;

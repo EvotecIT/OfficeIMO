@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(2, 1, "NA");
                 sheet.CellValue(2, 2, 100);
-                sheet.AddTable("A1:B2", true, "Sales", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                sheet.AddTable("A1:B2", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 sheet.ProtectTableEditing();
                 document.Save();
             }
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTableAsTable(table, includeHeaders: true, tableName: "Sales", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                sheet.InsertDataTableAsTable(table, includeHeaders: true, tableName: "Sales", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 sheet.ProtectTableEditing();
                 document.Save();
             }

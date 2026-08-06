@@ -4,14 +4,6 @@ param(
 )
 
 $typeNames = [ordered]@{
-    'DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues' = 'ExcelChartDisplayUnit'
-    'DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues' = 'ExcelChartAxisCrossBetween'
-    'DocumentFormat.OpenXml.Drawing.Charts.CrossesValues' = 'ExcelChartAxisCrossing'
-    'DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues' = 'ExcelChartDataLabelPosition'
-    'DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues' = 'ExcelChartLegendPosition'
-    'DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues' = 'ExcelChartMarkerStyle'
-    'DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues' = 'ExcelChartTickLabelPosition'
-    'DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues' = 'ExcelChartTrendlineType'
     'DocumentFormat.OpenXml.Office2010.Excel.SparklineTypeValues' = 'ExcelSparklineType'
     'DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues' = 'ExcelBorderStyle'
     'DocumentFormat.OpenXml.Spreadsheet.CellValues' = 'ExcelCellValueType'
@@ -34,6 +26,17 @@ $typeNames = [ordered]@{
     'DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues' = 'ExcelVerticalAlignment'
 }
 
+$sharedTypeNames = [ordered]@{
+    'DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues' = 'OfficeChartDisplayUnit'
+    'DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues' = 'OfficeChartAxisCrossBetween'
+    'DocumentFormat.OpenXml.Drawing.Charts.CrossesValues' = 'OfficeChartAxisCrossingPosition'
+    'DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues' = 'OfficeChartDataLabelPosition'
+    'DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues' = 'OfficeChartLegendPosition'
+    'DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues' = 'OfficeChartMarkerShape'
+    'DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues' = 'OfficeChartAxisTickLabelPosition'
+    'DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues' = 'OfficeChartTrendlineType'
+}
+
 $memberNames = @{
     # OpenXML SDK exposes this member as PercentOfRaw even though its serialized token is percentOfRow.
     'DocumentFormat.OpenXml.Spreadsheet.ShowDataAsValues.PercentOfRaw' = 'PercentOfRow'
@@ -41,6 +44,7 @@ $memberNames = @{
 
 & (Join-Path $PSScriptRoot 'Generate-OpenXmlValueTypes.ps1') `
     -TypeNames $typeNames `
+    -SharedTypeNames $sharedTypeNames `
     -Namespace 'OfficeIMO.Excel' `
     -ExtensionClassName 'ExcelOpenXmlValueTypeExtensions' `
     -AssemblyDirectory $AssemblyDirectory `

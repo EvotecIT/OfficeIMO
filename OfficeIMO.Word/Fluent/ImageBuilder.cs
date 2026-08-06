@@ -140,7 +140,7 @@ namespace OfficeIMO.Word.Fluent {
         /// Applies a wrapping style to the image.
         /// </summary>
         /// <param name="wrapImage">Wrapping option.</param>
-        public ImageBuilder Wrap(WrapTextImage wrapImage) {
+        public ImageBuilder Wrap(WordImageTextWrapping wrapImage) {
             if (_image != null) {
                 _image.WrapText = wrapImage;
             }
@@ -151,7 +151,7 @@ namespace OfficeIMO.Word.Fluent {
         /// Places the image behind text.
         /// </summary>
         public ImageBuilder BehindText() {
-            return Wrap(WrapTextImage.BehindText);
+            return Wrap(WordImageTextWrapping.BehindText);
         }
 
         /// <summary>
@@ -206,13 +206,8 @@ namespace OfficeIMO.Word.Fluent {
         /// Sets horizontal alignment for the image's paragraph.
         /// </summary>
         /// <param name="alignment">Desired horizontal alignment.</param>
-        public ImageBuilder Align(HorizontalAlignment alignment) {
-            var justification = alignment switch {
-                HorizontalAlignment.Center => WordParagraphAlignment.Center,
-                HorizontalAlignment.Right => WordParagraphAlignment.Right,
-                _ => WordParagraphAlignment.Left,
-            };
-            _paragraph?.SetAlignment(justification);
+        public ImageBuilder Align(WordParagraphAlignment alignment) {
+            _paragraph?.SetAlignment(alignment);
             return this;
         }
 

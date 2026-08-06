@@ -60,12 +60,12 @@ internal static class PdfTextDiagnostics {
     /// <param name="source">Optional caller-provided source label such as a block, field, sheet, slide, or converter area.</param>
     /// <param name="location">Optional generated document location such as a block, table cell, or canvas item path.</param>
     /// <returns>Encoding diagnostics in run order.</returns>
-    public static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeWinAnsiTextRuns(IEnumerable<TextRun> runs, string source = "", string location = "") {
+    public static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeWinAnsiTextRuns(IEnumerable<PdfTextRun> runs, string source = "", string location = "") {
         Guard.NotNull(runs, nameof(runs));
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
 
         int runIndex = 0;
-        foreach (TextRun run in runs) {
+        foreach (PdfTextRun run in runs) {
             if (run == null || IsLayoutControlRun(run)) {
                 runIndex++;
                 continue;
@@ -162,14 +162,14 @@ internal static class PdfTextDiagnostics {
     /// <param name="source">Optional caller-provided source label such as a block, field, sheet, slide, or converter area.</param>
     /// <param name="location">Optional generated document location such as a block, table cell, or canvas item path.</param>
     /// <returns>Encoding diagnostics in run order.</returns>
-    public static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeGeneratedTextRuns(IEnumerable<TextRun> runs, PdfOptions options, PdfStandardFont font, string source = "", string location = "") {
+    public static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeGeneratedTextRuns(IEnumerable<PdfTextRun> runs, PdfOptions options, PdfStandardFont font, string source = "", string location = "") {
         Guard.NotNull(runs, nameof(runs));
         Guard.NotNull(options, nameof(options));
         Guard.StandardFont(font, nameof(font), "Generated PDF text diagnostics require a supported PDF font.");
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
 
         int runIndex = 0;
-        foreach (TextRun run in runs) {
+        foreach (PdfTextRun run in runs) {
             if (run == null || IsLayoutControlRun(run)) {
                 runIndex++;
                 continue;
@@ -268,7 +268,7 @@ internal static class PdfTextDiagnostics {
 
     private static TryGetSelectedTextLength CreateSelectedCallerCoverage(
         PdfOptions options,
-        TextRun run,
+        PdfTextRun run,
         PdfTextShapingMode shapingMode) {
         if (options.ShouldPreferSelectedCallerFamily(run.FontFamily)
             && options.TryResolveNamedFontFace(
@@ -395,7 +395,7 @@ internal static class PdfTextDiagnostics {
     /// <param name="source">Optional caller-provided source label such as a block, field, sheet, slide, or converter area.</param>
     /// <param name="fontName">Optional display name used in diagnostic messages.</param>
     /// <returns>Missing-glyph diagnostics in run order.</returns>
-    public static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontTextRuns(IEnumerable<TextRun> runs, byte[] trueTypeFont, string source = "", string? fontName = null) {
+    public static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontTextRuns(IEnumerable<PdfTextRun> runs, byte[] trueTypeFont, string source = "", string? fontName = null) {
         Guard.NotNull(runs, nameof(runs));
         Guard.NotNull(trueTypeFont, nameof(trueTypeFont));
         PdfTrueTypeFontProgram? font = null;
@@ -411,7 +411,7 @@ internal static class PdfTextDiagnostics {
 
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
 
-        foreach (TextRun run in runs) {
+        foreach (PdfTextRun run in runs) {
             if (run == null || IsLayoutControlRun(run)) {
                 continue;
             }
@@ -550,11 +550,11 @@ internal static class PdfTextDiagnostics {
     /// <param name="runs">Text runs to inspect.</param>
     /// <param name="source">Optional caller-provided source label such as a block, field, sheet, slide, or converter area.</param>
     /// <returns>Advanced text layout diagnostics in run order.</returns>
-    public static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayoutRuns(IEnumerable<TextRun> runs, string source = "") {
+    public static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayoutRuns(IEnumerable<PdfTextRun> runs, string source = "") {
         Guard.NotNull(runs, nameof(runs));
         var diagnostics = new List<PdfTextShapingDiagnostic>();
 
-        foreach (TextRun run in runs) {
+        foreach (PdfTextRun run in runs) {
             if (run == null || IsLayoutControlRun(run)) {
                 continue;
             }
@@ -574,7 +574,7 @@ internal static class PdfTextDiagnostics {
     /// <param name="source">Optional caller-provided source label such as a block, field, sheet, slide, or converter area.</param>
     /// <param name="fontName">Optional configured font name used in diagnostic messages.</param>
     /// <returns>Advanced text layout diagnostics in run order.</returns>
-    public static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayoutRuns(IEnumerable<TextRun> runs, byte[] fontData, string source = "", string? fontName = null) {
+    public static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayoutRuns(IEnumerable<PdfTextRun> runs, byte[] fontData, string source = "", string? fontName = null) {
         Guard.NotNull(runs, nameof(runs));
         Guard.NotNull(fontData, nameof(fontData));
         var diagnostics = new List<PdfTextShapingDiagnostic>();
@@ -584,7 +584,7 @@ internal static class PdfTextDiagnostics {
             info = null;
         }
 
-        foreach (TextRun run in runs) {
+        foreach (PdfTextRun run in runs) {
             if (run == null || IsLayoutControlRun(run)) {
                 continue;
             }
@@ -779,7 +779,7 @@ internal static class PdfTextDiagnostics {
         return fontProgram.TryGetGlyphId(scalar, out int glyphId) && glyphId > 0;
     }
 
-    private static bool IsLayoutControlRun(TextRun run) =>
+    private static bool IsLayoutControlRun(PdfTextRun run) =>
         string.Equals(run.Text, "\n", StringComparison.Ordinal) ||
         string.Equals(run.Text, "\t", StringComparison.Ordinal);
 
@@ -1022,7 +1022,7 @@ internal static class PdfTextDiagnostics {
         return CreateDiagnostic(text, index, source, string.Empty, null);
     }
 
-    private static PdfStandardFont ResolveRunFont(PdfStandardFont baseFont, TextRun run) {
+    private static PdfStandardFont ResolveRunFont(PdfStandardFont baseFont, PdfTextRun run) {
         PdfStandardFont font = run.Font ?? baseFont;
         if (run.Bold && run.Italic) {
             return PdfStandardFontMapper.GetStyledFont(font, bold: true, italic: true);

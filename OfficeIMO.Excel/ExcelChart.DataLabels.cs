@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetDataLabels(bool showValue, bool showCategoryName,
             bool showSeriesName, bool showLegendKey, bool showPercent,
-            ExcelChartDataLabelPosition? position, string? numberFormat, bool sourceLinked = false) {
+            OfficeChartDataLabelPosition? position, string? numberFormat, bool sourceLinked = false) {
             if (numberFormat != null && string.IsNullOrWhiteSpace(numberFormat)) {
                 throw new ArgumentException("Number format cannot be empty.", nameof(numberFormat));
             }
@@ -372,9 +372,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Enables callout-style labels by positioning labels outside with leader lines.
         /// </summary>
-        public ExcelChart SetDataLabelCallouts(bool enabled = true, ExcelChartDataLabelPosition? position = null,
+        public ExcelChart SetDataLabelCallouts(bool enabled = true, OfficeChartDataLabelPosition? position = null,
             string? lineColor = null, double? lineWidthPoints = null) {
-            var resolvedPosition = enabled ? position ?? ExcelChartDataLabelPosition.OutsideEnd : position;
+            var resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
             SetDataLabels(showValue: enabled, showCategoryName: false, showSeriesName: false, showLegendKey: false,
                 showPercent: false, position: resolvedPosition, numberFormat: null, sourceLinked: false);
             return SetDataLabelLeaderLines(enabled, lineColor, lineWidthPoints);
@@ -383,12 +383,12 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Enables callout-style labels for a series by index.
         /// </summary>
-        public ExcelChart SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = true, ExcelChartDataLabelPosition? position = null,
+        public ExcelChart SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = true, OfficeChartDataLabelPosition? position = null,
             string? lineColor = null, double? lineWidthPoints = null) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
-            var resolvedPosition = enabled ? position ?? ExcelChartDataLabelPosition.OutsideEnd : position;
+            var resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
             SetSeriesDataLabels(seriesIndex, showValue: enabled, showCategoryName: false, showSeriesName: false,
                 showLegendKey: false, showPercent: false, position: resolvedPosition, numberFormat: null, sourceLinked: false);
             return SetSeriesDataLabelLeaderLines(seriesIndex, enabled, lineColor, lineWidthPoints);
@@ -397,12 +397,12 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Enables callout-style labels for a series by name.
         /// </summary>
-        public ExcelChart SetSeriesDataLabelCallouts(string seriesName, bool enabled = true, ExcelChartDataLabelPosition? position = null,
+        public ExcelChart SetSeriesDataLabelCallouts(string seriesName, bool enabled = true, OfficeChartDataLabelPosition? position = null,
             string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
             }
-            var resolvedPosition = enabled ? position ?? ExcelChartDataLabelPosition.OutsideEnd : position;
+            var resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
             SetSeriesDataLabels(seriesName, showValue: enabled, showCategoryName: false, showSeriesName: false,
                 showLegendKey: false, showPercent: false, position: resolvedPosition, numberFormat: null, sourceLinked: false,
                 ignoreCase: ignoreCase);
@@ -506,7 +506,7 @@ namespace OfficeIMO.Excel {
         public ExcelChart SetSeriesDataLabelForPoint(int seriesIndex, int pointIndex, bool? showValue = null,
             bool? showCategoryName = null, bool? showSeriesName = null, bool? showLegendKey = null,
             bool? showPercent = null, bool? showBubbleSize = null,
-            ExcelChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false) {
+            OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
@@ -534,7 +534,7 @@ namespace OfficeIMO.Excel {
         internal ExcelChart SetSeriesDataLabelsForPoints(int seriesIndex, IReadOnlyList<int> pointIndices,
             bool? showValue = null, bool? showCategoryName = null, bool? showSeriesName = null,
             bool? showLegendKey = null, bool? showPercent = null, bool? showBubbleSize = null,
-            ExcelChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false) {
+            OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
@@ -593,7 +593,7 @@ namespace OfficeIMO.Excel {
         public ExcelChart SetSeriesDataLabelForPoint(string seriesName, int pointIndex, bool? showValue = null,
             bool? showCategoryName = null, bool? showSeriesName = null, bool? showLegendKey = null,
             bool? showPercent = null, bool? showBubbleSize = null,
-            ExcelChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false,
+            OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false,
             bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
@@ -879,7 +879,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesDataLabels(int seriesIndex, bool showValue = true, bool showCategoryName = false,
             bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false,
-            ExcelChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false) {
+            OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
@@ -905,7 +905,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesDataLabels(string seriesName, bool showValue = true, bool showCategoryName = false,
             bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false,
-            ExcelChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false,
+            OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false,
             bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));

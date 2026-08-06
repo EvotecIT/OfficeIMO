@@ -195,7 +195,7 @@ namespace OfficeIMO.Tests {
             PowerPointFeatureFinding macros = Assert.Single(
                 report.FindFeatures("VBA macros"));
 
-            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+            Assert.Equal(OfficeFeatureSupportLevel.Preserved,
                 macros.SupportLevel);
             Assert.Throws<InvalidOperationException>(() =>
                 report.EnsureNoAdvancedFeatures());

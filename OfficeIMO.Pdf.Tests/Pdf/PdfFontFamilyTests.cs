@@ -121,7 +121,7 @@ public class PdfFontFamilyTests {
 
         PdfOptions clone = options.Clone();
         var runs = families
-            .Select((family, index) => new TextRun(
+            .Select((family, index) => new PdfTextRun(
                 (index == 0 ? string.Empty : " ") + family,
                 bold: index == 1,
                 italic: index == 2,
@@ -857,7 +857,7 @@ public class PdfFontFamilyTests {
 
         byte[] first = PdfWriter.Write(
             PdfDocument.Create(),
-            new IPdfBlock[] { new RichParagraphBlock(new[] { TextRun.Normal("Łódź") }, PdfAlign.Left, defaultColor: null) },
+            new IPdfBlock[] { new RichParagraphBlock(new[] { PdfTextRun.Normal("Łódź") }, PdfAlign.Left, defaultColor: null) },
             options,
             title: null,
             author: null,
@@ -871,7 +871,7 @@ public class PdfFontFamilyTests {
 
         byte[] second = PdfWriter.Write(
             PdfDocument.Create(),
-            new IPdfBlock[] { new RichParagraphBlock(new[] { TextRun.Normal("A") }, PdfAlign.Left, defaultColor: null) },
+            new IPdfBlock[] { new RichParagraphBlock(new[] { PdfTextRun.Normal("A") }, PdfAlign.Left, defaultColor: null) },
             options,
             title: null,
             author: null,
@@ -1174,9 +1174,9 @@ public class PdfFontFamilyTests {
 
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
             new[] {
-                TextRun.Bolded("Bold Łódź"),
-                TextRun.Italicized("Italic Łódź"),
-                TextRun.BoldItalic("Bold italic Łódź")
+                PdfTextRun.Bolded("Bold Łódź"),
+                PdfTextRun.Italicized("Italic Łódź"),
+                PdfTextRun.BoldItalic("Bold italic Łódź")
             },
             options,
             PdfStandardFont.Helvetica,
@@ -1200,7 +1200,7 @@ public class PdfFontFamilyTests {
                 }));
 
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
-            new[] { new TextRun("A\u0645", fontFamily: primaryFamily) },
+            new[] { new PdfTextRun("A\u0645", fontFamily: primaryFamily) },
             options,
             PdfStandardFont.Helvetica,
             "body");
@@ -1846,9 +1846,9 @@ public class PdfFontFamilyTests {
 
         byte[] fontData = File.ReadAllBytes(fontPath!);
         var runs = new[] {
-            new TextRun("CFF Łódź"),
-            new TextRun("\n"),
-            new TextRun(" tail " + char.ConvertFromUtf32(0x10FFFF))
+            new PdfTextRun("CFF Łódź"),
+            new PdfTextRun("\n"),
+            new PdfTextRun(" tail " + char.ConvertFromUtf32(0x10FFFF))
         };
 
         PdfTextEncodingDiagnostic diagnostic = Assert.Single(
@@ -1895,7 +1895,7 @@ public class PdfFontFamilyTests {
             "Invoice Cafe 123",
             new[] { candidate },
             "word:paragraph[4]");
-        var template = new TextRun(
+        var template = new PdfTextRun(
             "template",
             bold: true,
             underline: true,
@@ -1906,7 +1906,7 @@ public class PdfFontFamilyTests {
             baseline: PdfTextBaseline.Superscript,
             backgroundColor: PdfColor.FromRgb(250, 240, 200));
 
-        TextRun run = Assert.Single(plan.ToTextRuns(new[] { PdfStandardFont.Courier }, template));
+        PdfTextRun run = Assert.Single(plan.ToTextRuns(new[] { PdfStandardFont.Courier }, template));
 
         Assert.Equal("Invoice Cafe 123", run.Text);
         Assert.Equal(PdfStandardFont.Courier, run.Font);
@@ -1933,7 +1933,7 @@ public class PdfFontFamilyTests {
             new[] { candidate },
             "word:paragraph[4]");
 
-        IReadOnlyList<TextRun> runs = plan.ToTextRuns(new[] { PdfStandardFont.Helvetica });
+        IReadOnlyList<PdfTextRun> runs = plan.ToTextRuns(new[] { PdfStandardFont.Helvetica });
 
         Assert.Equal(3, runs.Count);
         Assert.Equal("\n", runs[0].Text);
@@ -1974,7 +1974,7 @@ public class PdfFontFamilyTests {
                 Assert.Equal(6, segment.StartIndex);
             });
 
-        IReadOnlyList<TextRun> runs = plan.ToTextRuns(new[] { PdfStandardFont.Helvetica });
+        IReadOnlyList<PdfTextRun> runs = plan.ToTextRuns(new[] { PdfStandardFont.Helvetica });
 
         Assert.Collection(
             runs,
@@ -2000,7 +2000,7 @@ public class PdfFontFamilyTests {
             new[] { candidate },
             "word:paragraph[4]");
 
-        IReadOnlyList<TextRun> runs = plan.ToTextRuns(new[] { PdfStandardFont.Helvetica });
+        IReadOnlyList<PdfTextRun> runs = plan.ToTextRuns(new[] { PdfStandardFont.Helvetica });
 
         Assert.Collection(
             runs,
@@ -2084,13 +2084,13 @@ public class PdfFontFamilyTests {
         Assert.True(options.TryResolveNamedFontFace("Portable Fallback", bold: false, italic: false, out PdfNamedFontFace fallbackFace));
         Assert.True(options.TryGetNamedFontProgramForGeneration(fallbackFace, out PdfTrueTypeFontProgram? programBefore));
 
-        IReadOnlyList<TextRun> runs = fallbackSet.PlanTextRuns("Invoice Cafe");
+        IReadOnlyList<PdfTextRun> runs = fallbackSet.PlanTextRuns("Invoice Cafe");
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Runs(runs))
             .ToBytes();
         Assert.True(options.TryGetNamedFontProgramForGeneration(fallbackFace, out PdfTrueTypeFontProgram? programAfterRendering));
 
-        TextRun run = Assert.Single(runs);
+        PdfTextRun run = Assert.Single(runs);
         Assert.Same(programBefore, programAfterRendering);
         Assert.True(fallbackSet.UsesNamedFontFamilies);
         Assert.Empty(fallbackSet.FontSlots);
@@ -2111,10 +2111,10 @@ public class PdfFontFamilyTests {
         var fallbackSet = new PdfEmbeddedFontFallbackSet(
             new[] { new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath)) },
             new[] { PdfStandardFont.Helvetica });
-        IReadOnlyList<TextRun> runs = fallbackSet.PlanTextRuns(
+        IReadOnlyList<PdfTextRun> runs = fallbackSet.PlanTextRuns(
             "Invoice Cafe",
             "word:paragraph[8]",
-            TextRun.Bolded("template"));
+            PdfTextRun.Bolded("template"));
 
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
@@ -2126,7 +2126,7 @@ public class PdfFontFamilyTests {
         string raw = Encoding.ASCII.GetString(bytes);
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
-        TextRun run = Assert.Single(runs);
+        PdfTextRun run = Assert.Single(runs);
         Assert.True(run.Bold);
         Assert.Equal(PdfStandardFont.Helvetica, run.Font);
         Assert.Contains("/BaseFont /Primary-Bold", raw, StringComparison.Ordinal);
@@ -2147,13 +2147,13 @@ public class PdfFontFamilyTests {
 
         bool covered = fallbackSet.TryPlanTextRuns(
             "Invoice Cafe",
-            out IReadOnlyList<TextRun> runs,
+            out IReadOnlyList<PdfTextRun> runs,
             "word:paragraph[11]",
-            TextRun.Italicized("template", fontSize: 12),
+            PdfTextRun.Italicized("template", fontSize: 12),
             report,
             "OfficeIMO.Word.Pdf");
 
-        TextRun run = Assert.Single(runs);
+        PdfTextRun run = Assert.Single(runs);
         Assert.True(covered);
         Assert.True(run.Italic);
         Assert.Equal(12, run.FontSize);
@@ -2197,7 +2197,7 @@ public class PdfFontFamilyTests {
 
         bool covered = fallbackSet.TryPlanTextRuns(
             "office",
-            out IReadOnlyList<TextRun> runs,
+            out IReadOnlyList<PdfTextRun> runs,
             "word:paragraph[fallback-report]",
             report: report,
             converter: "OfficeIMO.Word.Pdf");
@@ -2224,7 +2224,7 @@ public class PdfFontFamilyTests {
 
         bool covered = fallbackSet.TryPlanTextRuns(
             "Invoice " + char.ConvertFromUtf32(0x10FFFF),
-            out IReadOnlyList<TextRun> runs,
+            out IReadOnlyList<PdfTextRun> runs,
             "word:paragraph[12]",
             report: report,
             converter: "OfficeIMO.Word.Pdf");
@@ -2736,7 +2736,7 @@ public class PdfFontFamilyTests {
                 continue;
             }
 
-            IReadOnlyList<TextRun> runs = plan.ToTextRuns(new[] {
+            IReadOnlyList<PdfTextRun> runs = plan.ToTextRuns(new[] {
                 PdfStandardFont.Helvetica,
                 PdfStandardFont.TimesRoman
             });

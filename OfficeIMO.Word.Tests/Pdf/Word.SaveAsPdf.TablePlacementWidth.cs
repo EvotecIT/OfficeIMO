@@ -197,7 +197,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable preferred = document.AddTable(1, 2);
-            preferred.LayoutType = WordTableLayoutMode.Fixed;
+            preferred.LayoutMode = WordTableLayoutMode.Fixed;
             preferred.WidthType = WordTableWidthUnit.Dxa;
             preferred.Width = 2160;
             preferred.Rows[0].Cells[0].Paragraphs[0].Text = "NA";
@@ -237,7 +237,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 2);
-            table.LayoutType = WordTableLayoutMode.Fixed;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
             table.WidthType = WordTableWidthUnit.Pct;
             table.Width = 5000;
             table.Rows[0].Cells[0].Width = 1000;
@@ -369,7 +369,7 @@ public partial class Word {
             { Type = StyleValues.Table, StyleId = "GenericRenderedAutofitTable" });
 
             WordTable fixedTable = document.AddTable(1, 2);
-            fixedTable.LayoutType = WordTableLayoutMode.Fixed;
+            fixedTable.LayoutMode = WordTableLayoutMode.Fixed;
             fixedTable.Rows[0].Cells[0].Width = 2880;
             fixedTable.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
             fixedTable.Rows[0].Cells[1].Width = 2880;

@@ -82,7 +82,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            DocumentTraversal.ListInfo? info = DocumentTraversal.GetListInfo(paragraph);
+            WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
             if (info == null || marker.Level != info.Value.Level || listIndex.Level != info.Value.Level) {
                 return false;
             }
@@ -103,7 +103,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            List<PdfCore.TextRun> richRuns = CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, NativeTableStyleDefaults.Empty, nativeDefaults, nativeFontMap);
+            List<PdfCore.PdfTextRun> richRuns = CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, NativeTableStyleDefaults.Empty, nativeDefaults, nativeFontMap);
             string content = string.Concat(richRuns.Select(run => run.Text));
             if (string.IsNullOrWhiteSpace(content)) {
                 return false;
@@ -138,7 +138,7 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static PdfCore.PdfListStyle CreateNativeListStyle(WordParagraph paragraph, DocumentTraversal.ListInfo info, string marker, NativeDocumentDefaults nativeDefaults, NativeResolvedTextStyle markerTextStyle, NativeFontMap nativeFontMap) {
+        private static PdfCore.PdfListStyle CreateNativeListStyle(WordParagraph paragraph, WordDocumentTraversal.ListInfo info, string marker, NativeDocumentDefaults nativeDefaults, NativeResolvedTextStyle markerTextStyle, NativeFontMap nativeFontMap) {
             const double defaultLevelTextIndent = 36D;
             const double defaultHangingIndent = 18D;
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
@@ -328,7 +328,7 @@ namespace OfficeIMO.Word.Pdf {
         private static bool DoubleEquals(double left, double right) =>
             Math.Abs(left - right) < 0.001D;
 
-        private static PdfCore.PdfStandardFont? ResolveNativeListMarkerFont(DocumentTraversal.ListInfo info, string marker, NativeResolvedTextStyle markerTextStyle) {
+        private static PdfCore.PdfStandardFont? ResolveNativeListMarkerFont(WordDocumentTraversal.ListInfo info, string marker, NativeResolvedTextStyle markerTextStyle) {
             if (ShouldUseNativeListTextFontForNormalizedMarker(info, marker)) {
                 return markerTextStyle.Font;
             }
@@ -338,7 +338,7 @@ namespace OfficeIMO.Word.Pdf {
                 : markerTextStyle.Font;
         }
 
-        private static string? ResolveNativeListMarkerFontFamily(DocumentTraversal.ListInfo info, string marker, NativeResolvedTextStyle markerTextStyle, NativeFontMap nativeFontMap) {
+        private static string? ResolveNativeListMarkerFontFamily(WordDocumentTraversal.ListInfo info, string marker, NativeResolvedTextStyle markerTextStyle, NativeFontMap nativeFontMap) {
             if (ShouldUseNativeListTextFontForNormalizedMarker(info, marker)) {
                 return markerTextStyle.FontFamily;
             }
@@ -350,7 +350,7 @@ namespace OfficeIMO.Word.Pdf {
             return markerTextStyle.FontFamily;
         }
 
-        private static bool ShouldUseNativeListTextFontForNormalizedMarker(DocumentTraversal.ListInfo info, string marker) {
+        private static bool ShouldUseNativeListTextFontForNormalizedMarker(WordDocumentTraversal.ListInfo info, string marker) {
             return string.Equals(marker, "•", StringComparison.Ordinal) &&
                    !string.IsNullOrWhiteSpace(info.MarkerFontFamily) &&
                    string.Equals(NormalizeNativeFontFamily(info.MarkerFontFamily!), "symbol", StringComparison.OrdinalIgnoreCase);

@@ -125,14 +125,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersSection1.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                document.Sections[0].PageOrientation = WordPageOrientation.Landscape;
+                document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
                 document.AddParagraph("Test Section0");
                 document.AddHeadersAndFooters();
                 var section0Headers = GetSectionHeaders(document, 0, "section 0 during creation");
                 GetDefaultHeader(section0Headers, "section 0 default header during creation").AddParagraph().SetText("Test Section 0 - Header");
 
                 var section1 = document.AddSection();
-                section1.PageOrientation = WordPageOrientation.Portrait;
+                section1.PageOrientation = OfficePageOrientation.Portrait;
                 section1.AddParagraph("Test Section1");
                 section1.AddHeadersAndFooters();
                 var section1Headers = GetSectionHeaders(section1, "section 1 during creation");
@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests {
 
                 var section2 = document.AddSection();
                 section2.AddParagraph("Test Section2");
-                section2.PageOrientation = WordPageOrientation.Landscape;
+                section2.PageOrientation = OfficePageOrientation.Landscape;
 
 
                 var documentDefaultHeader = GetDocumentDefaultHeader(document, "document default header during creation");
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersSection1.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                document.Sections[0].PageOrientation = WordPageOrientation.Landscape;
+                document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
                 document.AddParagraph("Test Section0");
                 document.AddHeadersAndFooters();
                 document.DifferentFirstPage = true;
@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests {
                 GetSectionDefaultHeader(document, 0, "section 0 default header").AddParagraph().SetText("Test Section 0 - Header");
 
                 var section1 = document.AddSection();
-                section1.PageOrientation = WordPageOrientation.Portrait;
+                section1.PageOrientation = OfficePageOrientation.Portrait;
                 section1.AddParagraph("Test Section1");
                 section1.AddHeadersAndFooters();
                 GetSectionDefaultHeader(section1, "section1 default header").AddParagraph().SetText("Test Section 1 - Header");
@@ -199,7 +199,7 @@ namespace OfficeIMO.Tests {
 
                 var section2 = document.AddSection();
                 section2.AddParagraph("Test Section2");
-                section2.PageOrientation = WordPageOrientation.Landscape;
+                section2.PageOrientation = OfficePageOrientation.Landscape;
 
 
                 Assert.True(GetParagraphAt(GetDocumentDefaultHeader(document, "document default header").Paragraphs, 0, "document default header paragraphs").Text == "Test Section 0 - Header", "Text for default header is wrong (section 0)");
@@ -248,7 +248,7 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentHeadersAndFootersWithSections() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndSections.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].PageOrientation = WordPageOrientation.Landscape;
+                document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
                 document.AddParagraph("Test Section0");
                 document.AddHeadersAndFooters();
 
@@ -348,7 +348,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong. Current: " + document.Sections[0].Paragraphs.Count);
 
                 document.AddSection();
-                document.Sections[1].PageOrientation = WordPageOrientation.Landscape;
+                document.Sections[1].PageOrientation = OfficePageOrientation.Landscape;
 
                 document.Save();
             }
@@ -366,7 +366,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(section1Footers.Even);
 
                 var section2 = document.AddSection();
-                section2.PageOrientation = WordPageOrientation.Landscape;
+                section2.PageOrientation = OfficePageOrientation.Landscape;
 
                 var section2Headers = GetSectionHeaders(section2, "section 2 headers state prior to AddHeadersAndFooters");
                 Assert.Null(section2Headers.Default);
@@ -400,7 +400,7 @@ namespace OfficeIMO.Tests {
 
                 var newSection3 = document.AddSection();
                 newSection3.AddHeadersAndFooters();
-                newSection3.PageOrientation = WordPageOrientation.Landscape;
+                newSection3.PageOrientation = OfficePageOrientation.Landscape;
 
                 var updatedSection1 = document.Sections[1];
                 updatedSection1.AddHeadersAndFooters();

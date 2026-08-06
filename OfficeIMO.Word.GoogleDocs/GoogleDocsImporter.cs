@@ -16,7 +16,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             if (session == null) throw new ArgumentNullException(nameof(session));
             GoogleDocsImportOptions effective = options ?? new GoogleDocsImportOptions();
             ValidateOptions(effective);
-            return effective.Mode == GoogleDocsImportMode.DriveExport
+            return effective.Mode == GoogleWorkspaceImportMode.DriveExport
                 ? await ImportDriveAsync(documentId, session, effective, cancellationToken).ConfigureAwait(false)
                 : await ImportNativeAsync(documentId, session, effective, cancellationToken).ConfigureAwait(false);
         }
@@ -188,7 +188,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             if (style.FontSize?.Magnitude is double size && size > 0) run.SetFontSize((int)Math.Round(size));
             if (!string.IsNullOrWhiteSpace(style.WeightedFontFamily?.FontFamily)) run.SetFontFamily(style.WeightedFontFamily!.FontFamily);
             if (style.ForegroundColor?.Color.RgbColor is GoogleDocsApiRgbColorPayload color) run.SetColorHex(ToHex(color));
-            if (style.SmallCaps == true) run.CapsStyle = CapsStyle.SmallCaps;
+            if (style.SmallCaps == true) run.CapsStyle = WordCapsStyle.SmallCaps;
             if (style.Link != null) {
                 report.AddUnique(TranslationSeverity.Warning, "Links", "Native links are detected, but exact tab/bookmark hyperlink reconstruction currently uses the Drive-export fallback.",
                     path: tabId ?? string.Empty, code: "DOCS.IMPORT.LINK_FALLBACK", action: TranslationAction.Flatten);

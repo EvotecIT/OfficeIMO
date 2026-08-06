@@ -4,14 +4,14 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static System.Collections.Generic.IReadOnlyList<TextRun> StripRunLinksWhenCellLinked(System.Collections.Generic.IReadOnlyList<TextRun> runs, string? linkUri, string? linkDestinationName) {
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> StripRunLinksWhenCellLinked(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, string? linkUri, string? linkDestinationName) {
         if (!HasCellLinkTarget(linkUri, linkDestinationName) || !runs.Any(run => run.LinkUri != null || run.LinkDestinationName != null)) {
             return runs;
         }
 
-        var stripped = new System.Collections.Generic.List<TextRun>(runs.Count);
-        foreach (TextRun run in runs) {
-            stripped.Add(new TextRun(
+        var stripped = new System.Collections.Generic.List<PdfTextRun>(runs.Count);
+        foreach (PdfTextRun run in runs) {
+            stripped.Add(new PdfTextRun(
                 run.Text,
                 run.Bold,
                 run.Underline,
@@ -97,9 +97,9 @@ internal static partial class PdfWriter {
         return GetHeadingBold(style) ? ChooseBold(normalFont) : normalFont;
     }
 
-    private static System.Collections.ObjectModel.ReadOnlyCollection<TextRun> CreateHeadingTextRuns(HeadingBlock heading, PdfHeadingStyle? style, PdfColor? color) =>
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfTextRun> CreateHeadingTextRuns(HeadingBlock heading, PdfHeadingStyle? style, PdfColor? color) =>
         System.Array.AsReadOnly(new[] {
-            new TextRun(
+            new PdfTextRun(
                 heading.Text,
                 bold: GetHeadingBold(style),
                 color: color,

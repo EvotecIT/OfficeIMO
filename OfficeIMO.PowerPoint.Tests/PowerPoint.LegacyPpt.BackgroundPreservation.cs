@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
                     using var image = new MemoryStream(imageBytes,
                         writable: false);
                     slide.SetBackgroundImage(image,
-                        OfficeIMO.PowerPoint.ImagePartType.Png);
+                        OfficeIMO.Drawing.OfficeImageFormat.Png);
                 }
 
                 LegacyPptWritePreflightReport preflight = created
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlideLayoutType.Blank);
             using var image = new MemoryStream(imageBytes, writable: false);
             slide.SetBackgroundImage(image,
-                OfficeIMO.PowerPoint.ImagePartType.Png);
+                OfficeIMO.Drawing.OfficeImageFormat.Png);
             return slide;
         }
 
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
             using (var image = new MemoryStream(imageBytes,
                        writable: false)) {
                 imported.Slides[0].SetBackgroundImage(image,
-                    OfficeIMO.PowerPoint.ImagePartType.Png);
+                    OfficeIMO.Drawing.OfficeImageFormat.Png);
             }
 
             LegacyPptWritePreflightReport preflight = imported
@@ -295,7 +295,7 @@ namespace OfficeIMO.Tests {
                 using var image = new MemoryStream(replacementImage,
                     writable: false);
                 replacement.Slides[0].SetBackgroundImage(image,
-                    OfficeIMO.PowerPoint.ImagePartType.Png);
+                    OfficeIMO.Drawing.OfficeImageFormat.Png);
                 LegacyPptWritePreflightReport preflight = replacement
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,

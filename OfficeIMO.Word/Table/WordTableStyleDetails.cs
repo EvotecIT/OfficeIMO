@@ -307,7 +307,7 @@ public partial class WordTableStyleDetails {
     /// <summary>
     /// Get or set the table borders
     /// </summary>
-    public TableBorders? TableBorders {
+    internal TableBorders? TableBorders {
         get {
             return _tableProperties?.TableBorders;
         }
@@ -329,7 +329,7 @@ public partial class WordTableStyleDetails {
     /// <summary>
     /// Get or set the table cell margin default
     /// </summary>
-    public TableCellMarginDefault? TableCellMarginDefault {
+    internal TableCellMarginDefault? TableCellMarginDefault {
         get {
             return _tableProperties?.TableCellMarginDefault;
         }

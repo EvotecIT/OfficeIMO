@@ -280,7 +280,7 @@ namespace OfficeIMO.Word {
         /// <param name="text">Initial text inside the text box.</param>
         /// <param name="wrapTextImage">Wrapping style.</param>
         /// <returns>The created <see cref="WordTextBox"/>.</returns>
-        public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage = WrapTextImage.Square) {
+        public WordTextBox AddTextBox(string text, WordImageTextWrapping wrapTextImage = WordImageTextWrapping.Square) {
             return AddParagraph(newRun: true).AddTextBox(text, wrapTextImage);
         }
 
@@ -314,7 +314,7 @@ namespace OfficeIMO.Word {
         /// <param name="strokeColor">Stroke color specified as a hex string (for example, <c>#RRGGBB</c>).</param>
         /// <param name="strokeWeightPt">Stroke weight in points.</param>
         /// <param name="arcSize">Rounded corner size expressed as a fraction between 0 and 1.</param>
-        public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
+        public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
             string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) {
             return AddParagraph(newRun: true).AddShape(shapeType, widthPt, heightPt, fillColor, strokeColor, strokeWeightPt, arcSize);
         }
@@ -322,7 +322,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a VML shape to the section using <see cref="OfficeIMO.Drawing.OfficeColor"/> values.
         /// </summary>
-        public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
+        public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
             OfficeIMO.Drawing.OfficeColor fillColor, OfficeIMO.Drawing.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
             return AddShape(shapeType, widthPt, heightPt, fillColor.ToRgbHex(), strokeColor.ToRgbHex(), strokeWeightPt, arcSize);
         }
@@ -333,7 +333,7 @@ namespace OfficeIMO.Word {
         /// <param name="shapeType">Type of shape to create.</param>
         /// <param name="widthPt">Width in points.</param>
         /// <param name="heightPt">Height in points.</param>
-        public WordShape AddShapeDrawing(ShapeType shapeType, double widthPt, double heightPt) {
+        public WordShape AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt) {
             return AddParagraph(newRun: true).AddShapeDrawing(shapeType, widthPt, heightPt);
         }
 
@@ -342,7 +342,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="type">Layout type of the SmartArt.</param>
         /// <returns>The created <see cref="WordSmartArt"/>.</returns>
-        public WordSmartArt AddSmartArt(SmartArtType type) {
+        public WordSmartArt AddSmartArt(WordSmartArtType type) {
             var paragraph = AddParagraph(newRun: true);
             var smartArt = new WordSmartArt(_document, paragraph, type);
             return smartArt;

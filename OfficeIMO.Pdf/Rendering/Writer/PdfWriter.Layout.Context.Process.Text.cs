@@ -13,7 +13,7 @@ internal static partial class PdfWriter {
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, leading);
             var headingFont = GetHeadingFont(currentOpts, headingStyle);
             PdfColor? headingColor = hb.Color ?? headingStyle?.Color;
-            System.Collections.Generic.IReadOnlyList<TextRun> headingRuns = CreateHeadingTextRuns(hb, headingStyle, headingColor);
+            System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(hb, headingStyle, headingColor);
             var (lines, lineHeights) = WrapRichRunsCore(headingRuns, width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
             double textHeight = MeasureRichLinesHeight(lineHeights, lines.Count, leading);
             double needed = spacingBefore + textHeight + spacingAfter;

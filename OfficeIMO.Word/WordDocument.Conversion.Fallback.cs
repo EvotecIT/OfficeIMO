@@ -26,7 +26,7 @@ public partial class WordDocument {
         OfficeFormatDescriptor destinationFormat,
         OfficeCompatibilityMode mode,
         WordDocumentConversionOptions options,
-        List<WordConversionDiagnostic> diagnostics) {
+        List<OfficeConversionDiagnostic> diagnostics) {
         if (destinationFormat.Generation != OfficeFormatGeneration.Legacy) return null;
 
         try {
@@ -40,10 +40,10 @@ public partial class WordDocument {
                 or OfficeCompatibilityMode.BestEffort
                 or OfficeCompatibilityMode.PreservationOnly;
             if (!permitsVisualFallback) {
-                diagnostics.Add(new WordConversionDiagnostic(
+                diagnostics.Add(new OfficeConversionDiagnostic(
                     "Word.LegacyWriter.Unsupported",
-                    WordConversionDiagnosticCategory.DestinationFormat,
-                    WordConversionDiagnosticSeverity.Error,
+                    OfficeConversionDiagnosticCategory.DestinationFormat,
+                    OfficeConversionDiagnosticSeverity.Error,
                     exception.Message,
                     representsDataLoss: false,
                     OfficeCompatibilityState.Blocked,
@@ -67,10 +67,10 @@ public partial class WordDocument {
                     .Select(item => item.Code)
                     .Distinct(StringComparer.Ordinal)
                     .Take(8));
-                diagnostics.Add(new WordConversionDiagnostic(
+                diagnostics.Add(new OfficeConversionDiagnostic(
                     "Word.LegacyWriter.VisualFallbackUnavailable",
-                    WordConversionDiagnosticCategory.DestinationFormat,
-                    WordConversionDiagnosticSeverity.Error,
+                    OfficeConversionDiagnosticCategory.DestinationFormat,
+                    OfficeConversionDiagnosticSeverity.Error,
                     $"Native DOC output is unsupported and the visual fallback has renderer omissions ({codes}). Native writer: {exception.Message}",
                     representsDataLoss: false,
                     OfficeCompatibilityState.Blocked,
@@ -79,10 +79,10 @@ public partial class WordDocument {
             }
 
             if (pages.Count == 0) {
-                diagnostics.Add(new WordConversionDiagnostic(
+                diagnostics.Add(new OfficeConversionDiagnostic(
                     "Word.LegacyWriter.VisualFallbackUnavailable",
-                    WordConversionDiagnosticCategory.DestinationFormat,
-                    WordConversionDiagnosticSeverity.Error,
+                    OfficeConversionDiagnosticCategory.DestinationFormat,
+                    OfficeConversionDiagnosticSeverity.Error,
                     "Native DOC output is unsupported and the visual fallback did not render any pages. Native writer: " + exception.Message,
                     representsDataLoss: false,
                     OfficeCompatibilityState.Blocked,
@@ -90,10 +90,10 @@ public partial class WordDocument {
                 return null;
             }
 
-            diagnostics.Add(new WordConversionDiagnostic(
+            diagnostics.Add(new OfficeConversionDiagnostic(
                 "Word.LegacyWriter.VisualFallback",
-                WordConversionDiagnosticCategory.DataLoss,
-                WordConversionDiagnosticSeverity.Warning,
+                OfficeConversionDiagnosticCategory.DataLoss,
+                OfficeConversionDiagnosticSeverity.Warning,
                 $"The editable document is represented by {pages.Count} static page image(s) because native DOC writing rejected part of the source model. {exception.Message}",
                 representsDataLoss: true,
                 OfficeCompatibilityState.Rasterized,
@@ -109,7 +109,7 @@ public partial class WordDocument {
     }
 
     private static WordSaveOptions CreateLegacyWriterProbeOptions(WordSaveOptions? source) => new() {
-        LossPolicy = WordConversionLossPolicy.Allow,
+        LossPolicy = OfficeConversionLossPolicy.Allow,
         SignedDocumentPolicy = source?.SignedDocumentPolicy ?? WordSignedDocumentSavePolicy.Block
     };
 
@@ -157,7 +157,7 @@ public partial class WordDocument {
 
         byte[] bytes = LegacyDocWriter.WriteDocument(
             fallback,
-            new WordSaveOptions { LossPolicy = WordConversionLossPolicy.Allow },
+            new WordSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow },
             isTemplate: destinationFormat.DocumentKind == OfficeDocumentKind.Template);
         if (!plan.EmbedSource) return bytes;
         if (sourceBytes == null) throw new InvalidOperationException("Embedded-source fallback requires source bytes.");
@@ -191,13 +191,13 @@ public partial class WordDocument {
             sourceBytes);
 
     private static void AddWordSourceCarrierDiagnostic(
-        List<WordConversionDiagnostic> diagnostics,
+        List<OfficeConversionDiagnostic> diagnostics,
         bool embedded,
         bool hasMacros) {
-        diagnostics.Add(new WordConversionDiagnostic(
+        diagnostics.Add(new OfficeConversionDiagnostic(
             embedded ? "Word.SourceCarrier.Embedded" : "Word.SourceCarrier.NotEmbedded",
-            WordConversionDiagnosticCategory.DataLoss,
-            WordConversionDiagnosticSeverity.Warning,
+            OfficeConversionDiagnosticCategory.DataLoss,
+            OfficeConversionDiagnosticSeverity.Warning,
             embedded
                 ? "The complete original source is retained in an inert, hash-verified OfficeIMO compatibility carrier. It is not executable or editable through the converted document model."
                 : "The complete original source is not retained. Set EmbedSourceWhenLossy when deliberate byte-level recovery is required.",

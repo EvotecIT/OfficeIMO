@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Enumerates non-empty cells within the given A1 range as typed values.
         /// </summary>
-        public IEnumerable<CellValueInfo> EnumerateRange(string a1Range, CancellationToken ct = default) {
+        public IEnumerable<ExcelCellValueInfo> EnumerateRange(string a1Range, CancellationToken ct = default) {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
 
             return CanUseEnumerateRangeXmlReader()
@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel {
                 : EnumerateRangeDom(r1, c1, r2, c2, ct);
         }
 
-        private IEnumerable<CellValueInfo> EnumerateRangeDom(int r1, int c1, int r2, int c2, CancellationToken ct) {
+        private IEnumerable<ExcelCellValueInfo> EnumerateRangeDom(int r1, int c1, int r2, int c2, CancellationToken ct) {
             bool canCancel = ct.CanBeCanceled;
             foreach (var row in EnumerateWorksheetRows(ct)) {
                 if (canCancel) {
@@ -39,12 +39,12 @@ namespace OfficeIMO.Excel {
                     int cIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
                     if (cIndex < c1 || cIndex > c2) continue;
                     if (TryConvertCell(cell, out var value))
-                        yield return new CellValueInfo(rIndex, cIndex, value);
+                        yield return new ExcelCellValueInfo(rIndex, cIndex, value);
                 }
             }
         }
 
-        private IEnumerable<CellValueInfo> EnumerateRangeXmlFast(int r1, int c1, int r2, int c2, CancellationToken ct) {
+        private IEnumerable<ExcelCellValueInfo> EnumerateRangeXmlFast(int r1, int c1, int r2, int c2, CancellationToken ct) {
             using var stream = _wsPart.GetStream(System.IO.FileMode.Open, System.IO.FileAccess.Read);
             RewindWorksheetStream(stream);
             using var reader = OpenWorksheetXmlReader(stream);
@@ -141,14 +141,14 @@ namespace OfficeIMO.Excel {
 
                     if (hasCustomConverter) {
                         if (TryReadXmlCellValueForEnumeration(reader, rowIndex, columnIndex, out object? customValue)) {
-                            yield return new CellValueInfo(rowIndex, columnIndex, customValue);
+                            yield return new ExcelCellValueInfo(rowIndex, columnIndex, customValue);
                         }
                     } else if (fillBlanks) {
-                        yield return new CellValueInfo(rowIndex, columnIndex, ReadXmlCellValue(reader));
+                        yield return new ExcelCellValueInfo(rowIndex, columnIndex, ReadXmlCellValue(reader));
                     } else if (!reader.IsEmptyElement) {
                         object? cellValue = ReadXmlCellValue(reader);
                         if (cellValue != null) {
-                            yield return new CellValueInfo(rowIndex, columnIndex, cellValue);
+                            yield return new ExcelCellValueInfo(rowIndex, columnIndex, cellValue);
                         }
                     }
 

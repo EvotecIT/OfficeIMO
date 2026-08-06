@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
         public void BatchCompiler_PreservesTextBearingPresetGeometry() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddTextShapePoints(PowerPointShapeType.RightArrow, "Next step", 20, 30, 180, 60);
+            slide.AddTextShapePoints(OfficePresetShapeType.RightArrow, "Next step", 20, 30, 180, 60);
             slide.AddTextBoxPoints("Plain text", 20, 110, 180, 60);
 
             GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch();
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BatchCompiler_RasterizesUnmappedAutoShapesInsteadOfChangingTheirGeometry() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
-            presentation.AddSlide().AddShapePoints(PowerPointShapeType.Cloud, 20, 20, 160, 90);
+            presentation.AddSlide().AddShapePoints(OfficePresetShapeType.Cloud, 20, 20, 160, 90);
 
             GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch();
 
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PlanBuilder_ReportsRasterFallbackWithoutMaterializingPngBytes() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
-            presentation.AddSlide().AddShapePoints(PowerPointShapeType.Cloud, 20, 20, 160, 90);
+            presentation.AddSlide().AddShapePoints(OfficePresetShapeType.Cloud, 20, 20, 160, 90);
 
             GoogleSlidesBatch planningBatch = GoogleSlidesBatchCompiler.Build(
                 presentation,
@@ -215,7 +215,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("image/png", compiled.BackgroundImage!.ContentType);
             Assert.DoesNotContain(batch.Plan.Report.Notices, notice => notice.Code == "SLIDES.BACKGROUND.SKIPPED");
 
-            slide.AddShapePoints(PowerPointShapeType.Cloud, 20, 20, 160, 90);
+            slide.AddShapePoints(OfficePresetShapeType.Cloud, 20, 20, 160, 90);
             GoogleSlidesBatch rasterized = GoogleSlidesBatchCompiler.Build(
                 presentation,
                 new GoogleSlidesSaveOptions(),
@@ -233,7 +233,7 @@ namespace OfficeIMO.Tests {
             authoredSlide.BackgroundColor = "112233";
             PowerPointTextBox mixedText = authoredSlide.AddTextBoxPoints("Hello ", 20, 30, 300, 80);
             mixedText.Paragraphs[0].AddRun("Slides", run => run.Bold = true);
-            authoredSlide.AddTextShapePoints(PowerPointShapeType.RightArrow, "Next step", 340, 30, 160, 80);
+            authoredSlide.AddTextShapePoints(OfficePresetShapeType.RightArrow, "Next step", 340, 30, 160, 80);
             var batchBodies = new List<string>();
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
                 string uri = request.RequestUri!.AbsoluteUri;
@@ -647,7 +647,7 @@ namespace OfficeIMO.Tests {
             }));
 
             InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                new GoogleSlidesImporter().ImportAsync("deck-blocked", Session(httpClient), new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.Native }));
+                new GoogleSlidesImporter().ImportAsync("deck-blocked", Session(httpClient), new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native }));
 
             Assert.Contains("cannot be exported", exception.Message, StringComparison.Ordinal);
             Assert.Equal(0, nativeReads);
@@ -661,7 +661,7 @@ namespace OfficeIMO.Tests {
                 return Task.FromResult(Json(slides));
             }));
 
-            GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-import", Session(httpClient), new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.Native });
+            GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-import", Session(httpClient), new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
             using (imported.Presentation) {
                 PowerPointSlide slide = Assert.Single(imported.Presentation.Slides);
                 Assert.True(slide.Hidden);
@@ -698,7 +698,7 @@ namespace OfficeIMO.Tests {
                         Assert.Equal("CC331A", run.ForegroundColorHex);
                     });
                 PowerPointAutoShape importedShape = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>());
-                Assert.Equal(PowerPointShapeType.Rectangle, importedShape.ShapeType);
+                Assert.Equal(OfficePresetShapeType.Rectangle, importedShape.ShapeType);
                 Assert.Equal("CC6633", importedShape.FillColor);
                 Assert.Equal(25, importedShape.FillTransparency);
                 Assert.Equal("336699", importedShape.OutlineColor);
@@ -729,13 +729,13 @@ namespace OfficeIMO.Tests {
             GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync(
                 "deck-text-shape",
                 Session(httpClient),
-                new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.Native });
+                new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
 
             using (imported.Presentation) {
                 PowerPointTextBox shape = Assert.Single(
                     Assert.Single(imported.Presentation.Slides).TextBoxes,
                     candidate => candidate.Text == "Next step");
-                Assert.Equal(PowerPointShapeType.RightArrow, shape.ShapeType);
+                Assert.Equal(OfficePresetShapeType.RightArrow, shape.ShapeType);
                 Assert.True(shape.Paragraphs[0].Runs[0].Bold);
             }
         }
@@ -757,7 +757,7 @@ namespace OfficeIMO.Tests {
             GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync(
                 "deck-transform",
                 Session(httpClient),
-                new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.Native });
+                new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
 
             using (imported.Presentation) {
                 PowerPointSlide slide = Assert.Single(imported.Presentation.Slides);
@@ -786,7 +786,7 @@ namespace OfficeIMO.Tests {
                 return Task.FromResult(Json(slides));
             }));
 
-            GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-gif", Session(httpClient, quotaUser: "tenant-user"), new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.Native });
+            GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-gif", Session(httpClient, quotaUser: "tenant-user"), new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
             using (imported.Presentation) {
                 PowerPointSlide slide = Assert.Single(imported.Presentation.Slides);
                 PowerPointPicture picture = Assert.Single(slide.Pictures);
@@ -819,7 +819,7 @@ namespace OfficeIMO.Tests {
             GoogleSlidesImportResult imported = await new GoogleSlidesImporter()
                 .ImportAsync("deck-untrusted", Session(httpClient),
                     new GoogleSlidesImportOptions {
-                        Mode = GoogleSlidesImportMode.Native
+                        Mode = GoogleWorkspaceImportMode.Native
                     });
 
             using (imported.Presentation) {
@@ -851,7 +851,7 @@ namespace OfficeIMO.Tests {
             GoogleSlidesImportResult imported = await new GoogleSlidesImporter()
                 .ImportAsync("deck-image-limit", Session(httpClient),
                     new GoogleSlidesImportOptions {
-                        Mode = GoogleSlidesImportMode.Native,
+                        Mode = GoogleWorkspaceImportMode.Native,
                         MaxImageBytes = 8
                     });
 
@@ -866,7 +866,7 @@ namespace OfficeIMO.Tests {
         public void DiffPlanner_DetectsIndependentEdits() {
             var checkpoint = new GoogleSlidesSyncCheckpoint(); checkpoint.ContentHashes["slide/1"] = "base";
             List<GoogleSlidesDiffItem> items = GoogleSlidesDiffPlanner.Compare(new Dictionary<string, string> { ["slide/1"] = "local" }, new Dictionary<string, string> { ["slide/1"] = "remote" }, checkpoint);
-            Assert.Equal(GoogleSlidesDiffKind.Conflict, Assert.Single(items).Kind);
+            Assert.Equal(GoogleWorkspaceDiffKind.Conflict, Assert.Single(items).Kind);
         }
 
         [Fact]
@@ -876,10 +876,10 @@ namespace OfficeIMO.Tests {
             secondImage[secondImage.Length - 12] ^= 0x01;
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             using var firstStream = new MemoryStream(firstImage);
-            PowerPointPicture picture = presentation.AddSlide().AddPicture(firstStream, ImagePartType.Png);
+            PowerPointPicture picture = presentation.AddSlide().AddPicture(firstStream, OfficeIMO.Drawing.OfficeImageFormat.Png);
             string baseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
 
-            using (var secondStream = new MemoryStream(secondImage)) picture.UpdateImage(secondStream, ImagePartType.Png);
+            using (var secondStream = new MemoryStream(secondImage)) picture.UpdateImage(secondStream, OfficeIMO.Drawing.OfficeImageFormat.Png);
             string contentChanged = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
             picture.Crop(10, 0, 0, 0);
             string cropChanged = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
@@ -890,17 +890,17 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DiffPlanner_HashesNativeGeometryAndEffectiveTextStyle() {
-            string ShapeHash(PowerPointShapeType shapeType) {
+            string ShapeHash(OfficePresetShapeType shapeType) {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create();
                 PowerPointAutoShape shape = presentation.AddSlide().AddShapePoints(shapeType, 20, 20, 160, 90);
                 Assert.Equal(shapeType, shape.ShapeType);
                 return ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
             }
 
-            Assert.NotEqual(ShapeHash(PowerPointShapeType.Rectangle), ShapeHash(PowerPointShapeType.RightArrow));
+            Assert.NotEqual(ShapeHash(OfficePresetShapeType.Rectangle), ShapeHash(OfficePresetShapeType.RightArrow));
 
             using PowerPointPresentation transformedPresentation = PowerPointPresentation.Create();
-            PowerPointAutoShape transformedShape = transformedPresentation.AddSlide().AddShapePoints(PowerPointShapeType.Rectangle, 20, 20, 160, 90);
+            PowerPointAutoShape transformedShape = transformedPresentation.AddSlide().AddShapePoints(OfficePresetShapeType.Rectangle, 20, 20, 160, 90);
             string unrotated = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(transformedPresentation));
             transformedShape.Rotation = 30;
             string rotated = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(transformedPresentation));
@@ -935,7 +935,7 @@ namespace OfficeIMO.Tests {
 
             GoogleSlidesDiffPlan plan = await GoogleSlidesDiffPlanner.BuildAsync(presentation, "deck-diff", Session(httpClient), checkpoint);
 
-            Assert.Contains(plan.Items, item => item.Kind == GoogleSlidesDiffKind.RemoteChange && item.Path == "presentation/driveVersion");
+            Assert.Contains(plan.Items, item => item.Kind == GoogleWorkspaceDiffKind.RemoteChange && item.Path == "presentation/driveVersion");
         }
 
         [Fact]

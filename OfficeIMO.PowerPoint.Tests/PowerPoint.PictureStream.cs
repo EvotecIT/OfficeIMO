@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                    PowerPointPicture picture = slide.AddPicture(stream, ImagePartType.Png, 0, 0, 1000000, 1000000);
+                    PowerPointPicture picture = slide.AddPicture(stream, OfficeIMO.Drawing.OfficeImageFormat.Png, 0, 0, 1000000, 1000000);
                     Assert.Equal("image/png", picture.ContentType);
                     presentation.Save();
                 }

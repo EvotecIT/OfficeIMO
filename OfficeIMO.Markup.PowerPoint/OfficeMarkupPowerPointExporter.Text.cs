@@ -58,7 +58,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             return;
         }
 
-        var panel = slide.AddShapeInches(PowerPointShapeType.Rectangle, box.Left, box.Top, box.Width, box.Height, name);
+        var panel = slide.AddShapeInches(OfficePresetShapeType.Rectangle, box.Left, box.Top, box.Width, box.Height, name);
         if (!string.IsNullOrWhiteSpace(fillColor)) {
             panel.FillColor = fillColor;
         }

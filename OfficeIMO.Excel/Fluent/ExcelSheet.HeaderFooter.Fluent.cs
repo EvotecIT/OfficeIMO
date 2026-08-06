@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Asynchronously sets a header logo from a URL in the given position. Optional page text can be supplied.
         /// </summary>
-        public async Task HeaderLogoFromUrlAsync(string url, HeaderFooterPosition position = HeaderFooterPosition.Right,
+        public async Task HeaderLogoFromUrlAsync(string url, ExcelHeaderFooterPosition position = ExcelHeaderFooterPosition.Right,
                                   double? widthPoints = null, double? heightPoints = null,
                                   string? leftText = null, string? centerText = null, string? rightText = null,
                                   CancellationToken cancellationToken = default) {
@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Sets a header logo using an explicit remote-network policy.</summary>
         public async Task HeaderLogoFromUrlAsync(string url, OfficeRemoteImageLoadOptions remoteImageOptions,
-                                  HeaderFooterPosition position = HeaderFooterPosition.Right,
+                                  ExcelHeaderFooterPosition position = ExcelHeaderFooterPosition.Right,
                                   double? widthPoints = null, double? heightPoints = null,
                                   string? leftText = null, string? centerText = null, string? rightText = null,
                                   CancellationToken cancellationToken = default) {

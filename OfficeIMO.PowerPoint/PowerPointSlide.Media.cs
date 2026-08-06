@@ -39,7 +39,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointMedia AddVideo(Stream video, string contentType, string extension, long left = 0L, long top = 0L,
             long width = 3657600L, long height = 2057400L, Stream? posterImage = null,
-            ImagePartType posterImageType = ImagePartType.Png) {
+            OfficeImageFormat posterImageType = OfficeImageFormat.Png) {
             return AddMedia(video, contentType, extension, PowerPointMediaKind.Video, left, top, width, height, posterImage,
                 posterImageType);
         }
@@ -105,7 +105,7 @@ namespace OfficeIMO.PowerPoint {
 
         private PowerPointMedia AddMedia(Stream media, string contentType, string extension, PowerPointMediaKind kind,
             long left, long top, long width, long height, Stream? posterImage = null,
-            ImagePartType posterImageType = ImagePartType.Png) {
+            OfficeImageFormat posterImageType = OfficeImageFormat.Png) {
             if (media == null) {
                 throw new ArgumentNullException(nameof(media));
             }
@@ -170,7 +170,7 @@ namespace OfficeIMO.PowerPoint {
         private ImagePart AddGeneratedMediaPoster(PowerPointMediaKind kind) {
             byte[] poster = CreateGeneratedMediaPosterPng(kind);
             using MemoryStream stream = new(poster);
-            return AddImagePartFromStream(stream, ImagePartType.Png);
+            return AddImagePartFromStream(stream, OfficeImageFormat.Png);
         }
 
         private static byte[] CreateGeneratedMediaPosterPng(PowerPointMediaKind kind) {
@@ -194,7 +194,7 @@ namespace OfficeIMO.PowerPoint {
             return OfficePngWriter.Encode(image);
         }
 
-        private ImagePart AddImagePartFromStream(Stream image, ImagePartType imageType) {
+        private ImagePart AddImagePartFromStream(Stream image, OfficeImageFormat imageType) {
             if (image == null) {
                 throw new ArgumentNullException(nameof(image));
             }

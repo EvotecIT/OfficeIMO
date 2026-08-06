@@ -40,10 +40,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int Words {
             get {
-                var wordsProp = _document.ApplicationProperties?.Words;
-                if (wordsProp != null && int.TryParse(wordsProp.Text, out var propertyWords)) {
-                    return propertyWords;
-                }
+                int? wordsProp = _document.ApplicationProperties?.Words;
+                if (wordsProp.HasValue) return wordsProp.Value;
 
                 int count = 0;
                 foreach (var paragraph in _document.Paragraphs) {

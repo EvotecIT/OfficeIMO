@@ -11,16 +11,16 @@ using DocumentFormat.OpenXml.Validation;
 
 namespace OfficeIMO.Excel {
     internal static class WorksheetIntegrityValidator {
-        internal static void Validate(WorksheetPart worksheetPart, ExecutionPolicy policy, string sheetName) {
+        internal static void Validate(WorksheetPart worksheetPart, ExcelExecutionPolicy policy, string sheetName) {
             if (worksheetPart == null) throw new ArgumentNullException(nameof(worksheetPart));
             if (policy == null) throw new ArgumentNullException(nameof(policy));
 
             var mode = policy.WorksheetValidation;
-            if (mode == WorksheetValidationMode.Disabled) {
+            if (mode == ExcelWorksheetValidationMode.Disabled) {
                 return;
             }
 
-            if (mode == WorksheetValidationMode.DiagnosticsOnly && !policy.AreDiagnosticsRequested) {
+            if (mode == ExcelWorksheetValidationMode.DiagnosticsOnly && !policy.AreDiagnosticsRequested) {
                 return;
             }
 
@@ -29,9 +29,9 @@ namespace OfficeIMO.Excel {
 
 #if DEBUG
                 if (policy.UseOpenXmlValidatorInDebug &&
-                    (mode == WorksheetValidationMode.Always
-                        || mode == WorksheetValidationMode.DebugOnly
-                        || (mode == WorksheetValidationMode.DiagnosticsOnly && policy.AreDiagnosticsRequested))) {
+                    (mode == ExcelWorksheetValidationMode.Always
+                        || mode == ExcelWorksheetValidationMode.DebugOnly
+                        || (mode == ExcelWorksheetValidationMode.DiagnosticsOnly && policy.AreDiagnosticsRequested))) {
                     var validator = new OpenXmlValidator();
                     var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                     var firstError = validator.Validate(worksheet).FirstOrDefault();

@@ -47,7 +47,7 @@ internal static class WordReaderAdapter {
         var loadOptions = new WordLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
-                ? new OpenSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
+                ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null
         };
         try { return WordDocument.Load(path, loadOptions); }
@@ -60,7 +60,7 @@ internal static class WordReaderAdapter {
         var loadOptions = new WordLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
-                ? new OpenSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
+                ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null
         };
         try { return WordDocument.Load(stream, loadOptions); }

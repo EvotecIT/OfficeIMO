@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
         /// <param name="newSheetName">Requested name for the copied worksheet.</param>
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
-        public ExcelSheet CopyWorksheet(string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
+        public ExcelSheet CopyWorksheet(string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode = ExcelSheetNameValidationMode.Sanitize) {
             return CopyWorksheet(GetSheet(sourceSheetName), newSheetName, validationMode);
         }
 
@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
         /// <param name="newSheetName">Requested name for the copied worksheet.</param>
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
-        public ExcelSheet CopyWorksheet(ExcelSheet sourceSheet, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
+        public ExcelSheet CopyWorksheet(ExcelSheet sourceSheet, string newSheetName, ExcelSheetNameValidationMode validationMode = ExcelSheetNameValidationMode.Sanitize) {
             if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
             if (!ReferenceEquals(sourceSheet.Document, this)) {
                 throw new ArgumentException("Source worksheet must belong to this workbook. Use CopyWorksheetFrom to copy between workbooks.", nameof(sourceSheet));
@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
             return CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode).Sheet;
         }
 
-        private WorksheetPackageCopyResult CopyWorksheetWithinWorkbook(ExcelSheet sourceSheet, string newSheetName, SheetNameValidationMode validationMode) {
+        private WorksheetPackageCopyResult CopyWorksheetWithinWorkbook(ExcelSheet sourceSheet, string newSheetName, ExcelSheetNameValidationMode validationMode) {
             if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
             if (!ReferenceEquals(sourceSheet.Document, this)) {
                 throw new ArgumentException("Source worksheet must belong to this workbook. Use CopyWorksheetFrom to copy between workbooks.", nameof(sourceSheet));
@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel {
         /// <param name="newSheetName">Requested name for the copied worksheet.</param>
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
-        public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
+        public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode = ExcelSheetNameValidationMode.Sanitize) {
             return CopyWorksheetFrom(sourceDocument, sourceSheetName, newSheetName, validationMode, options: null);
         }
 
@@ -83,7 +83,7 @@ namespace OfficeIMO.Excel {
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <param name="options">Copy strategy options.</param>
         /// <returns>The copied worksheet.</returns>
-        public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode, ExcelWorksheetCopyOptions? options) {
+        public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode, ExcelWorksheetCopyOptions? options) {
             if (sourceDocument == null) throw new ArgumentNullException(nameof(sourceDocument));
             if (string.IsNullOrWhiteSpace(sourceSheetName)) throw new ArgumentNullException(nameof(sourceSheetName));
             options ??= new ExcelWorksheetCopyOptions();

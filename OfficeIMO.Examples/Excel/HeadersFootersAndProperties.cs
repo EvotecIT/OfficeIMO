@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples.Excel {
             var logoPath = Path.Combine(AppContext.BaseDirectory, "Assets", "OfficeIMO.png");
             if (File.Exists(logoPath)) {
                 var bytes = File.ReadAllBytes(logoPath);
-                sheet.SetHeaderImage(HeaderFooterPosition.Center, bytes, contentType: "image/png", widthPoints: 96, heightPoints: 32);
+                sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, bytes, contentType: "image/png", widthPoints: 96, heightPoints: 32);
             } else {
                 Console.WriteLine($"Logo file not found: {logoPath}");
             }

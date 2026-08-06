@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
 using PdfCore = OfficeIMO.Pdf;
-using PdfTextRun = OfficeIMO.Pdf.TextRun;
+using PdfTextRun = OfficeIMO.Pdf.PdfTextRun;
 
 namespace OfficeIMO.Markdown.Pdf;
 

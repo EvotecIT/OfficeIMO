@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Excel {
 
             using var document = ExcelDocument.Create(filePath);
 
-            document.Execution.WorksheetValidation = WorksheetValidationMode.DiagnosticsOnly;
+            document.Execution.WorksheetValidation = ExcelWorksheetValidationMode.DiagnosticsOnly;
             document.Execution.DiagnosticsRequested = true;
             document.Execution.OnInfo = message => Console.WriteLine($"[diagnostic] {message}");
 
@@ -23,12 +23,12 @@ namespace OfficeIMO.Examples.Excel {
                 .SelectMany(row => Enumerable.Range(1, 3).Select(col => (row, col, (object)$"R{row}C{col}")))
                 .ToList();
 
-            sheet.CellValues(cells, ExecutionMode.Parallel);
+            sheet.CellValues(cells, ExcelExecutionMode.Parallel);
 
             // Switch to disabled mode for throughput-sensitive sections.
-            document.Execution.WorksheetValidation = WorksheetValidationMode.Disabled;
+            document.Execution.WorksheetValidation = ExcelWorksheetValidationMode.Disabled;
             var fastCells = Enumerable.Range(21, 20).Select(i => (i, 1, (object)$"Fast {i}"));
-            sheet.CellValues(fastCells, ExecutionMode.Parallel);
+            sheet.CellValues(fastCells, ExcelExecutionMode.Parallel);
 
             document.Save();
             if (openExcel) document.OpenInApplication();

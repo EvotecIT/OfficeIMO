@@ -653,7 +653,7 @@ namespace OfficeIMO.Tests {
 
             using var output = new MemoryStream();
             result.Document.Save(output, new ExcelSaveOptions {
-                LossPolicy = ExcelConversionLossPolicy.Allow
+                LossPolicy = OfficeConversionLossPolicy.Allow
             });
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
             OpenXmlPart connectionPart = Assert.Single(
@@ -745,10 +745,10 @@ namespace OfficeIMO.Tests {
                 feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject
                 && feature.DetailCode == "Drawing:HFPicture");
 
-            ExcelSheet.HeaderFooterSnapshot headerFooter = result.Document.Sheets.Single().GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterSnapshot headerFooter = result.Document.Sheets.Single().GetHeaderFooter();
             Assert.True(headerFooter.HeaderHasPicturePlaceholder);
             Assert.NotNull(headerFooter.HeaderCenterImage);
-            Assert.Equal(HeaderFooterPosition.Center, headerFooter.HeaderCenterImage!.Position);
+            Assert.Equal(ExcelHeaderFooterPosition.Center, headerFooter.HeaderCenterImage!.Position);
             Assert.Equal("image/png", headerFooter.HeaderCenterImage.ContentType);
             Assert.Equal(blip.EmbeddedBlipPayloadBytes, headerFooter.HeaderCenterImage.Bytes);
 
@@ -963,7 +963,7 @@ namespace OfficeIMO.Tests {
 
             using var output = new MemoryStream();
             result.Document.Save(output, new ExcelSaveOptions {
-                LossPolicy = ExcelConversionLossPolicy.Allow
+                LossPolicy = OfficeConversionLossPolicy.Allow
             });
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
             WorksheetPart worksheetPart = Assert.Single(spreadsheet.WorkbookPart!.WorksheetParts, part => part.DrawingsPart != null);

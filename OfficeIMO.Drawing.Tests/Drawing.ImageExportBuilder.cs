@@ -605,12 +605,12 @@ public partial class DrawingTests {
                 OfficeImageExportDiagnosticSeverity.Warning,
                 "APPROXIMATED",
                 "A feature was approximated.",
-                lossKind: OfficeImageExportLossKind.Approximation),
+                lossKind: OfficeConversionLossKind.Approximation),
             new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 "OMITTED",
                 "A feature was omitted.",
-                lossKind: OfficeImageExportLossKind.Omission)
+                lossKind: OfficeConversionLossKind.Omission)
         };
         var result = new OfficeImageExportResult(
             OfficeImageExportFormat.Png,

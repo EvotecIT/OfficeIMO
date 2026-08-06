@@ -33,11 +33,11 @@ namespace OfficeIMO.Tests {
                     Assert.False(string.IsNullOrWhiteSpace(fileId));
                 }
 
-                GoogleDocsImportResult native = await new GoogleDocsImporter().ImportAsync(fileId!, session, new GoogleDocsImportOptions { Mode = GoogleDocsImportMode.Native });
+                GoogleDocsImportResult native = await new GoogleDocsImporter().ImportAsync(fileId!, session, new GoogleDocsImportOptions { Mode = GoogleWorkspaceImportMode.Native });
                 using (native.Document) {
                     Assert.Contains(native.Document.Paragraphs, paragraph => paragraph.Text.Contains("OfficeIMO Google Docs live round trip", StringComparison.Ordinal));
                 }
-                GoogleDocsImportResult broad = await new GoogleDocsImporter().ImportAsync(fileId!, session, new GoogleDocsImportOptions { Mode = GoogleDocsImportMode.DriveExport });
+                GoogleDocsImportResult broad = await new GoogleDocsImporter().ImportAsync(fileId!, session, new GoogleDocsImportOptions { Mode = GoogleWorkspaceImportMode.DriveExport });
                 using (broad.Document) {
                     Assert.Contains(broad.Document.Paragraphs, paragraph => paragraph.Text.Contains("OfficeIMO Google Docs live round trip", StringComparison.Ordinal));
                 }

@@ -6,7 +6,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Defines template styles that can be used when generating a table of contents.
     /// </summary>
-    public enum TableOfContentStyle {
+    public enum WordTableOfContentsStyle {
         /// <summary>
         /// Built-in layout with a heading followed by entries.
         /// </summary>
@@ -34,7 +34,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the template style used to create this table of contents.
         /// </summary>
-        public TableOfContentStyle Style { get; }
+        public WordTableOfContentsStyle Style { get; }
 
         /// <summary>
         /// Gets the minimum heading level included by the TOC field switch.
@@ -141,7 +141,7 @@ namespace OfficeIMO.Word {
         /// <param name="tableOfContentStyle">Template style used to generate the table of contents.</param>
         /// <param name="minLevel">Minimum heading level to include (1..9).</param>
         /// <param name="maxLevel">Maximum heading level to include (1..9).</param>
-        public WordTableOfContent(WordDocument wordDocument, TableOfContentStyle tableOfContentStyle, int minLevel = 1, int maxLevel = 3)
+        public WordTableOfContent(WordDocument wordDocument, WordTableOfContentsStyle tableOfContentStyle, int minLevel = 1, int maxLevel = 3)
             : this(
                 wordDocument,
                 PrepareTemplate(wordDocument, tableOfContentStyle),
@@ -157,18 +157,18 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordDocument">Parent document that owns the table of contents.</param>
         /// <param name="sdtBlock">Structured document tag representing the table of contents.</param>
-        public WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock)
-            : this(wordDocument, sdtBlock, TableOfContentStyle.Template1, appendToBody: false, queueUpdateOnOpen: true) {
+        internal WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock)
+            : this(wordDocument, sdtBlock, WordTableOfContentsStyle.Template1, appendToBody: false, queueUpdateOnOpen: true) {
         }
 
         internal WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock, bool queueUpdateOnOpen)
-            : this(wordDocument, sdtBlock, TableOfContentStyle.Template1, appendToBody: false, queueUpdateOnOpen: queueUpdateOnOpen) {
+            : this(wordDocument, sdtBlock, WordTableOfContentsStyle.Template1, appendToBody: false, queueUpdateOnOpen: queueUpdateOnOpen) {
         }
 
         private WordTableOfContent(
             WordDocument wordDocument,
             SdtBlock sdtBlock,
-            TableOfContentStyle style,
+            WordTableOfContentsStyle style,
             bool appendToBody,
             bool queueUpdateOnOpen,
             int? minLevel = null,
@@ -392,16 +392,16 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Document that will own the structured document tag.</param>
         /// <param name="style">Template identifier to retrieve.</param>
-        private static SdtBlock PrepareTemplate(WordDocument document, TableOfContentStyle style) {
+        private static SdtBlock PrepareTemplate(WordDocument document, WordTableOfContentsStyle style) {
             var block = GetStyle(style);
             document.AssignNewSdtIds(block);
             return block;
         }
 
-        private static SdtBlock GetStyle(TableOfContentStyle style) {
+        private static SdtBlock GetStyle(WordTableOfContentsStyle style) {
             switch (style) {
-                case TableOfContentStyle.Template1: return Template1;
-                case TableOfContentStyle.Template2: return Template2;
+                case WordTableOfContentsStyle.Template1: return Template1;
+                case WordTableOfContentsStyle.Template2: return Template2;
             }
             throw new ArgumentOutOfRangeException(nameof(style));
         }

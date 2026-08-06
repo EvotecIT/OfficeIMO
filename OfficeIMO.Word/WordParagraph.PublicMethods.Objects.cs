@@ -139,7 +139,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="type">Layout of SmartArt to create.</param>
         /// <returns>The created <see cref="WordSmartArt"/>.</returns>
-        public WordSmartArt AddSmartArt(SmartArtType type) {
+        public WordSmartArt AddSmartArt(WordSmartArtType type) {
             var paragraph = this.AddParagraph();
             return new WordSmartArt(this._document, paragraph, type);
         }
@@ -177,7 +177,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="text">The text inside the text box.</param>
         /// <param name="wrapTextImage">The text image wrapping settings.</param>
-        public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage) {
+        public WordTextBox AddTextBox(string text, WordImageTextWrapping wrapTextImage) {
             WordTextBox wordTextBox = new WordTextBox(this._document, this, text, wrapTextImage);
             return wordTextBox;
         }

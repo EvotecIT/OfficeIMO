@@ -13,7 +13,7 @@ public static partial class WordListStyles {
     /// </summary>
     /// <param name="style">The list style to retrieve.</param>
     /// <returns>The corresponding <see cref="AbstractNum"/> definition.</returns>
-    public static AbstractNum GetStyle(WordListStyle style) {
+    internal static AbstractNum GetStyle(WordListStyle style) {
         switch (style) {
             case WordListStyle.Bulleted: return Bulleted;
             case WordListStyle.ArticleSections: return ArticleSections;
@@ -38,7 +38,7 @@ public static partial class WordListStyles {
     /// </summary>
     /// <param name="abstractNum">The abstract numbering definition to compare.</param>
     /// <returns>The matching <see cref="WordListStyle"/> or <see cref="WordListStyle.Custom"/> when no match is found.</returns>
-    public static WordListStyle MatchStyle(AbstractNum abstractNum) {
+    internal static WordListStyle MatchStyle(AbstractNum abstractNum) {
         if (abstractNum == null) throw new ArgumentNullException(nameof(abstractNum));
 
         var templateCode = abstractNum.GetFirstChild<TemplateCode>()?.Val?.Value;
@@ -67,7 +67,7 @@ public static partial class WordListStyles {
     /// <param name="bulletNumberId">Returns the numbering identifier for bullets.</param>
     /// <param name="orderedNumberId">Returns the numbering identifier for ordered lists.</param>
     /// <returns>A <see cref="Numbering"/> instance containing the definitions.</returns>
-    public static Numbering CreateDefaultNumberingDefinitions(WordprocessingDocument document, out int bulletNumberId, out int orderedNumberId) {
+    internal static Numbering CreateDefaultNumberingDefinitions(WordprocessingDocument document, out int bulletNumberId, out int orderedNumberId) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }

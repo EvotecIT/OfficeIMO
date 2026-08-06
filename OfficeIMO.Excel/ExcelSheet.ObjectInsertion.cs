@@ -103,7 +103,7 @@ namespace OfficeIMO.Excel {
             }
 
             // Use the batch CellValues path with planner + execution policy
-            CellValues(cells, hasBlankDisplayHeader ? ExecutionMode.Parallel : null);
+            CellValues(cells, hasBlankDisplayHeader ? ExcelExecutionMode.Parallel : null);
         }
 
         /// <summary>
@@ -201,7 +201,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            CellValues(cells, hasBlankDisplayHeader ? ExecutionMode.Parallel : null);
+            CellValues(cells, hasBlankDisplayHeader ? ExcelExecutionMode.Parallel : null);
         }
 
         private static IReadOnlyList<T> MaterializeObjectRowsBounded<T>(IEnumerable<T> items, bool includeHeaders, int startRow) {

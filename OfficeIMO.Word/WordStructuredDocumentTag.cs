@@ -310,7 +310,7 @@ namespace OfficeIMO.Word {
         /// <param name="document">Parent document.</param>
         /// <param name="paragraph">Paragraph that contains the content control.</param>
         /// <param name="stdRun">Underlying structured document run.</param>
-        public WordStructuredDocumentTag(WordDocument document, Paragraph paragraph, SdtRun stdRun) {
+        internal WordStructuredDocumentTag(WordDocument document, Paragraph paragraph, SdtRun stdRun) {
             this._document = document;
             this._paragraph = paragraph;
             this._stdRun = stdRun;
@@ -321,7 +321,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Parent document.</param>
         /// <param name="sdtBlock">Structured document block.</param>
-        public WordStructuredDocumentTag(WordDocument document, SdtBlock sdtBlock) {
+        internal WordStructuredDocumentTag(WordDocument document, SdtBlock sdtBlock) {
             this._document = document;
             this._sdtBlock = sdtBlock;
         }

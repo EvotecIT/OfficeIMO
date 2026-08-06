@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
 
                     ExcelFeatureReport report = document.InspectFeatures();
                     ExcelFeatureFinding finding = Assert.Single(report.FindFeatures("Threaded comments"));
-                    Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, finding.SupportLevel);
+                    Assert.Equal(OfficeFeatureSupportLevel.PartiallyEditable, finding.SupportLevel);
                     Assert.Equal(3, finding.Count);
                     Assert.Same(report, report.EnsureNoAdvancedFeatures());
 

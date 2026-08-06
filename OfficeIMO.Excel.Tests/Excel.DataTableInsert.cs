@@ -705,7 +705,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 2, "Column2");
                 sheet.CellValue(2, 1, "first");
                 sheet.CellValue(2, 2, "second");
-                sheet.AddTable("A1:B2", true, "ColumnNamedSales", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                sheet.AddTable("A1:B2", true, "ColumnNamedSales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
 
                 var append = new DataTable();
                 append.Columns.Add("Column2", typeof(string));

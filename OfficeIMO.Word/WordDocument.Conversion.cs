@@ -51,7 +51,7 @@ namespace OfficeIMO.Word {
             OfficeFormatDescriptor destinationDescriptor = WordFormatCatalog.GetByExtension(paths.Destination);
             OfficeCompatibilityMode compatibilityMode = GetCompatibilityMode(options);
             bool allowsLoss = AllowsLoss(options, compatibilityMode);
-            List<WordConversionDiagnostic> diagnostics = CreateWordConversionDiagnostics(
+            List<OfficeConversionDiagnostic> diagnostics = CreateOfficeConversionDiagnostics(
                 document,
                 paths.Source,
                 sourceDescriptor,
@@ -74,7 +74,7 @@ namespace OfficeIMO.Word {
 
             if (sourceDescriptor.Equals(destinationDescriptor)) {
                 throw new WordDocumentConversionException(
-                    WordDocumentConversionFailureReason.SameFormat,
+                    OfficeConversionFailureReason.SameFormat,
                     assessment,
                     $"The source is already {sourceDescriptor.Id}. Convert requires a different concrete source and destination format.");
             }
@@ -82,22 +82,22 @@ namespace OfficeIMO.Word {
             if (diagnostics.Any(diagnostic => diagnostic.RepresentsDataLoss
                     && diagnostic.CompatibilityState == OfficeCompatibilityState.Blocked)) {
                 throw new WordDocumentConversionException(
-                    WordDocumentConversionFailureReason.DataLossBlocked,
+                    OfficeConversionFailureReason.DataLossBlocked,
                     assessment,
                     $"Word conversion is blocked because {diagnostics.Count(diagnostic => diagnostic.RepresentsDataLoss && diagnostic.CompatibilityState == OfficeCompatibilityState.Blocked)} source feature(s) have no representation accepted by the selected compatibility policy. Inspect Result.Report.Compatibility or select an explicit fallback policy.");
             }
 
             if (assessment.Report.Compatibility.HasBlockedFeatures) {
                 throw new WordDocumentConversionException(
-                    WordDocumentConversionFailureReason.DestinationFeatureUnsupported,
+                    OfficeConversionFailureReason.DestinationFeatureUnsupported,
                     assessment,
                     $"The document contains content that cannot be represented as {destinationDescriptor.Id} under {compatibilityMode}. Inspect Result.Report.Compatibility.Findings for the blocked feature.");
             }
 
             if (File.Exists(paths.Destination)
-                && options.FileConflictPolicy == WordConversionFileConflictPolicy.FailIfExists) {
+                && options.FileConflictPolicy == OfficeConversionFileConflictPolicy.FailIfExists) {
                 throw new WordDocumentConversionException(
-                    WordDocumentConversionFailureReason.DestinationExists,
+                    OfficeConversionFailureReason.DestinationExists,
                     assessment,
                     $"The destination file '{paths.Destination}' already exists. Set FileConflictPolicy to Replace to replace it atomically.");
             }
@@ -129,7 +129,7 @@ namespace OfficeIMO.Word {
                             document.RemoveMacros();
                         }
                         WordSaveOptions conversionSaveOptions = (options.SaveOptions ?? new WordSaveOptions()).WithLossPolicy(
-                            allowsLoss ? WordConversionLossPolicy.Allow : WordConversionLossPolicy.Block);
+                            allowsLoss ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block);
                         await document.SaveAsync(stagingPath, conversionSaveOptions, cancellationToken).ConfigureAwait(false);
                         if (embedSourceCarrier) {
                             byte[] destinationBytes = await OfficeFileConversion.ReadAllBytesAsync(
@@ -149,14 +149,14 @@ namespace OfficeIMO.Word {
                         }
                     }
                 } catch (NotSupportedException exception) {
-                    diagnostics.Add(new WordConversionDiagnostic(
+                    diagnostics.Add(new OfficeConversionDiagnostic(
                         "Word.DestinationFeatureUnsupported",
-                        WordConversionDiagnosticCategory.DestinationFormat,
-                        WordConversionDiagnosticSeverity.Error,
+                        OfficeConversionDiagnosticCategory.DestinationFormat,
+                        OfficeConversionDiagnosticSeverity.Error,
                         exception.Message,
                         representsDataLoss: false));
                     throw new WordDocumentConversionException(
-                        WordDocumentConversionFailureReason.DestinationFeatureUnsupported,
+                        OfficeConversionFailureReason.DestinationFeatureUnsupported,
                         CreateWordConversionResult(paths, sourceFormat, destinationFormat, sourceDescriptor, destinationDescriptor, diagnostics, compatibilityMode, false, false),
                         $"The document contains content that cannot be written as {destinationFormat}. See Result.Report.Diagnostics for the specific unsupported feature.",
                         exception);
@@ -168,15 +168,15 @@ namespace OfficeIMO.Word {
                     OfficeFileCommit.CommitTemporaryFile(
                         stagingPath,
                         paths.Destination,
-                        options.FileConflictPolicy == WordConversionFileConflictPolicy.Replace
+                        options.FileConflictPolicy == OfficeConversionFileConflictPolicy.Replace
                             ? OfficeFileCommit.ConflictPolicy.Replace
                             : OfficeFileCommit.ConflictPolicy.FailIfExists);
                     stagingPath = string.Empty;
                 } catch (IOException exception) when (
-                    options.FileConflictPolicy == WordConversionFileConflictPolicy.FailIfExists
+                    options.FileConflictPolicy == OfficeConversionFileConflictPolicy.FailIfExists
                     && File.Exists(paths.Destination)) {
                     throw new WordDocumentConversionException(
-                        WordDocumentConversionFailureReason.DestinationExists,
+                        OfficeConversionFailureReason.DestinationExists,
                         assessment,
                         $"The destination file '{paths.Destination}' was created while conversion was running and was not replaced.",
                         exception);
@@ -238,22 +238,9 @@ namespace OfficeIMO.Word {
                 sourcePath,
                 new WordLoadOptions {
                     OverrideStyles = options.OverrideStyles,
-                    OpenSettings = CreateConversionOpenSettings(options.OpenSettings)
+                    OpenSettings = options.OpenSettings
                 },
                 cancellationToken).ConfigureAwait(false);
-        }
-
-        private static OpenSettings? CreateConversionOpenSettings(OpenSettings? openSettings) {
-            if (openSettings == null) {
-                return null;
-            }
-
-            return new OpenSettings {
-                AutoSave = false,
-                CompatibilityLevel = openSettings.CompatibilityLevel,
-                MarkupCompatibilityProcessSettings = openSettings.MarkupCompatibilityProcessSettings,
-                MaxCharactersInPart = openSettings.MaxCharactersInPart,
-            };
         }
 
         private static LegacyDocImportOptions CreateConversionImportOptions(LegacyDocImportOptions options) {
@@ -266,7 +253,7 @@ namespace OfficeIMO.Word {
             };
         }
 
-        private static List<WordConversionDiagnostic> CreateWordConversionDiagnostics(
+        private static List<OfficeConversionDiagnostic> CreateOfficeConversionDiagnostics(
             WordDocument document,
             string sourcePath,
             OfficeFormatDescriptor detectedFormat,
@@ -276,16 +263,16 @@ namespace OfficeIMO.Word {
             bool allowsLoss,
             out WordLegacyVisualFallbackPlan? visualFallback,
             out bool embedSourceCarrier) {
-            var diagnostics = new List<WordConversionDiagnostic>();
+            var diagnostics = new List<OfficeConversionDiagnostic>();
             bool preserveLossySource = allowsLoss
                 && (options.EmbedSourceWhenLossy
                     || compatibilityMode == OfficeCompatibilityMode.PreservationOnly);
             OfficeFormatDescriptor declaredFormat = WordFormatCatalog.GetByExtension(sourcePath);
             if (!declaredFormat.Equals(detectedFormat)) {
-                diagnostics.Add(new WordConversionDiagnostic(
+                diagnostics.Add(new OfficeConversionDiagnostic(
                     "Word.SourceExtensionMismatch",
-                    WordConversionDiagnosticCategory.SourceFormat,
-                    WordConversionDiagnosticSeverity.Warning,
+                    OfficeConversionDiagnosticCategory.SourceFormat,
+                    OfficeConversionDiagnosticSeverity.Warning,
                     $"The source extension declares {declaredFormat.Id}, but its package declares {detectedFormat.Id}. Package content was used.",
                     representsDataLoss: false));
             }
@@ -322,12 +309,12 @@ namespace OfficeIMO.Word {
                 OfficeCompatibilityState macroState = GetWordGenericLossState(
                     compatibilityMode,
                     preserveLossySource);
-                diagnostics.Add(new WordConversionDiagnostic(
+                diagnostics.Add(new OfficeConversionDiagnostic(
                     "Word.VbaProject.Removed",
-                    WordConversionDiagnosticCategory.DataLoss,
+                    OfficeConversionDiagnosticCategory.DataLoss,
                     macroState == OfficeCompatibilityState.Blocked
-                        ? WordConversionDiagnosticSeverity.Error
-                        : WordConversionDiagnosticSeverity.Warning,
+                        ? OfficeConversionDiagnosticSeverity.Error
+                        : OfficeConversionDiagnosticSeverity.Warning,
                     $"The source contains VBA, but {destinationFormat.Extension} cannot carry a VBA project.",
                     representsDataLoss: true,
                     macroState,
@@ -343,12 +330,12 @@ namespace OfficeIMO.Word {
                     OfficeCompatibilityState signatureState = signatureInvalidationAllowed
                         ? GetWordGenericLossState(compatibilityMode, preserveLossySource)
                         : OfficeCompatibilityState.Blocked;
-                    diagnostics.Add(new WordConversionDiagnostic(
+                    diagnostics.Add(new OfficeConversionDiagnostic(
                         "Word.DigitalSignature.Invalidated",
-                        WordConversionDiagnosticCategory.DataLoss,
+                        OfficeConversionDiagnosticCategory.DataLoss,
                         signatureState == OfficeCompatibilityState.Blocked
-                            ? WordConversionDiagnosticSeverity.Error
-                            : WordConversionDiagnosticSeverity.Warning,
+                            ? OfficeConversionDiagnosticSeverity.Error
+                            : OfficeConversionDiagnosticSeverity.Warning,
                         signatureInvalidationAllowed
                             ? "Saving the converted package invalidates its existing digital signature. Signature markup may remain, but it must no longer be trusted."
                             : "The source carries digital-signature metadata and the configured save policy blocks conversion because rewriting the package can invalidate the signature.",
@@ -388,7 +375,7 @@ namespace OfficeIMO.Word {
                 .ToList();
         }
 
-        private static WordConversionDiagnostic CreateWordDataLossDiagnostic(
+        private static OfficeConversionDiagnostic CreateWordDataLossDiagnostic(
             string code,
             string message,
             OfficeCompatibilityMode mode,
@@ -396,12 +383,12 @@ namespace OfficeIMO.Word {
             OfficeCompatibilityImpact impact,
             string? sourceLocation = null) {
             OfficeCompatibilityState state = GetWordGenericLossState(mode, embedSource);
-            return new WordConversionDiagnostic(
+            return new OfficeConversionDiagnostic(
                 code,
-                WordConversionDiagnosticCategory.DataLoss,
+                OfficeConversionDiagnosticCategory.DataLoss,
                 state == OfficeCompatibilityState.Blocked
-                    ? WordConversionDiagnosticSeverity.Error
-                    : WordConversionDiagnosticSeverity.Warning,
+                    ? OfficeConversionDiagnosticSeverity.Error
+                    : OfficeConversionDiagnosticSeverity.Warning,
                 message,
                 representsDataLoss: true,
                 state,
@@ -463,7 +450,7 @@ namespace OfficeIMO.Word {
             WordFileFormat destinationFormat,
             OfficeFormatDescriptor sourceDescriptor,
             OfficeFormatDescriptor destinationDescriptor,
-            IReadOnlyList<WordConversionDiagnostic> diagnostics,
+            IReadOnlyList<OfficeConversionDiagnostic> diagnostics,
             OfficeCompatibilityMode compatibilityMode,
             bool outputCreated,
             bool replacedExistingFile) {
@@ -482,14 +469,14 @@ namespace OfficeIMO.Word {
 
         private static OfficeCompatibilityMode GetCompatibilityMode(WordDocumentConversionOptions options) {
             if (options.CompatibilityMode != OfficeCompatibilityMode.StrictNative) return options.CompatibilityMode;
-            return options.LossPolicy == WordConversionLossPolicy.Allow
+            return options.LossPolicy == OfficeConversionLossPolicy.Allow
                 ? OfficeCompatibilityMode.BestEffort
                 : OfficeCompatibilityMode.StrictNative;
         }
 
         private static bool AllowsLoss(
             WordDocumentConversionOptions options,
-            OfficeCompatibilityMode mode) => options.LossPolicy == WordConversionLossPolicy.Allow
+            OfficeCompatibilityMode mode) => options.LossPolicy == OfficeConversionLossPolicy.Allow
             || mode == OfficeCompatibilityMode.PreferEditable
             || mode == OfficeCompatibilityMode.PreferVisual
             || mode == OfficeCompatibilityMode.BestEffort

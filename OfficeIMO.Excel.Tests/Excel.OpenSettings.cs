@@ -16,8 +16,9 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            var settings = new OpenSettings {
-                MarkupCompatibilityProcessSettings = new MarkupCompatibilityProcessSettings(MarkupCompatibilityProcessMode.ProcessAllParts, FileFormatVersions.Office2016)
+            var settings = new OfficeOpenXmlLoadSettings {
+                MarkupCompatibilityMode = OfficeOpenXmlMarkupCompatibilityMode.ProcessAllParts,
+                MarkupCompatibilityTargetVersion = OfficeOpenXmlFileFormatVersion.Office2016
             };
 
             using (var document = ExcelDocument.Load(filePath, new ExcelLoadOptions { OpenSettings = settings })) {
@@ -39,8 +40,9 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            var settings = new OpenSettings {
-                MarkupCompatibilityProcessSettings = new MarkupCompatibilityProcessSettings(MarkupCompatibilityProcessMode.ProcessAllParts, FileFormatVersions.Office2007)
+            var settings = new OfficeOpenXmlLoadSettings {
+                MarkupCompatibilityMode = OfficeOpenXmlMarkupCompatibilityMode.ProcessAllParts,
+                MarkupCompatibilityTargetVersion = OfficeOpenXmlFileFormatVersion.Office2007
             };
 
             await using (var document = await ExcelDocument.LoadAsync(filePath, new ExcelLoadOptions { OpenSettings = settings })) {

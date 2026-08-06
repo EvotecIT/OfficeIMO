@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Amount");
             sheet.CellValue(2, 1, 10);
-            sheet.AddTable("A1:A2", true, "Internal", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:A2", true, "Internal", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             table.DisplayName = "Sales";
             table.Save();

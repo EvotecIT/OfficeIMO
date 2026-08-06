@@ -71,7 +71,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.ColumnWidthPoints = new List<double?> { 70, null };
 
         var richRuns = new[] {
-            TextRun.Normal(string.Join(" ", Enumerable.Range(1, 30).Select(i => "large" + i.ToString("00", CultureInfo.InvariantCulture))), fontSize: 22)
+            PdfTextRun.Normal(string.Join(" ", Enumerable.Range(1, 30).Select(i => "large" + i.ToString("00", CultureInfo.InvariantCulture))), fontSize: 22)
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -112,7 +112,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.ColumnWidthPoints = new List<double?> { 70, null };
 
         var richRuns = new[] {
-            TextRun.Normal(string.Join(" ", Enumerable.Range(1, 30).Select(i => "large" + i.ToString("00", CultureInfo.InvariantCulture))), fontSize: 22)
+            PdfTextRun.Normal(string.Join(" ", Enumerable.Range(1, 30).Select(i => "large" + i.ToString("00", CultureInfo.InvariantCulture))), fontSize: 22)
         };
 
         byte[] bytes = PdfDocument.Create(options)

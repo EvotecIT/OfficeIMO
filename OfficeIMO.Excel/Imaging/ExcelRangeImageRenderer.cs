@@ -381,7 +381,7 @@ namespace OfficeIMO.Excel {
                     strokeWidth: series.SeriesLineWidth,
                     strokeDashStyle: series.SeriesLineDashStyle,
                     renderKind: TryMapSeriesRenderKind(series.ChartType ?? snapshot.ChartType, out OfficeChartKind seriesKind, out _) ? seriesKind : null,
-                    axisGroup: series.AxisGroup == ExcelChartAxisGroup.Secondary
+                    axisGroup: series.AxisGroup == OfficeChartAxisGroup.Secondary
                         ? OfficeChartAxisGroup.Secondary
                         : OfficeChartAxisGroup.Primary)));
             officeSnapshot = new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, data, Math.Max(1D, width), Math.Max(1D, height), snapshot.Style, snapshot.Layout);

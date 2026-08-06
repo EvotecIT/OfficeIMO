@@ -28,8 +28,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftStyle == WordBorderStyle.Dotted);
                 Assert.Equal(Color.Gold, wordTable.Rows[1].Cells[1].Borders.LeftColor);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.LeftSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.LeftSpace?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.LeftSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.LeftSpace);
 
 
 
@@ -45,8 +45,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(WordBorderStyle.Double, wordTable.Rows[1].Cells[1].Borders.RightStyle);
                 Assert.Equal(Color.Gold, wordTable.Rows[1].Cells[1].Borders.RightColor);
-                Assert.Equal(4U, wordTable.Rows[1].Cells[1].Borders.RightSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.RightSpace?.Value);
+                Assert.Equal(4U, wordTable.Rows[1].Cells[1].Borders.RightSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.RightSpace);
 
 
 
@@ -60,8 +60,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(WordBorderStyle.CirclesRectangles, wordTable.Rows[1].Cells[1].Borders.TopStyle);
                 Assert.Equal(Color.Gold, wordTable.Rows[1].Cells[1].Borders.TopColor);
-                Assert.Equal(6U, wordTable.Rows[1].Cells[1].Borders.TopSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopSpace?.Value);
+                Assert.Equal(6U, wordTable.Rows[1].Cells[1].Borders.TopSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopSpace);
 
 
 
@@ -74,8 +74,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(WordBorderStyle.Safari, wordTable.Rows[1].Cells[1].Borders.BottomStyle);
                 Assert.Equal(Color.Cyan, wordTable.Rows[1].Cells[1].Borders.BottomColor);
-                Assert.Equal(8U, wordTable.Rows[1].Cells[1].Borders.BottomSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.BottomSpace?.Value);
+                Assert.Equal(8U, wordTable.Rows[1].Cells[1].Borders.BottomSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.BottomSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.StartStyle = WordBorderStyle.DashSmallGap;
                 wordTable.Rows[1].Cells[1].Borders.StartColorHex = OfficeIMO.Drawing.OfficeColor.Orange.ToRgbHex();
@@ -86,8 +86,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(WordBorderStyle.DashSmallGap, wordTable.Rows[1].Cells[1].Borders.StartStyle);
                 Assert.Equal(Color.Yellow, wordTable.Rows[1].Cells[1].Borders.StartColor);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.StartSize?.Value);
-                Assert.Equal(10U, wordTable.Rows[1].Cells[1].Borders.StartSpace?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.StartSize);
+                Assert.Equal(10U, wordTable.Rows[1].Cells[1].Borders.StartSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.EndStyle = WordBorderStyle.Dotted;
                 wordTable.Rows[1].Cells[1].Borders.EndColorHex = OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex();
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(WordBorderStyle.Dotted, wordTable.Rows[1].Cells[1].Borders.EndStyle);
                 Assert.Equal(Color.Gold, wordTable.Rows[1].Cells[1].Borders.EndColor);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.EndSize?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.EndSize);
                 Assert.Null(wordTable.Rows[1].Cells[1].Borders.EndSpace);
 
 
@@ -111,8 +111,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(WordBorderStyle.Dotted, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightStyle);
                 Assert.Equal(Color.Gold, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSpace?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSpace);
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftStyle = WordBorderStyle.Dotted;
@@ -124,8 +124,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftStyle == WordBorderStyle.Dotted);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor == Color.Aqua);
-                Assert.Equal(16U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize?.Value);
-                Assert.Equal(1U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace?.Value);
+                Assert.Equal(16U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize);
+                Assert.Equal(1U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace);
 
 
 
@@ -145,8 +145,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftStyle == WordBorderStyle.Dotted);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftColor == Color.Gold);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.LeftSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.LeftSpace?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.LeftSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.LeftSpace);
 
 
 
@@ -162,8 +162,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.RightStyle == WordBorderStyle.Double);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.RightColor == Color.Gold);
-                Assert.Equal(4U, wordTable.Rows[1].Cells[1].Borders.RightSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.RightSpace?.Value);
+                Assert.Equal(4U, wordTable.Rows[1].Cells[1].Borders.RightSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.RightSpace);
 
 
 
@@ -177,8 +177,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopStyle == WordBorderStyle.CirclesRectangles);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopColor == Color.Gold);
-                Assert.Equal(6U, wordTable.Rows[1].Cells[1].Borders.TopSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopSpace?.Value);
+                Assert.Equal(6U, wordTable.Rows[1].Cells[1].Borders.TopSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopSpace);
 
 
 
@@ -191,8 +191,8 @@ namespace OfficeIMO.Tests {
 
                   Assert.Equal(WordBorderStyle.Safari, wordTable.Rows[1].Cells[1].Borders.BottomStyle);
                   Assert.Equal(Color.Cyan, wordTable.Rows[1].Cells[1].Borders.BottomColor);
-                  Assert.Equal(8U, wordTable.Rows[1].Cells[1].Borders.BottomSize?.Value);
-                  Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.BottomSpace?.Value);
+                  Assert.Equal(8U, wordTable.Rows[1].Cells[1].Borders.BottomSize);
+                  Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.BottomSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.StartStyle = WordBorderStyle.DashSmallGap;
                 wordTable.Rows[1].Cells[1].Borders.StartColorHex = OfficeIMO.Drawing.OfficeColor.Orange.ToRgbHex();
@@ -203,8 +203,8 @@ namespace OfficeIMO.Tests {
 
                   Assert.Equal(WordBorderStyle.DashSmallGap, wordTable.Rows[1].Cells[1].Borders.StartStyle);
                   Assert.Equal(Color.Yellow, wordTable.Rows[1].Cells[1].Borders.StartColor);
-                  Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.StartSize?.Value);
-                  Assert.Equal(10U, wordTable.Rows[1].Cells[1].Borders.StartSpace?.Value);
+                  Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.StartSize);
+                  Assert.Equal(10U, wordTable.Rows[1].Cells[1].Borders.StartSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.EndStyle = WordBorderStyle.Dotted;
                 wordTable.Rows[1].Cells[1].Borders.EndColorHex = OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex();
@@ -215,7 +215,7 @@ namespace OfficeIMO.Tests {
 
                   Assert.Equal(WordBorderStyle.Dotted, wordTable.Rows[1].Cells[1].Borders.EndStyle);
                   Assert.Equal(Color.Gold, wordTable.Rows[1].Cells[1].Borders.EndColor);
-                  Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.EndSize?.Value);
+                  Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.EndSize);
                   Assert.Null(wordTable.Rows[1].Cells[1].Borders.EndSpace);
 
 
@@ -228,8 +228,8 @@ namespace OfficeIMO.Tests {
 
                   Assert.Equal(WordBorderStyle.Dotted, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightStyle);
                   Assert.Equal(Color.Gold, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor);
-                  Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSize?.Value);
-                  Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSpace?.Value);
+                  Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSize);
+                  Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSpace);
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftStyle = WordBorderStyle.Dotted;
@@ -241,8 +241,8 @@ namespace OfficeIMO.Tests {
 
                   Assert.Equal(WordBorderStyle.Dotted, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftStyle);
                   Assert.Equal(Color.Aqua, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor);
-                  Assert.Equal(16U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize?.Value);
-                  Assert.Equal(1U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace?.Value);
+                  Assert.Equal(16U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize);
+                  Assert.Equal(1U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace);
 
                 document.Save();
             }
@@ -260,8 +260,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftStyle == WordBorderStyle.Dotted);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftColor == Color.Gold);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.LeftSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.LeftSpace?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.LeftSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.LeftSpace);
 
 
 
@@ -277,8 +277,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.RightStyle == WordBorderStyle.Double);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.RightColor == Color.Gold);
-                Assert.Equal(4U, wordTable.Rows[1].Cells[1].Borders.RightSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.RightSpace?.Value);
+                Assert.Equal(4U, wordTable.Rows[1].Cells[1].Borders.RightSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.RightSpace);
 
 
 
@@ -292,8 +292,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopStyle == WordBorderStyle.CirclesRectangles);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopColor == Color.Gold);
-                Assert.Equal(6U, wordTable.Rows[1].Cells[1].Borders.TopSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopSpace?.Value);
+                Assert.Equal(6U, wordTable.Rows[1].Cells[1].Borders.TopSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopSpace);
 
 
 
@@ -306,8 +306,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomStyle == WordBorderStyle.Safari);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomColor == Color.Cyan);
-                Assert.Equal(8U, wordTable.Rows[1].Cells[1].Borders.BottomSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.BottomSpace?.Value);
+                Assert.Equal(8U, wordTable.Rows[1].Cells[1].Borders.BottomSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.BottomSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.StartStyle = WordBorderStyle.DashSmallGap;
                 wordTable.Rows[1].Cells[1].Borders.StartColorHex = OfficeIMO.Drawing.OfficeColor.Orange.ToRgbHex();
@@ -318,8 +318,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.StartStyle == WordBorderStyle.DashSmallGap);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.StartColor == Color.Yellow);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.StartSize?.Value);
-                Assert.Equal(10U, wordTable.Rows[1].Cells[1].Borders.StartSpace?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.StartSize);
+                Assert.Equal(10U, wordTable.Rows[1].Cells[1].Borders.StartSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.EndStyle = WordBorderStyle.Dotted;
                 wordTable.Rows[1].Cells[1].Borders.EndColorHex = OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex();
@@ -330,7 +330,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.EndStyle == WordBorderStyle.Dotted);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.EndColor == Color.Gold);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.EndSize?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.EndSize);
                 Assert.Null(wordTable.Rows[1].Cells[1].Borders.EndSpace);
 
 
@@ -343,8 +343,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightStyle == WordBorderStyle.Dotted);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor == Color.Gold);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSpace?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSpace);
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftStyle = WordBorderStyle.Dotted;
@@ -356,8 +356,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftStyle == WordBorderStyle.Dotted);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor == Color.Aqua);
-                Assert.Equal(16U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize?.Value);
-                Assert.Equal(1U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace?.Value);
+                Assert.Equal(16U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize);
+                Assert.Equal(1U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.InsideVerticalStyle = WordBorderStyle.DecoBlocks;
                 wordTable.Rows[1].Cells[1].Borders.InsideVerticalColorHex = OfficeIMO.Drawing.OfficeColor.YellowGreen.ToRgbHex();
@@ -368,8 +368,8 @@ namespace OfficeIMO.Tests {
 
                   Assert.Equal(WordBorderStyle.DecoBlocks, wordTable.Rows[1].Cells[1].Borders.InsideVerticalStyle);
                   Assert.Equal(Color.DarkSlateBlue, wordTable.Rows[1].Cells[1].Borders.InsideVerticalColor);
-                  Assert.Equal(15U, wordTable.Rows[1].Cells[1].Borders.InsideVerticalSize?.Value);
-                  Assert.Equal(3U, wordTable.Rows[1].Cells[1].Borders.InsideVerticalSpace?.Value);
+                  Assert.Equal(15U, wordTable.Rows[1].Cells[1].Borders.InsideVerticalSize);
+                  Assert.Equal(3U, wordTable.Rows[1].Cells[1].Borders.InsideVerticalSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.InsideHorizontalStyle = WordBorderStyle.DecoBlocks;
                 wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColorHex = OfficeIMO.Drawing.OfficeColor.YellowGreen.ToRgbHex();
@@ -380,8 +380,8 @@ namespace OfficeIMO.Tests {
 
                   Assert.Equal(WordBorderStyle.DecoBlocks, wordTable.Rows[1].Cells[1].Borders.InsideHorizontalStyle);
                   Assert.Equal(Color.DarkSlateBlue, wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColor);
-                  Assert.Equal(15U, wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSize?.Value);
-                  Assert.Equal(3U, wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSpace?.Value);
+                  Assert.Equal(15U, wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSize);
+                  Assert.Equal(3U, wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSpace);
 
                 document.Save();
             }
@@ -403,8 +403,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftStyle == WordBorderStyle.Dotted);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftColor == Color.Gold);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.LeftSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.LeftSpace?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.LeftSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.LeftSpace);
 
 
 
@@ -420,8 +420,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.RightStyle == WordBorderStyle.Double);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.RightColor == Color.Gold);
-                Assert.Equal(4U, wordTable.Rows[1].Cells[1].Borders.RightSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.RightSpace?.Value);
+                Assert.Equal(4U, wordTable.Rows[1].Cells[1].Borders.RightSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.RightSpace);
 
 
 
@@ -435,8 +435,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopStyle == WordBorderStyle.CirclesRectangles);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopColor == Color.Gold);
-                Assert.Equal(6U, wordTable.Rows[1].Cells[1].Borders.TopSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopSpace?.Value);
+                Assert.Equal(6U, wordTable.Rows[1].Cells[1].Borders.TopSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopSpace);
 
 
 
@@ -449,8 +449,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomStyle == WordBorderStyle.Safari);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomColor == Color.Cyan);
-                Assert.Equal(8U, wordTable.Rows[1].Cells[1].Borders.BottomSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.BottomSpace?.Value);
+                Assert.Equal(8U, wordTable.Rows[1].Cells[1].Borders.BottomSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.BottomSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.StartStyle = WordBorderStyle.DashSmallGap;
                 wordTable.Rows[1].Cells[1].Borders.StartColorHex = OfficeIMO.Drawing.OfficeColor.Orange.ToRgbHex();
@@ -461,8 +461,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.StartStyle == WordBorderStyle.DashSmallGap);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.StartColor == Color.Yellow);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.StartSize?.Value);
-                Assert.Equal(10U, wordTable.Rows[1].Cells[1].Borders.StartSpace?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.StartSize);
+                Assert.Equal(10U, wordTable.Rows[1].Cells[1].Borders.StartSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.EndStyle = WordBorderStyle.Dotted;
                 wordTable.Rows[1].Cells[1].Borders.EndColorHex = OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex();
@@ -473,7 +473,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.EndStyle == WordBorderStyle.Dotted);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.EndColor == Color.Gold);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.EndSize?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.EndSize);
                 Assert.Null(wordTable.Rows[1].Cells[1].Borders.EndSpace);
 
 
@@ -486,8 +486,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightStyle == WordBorderStyle.Dotted);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor == Color.Gold);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSpace?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSpace);
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftStyle = WordBorderStyle.Dotted;
@@ -499,8 +499,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftStyle == WordBorderStyle.Dotted);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor == Color.Aqua);
-                Assert.Equal(16U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize?.Value);
-                Assert.Equal(1U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace?.Value);
+                Assert.Equal(16U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize);
+                Assert.Equal(1U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace);
 
                 document.Save();
             }
@@ -517,8 +517,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftStyle == WordBorderStyle.Dotted);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftColor == Color.Gold);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.LeftSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.LeftSpace?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.LeftSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.LeftSpace);
 
 
 
@@ -534,8 +534,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.RightStyle == WordBorderStyle.Double);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.RightColor == Color.Gold);
-                Assert.Equal(4U, wordTable.Rows[1].Cells[1].Borders.RightSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.RightSpace?.Value);
+                Assert.Equal(4U, wordTable.Rows[1].Cells[1].Borders.RightSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.RightSpace);
 
 
 
@@ -549,8 +549,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopStyle == WordBorderStyle.CirclesRectangles);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopColor == Color.Gold);
-                Assert.Equal(6U, wordTable.Rows[1].Cells[1].Borders.TopSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopSpace?.Value);
+                Assert.Equal(6U, wordTable.Rows[1].Cells[1].Borders.TopSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopSpace);
 
 
 
@@ -563,8 +563,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomStyle == WordBorderStyle.Safari);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomColor == Color.Cyan);
-                Assert.Equal(8U, wordTable.Rows[1].Cells[1].Borders.BottomSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.BottomSpace?.Value);
+                Assert.Equal(8U, wordTable.Rows[1].Cells[1].Borders.BottomSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.BottomSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.StartStyle = WordBorderStyle.DashSmallGap;
                 wordTable.Rows[1].Cells[1].Borders.StartColorHex = OfficeIMO.Drawing.OfficeColor.Orange.ToRgbHex();
@@ -575,8 +575,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.StartStyle == WordBorderStyle.DashSmallGap);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.StartColor == Color.Yellow);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.StartSize?.Value);
-                Assert.Equal(10U, wordTable.Rows[1].Cells[1].Borders.StartSpace?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.StartSize);
+                Assert.Equal(10U, wordTable.Rows[1].Cells[1].Borders.StartSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.EndStyle = WordBorderStyle.Dotted;
                 wordTable.Rows[1].Cells[1].Borders.EndColorHex = OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex();
@@ -587,7 +587,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.EndStyle == WordBorderStyle.Dotted);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.EndColor == Color.Gold);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.EndSize?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.EndSize);
                 Assert.Null(wordTable.Rows[1].Cells[1].Borders.EndSpace);
 
 
@@ -600,8 +600,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightStyle == WordBorderStyle.Dotted);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor == Color.Gold);
-                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSize?.Value);
-                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSpace?.Value);
+                Assert.Equal(24U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSize);
+                Assert.Equal(5U, wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSpace);
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftStyle = WordBorderStyle.Dotted;
@@ -613,8 +613,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftStyle == WordBorderStyle.Dotted);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor == Color.Aqua);
-                Assert.Equal(16U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize?.Value);
-                Assert.Equal(1U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace?.Value);
+                Assert.Equal(16U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize);
+                Assert.Equal(1U, wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace);
 
 
                 wordTable.Rows[1].Cells[1].Borders.InsideVerticalStyle = WordBorderStyle.DecoBlocks;
@@ -626,8 +626,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalStyle == WordBorderStyle.DecoBlocks);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalColor == Color.DarkSlateBlue);
-                Assert.Equal(15U, wordTable.Rows[1].Cells[1].Borders.InsideVerticalSize?.Value);
-                Assert.Equal(3U, wordTable.Rows[1].Cells[1].Borders.InsideVerticalSpace?.Value);
+                Assert.Equal(15U, wordTable.Rows[1].Cells[1].Borders.InsideVerticalSize);
+                Assert.Equal(3U, wordTable.Rows[1].Cells[1].Borders.InsideVerticalSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.InsideHorizontalStyle = WordBorderStyle.DecoBlocks;
                 wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColorHex = OfficeIMO.Drawing.OfficeColor.YellowGreen.ToRgbHex();
@@ -638,8 +638,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalStyle == WordBorderStyle.DecoBlocks);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColor == Color.DarkSlateBlue);
-                Assert.Equal(15U, wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSize?.Value);
-                Assert.Equal(3U, wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSpace?.Value);
+                Assert.Equal(15U, wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSize);
+                Assert.Equal(3U, wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSpace);
 
                 document.Save();
             }

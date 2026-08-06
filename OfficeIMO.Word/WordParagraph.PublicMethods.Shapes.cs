@@ -78,20 +78,20 @@ namespace OfficeIMO.Word {
         /// <param name="strokeColor">Stroke color in hex format.</param>
         /// <param name="strokeWeightPt">Stroke weight in points.</param>
         /// <param name="arcSize">Corner roundness fraction for rounded rectangles.</param>
-        public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
+        public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
             string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) {
             WordShape shape;
             switch (shapeType) {
-                case ShapeType.Rectangle:
+                case WordShapeType.Rectangle:
                     shape = AddShape(widthPt, heightPt, fillColor);
                     break;
-                case ShapeType.Ellipse:
+                case WordShapeType.Ellipse:
                     shape = WordShape.AddEllipse(this, widthPt, heightPt, fillColor);
                     break;
-                case ShapeType.RoundedRectangle:
+                case WordShapeType.RoundedRectangle:
                     shape = WordShape.AddRoundedRectangle(this, widthPt, heightPt, fillColor, arcSize);
                     break;
-                case ShapeType.Line:
+                case WordShapeType.Line:
                     shape = WordShape.AddLine(this, 0, 0, widthPt, heightPt, strokeColor, strokeWeightPt);
                     return shape;
                 default:
@@ -107,7 +107,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a basic shape to the paragraph using <see cref="OfficeIMO.Drawing.OfficeColor"/> values.
         /// </summary>
-        public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
+        public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
             OfficeIMO.Drawing.OfficeColor fillColor, OfficeIMO.Drawing.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
             return AddShape(shapeType, widthPt, heightPt, fillColor.ToRgbHex(), strokeColor.ToRgbHex(), strokeWeightPt, arcSize);
         }
@@ -118,7 +118,7 @@ namespace OfficeIMO.Word {
         /// <param name="shapeType">Type of shape to create.</param>
         /// <param name="widthPt">Width in points.</param>
         /// <param name="heightPt">Height in points.</param>
-        public WordShape AddShapeDrawing(ShapeType shapeType, double widthPt, double heightPt) {
+        public WordShape AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt) {
             return WordShape.AddDrawingShape(this, shapeType, widthPt, heightPt);
         }
 
@@ -130,7 +130,7 @@ namespace OfficeIMO.Word {
         /// <param name="heightPt">Height in points.</param>
         /// <param name="leftPt">Left offset from page in points.</param>
         /// <param name="topPt">Top offset from page in points.</param>
-        public WordShape AddShapeDrawing(ShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt) {
+        public WordShape AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt) {
             return WordShape.AddDrawingShapeAnchored(this, shapeType, widthPt, heightPt, leftPt, topPt);
         }
 

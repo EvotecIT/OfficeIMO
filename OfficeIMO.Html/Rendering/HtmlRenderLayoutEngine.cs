@@ -652,7 +652,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string message,
         IElement element,
         string? detail = null,
-        HtmlConversionLossKind lossKind = HtmlConversionLossKind.Approximation) {
+        OfficeConversionLossKind lossKind = OfficeConversionLossKind.Approximation) {
         _diagnostics.Add(
             ComponentName,
             code,

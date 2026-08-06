@@ -12544,14 +12544,14 @@
           <maml:description>
             <maml:para>Controls how invalid sheet names are handled.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">SheetNameValidationMode</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>SheetNameValidationMode</maml:name>
+            <maml:name>ExcelSheetNameValidationMode</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -12600,14 +12600,14 @@
         <maml:description>
           <maml:para>Controls how invalid sheet names are handled.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">SheetNameValidationMode</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>SheetNameValidationMode</maml:name>
+          <maml:name>ExcelSheetNameValidationMode</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -42075,7 +42075,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
           <maml:description>
             <maml:para>Cover page template to insert.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">CoverPageTemplate</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">WordCoverPageTemplate</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Austin</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Banded</command:parameterValue>
@@ -42093,7 +42093,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
             <command:parameterValue required="false" variableLength="false">Retrospect</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>CoverPageTemplate</maml:name>
+            <maml:name>WordCoverPageTemplate</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -42178,7 +42178,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
         <maml:description>
           <maml:para>Cover page template to insert.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">CoverPageTemplate</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">WordCoverPageTemplate</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Austin</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Banded</command:parameterValue>
@@ -42196,7 +42196,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
           <command:parameterValue required="false" variableLength="false">Retrospect</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>CoverPageTemplate</maml:name>
+          <maml:name>WordCoverPageTemplate</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -44136,7 +44136,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
           <maml:description>
             <maml:para>Wrap mode for the image.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">WrapTextImage</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">WordImageTextWrapping</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">InLineWithText</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Square</command:parameterValue>
@@ -44147,7 +44147,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
             <command:parameterValue required="false" variableLength="false">InFrontOfText</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>WrapTextImage</maml:name>
+            <maml:name>WordImageTextWrapping</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -44220,7 +44220,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
         <maml:description>
           <maml:para>Wrap mode for the image.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">WrapTextImage</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">WordImageTextWrapping</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">InLineWithText</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Square</command:parameterValue>
@@ -44231,7 +44231,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
           <command:parameterValue required="false" variableLength="false">InFrontOfText</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>WrapTextImage</maml:name>
+          <maml:name>WordImageTextWrapping</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -45635,7 +45635,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
           <maml:description>
             <maml:para>Shape type to add.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">ShapeType</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">WordShapeType</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Rectangle</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Ellipse</command:parameterValue>
@@ -45662,7 +45662,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
             <command:parameterValue required="false" variableLength="false">Cube</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>ShapeType</maml:name>
+            <maml:name>WordShapeType</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -45795,7 +45795,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
         <maml:description>
           <maml:para>Shape type to add.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">ShapeType</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">WordShapeType</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Rectangle</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Ellipse</command:parameterValue>
@@ -45822,7 +45822,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
           <command:parameterValue required="false" variableLength="false">Cube</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>ShapeType</maml:name>
+          <maml:name>WordShapeType</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -47032,13 +47032,13 @@ table formatting, borders, and style choices are preserved.</maml:para>
           <maml:description>
             <maml:para>Table of contents template style.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">TableOfContentStyle</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">WordTableOfContentsStyle</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Template1</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Template2</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>TableOfContentStyle</maml:name>
+            <maml:name>WordTableOfContentsStyle</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -47075,13 +47075,13 @@ table formatting, borders, and style choices are preserved.</maml:para>
         <maml:description>
           <maml:para>Table of contents template style.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">TableOfContentStyle</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">WordTableOfContentsStyle</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Template1</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Template2</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>TableOfContentStyle</maml:name>
+          <maml:name>WordTableOfContentsStyle</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -47947,7 +47947,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:description>
             <maml:para>Horizontal alignment for anchored text boxes.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">WordHorizontalAlignmentValues</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">WordTextBoxHorizontalAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
@@ -47956,7 +47956,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
             <command:parameterValue required="false" variableLength="false">Inside</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>WordHorizontalAlignmentValues</maml:name>
+            <maml:name>WordTextBoxHorizontalAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -48070,7 +48070,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:description>
             <maml:para>Word text wrapping mode.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">WrapTextImage</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">WordImageTextWrapping</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">InLineWithText</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Square</command:parameterValue>
@@ -48081,7 +48081,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
             <command:parameterValue required="false" variableLength="false">InFrontOfText</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>WrapTextImage</maml:name>
+            <maml:name>WordImageTextWrapping</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -48135,7 +48135,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <maml:description>
           <maml:para>Horizontal alignment for anchored text boxes.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">WordHorizontalAlignmentValues</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">WordTextBoxHorizontalAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
@@ -48144,7 +48144,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <command:parameterValue required="false" variableLength="false">Inside</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>WordHorizontalAlignmentValues</maml:name>
+          <maml:name>WordTextBoxHorizontalAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -48258,7 +48258,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <maml:description>
           <maml:para>Word text wrapping mode.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">WrapTextImage</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">WordImageTextWrapping</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">InLineWithText</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Square</command:parameterValue>
@@ -48269,7 +48269,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <command:parameterValue required="false" variableLength="false">InFrontOfText</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>WrapTextImage</maml:name>
+          <maml:name>WordImageTextWrapping</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -66229,7 +66229,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Use this adapter when an OfficeIMO PDF callback requires a native TextRun,&#xD;
+      <maml:para>Use this adapter when an OfficeIMO PDF callback requires a native PdfTextRun,&#xD;
 such as a rich generated header or footer. Styling remains owned by New-OfficeTextRun.</maml:para>
     </maml:description>
     <command:syntax>
@@ -66273,7 +66273,7 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
     <command:returnValues>
       <command:returnValue>
         <dev:type>
-          <maml:name>OfficeIMO.Pdf.TextRun</maml:name>
+          <maml:name>OfficeIMO.Pdf.PdfTextRun</maml:name>
         </dev:type>
       </command:returnValue>
     </command:returnValues>
@@ -69807,14 +69807,14 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
           <maml:description>
             <maml:para>Controls how invalid destination sheet names are handled.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">SheetNameValidationMode</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>SheetNameValidationMode</maml:name>
+            <maml:name>ExcelSheetNameValidationMode</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -69903,14 +69903,14 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
           <maml:description>
             <maml:para>Controls how invalid destination sheet names are handled.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">SheetNameValidationMode</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>SheetNameValidationMode</maml:name>
+            <maml:name>ExcelSheetNameValidationMode</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -69999,14 +69999,14 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
           <maml:description>
             <maml:para>Controls how invalid destination sheet names are handled.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">SheetNameValidationMode</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>SheetNameValidationMode</maml:name>
+            <maml:name>ExcelSheetNameValidationMode</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -70107,14 +70107,14 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
         <maml:description>
           <maml:para>Controls how invalid destination sheet names are handled.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">SheetNameValidationMode</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>SheetNameValidationMode</maml:name>
+          <maml:name>ExcelSheetNameValidationMode</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -122720,14 +122720,14 @@ the script needs to work with list objects directly instead of using a text sear
           <maml:description>
             <maml:para>Controls how invalid or duplicate destination sheet names are handled.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">SheetNameValidationMode</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>SheetNameValidationMode</maml:name>
+            <maml:name>ExcelSheetNameValidationMode</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -122816,14 +122816,14 @@ the script needs to work with list objects directly instead of using a text sear
           <maml:description>
             <maml:para>Controls how invalid or duplicate destination sheet names are handled.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">SheetNameValidationMode</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>SheetNameValidationMode</maml:name>
+            <maml:name>ExcelSheetNameValidationMode</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -122924,14 +122924,14 @@ the script needs to work with list objects directly instead of using a text sear
         <maml:description>
           <maml:para>Controls how invalid or duplicate destination sheet names are handled.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">SheetNameValidationMode</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>SheetNameValidationMode</maml:name>
+          <maml:name>ExcelSheetNameValidationMode</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -135699,13 +135699,13 @@ Use -NoSave or omit -Path when a document object should be returned for further 
           <maml:description>
             <maml:para>Defined-name validation mode.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">NameValidationMode</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelDefinedNameValidationMode</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>NameValidationMode</maml:name>
+            <maml:name>ExcelDefinedNameValidationMode</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -135802,13 +135802,13 @@ Use -NoSave or omit -Path when a document object should be returned for further 
           <maml:description>
             <maml:para>Defined-name validation mode.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">NameValidationMode</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelDefinedNameValidationMode</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>NameValidationMode</maml:name>
+            <maml:name>ExcelDefinedNameValidationMode</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -135917,13 +135917,13 @@ Use -NoSave or omit -Path when a document object should be returned for further 
         <maml:description>
           <maml:para>Defined-name validation mode.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">NameValidationMode</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">ExcelDefinedNameValidationMode</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>NameValidationMode</maml:name>
+          <maml:name>ExcelDefinedNameValidationMode</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -141744,13 +141744,13 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <maml:description>
             <maml:para>Axis group to configure.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelChartAxisGroup</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeChartAxisGroup</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Primary</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Secondary</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>ExcelChartAxisGroup</maml:name>
+            <maml:name>OfficeChartAxisGroup</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -142015,13 +142015,13 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <maml:description>
           <maml:para>Axis group to configure.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">ExcelChartAxisGroup</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeChartAxisGroup</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Primary</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Secondary</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>ExcelChartAxisGroup</maml:name>
+          <maml:name>OfficeChartAxisGroup</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -147987,14 +147987,14 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <maml:description>
             <maml:para>Footer image position.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">HeaderFooterPosition</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelHeaderFooterPosition</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>HeaderFooterPosition</maml:name>
+            <maml:name>ExcelHeaderFooterPosition</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -148064,14 +148064,14 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <maml:description>
             <maml:para>Header image position.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">HeaderFooterPosition</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelHeaderFooterPosition</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>HeaderFooterPosition</maml:name>
+            <maml:name>ExcelHeaderFooterPosition</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -148240,14 +148240,14 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <maml:description>
             <maml:para>Footer image position.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">HeaderFooterPosition</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelHeaderFooterPosition</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>HeaderFooterPosition</maml:name>
+            <maml:name>ExcelHeaderFooterPosition</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -148317,14 +148317,14 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <maml:description>
             <maml:para>Header image position.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">HeaderFooterPosition</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelHeaderFooterPosition</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>HeaderFooterPosition</maml:name>
+            <maml:name>ExcelHeaderFooterPosition</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -148517,14 +148517,14 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <maml:description>
           <maml:para>Footer image position.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">HeaderFooterPosition</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">ExcelHeaderFooterPosition</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>HeaderFooterPosition</maml:name>
+          <maml:name>ExcelHeaderFooterPosition</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -148594,14 +148594,14 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <maml:description>
           <maml:para>Header image position.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">HeaderFooterPosition</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">ExcelHeaderFooterPosition</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>HeaderFooterPosition</maml:name>
+          <maml:name>ExcelHeaderFooterPosition</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -151415,13 +151415,13 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <maml:description>
             <maml:para>Validate or sanitize the defined name.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">NameValidationMode</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelDefinedNameValidationMode</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>NameValidationMode</maml:name>
+            <maml:name>ExcelDefinedNameValidationMode</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -151530,13 +151530,13 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <maml:description>
             <maml:para>Validate or sanitize the defined name.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">NameValidationMode</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelDefinedNameValidationMode</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>NameValidationMode</maml:name>
+            <maml:name>ExcelDefinedNameValidationMode</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -151657,13 +151657,13 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <maml:description>
           <maml:para>Validate or sanitize the defined name.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">NameValidationMode</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">ExcelDefinedNameValidationMode</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>NameValidationMode</maml:name>
+          <maml:name>ExcelDefinedNameValidationMode</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -151716,13 +151716,13 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <maml:description>
             <maml:para>Orientation to apply.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">ExcelPageOrientation</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">OfficePageOrientation</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Portrait</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Landscape</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>ExcelPageOrientation</maml:name>
+            <maml:name>OfficePageOrientation</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -151759,13 +151759,13 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <maml:description>
             <maml:para>Orientation to apply.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">ExcelPageOrientation</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">OfficePageOrientation</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Portrait</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Landscape</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>ExcelPageOrientation</maml:name>
+            <maml:name>OfficePageOrientation</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -151826,13 +151826,13 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <maml:description>
           <maml:para>Orientation to apply.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">ExcelPageOrientation</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">OfficePageOrientation</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Portrait</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Landscape</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>ExcelPageOrientation</maml:name>
+          <maml:name>OfficePageOrientation</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -152584,13 +152584,13 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <maml:description>
             <maml:para>Optional orientation override.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelPageOrientation</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageOrientation</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Portrait</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Landscape</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>ExcelPageOrientation</maml:name>
+            <maml:name>OfficePageOrientation</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -152811,13 +152811,13 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <maml:description>
             <maml:para>Optional orientation override.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelPageOrientation</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageOrientation</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Portrait</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Landscape</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>ExcelPageOrientation</maml:name>
+            <maml:name>OfficePageOrientation</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -153038,13 +153038,13 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <maml:description>
             <maml:para>Optional orientation override.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelPageOrientation</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficePageOrientation</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Portrait</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Landscape</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>ExcelPageOrientation</maml:name>
+            <maml:name>OfficePageOrientation</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -153277,13 +153277,13 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <maml:description>
           <maml:para>Optional orientation override.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">ExcelPageOrientation</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficePageOrientation</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Portrait</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Landscape</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>ExcelPageOrientation</maml:name>
+          <maml:name>OfficePageOrientation</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -166275,7 +166275,7 @@ contents, then save or close the presentation.</maml:para>
           <maml:description>
             <maml:para>Transition to apply.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">SlideTransition</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">PowerPointSlideTransition</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Fade</command:parameterValue>
@@ -166345,7 +166345,7 @@ contents, then save or close the presentation.</maml:para>
             <command:parameterValue required="false" variableLength="false">CutThroughBlack</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>SlideTransition</maml:name>
+            <maml:name>PowerPointSlideTransition</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -166370,7 +166370,7 @@ contents, then save or close the presentation.</maml:para>
         <maml:description>
           <maml:para>Transition to apply.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">SlideTransition</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">PowerPointSlideTransition</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Fade</command:parameterValue>
@@ -166440,7 +166440,7 @@ contents, then save or close the presentation.</maml:para>
           <command:parameterValue required="false" variableLength="false">CutThroughBlack</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>SlideTransition</maml:name>
+          <maml:name>PowerPointSlideTransition</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -168603,7 +168603,7 @@ cell inside a deck that already exists.</maml:para>
           <maml:description>
             <maml:para>Text wrapping mode.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">WrapTextImage</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">WordImageTextWrapping</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">InLineWithText</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Square</command:parameterValue>
@@ -168614,7 +168614,7 @@ cell inside a deck that already exists.</maml:para>
             <command:parameterValue required="false" variableLength="false">InFrontOfText</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>WrapTextImage</maml:name>
+            <maml:name>WordImageTextWrapping</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -168807,7 +168807,7 @@ cell inside a deck that already exists.</maml:para>
         <maml:description>
           <maml:para>Text wrapping mode.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">WrapTextImage</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">WordImageTextWrapping</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">InLineWithText</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Square</command:parameterValue>
@@ -168818,7 +168818,7 @@ cell inside a deck that already exists.</maml:para>
           <command:parameterValue required="false" variableLength="false">InFrontOfText</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>WrapTextImage</maml:name>
+          <maml:name>WordImageTextWrapping</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -171578,14 +171578,14 @@ cell inside a deck that already exists.</maml:para>
           <maml:description>
             <maml:para>Capitalization style.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">CapsStyle</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">WordCapsStyle</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Caps</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">SmallCaps</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>CapsStyle</maml:name>
+            <maml:name>WordCapsStyle</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -171826,14 +171826,14 @@ cell inside a deck that already exists.</maml:para>
         <maml:description>
           <maml:para>Capitalization style.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">CapsStyle</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">WordCapsStyle</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Caps</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">SmallCaps</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>CapsStyle</maml:name>
+          <maml:name>WordCapsStyle</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>

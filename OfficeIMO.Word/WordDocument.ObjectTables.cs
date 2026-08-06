@@ -39,7 +39,7 @@ namespace OfficeIMO.Word {
             var table = AddTable(rows, cols, style);
 
             if (layout.HasValue) {
-                table.LayoutType = layout.Value;
+                table.LayoutMode = layout.Value;
             }
 
             int rowIndex = 0;

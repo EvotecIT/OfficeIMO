@@ -45,7 +45,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 content,
                 "Results",
                 "This slide belongs to a different section and uses a morph transition.");
-            results.Transition = SlideTransition.Morph;
+            results.Transition = PowerPointSlideTransition.Morph;
             results.AddTextBoxCm("If PowerPoint opens this deck directly, both sections and transitions are serialized correctly.",
                 content.LeftCm, content.TopCm + 3.0, content.WidthCm, 1.4);
 
@@ -65,7 +65,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             var errors = presentation.ValidateDocument();
             if (errors.Count > 0) {
                 string message = string.Join(Environment.NewLine, errors.Select(error =>
-                    $"{error.Description} | Part={error.Part?.Uri} | Path={error.Path?.XPath}"));
+                    $"{error.Description} | Part={error.PartUri} | Path={error.Path}"));
                 throw new InvalidOperationException("Generated example failed Open XML validation:" + Environment.NewLine + message);
             }
 

@@ -9,46 +9,46 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentWithPageSettings() {
             string filePath = Path.Combine(_directoryWithFiles, "CreateDocumentPageSettings.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.PageSettings.Orientation = WordPageOrientation.Landscape;
-                Assert.True(document.Sections[0].PageSettings.Orientation == WordPageOrientation.Landscape, "Page orientation should match");
+                document.PageSettings.Orientation = OfficePageOrientation.Landscape;
+                Assert.True(document.Sections[0].PageSettings.Orientation == OfficePageOrientation.Landscape, "Page orientation should match");
                 Assert.True(document.Paragraphs.Count == 0, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
 
                 document.AddParagraph("Section 0");
                 document.Sections[0].PageSettings.PageSize = WordPageSize.A3;
 
-                Assert.True(document.Sections[0].PageSettings.Orientation == WordPageOrientation.Landscape);
-                Assert.True(document.Sections[0].PageOrientation == WordPageOrientation.Landscape);
+                Assert.True(document.Sections[0].PageSettings.Orientation == OfficePageOrientation.Landscape);
+                Assert.True(document.Sections[0].PageOrientation == OfficePageOrientation.Landscape);
 
                 document.AddSection();
                 document.Sections[1].PageSettings.PageSize = WordPageSize.A4;
                 document.AddParagraph("Section 1");
 
-                Assert.True(document.Sections[1].PageSettings.Orientation == WordPageOrientation.Landscape);
-                Assert.True(document.Sections[1].PageOrientation == WordPageOrientation.Landscape);
+                Assert.True(document.Sections[1].PageSettings.Orientation == OfficePageOrientation.Landscape);
+                Assert.True(document.Sections[1].PageOrientation == OfficePageOrientation.Landscape);
 
                 document.AddSection();
                 document.Sections[2].PageSettings.PageSize = WordPageSize.A5;
                 document.AddParagraph("Section 2");
 
-                Assert.True(document.Sections[2].PageSettings.Orientation == WordPageOrientation.Landscape);
-                Assert.True(document.Sections[2].PageOrientation == WordPageOrientation.Landscape);
+                Assert.True(document.Sections[2].PageSettings.Orientation == OfficePageOrientation.Landscape);
+                Assert.True(document.Sections[2].PageOrientation == OfficePageOrientation.Landscape);
 
                 document.AddSection();
                 document.Sections[3].PageSettings.PageSize = WordPageSize.A6;
-                document.Sections[3].PageOrientation = WordPageOrientation.Portrait;
+                document.Sections[3].PageOrientation = OfficePageOrientation.Portrait;
                 document.AddParagraph("Section 3");
 
-                Assert.True(document.Sections[3].PageSettings.Orientation == WordPageOrientation.Portrait);
-                Assert.True(document.Sections[3].PageOrientation == WordPageOrientation.Portrait);
+                Assert.True(document.Sections[3].PageSettings.Orientation == OfficePageOrientation.Portrait);
+                Assert.True(document.Sections[3].PageOrientation == OfficePageOrientation.Portrait);
 
                 document.AddSection();
                 document.Sections[4].PageSettings.PageSize = WordPageSize.Executive;
-                document.Sections[4].PageSettings.Orientation = WordPageOrientation.Landscape;
+                document.Sections[4].PageSettings.Orientation = OfficePageOrientation.Landscape;
                 document.AddParagraph("Section 4");
 
-                Assert.True(document.Sections[3].PageSettings.Orientation == WordPageOrientation.Portrait);
-                Assert.True(document.Sections[3].PageOrientation == WordPageOrientation.Portrait);
+                Assert.True(document.Sections[3].PageSettings.Orientation == OfficePageOrientation.Portrait);
+                Assert.True(document.Sections[3].PageOrientation == OfficePageOrientation.Portrait);
 
 
                 var section = document.AddSection();
@@ -83,23 +83,23 @@ namespace OfficeIMO.Tests {
                 // Validation may report benign ordering differences across platforms; skip strict unexpected-elements check
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentPageSettings.docx"))) {
-                Assert.True(document.Sections[0].PageSettings.Orientation == WordPageOrientation.Landscape);
+                Assert.True(document.Sections[0].PageSettings.Orientation == OfficePageOrientation.Landscape);
 
-                document.Sections[0].PageSettings.Orientation = WordPageOrientation.Portrait;
+                document.Sections[0].PageSettings.Orientation = OfficePageOrientation.Portrait;
 
-                Assert.True(document.Sections[0].PageSettings.Orientation == WordPageOrientation.Portrait);
-
-                document.Save();
-            }
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentPageSettings.docx"))) {
-                Assert.True(document.Sections[0].PageSettings.Orientation == WordPageOrientation.Portrait);
-                document.PageSettings.Orientation = WordPageOrientation.Landscape;
-                Assert.True(document.PageSettings.Orientation == WordPageOrientation.Landscape);
+                Assert.True(document.Sections[0].PageSettings.Orientation == OfficePageOrientation.Portrait);
 
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentPageSettings.docx"))) {
-                Assert.True(document.Sections[0].PageSettings.Orientation == WordPageOrientation.Landscape);
+                Assert.True(document.Sections[0].PageSettings.Orientation == OfficePageOrientation.Portrait);
+                document.PageSettings.Orientation = OfficePageOrientation.Landscape;
+                Assert.True(document.PageSettings.Orientation == OfficePageOrientation.Landscape);
+
+                document.Save();
+            }
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentPageSettings.docx"))) {
+                Assert.True(document.Sections[0].PageSettings.Orientation == OfficePageOrientation.Landscape);
             }
         }
     }

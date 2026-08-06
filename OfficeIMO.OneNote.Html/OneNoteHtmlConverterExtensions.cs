@@ -149,11 +149,11 @@ public static class OneNoteHtmlConverterExtensions {
             : diagnostic.Severity == OneNoteDiagnosticSeverity.Warning
                 ? HtmlDiagnosticSeverity.Warning
                 : HtmlDiagnosticSeverity.Info;
-        HtmlConversionLossKind lossKind = severity == HtmlDiagnosticSeverity.Error
-            ? HtmlConversionLossKind.Failure
+        OfficeConversionLossKind lossKind = severity == HtmlDiagnosticSeverity.Error
+            ? OfficeConversionLossKind.Failure
             : severity == HtmlDiagnosticSeverity.Warning
-                ? HtmlConversionLossKind.Approximation
-                : HtmlConversionLossKind.None;
+                ? OfficeConversionLossKind.Approximation
+                : OfficeConversionLossKind.None;
         return new HtmlDiagnostic(
             "OfficeIMO.OneNote.Html",
             diagnostic.Code,

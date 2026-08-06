@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
                 "A1:A2",
                 hasHeader: true,
                 name: "Table1",
-                OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             sheet.CellFormula(1, 3, "Table1[Cost '[ old]+Data!A5");
 
             sheet.InsertRows(5);

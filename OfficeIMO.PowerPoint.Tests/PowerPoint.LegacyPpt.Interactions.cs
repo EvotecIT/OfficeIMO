@@ -305,7 +305,7 @@ namespace OfficeIMO.Tests {
                     imported.ToBytes(PowerPointFileFormat.Ppt));
                 savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 
@@ -342,7 +342,7 @@ namespace OfficeIMO.Tests {
                     imported.ToBytes(PowerPointFileFormat.Ppt));
                 savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 
@@ -374,7 +374,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(report.CanWrite);
                 editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
             LegacyPptPresentation edited = LegacyPptPresentation.Load(editedBytes);
@@ -393,7 +393,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(imported.AnalyzeLegacyPptWrite().CanWrite);
                 removedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
             LegacyPptPresentation removed = LegacyPptPresentation.Load(removedBytes);
@@ -444,7 +444,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(imported.AnalyzeLegacyPptWrite().CanWrite);
                 editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
             LegacyPptPresentation edited = LegacyPptPresentation.Load(editedBytes);
@@ -510,7 +510,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(imported.AnalyzeLegacyPptWrite().CanWrite);
                 movedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
             LegacyPptPresentation moved = LegacyPptPresentation.Load(movedBytes);
@@ -564,7 +564,7 @@ namespace OfficeIMO.Tests {
                     imported.ToBytes(PowerPointFileFormat.Ppt));
                 savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 

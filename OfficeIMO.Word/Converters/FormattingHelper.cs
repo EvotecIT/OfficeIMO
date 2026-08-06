@@ -26,7 +26,7 @@ namespace OfficeIMO.Word {
                 bool strike = run.Strike;
                 bool superscript = run.VerticalTextAlignment == WordVerticalTextPosition.Superscript;
                 bool subscript = run.VerticalTextAlignment == WordVerticalTextPosition.Subscript;
-                string? monospace = FontResolver.Resolve("monospace");
+                string? monospace = WordFontResolver.Resolve("monospace");
                 string? defaultFont = paragraph._document?.Settings.FontFamily;
                 bool code = !string.IsNullOrEmpty(monospace) &&
                             string.Equals(run.FontFamily, monospace, StringComparison.OrdinalIgnoreCase) &&

@@ -10,13 +10,13 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_Respects_DefaultPageSettings() {
             string html = "<p>Hello</p>";
             var options = new HtmlToWordOptions {
-                DefaultOrientation = WordPageOrientation.Landscape,
+                DefaultOrientation = OfficePageOrientation.Landscape,
                 DefaultPageSize = WordPageSize.A5
             };
             
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(options);
             
-            Assert.Equal(WordPageOrientation.Landscape, doc.PageOrientation);
+            Assert.Equal(OfficePageOrientation.Landscape, doc.PageOrientation);
             Assert.Equal(WordPageSize.A5, doc.PageSettings.PageSize);
         }
 

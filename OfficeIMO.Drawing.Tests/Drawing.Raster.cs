@@ -245,7 +245,7 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
             Assert.Equal(OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback, diagnostic.Code);
-            Assert.Equal(OfficeImageExportLossKind.Omission, diagnostic.LossKind);
+            Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         }
 
         [Fact]

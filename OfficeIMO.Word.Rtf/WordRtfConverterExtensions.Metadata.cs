@@ -19,8 +19,8 @@ public static partial class WordRtfConverterExtensions {
         destination.Info.Revised = source.BuiltinDocumentProperties.Modified;
         destination.Info.Printed = source.BuiltinDocumentProperties.LastPrinted;
         destination.Info.Company = EmptyToNull(source.ApplicationProperties.Company);
-        destination.Info.Manager = EmptyToNull(source.ApplicationProperties.Manager?.Text);
-        destination.Info.HyperlinkBase = EmptyToNull(source.ApplicationProperties.HyperlinkBase?.Text);
+        destination.Info.Manager = EmptyToNull(source.ApplicationProperties.Manager);
+        destination.Info.HyperlinkBase = EmptyToNull(source.ApplicationProperties.HyperlinkBase);
         destination.Info.NumberOfPages = ParseInvariantInt(source.ApplicationProperties.Pages);
         destination.Info.NumberOfCharacters = ParseInvariantInt(source.ApplicationProperties.Characters);
         destination.Info.NumberOfCharactersWithSpaces = ParseInvariantInt(source.ApplicationProperties.CharactersWithSpaces);
@@ -54,12 +54,12 @@ public static partial class WordRtfConverterExtensions {
 
         string? manager = source.Info.Manager;
         if (!string.IsNullOrEmpty(manager)) {
-            destination.ApplicationProperties.Manager = new Manager { Text = manager! };
+            destination.ApplicationProperties.Manager = manager;
         }
 
         string? hyperlinkBase = source.Info.HyperlinkBase;
         if (!string.IsNullOrEmpty(hyperlinkBase)) {
-            destination.ApplicationProperties.HyperlinkBase = new HyperlinkBase { Text = hyperlinkBase! };
+            destination.ApplicationProperties.HyperlinkBase = hyperlinkBase;
         }
 
         if (source.Info.NumberOfPages.HasValue) {
@@ -92,23 +92,23 @@ public static partial class WordRtfConverterExtensions {
         if (property == null) throw new ArgumentNullException(nameof(property));
 
         switch (property.PropertyType) {
-            case PropertyTypes.DateTime:
+            case WordCustomPropertyType.DateTime:
                 if (property.Value is DateTime dateTime) {
                     return RtfUserProperty.DateTime(name, dateTime);
                 }
 
                 return new RtfUserProperty(name, RtfUserProperty.DateTimeType, Convert.ToString(property.Value, CultureInfo.InvariantCulture));
-            case PropertyTypes.NumberInteger:
+            case WordCustomPropertyType.NumberInteger:
                 return new RtfUserProperty(name, RtfUserProperty.IntegerType, Convert.ToString(property.Value, CultureInfo.InvariantCulture));
-            case PropertyTypes.NumberDouble:
+            case WordCustomPropertyType.NumberDouble:
                 return new RtfUserProperty(name, RtfUserProperty.NumberType, Convert.ToString(property.Value, CultureInfo.InvariantCulture));
-            case PropertyTypes.YesNo:
+            case WordCustomPropertyType.YesNo:
                 if (property.Value is bool boolean) {
                     return RtfUserProperty.Boolean(name, boolean);
                 }
 
                 return new RtfUserProperty(name, RtfUserProperty.BooleanType, Convert.ToString(property.Value, CultureInfo.InvariantCulture));
-            case PropertyTypes.Text:
+            case WordCustomPropertyType.Text:
             default:
                 return new RtfUserProperty(name, RtfUserProperty.TextType, Convert.ToString(property.Value, CultureInfo.InvariantCulture) ?? string.Empty);
         }

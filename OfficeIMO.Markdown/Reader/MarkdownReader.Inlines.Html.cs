@@ -185,7 +185,7 @@ public static partial class MarkdownReader {
     }
 
     private static IMarkdownInline DecodeHtmlEntitiesInInlineNode(IMarkdownInline node, ref bool changed) {
-        if (node is TextRun text) {
+        if (node is MarkdownTextRun text) {
             string decoded = CommonMarkCharacterReference.DecodeAll(text.Text);
             if (!string.Equals(decoded, text.Text, StringComparison.Ordinal)) {
                 changed = true;

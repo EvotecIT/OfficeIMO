@@ -11,20 +11,20 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithPageOrientation.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                Assert.True(document.PageOrientation == WordPageOrientation.Portrait, "Starting page orientation should be portrait");
+                Assert.True(document.PageOrientation == OfficePageOrientation.Portrait, "Starting page orientation should be portrait");
 
-                document.Sections[0].PageOrientation = WordPageOrientation.Landscape;
+                document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
 
-                Assert.True(document.PageOrientation == WordPageOrientation.Landscape, "Middle page orientation should be landscape when using section 0");
+                Assert.True(document.PageOrientation == OfficePageOrientation.Landscape, "Middle page orientation should be landscape when using section 0");
 
-                document.PageOrientation = WordPageOrientation.Portrait;
+                document.PageOrientation = OfficePageOrientation.Portrait;
 
-                Assert.True(document.PageOrientation == WordPageOrientation.Portrait, "Middle page orientation should be portrait when using document");
+                Assert.True(document.PageOrientation == OfficePageOrientation.Portrait, "Middle page orientation should be portrait when using document");
 
                 document.AddParagraph("Test");
 
-                document.PageOrientation = WordPageOrientation.Landscape;
-                Assert.True(document.PageOrientation == WordPageOrientation.Landscape, "End page orientation should be landscape when using document");
+                document.PageOrientation = OfficePageOrientation.Landscape;
+                Assert.True(document.PageOrientation == OfficePageOrientation.Landscape, "End page orientation should be landscape when using document");
 
                 Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs during creation is wrong.");
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
@@ -37,8 +37,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs during load is wrong.");
                 Assert.True(document.Sections.Count == 1, "Number of sections during load is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
-                Assert.True(document.PageOrientation == WordPageOrientation.Landscape, "Page orientation should be landscape when using document");
-                Assert.True(document.Sections[0].PageOrientation == WordPageOrientation.Landscape, "Page orientation should be landscape when using sections");
+                Assert.True(document.PageOrientation == OfficePageOrientation.Landscape, "Page orientation should be landscape when using document");
+                Assert.True(document.Sections[0].PageOrientation == OfficePageOrientation.Landscape, "Page orientation should be landscape when using sections");
             }
         }
 

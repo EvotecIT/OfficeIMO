@@ -1118,12 +1118,12 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksHeaderFooterImagesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("header or footer images", (document, sheet) => {
                 sheet.CellValue(1, 1, "Header image");
-                sheet.SetHeaderImage(HeaderFooterPosition.Center, new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png", widthPoints: 24D, heightPoints: 16D);
+                sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png", widthPoints: 24D, heightPoints: 16D);
             });
 
             AssertNativeXlsSaveNotSupported("header or footer images", (document, sheet) => {
                 sheet.CellValue(1, 1, "Footer image");
-                sheet.SetFooterImage(HeaderFooterPosition.Center, new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }, "image/jpeg", widthPoints: 24D, heightPoints: 16D);
+                sheet.SetFooterImage(ExcelHeaderFooterPosition.Center, new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }, "image/jpeg", widthPoints: 24D, heightPoints: 16D);
             });
         }
 
@@ -1648,7 +1648,7 @@ namespace OfficeIMO.Tests {
             AssertNativeXlsSaveNotSupported("tables", (document, sheet) => {
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 1, "Alpha");
-                sheet.AddTable("A1:A2", hasHeader: true, name: "NativeTable", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                sheet.AddTable("A1:A2", hasHeader: true, name: "NativeTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             });
         }
 

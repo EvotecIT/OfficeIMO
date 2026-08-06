@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="mode">Overrides how the auto-fit work is scheduled across columns.</param>
         /// <param name="ct">Cancels the auto-fit pass while widths are being measured or applied.</param>
-        public void AutoFitColumns(ExecutionMode? mode = null, CancellationToken ct = default) {
+        public void AutoFitColumns(ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this)) {
                 return;
             }
@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel {
         /// <param name="columnIndexes">1-based column indexes that should be resized to fit their content.</param>
         /// <param name="mode">Overrides how the auto-fit work is scheduled across the selected columns.</param>
         /// <param name="ct">Cancels the auto-fit pass for the selected columns.</param>
-        public void AutoFitColumnsFor(IEnumerable<int> columnIndexes, ExecutionMode? mode = null, CancellationToken ct = default) {
+        public void AutoFitColumnsFor(IEnumerable<int> columnIndexes, ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             if (columnIndexes == null) return;
             var list = columnIndexes.Where(i => i > 0).Distinct().OrderBy(i => i).ToList();
             if (list.Count == 0) return;
@@ -58,7 +58,7 @@ namespace OfficeIMO.Excel {
             AutoFitColumnsInternal(list, mode, ct);
         }
 
-        private void AutoFitContiguousColumns(int startColumn, int columnCount, ExecutionMode? mode = null, CancellationToken ct = default) {
+        private void AutoFitContiguousColumns(int startColumn, int columnCount, ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             if (startColumn <= 0 || columnCount <= 0) return;
             if (startColumn == 1) {
                 int[] directCandidateColumns = new int[columnCount];
@@ -91,7 +91,7 @@ namespace OfficeIMO.Excel {
         /// <param name="columnsToSkip">1-based column indexes that should not be resized.</param>
         /// <param name="mode">Overrides how the auto-fit work is scheduled for the remaining columns.</param>
         /// <param name="ct">Cancels the auto-fit pass before it completes.</param>
-        public void AutoFitColumnsExcept(IEnumerable<int> columnsToSkip, ExecutionMode? mode = null, CancellationToken ct = default) {
+        public void AutoFitColumnsExcept(IEnumerable<int> columnsToSkip, ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             var skip = new HashSet<int>(columnsToSkip ?? Array.Empty<int>());
             if (_excelDocument.TryGetDirectTabularSaveCandidateColumnCount(this, out int directColumnCount)) {
                 var directRemaining = Enumerable.Range(1, directColumnCount).Where(i => !skip.Contains(i)).ToList();
@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel {
         }
 
 
-        private void AutoFitColumnsInternal(IReadOnlyList<int> columnsList, ExecutionMode? mode, CancellationToken ct) {
+        private void AutoFitColumnsInternal(IReadOnlyList<int> columnsList, ExcelExecutionMode? mode, CancellationToken ct) {
             if (columnsList.Count == 0) return;
             var planWatch = EffectiveExecution.OnTiming == null ? null : System.Diagnostics.Stopwatch.StartNew();
             var measurementPlan = BuildAutoFitMeasurementPlan(columnsList, ct);
@@ -122,7 +122,7 @@ namespace OfficeIMO.Excel {
             AutoFitColumnsInternal(measurementPlan, mode, ct);
         }
 
-        private void AutoFitColumnsInternal(AutoFitMeasurementPlan measurementPlan, ExecutionMode? mode, CancellationToken ct) {
+        private void AutoFitColumnsInternal(AutoFitMeasurementPlan measurementPlan, ExcelExecutionMode? mode, CancellationToken ct) {
             var columnsList = measurementPlan.Columns;
             if (columnsList.Count == 0) return;
             double[] computed = new double[columnsList.Count];

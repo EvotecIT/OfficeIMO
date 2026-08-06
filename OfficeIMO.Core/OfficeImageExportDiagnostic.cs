@@ -12,7 +12,7 @@ public sealed class OfficeImageExportDiagnostic {
         string code,
         string message,
         string? source = null,
-        OfficeImageExportLossKind? lossKind = null) {
+        OfficeConversionLossKind? lossKind = null) {
         Severity = severity;
         Code = string.IsNullOrWhiteSpace(code) ? "ImageExportDiagnostic" : code;
         Message = message ?? string.Empty;
@@ -33,11 +33,11 @@ public sealed class OfficeImageExportDiagnostic {
     public string? Source { get; }
 
     /// <summary>Fidelity-loss classification used by aggregate reports and acceptance policies.</summary>
-    public OfficeImageExportLossKind LossKind { get; }
+    public OfficeConversionLossKind LossKind { get; }
 
-    private static OfficeImageExportLossKind InferLossKind(OfficeImageExportDiagnosticSeverity severity) => severity switch {
-        OfficeImageExportDiagnosticSeverity.Warning => OfficeImageExportLossKind.Approximation,
-        OfficeImageExportDiagnosticSeverity.Error => OfficeImageExportLossKind.Failure,
-        _ => OfficeImageExportLossKind.None
+    private static OfficeConversionLossKind InferLossKind(OfficeImageExportDiagnosticSeverity severity) => severity switch {
+        OfficeImageExportDiagnosticSeverity.Warning => OfficeConversionLossKind.Approximation,
+        OfficeImageExportDiagnosticSeverity.Error => OfficeConversionLossKind.Failure,
+        _ => OfficeConversionLossKind.None
     };
 }

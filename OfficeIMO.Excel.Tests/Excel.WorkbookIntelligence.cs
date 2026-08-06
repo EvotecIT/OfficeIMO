@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 2, 10);
                 sheet.CellFormula(1, 3, "SUM(B1:B1)");
                 sheet.SetComment("A1", "Needs customer binding", author: "Reviewer", initials: "RV");
-                sheet.AddTable("A1:C1", hasHeader: true, name: "DataTable", TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                sheet.AddTable("A1:C1", hasHeader: true, name: "DataTable", ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                 document.SetNamedRange("CustomerCell", "'Data'!A1", save: false);
                 document.AddPowerQueryMetadata(new ExcelPowerQueryMetadataOptions {
                     Name = "CustomerQuery",
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Northwind");
                 sheet.CellValue(1, 2, 10);
                 sheet.CellFormula(1, 3, "SUM(B1:B1)");
-                sheet.AddTable("A1:C1", hasHeader: true, name: "OtherTable", TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                sheet.AddTable("A1:C1", hasHeader: true, name: "OtherTable", ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                 document.Save();
             }
 

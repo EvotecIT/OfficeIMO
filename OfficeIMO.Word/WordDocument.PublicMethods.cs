@@ -466,7 +466,7 @@ namespace OfficeIMO.Word {
         /// <param name="maxLevel">Maximum heading level to include (1..9).</param>
         /// <returns>The created <see cref="WordTableOfContent"/> instance.</returns>
         public WordTableOfContent AddTableOfContent(
-            TableOfContentStyle tableOfContentStyle = TableOfContentStyle.Template1,
+            WordTableOfContentsStyle tableOfContentStyle = WordTableOfContentsStyle.Template1,
             int minLevel = 1,
             int maxLevel = 3) {
             WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle, minLevel, maxLevel);
@@ -493,7 +493,7 @@ namespace OfficeIMO.Word {
         /// <returns>The newly created <see cref="WordTableOfContent"/>.</returns>
         public WordTableOfContent RegenerateTableOfContent() {
             var toc = TableOfContent;
-            var style = _tableOfContentStyle ?? TableOfContentStyle.Template1;
+            var style = _tableOfContentStyle ?? WordTableOfContentsStyle.Template1;
             var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
             int index = _tableOfContentIndex ?? (toc != null ? body.ChildElements.ToList().IndexOf(toc.SdtBlock) : -1);
             RemoveTableOfContent();
@@ -514,7 +514,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="coverPageTemplate">Cover page template to use.</param>
         /// <returns>The created <see cref="WordCoverPage"/>.</returns>
-        public WordCoverPage AddCoverPage(CoverPageTemplate coverPageTemplate) {
+        public WordCoverPage AddCoverPage(WordCoverPageTemplate coverPageTemplate) {
             WordCoverPage wordCoverPage = new WordCoverPage(this, coverPageTemplate);
             return wordCoverPage;
         }
@@ -525,7 +525,7 @@ namespace OfficeIMO.Word {
         /// <param name="text">Initial text for the text box.</param>
         /// <param name="wrapTextImage">Text wrapping option.</param>
         /// <returns>The created <see cref="WordTextBox"/>.</returns>
-        public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage = WrapTextImage.Square) {
+        public WordTextBox AddTextBox(string text, WordImageTextWrapping wrapTextImage = WordImageTextWrapping.Square) {
             WordTextBox wordTextBox = new WordTextBox(this, text, wrapTextImage);
             return wordTextBox;
         }
@@ -549,7 +549,7 @@ namespace OfficeIMO.Word {
         /// <param name="strokeWeightPt">Stroke weight in points.</param>
         /// <param name="arcSize">Corner roundness fraction for rounded rectangles.</param>
         /// <returns>The created <see cref="WordShape"/>.</returns>
-        public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
+        public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
             string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) {
             var paragraph = AddParagraph();
             return paragraph.AddShape(shapeType, widthPt, heightPt, fillColor, strokeColor, strokeWeightPt, arcSize);
@@ -558,7 +558,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a basic shape to the document using <see cref="OfficeIMO.Drawing.OfficeColor"/> values.
         /// </summary>
-        public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
+        public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
             OfficeIMO.Drawing.OfficeColor fillColor, OfficeIMO.Drawing.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
             return AddShape(shapeType, widthPt, heightPt, fillColor.ToRgbHex(), strokeColor.ToRgbHex(), strokeWeightPt, arcSize);
         }
@@ -569,7 +569,7 @@ namespace OfficeIMO.Word {
         /// <param name="shapeType">Type of shape to create.</param>
         /// <param name="widthPt">Width in points.</param>
         /// <param name="heightPt">Height in points.</param>
-        public WordShape AddShapeDrawing(ShapeType shapeType, double widthPt, double heightPt) {
+        public WordShape AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt) {
             var paragraph = AddParagraph();
             return paragraph.AddShapeDrawing(shapeType, widthPt, heightPt);
         }
@@ -577,7 +577,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a DrawingML shape anchored at an absolute position on the page in a new paragraph.
         /// </summary>
-        public WordShape AddShapeDrawing(ShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt) {
+        public WordShape AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt) {
             var paragraph = AddParagraph();
             return paragraph.AddShapeDrawing(shapeType, widthPt, heightPt, leftPt, topPt);
         }
@@ -587,7 +587,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="type">Layout type of the SmartArt.</param>
         /// <returns>The created <see cref="WordSmartArt"/> instance.</returns>
-        public WordSmartArt AddSmartArt(SmartArtType type) {
+        public WordSmartArt AddSmartArt(WordSmartArtType type) {
             var paragraph = AddParagraph();
             var smartArt = new WordSmartArt(this, paragraph, type);
             return smartArt;

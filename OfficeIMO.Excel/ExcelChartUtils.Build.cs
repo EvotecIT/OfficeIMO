@@ -370,8 +370,8 @@ namespace OfficeIMO.Excel {
             uint secondaryValueId = summary.HasSecondary ? ExcelChartAxisIdGenerator.GetNextId() : 0;
 
             foreach (SeriesDescriptorGroup group in GroupSeriesDescriptors(descriptors)) {
-                uint categoryAxisId = group.AxisGroup == ExcelChartAxisGroup.Secondary ? secondaryCategoryId : primaryCategoryId;
-                uint valueAxisId = group.AxisGroup == ExcelChartAxisGroup.Secondary ? secondaryValueId : primaryValueId;
+                uint categoryAxisId = group.AxisGroup == OfficeChartAxisGroup.Secondary ? secondaryCategoryId : primaryCategoryId;
+                uint valueAxisId = group.AxisGroup == OfficeChartAxisGroup.Secondary ? secondaryValueId : primaryValueId;
 
                 switch (group.ChartType) {
                     case ExcelChartType.ColumnClustered:

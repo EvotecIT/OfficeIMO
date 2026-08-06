@@ -63,13 +63,13 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            ExcelSignatureMutationPolicy policy = options?.SignatureMutationPolicy
-                ?? ExcelSignatureMutationPolicy.BlockSave;
-            if (policy == ExcelSignatureMutationPolicy.BlockSave) {
+            OfficeSignatureMutationPolicy policy = options?.SignatureMutationPolicy
+                ?? OfficeSignatureMutationPolicy.BlockSave;
+            if (policy == OfficeSignatureMutationPolicy.BlockSave) {
                 throw new ExcelSignedWorkbookMutationException(signatureInfo);
             }
 
-            if (policy != ExcelSignatureMutationPolicy.RemoveInvalidatedSignatures) {
+            if (policy != OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures) {
                 return;
             }
 

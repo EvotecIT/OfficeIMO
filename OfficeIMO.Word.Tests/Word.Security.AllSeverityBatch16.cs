@@ -73,7 +73,7 @@ public sealed class WordAllSeverityBatch16SecurityTests {
             .NumberingDefinitionsPart!.Numbering!.Descendants<LevelText>().First();
         levelText.Val = "%999999999999999999999";
 
-        Dictionary<WordParagraph, (int Level, string Marker)> markers = DocumentTraversal.BuildListMarkers(document);
+        Dictionary<WordParagraph, (int Level, string Marker)> markers = WordDocumentTraversal.BuildListMarkers(document);
 
         Assert.Equal("%999999999999999999999", Assert.Single(markers).Value.Marker);
     }

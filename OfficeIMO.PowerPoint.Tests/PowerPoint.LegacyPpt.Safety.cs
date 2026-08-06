@@ -610,12 +610,12 @@ namespace OfficeIMO.Tests {
                 using (var first = new MemoryStream(firstImage,
                            writable: false)) {
                     slide.AddPicture(first,
-                        OfficeIMO.PowerPoint.ImagePartType.Png);
+                        OfficeIMO.Drawing.OfficeImageFormat.Png);
                 }
                 using (var second = new MemoryStream(secondImage,
                            writable: false)) {
                     slide.AddPicture(second,
-                        OfficeIMO.PowerPoint.ImagePartType.Png,
+                        OfficeIMO.Drawing.OfficeImageFormat.Png,
                         left: 1000000);
                 }
                 bytes = created.ToBytes(PowerPointFileFormat.Ppt);
@@ -651,12 +651,12 @@ namespace OfficeIMO.Tests {
                 using (var first = new MemoryStream(firstImage,
                            writable: false)) {
                     slide.AddPicture(first,
-                        OfficeIMO.PowerPoint.ImagePartType.Png);
+                        OfficeIMO.Drawing.OfficeImageFormat.Png);
                 }
                 using (var second = new MemoryStream(secondImage,
                            writable: false)) {
                     slide.AddPicture(second,
-                        OfficeIMO.PowerPoint.ImagePartType.Png,
+                        OfficeIMO.Drawing.OfficeImageFormat.Png,
                         left: 1000000);
                 }
                 bytes = created.ToBytes(PowerPointFileFormat.Ppt);

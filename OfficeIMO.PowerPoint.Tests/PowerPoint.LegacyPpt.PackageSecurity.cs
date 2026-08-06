@@ -820,7 +820,7 @@ namespace OfficeIMO.Tests {
                 imported.ToBytes(PowerPointFileFormat.Ppt));
             byte[] rewritten = imported.ToBytes(PowerPointFileFormat.Ppt,
                 new PowerPointSaveOptions {
-                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                    LossPolicy = OfficeConversionLossPolicy.Allow
                 });
             Assert.Single(LegacyPptPresentation.Load(rewritten).Slides);
         }

@@ -677,23 +677,23 @@ internal sealed class OfficeMarkupExcelExporter {
         }
     }
 
-    private static bool TryParseLegendPosition(string value, out ExcelChartLegendPosition position) {
+    private static bool TryParseLegendPosition(string value, out OfficeChartLegendPosition position) {
         switch (Normalize(value)) {
             case "left":
-                position = ExcelChartLegendPosition.Left;
+                position = OfficeChartLegendPosition.Left;
                 return true;
             case "right":
-                position = ExcelChartLegendPosition.Right;
+                position = OfficeChartLegendPosition.Right;
                 return true;
             case "top":
-                position = ExcelChartLegendPosition.Top;
+                position = OfficeChartLegendPosition.Top;
                 return true;
             case "bottom":
-                position = ExcelChartLegendPosition.Bottom;
+                position = OfficeChartLegendPosition.Bottom;
                 return true;
             case "corner":
             case "topright":
-                position = ExcelChartLegendPosition.TopRight;
+                position = OfficeChartLegendPosition.TopRight;
                 return true;
             default:
                 position = default;
@@ -701,34 +701,34 @@ internal sealed class OfficeMarkupExcelExporter {
         }
     }
 
-    private static bool TryParseDataLabelPosition(string? value, out ExcelChartDataLabelPosition position) {
+    private static bool TryParseDataLabelPosition(string? value, out OfficeChartDataLabelPosition position) {
         switch (Normalize(value ?? string.Empty)) {
             case "bestfit":
-                position = ExcelChartDataLabelPosition.BestFit;
+                position = OfficeChartDataLabelPosition.BestFit;
                 return true;
             case "bottom":
-                position = ExcelChartDataLabelPosition.Bottom;
+                position = OfficeChartDataLabelPosition.Bottom;
                 return true;
             case "center":
-                position = ExcelChartDataLabelPosition.Center;
+                position = OfficeChartDataLabelPosition.Center;
                 return true;
             case "insidebase":
-                position = ExcelChartDataLabelPosition.InsideBase;
+                position = OfficeChartDataLabelPosition.InsideBase;
                 return true;
             case "insideend":
-                position = ExcelChartDataLabelPosition.InsideEnd;
+                position = OfficeChartDataLabelPosition.InsideEnd;
                 return true;
             case "left":
-                position = ExcelChartDataLabelPosition.Left;
+                position = OfficeChartDataLabelPosition.Left;
                 return true;
             case "outsideend":
-                position = ExcelChartDataLabelPosition.OutsideEnd;
+                position = OfficeChartDataLabelPosition.OutsideEnd;
                 return true;
             case "right":
-                position = ExcelChartDataLabelPosition.Right;
+                position = OfficeChartDataLabelPosition.Right;
                 return true;
             case "top":
-                position = ExcelChartDataLabelPosition.Top;
+                position = OfficeChartDataLabelPosition.Top;
                 return true;
             default:
                 position = default;
@@ -750,12 +750,12 @@ internal sealed class OfficeMarkupExcelExporter {
         return new ExcelChartDataRange(sheetName, r1, c1, categoryCount, seriesCount, hasHeaderRow: true);
     }
 
-    private static TableStyle ParseTableStyle(string? value) {
+    private static ExcelTableStyle ParseTableStyle(string? value) {
         if (string.IsNullOrWhiteSpace(value)) {
-            return TableStyle.TableStyleMedium2;
+            return ExcelTableStyle.TableStyleMedium2;
         }
 
-        if (Enum.TryParse<TableStyle>(value, true, out var direct)) {
+        if (Enum.TryParse<ExcelTableStyle>(value, true, out var direct)) {
             return direct;
         }
 
@@ -764,7 +764,7 @@ internal sealed class OfficeMarkupExcelExporter {
             normalized = "TableStyle" + normalized;
         }
 
-        return Enum.TryParse<TableStyle>(normalized, true, out var parsed) ? parsed : TableStyle.TableStyleMedium2;
+        return Enum.TryParse<ExcelTableStyle>(normalized, true, out var parsed) ? parsed : ExcelTableStyle.TableStyleMedium2;
     }
 
     private static ExcelChartType ParseChartType(string value) {

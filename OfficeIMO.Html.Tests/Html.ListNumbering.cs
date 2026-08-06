@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 .ToList();
             Assert.Equal(2, listItems.Count);
             Assert.All(listItems, paragraph => {
-                DocumentTraversal.ListInfo? info = DocumentTraversal.GetListInfo(paragraph);
+                WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
                 Assert.True(info.HasValue);
                 Assert.False(info.Value.Ordered);
                 Assert.Equal(WordNumberFormat.Bullet, info.Value.NumberFormat);
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
                 .ToArray();
             Assert.Equal(2, imported.Length);
             Assert.All(imported, paragraph => {
-                DocumentTraversal.ListInfo info = DocumentTraversal.GetListInfo(paragraph)!.Value;
+                WordDocumentTraversal.ListInfo info = WordDocumentTraversal.GetListInfo(paragraph)!.Value;
                 Assert.False(info.Ordered);
                 Assert.Equal(WordNumberFormat.Bullet, info.NumberFormat);
                 Assert.NotEqual(existing.NumberId, paragraph._listNumberId);
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
                 listItems.Select(paragraph => paragraph.Text.Trim()).ToArray());
             Assert.Equal(new[] { 0, 1, 2, 1, 0 }, listItems.Select(paragraph => paragraph.ListItemLevel!.Value).ToArray());
 
-            var info = listItems.Select(paragraph => DocumentTraversal.GetListInfo(paragraph)!.Value).ToArray();
+            var info = listItems.Select(paragraph => WordDocumentTraversal.GetListInfo(paragraph)!.Value).ToArray();
             Assert.False(info[0].Ordered);
             Assert.Equal("■", info[0].LevelText);
             Assert.True(info[1].Ordered);
@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
 
             var first = doc.Paragraphs.First(p => p.IsListItem);
-            var info = DocumentTraversal.GetListInfo(first);
+            var info = WordDocumentTraversal.GetListInfo(first);
             Assert.True(info.HasValue);
             Assert.Equal(WordNumberFormat.UpperRoman, info.Value.NumberFormat);
         }
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
 
             var first = doc.Paragraphs.First(p => p.IsListItem);
-            var info = DocumentTraversal.GetListInfo(first);
+            var info = WordDocumentTraversal.GetListInfo(first);
             Assert.True(info.HasValue);
             Assert.Equal(WordNumberFormat.RussianLower, info.Value.NumberFormat);
         }
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
 
             var first = doc.Paragraphs.First(p => p.IsListItem);
-            var info = DocumentTraversal.GetListInfo(first);
+            var info = WordDocumentTraversal.GetListInfo(first);
             Assert.True(info.HasValue);
             Assert.Equal("■", info.Value.LevelText);
         }
@@ -192,7 +192,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
 
             var first = doc.Paragraphs.First(p => p.IsListItem);
-            var info = DocumentTraversal.GetListInfo(first);
+            var info = WordDocumentTraversal.GetListInfo(first);
             Assert.True(info.HasValue);
             Assert.Equal("-", info.Value.LevelText);
         }
@@ -209,8 +209,8 @@ namespace OfficeIMO.Tests {
                 .Select(group => group.First())
                 .ToList();
             Assert.Equal(2, listItems.Count);
-            var first = DocumentTraversal.GetListInfo(listItems[0]);
-            var second = DocumentTraversal.GetListInfo(listItems[1]);
+            var first = WordDocumentTraversal.GetListInfo(listItems[0]);
+            var second = WordDocumentTraversal.GetListInfo(listItems[1]);
             Assert.True(first.HasValue);
             Assert.True(second.HasValue);
             Assert.Equal("\u2013", first.Value.LevelText);
@@ -229,8 +229,8 @@ namespace OfficeIMO.Tests {
                 .Select(group => group.First())
                 .ToList();
             Assert.Equal(2, listItems.Count);
-            var first = DocumentTraversal.GetListInfo(listItems[0]);
-            var second = DocumentTraversal.GetListInfo(listItems[1]);
+            var first = WordDocumentTraversal.GetListInfo(listItems[0]);
+            var second = WordDocumentTraversal.GetListInfo(listItems[1]);
             Assert.True(first.HasValue);
             Assert.True(second.HasValue);
             Assert.Equal("*", first.Value.LevelText);
@@ -251,8 +251,8 @@ namespace OfficeIMO.Tests {
                 .Select(group => group.First())
                 .ToList();
             Assert.Equal(2, listItems.Count);
-            var first = DocumentTraversal.GetListInfo(listItems[0]);
-            var second = DocumentTraversal.GetListInfo(listItems[1]);
+            var first = WordDocumentTraversal.GetListInfo(listItems[0]);
+            var second = WordDocumentTraversal.GetListInfo(listItems[1]);
             Assert.True(first.HasValue);
             Assert.True(second.HasValue);
             Assert.Equal("✓", first.Value.LevelText);
@@ -269,7 +269,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
 
             var first = doc.Paragraphs.First(p => p.IsListItem);
-            var info = DocumentTraversal.GetListInfo(first);
+            var info = WordDocumentTraversal.GetListInfo(first);
             Assert.True(info.HasValue);
             Assert.Equal(1440, info.Value.LeftIndentTwips);
             Assert.Equal(360, info.Value.HangingIndentTwips);
@@ -346,8 +346,8 @@ namespace OfficeIMO.Tests {
                 .ToList();
             Assert.True(items.Count >= 3);
 
-            var firstInfo = DocumentTraversal.GetListInfo(items[0]);
-            var secondInfo = DocumentTraversal.GetListInfo(items[1]);
+            var firstInfo = WordDocumentTraversal.GetListInfo(items[0]);
+            var secondInfo = WordDocumentTraversal.GetListInfo(items[1]);
 
             Assert.True(firstInfo.HasValue);
             Assert.True(secondInfo.HasValue);
@@ -362,7 +362,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
 
             var first = doc.Paragraphs.First(p => p.IsListItem);
-            var info = DocumentTraversal.GetListInfo(first);
+            var info = WordDocumentTraversal.GetListInfo(first);
             Assert.True(info.HasValue);
             Assert.Equal(3, info.Value.Start);
         }

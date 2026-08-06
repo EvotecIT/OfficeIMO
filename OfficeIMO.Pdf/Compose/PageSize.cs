@@ -29,9 +29,9 @@ public readonly struct PageSize {
     public PageSize Landscape() => Width >= Height ? this : new PageSize(Height, Width);
 
     /// <summary>Returns this size in the requested orientation.</summary>
-    public PageSize WithOrientation(PdfPageOrientation orientation) {
+    public PageSize WithOrientation(OfficePageOrientation orientation) {
         Guard.PageOrientation(orientation, nameof(orientation));
-        return orientation == PdfPageOrientation.Landscape ? Landscape() : Portrait();
+        return orientation == OfficePageOrientation.Landscape ? Landscape() : Portrait();
     }
 
     private static double ToPointsFromInches(double inches, string paramName) {

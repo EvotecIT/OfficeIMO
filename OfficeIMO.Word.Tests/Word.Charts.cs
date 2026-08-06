@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
                 areaChart.AddArea("Brazil", new List<int>() { 10, 35, 300, 13 }, OfficeIMO.Drawing.OfficeColor.Green);
                 areaChart.AddArea("Poland", new List<int>() { 10, 35, 230, 150 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
 
-                areaChart.AddLegend(WordChartLegendPosition.Top);
+                areaChart.AddLegend(OfficeChartLegendPosition.Top);
 
                 Assert.True(document.Sections[0].ParagraphsCharts.Count == 3);
                 Assert.True(document.Sections[0].Charts.Count == 3);
@@ -309,7 +309,7 @@ namespace OfficeIMO.Tests {
                 areaChart.AddArea("Brazil", new List<int> { 100, 1, 18, 230 }, Color.Brown);
                 areaChart.AddArea("Poland", new List<int> { 13, 20, 230, 150 }, Color.Green);
                 areaChart.AddArea("USA", new List<int> { 10, 305, 18, 23 }, Color.AliceBlue);
-                areaChart.AddLegend(WordChartLegendPosition.Top);
+                areaChart.AddLegend(OfficeChartLegendPosition.Top);
 
                 document.Save();
             }
@@ -333,10 +333,10 @@ namespace OfficeIMO.Tests {
 
                 // Test different legend positions to ensure they all validate correctly
                 var positions = new[] {
-                    WordChartLegendPosition.Top,
-                    WordChartLegendPosition.Bottom,
-                    WordChartLegendPosition.Left,
-                    WordChartLegendPosition.Right
+                    OfficeChartLegendPosition.Top,
+                    OfficeChartLegendPosition.Bottom,
+                    OfficeChartLegendPosition.Left,
+                    OfficeChartLegendPosition.Right
                 };
 
                 foreach (var position in positions) {

@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
                 "A1:B3",
                 hasHeader: true,
                 name: "CalculatedData",
-                OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
 
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table;
             TableColumn resultColumn = table.Descendants<TableColumn>()

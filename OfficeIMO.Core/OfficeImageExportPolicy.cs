@@ -45,10 +45,10 @@ public sealed class OfficeImageExportPolicy {
     private bool IsRejected(OfficeImageExportDiagnostic diagnostic) {
         if (diagnostic == null) return false;
         if (_failOnDiagnosticCodes.Contains(diagnostic.Code, StringComparer.OrdinalIgnoreCase)) return true;
-        if (RequireNoLoss && diagnostic.LossKind != OfficeImageExportLossKind.None) return true;
-        if (RequireNoOmissions && diagnostic.LossKind == OfficeImageExportLossKind.Omission) return true;
+        if (RequireNoLoss && diagnostic.LossKind != OfficeConversionLossKind.None) return true;
+        if (RequireNoOmissions && diagnostic.LossKind == OfficeConversionLossKind.Omission) return true;
         return RequireNoFailures &&
-               (diagnostic.LossKind == OfficeImageExportLossKind.Failure ||
+               (diagnostic.LossKind == OfficeConversionLossKind.Failure ||
                 diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
     }
 

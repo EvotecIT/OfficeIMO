@@ -18,13 +18,14 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Validates the document using the specified file format version.
         /// </summary>
-        /// <param name="fileFormatVersions">File format version to validate against.</param>
+        /// <param name="fileFormatVersion">File format version to validate against.</param>
         /// <returns>List of validation errors.</returns>
-        public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
-            List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
-            OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
+        public List<OfficeOpenXmlValidationError> ValidateDocument(
+            OfficeOpenXmlFileFormatVersion fileFormatVersion = OfficeOpenXmlFileFormatVersion.Microsoft365) {
+            var listErrors = new List<OfficeOpenXmlValidationError>();
+            OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersion.ToOpenXml());
             foreach (ValidationErrorInfo error in validator.Validate(_spreadSheetDocument)) {
-                listErrors.Add(error);
+                listErrors.Add(error.ToOfficeValidationError());
             }
             return listErrors;
         }

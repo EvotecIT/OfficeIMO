@@ -17,13 +17,13 @@ namespace OfficeIMO.Excel {
         /// Sets the category axis title.
         /// </summary>
         public ExcelChart SetCategoryAxisTitle(string title) {
-            return SetCategoryAxisTitle(title, ExcelChartAxisGroup.Primary);
+            return SetCategoryAxisTitle(title, OfficeChartAxisGroup.Primary);
         }
 
         /// <summary>
         /// Sets the category axis title for the selected axis group.
         /// </summary>
-        public ExcelChart SetCategoryAxisTitle(string title, ExcelChartAxisGroup axisGroup) {
+        public ExcelChart SetCategoryAxisTitle(string title, OfficeChartAxisGroup axisGroup) {
             return SetAxisTitle(title, axisGroup, AxisKind.Category);
         }
 
@@ -31,13 +31,13 @@ namespace OfficeIMO.Excel {
         /// Sets the value axis title.
         /// </summary>
         public ExcelChart SetValueAxisTitle(string title) {
-            return SetValueAxisTitle(title, ExcelChartAxisGroup.Primary);
+            return SetValueAxisTitle(title, OfficeChartAxisGroup.Primary);
         }
 
         /// <summary>
         /// Sets the value axis title for the selected axis group.
         /// </summary>
-        public ExcelChart SetValueAxisTitle(string title, ExcelChartAxisGroup axisGroup) {
+        public ExcelChart SetValueAxisTitle(string title, OfficeChartAxisGroup axisGroup) {
             return SetAxisTitle(title, axisGroup, AxisKind.Value);
         }
 
@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetCategoryAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             return SetAxisTitleTextStyle(axisGroup, AxisKind.Category, fontSizePoints, bold, italic, color, fontName);
         }
 
@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetValueAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             return SetAxisTitleTextStyle(axisGroup, AxisKind.Value, fontSizePoints, bold, italic, color, fontName);
         }
 
@@ -64,7 +64,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetCategoryAxisGridlines(bool showMajor = true, bool showMinor = false,
             string? lineColor = null, double? lineWidthPoints = null,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             return SetAxisGridlines(axisGroup, AxisKind.Category, showMajor, showMinor, lineColor, lineWidthPoints);
         }
 
@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetValueAxisGridlines(bool showMajor = true, bool showMinor = false,
             string? lineColor = null, double? lineWidthPoints = null,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             return SetAxisGridlines(axisGroup, AxisKind.Value, showMajor, showMinor, lineColor, lineWidthPoints);
         }
 
@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel {
         /// Sets category axis line visibility and optional styling.
         /// </summary>
         public ExcelChart SetCategoryAxisLine(string? lineColor = null, double? lineWidthPoints = null,
-            bool noLine = false, ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            bool noLine = false, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             return SetAxisLine(axisGroup, AxisKind.Category, lineColor, lineWidthPoints, noLine);
         }
 
@@ -89,7 +89,7 @@ namespace OfficeIMO.Excel {
         /// Sets value axis line visibility and optional styling.
         /// </summary>
         public ExcelChart SetValueAxisLine(string? lineColor = null, double? lineWidthPoints = null,
-            bool noLine = false, ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            bool noLine = false, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             return SetAxisLine(axisGroup, AxisKind.Value, lineColor, lineWidthPoints, noLine);
         }
 
@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetCategoryAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             return SetAxisLabelTextStyle(axisGroup, AxisKind.Category, fontSizePoints, bold, italic, color, fontName);
         }
 
@@ -107,7 +107,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetValueAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             return SetAxisLabelTextStyle(axisGroup, AxisKind.Value, fontSizePoints, bold, italic, color, fontName);
         }
 
@@ -115,7 +115,7 @@ namespace OfficeIMO.Excel {
         /// Sets the category axis label rotation in degrees (-90..90).
         /// </summary>
         public ExcelChart SetCategoryAxisLabelRotation(double rotationDegrees,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             return SetAxisLabelRotation(axisGroup, AxisKind.Category, rotationDegrees);
         }
 
@@ -123,31 +123,31 @@ namespace OfficeIMO.Excel {
         /// Sets the value axis label rotation in degrees (-90..90).
         /// </summary>
         public ExcelChart SetValueAxisLabelRotation(double rotationDegrees,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             return SetAxisLabelRotation(axisGroup, AxisKind.Value, rotationDegrees);
         }
 
         /// <summary>
         /// Sets the category axis tick label position.
         /// </summary>
-        public ExcelChart SetCategoryAxisTickLabelPosition(ExcelChartTickLabelPosition position,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+        public ExcelChart SetCategoryAxisTickLabelPosition(OfficeChartAxisTickLabelPosition position,
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             return SetAxisTickLabelPosition(axisGroup, AxisKind.Category, position);
         }
 
         /// <summary>
         /// Sets the value axis tick label position.
         /// </summary>
-        public ExcelChart SetValueAxisTickLabelPosition(ExcelChartTickLabelPosition position,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+        public ExcelChart SetValueAxisTickLabelPosition(OfficeChartAxisTickLabelPosition position,
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             return SetAxisTickLabelPosition(axisGroup, AxisKind.Value, position);
         }
 
         /// <summary>
         /// Sets how the value axis crosses between categories.
         /// </summary>
-        public ExcelChart SetValueAxisCrossBetween(ExcelChartAxisCrossBetween between,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+        public ExcelChart SetValueAxisCrossBetween(OfficeChartAxisCrossBetween between,
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
             if (plotArea == null) {
@@ -167,8 +167,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets where the category axis crosses the value axis.
         /// </summary>
-        public ExcelChart SetCategoryAxisCrossing(ExcelChartAxisCrossing crosses, double? crossesAt = null,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+        public ExcelChart SetCategoryAxisCrossing(OfficeChartAxisCrossingPosition crosses, double? crossesAt = null,
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
@@ -192,8 +192,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets where the value axis crosses the category axis.
         /// </summary>
-        public ExcelChart SetValueAxisCrossing(ExcelChartAxisCrossing crosses, double? crossesAt = null,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+        public ExcelChart SetValueAxisCrossing(OfficeChartAxisCrossingPosition crosses, double? crossesAt = null,
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
@@ -218,7 +218,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets where the scatter X-axis crosses the Y-axis.
         /// </summary>
-        public ExcelChart SetScatterXAxisCrossing(ExcelChartAxisCrossing crosses, double? crossesAt = null) {
+        public ExcelChart SetScatterXAxisCrossing(OfficeChartAxisCrossingPosition crosses, double? crossesAt = null) {
             if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
@@ -243,7 +243,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets where the scatter Y-axis crosses the X-axis.
         /// </summary>
-        public ExcelChart SetScatterYAxisCrossing(ExcelChartAxisCrossing crosses, double? crossesAt = null) {
+        public ExcelChart SetScatterYAxisCrossing(OfficeChartAxisCrossingPosition crosses, double? crossesAt = null) {
             if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
@@ -268,8 +268,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets display units for the value axis.
         /// </summary>
-        public ExcelChart SetValueAxisDisplayUnits(ExcelChartDisplayUnit unit, bool showLabel = true,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+        public ExcelChart SetValueAxisDisplayUnits(OfficeChartDisplayUnit unit, bool showLabel = true,
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
             if (plotArea == null) {
@@ -297,8 +297,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets display units for the value axis with custom label text.
         /// </summary>
-        public ExcelChart SetValueAxisDisplayUnits(ExcelChartDisplayUnit unit, string labelText, bool showLabel = true,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+        public ExcelChart SetValueAxisDisplayUnits(OfficeChartDisplayUnit unit, string labelText, bool showLabel = true,
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             if (string.IsNullOrWhiteSpace(labelText)) {
                 throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
             }
@@ -331,7 +331,7 @@ namespace OfficeIMO.Excel {
         /// Sets custom display units for the value axis.
         /// </summary>
         public ExcelChart SetValueAxisDisplayUnits(double customUnit, bool showLabel = true,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             if (customUnit <= 0 || double.IsNaN(customUnit) || double.IsInfinity(customUnit)) {
                 throw new ArgumentOutOfRangeException(nameof(customUnit));
             }
@@ -364,7 +364,7 @@ namespace OfficeIMO.Excel {
         /// Sets custom display units for the value axis with custom label text.
         /// </summary>
         public ExcelChart SetValueAxisDisplayUnits(double customUnit, string labelText, bool showLabel = true,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             if (customUnit <= 0 || double.IsNaN(customUnit) || double.IsInfinity(customUnit)) {
                 throw new ArgumentOutOfRangeException(nameof(customUnit));
             }
@@ -399,7 +399,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Clears display units from the value axis.
         /// </summary>
-        public ExcelChart ClearValueAxisDisplayUnits(ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+        public ExcelChart ClearValueAxisDisplayUnits(OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
             if (plotArea == null) {
@@ -420,7 +420,7 @@ namespace OfficeIMO.Excel {
         /// Sets the category axis orientation (normal or reversed order).
         /// </summary>
         public ExcelChart SetCategoryAxisReverseOrder(bool reverseOrder = true,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
             if (plotArea == null) {
@@ -451,7 +451,7 @@ namespace OfficeIMO.Excel {
         /// <param name="axisGroup">Primary or secondary category axis.</param>
         public ExcelChart SetCategoryAxisScale(double? minimum = null, double? maximum = null,
             double? majorUnit = null, double? minorUnit = null, bool? reverseOrder = null,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             ValidateAxisScale(minimum, maximum, majorUnit, minorUnit, logScale: null, logBase: null);
 
             C.Chart chart = GetChart();
@@ -529,13 +529,13 @@ namespace OfficeIMO.Excel {
         /// Sets the category axis number format.
         /// </summary>
         public ExcelChart SetCategoryAxisNumberFormat(string formatCode, bool sourceLinked = false) {
-            return SetCategoryAxisNumberFormat(formatCode, sourceLinked, ExcelChartAxisGroup.Primary);
+            return SetCategoryAxisNumberFormat(formatCode, sourceLinked, OfficeChartAxisGroup.Primary);
         }
 
         /// <summary>
         /// Sets the category axis number format for the selected axis group.
         /// </summary>
-        public ExcelChart SetCategoryAxisNumberFormat(string formatCode, bool sourceLinked, ExcelChartAxisGroup axisGroup) {
+        public ExcelChart SetCategoryAxisNumberFormat(string formatCode, bool sourceLinked, OfficeChartAxisGroup axisGroup) {
             return SetAxisNumberFormat(formatCode, sourceLinked, axisGroup, AxisKind.Category);
         }
 
@@ -543,13 +543,13 @@ namespace OfficeIMO.Excel {
         /// Sets the value axis number format.
         /// </summary>
         public ExcelChart SetValueAxisNumberFormat(string formatCode, bool sourceLinked = false) {
-            return SetValueAxisNumberFormat(formatCode, sourceLinked, ExcelChartAxisGroup.Primary);
+            return SetValueAxisNumberFormat(formatCode, sourceLinked, OfficeChartAxisGroup.Primary);
         }
 
         /// <summary>
         /// Sets the value axis number format for the selected axis group.
         /// </summary>
-        public ExcelChart SetValueAxisNumberFormat(string formatCode, bool sourceLinked, ExcelChartAxisGroup axisGroup) {
+        public ExcelChart SetValueAxisNumberFormat(string formatCode, bool sourceLinked, OfficeChartAxisGroup axisGroup) {
             return SetAxisNumberFormat(formatCode, sourceLinked, axisGroup, AxisKind.Value);
         }
 
@@ -558,7 +558,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetValueAxisScale(double? minimum = null, double? maximum = null, double? majorUnit = null,
             double? minorUnit = null, double? logBase = null, bool? reverseOrder = null,
-            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary, bool? logScale = null) {
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary, bool? logScale = null) {
             ValidateAxisScale(minimum, maximum, majorUnit, minorUnit, logScale, logBase);
 
             C.Chart chart = GetChart();
@@ -582,7 +582,7 @@ namespace OfficeIMO.Excel {
             Value
         }
 
-        private ExcelChart SetAxisTitle(string title, ExcelChartAxisGroup axisGroup, AxisKind axisKind) {
+        private ExcelChart SetAxisTitle(string title, OfficeChartAxisGroup axisGroup, AxisKind axisKind) {
             if (title == null) {
                 throw new ArgumentNullException(nameof(title));
             }
@@ -597,7 +597,7 @@ namespace OfficeIMO.Excel {
                 ? ResolveCategoryAxis(plotArea, axisGroup)
                 : ResolveValueAxis(plotArea, axisGroup);
 
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == ExcelChartAxisGroup.Primary) {
+            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
                 axis = ResolveScatterXAxis(plotArea);
             }
 
@@ -659,7 +659,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private ExcelChart SetAxisTitleTextStyle(ExcelChartAxisGroup axisGroup, AxisKind axisKind,
+        private ExcelChart SetAxisTitleTextStyle(OfficeChartAxisGroup axisGroup, AxisKind axisKind,
             double? fontSizePoints, bool? bold, bool? italic, string? color, string? fontName) {
             ValidateDataLabelTextStyle(fontSizePoints, color, fontName);
 
@@ -673,7 +673,7 @@ namespace OfficeIMO.Excel {
                 ? ResolveCategoryAxis(plotArea, axisGroup)
                 : ResolveValueAxis(plotArea, axisGroup);
 
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == ExcelChartAxisGroup.Primary) {
+            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
                 axis = ResolveScatterXAxis(plotArea);
             }
 
@@ -696,7 +696,7 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
-        private ExcelChart SetAxisLabelTextStyle(ExcelChartAxisGroup axisGroup, AxisKind axisKind,
+        private ExcelChart SetAxisLabelTextStyle(OfficeChartAxisGroup axisGroup, AxisKind axisKind,
             double? fontSizePoints, bool? bold, bool? italic, string? color, string? fontName) {
             ValidateDataLabelTextStyle(fontSizePoints, color, fontName);
 
@@ -710,7 +710,7 @@ namespace OfficeIMO.Excel {
                 ? ResolveCategoryAxis(plotArea, axisGroup)
                 : ResolveValueAxis(plotArea, axisGroup);
 
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == ExcelChartAxisGroup.Primary) {
+            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
                 axis = ResolveScatterXAxis(plotArea);
             }
 
@@ -723,7 +723,7 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
-        private ExcelChart SetAxisGridlines(ExcelChartAxisGroup axisGroup, AxisKind axisKind,
+        private ExcelChart SetAxisGridlines(OfficeChartAxisGroup axisGroup, AxisKind axisKind,
             bool showMajor, bool showMinor, string? lineColor, double? lineWidthPoints) {
             ValidateAxisGridlinesStyle(lineColor, lineWidthPoints);
 
@@ -737,7 +737,7 @@ namespace OfficeIMO.Excel {
                 ? ResolveCategoryAxis(plotArea, axisGroup)
                 : ResolveValueAxis(plotArea, axisGroup);
 
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == ExcelChartAxisGroup.Primary) {
+            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
                 axis = ResolveScatterXAxis(plotArea);
             }
 
@@ -750,7 +750,7 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
-        private ExcelChart SetAxisLine(ExcelChartAxisGroup axisGroup, AxisKind axisKind,
+        private ExcelChart SetAxisLine(OfficeChartAxisGroup axisGroup, AxisKind axisKind,
             string? lineColor, double? lineWidthPoints, bool noLine) {
             ValidateAxisLineStyle(lineColor, lineWidthPoints, noLine);
 
@@ -764,7 +764,7 @@ namespace OfficeIMO.Excel {
                 ? ResolveCategoryAxis(plotArea, axisGroup)
                 : ResolveValueAxis(plotArea, axisGroup);
 
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == ExcelChartAxisGroup.Primary) {
+            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
                 axis = ResolveScatterXAxis(plotArea);
             }
 
@@ -802,7 +802,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private ExcelChart SetAxisLabelRotation(ExcelChartAxisGroup axisGroup, AxisKind axisKind, double rotationDegrees) {
+        private ExcelChart SetAxisLabelRotation(OfficeChartAxisGroup axisGroup, AxisKind axisKind, double rotationDegrees) {
             if (double.IsNaN(rotationDegrees) || double.IsInfinity(rotationDegrees)) {
                 throw new ArgumentOutOfRangeException(nameof(rotationDegrees));
             }
@@ -820,7 +820,7 @@ namespace OfficeIMO.Excel {
                 ? ResolveCategoryAxis(plotArea, axisGroup)
                 : ResolveValueAxis(plotArea, axisGroup);
 
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == ExcelChartAxisGroup.Primary) {
+            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
                 axis = ResolveScatterXAxis(plotArea);
             }
 
@@ -843,8 +843,8 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
-        private ExcelChart SetAxisTickLabelPosition(ExcelChartAxisGroup axisGroup, AxisKind axisKind,
-            ExcelChartTickLabelPosition position) {
+        private ExcelChart SetAxisTickLabelPosition(OfficeChartAxisGroup axisGroup, AxisKind axisKind,
+            OfficeChartAxisTickLabelPosition position) {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
             if (plotArea == null) {
@@ -855,7 +855,7 @@ namespace OfficeIMO.Excel {
                 ? ResolveCategoryAxis(plotArea, axisGroup)
                 : ResolveValueAxis(plotArea, axisGroup);
 
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == ExcelChartAxisGroup.Primary) {
+            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
                 axis = ResolveScatterXAxis(plotArea);
             }
 
@@ -869,7 +869,7 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelChart SetAxisNumberFormat(string formatCode, bool sourceLinked,
-            ExcelChartAxisGroup axisGroup, AxisKind axisKind) {
+            OfficeChartAxisGroup axisGroup, AxisKind axisKind) {
             if (string.IsNullOrWhiteSpace(formatCode)) {
                 throw new ArgumentException("Format code cannot be null or empty.", nameof(formatCode));
             }
@@ -884,7 +884,7 @@ namespace OfficeIMO.Excel {
                 ? ResolveCategoryAxis(plotArea, axisGroup)
                 : ResolveValueAxis(plotArea, axisGroup);
 
-            if (axis == null && axisKind == AxisKind.Category && axisGroup == ExcelChartAxisGroup.Primary) {
+            if (axis == null && axisKind == AxisKind.Category && axisGroup == OfficeChartAxisGroup.Primary) {
                 axis = ResolveScatterXAxis(plotArea);
             }
 
@@ -903,7 +903,7 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
-        private static C.CategoryAxis? ResolveCategoryAxis(C.PlotArea plotArea, ExcelChartAxisGroup axisGroup) {
+        private static C.CategoryAxis? ResolveCategoryAxis(C.PlotArea plotArea, OfficeChartAxisGroup axisGroup) {
             var axes = plotArea.Elements<C.CategoryAxis>().ToList();
             if (axes.Count == 0) {
                 return null;
@@ -912,19 +912,19 @@ namespace OfficeIMO.Excel {
             bool isBar = HasHorizontalBarChart(plotArea);
             C.AxisPositionValues primaryPosition = isBar ? C.AxisPositionValues.Left : C.AxisPositionValues.Bottom;
             C.AxisPositionValues secondaryPosition = isBar ? C.AxisPositionValues.Right : C.AxisPositionValues.Top;
-            C.AxisPositionValues desired = axisGroup == ExcelChartAxisGroup.Primary ? primaryPosition : secondaryPosition;
+            C.AxisPositionValues desired = axisGroup == OfficeChartAxisGroup.Primary ? primaryPosition : secondaryPosition;
 
             C.CategoryAxis? axis = axes.FirstOrDefault(ax => ax.AxisPosition?.Val?.Value == desired);
             if (axis != null) {
                 return axis;
             }
 
-            return axisGroup == ExcelChartAxisGroup.Primary
+            return axisGroup == OfficeChartAxisGroup.Primary
                 ? axes.FirstOrDefault()
                 : axes.Skip(1).FirstOrDefault() ?? axes.LastOrDefault();
         }
 
-        private static C.DateAxis? ResolveDateAxis(C.PlotArea plotArea, ExcelChartAxisGroup axisGroup) {
+        private static C.DateAxis? ResolveDateAxis(C.PlotArea plotArea, OfficeChartAxisGroup axisGroup) {
             var axes = plotArea.Elements<C.DateAxis>().ToList();
             if (axes.Count == 0) {
                 return null;
@@ -933,14 +933,14 @@ namespace OfficeIMO.Excel {
             bool isBar = HasHorizontalBarChart(plotArea);
             C.AxisPositionValues primaryPosition = isBar ? C.AxisPositionValues.Left : C.AxisPositionValues.Bottom;
             C.AxisPositionValues secondaryPosition = isBar ? C.AxisPositionValues.Right : C.AxisPositionValues.Top;
-            C.AxisPositionValues desired = axisGroup == ExcelChartAxisGroup.Primary ? primaryPosition : secondaryPosition;
+            C.AxisPositionValues desired = axisGroup == OfficeChartAxisGroup.Primary ? primaryPosition : secondaryPosition;
 
             C.DateAxis? axis = axes.FirstOrDefault(ax => ax.AxisPosition?.Val?.Value == desired);
             if (axis != null) {
                 return axis;
             }
 
-            return axisGroup == ExcelChartAxisGroup.Primary
+            return axisGroup == OfficeChartAxisGroup.Primary
                 ? axes.FirstOrDefault()
                 : axes.Skip(1).FirstOrDefault() ?? axes.LastOrDefault();
         }
@@ -981,7 +981,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static C.ValueAxis? ResolveValueAxis(C.PlotArea plotArea, ExcelChartAxisGroup axisGroup) {
+        private static C.ValueAxis? ResolveValueAxis(C.PlotArea plotArea, OfficeChartAxisGroup axisGroup) {
             var axes = plotArea.Elements<C.ValueAxis>().ToList();
             if (axes.Count == 0) {
                 return null;
@@ -990,14 +990,14 @@ namespace OfficeIMO.Excel {
             bool isBar = HasHorizontalBarChart(plotArea);
             C.AxisPositionValues primaryPosition = isBar ? C.AxisPositionValues.Bottom : C.AxisPositionValues.Left;
             C.AxisPositionValues secondaryPosition = isBar ? C.AxisPositionValues.Top : C.AxisPositionValues.Right;
-            C.AxisPositionValues desired = axisGroup == ExcelChartAxisGroup.Primary ? primaryPosition : secondaryPosition;
+            C.AxisPositionValues desired = axisGroup == OfficeChartAxisGroup.Primary ? primaryPosition : secondaryPosition;
 
             C.ValueAxis? axis = axes.FirstOrDefault(ax => ax.AxisPosition?.Val?.Value == desired);
             if (axis != null) {
                 return axis;
             }
 
-            return axisGroup == ExcelChartAxisGroup.Primary
+            return axisGroup == OfficeChartAxisGroup.Primary
                 ? axes.FirstOrDefault()
                 : axes.Skip(1).FirstOrDefault() ?? axes.LastOrDefault();
         }

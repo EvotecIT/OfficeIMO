@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 2, 1);
             sheet.CellValue(3, 2, 2);
             sheet.CellFormula(1, 4, "=[@Amount]");
-            sheet.AddTable("A1:B3", true, "Sales", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B3", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             string? FormulaAt(string reference) => sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => string.Equals(cell.CellReference?.Value, reference, StringComparison.Ordinal))
                 .CellFormula?.Text;

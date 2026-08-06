@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel {
             if (styled && rowsEnd >= rowsStart) {
                 string endCol = includeNamedRanges ? "C" : "B";
                 string tableRange = $"A{headerRow}:{endCol}{rowsEnd}";
-                toc.AddTable(tableRange, hasHeader: true, name: "TOC_Items", style: TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                toc.AddTable(tableRange, hasHeader: true, name: "TOC_Items", style: ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                 try { toc.Freeze(topRows: headerRow, leftCols: 0); } catch { }
                 toc.AutoFitColumns();
             }

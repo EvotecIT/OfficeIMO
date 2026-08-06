@@ -229,7 +229,7 @@ public sealed class PdfImageExportContractTests {
             exception.Diagnostics,
             diagnostic =>
                 diagnostic.Code == "render.operator.unsupported" &&
-                diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
     private static PdfReadDocument LoadTwoPageDocument() =>

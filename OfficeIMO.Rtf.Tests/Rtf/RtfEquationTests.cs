@@ -147,12 +147,12 @@ public sealed class RtfEquationTests {
         Assert.Equal(2, roundTripHyperlink.Elements<SimpleField>().Count());
         Assert.Equal(2, roundTrip.Equations.Count);
         var hyperlinkErrors = roundTrip.ValidateDocument()
-            .Where(error => error.Node is Hyperlink || error.Node?.Ancestors<Hyperlink>().Any() == true)
+            .Where(IsHyperlinkValidationError)
             .ToArray();
         Assert.True(
             hyperlinkErrors.Length == 0,
             string.Join(Environment.NewLine, hyperlinkErrors.Select(error =>
-                $"{error.Description}{Environment.NewLine}{error.Node?.OuterXml}")));
+                $"{error.Description}{Environment.NewLine}{error.Path}")));
 
         string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
         try {
@@ -165,7 +165,7 @@ public sealed class RtfEquationTests {
             Assert.True(
                 docErrors.Length == 0,
                 string.Join(Environment.NewLine, docErrors.Select(error =>
-                    $"{error.Description}{Environment.NewLine}{error.Node?.OuterXml}")));
+                    $"{error.Description}{Environment.NewLine}{error.Path}")));
         } finally {
             if (File.Exists(docPath)) File.Delete(docPath);
         }
@@ -213,9 +213,12 @@ public sealed class RtfEquationTests {
         WordEquation equation = Assert.Single(roundTrip.Equations);
         Assert.Equal(WordEquationRepresentation.EquationField, equation.Representation);
         Assert.Contains("\\f(a,b)", equation.FieldInstruction!, StringComparison.Ordinal);
-        Assert.DoesNotContain(roundTrip.ValidateDocument(), error =>
-            error.Node is Hyperlink || error.Node?.Ancestors<Hyperlink>().Any() == true);
+        Assert.DoesNotContain(roundTrip.ValidateDocument(), IsHyperlinkValidationError);
     }
+
+    private static bool IsHyperlinkValidationError(OfficeOpenXmlValidationError error) =>
+        string.Equals(error.NodeName, "hyperlink", StringComparison.OrdinalIgnoreCase) ||
+        error.Path?.Contains("hyperlink", StringComparison.OrdinalIgnoreCase) == true;
 
     [Fact]
     public void WordToRtf_CapturesOmmlInsideActiveComplexHyperlinkResult() {

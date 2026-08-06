@@ -15,7 +15,7 @@ namespace OfficeIMO.Word {
     /// </summary>
     public partial class WordDocument : IDisposable, IAsyncDisposable {
         internal int? _tableOfContentIndex;
-        internal TableOfContentStyle? _tableOfContentStyle;
+        internal WordTableOfContentsStyle? _tableOfContentStyle;
         private MemoryStream? _ownedPackageStream;
         // On .NET Framework, validation detaches the immutable encoded baseline from the
         // writable package stream so later unsaved edits can be flushed without corrupting it.

@@ -123,10 +123,10 @@ namespace OfficeIMO.Word.Html {
             }
 
             return property.PropertyType switch {
-                PropertyTypes.YesNo => property.Value is bool value ? value.ToString().ToLowerInvariant() : property.Value.ToString(),
-                PropertyTypes.DateTime => property.Value is DateTime value ? value.ToString("O", CultureInfo.InvariantCulture) : property.Value.ToString(),
-                PropertyTypes.NumberInteger => System.Convert.ToString(property.Value, CultureInfo.InvariantCulture),
-                PropertyTypes.NumberDouble => System.Convert.ToString(property.Value, CultureInfo.InvariantCulture),
+                WordCustomPropertyType.YesNo => property.Value is bool value ? value.ToString().ToLowerInvariant() : property.Value.ToString(),
+                WordCustomPropertyType.DateTime => property.Value is DateTime value ? value.ToString("O", CultureInfo.InvariantCulture) : property.Value.ToString(),
+                WordCustomPropertyType.NumberInteger => System.Convert.ToString(property.Value, CultureInfo.InvariantCulture),
+                WordCustomPropertyType.NumberDouble => System.Convert.ToString(property.Value, CultureInfo.InvariantCulture),
                 _ => property.Value.ToString()
             };
         }

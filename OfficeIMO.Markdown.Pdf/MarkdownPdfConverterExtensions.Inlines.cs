@@ -1,6 +1,6 @@
 using OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
-using PdfTextRun = OfficeIMO.Pdf.TextRun;
+using PdfTextRun = OfficeIMO.Pdf.PdfTextRun;
 
 namespace OfficeIMO.Markdown.Pdf;
 
@@ -19,7 +19,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static void AppendInline(PdfCore.PdfParagraphBuilder builder, IMarkdownInline inline, InlineStyle style) {
         switch (inline) {
-            case OfficeIMO.Markdown.TextRun text:
+            case OfficeIMO.Markdown.MarkdownTextRun text:
                 ApplyStyle(builder, style).Text(text.Text);
                 break;
             case BoldInline bold:
@@ -148,7 +148,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static void AddTextRuns(List<PdfTextRun> runs, IMarkdownInline inline, InlineStyle style) {
         switch (inline) {
-            case OfficeIMO.Markdown.TextRun text:
+            case OfficeIMO.Markdown.MarkdownTextRun text:
                 runs.Add(CreateRun(text.Text, style));
                 break;
             case BoldInline bold:

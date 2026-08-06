@@ -64,7 +64,7 @@ namespace OfficeIMO.Excel {
         internal bool TrySetDirectTableStyleMetadata(
             ExcelSheet sheet,
             string tableOrRange,
-            TableStyle tableStyle,
+            ExcelTableStyle tableStyle,
             bool? showFirstColumn,
             bool? showLastColumn,
             bool? showRowStripes,
@@ -388,7 +388,7 @@ namespace OfficeIMO.Excel {
             string range,
             string? tableName = null,
             bool createTable = false,
-            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
@@ -442,7 +442,7 @@ namespace OfficeIMO.Excel {
             string range,
             string? tableName = null,
             bool createTable = false,
-            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
@@ -496,7 +496,7 @@ namespace OfficeIMO.Excel {
             string range,
             string? tableName = null,
             bool createTable = false,
-            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));

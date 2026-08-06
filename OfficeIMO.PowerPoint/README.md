@@ -17,8 +17,8 @@ dotnet add package OfficeIMO.PowerPoint
 ## Quick start
 
 ```csharp
-using OfficeIMO.PowerPoint;
 using OfficeIMO.Drawing;
+using OfficeIMO.PowerPoint;
 
 using var presentation = PowerPointPresentation.Create("deck.pptx");
 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
@@ -30,7 +30,7 @@ var body = slide.AddTextBox("Generated without PowerPoint automation.");
 body.SetPositionCm(2, 2);
 body.SetSizeCm(18, 2);
 
-slide.Transition = SlideTransition.Fade;
+slide.Transition = PowerPointSlideTransition.Fade;
 presentation.Save();
 ```
 
@@ -117,7 +117,7 @@ Imported binary files use a preservation-aware writer: no-op saves can retain th
 representable edits append compatible records, and unrelated or unknown records and streams remain intact.
 Saving blocks on known loss by default. Tables, charts, and SmartArt can be converted to deterministic static
 PNG visuals only after the caller accepts the reported loss with
-`new PowerPointSaveOptions { LossPolicy = PowerPointConversionLossPolicy.Allow }`. Features with no safe
+`new PowerPointSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }`. Features with no safe
 binary representation are blocked rather than silently omitted.
 
 The versioned capability catalog is the source of truth for import, fresh binary authoring, binary round-trip,
@@ -221,15 +221,15 @@ agenda.AddBullets(new[] { "Intro", "KPIs", "Next steps" });
 ### Images and SVGs
 
 ```csharp
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
-using PowerPointImagePartType = OfficeIMO.PowerPoint.ImagePartType;
 
 slide.AddPicture("logo.png",
     PowerPointUnits.FromCentimeters(23), PowerPointUnits.FromCentimeters(1.2),
     PowerPointUnits.FromCentimeters(5), PowerPointUnits.FromCentimeters(2));
 
 using var logo = File.OpenRead("logo.png");
-slide.AddPicture(logo, PowerPointImagePartType.Png,
+slide.AddPicture(logo, OfficeImageFormat.Png,
     PowerPointUnits.FromCentimeters(2), PowerPointUnits.FromCentimeters(2),
     PowerPointUnits.FromCentimeters(5), PowerPointUnits.FromCentimeters(2));
 
@@ -306,7 +306,7 @@ slide.AddChartCm(OfficeChartKind.ColumnClustered, chartData,
     .SetTitle("Quarterly performance")
     .SetCategoryAxisTitle("Quarter")
     .SetValueAxisTitle("Value")
-    .SetLegend(PowerPointChartLegendPosition.Bottom)
+    .SetLegend(OfficeChartLegendPosition.Bottom)
     .SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "D9E2F3")
     .SetPlotAreaStyle(fillColor: "F8FAFC", lineColor: "D9E2F3");
 
@@ -356,7 +356,7 @@ var mix = new OfficeChartData(
 slide.AddChartCm(OfficeChartKind.Doughnut, mix,
         leftCm: 15.2, topCm: 3.0, widthCm: 8.0, heightCm: 8.0)
     .SetTitle("Revenue mix")
-    .SetLegend(PowerPointChartLegendPosition.Right);
+    .SetLegend(OfficeChartLegendPosition.Right);
 ```
 
 ### Table and chart together
@@ -392,7 +392,7 @@ var segmentChart = new OfficeChartData(
 dashboard.AddChartCm(OfficeChartKind.Line, segmentChart,
         leftCm: 12.2, topCm: 3.0, widthCm: 12.0, heightCm: 6.5)
     .SetTitle("Segment trend")
-    .SetLegend(PowerPointChartLegendPosition.Bottom);
+    .SetLegend(OfficeChartLegendPosition.Bottom);
 
 record SegmentRow(string Segment, int Q1, int Q2, int Q3, int Q4);
 ```

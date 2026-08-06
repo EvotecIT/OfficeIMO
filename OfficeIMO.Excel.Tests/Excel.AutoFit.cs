@@ -736,7 +736,7 @@ namespace OfficeIMO.Tests {
                 using CancellationTokenSource cts = new();
                 cts.Cancel();
                 await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-                    await Task.Run(() => sheet.AutoFitColumns(ExecutionMode.Parallel, cts.Token))
+                    await Task.Run(() => sheet.AutoFitColumns(ExcelExecutionMode.Parallel, cts.Token))
                 );
             }
         }

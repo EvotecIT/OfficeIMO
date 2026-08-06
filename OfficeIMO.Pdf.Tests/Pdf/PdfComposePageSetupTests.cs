@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.InRange(options.PageWidth, 841.0, 843.0);
             Assert.InRange(options.PageHeight, 594.0, 596.0);
-            Assert.Equal(PdfPageOrientation.Landscape, options.PageOrientation);
+            Assert.Equal(OfficePageOrientation.Landscape, options.PageOrientation);
             AssertMargins(options.Margins, 54, 72, 54, 72);
 
             var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>

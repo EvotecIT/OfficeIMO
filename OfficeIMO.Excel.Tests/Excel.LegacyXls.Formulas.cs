@@ -145,7 +145,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound));
             using var output = new MemoryStream();
             document.Save(output, new ExcelSaveOptions {
-                LossPolicy = ExcelConversionLossPolicy.Allow
+                LossPolicy = OfficeConversionLossPolicy.Allow
             });
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
 
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound));
             using var output = new MemoryStream();
-            document.Save(output, new ExcelSaveOptions { LossPolicy = ExcelConversionLossPolicy.Allow });
+            document.Save(output, new ExcelSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
 
             Cell[] cells = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>()
@@ -184,7 +184,7 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound));
             using var output = new MemoryStream();
-            document.Save(output, new ExcelSaveOptions { LossPolicy = ExcelConversionLossPolicy.Allow });
+            document.Save(output, new ExcelSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
 
             Cell[] cells = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>()
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound));
             using var output = new MemoryStream();
-            document.Save(output, new ExcelSaveOptions { LossPolicy = ExcelConversionLossPolicy.Allow });
+            document.Save(output, new ExcelSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
 
             WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound));
             using var output = new MemoryStream();
             document.Save(output, new ExcelSaveOptions {
-                LossPolicy = ExcelConversionLossPolicy.Allow
+                LossPolicy = OfficeConversionLossPolicy.Allow
             });
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
 

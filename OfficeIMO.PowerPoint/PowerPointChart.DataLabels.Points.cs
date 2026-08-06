@@ -120,7 +120,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetSeriesDataLabelForPoint(int seriesIndex, int pointIndex, bool? showValue = null,
             bool? showCategoryName = null, bool? showSeriesName = null, bool? showLegendKey = null,
-            bool? showPercent = null, PowerPointChartDataLabelPosition? position = null, string? numberFormat = null,
+            bool? showPercent = null, OfficeChartDataLabelPosition? position = null, string? numberFormat = null,
             bool sourceLinked = false) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
@@ -151,7 +151,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetSeriesDataLabelForPoint(string seriesName, int pointIndex, bool? showValue = null,
             bool? showCategoryName = null, bool? showSeriesName = null, bool? showLegendKey = null,
-            bool? showPercent = null, PowerPointChartDataLabelPosition? position = null, string? numberFormat = null,
+            bool? showPercent = null, OfficeChartDataLabelPosition? position = null, string? numberFormat = null,
             bool sourceLinked = false, bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
@@ -289,7 +289,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Enables callout-style labels for a specific point by series index.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelCalloutsForPoint(int seriesIndex, int pointIndex, bool enabled = true,
-            PowerPointChartDataLabelPosition? position = null) {
+            OfficeChartDataLabelPosition? position = null) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
@@ -297,7 +297,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(pointIndex));
             }
 
-            PowerPointChartDataLabelPosition? resolvedPosition = enabled ? position ?? PowerPointChartDataLabelPosition.OutsideEnd : position;
+            OfficeChartDataLabelPosition? resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.DataLabel label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelOverrides(label, showLegendKey: false, showValue: enabled, showCategoryName: false,
@@ -318,7 +318,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Enables callout-style labels for a specific point by series name.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelCalloutsForPoint(string seriesName, int pointIndex, bool enabled = true,
-            PowerPointChartDataLabelPosition? position = null,
+            OfficeChartDataLabelPosition? position = null,
             bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
@@ -327,7 +327,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(pointIndex));
             }
 
-            PowerPointChartDataLabelPosition? resolvedPosition = enabled ? position ?? PowerPointChartDataLabelPosition.OutsideEnd : position;
+            OfficeChartDataLabelPosition? resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.DataLabel label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelOverrides(label, showLegendKey: false, showValue: enabled, showCategoryName: false,

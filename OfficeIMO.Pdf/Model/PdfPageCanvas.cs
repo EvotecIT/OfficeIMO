@@ -105,20 +105,20 @@ public sealed class PdfPageCanvas {
     /// <summary>Adds text inside a fixed page rectangle using top-left page coordinates.</summary>
     public PdfPageCanvas Text(string text, double x, double y, double width, double height, double? fontSize = null, PdfColor? color = null, PdfAlign align = PdfAlign.Left, PdfStandardFont? font = null) {
         Guard.NotNull(text, nameof(text));
-        return Text(new[] { TextRun.Normal(text, color, fontSize, font: font) }, x, y, width, height, color, align, fontSize);
+        return Text(new[] { PdfTextRun.Normal(text, color, fontSize, font: font) }, x, y, width, height, color, align, fontSize);
     }
 
     /// <summary>Adds rich text runs inside a fixed page rectangle using top-left page coordinates.</summary>
-    public PdfPageCanvas Text(IEnumerable<TextRun> runs, double x, double y, double width, double height, PdfColor? defaultColor = null, PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null) {
+    public PdfPageCanvas Text(IEnumerable<PdfTextRun> runs, double x, double y, double width, double height, PdfColor? defaultColor = null, PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null) {
         return AddText(runs, PdfCanvasTextStructureRole.Paragraph, x, y, width, height, defaultColor, align, fontSize, lineHeight);
     }
 
     /// <summary>Adds tagged rich text runs inside a fixed page rectangle using top-left page coordinates.</summary>
-    public PdfPageCanvas Text(IEnumerable<TextRun> runs, PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, PdfColor? defaultColor = null, PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null) {
+    public PdfPageCanvas Text(IEnumerable<PdfTextRun> runs, PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, PdfColor? defaultColor = null, PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null) {
         return AddText(runs, structureRole, x, y, width, height, defaultColor, align, fontSize, lineHeight);
     }
 
-    private PdfPageCanvas AddText(IEnumerable<TextRun> runs, PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, PdfColor? defaultColor, PdfAlign align, double? fontSize, double? lineHeight) {
+    private PdfPageCanvas AddText(IEnumerable<PdfTextRun> runs, PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, PdfColor? defaultColor, PdfAlign align, double? fontSize, double? lineHeight) {
         Guard.NotNull(runs, nameof(runs));
         if ((int)structureRole < (int)PdfCanvasTextStructureRole.Paragraph
             || (int)structureRole > (int)PdfCanvasTextStructureRole.Span) {
@@ -159,21 +159,21 @@ public sealed class PdfPageCanvas {
     /// <summary>Adds a styled fixed-position text box using top-left page coordinates and reports layout diagnostics during rendering.</summary>
     public PdfPageCanvas TextBox(string text, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style, double rotationAngle, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
         Guard.NotNull(text, nameof(text));
-        return TextBox(new[] { TextRun.Normal(text) }, x, y, width, height, style, rotationAngle, diagnosticHandler);
+        return TextBox(new[] { PdfTextRun.Normal(text) }, x, y, width, height, style, rotationAngle, diagnosticHandler);
     }
 
     /// <summary>Adds styled rich text inside a fixed-position text box using top-left page coordinates.</summary>
-    public PdfPageCanvas TextBox(IEnumerable<TextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style = null, double rotationAngle = 0D) {
+    public PdfPageCanvas TextBox(IEnumerable<PdfTextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style = null, double rotationAngle = 0D) {
         return TextBox(runs, x, y, width, height, style, rotationAngle, diagnosticHandler: null);
     }
 
     /// <summary>Adds styled rich text inside a fixed-position text box using top-left page coordinates and reports layout diagnostics during rendering.</summary>
-    public PdfPageCanvas TextBox(IEnumerable<TextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
+    public PdfPageCanvas TextBox(IEnumerable<PdfTextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
         return TextBox(runs, x, y, width, height, style, 0D, diagnosticHandler);
     }
 
     /// <summary>Adds styled rich text inside a fixed-position text box using top-left page coordinates and reports layout diagnostics during rendering.</summary>
-    public PdfPageCanvas TextBox(IEnumerable<TextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style, double rotationAngle, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
+    public PdfPageCanvas TextBox(IEnumerable<PdfTextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style, double rotationAngle, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
         Guard.NotNull(runs, nameof(runs));
         ValidateCanvasCoordinate(x, nameof(x));
         ValidateCanvasCoordinate(y, nameof(y));
@@ -389,10 +389,10 @@ public sealed class PdfPageCanvas {
         return rotated;
     }
 
-    private static System.Collections.ObjectModel.ReadOnlyCollection<TextRun> ApplyTextBoxDefaults(List<TextRun> runs, PdfCanvasTextBoxStyle style) {
-        var styled = new List<TextRun>(runs.Count);
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfTextRun> ApplyTextBoxDefaults(List<PdfTextRun> runs, PdfCanvasTextBoxStyle style) {
+        var styled = new List<PdfTextRun>(runs.Count);
         for (int i = 0; i < runs.Count; i++) {
-            TextRun run = runs[i];
+            PdfTextRun run = runs[i];
             bool applyTextColor = !run.Color.HasValue && style.TextColor.HasValue;
             bool applyFontSize = !run.FontSize.HasValue && style.FontSize.HasValue;
             bool applyFont = !run.Font.HasValue && style.Font.HasValue;
@@ -401,7 +401,7 @@ public sealed class PdfPageCanvas {
                 continue;
             }
 
-            styled.Add(new TextRun(
+            styled.Add(new PdfTextRun(
                 run.Text,
                 run.Bold,
                 run.Underline,
@@ -533,7 +533,7 @@ internal sealed class PdfCanvasActualTextItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasTextItem : PdfCanvasItem {
-    public PdfCanvasTextItem(IReadOnlyList<TextRun> runs, double x, double y, double width, double height, PdfColor? defaultColor, PdfAlign align, double? fontSize, double? lineHeight, PdfCanvasTextStructureRole structureRole)
+    public PdfCanvasTextItem(IReadOnlyList<PdfTextRun> runs, double x, double y, double width, double height, PdfColor? defaultColor, PdfAlign align, double? fontSize, double? lineHeight, PdfCanvasTextStructureRole structureRole)
         : base(x, y) {
         Runs = runs;
         Width = width;
@@ -545,7 +545,7 @@ internal sealed class PdfCanvasTextItem : PdfCanvasItem {
         StructureRole = structureRole;
     }
 
-    public IReadOnlyList<TextRun> Runs { get; }
+    public IReadOnlyList<PdfTextRun> Runs { get; }
     public double Width { get; }
     public double Height { get; }
     public PdfColor? DefaultColor { get; }
@@ -556,7 +556,7 @@ internal sealed class PdfCanvasTextItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasTextBoxItem : PdfCanvasItem {
-    public PdfCanvasTextBoxItem(IReadOnlyList<TextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle style, double rotationAngle, Action<PdfLayoutDiagnostic>? diagnosticHandler)
+    public PdfCanvasTextBoxItem(IReadOnlyList<PdfTextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle style, double rotationAngle, Action<PdfLayoutDiagnostic>? diagnosticHandler)
         : base(x, y) {
         Runs = runs;
         Width = width;
@@ -566,7 +566,7 @@ internal sealed class PdfCanvasTextBoxItem : PdfCanvasItem {
         DiagnosticHandler = diagnosticHandler;
     }
 
-    public IReadOnlyList<TextRun> Runs { get; }
+    public IReadOnlyList<PdfTextRun> Runs { get; }
     public double Width { get; }
     public double Height { get; }
     public PdfCanvasTextBoxStyle Style { get; }

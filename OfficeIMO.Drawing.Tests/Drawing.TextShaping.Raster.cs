@@ -240,7 +240,7 @@ public partial class DrawingTests {
         OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
         Assert.Equal(OfficeImageExportDiagnosticCodes.TextShapingFallback, diagnostic.Code);
         Assert.Contains("cannot provide complete", diagnostic.Message, StringComparison.Ordinal);
-        Assert.Equal(OfficeImageExportLossKind.Approximation, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
     }
 
     [Fact]
@@ -271,7 +271,7 @@ public partial class DrawingTests {
 
         OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
         Assert.Equal(OfficeImageExportDiagnosticCodes.TextShapingFallback, diagnostic.Code);
-        Assert.Equal(OfficeImageExportLossKind.Approximation, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
         Assert.Equal("managed Arabic test", diagnostic.Source);
     }
 

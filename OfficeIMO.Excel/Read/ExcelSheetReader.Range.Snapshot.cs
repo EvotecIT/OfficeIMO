@@ -144,16 +144,16 @@ namespace OfficeIMO.Excel {
             int r2,
             int c2,
             string operationName,
-            OfficeIMO.Excel.ExecutionMode? mode,
+            OfficeIMO.Excel.ExcelExecutionMode? mode,
             CancellationToken ct,
             int workload) {
             var policy = _opt.Execution;
             var decided = mode ?? policy.Mode;
             var raw = new List<CellRaw>(capacity: GetSnapshotCapacity(workload));
             SnapshotCellsInto(raw, r1, c1, r2, c2, ct, out bool needsSharedStrings, out bool needsStyles);
-            if (decided == OfficeIMO.Excel.ExecutionMode.Automatic) decided = policy.Decide(operationName, raw.Count);
+            if (decided == OfficeIMO.Excel.ExcelExecutionMode.Automatic) decided = policy.Decide(operationName, raw.Count);
 
-            if (decided == OfficeIMO.Excel.ExecutionMode.Parallel && raw.Count > 0) {
+            if (decided == OfficeIMO.Excel.ExcelExecutionMode.Parallel && raw.Count > 0) {
                 PrepareCachesForParallelConversion(needsSharedStrings, needsStyles);
                 var po = new ParallelOptions {
                     CancellationToken = ct,

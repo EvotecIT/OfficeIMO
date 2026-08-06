@@ -96,7 +96,7 @@ namespace OfficeIMO.Word {
         /// <param name="isSmallCaps">Whether the text should use small caps.</param>
         /// <returns>The current paragraph instance.</returns>
         public WordParagraph SetSmallCaps(bool isSmallCaps = true) {
-            this.CapsStyle = isSmallCaps ? CapsStyle.SmallCaps : CapsStyle.None;
+            this.CapsStyle = isSmallCaps ? WordCapsStyle.SmallCaps : WordCapsStyle.None;
             return this;
         }
         /// <summary>
@@ -168,7 +168,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="capsStyle">Capitalization style.</param>
         /// <returns>The current paragraph instance.</returns>
-        public WordParagraph SetCapsStyle(CapsStyle capsStyle) {
+        public WordParagraph SetCapsStyle(WordCapsStyle capsStyle) {
             this.CapsStyle = capsStyle;
             return this;
         }

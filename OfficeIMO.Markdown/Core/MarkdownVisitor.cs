@@ -139,7 +139,7 @@ public abstract class MarkdownVisitor {
             case SubscriptSequenceInline subscriptSequence:
                 VisitSubscriptSequenceInline(subscriptSequence);
                 break;
-            case TextRun textRun:
+            case MarkdownTextRun textRun:
                 VisitTextRun(textRun);
                 break;
             case CodeSpanInline codeSpan:
@@ -261,7 +261,7 @@ public abstract class MarkdownVisitor {
     protected virtual void VisitInsertedSequenceInline(InsertedSequenceInline inline) => VisitInline(inline);
     protected virtual void VisitSuperscriptSequenceInline(SuperscriptSequenceInline inline) => VisitInline(inline);
     protected virtual void VisitSubscriptSequenceInline(SubscriptSequenceInline inline) => VisitInline(inline);
-    protected virtual void VisitTextRun(TextRun inline) => VisitInline(inline);
+    protected virtual void VisitTextRun(MarkdownTextRun inline) => VisitInline(inline);
     protected virtual void VisitCodeSpanInline(CodeSpanInline inline) => VisitInline(inline);
     protected virtual void VisitFootnoteRefInline(FootnoteRefInline inline) => VisitInline(inline);
     protected virtual void VisitHardBreakInline(HardBreakInline inline) => VisitInline(inline);

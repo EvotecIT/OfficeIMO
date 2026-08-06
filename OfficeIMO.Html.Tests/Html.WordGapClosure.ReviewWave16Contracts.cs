@@ -55,7 +55,7 @@ public partial class HtmlWordGapClosure {
 
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.LeftStyle);
         Assert.Equal("0000FF", paragraph.Borders.LeftColorHex);
-        Assert.Equal(12U, paragraph.Borders.LeftSize?.Value);
+        Assert.Equal(12U, paragraph.Borders.LeftSize);
     }
 
     [Fact]

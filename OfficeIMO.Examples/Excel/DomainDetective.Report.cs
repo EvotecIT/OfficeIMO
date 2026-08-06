@@ -114,7 +114,7 @@ namespace OfficeIMO.Examples.Excel {
                     };
                     // Keep long text columns out of the summary table
                     opts.Ignore = new[] { nameof(MailDomainClassificationResult.Recommendations), nameof(MailDomainClassificationResult.Positives), nameof(MailDomainClassificationResult.References) };
-                }, style: TableStyle.TableStyleMedium9, visuals: viz => {
+                }, style: ExcelTableStyle.TableStyleMedium9, visuals: viz => {
                     viz.IconSetColumns.Add("Score");
                     (viz.TextBackgrounds["Status"], viz.BoldByText["Status"]) = StatusPalettes.Default;
                 });

@@ -4,10 +4,9 @@ using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.PowerPoint.GoogleSlides {
-    public enum GoogleSlidesDiffKind { SourceChange = 0, RemoteChange = 1, Conflict = 2, LossyAction = 3 }
     public sealed class GoogleSlidesDiffItem {
-        public GoogleSlidesDiffItem(GoogleSlidesDiffKind kind, string path, string message) { Kind = kind; Path = path; Message = message; }
-        public GoogleSlidesDiffKind Kind { get; }
+        public GoogleSlidesDiffItem(GoogleWorkspaceDiffKind kind, string path, string message) { Kind = kind; Path = path; Message = message; }
+        public GoogleWorkspaceDiffKind Kind { get; }
         public string Path { get; }
         public string Message { get; }
     }
@@ -21,8 +20,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         public GooglePresentationReference Remote { get; }
         public IReadOnlyList<GoogleSlidesDiffItem> Items { get; }
         public TranslationReport Report { get; }
-        public bool HasConflicts => Items.Any(item => item.Kind == GoogleSlidesDiffKind.Conflict);
-        public bool HasLossyActions => Items.Any(item => item.Kind == GoogleSlidesDiffKind.LossyAction);
+        public bool HasConflicts => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.Conflict);
+        public bool HasLossyActions => Items.Any(item => item.Kind == GoogleWorkspaceDiffKind.LossyAction);
         public bool CanApply => !HasConflicts && !Report.HasErrors;
     }
     public static class GoogleSlidesDiffPlanner {
@@ -33,12 +32,12 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             return checkpoint;
         }
         public static async Task<GoogleSlidesDiffPlan> BuildAsync(PowerPointPresentation source, string presentationId, GoogleWorkspaceSession session, GoogleSlidesSyncCheckpoint? checkpoint = null, CancellationToken cancellationToken = default) {
-            GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync(presentationId, session, new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.Native }, cancellationToken).ConfigureAwait(false);
+            GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync(presentationId, session, new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native }, cancellationToken).ConfigureAwait(false);
             using (imported.Presentation) {
                 List<GoogleSlidesDiffItem> items = Compare(Hashes(source), Hashes(imported.Presentation), checkpoint);
-                foreach (TranslationNotice notice in imported.Report.Notices.Where(notice => notice.Severity >= TranslationSeverity.Warning)) items.Add(new GoogleSlidesDiffItem(GoogleSlidesDiffKind.LossyAction, notice.TargetId ?? notice.Feature, notice.Message));
-                if (checkpoint?.RevisionId != null && imported.Source.RevisionId != null && !string.Equals(checkpoint.RevisionId, imported.Source.RevisionId, StringComparison.Ordinal)) items.Add(new GoogleSlidesDiffItem(GoogleSlidesDiffKind.RemoteChange, "presentation/revision", "The Google presentation revision changed after the checkpoint."));
-                if (checkpoint?.DriveVersion != null && imported.Source.DriveVersion != null && checkpoint.DriveVersion != imported.Source.DriveVersion) items.Add(new GoogleSlidesDiffItem(GoogleSlidesDiffKind.RemoteChange, "presentation/driveVersion", "The Google presentation Drive version changed after the checkpoint."));
+                foreach (TranslationNotice notice in imported.Report.Notices.Where(notice => notice.Severity >= TranslationSeverity.Warning)) items.Add(new GoogleSlidesDiffItem(GoogleWorkspaceDiffKind.LossyAction, notice.TargetId ?? notice.Feature, notice.Message));
+                if (checkpoint?.RevisionId != null && imported.Source.RevisionId != null && !string.Equals(checkpoint.RevisionId, imported.Source.RevisionId, StringComparison.Ordinal)) items.Add(new GoogleSlidesDiffItem(GoogleWorkspaceDiffKind.RemoteChange, "presentation/revision", "The Google presentation revision changed after the checkpoint."));
+                if (checkpoint?.DriveVersion != null && imported.Source.DriveVersion != null && checkpoint.DriveVersion != imported.Source.DriveVersion) items.Add(new GoogleSlidesDiffItem(GoogleWorkspaceDiffKind.RemoteChange, "presentation/driveVersion", "The Google presentation Drive version changed after the checkpoint."));
                 return new GoogleSlidesDiffPlan(imported.Source, items, imported.Report);
             }
         }
@@ -49,9 +48,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 bool localChanged = checkpoint == null ? !string.Equals(local, target, StringComparison.Ordinal) : !string.Equals(local, baseline, StringComparison.Ordinal);
                 bool remoteChanged = checkpoint == null ? !string.Equals(target, local, StringComparison.Ordinal) : !string.Equals(target, baseline, StringComparison.Ordinal);
                 if (!localChanged && !remoteChanged) continue;
-                if (localChanged && remoteChanged && !string.Equals(local, target, StringComparison.Ordinal)) result.Add(new GoogleSlidesDiffItem(GoogleSlidesDiffKind.Conflict, path, "The OfficeIMO source and Google presentation changed this item differently."));
-                else if (localChanged) result.Add(new GoogleSlidesDiffItem(GoogleSlidesDiffKind.SourceChange, path, "The OfficeIMO source changed this item."));
-                else result.Add(new GoogleSlidesDiffItem(GoogleSlidesDiffKind.RemoteChange, path, "The Google presentation changed this item."));
+                if (localChanged && remoteChanged && !string.Equals(local, target, StringComparison.Ordinal)) result.Add(new GoogleSlidesDiffItem(GoogleWorkspaceDiffKind.Conflict, path, "The OfficeIMO source and Google presentation changed this item differently."));
+                else if (localChanged) result.Add(new GoogleSlidesDiffItem(GoogleWorkspaceDiffKind.SourceChange, path, "The OfficeIMO source changed this item."));
+                else result.Add(new GoogleSlidesDiffItem(GoogleWorkspaceDiffKind.RemoteChange, path, "The Google presentation changed this item."));
             }
             return result;
         }

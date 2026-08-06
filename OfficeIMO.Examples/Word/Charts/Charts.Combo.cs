@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
             comboChart.AddChartAxisX(categories);
             comboChart.AddBar("Sales", new List<int> { 10, 35, 18, 23 }, Color.Brown);
             comboChart.AddLine("Trend", new List<int> { 12, 30, 20, 25 }, Color.AliceBlue);
-            comboChart.AddLegend(WordChartLegendPosition.Top);
+            comboChart.AddLegend(OfficeChartLegendPosition.Top);
             document.Save();
 
             var valid = document.ValidateDocument();

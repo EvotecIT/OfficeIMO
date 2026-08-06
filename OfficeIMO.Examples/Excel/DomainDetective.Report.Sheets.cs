@@ -53,7 +53,7 @@ namespace OfficeIMO.Examples.Excel {
             overview.Title("Domain Detective — Overview", $"Generated {DateTime.Now:yyyy-MM-dd HH:mm}");
             // Header/footer with Evotec logo + page text (fixed URL)
             const string logoUrl = "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png";
-            await overview.HeaderLogoFromUrlAsync(logoUrl, OfficeIMO.Excel.HeaderFooterPosition.Center, 120, 40, leftText: "Page &P of &N");
+            await overview.HeaderLogoFromUrlAsync(logoUrl, OfficeIMO.Excel.ExcelHeaderFooterPosition.Center, 120, 40, leftText: "Page &P of &N");
             // Also place the logo inside the sheet (first page) via URL
             await overview.ImageFromUrlAtAsync(row: 1, column: 6, url: logoUrl, widthPixels: 120, heightPixels: 40);
 
@@ -130,7 +130,7 @@ namespace OfficeIMO.Examples.Excel {
             // Make summary presentable for printing
             overview
                 .PrintDefaults(showGridlines: false, fitToWidth: 1, fitToHeight: 0, printAreaA1: summaryRange)
-                .Orientation(ExcelPageOrientation.Landscape)
+                .Orientation(OfficePageOrientation.Landscape)
                 .Margins(ExcelMarginPreset.Narrow)
                 .RepeatHeaderRows(1, 1);
 
@@ -164,7 +164,7 @@ namespace OfficeIMO.Examples.Excel {
             // Add header logo to Index (Left) with page number on Right for variety
             var idx = doc["Index"]; if (idx != null) {
                 idx.SetHeaderFooter(headerRight: "Page &P of &N");
-                await idx.SetHeaderImageFromUrlAsync(HeaderFooterPosition.Left, logoUrl, widthPoints: 96, heightPoints: 32);
+                await idx.SetHeaderImageFromUrlAsync(ExcelHeaderFooterPosition.Left, logoUrl, widthPoints: 96, heightPoints: 32);
             }
 
             var errors = doc.ValidateOpenXml();
@@ -211,7 +211,7 @@ namespace OfficeIMO.Examples.Excel {
             });
             // Header logo on the Right, page number on Left (complements Index/Overview)
             await s.HeaderLogoFromUrlAsync("https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png",
-                OfficeIMO.Excel.HeaderFooterPosition.Right, 96, 32, leftText: "Page &P of &N");
+                OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, 96, 32, leftText: "Page &P of &N");
             // Optional: embed the Evotec logo on each detail sheet near the title
             await s.ImageFromUrlAtAsync(row: 1, column: 5,
                 url: "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", widthPixels: 100, heightPixels: 34);

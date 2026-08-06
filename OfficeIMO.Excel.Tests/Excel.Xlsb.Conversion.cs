@@ -24,7 +24,7 @@ public partial class Excel {
         ExcelDocumentConversionException blocked = Assert.Throws<ExcelDocumentConversionException>(() =>
             ExcelDocument.Convert(sourcePath, blockedPath));
 
-        Assert.Equal(ExcelDocumentConversionFailureReason.DataLossBlocked, blocked.Reason);
+        Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
         Assert.False(File.Exists(blockedPath));
         OfficeCompatibilityFinding[] recordFindings = blocked.Result.Report.Compatibility.Findings
             .Where(finding => finding.Code.StartsWith("Excel.Xlsb.UnprojectedRecord.", StringComparison.Ordinal))
@@ -40,7 +40,7 @@ public partial class Excel {
         ExcelDocumentConversionResult allowed = ExcelDocument.Convert(
             sourcePath,
             allowedPath,
-            new ExcelDocumentConversionOptions { LossPolicy = ExcelConversionLossPolicy.Allow });
+            new ExcelDocumentConversionOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
 
         Assert.Equal(OfficeCompatibilityMode.BestEffort, allowed.Report.Compatibility.Mode);
         Assert.True(allowed.Report.Compatibility.HasLoss);

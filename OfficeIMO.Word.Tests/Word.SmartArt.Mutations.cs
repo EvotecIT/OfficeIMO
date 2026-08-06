@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SmartArt_Basic_Mutations.docx");
 
             using (var document = WordDocument.Create(filePath)) {
-                var sa = document.AddSmartArt(SmartArtType.BasicProcess);
+                var sa = document.AddSmartArt(WordSmartArtType.BasicProcess);
                 Assert.Equal(1, sa.NodeCount);
 
                 sa.AddNode("B");
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SmartArt_Cycle_Mutations.docx");
 
             using (var document = WordDocument.Create(filePath)) {
-                var sa = document.AddSmartArt(SmartArtType.Cycle);
+                var sa = document.AddSmartArt(WordSmartArtType.Cycle);
                 Assert.Equal(1, sa.NodeCount);
                 sa.AddNode("B");
                 sa.AddNode("C");
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SmartArt_Basic_Formatted.docx");
 
             using (var document = WordDocument.Create(filePath)) {
-                var sa = document.AddSmartArt(SmartArtType.BasicProcess);
+                var sa = document.AddSmartArt(WordSmartArtType.BasicProcess);
                 // Ensure two nodes
                 sa.AddNode("Second");
                 sa.ReplaceTexts(bold: true, italic: true, underline: true, colorHex: "#FF0000", sizePt: 12, texts: new [] {"First", "Second"});

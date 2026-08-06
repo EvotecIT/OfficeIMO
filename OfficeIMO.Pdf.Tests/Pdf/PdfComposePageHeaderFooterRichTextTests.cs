@@ -17,13 +17,13 @@ namespace OfficeIMO.Tests.Pdf {
             };
             var doc = PdfDocument.Create(options)
                 .Header(header => header.Text(text => text
-                    .Run(TextRun.Bolded("Rich header ", PdfColor.FromRgb(255, 0, 0), fontSize: 14, backgroundColor: PdfColor.FromRgb(255, 255, 0)))
-                    .CurrentPage(TextRun.Italicized(string.Empty, PdfColor.FromRgb(0, 0, 255), fontSize: 11))
+                    .Run(PdfTextRun.Bolded("Rich header ", PdfColor.FromRgb(255, 0, 0), fontSize: 14, backgroundColor: PdfColor.FromRgb(255, 255, 0)))
+                    .CurrentPage(PdfTextRun.Italicized(string.Empty, PdfColor.FromRgb(0, 0, 255), fontSize: 11))
                     .Text("/")
-                    .TotalPages(TextRun.Underlined(string.Empty, PdfColor.FromRgb(0, 128, 0), fontSize: 11))))
+                    .TotalPages(PdfTextRun.Underlined(string.Empty, PdfColor.FromRgb(0, 128, 0), fontSize: 11))))
                 .Footer(footer => footer.Text(text => text
-                    .Run(TextRun.Strikethrough("Rich footer ", PdfColor.FromRgb(128, 0, 128), fontSize: 9))
-                    .CurrentPage(TextRun.Superscript(string.Empty, fontSize: 9))))
+                    .Run(PdfTextRun.Strikethrough("Rich footer ", PdfColor.FromRgb(128, 0, 128), fontSize: 9))
+                    .CurrentPage(PdfTextRun.Superscript(string.Empty, fontSize: 9))))
                 .Paragraph(p => p.Text("Body content."));
 
             byte[] bytes = doc.ToBytes();
@@ -49,13 +49,13 @@ namespace OfficeIMO.Tests.Pdf {
         public void HeaderFooterRichText_UsesFirstEvenAndDefaultVariants() {
             byte[] bytes = PdfDocument.Create()
                 .Header(header => header
-                    .Text(text => text.Run(TextRun.Bolded("Odd rich")))
-                    .FirstPageText(text => text.Run(TextRun.Italicized("First rich")))
-                    .EvenPagesText(text => text.Run(TextRun.Underlined("Even rich"))))
+                    .Text(text => text.Run(PdfTextRun.Bolded("Odd rich")))
+                    .FirstPageText(text => text.Run(PdfTextRun.Italicized("First rich")))
+                    .EvenPagesText(text => text.Run(PdfTextRun.Underlined("Even rich"))))
                 .Footer(footer => footer
-                    .Text(text => text.Run(TextRun.Bolded("Odd footer")))
-                    .FirstPageText(text => text.Run(TextRun.Italicized("First footer")))
-                    .EvenPagesText(text => text.Run(TextRun.Underlined("Even footer"))))
+                    .Text(text => text.Run(PdfTextRun.Bolded("Odd footer")))
+                    .FirstPageText(text => text.Run(PdfTextRun.Italicized("First footer")))
+                    .EvenPagesText(text => text.Run(PdfTextRun.Underlined("Even footer"))))
                 .Paragraph(p => p.Text("Page one"))
                 .PageBreak()
                 .Paragraph(p => p.Text("Page two"))
@@ -88,13 +88,13 @@ namespace OfficeIMO.Tests.Pdf {
                 .Header(header => header
                     .FontFamily(familyName)
                     .Text(text => text
-                        .Run(new TextRun("Header "))
-                        .CurrentPage(new TextRun(string.Empty))))
+                        .Run(new PdfTextRun("Header "))
+                        .CurrentPage(new PdfTextRun(string.Empty))))
                 .Footer(footer => footer
                     .FontFamily(familyName)
                     .Text(text => text
-                        .Run(new TextRun("Footer "))
-                        .TotalPages(new TextRun(string.Empty))))
+                        .Run(new PdfTextRun("Footer "))
+                        .TotalPages(new PdfTextRun(string.Empty))))
                 .Paragraph(paragraph => paragraph.Text("Body"))
                 .ToBytes();
 
@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests.Pdf {
             byte[] bytes = PdfDocument.Create()
                 .Header(header => header.Text(text => text
                     .Text("NormalOne\nNormalTwo")
-                    .Run(TextRun.Superscript("Raised\n"))
+                    .Run(PdfTextRun.Superscript("Raised\n"))
                     .Text("NormalThree")))
                 .Paragraph(paragraph => paragraph.Text("Body"))
                 .ToBytes();
@@ -129,15 +129,15 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void HeaderFooterRichText_RejectsInteractiveAndInlineRuns() {
-            var link = TextRun.Link("Link", "https://example.com");
-            var inline = TextRun.Inline(new PdfInlineBox(12, 8));
+            var link = PdfTextRun.Link("Link", "https://example.com");
+            var inline = PdfTextRun.Inline(new PdfInlineBox(12, 8));
 
             Assert.Throws<ArgumentException>(() =>
                 PdfDocument.Create().Header(header => header.Text(text => text.Run(link))));
             Assert.Throws<ArgumentException>(() =>
                 PdfDocument.Create().Footer(footer => footer.Text(text => text.Run(inline))));
             Assert.Throws<ArgumentException>(() =>
-                FooterSegment.PageNumber(TextRun.Tab()));
+                FooterSegment.PageNumber(PdfTextRun.Tab()));
         }
     }
 }

@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using PptCore = OfficeIMO.PowerPoint;
 
@@ -14,7 +15,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             if (!budget.TryReserveSemanticContainer(out string containerLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                     "Additional HTML sections were omitted because the shared slide limit was reached.",
-                    HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Omission, detail: containerLimit);
+                    HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, detail: containerLimit);
                 break;
             }
 
@@ -75,28 +76,28 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlImportBudget budget,
         ref double top) {
         if (!HtmlImageDataUri.TryParse(resource.Source, out HtmlImageDataUri dataUri)
-            || !TryGetImagePartType(dataUri.MediaType, out PptCore.ImagePartType imagePartType)) {
+            || !TryGetImagePartType(dataUri.MediaType, out OfficeImageFormat imagePartType)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
                 "An inline generic slide image was omitted because native import requires a supported bounded image data URI.",
-                lossKind: HtmlConversionLossKind.Omission, source: resource.Source);
+                lossKind: OfficeConversionLossKind.Omission, source: resource.Source);
             return;
         }
         if (!budget.IsImageWithinLimit(dataUri, out string limit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An inline generic slide image was omitted because it exceeded the shared image limit.",
-                lossKind: HtmlConversionLossKind.Omission, source: resource.Source, detail: limit);
+                lossKind: OfficeConversionLossKind.Omission, source: resource.Source, detail: limit);
             return;
         }
         if (!budget.TryReserveImageWithShape(dataUri, out limit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An inline generic slide image was omitted because the shared image or shape limit was reached.",
-                lossKind: HtmlConversionLossKind.Omission, source: resource.Source, detail: limit);
+                lossKind: OfficeConversionLossKind.Omission, source: resource.Source, detail: limit);
             return;
         }
         if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
                 "An inline generic slide image could not be decoded.",
-                lossKind: HtmlConversionLossKind.Omission, source: resource.Source);
+                lossKind: OfficeConversionLossKind.Omission, source: resource.Source);
             return;
         }
         double maximum = budget.Limits.MaxAbsoluteGeometry;

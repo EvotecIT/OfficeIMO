@@ -171,7 +171,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the legend position and visibility.
         /// </summary>
-        public PowerPointChart SetLegend(PowerPointChartLegendPosition position, bool overlay = false) {
+        public PowerPointChart SetLegend(OfficeChartLegendPosition position, bool overlay = false) {
             C.Chart chart = GetChart();
             C.Legend legend = chart.GetFirstChild<C.Legend>() ?? new C.Legend();
             var legendPosition = legend.GetFirstChild<C.LegendPosition>() ?? new C.LegendPosition();

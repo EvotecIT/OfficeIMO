@@ -147,8 +147,8 @@ public class PdfInlineElementTests {
             .Table(new[] {
                 new[] {
                     PdfTableCell.RichTextCell(new[] {
-                        TextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier),
-                        TextRun.Inline(new PdfInlineBox(12, 10, background: fill))
+                        PdfTextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier),
+                        PdfTextRun.Inline(new PdfInlineBox(12, 10, background: fill))
                     })
                 }
             }, style: new PdfTableStyle {

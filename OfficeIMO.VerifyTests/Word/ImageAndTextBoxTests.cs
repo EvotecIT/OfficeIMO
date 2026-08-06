@@ -41,7 +41,7 @@ public class ImageAndTextBoxTests : VerifyTestBase {
     public async Task WrappedImageDocument() {
         using var document = WordDocument.Create();
         var paragraph = document.AddParagraph("Wrapped image");
-        var image = paragraph.InsertImage(GetSampleImagePath(), 90, 45, WrapTextImage.Square, "Wrapped sample image");
+        var image = paragraph.InsertImage(GetSampleImagePath(), 90, 45, WordImageTextWrapping.Square, "Wrapped sample image");
         image.Title = "Wrapped title";
         image.horizontalPosition = new DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalPosition() {
             RelativeFrom = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalRelativePositionValues.Page,
@@ -62,7 +62,7 @@ public class ImageAndTextBoxTests : VerifyTestBase {
 
         var defaultHeader = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
         var headerParagraph = defaultHeader.AddParagraph("Header image");
-        var image = headerParagraph.InsertImage(GetSampleImagePath(), 64, 64, WrapTextImage.Square, "Header image");
+        var image = headerParagraph.InsertImage(GetSampleImagePath(), 64, 64, WordImageTextWrapping.Square, "Header image");
         image.Title = "Header logo";
 
         await DoTest(document);
@@ -72,7 +72,7 @@ public class ImageAndTextBoxTests : VerifyTestBase {
     public async Task TextBoxDocument() {
         using var document = WordDocument.Create();
         document.AddParagraph("Text box");
-        var textBox = document.AddTextBox("Hello from textbox", WrapTextImage.Through);
+        var textBox = document.AddTextBox("Hello from textbox", WordImageTextWrapping.Through);
         textBox.AutoFit = WordTextBoxAutoFitType.ShrinkTextOnOverflow;
         textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         textBox.HorizontalPositionOffsetCentimeters = 2;
@@ -87,9 +87,9 @@ public class ImageAndTextBoxTests : VerifyTestBase {
         document.AddHeadersAndFooters();
 
         var defaultHeader = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
-        var textBox = defaultHeader.AddTextBox("Header textbox", WrapTextImage.Square);
+        var textBox = defaultHeader.AddTextBox("Header textbox", WordImageTextWrapping.Square);
         textBox.AutoFit = WordTextBoxAutoFitType.ResizeShapeToFitText;
-        textBox.HorizontalAlignment = WordHorizontalAlignmentValues.Right;
+        textBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Right;
         textBox.VerticalPositionOffsetCentimeters = 1.5;
         textBox.Paragraphs[0].AddHyperLink(" link", new Uri("https://officeimo.example/header"), addStyle: true);
 

@@ -30,7 +30,7 @@ namespace OfficeIMO.Word {
         private int? _cropBottom;
         private int? _cropLeft;
         private int? _cropRight;
-        private ImageFillMode _fillMode = ImageFillMode.Stretch;
+        private WordImageFillMode _fillMode = WordImageFillMode.Stretch;
         private bool? _useLocalDpi;
         private string? _title;
         private bool? _hidden;
@@ -64,7 +64,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set the Image's horizontal position.
         /// </summary>
-        public HorizontalPosition horizontalPosition {
+        internal HorizontalPosition horizontalPosition {
             get {
                 if (_Image.Inline == null) {
                     var anchor = _Image.Anchor ?? throw new InvalidOperationException("Anchor is missing.");
@@ -86,7 +86,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set the Image's vertical position.
         /// </summary>
-        public VerticalPosition verticalPosition {
+        internal VerticalPosition verticalPosition {
             get {
                 if (_Image.Inline == null) {
                     var anchor = _Image.Anchor ?? throw new InvalidOperationException("Anchor is missing.");
@@ -336,7 +336,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the shape type used to display the image.
         /// </summary>
-        public WordImageShapeType? Shape {
+        public OfficePresetShapeType? Shape {
             get {
                 var pictureInline = _Image.Inline?.Graphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                 var presetInline = pictureInline?.ShapeProperties?.GetFirstChild<PresetGeometry>()?.Preset?.Value;

@@ -60,12 +60,12 @@ namespace OfficeIMO.Tests {
             try {
                 ExcelDocumentConversionException exception = Assert.Throws<ExcelDocumentConversionException>(() => ExcelDocument.Convert(xlsPath, blockedPath));
 
-                Assert.Equal(ExcelDocumentConversionFailureReason.DataLossBlocked, exception.Reason);
+                Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, exception.Reason);
                 Assert.True(exception.Result.HasLoss);
                 Assert.False(File.Exists(blockedPath));
 
                 ExcelDocumentConversionResult result = ExcelDocument.Convert(xlsPath, allowedPath, new ExcelDocumentConversionOptions {
-                    LossPolicy = ExcelConversionLossPolicy.Allow
+                    LossPolicy = OfficeConversionLossPolicy.Allow
                 });
 
                 Assert.True(result.HasLoss);
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
             try {
                 InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
                     ExcelDocument.Convert(sourcePath, destinationPath, new ExcelDocumentConversionOptions {
-                        LossPolicy = ExcelConversionLossPolicy.Allow,
+                        LossPolicy = OfficeConversionLossPolicy.Allow,
                         LegacyXlsImportOptions = new LegacyXlsImportOptions { MaxInputBytes = 1 }
                     }));
 
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
                         LegacyXlsImportOptions = new LegacyXlsImportOptions { ReportUnsupportedContent = false }
                     }));
 
-                Assert.Equal(ExcelDocumentConversionFailureReason.DataLossBlocked, exception.Reason);
+                Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, exception.Reason);
                 Assert.True(exception.Result.HasLoss);
                 Assert.False(File.Exists(destinationPath));
             } finally {
@@ -137,11 +137,11 @@ namespace OfficeIMO.Tests {
             ExcelDocumentConversionException exception = Assert.Throws<ExcelDocumentConversionException>(() =>
                 ExcelDocument.Convert(sourcePath, destinationPath));
 
-            Assert.Equal(ExcelDocumentConversionFailureReason.DestinationExists, exception.Reason);
+            Assert.Equal(OfficeConversionFailureReason.DestinationExists, exception.Reason);
             Assert.Equal(existing, File.ReadAllBytes(destinationPath));
 
             ExcelDocumentConversionResult replaced = ExcelDocument.Convert(sourcePath, destinationPath, new ExcelDocumentConversionOptions {
-                FileConflictPolicy = ExcelConversionFileConflictPolicy.Replace
+                FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace
             });
             Assert.True(replaced.Report.ReplacedExistingFile);
             using ExcelDocument loaded = ExcelDocument.Load(destinationPath);
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 Assert.Throws<IOException>(() => ExcelDocument.Convert(sourcePath, destinationPath, new ExcelDocumentConversionOptions {
-                    FileConflictPolicy = ExcelConversionFileConflictPolicy.Replace
+                    FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace
                 }));
 
                 Assert.Equal(originalBytes, File.ReadAllBytes(destinationPath));
@@ -185,7 +185,7 @@ namespace OfficeIMO.Tests {
             ExcelDocumentConversionException exception = Assert.Throws<ExcelDocumentConversionException>(() =>
                 ExcelDocument.Convert(sourcePath, destinationPath));
 
-            Assert.Equal(ExcelDocumentConversionFailureReason.SameFormat, exception.Reason);
+            Assert.Equal(OfficeConversionFailureReason.SameFormat, exception.Reason);
             Assert.False(File.Exists(destinationPath));
         }
 
@@ -222,8 +222,8 @@ namespace OfficeIMO.Tests {
             ExcelDocumentConversionException blocked = Assert.Throws<ExcelDocumentConversionException>(() =>
                 ExcelDocument.Convert(sourcePath, blockedPath));
 
-            Assert.Equal(ExcelDocumentConversionFailureReason.DataLossBlocked, blocked.Reason);
-            ExcelConversionDiagnostic finding = Assert.Single(blocked.Result.Report.Diagnostics,
+            Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
+            OfficeConversionDiagnostic finding = Assert.Single(blocked.Result.Report.Diagnostics,
                 diagnostic => diagnostic.Code == "Excel.VbaProject.Removed");
             Assert.Equal(OfficeCompatibilityState.Blocked, finding.CompatibilityState);
             Assert.True(finding.CompatibilityImpact.HasFlag(OfficeCompatibilityImpact.Security));
@@ -250,7 +250,7 @@ namespace OfficeIMO.Tests {
             ExcelDocumentConversionException exception = Assert.Throws<ExcelDocumentConversionException>(() =>
                 ExcelDocument.Convert(sourcePath, destinationPath));
 
-            Assert.Equal(ExcelDocumentConversionFailureReason.DestinationFeatureUnsupported, exception.Reason);
+            Assert.Equal(OfficeConversionFailureReason.DestinationFeatureUnsupported, exception.Reason);
             Assert.Contains(exception.Result.Report.Diagnostics,
                 diagnostic => diagnostic.Code == "Excel.LegacyDestination.NotWritable"
                     && diagnostic.CompatibilityState == OfficeCompatibilityState.Blocked);
@@ -315,7 +315,7 @@ namespace OfficeIMO.Tests {
 
             ExcelDocumentConversionException blocked = Assert.Throws<ExcelDocumentConversionException>(() =>
                 ExcelDocument.Convert(sourcePath, blockedPath));
-            Assert.Equal(ExcelDocumentConversionFailureReason.DataLossBlocked, blocked.Reason);
+            Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
             Assert.False(File.Exists(blockedPath));
 
             ExcelDocumentConversionResult allowed = ExcelDocument.Convert(
@@ -324,7 +324,7 @@ namespace OfficeIMO.Tests {
                 new ExcelDocumentConversionOptions {
                     CompatibilityMode = OfficeCompatibilityMode.BestEffort,
                     SaveOptions = new ExcelSaveOptions {
-                        SignatureMutationPolicy = ExcelSignatureMutationPolicy.RemoveInvalidatedSignatures
+                        SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
                     }
                 });
             Assert.True(allowed.Report.Compatibility.HasSecurityImpact);
@@ -371,10 +371,10 @@ namespace OfficeIMO.Tests {
 
             ExcelDocumentConversionException exception = Assert.Throws<ExcelDocumentConversionException>(() =>
                 ExcelDocument.Convert(sourcePath, destinationPath, new ExcelDocumentConversionOptions {
-                    OpenSettings = new OpenSettings { AutoSave = true }
+                    OpenSettings = new OfficeOpenXmlLoadSettings()
                 }));
 
-            Assert.Equal(ExcelDocumentConversionFailureReason.SameFormat, exception.Reason);
+            Assert.Equal(OfficeConversionFailureReason.SameFormat, exception.Reason);
             Assert.Equal(sourceBytes, File.ReadAllBytes(sourcePath));
             Assert.Equal(sourceWriteTime, File.GetLastWriteTimeUtc(sourcePath));
             Assert.False(File.Exists(destinationPath));
@@ -391,12 +391,12 @@ namespace OfficeIMO.Tests {
             try {
                 ExcelDocumentConversionException exception = Assert.Throws<ExcelDocumentConversionException>(() => ExcelDocument.Convert(xlsPath, blockedPath));
 
-                Assert.Equal(ExcelDocumentConversionFailureReason.DataLossBlocked, exception.Reason);
+                Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, exception.Reason);
                 Assert.Contains(exception.Result.Report.Diagnostics, diagnostic => diagnostic.Code.Contains("Compound", StringComparison.Ordinal));
                 Assert.False(File.Exists(blockedPath));
 
                 ExcelDocument.Convert(xlsPath, allowedPath, new ExcelDocumentConversionOptions {
-                    LossPolicy = ExcelConversionLossPolicy.Allow
+                    LossPolicy = OfficeConversionLossPolicy.Allow
                 });
 
                 using ExcelDocument converted = ExcelDocument.Load(allowedPath);
@@ -443,7 +443,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(File.Exists(blockedPath));
 
                 document.Save(allowedPath, new ExcelSaveOptions {
-                    LossPolicy = ExcelConversionLossPolicy.Allow
+                    LossPolicy = OfficeConversionLossPolicy.Allow
                 });
 
                 using ExcelDocument saved = ExcelDocument.Load(allowedPath);
@@ -528,7 +528,7 @@ namespace OfficeIMO.Tests {
             ExcelDocumentConversionException blocked = Assert.Throws<ExcelDocumentConversionException>(() =>
                 ExcelDocument.Convert(sourcePath, blockedPath));
 
-            Assert.Equal(ExcelDocumentConversionFailureReason.DestinationFeatureUnsupported, blocked.Reason);
+            Assert.Equal(OfficeConversionFailureReason.DestinationFeatureUnsupported, blocked.Reason);
             Assert.Contains(blocked.Result.Report.Diagnostics,
                 finding => finding.Code == "Excel.BinaryWriter.Unsupported"
                     && finding.CompatibilityState == OfficeCompatibilityState.Blocked);
@@ -667,7 +667,7 @@ namespace OfficeIMO.Tests {
                             && (finding.Impact & OfficeCompatibilityImpact.Security) != 0);
                     ExcelDocumentConversionException blocked = Assert.Throws<ExcelDocumentConversionException>(() =>
                         ExcelDocument.Convert(sourcePath, destinationPath, options));
-                    Assert.Equal(ExcelDocumentConversionFailureReason.DataLossBlocked, blocked.Reason);
+                    Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
                     Assert.False(File.Exists(destinationPath));
                 }
             } finally {
@@ -695,7 +695,7 @@ namespace OfficeIMO.Tests {
                         && (finding.Impact & OfficeCompatibilityImpact.Security) != 0);
                 ExcelDocumentConversionException blocked = Assert.Throws<ExcelDocumentConversionException>(() =>
                     ExcelDocument.Convert(sourcePath, destinationPath));
-                Assert.Equal(ExcelDocumentConversionFailureReason.DataLossBlocked, blocked.Reason);
+                Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
                 Assert.False(File.Exists(destinationPath));
             } finally {
                 TryDelete(sourcePath);
@@ -729,7 +729,7 @@ namespace OfficeIMO.Tests {
                         && finding.RepresentsLoss);
                 ExcelDocumentConversionException blocked = Assert.Throws<ExcelDocumentConversionException>(() =>
                     ExcelDocument.Convert(sourcePath, blockedPath, blockedOptions));
-                Assert.Equal(ExcelDocumentConversionFailureReason.DataLossBlocked, blocked.Reason);
+                Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
                 Assert.False(File.Exists(blockedPath));
 
                 ExcelDocumentConversionResult allowed = ExcelDocument.Convert(

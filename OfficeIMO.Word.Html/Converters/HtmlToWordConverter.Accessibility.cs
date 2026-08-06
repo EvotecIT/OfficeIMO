@@ -19,7 +19,7 @@ namespace OfficeIMO.Word.Html {
         private int _lastAccessibilityHeadingLevel;
 
         private static void AddAccessibilityDiagnostic(HtmlToWordOptions options, string code, string message, string? source) {
-            AddDiagnostic(options, code, message, source, lossKind: HtmlConversionLossKind.None);
+            AddDiagnostic(options, code, message, source, lossKind: OfficeConversionLossKind.None);
         }
 
         private void ResetAccessibilityDiagnosticsState() {

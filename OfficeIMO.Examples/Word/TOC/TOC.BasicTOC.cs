@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
                 // Standard way to open document and be asked about Updating Fields including TOC
                 document.Settings.UpdateFieldsOnOpen = true;
 
-                WordTableOfContent wordTableContent = document.AddTableOfContent(TableOfContentStyle.Template1);
+                WordTableOfContent wordTableContent = document.AddTableOfContent(WordTableOfContentsStyle.Template1);
                 wordTableContent.Text = "This is Table of Contents";
                 wordTableContent.TextNoContent = "Ooopsi, no content";
 

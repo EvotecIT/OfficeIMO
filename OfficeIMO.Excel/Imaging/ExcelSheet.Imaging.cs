@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel {
             if (consumer == null) throw new ArgumentNullException(nameof(consumer));
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
             IReadOnlyList<WorksheetImageRangeResolution> ranges = ResolveWorksheetImageRanges(resolved, allowMultipleResults: true);
-            HeaderFooterSnapshot? headerFooterSnapshot = resolved.SplitByManualPageBreaks
+            ExcelHeaderFooterSnapshot? headerFooterSnapshot = resolved.SplitByManualPageBreaks
                 ? GetHeaderFooter(resolved.MaximumTotalSourceImageBytes)
                 : null;
             long headerFooterSourceImageBytes = headerFooterSnapshot?.SourceImageByteCount ?? 0L;

@@ -2252,7 +2252,7 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of parsed TableStyles collection records.</summary>
         internal int TableStyleCollectionRecordCount { get; }
 
-        /// <summary>Gets the number of parsed user-defined TableStyle records.</summary>
+        /// <summary>Gets the number of parsed user-defined ExcelTableStyle records.</summary>
         internal int TableStyleDefinitionCount { get; }
 
         /// <summary>Gets the number of parsed TableStyleElement records.</summary>

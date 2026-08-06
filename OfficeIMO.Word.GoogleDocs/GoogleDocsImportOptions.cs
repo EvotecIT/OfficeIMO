@@ -1,9 +1,6 @@
-namespace OfficeIMO.Word.GoogleDocs {
-    public enum GoogleDocsImportMode {
-        DriveExport = 0,
-        Native = 1,
-    }
+using OfficeIMO.GoogleWorkspace;
 
+namespace OfficeIMO.Word.GoogleDocs {
     public enum GoogleDocsImportTabMode {
         FirstTab = 0,
         SelectedTab = 1,
@@ -23,7 +20,7 @@ namespace OfficeIMO.Word.GoogleDocs {
 
     public sealed class GoogleDocsImportOptions {
         public const long DefaultMaxResponseBytes = 64L * 1024L * 1024L;
-        public GoogleDocsImportMode Mode { get; set; } = GoogleDocsImportMode.DriveExport;
+        public GoogleWorkspaceImportMode Mode { get; set; } = GoogleWorkspaceImportMode.DriveExport;
         public GoogleDocsImportTabMode TabMode { get; set; } = GoogleDocsImportTabMode.FlattenWithHeadings;
         public string? TabId { get; set; }
         public GoogleDocsSuggestionsMode Suggestions { get; set; } = GoogleDocsSuggestionsMode.Accepted;

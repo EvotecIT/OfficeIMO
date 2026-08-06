@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
-                slide.Transition = SlideTransition.Fade;
+                slide.Transition = PowerPointSlideTransition.Fade;
                 MediaDataPart media = source.OpenXmlDocument.CreateMediaDataPart(
                     "audio/wav", ".wav");
                 using (var input = new MemoryStream(wave, writable: false)) {
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
-                slide.Transition = SlideTransition.Cut;
+                slide.Transition = PowerPointSlideTransition.Cut;
                 slide.SlidePart.Slide!.Transition!.Append(
                     new P.SoundAction(new P.EndSoundAction()));
                 Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
                    PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
-                slide.Transition = SlideTransition.Fade;
+                slide.Transition = PowerPointSlideTransition.Fade;
                 using (var audio = new MemoryStream(wave,
                            writable: false)) {
                     slide.SetTransitionSound(audio, "Alternate chime",
@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests {
                 PowerPointPresentation.Create();
             PowerPointSlide slide = source.AddSlide(
                 PowerPointSlideLayoutType.Blank);
-            slide.Transition = SlideTransition.Fade;
+            slide.Transition = PowerPointSlideTransition.Fade;
             using (var audio = new MemoryStream(wave,
                        writable: false)) {
                 slide.SetTransitionSound(audio, "Alternate chime");
@@ -362,7 +362,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(preflight.CanWrite);
                 savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 
@@ -409,7 +409,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(preflight.CanWrite);
                 savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 
@@ -455,7 +455,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(preflight.CanWrite);
                 savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 
@@ -559,7 +559,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            slide.Transition = SlideTransition.Fade;
+            slide.Transition = PowerPointSlideTransition.Fade;
             using (var audio = new MemoryStream(wave, writable: false)) {
                 slide.SetTransitionSound(audio, "Removed transition");
             }
@@ -567,7 +567,7 @@ namespace OfficeIMO.Tests {
                 .OfType<AudioReferenceRelationship>());
             Assert.Single(presentation.OpenXmlDocument.DataParts);
 
-            slide.Transition = SlideTransition.None;
+            slide.Transition = PowerPointSlideTransition.None;
 
             Assert.False(slide.HasTransitionSound);
             Assert.Empty(slide.SlidePart.DataPartReferenceRelationships
@@ -587,7 +587,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            slide.Transition = SlideTransition.Morph;
+            slide.Transition = PowerPointSlideTransition.Morph;
             using (var audio = new MemoryStream(wave, writable: false)) {
                 slide.SetTransitionSound(audio, "Choice sound");
             }
@@ -629,7 +629,7 @@ namespace OfficeIMO.Tests {
                     slide.ClearTransitionSound();
                     break;
                 default:
-                    slide.Transition = SlideTransition.None;
+                    slide.Transition = PowerPointSlideTransition.None;
                     break;
             }
 
@@ -659,7 +659,7 @@ namespace OfficeIMO.Tests {
                 using (var audio = new MemoryStream(wave, writable: false)) {
                     slide.SetTransitionSound(audio, "Shared Sound", loop: true);
                 }
-                slide.Transition = SlideTransition.WheelFourSpokes;
+                slide.Transition = PowerPointSlideTransition.WheelFourSpokes;
                 PowerPointAutoShape shape = slide.AddRectangle(
                     100000, 100000, 1000000, 500000);
                 using (var audio = new MemoryStream(wave, writable: false)) {
@@ -727,7 +727,7 @@ namespace OfficeIMO.Tests {
             string expectedReason) {
             using PowerPointPresentation source = PowerPointPresentation.Create();
             PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
-            slide.Transition = SlideTransition.Fade;
+            slide.Transition = PowerPointSlideTransition.Fade;
             MediaDataPart media = source.OpenXmlDocument.CreateMediaDataPart(
                 contentType, extension);
             using (var audio = new MemoryStream(CreateWavePayload(),
@@ -753,7 +753,7 @@ namespace OfficeIMO.Tests {
         private static byte[] CreateBinarySoundPresentation() {
             using PowerPointPresentation source = PowerPointPresentation.Create();
             PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
-            slide.Transition = SlideTransition.Fade;
+            slide.Transition = PowerPointSlideTransition.Fade;
             MediaDataPart media = source.OpenXmlDocument.CreateMediaDataPart(
                 "audio/wav", ".wav");
             using (var input = new MemoryStream(CreateWavePayload(), writable: false)) {

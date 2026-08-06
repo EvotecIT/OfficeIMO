@@ -129,14 +129,14 @@ public partial class PdfDocumentVisualQualityTests {
             .Table(new[] {
                 new[] {
                     PdfTableCell.RichTextCell(new[] {
-                        TextRun.Normal("Plain "),
-                        new TextRun("CellRed", color: PdfColor.FromRgb(255, 0, 0)),
-                        TextRun.Normal(" "),
-                        TextRun.Bolded("CellBold"),
-                        TextRun.Normal(" "),
-                        TextRun.Normal("CellMarked", backgroundColor: PdfColor.FromRgb(255, 255, 0)),
-                        TextRun.Normal(" "),
-                        TextRun.Normal("CellLarge", fontSize: 18)
+                        PdfTextRun.Normal("Plain "),
+                        new PdfTextRun("CellRed", color: PdfColor.FromRgb(255, 0, 0)),
+                        PdfTextRun.Normal(" "),
+                        PdfTextRun.Bolded("CellBold"),
+                        PdfTextRun.Normal(" "),
+                        PdfTextRun.Normal("CellMarked", backgroundColor: PdfColor.FromRgb(255, 255, 0)),
+                        PdfTextRun.Normal(" "),
+                        PdfTextRun.Normal("CellLarge", fontSize: 18)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -179,13 +179,13 @@ public partial class PdfDocumentVisualQualityTests {
             PdfDocument.Create().Paragraph(p => p.Strikethrough(null!)));
 
         Assert.Throws<ArgumentNullException>(() =>
-            TextRun.Normal(null!));
+            PdfTextRun.Normal(null!));
     }
 
     [Fact]
     public void RichText_RejectsInvalidBaselineValuesBeforeRendering() {
         var exception = Assert.Throws<ArgumentException>(() =>
-            new TextRun("Invalid baseline", baseline: (PdfTextBaseline)99));
+            new PdfTextRun("Invalid baseline", baseline: (PdfTextBaseline)99));
 
         Assert.Equal("baseline", exception.ParamName);
         Assert.Contains("PDF text baseline must be Normal, Superscript, or Subscript.", exception.Message, StringComparison.Ordinal);
@@ -237,9 +237,9 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ParagraphBlocks_SnapshotRunsIntoReadOnlyCollections() {
-        var runs = new List<TextRun> {
-            TextRun.Normal("Stable alpha"),
-            TextRun.Bolded("Stable beta")
+        var runs = new List<PdfTextRun> {
+            PdfTextRun.Normal("Stable alpha"),
+            PdfTextRun.Bolded("Stable beta")
         };
         var paragraphStyle = new PdfParagraphStyle {
             LineHeight = 1.6,
@@ -257,8 +257,8 @@ public partial class PdfDocumentVisualQualityTests {
         var paragraph = new RichParagraphBlock(runs, PdfAlign.Left, null, paragraphStyle);
         var panel = new PanelParagraphBlock(runs, PdfAlign.Left, null, panelStyle);
 
-        runs[0] = TextRun.Normal("Mutated alpha");
-        runs.Add(TextRun.Normal("Late gamma"));
+        runs[0] = PdfTextRun.Normal("Mutated alpha");
+        runs.Add(PdfTextRun.Normal("Late gamma"));
         paragraphStyle.LineHeight = 2.2;
         paragraphStyle.LeftIndent = 20;
         paragraphStyle.RightIndent = 21;
@@ -271,8 +271,8 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Equal(new[] { "Stable alpha", "Stable beta" }, paragraph.Runs.Select(run => run.Text).ToArray());
         Assert.Equal(new[] { "Stable alpha", "Stable beta" }, panel.Runs.Select(run => run.Text).ToArray());
-        Assert.False(paragraph.Runs is List<TextRun>);
-        Assert.False(panel.Runs is List<TextRun>);
+        Assert.False(paragraph.Runs is List<PdfTextRun>);
+        Assert.False(panel.Runs is List<PdfTextRun>);
         Assert.Equal(1.6, paragraph.Style!.LineHeight);
         Assert.Equal(4, paragraph.Style.LeftIndent);
         Assert.Equal(5, paragraph.Style.RightIndent);

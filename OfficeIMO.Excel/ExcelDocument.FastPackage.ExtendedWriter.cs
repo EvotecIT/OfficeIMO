@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
 
         private static class ExtendedWorkbookPackageWriter {
-            internal static void Write(Stream destination, ExtendedWorkbookPackageModel model, CancellationToken ct, ExecutionPolicy? execution = null) {
+            internal static void Write(Stream destination, ExtendedWorkbookPackageModel model, CancellationToken ct, ExcelExecutionPolicy? execution = null) {
                 Stopwatch? stageWatch = execution?.OnTiming == null ? null : Stopwatch.StartNew();
                 void ReportTiming(string operation) {
                     if (stageWatch == null || execution == null) {

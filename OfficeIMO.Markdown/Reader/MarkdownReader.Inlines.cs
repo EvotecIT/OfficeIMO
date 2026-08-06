@@ -63,9 +63,9 @@ public static partial class MarkdownReader {
                 sourceMap?.GetSpan(closingStart, fenceLength));
             AddRawNode(node, start, closingStart + fenceLength - start);
         }
-        void AddTextNode(string literal, int start, int length) => AddRawNode(new TextRun(literal), start, length);
+        void AddTextNode(string literal, int start, int length) => AddRawNode(new MarkdownTextRun(literal), start, length);
         void AddEscapedTextNode(char escapedCharacter, int start) {
-            var node = new TextRun(escapedCharacter.ToString());
+            var node = new MarkdownTextRun(escapedCharacter.ToString());
             MarkdownInlineMetadataSourceSpans.SetEscapedText(
                 node,
                 "\\",
@@ -966,7 +966,7 @@ public static partial class MarkdownReader {
         while (stack.Count > 1) {
             var f = stack.Pop();
             var parent = stack.Peek().Seq;
-            var markerNode = new TextRun(new string(f.Marker, f.OpenLen));
+            var markerNode = new MarkdownTextRun(new string(f.Marker, f.OpenLen));
             MarkdownInlineSourceSpans.Set(markerNode, sourceMap?.GetSpan(f.OpenIndex, f.OpenLen));
             parent.AddRaw(markerNode);
             foreach (var node in f.Seq.Nodes) parent.AddRaw(node);
@@ -1002,7 +1002,7 @@ public static partial class MarkdownReader {
 
                 rewritten.Add(current);
                 if (!string.IsNullOrEmpty(remainingText)) {
-                    var remainingRun = new TextRun(remainingText);
+                    var remainingRun = new MarkdownTextRun(remainingText);
                     MarkdownInlineSourceSpans.Set(remainingRun, remainingTextSpan);
                     rewritten.Add(remainingRun);
                 }
@@ -1023,7 +1023,7 @@ public static partial class MarkdownReader {
                     out var discardConsumedTextRuns)) {
                 rewritten.Add(current);
                 if (!string.IsNullOrEmpty(discardRemainingText)) {
-                    var remainingRun = new TextRun(discardRemainingText);
+                    var remainingRun = new MarkdownTextRun(discardRemainingText);
                     MarkdownInlineSourceSpans.Set(remainingRun, discardRemainingTextSpan);
                     rewritten.Add(remainingRun);
                 }
@@ -1054,14 +1054,14 @@ public static partial class MarkdownReader {
         attributeSpan = null;
         consumedTextRuns = 0;
 
-        if (nodes == null || startIndex < 0 || startIndex >= nodes.Count || nodes[startIndex] is not TextRun first || string.IsNullOrEmpty(first.Text) || first.Text[0] != '{') {
+        if (nodes == null || startIndex < 0 || startIndex >= nodes.Count || nodes[startIndex] is not MarkdownTextRun first || string.IsNullOrEmpty(first.Text) || first.Text[0] != '{') {
             return false;
         }
 
         var combined = new StringBuilder(GetTextRunSourceText(first));
         consumedTextRuns = 1;
         for (int i = startIndex + 1; i < nodes.Count; i++) {
-            if (nodes[i] is not TextRun textRun) {
+            if (nodes[i] is not MarkdownTextRun textRun) {
                 break;
             }
 
@@ -1089,7 +1089,7 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static string GetTextRunSourceText(TextRun textRun) {
+    private static string GetTextRunSourceText(MarkdownTextRun textRun) {
         if (textRun == null) {
             return string.Empty;
         }
@@ -1114,7 +1114,7 @@ public static partial class MarkdownReader {
 
         var combinedLength = 0;
         for (int i = 0; i < consumedTextRuns && startIndex + i < nodes.Count; i++) {
-            if (nodes[startIndex + i] is not TextRun textRun || string.IsNullOrEmpty(textRun.Text)) {
+            if (nodes[startIndex + i] is not MarkdownTextRun textRun || string.IsNullOrEmpty(textRun.Text)) {
                 break;
             }
 
@@ -1129,7 +1129,7 @@ public static partial class MarkdownReader {
         MarkdownSourceSpan? lastSpan = null;
         var runStart = 0;
         for (int i = 0; i < consumedTextRuns && startIndex + i < nodes.Count; i++) {
-            if (nodes[startIndex + i] is not TextRun textRun || string.IsNullOrEmpty(textRun.Text)) {
+            if (nodes[startIndex + i] is not MarkdownTextRun textRun || string.IsNullOrEmpty(textRun.Text)) {
                 break;
             }
 
@@ -1185,7 +1185,7 @@ public static partial class MarkdownReader {
         MarkdownSourceSpan? lastSpan = null;
         var remaining = consumedLength;
         for (int i = 0; i < consumedTextRuns && startIndex + i < nodes.Count && remaining > 0; i++) {
-            if (nodes[startIndex + i] is not TextRun textRun || string.IsNullOrEmpty(textRun.Text)) {
+            if (nodes[startIndex + i] is not MarkdownTextRun textRun || string.IsNullOrEmpty(textRun.Text)) {
                 break;
             }
 

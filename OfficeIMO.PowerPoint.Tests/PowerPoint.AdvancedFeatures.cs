@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
 
                 slide.BackgroundColor = "FF0000";
                 text.FillColor = "00FF00";
-                slide.Transition = SlideTransition.Fade;
+                slide.Transition = PowerPointSlideTransition.Fade;
 
                 presentation.Save();
             }
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointSlide slide = presentation.Slides.Single();
                 Assert.Equal("FF0000", slide.BackgroundColor);
-                Assert.Equal(SlideTransition.Fade, slide.Transition);
+                Assert.Equal(PowerPointSlideTransition.Fade, slide.Transition);
                 Assert.Single(slide.TextBoxes);
                 Assert.Single(slide.Pictures);
                 Assert.Single(slide.Tables);
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    slide.Transition = SlideTransition.Morph;
+                    slide.Transition = PowerPointSlideTransition.Morph;
 
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
 
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
-                    Assert.Equal(SlideTransition.Morph, slide.Transition);
+                    Assert.Equal(PowerPointSlideTransition.Morph, slide.Transition);
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
@@ -94,8 +94,8 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation =
                        PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide start = presentation.AddSlide();
-                    start.Transition = SlideTransition.Fade;
-                    start.TransitionSpeed = SlideTransitionSpeed.Fast;
+                    start.Transition = PowerPointSlideTransition.Fade;
+                    start.TransitionSpeed = PowerPointSlideTransitionSpeed.Fast;
                     start.TransitionDurationSeconds = 0.8;
                     start.TransitionAdvanceOnClick = false;
                     start.TransitionAdvanceAfterSeconds = 2.5;
@@ -103,14 +103,14 @@ namespace OfficeIMO.Tests {
                                writable: false)) {
                         start.SetTransitionSound(sound, "Morph sound");
                     }
-                    start.Transition = SlideTransition.Morph;
+                    start.Transition = PowerPointSlideTransition.Morph;
 
                     PowerPointSlide stop = presentation.AddSlide();
-                    stop.Transition = SlideTransition.Morph;
+                    stop.Transition = PowerPointSlideTransition.Morph;
                     stop.StopTransitionSound();
 
-                    Assert.Equal(SlideTransition.Morph, start.Transition);
-                    Assert.Equal(SlideTransition.Morph, stop.Transition);
+                    Assert.Equal(PowerPointSlideTransition.Morph, start.Transition);
+                    Assert.Equal(PowerPointSlideTransition.Morph, stop.Transition);
                     presentation.Save();
                 }
 
@@ -118,21 +118,21 @@ namespace OfficeIMO.Tests {
                     PowerPointPresentation.Load(filePath);
                 PowerPointSlide startSlide = reopened.Slides[0];
                 PowerPointSlide stopSlide = reopened.Slides[1];
-                Assert.Equal(SlideTransition.Morph,
+                Assert.Equal(PowerPointSlideTransition.Morph,
                     startSlide.Transition);
                 Assert.True(startSlide.HasTransitionSound);
                 Assert.Equal("Morph sound",
                     startSlide.TransitionSoundName);
                 Assert.Equal(audio,
                     startSlide.GetTransitionSoundBytes());
-                Assert.Equal(SlideTransitionSpeed.Fast,
+                Assert.Equal(PowerPointSlideTransitionSpeed.Fast,
                     startSlide.TransitionSpeed);
                 Assert.Equal(0.8,
                     startSlide.TransitionDurationSeconds);
                 Assert.False(startSlide.TransitionAdvanceOnClick);
                 Assert.Equal(2.5,
                     startSlide.TransitionAdvanceAfterSeconds);
-                Assert.Equal(SlideTransition.Morph,
+                Assert.Equal(PowerPointSlideTransition.Morph,
                     stopSlide.Transition);
                 Assert.True(stopSlide.TransitionStopsSound);
                 Assert.Empty(reopened.ValidateDocument());
@@ -183,11 +183,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AllSupportedTransitions_ValidateAndRoundTrip() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
-            SlideTransition[] transitions = Enum.GetValues(typeof(SlideTransition)).Cast<SlideTransition>().ToArray();
+            PowerPointSlideTransition[] transitions = Enum.GetValues(typeof(PowerPointSlideTransition)).Cast<PowerPointSlideTransition>().ToArray();
 
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                    foreach (SlideTransition transition in transitions) {
+                    foreach (PowerPointSlideTransition transition in transitions) {
                         PowerPointSlide slide = presentation.AddSlide();
                         slide.AddTitle(transition.ToString());
                         slide.Transition = transition;
@@ -223,8 +223,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    slide.Transition = SlideTransition.Fade;
-                    slide.TransitionSpeed = SlideTransitionSpeed.Fast;
+                    slide.Transition = PowerPointSlideTransition.Fade;
+                    slide.TransitionSpeed = PowerPointSlideTransitionSpeed.Fast;
                     slide.TransitionDurationSeconds = 0.6;
                     slide.TransitionAdvanceOnClick = false;
                     slide.TransitionAdvanceAfterSeconds = 4.25;
@@ -235,8 +235,8 @@ namespace OfficeIMO.Tests {
 
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
-                    Assert.Equal(SlideTransition.Fade, slide.Transition);
-                    Assert.Equal(SlideTransitionSpeed.Fast, slide.TransitionSpeed);
+                    Assert.Equal(PowerPointSlideTransition.Fade, slide.Transition);
+                    Assert.Equal(PowerPointSlideTransitionSpeed.Fast, slide.TransitionSpeed);
                     Assert.Equal(0.6, slide.TransitionDurationSeconds);
                     Assert.False(slide.TransitionAdvanceOnClick);
                     Assert.Equal(4.25, slide.TransitionAdvanceAfterSeconds);
@@ -266,12 +266,12 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    slide.Transition = SlideTransition.Fade;
-                    slide.TransitionSpeed = SlideTransitionSpeed.Slow;
+                    slide.Transition = PowerPointSlideTransition.Fade;
+                    slide.TransitionSpeed = PowerPointSlideTransitionSpeed.Slow;
                     slide.TransitionDurationSeconds = 0.75;
                     slide.TransitionAdvanceAfterSeconds = 3.5;
 
-                    slide.Transition = SlideTransition.PushLeft;
+                    slide.Transition = PowerPointSlideTransition.PushLeft;
 
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());
@@ -279,8 +279,8 @@ namespace OfficeIMO.Tests {
 
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
-                    Assert.Equal(SlideTransition.PushLeft, slide.Transition);
-                    Assert.Equal(SlideTransitionSpeed.Slow, slide.TransitionSpeed);
+                    Assert.Equal(PowerPointSlideTransition.PushLeft, slide.Transition);
+                    Assert.Equal(PowerPointSlideTransitionSpeed.Slow, slide.TransitionSpeed);
                     Assert.Equal(0.75, slide.TransitionDurationSeconds);
                     Assert.Equal(3.5, slide.TransitionAdvanceAfterSeconds);
                 }
@@ -301,16 +301,16 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.SetBackgroundImage(imagePath);
-                    slide.Transition = SlideTransition.Morph;
+                    slide.Transition = PowerPointSlideTransition.Morph;
                     slide.Notes.Text = "Initial morph notes";
 
-                    slide.Transition = SlideTransition.Flash;
+                    slide.Transition = PowerPointSlideTransition.Flash;
                     slide.BackgroundColor = "112233";
                     slide.Notes.Text = "Updated notes";
 
                     PowerPointSlide cleared = presentation.AddSlide();
-                    cleared.Transition = SlideTransition.Morph;
-                    cleared.Transition = SlideTransition.None;
+                    cleared.Transition = PowerPointSlideTransition.Morph;
+                    cleared.Transition = PowerPointSlideTransition.None;
                     cleared.SetBackgroundImage(imagePath);
                     cleared.ClearBackgroundImage();
                     cleared.Notes.Text = "Cleared transition notes";
@@ -320,10 +320,10 @@ namespace OfficeIMO.Tests {
                 }
 
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
-                    Assert.Equal(SlideTransition.Flash, presentation.Slides[0].Transition);
+                    Assert.Equal(PowerPointSlideTransition.Flash, presentation.Slides[0].Transition);
                     Assert.Equal("112233", presentation.Slides[0].BackgroundColor);
                     Assert.Equal("Updated notes", presentation.Slides[0].Notes.Text);
-                    Assert.Equal(SlideTransition.None, presentation.Slides[1].Transition);
+                    Assert.Equal(PowerPointSlideTransition.None, presentation.Slides[1].Transition);
                     Assert.Equal("Cleared transition notes", presentation.Slides[1].Notes.Text);
                     Assert.Empty(presentation.ValidateDocument());
                 }

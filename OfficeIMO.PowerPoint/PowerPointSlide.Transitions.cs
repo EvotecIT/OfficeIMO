@@ -14,14 +14,14 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Transition applied when moving to this slide.
         /// </summary>
-        public SlideTransition Transition {
+        public PowerPointSlideTransition Transition {
             get {
                 Transition? t = GetTransitionElement();
-                return t == null ? SlideTransition.None
+                return t == null ? PowerPointSlideTransition.None
                     : GetTransitionValue(t);
             }
             set {
-                SlideTransitionSpeed? speed = TransitionSpeed;
+                PowerPointSlideTransitionSpeed? speed = TransitionSpeed;
                 double? durationSeconds = TransitionDurationSeconds;
                 bool? advanceOnClick = TransitionAdvanceOnClick;
                 double? advanceAfterSeconds = TransitionAdvanceAfterSeconds;
@@ -31,12 +31,12 @@ namespace OfficeIMO.PowerPoint {
                     GetTransitionSoundRelationshipIds();
 
                 RemoveTransitionMarkup();
-                if (value == SlideTransition.None) {
+                if (value == PowerPointSlideTransition.None) {
                     RemoveUnusedTransitionSounds(soundRelationshipIds);
                     return;
                 }
 
-                if (value == SlideTransition.Morph) {
+                if (value == PowerPointSlideTransition.Morph) {
                     SetMorphTransition();
                     foreach (Transition morphTransition in
                              GetTransitionElements()) {
@@ -57,27 +57,27 @@ namespace OfficeIMO.PowerPoint {
                     transition.Append(classicTransition);
                 } else {
                     switch (value) {
-                        case SlideTransition.Flash:
+                        case PowerPointSlideTransition.Flash:
                             transition.AddNamespaceDeclaration("p14", P14Namespace);
                             transition.Append(new P14.FlashTransition());
                             break;
-                        case SlideTransition.WarpIn:
+                        case PowerPointSlideTransition.WarpIn:
                             transition.AddNamespaceDeclaration("p14", P14Namespace);
                             transition.Append(new P14.WarpTransition { Direction = TransitionInOutDirectionValues.In });
                             break;
-                        case SlideTransition.WarpOut:
+                        case PowerPointSlideTransition.WarpOut:
                             transition.AddNamespaceDeclaration("p14", P14Namespace);
                             transition.Append(new P14.WarpTransition { Direction = TransitionInOutDirectionValues.Out });
                             break;
-                        case SlideTransition.Prism:
+                        case PowerPointSlideTransition.Prism:
                             transition.AddNamespaceDeclaration("p14", P14Namespace);
                             transition.Append(new P14.PrismTransition { IsContent = true });
                             break;
-                        case SlideTransition.FerrisLeft:
+                        case PowerPointSlideTransition.FerrisLeft:
                             transition.AddNamespaceDeclaration("p14", P14Namespace);
                             transition.Append(new P14.FerrisTransition { Direction = P14.TransitionLeftRightDirectionTypeValues.Left });
                             break;
-                        case SlideTransition.FerrisRight:
+                        case PowerPointSlideTransition.FerrisRight:
                             transition.AddNamespaceDeclaration("p14", P14Namespace);
                             transition.Append(new P14.FerrisTransition { Direction = P14.TransitionLeftRightDirectionTypeValues.Right });
                             break;
@@ -91,47 +91,47 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        internal static SlideTransition GetTransitionValue(
+        internal static PowerPointSlideTransition GetTransitionValue(
             Transition transition) {
             if (transition == null) {
                 throw new ArgumentNullException(nameof(transition));
             }
 
-            SlideTransition? classicTransition = GetClassicTransition(
+            PowerPointSlideTransition? classicTransition = GetClassicTransition(
                 transition);
             if (classicTransition.HasValue) {
                 return classicTransition.Value;
             }
 
             if (transition.GetFirstChild<P14.FlashTransition>() != null) {
-                return SlideTransition.Flash;
+                return PowerPointSlideTransition.Flash;
             }
 
             P14.WarpTransition? warp = transition
                 .GetFirstChild<P14.WarpTransition>();
             if (warp != null) {
                 return warp.Direction?.Value == TransitionInOutDirectionValues.Out
-                    ? SlideTransition.WarpOut
-                    : SlideTransition.WarpIn;
+                    ? PowerPointSlideTransition.WarpOut
+                    : PowerPointSlideTransition.WarpIn;
             }
 
             if (transition.GetFirstChild<P14.PrismTransition>() != null) {
-                return SlideTransition.Prism;
+                return PowerPointSlideTransition.Prism;
             }
 
             P14.FerrisTransition? ferris = transition
                 .GetFirstChild<P14.FerrisTransition>();
             if (ferris != null) {
                 return ferris.Direction?.Value == P14.TransitionLeftRightDirectionTypeValues.Right
-                    ? SlideTransition.FerrisRight
-                    : SlideTransition.FerrisLeft;
+                    ? PowerPointSlideTransition.FerrisRight
+                    : PowerPointSlideTransition.FerrisLeft;
             }
 
             if (HasMorphTransition(transition)) {
-                return SlideTransition.Morph;
+                return PowerPointSlideTransition.Morph;
             }
 
-            return SlideTransition.None;
+            return PowerPointSlideTransition.None;
         }
 
         private void RemoveUnusedTransitionSounds(
@@ -145,7 +145,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Gets or sets the optional transition playback speed.
         /// </summary>
-        public SlideTransitionSpeed? TransitionSpeed {
+        public PowerPointSlideTransitionSpeed? TransitionSpeed {
             get {
                 Transition? transition = GetTransitionElement();
                 if (transition?.Speed?.Value == null) {
@@ -154,23 +154,23 @@ namespace OfficeIMO.PowerPoint {
 
                 var speedValue = transition.Speed.Value;
                 if (speedValue == TransitionSpeedValues.Slow) {
-                    return SlideTransitionSpeed.Slow;
+                    return PowerPointSlideTransitionSpeed.Slow;
                 }
 
                 if (speedValue == TransitionSpeedValues.Fast) {
-                    return SlideTransitionSpeed.Fast;
+                    return PowerPointSlideTransitionSpeed.Fast;
                 }
 
-                return SlideTransitionSpeed.Medium;
+                return PowerPointSlideTransitionSpeed.Medium;
             }
             set {
                 foreach (Transition transition in GetTransitionElements()) {
                     transition.Speed = value switch {
-                        SlideTransitionSpeed.Slow =>
+                        PowerPointSlideTransitionSpeed.Slow =>
                             TransitionSpeedValues.Slow,
-                        SlideTransitionSpeed.Fast =>
+                        PowerPointSlideTransitionSpeed.Fast =>
                             TransitionSpeedValues.Fast,
-                        SlideTransitionSpeed.Medium =>
+                        PowerPointSlideTransitionSpeed.Medium =>
                             TransitionSpeedValues.Medium,
                         _ => null
                     };
@@ -290,15 +290,15 @@ namespace OfficeIMO.PowerPoint {
                 : null;
         }
 
-        private static void ApplyTransitionSettings(Transition? transition, SlideTransitionSpeed? speed, double? durationSeconds, bool? advanceOnClick, double? advanceAfterSeconds) {
+        private static void ApplyTransitionSettings(Transition? transition, PowerPointSlideTransitionSpeed? speed, double? durationSeconds, bool? advanceOnClick, double? advanceAfterSeconds) {
             if (transition == null) {
                 return;
             }
 
             transition.Speed = speed switch {
-                SlideTransitionSpeed.Slow => TransitionSpeedValues.Slow,
-                SlideTransitionSpeed.Fast => TransitionSpeedValues.Fast,
-                SlideTransitionSpeed.Medium => TransitionSpeedValues.Medium,
+                PowerPointSlideTransitionSpeed.Slow => TransitionSpeedValues.Slow,
+                PowerPointSlideTransitionSpeed.Fast => TransitionSpeedValues.Fast,
+                PowerPointSlideTransitionSpeed.Medium => TransitionSpeedValues.Medium,
                 _ => null
             };
 

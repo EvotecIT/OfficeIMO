@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
             PowerPointFeatureReport report = presentation.InspectFeatures();
             PowerPointFeatureFinding comments = Assert.Single(
                 report.FindFeatures("Comments"));
-            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+            Assert.Equal(OfficeFeatureSupportLevel.Preserved,
                 comments.SupportLevel);
             Assert.Throws<InvalidOperationException>(() =>
                 report.EnsureNoAdvancedFeatures());

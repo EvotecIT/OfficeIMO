@@ -1,5 +1,6 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.GoogleWorkspace.Drive;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -13,7 +14,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 throw new ArgumentOutOfRangeException(nameof(options),
                     "MaxImageBytes must be greater than zero.");
             }
-            return effective.Mode == GoogleSlidesImportMode.DriveExport
+            return effective.Mode == GoogleWorkspaceImportMode.DriveExport
                 ? await ImportDriveAsync(presentationId, session, effective, cancellationToken).ConfigureAwait(false)
                 : await ImportNativeAsync(presentationId, session, effective,
                     cancellationToken).ConfigureAwait(false);
@@ -105,7 +106,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                         if (element.Shape?.Text != null) {
                             string text = ExtractText(element.Shape.Text);
                             PowerPointTextBox box;
-                            if (TryMapShapeType(element.Shape.ShapeType, out PowerPointShapeType textShapeType)) {
+                            if (TryMapShapeType(element.Shape.ShapeType, out OfficePresetShapeType textShapeType)) {
                                 box = slide.AddTextShapePoints(textShapeType, text, left, top, Math.Max(1, width), Math.Max(1, height), element.ObjectId);
                             } else {
                                 box = slide.AddTextBoxPoints(text, left, top, Math.Max(1, width), Math.Max(1, height));
@@ -122,7 +123,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             ApplyShapeStyle(box, element.Shape, report, element.ObjectId);
                             ApplyTextRuns(box, element.Shape.Text);
                         } else if (element.Shape != null) {
-                            if (TryMapShapeType(element.Shape.ShapeType, out PowerPointShapeType shapeType)) {
+                            if (TryMapShapeType(element.Shape.ShapeType, out OfficePresetShapeType shapeType)) {
                                 PowerPointAutoShape shape = slide.AddShapePoints(shapeType, left, top, Math.Max(1, width), Math.Max(1, height), element.ObjectId);
                                 ApplyTransform(shape, geometry);
                                 ApplyShapeStyle(shape, element.Shape, report, element.ObjectId);
@@ -343,28 +344,28 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         private static string ToHex(GoogleSlidesApiRgbColor color) => $"{ToByte(color.Red):X2}{ToByte(color.Green):X2}{ToByte(color.Blue):X2}";
         private static int ToByte(double component) => Math.Max(0, Math.Min(255, (int)Math.Round(component * 255d)));
         private static int ToTransparency(double alpha) => (int)Math.Round((1d - Math.Max(0d, Math.Min(1d, alpha))) * 100d);
-        private static bool TryMapShapeType(string? shapeType, out PowerPointShapeType mapped) {
+        private static bool TryMapShapeType(string? shapeType, out OfficePresetShapeType mapped) {
             switch (shapeType) {
-                case "RECTANGLE": mapped = PowerPointShapeType.Rectangle; return true;
-                case "ROUND_RECTANGLE": mapped = PowerPointShapeType.RoundRectangle; return true;
-                case "ELLIPSE": mapped = PowerPointShapeType.Ellipse; return true;
-                case "TRIANGLE": mapped = PowerPointShapeType.Triangle; return true;
-                case "RIGHT_TRIANGLE": mapped = PowerPointShapeType.RightTriangle; return true;
-                case "PARALLELOGRAM": mapped = PowerPointShapeType.Parallelogram; return true;
-                case "TRAPEZOID": mapped = PowerPointShapeType.Trapezoid; return true;
-                case "DIAMOND": mapped = PowerPointShapeType.Diamond; return true;
-                case "RIGHT_ARROW": mapped = PowerPointShapeType.RightArrow; return true;
+                case "RECTANGLE": mapped = OfficePresetShapeType.Rectangle; return true;
+                case "ROUND_RECTANGLE": mapped = OfficePresetShapeType.RoundRectangle; return true;
+                case "ELLIPSE": mapped = OfficePresetShapeType.Ellipse; return true;
+                case "TRIANGLE": mapped = OfficePresetShapeType.Triangle; return true;
+                case "RIGHT_TRIANGLE": mapped = OfficePresetShapeType.RightTriangle; return true;
+                case "PARALLELOGRAM": mapped = OfficePresetShapeType.Parallelogram; return true;
+                case "TRAPEZOID": mapped = OfficePresetShapeType.Trapezoid; return true;
+                case "DIAMOND": mapped = OfficePresetShapeType.Diamond; return true;
+                case "RIGHT_ARROW": mapped = OfficePresetShapeType.RightArrow; return true;
                 default: mapped = default; return false;
             }
         }
 
-        private static ImagePartType DetectImageType(byte[] bytes) {
+        private static OfficeImageFormat DetectImageType(byte[] bytes) {
             if (bytes.Length >= 8
                 && bytes[0] == 0x89
                 && bytes[1] == 0x50
                 && bytes[2] == 0x4E
                 && bytes[3] == 0x47) {
-                return ImagePartType.Png;
+                return OfficeImageFormat.Png;
             }
             if (bytes.Length >= 6
                 && bytes[0] == 0x47
@@ -373,9 +374,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 && bytes[3] == 0x38
                 && (bytes[4] == 0x37 || bytes[4] == 0x39)
                 && bytes[5] == 0x61) {
-                return ImagePartType.Gif;
+                return OfficeImageFormat.Gif;
             }
-            return ImagePartType.Jpeg;
+            return OfficeImageFormat.Jpeg;
         }
 
         private static Uri GetTrustedImageUrl(string value) {

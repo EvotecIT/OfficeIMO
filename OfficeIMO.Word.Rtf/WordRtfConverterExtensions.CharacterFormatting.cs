@@ -135,25 +135,25 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static RtfCapsStyle ToRtfCapsStyle(CapsStyle capsStyle) {
+    private static RtfCapsStyle ToRtfCapsStyle(WordCapsStyle capsStyle) {
         switch (capsStyle) {
-            case CapsStyle.Caps:
+            case WordCapsStyle.Caps:
                 return RtfCapsStyle.Caps;
-            case CapsStyle.SmallCaps:
+            case WordCapsStyle.SmallCaps:
                 return RtfCapsStyle.SmallCaps;
             default:
                 return RtfCapsStyle.None;
         }
     }
 
-    private static CapsStyle ToWordCapsStyle(RtfCapsStyle capsStyle) {
+    private static WordCapsStyle ToWordCapsStyle(RtfCapsStyle capsStyle) {
         switch (capsStyle) {
             case RtfCapsStyle.Caps:
-                return CapsStyle.Caps;
+                return WordCapsStyle.Caps;
             case RtfCapsStyle.SmallCaps:
-                return CapsStyle.SmallCaps;
+                return WordCapsStyle.SmallCaps;
             default:
-                return CapsStyle.None;
+                return WordCapsStyle.None;
         }
     }
 

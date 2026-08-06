@@ -32,7 +32,7 @@ public class MarkdownReaderBomTests {
         var p = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
         var items = p.Inlines.Nodes;
         Assert.Single(items);
-        var t = Assert.IsType<TextRun>(items[0]);
+        var t = Assert.IsType<MarkdownTextRun>(items[0]);
         Assert.Equal("Plain text", t.Text);
     }
 

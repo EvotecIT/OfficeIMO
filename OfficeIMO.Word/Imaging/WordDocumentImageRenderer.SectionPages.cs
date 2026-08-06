@@ -139,7 +139,7 @@ namespace OfficeIMO.Word {
                 bodyFrameProvider: CreateBodyFrameProvider(section, drawing, document.Sections.IndexOf(section), 1, 1, 1, 0, headerFooterFrame),
                 cancellationToken: cancellationToken,
                 cancellationCheckpoint: cancellationCheckpoint);
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = DocumentTraversal.BuildListMarkers(document);
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = WordDocumentTraversal.BuildListMarkers(document);
             var diagnostics = new List<OfficeImageExportDiagnostic>();
 
             for (int index = 0; index < sectionElements.Count; index++) {
@@ -244,13 +244,13 @@ namespace OfficeIMO.Word {
         private static (double Left, double Right, double Top, double Bottom, double Header, double Footer, double Gutter) GetSectionMarginPoints(WordSection section) {
             WordMargins margins = section.Margins;
             return (
-                ToPoints(margins.Left?.Value, DefaultMarginPoints),
-                ToPoints(margins.Right?.Value, DefaultMarginPoints),
+                ToPoints(margins.Left, DefaultMarginPoints),
+                ToPoints(margins.Right, DefaultMarginPoints),
                 ToPoints(margins.Top, DefaultMarginPoints),
                 ToPoints(margins.Bottom, DefaultMarginPoints),
-                ToPoints(margins.HeaderDistance?.Value, DefaultMarginPoints / 2D),
-                ToPoints(margins.FooterDistance?.Value, DefaultMarginPoints / 2D),
-                ToPoints(margins.Gutter?.Value, 0D));
+                ToPoints(margins.HeaderDistance, DefaultMarginPoints / 2D),
+                ToPoints(margins.FooterDistance, DefaultMarginPoints / 2D),
+                ToPoints(margins.Gutter, 0D));
         }
 
         private static bool PointsEquivalent(double first, double second) =>

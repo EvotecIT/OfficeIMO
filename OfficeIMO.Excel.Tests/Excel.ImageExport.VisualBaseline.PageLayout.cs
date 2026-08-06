@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
             }
 
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
-            sheet.SetOrientation(ExcelPageOrientation.Landscape);
+            sheet.SetOrientation(OfficePageOrientation.Landscape);
             sheet.SetMargins(0.35D, 0.35D, 0.35D, 0.35D);
             sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
             sheet.SetHeaderFooter(headerCenter: "&BPage &P / &N - &A", footerRight: "&IReviewed");

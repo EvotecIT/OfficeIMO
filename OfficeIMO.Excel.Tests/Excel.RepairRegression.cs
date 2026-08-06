@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
                 summary.SetInternalLink(4, 1, "'Summary'!A1", display: "Back to top");
                 summary.SetHeaderFooter(headerCenter: "Repair Regression", headerRight: "Page &P of &N");
                 if (File.Exists(logoPath)) {
-                    summary.SetHeaderImage(HeaderFooterPosition.Center, File.ReadAllBytes(logoPath), "image/png", widthPoints: 96, heightPoints: 32);
+                    summary.SetHeaderImage(ExcelHeaderFooterPosition.Center, File.ReadAllBytes(logoPath), "image/png", widthPoints: 96, heightPoints: 32);
                 }
 
                 var data = document.AddWorksheet("Data");
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
                 data.CellValue(4, 4, 7d);
 
                 data.AddAutoFilter("A1:D4");
-                data.AddTable("A1:D4", hasHeader: true, name: "DataTable", OfficeIMO.Excel.TableStyle.TableStyleMedium9, includeAutoFilter: true);
+                data.AddTable("A1:D4", hasHeader: true, name: "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, includeAutoFilter: true);
                 data.AddSparklines("C2:D4", "E2:E4", displayMarkers: true, seriesColor: "#FF0000");
                 data.AddChartFromRange("A1:B4", row: 7, column: 1, widthPixels: 360, heightPixels: 220);
                 data.AddPivotTable("A1:B4", "G2", name: "DataPivot");
@@ -262,7 +262,7 @@ namespace OfficeIMO.Tests {
             string startColumnName = ColumnName(startColumn);
             string endColumnName = ColumnName(startColumn + columns - 1);
             string address = $"{startColumnName}{startRow}:{endColumnName}{startRow + rows - 1}";
-            sheet.AddTable(address, hasHeader: true, tableName, OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+            sheet.AddTable(address, hasHeader: true, tableName, OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
         }
 
         private static int ColumnIndex(string reference) {

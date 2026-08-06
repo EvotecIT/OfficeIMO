@@ -103,7 +103,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ValidateTrendline(PowerPointChartTrendlineType type, int? order, int? period,
+        private static void ValidateTrendline(OfficeChartTrendlineType type, int? order, int? period,
             double? forward, double? backward, string? lineColor, double? lineWidthPoints) {
             if (order != null && (order <= 0 || order > byte.MaxValue)) {
                 throw new ArgumentOutOfRangeException(nameof(order));
@@ -124,8 +124,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
             }
 
-            bool isPolynomial = type == PowerPointChartTrendlineType.Polynomial;
-            bool isMovingAverage = type == PowerPointChartTrendlineType.MovingAverage;
+            bool isPolynomial = type == OfficeChartTrendlineType.Polynomial;
+            bool isMovingAverage = type == OfficeChartTrendlineType.MovingAverage;
             if (isPolynomial && order == null) {
                 throw new ArgumentException("Polynomial trendlines require an order.", nameof(order));
             }
@@ -273,7 +273,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyTrendline(OpenXmlCompositeElement series, PowerPointChartTrendlineType type, int? order, int? period,
+        private static void ApplyTrendline(OpenXmlCompositeElement series, OfficeChartTrendlineType type, int? order, int? period,
             double? forward, double? backward, double? intercept, bool displayEquation, bool displayRSquared,
             string? lineColor, double? lineWidthPoints) {
             if (!IsTrendlineSupportedSeries(series)) {
@@ -291,10 +291,10 @@ namespace OfficeIMO.PowerPoint {
 
             trendline.Append(new C.TrendlineType { Val = type.ToOpenXml() });
 
-            if (type == PowerPointChartTrendlineType.Polynomial && order != null) {
+            if (type == OfficeChartTrendlineType.Polynomial && order != null) {
                 trendline.Append(new C.PolynomialOrder { Val = (byte)order.Value });
             }
-            if (type == PowerPointChartTrendlineType.MovingAverage && period != null) {
+            if (type == OfficeChartTrendlineType.MovingAverage && period != null) {
                 trendline.Append(new C.Period { Val = (uint)period.Value });
             }
             if (forward != null) {
@@ -527,7 +527,7 @@ namespace OfficeIMO.PowerPoint {
             return runProps;
         }
 
-        private static void ApplyMarker(C.Marker marker, PowerPointChartMarkerStyle style, int? size, string? fillColor, string? lineColor, double? lineWidthPoints) {
+        private static void ApplyMarker(C.Marker marker, OfficeChartMarkerShape style, int? size, string? fillColor, string? lineColor, double? lineWidthPoints) {
             marker.Symbol = new C.Symbol { Val = style.ToOpenXml() };
             if (size != null) {
                 marker.Size = new C.Size { Val = (byte)size.Value };

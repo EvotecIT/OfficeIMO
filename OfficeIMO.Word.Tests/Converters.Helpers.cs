@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public void ImplementationHelpers_AreNotPartOfThePublicWordContract() {
             Assert.False(typeof(FormattingHelper).IsPublic);
             Assert.False(typeof(ImageShapeStyleHelper).IsPublic);
-            Assert.False(typeof(HorizontalAlignmentHelper).IsPublic);
+            Assert.False(typeof(WordTextBoxHorizontalAlignmentSerializer).IsPublic);
             Assert.Null(typeof(WordHelpers).GetMethod(
                 "GetNextSdtId",
                 System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static));
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddFormattedText("Italic", italic: true);
                 paragraph.AddFormattedText("Strike").Strike = true;
                 var codeRun = paragraph.AddFormattedText("Code");
-                codeRun.SetFontFamily(FontResolver.Resolve("monospace")!);
+                codeRun.SetFontFamily(WordFontResolver.Resolve("monospace")!);
                 paragraph.AddHyperLink("Link", new Uri("https://example.com/"));
                 paragraph.AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
 
@@ -61,15 +61,15 @@ namespace OfficeIMO.Tests {
 
                 document.Save();
 
-                var bulletInfo = DocumentTraversal.GetListInfo(bulletItem);
+                var bulletInfo = WordDocumentTraversal.GetListInfo(bulletItem);
                 Assert.NotNull(bulletInfo);
                 Assert.False(bulletInfo.Value.Ordered);
 
-                var orderedInfo = DocumentTraversal.GetListInfo(orderedItem);
+                var orderedInfo = WordDocumentTraversal.GetListInfo(orderedItem);
                 Assert.NotNull(orderedInfo);
                 Assert.True(orderedInfo.Value.Ordered);
 
-                var markers = DocumentTraversal.BuildListMarkers(document);
+                var markers = WordDocumentTraversal.BuildListMarkers(document);
                 Assert.Equal("·", markers[bulletItem].Marker);
                 Assert.Equal("1.", markers[orderedItem].Marker);
             }
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
 
                 document.Save();
 
-                var markers = DocumentTraversal.BuildListMarkers(document);
+                var markers = WordDocumentTraversal.BuildListMarkers(document);
                 Assert.Equal("III.", markers[romanItem1].Marker);
                 Assert.Equal("IV.", markers[romanItem2].Marker);
                 Assert.Equal("b.", markers[letterItem1].Marker);
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
 
                 document.Save();
 
-                var markers = DocumentTraversal.BuildListMarkers(document);
+                var markers = WordDocumentTraversal.BuildListMarkers(document);
                 Assert.Equal("1.", markers[firstParent].Marker);
                 Assert.Equal("a.", markers[firstChild].Marker);
                 Assert.Equal("2.", markers[secondParent].Marker);
@@ -143,8 +143,8 @@ namespace OfficeIMO.Tests {
 
                 document.Save();
 
-                var markers = DocumentTraversal.BuildListMarkers(document);
-                var indices = DocumentTraversal.BuildListIndices(document);
+                var markers = WordDocumentTraversal.BuildListMarkers(document);
+                var indices = WordDocumentTraversal.BuildListIndices(document);
 
                 foreach ((WordParagraph first, WordParagraph second, int start) in expected) {
                     Assert.Equal($"{start}.", markers[first].Marker);

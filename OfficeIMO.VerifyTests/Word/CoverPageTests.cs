@@ -26,7 +26,7 @@ public class CoverPageTests : VerifyTestBase {
         document.ApplicationProperties.Company = "Evotec Services";
         document.Settings.UpdateFieldsOnOpen = true;
 
-        document.AddCoverPage(CoverPageTemplate.IonDark);
+        document.AddCoverPage(WordCoverPageTemplate.IonDark);
         document.AddTableOfContent();
         document.AddPageBreak();
 
@@ -52,7 +52,7 @@ public class CoverPageTests : VerifyTestBase {
 
         document.Settings.UpdateFieldsOnOpen = true;
 
-        document.AddCoverPage(CoverPageTemplate.Austin);
+        document.AddCoverPage(WordCoverPageTemplate.Austin);
 
         document.AddTableOfContent();
 

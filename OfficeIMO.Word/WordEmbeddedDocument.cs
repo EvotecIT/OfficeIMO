@@ -102,7 +102,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordDocument">Parent <see cref="WordDocument"/>.</param>
         /// <param name="altChunk">AltChunk that defines the embedded content.</param>
-        public WordEmbeddedDocument(WordDocument wordDocument, AltChunk altChunk) {
+        internal WordEmbeddedDocument(WordDocument wordDocument, AltChunk altChunk) {
             if (wordDocument == null) throw new ArgumentNullException(nameof(wordDocument));
             if (altChunk == null) throw new ArgumentNullException(nameof(altChunk));
 

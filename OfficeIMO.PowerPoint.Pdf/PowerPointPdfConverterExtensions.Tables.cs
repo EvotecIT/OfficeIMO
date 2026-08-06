@@ -77,14 +77,14 @@ public static partial class PowerPointPdfConverterExtensions {
         return PdfCore.PdfTableCell.Merge(CreatePdfTableCellRuns(cell, fallbackFontFamily), Math.Max(1, columnSpan), Math.Max(1, rowSpan));
     }
 
-    private static IReadOnlyList<PdfCore.TextRun> CreatePdfTableCellRuns(PptCore.PowerPointTableCell cell, string? fallbackFontFamily) {
-        var runs = new List<PdfCore.TextRun>();
+    private static IReadOnlyList<PdfCore.PdfTextRun> CreatePdfTableCellRuns(PptCore.PowerPointTableCell cell, string? fallbackFontFamily) {
+        var runs = new List<PdfCore.PdfTextRun>();
         A.TextBody? textBody = cell.Cell.TextBody;
         if (textBody != null) {
             bool hasParagraph = false;
             foreach (A.Paragraph paragraph in textBody.Elements<A.Paragraph>()) {
                 if (hasParagraph) {
-                    runs.Add(PdfCore.TextRun.LineBreak());
+                    runs.Add(PdfCore.PdfTextRun.LineBreak());
                 }
 
                 AppendPdfTableCellParagraphRuns(runs, paragraph, cell, fallbackFontFamily);
@@ -99,7 +99,7 @@ public static partial class PowerPointPdfConverterExtensions {
         return runs;
     }
 
-    private static void AppendPdfTableCellParagraphRuns(List<PdfCore.TextRun> runs, A.Paragraph paragraph, PptCore.PowerPointTableCell cell, string? fallbackFontFamily) {
+    private static void AppendPdfTableCellParagraphRuns(List<PdfCore.PdfTextRun> runs, A.Paragraph paragraph, PptCore.PowerPointTableCell cell, string? fallbackFontFamily) {
         foreach (OpenXmlElement child in paragraph.ChildElements) {
             switch (child) {
                 case A.Run run:
@@ -109,7 +109,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
                     break;
                 case A.Break:
-                    runs.Add(PdfCore.TextRun.LineBreak());
+                    runs.Add(PdfCore.PdfTextRun.LineBreak());
                     break;
                 case A.Field field:
                     string fieldText = field.Text?.Text ?? field.InnerText ?? string.Empty;
@@ -122,9 +122,9 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static PdfCore.TextRun CreatePdfTableCellTextRun(PptCore.PowerPointTableCell cell, string text, string? fallbackFontFamily) {
+    private static PdfCore.PdfTextRun CreatePdfTableCellTextRun(PptCore.PowerPointTableCell cell, string text, string? fallbackFontFamily) {
         string? fontFamily = cell.FontName ?? fallbackFontFamily;
-        return new PdfCore.TextRun(
+        return new PdfCore.PdfTextRun(
             text,
             bold: cell.Bold,
             italic: cell.Italic,

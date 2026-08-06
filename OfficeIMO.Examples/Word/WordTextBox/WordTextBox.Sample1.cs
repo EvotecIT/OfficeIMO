@@ -34,7 +34,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Alignment: " + textBox.HorizontalAlignment);
 
-                textBox.HorizontalAlignment = WordHorizontalAlignmentValues.Right;
+                textBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Right;
 
                 //textBox.HorizontalPositionOffset = 1901950;
 

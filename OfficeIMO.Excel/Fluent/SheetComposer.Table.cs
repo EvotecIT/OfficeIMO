@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel.Fluent {
         /// </summary>
         public string TableFrom<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> items, string? title = null,
             System.Action<ObjectFlattenerOptions>? configure = null,
-            TableStyle style = TableStyle.TableStyleMedium9,
+            ExcelTableStyle style = ExcelTableStyle.TableStyleMedium9,
             bool autoFilter = true,
             bool freezeHeaderRow = true,
             System.Action<TableVisualOptions>? visuals = null) {

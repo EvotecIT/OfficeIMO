@@ -67,24 +67,24 @@ paragraph.AddImageFromResource(
 
 ## Wrapping Modes
 
-Control how text wraps around the image using the `WrapTextImage` enum:
+Control how text wraps around the image using the `WordImageTextWrapping` enum:
 
 ```csharp
 var paragraph = document.AddParagraph();
 paragraph.AddImage("photo.jpg", 300, 200,
-    wrapImageText: WrapTextImage.InLineWithText);
+    wrapImageText: WordImageTextWrapping.InLineWithText);
 ```
 
 Available wrapping modes:
 
 | Mode | Description |
 |------|-------------|
-| `WrapTextImage.InLineWithText` | Image sits inline with text (default) |
-| `WrapTextImage.Square` | Text wraps around a square boundary |
-| `WrapTextImage.Tight` | Text wraps tightly around the image shape |
-| `WrapTextImage.Behind` | Image appears behind text |
-| `WrapTextImage.InFront` | Image appears in front of text |
-| `WrapTextImage.TopAndBottom` | Text appears above and below only |
+| `WordImageTextWrapping.InLineWithText` | Image sits inline with text (default) |
+| `WordImageTextWrapping.Square` | Text wraps around a square boundary |
+| `WordImageTextWrapping.Tight` | Text wraps tightly around the image shape |
+| `WordImageTextWrapping.BehindText` | Image appears behind text |
+| `WordImageTextWrapping.InFrontOfText` | Image appears in front of text |
+| `WordImageTextWrapping.TopAndBottom` | Text appears above and below only |
 
 ## Image Positioning (Anchored Images)
 
@@ -93,7 +93,7 @@ When using a wrapping mode other than `InLineWithText`, the image is anchored an
 ```csharp
 var paragraph = document.AddParagraph();
 paragraph.AddImage("chart.png", 400, 300,
-    wrapImageText: WrapTextImage.Square);
+    wrapImageText: WordImageTextWrapping.Square);
 
 // Access the image through the paragraph
 var image = document.Images.Last();

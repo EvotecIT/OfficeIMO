@@ -576,12 +576,12 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     // Caps / SmallCaps
-                    if (run.CapsStyle == CapsStyle.SmallCaps) {
+                    if (run.CapsStyle == WordCapsStyle.SmallCaps) {
                         var span = CreateOutputElement(htmlDoc, "span");
                         SetOutputAttribute(span, "style", "font-variant:small-caps", "RunFormatting:caps");
                         span.AppendChild(node);
                         node = span;
-                    } else if (run.CapsStyle == CapsStyle.Caps) {
+                    } else if (run.CapsStyle == WordCapsStyle.Caps) {
                         var span = CreateOutputElement(htmlDoc, "span");
                         SetOutputAttribute(span, "style", "text-transform:uppercase", "RunFormatting:caps");
                         span.AppendChild(node);
@@ -731,7 +731,7 @@ namespace OfficeIMO.Word.Html {
                     return;
                 }
 
-                int level = para.Style.HasValue ? HeadingStyleMapper.GetLevelForHeadingStyle(para.Style.Value) : 0;
+                int level = para.Style.HasValue ? WordHeadingStyleMapper.GetLevelForHeadingStyle(para.Style.Value) : 0;
                 bool isBlockQuote = (!string.IsNullOrEmpty(para.StyleId) && (string.Equals(para.StyleId, "Quote", StringComparison.OrdinalIgnoreCase) || string.Equals(para.StyleId, "IntenseQuote", StringComparison.OrdinalIgnoreCase)))
                     || (para.IndentationBefore.HasValue && para.IndentationBefore.Value > 0);
                 var element = CreateOutputElement(htmlDoc, isBlockQuote ? "blockquote" : (level > 0 ? $"h{level}" : "p"));
@@ -1004,13 +1004,13 @@ namespace OfficeIMO.Word.Html {
                                 cellElements[elementIndex - 1] is WordTable &&
                                 elementIndex + 1 < cellElements.Count &&
                                 cellElements[elementIndex + 1] is WordParagraph nextListParagraph &&
-                                DocumentTraversal.GetListInfo(nextListParagraph) != null) {
+                                WordDocumentTraversal.GetListInfo(nextListParagraph) != null) {
                                 // A table cell must retain a paragraph after a nested table. HTML import can
                                 // therefore leave an empty package carrier between that table and the next
                                 // list item; it is not a user-authored block and must not close the list.
                                 continue;
                             }
-                            var cellListInfo = DocumentTraversal.GetListInfo(p);
+                            var cellListInfo = WordDocumentTraversal.GetListInfo(p);
                             if (cellListInfo != null) {
                                 cellDefinitionList = null;
                                 AppendListParagraph(cellElement, p, cellListInfo.Value, cellListStack, cellItemStack, cellListNumberStack);
@@ -1093,7 +1093,7 @@ namespace OfficeIMO.Word.Html {
                 { NumberFormatValues.IrohaFullWidth, (null, "katakana-iroha") },
             };
 
-            string? GetListStyle(DocumentTraversal.ListInfo info) {
+            string? GetListStyle(WordDocumentTraversal.ListInfo info) {
                 var format = info.NumberFormat;
                 if (format == WordNumberFormat.Bullet) {
                     return info.LevelText switch {
@@ -1124,7 +1124,7 @@ namespace OfficeIMO.Word.Html {
                 return $"'{escaped}'";
             }
 
-            string? GetListType(DocumentTraversal.ListInfo info) {
+            string? GetListType(WordDocumentTraversal.ListInfo info) {
                 var format = info.NumberFormat;
                 if (format == WordNumberFormat.Bullet) {
                     return info.LevelText switch {
@@ -1141,7 +1141,7 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
-            var listIndices = DocumentTraversal.BuildListIndices(document);
+            var listIndices = WordDocumentTraversal.BuildListIndices(document);
 
             void ClearListStacks(Stack<IElement> lists, Stack<IElement> items, Stack<int> numberIds) {
                 lists.Clear();
@@ -1152,7 +1152,7 @@ namespace OfficeIMO.Word.Html {
             void AppendListParagraph(
                 IElement parent,
                 WordParagraph paragraph,
-                DocumentTraversal.ListInfo listInfo,
+                WordDocumentTraversal.ListInfo listInfo,
                 Stack<IElement> lists,
                 Stack<IElement> items,
                 Stack<int> numberIds) {
@@ -1221,7 +1221,7 @@ namespace OfficeIMO.Word.Html {
 
             var processedParagraphs = new HashSet<WordParagraph>(ParagraphElementComparer.Instance);
             int sectionIndex = 0;
-            foreach (var section in DocumentTraversal.EnumerateSections(document)) {
+            foreach (var section in WordDocumentTraversal.EnumerateSections(document)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 IElement sectionParent = body;
                 if (options.IncludeSectionMetadata) {
@@ -1299,7 +1299,7 @@ namespace OfficeIMO.Word.Html {
                             activeDefinitionList = null;
                             continue;
                         }
-                        var listInfo = DocumentTraversal.GetListInfo(paragraph);
+                        var listInfo = WordDocumentTraversal.GetListInfo(paragraph);
                         if (listInfo != null) {
                             activeDefinitionList = null;
                             AppendListParagraph(sectionParent, paragraph, listInfo.Value, listStack, itemStack, listNumberStack);
@@ -1348,7 +1348,7 @@ namespace OfficeIMO.Word.Html {
                                 activeDefinitionList = null;
                                 List<string> lines = new();
                                 lines.Add(paragraph.Text);
-                                while (idx + 1 < elements.Count && elements[idx + 1] is WordParagraph nextPara && DocumentTraversal.GetListInfo(nextPara) == null && IsCodeParagraph(nextPara)) {
+                                while (idx + 1 < elements.Count && elements[idx + 1] is WordParagraph nextPara && WordDocumentTraversal.GetListInfo(nextPara) == null && IsCodeParagraph(nextPara)) {
                                     lines.Add(nextPara.Text);
                                     idx++;
                                 }

@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
         public void Test_QueryBackedTable_ReusesPreservedConnectionPartLifecycle() {
             using var document = ExcelDocument.Create(new MemoryStream());
             document.AddWorksheet("Data");
-            OpenXmlPart preserved = document.AddWorkbookConnectionMetadata(
+            ExcelPackagePartInfo preserved = document.AddWorkbookConnectionMetadata(
                 "<connections xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"1\">"
                 + "<connection id=\"77\" name=\"Existing\" type=\"1\"/>"
                 + "</connections>");
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
             OpenXmlPart connectionPart = Assert.Single(
                 document.WorkbookPartRoot.Parts.Select(pair => pair.OpenXmlPart),
                 part => part.RelationshipType.EndsWith("/connections", StringComparison.Ordinal));
-            Assert.Same(preserved, connectionPart);
+            Assert.Equal(preserved.RelationshipId, document.WorkbookPartRoot.GetIdOfPart(connectionPart));
             XDocument authored = LoadPartXml(connectionPart);
             Assert.Equal(2, authored.Descendants().Count(element => element.Name.LocalName == "connection"));
             Assert.Contains(document.GetQueryBackedTables(), item => item.ConnectionId == query.ConnectionId);

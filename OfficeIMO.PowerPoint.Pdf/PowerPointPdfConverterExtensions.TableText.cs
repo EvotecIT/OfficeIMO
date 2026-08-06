@@ -6,10 +6,10 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
-    private static PdfCore.TextRun CreatePdfTableCellTextRun(PptCore.PowerPointTableCell cell, A.Run run, string text, string? fallbackFontFamily) {
+    private static PdfCore.PdfTextRun CreatePdfTableCellTextRun(PptCore.PowerPointTableCell cell, A.Run run, string text, string? fallbackFontFamily) {
         A.RunProperties? properties = run.RunProperties;
         string? fontFamily = ReadRunFontName(properties) ?? cell.FontName ?? fallbackFontFamily;
-        return new PdfCore.TextRun(
+        return new PdfCore.PdfTextRun(
             text,
             bold: properties?.Bold?.Value ?? cell.Bold,
             underline: properties?.Underline?.Value == TextUnderlineValues.Single,

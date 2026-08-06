@@ -25,10 +25,10 @@ namespace OfficeIMO.Tests {
                 var col4 = Enumerable.Range(1, 500).Select(i => (i, 4, (object)$"R{i}C4"));
 
                 await Task.WhenAll(
-                    Task.Run(() => sheet.CellValues(col1, ExecutionMode.Parallel)),
-                    Task.Run(() => sheet.CellValues(col2, ExecutionMode.Parallel)),
-                    Task.Run(() => sheet.CellValues(col3, ExecutionMode.Parallel)),
-                    Task.Run(() => sheet.CellValues(col4, ExecutionMode.Parallel))
+                    Task.Run(() => sheet.CellValues(col1, ExcelExecutionMode.Parallel)),
+                    Task.Run(() => sheet.CellValues(col2, ExcelExecutionMode.Parallel)),
+                    Task.Run(() => sheet.CellValues(col3, ExcelExecutionMode.Parallel)),
+                    Task.Run(() => sheet.CellValues(col4, ExcelExecutionMode.Parallel))
                 );
 
                 document.Save();
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
                     (1, 4, (object)DBNull.Value),
                     (1, 5, (object)uri)
                 };
-                sheet.CellValues(cells, ExecutionMode.Parallel);
+                sheet.CellValues(cells, ExcelExecutionMode.Parallel);
                 document.Save();
             }
 
@@ -144,7 +144,7 @@ namespace OfficeIMO.Tests {
                     (1, 1, (object)new DateTime(2026, 5, 12)),
                     (1, 2, (object)TimeSpan.FromHours(27)),
                     (1, 3, (object)"Line 1\nLine 2")
-                }, ExecutionMode.Parallel);
+                }, ExcelExecutionMode.Parallel);
                 document.Save();
             }
 
@@ -207,7 +207,7 @@ namespace OfficeIMO.Tests {
                     (2, 1, (object)new DateTime(2026, 5, 12)),
                     (2, 2, (object)TimeSpan.FromHours(27)),
                     (2, 3, (object)"Line 1\nLine 2")
-                }, ExecutionMode.Parallel);
+                }, ExcelExecutionMode.Parallel);
                 document.Save();
             }
 
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValues(new[] {
                     (2, 1, (object)"Plain"),
                     (3, 1, (object)"Still Plain")
-                }, ExecutionMode.Parallel);
+                }, ExcelExecutionMode.Parallel);
                 document.Save();
             }
 
@@ -293,7 +293,7 @@ namespace OfficeIMO.Tests {
                     (1, 2, (object)rawGamma),
                     (2, 1, (object)rawAlphaVariant)
                 };
-                sheet.CellValues(cells, ExecutionMode.Parallel);
+                sheet.CellValues(cells, ExcelExecutionMode.Parallel);
                 document.Save();
             }
 
@@ -350,7 +350,7 @@ namespace OfficeIMO.Tests {
                         (2, 1, duration)
                     };
 
-                    sheet.CellValues(cells, ExecutionMode.Parallel);
+                    sheet.CellValues(cells, ExcelExecutionMode.Parallel);
                     document.Save();
                 }
 

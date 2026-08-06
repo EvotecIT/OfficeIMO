@@ -24,10 +24,10 @@ public sealed class QuoteBuilder {
         return Block(new ParagraphBlock(new InlineSequence().Text(text ?? string.Empty)));
     }
 
-    /// <summary>Adds a paragraph built via <see cref="ParagraphBuilder"/>.</summary>
-    public QuoteBuilder P(System.Action<ParagraphBuilder> build) {
+    /// <summary>Adds a paragraph built via <see cref="MarkdownParagraphBuilder"/>.</summary>
+    public QuoteBuilder P(System.Action<MarkdownParagraphBuilder> build) {
         if (build == null) return this;
-        ParagraphBuilder builder = new ParagraphBuilder();
+        MarkdownParagraphBuilder builder = new MarkdownParagraphBuilder();
         build(builder);
         return Block(new ParagraphBlock(builder.Inlines));
     }

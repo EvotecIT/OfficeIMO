@@ -32,17 +32,17 @@ namespace OfficeIMO.Excel {
         private void ExecuteWithPolicy(
             string opName,
             int itemCount,
-            ExecutionMode? overrideMode,
+            ExcelExecutionMode? overrideMode,
             Action sequentialCore,                // single-threaded path (no locks)
             Action? computeParallel = null,       // parallelizable compute (no DOM)
             Action? applySequential = null,       // serialized DOM apply
             CancellationToken ct = default) {
             var policy = EffectiveExecution;
             var mode = overrideMode ?? policy.Mode;
-            if (mode == ExecutionMode.Automatic)
+            if (mode == ExcelExecutionMode.Automatic)
                 mode = policy.Decide(opName, itemCount);
 
-            if (mode == ExecutionMode.Sequential || computeParallel is null || applySequential is null) {
+            if (mode == ExcelExecutionMode.Sequential || computeParallel is null || applySequential is null) {
                 using (Locking.EnterNoLockScope())
                     sequentialCore();
                 return;

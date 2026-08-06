@@ -248,7 +248,7 @@ namespace OfficeIMO.Word {
                     fragments,
                     cancellationToken,
                     cancellationCheckpoint);
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = DocumentTraversal.BuildListMarkers(document);
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = WordDocumentTraversal.BuildListMarkers(document);
             IReadOnlyList<WordSectionBodyElement> bodyEntries = GetSectionBodyElementEntries(
                 document,
                 sectionIndex,
@@ -334,8 +334,8 @@ namespace OfficeIMO.Word {
             CancellationToken cancellationToken = default,
             Action<WordImageCancellationCheckpoint>? cancellationCheckpoint = null) {
             WordMargins? margins = section?.Margins;
-            double left = ToPoints(margins?.Left?.Value, DefaultMarginPoints);
-            double right = ToPoints(margins?.Right?.Value, DefaultMarginPoints);
+            double left = ToPoints(margins?.Left, DefaultMarginPoints);
+            double right = ToPoints(margins?.Right, DefaultMarginPoints);
             double top = Math.Min(drawing.Height, Math.Max(0D, contentTop ?? ToPoints(margins?.Top, DefaultMarginPoints)));
             double bottom = ToPoints(margins?.Bottom, DefaultMarginPoints);
             double contentWidth = Math.Max(1D, drawing.Width - left - right);
@@ -760,8 +760,8 @@ namespace OfficeIMO.Word {
 
         private static (double Width, double Height) GetPageSizePoints(WordSection? section) {
             WordPageSizes? pageSettings = section?.PageSettings;
-            double width = ToPoints(pageSettings?.Width?.Value, DefaultPageWidthPoints);
-            double height = ToPoints(pageSettings?.Height?.Value, DefaultPageHeightPoints);
+            double width = ToPoints(pageSettings?.Width, DefaultPageWidthPoints);
+            double height = ToPoints(pageSettings?.Height, DefaultPageHeightPoints);
             return (Math.Max(1D, width), Math.Max(1D, height));
         }
 

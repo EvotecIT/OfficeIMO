@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
                 source,
                 Classify(code));
 
-        internal static OfficeImageExportLossKind Classify(string code) {
+        internal static OfficeConversionLossKind Classify(string code) {
             if (string.IsNullOrWhiteSpace(code)) {
                 throw new ArgumentException("Word image-export diagnostics require a stable code.", nameof(code));
             }
@@ -28,7 +28,7 @@ namespace OfficeIMO.Word {
                 case WordImageExportDiagnosticCodes.LimitedFloatingShapeWrap:
                 case WordImageExportDiagnosticCodes.LimitedFloatingTextBoxWrap:
                 case WordImageExportDiagnosticCodes.LimitedSmartArt:
-                    return OfficeImageExportLossKind.Approximation;
+                    return OfficeConversionLossKind.Approximation;
 
                 case WordImageExportDiagnosticCodes.UnsupportedBodyElement:
                 case WordImageExportDiagnosticCodes.UnsupportedChart:
@@ -54,7 +54,7 @@ namespace OfficeIMO.Word {
                 case WordImageExportDiagnosticCodes.UnsupportedTableImageOverflow:
                 case WordImageExportDiagnosticCodes.UnsupportedTableRowPagination:
                 case WordImageExportDiagnosticCodes.UnsupportedTextBox:
-                    return OfficeImageExportLossKind.Omission;
+                    return OfficeConversionLossKind.Omission;
 
                 default:
                     throw new ArgumentOutOfRangeException(

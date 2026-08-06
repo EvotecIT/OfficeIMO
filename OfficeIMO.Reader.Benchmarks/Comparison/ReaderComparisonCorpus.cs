@@ -98,7 +98,7 @@ internal static class ReaderComparisonCorpus {
             table.GetCell(1, 0).Text = "Presentation table marker";
             table.GetCell(1, 1).Text = "42";
             using var image = new MemoryStream(Convert.FromBase64String(TinyPngBase64));
-            slide.AddPicture(image, OfficeIMO.PowerPoint.ImagePartType.Png);
+            slide.AddPicture(image, OfficeIMO.Drawing.OfficeImageFormat.Png);
             slide.Notes.Text = "Presenter notes retention marker";
             presentation.Save();
             presentation.BuiltinDocumentProperties.Created = FixedPackageTimestamp;

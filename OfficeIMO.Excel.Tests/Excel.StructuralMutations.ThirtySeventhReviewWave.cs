@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Original");
             sheet.CellValue(2, 1, "Keep");
-            sheet.AddTable("A1:A2", true, "DataTable", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:A2", true, "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             string originalXml = table.OuterXml;
 

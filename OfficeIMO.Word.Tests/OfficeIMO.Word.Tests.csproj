@@ -66,6 +66,7 @@
     <Using Include="System.Linq" />
     <Using Include="System.IO" />
     <Using Include="System.Threading.Tasks" />
+    <Using Include="OfficeIMO.Drawing" />
     <Using Include="OfficeIMO.Security.OfficePackageSignatureArchive" Alias="OfficePackageSignatureArchive" />
     <Using Include="OfficeIMO.Security.OfficePackageDigestResult" Alias="OfficePackageDigestResult" />
     <Using Include="OfficeIMO.Security.OfficePackageSigningOptions" Alias="OfficePackageSigningOptions" />

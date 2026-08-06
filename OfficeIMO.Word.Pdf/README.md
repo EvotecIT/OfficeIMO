@@ -36,7 +36,7 @@ using OfficeIMO.Word.Pdf;
 using var document = WordDocument.Load("proposal.docx");
 
 var options = new WordPdfSaveOptions {
-    Orientation = PdfPageOrientation.Portrait,
+    Orientation = OfficePageOrientation.Portrait,
     Margins = PageMargins.UniformCentimeters(1.5),
     Title = "Customer proposal",
     Author = "Evotec",

@@ -73,13 +73,13 @@ namespace OfficeIMO.Tests {
                         },
                         options: caseOptions);
 
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     presentation.Save();
                 }
 
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     Assert.Equal(4, presentation.Slides.Count);
                     Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes),
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
                     Assert.True(resolvedLayout.Visual.Right <= resolvedLayout.Content.Right);
                     Assert.True(resolvedLayout.Metrics.Bottom <= resolvedLayout.Content.Bottom);
 
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     presentation.Save();
                 }
@@ -380,14 +380,14 @@ namespace OfficeIMO.Tests {
                     Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Device Screen");
                     Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Proof Mat");
 
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     presentation.Save();
                 }
 
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     Assert.Equal(2, presentation.Slides.Count);
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                 }
             } finally {
@@ -1159,7 +1159,7 @@ namespace OfficeIMO.Tests {
                 deck.AddSlides(plan);
 
                 Assert.Equal(selected.Design.DirectionName, deck.Design.Direction.Name);
-                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             } finally {
                 if (File.Exists(filePath)) {
@@ -1197,7 +1197,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(deck.Design.Theme.Name, presentation.ThemeName);
                 Assert.NotNull(presentation.Slides[0].GetShape("Designer Direction 1"));
 
-                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             } finally {
                 if (File.Exists(filePath)) {
@@ -1341,7 +1341,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(slides[2].GetShape("Process Column 1"));
                 Assert.Contains(slides[3].TextBoxes, textBox => textBox.Text == "PLAN");
 
-                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             } finally {
                 if (File.Exists(filePath)) {
@@ -1443,7 +1443,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(slides[1].GetShape("Designer Card 1"));
                 Assert.NotNull(slides[1].GetShape("Composer Metric Band"));
 
-                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             } finally {
                 if (File.Exists(filePath)) {
@@ -1508,7 +1508,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(metricLabel.FontSize <= 8);
                 Assert.NotNull(metricLabel.TextAutoFitOptions);
 
-                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             } finally {
                 if (File.Exists(filePath)) {
@@ -1872,7 +1872,7 @@ namespace OfficeIMO.Tests {
                 for (int i = 1; i <= 11; i++) {
                     PowerPointAutoShape arrow = Assert.IsAssignableFrom<PowerPointAutoShape>(
                         slide.GetShape("Designer Direction " + i));
-                    Assert.Equal(PowerPointShapeType.Triangle, arrow.ShapeType);
+                    Assert.Equal(OfficePresetShapeType.Triangle, arrow.ShapeType);
                     Assert.Equal(90, arrow.Rotation);
                 }
 
@@ -2090,15 +2090,15 @@ namespace OfficeIMO.Tests {
 
                 PowerPointAutoShape rail = Assert.IsAssignableFrom<PowerPointAutoShape>(
                     slide.GetShape("Process Rail"));
-                Assert.Equal(PowerPointShapeType.Line, rail.ShapeType);
+                Assert.Equal(OfficePresetShapeType.Line, rail.ShapeType);
                 Assert.True(rail.OutlineWidthPoints <= 1.2);
 
                 PowerPointAutoShape firstNode = Assert.IsAssignableFrom<PowerPointAutoShape>(
                     slide.GetShape("Process Node 1"));
                 PowerPointAutoShape secondNode = Assert.IsAssignableFrom<PowerPointAutoShape>(
                     slide.GetShape("Process Node 2"));
-                Assert.Equal(PowerPointShapeType.Ellipse, firstNode.ShapeType);
-                Assert.Equal(PowerPointShapeType.Ellipse, secondNode.ShapeType);
+                Assert.Equal(OfficePresetShapeType.Ellipse, firstNode.ShapeType);
+                Assert.Equal(OfficePresetShapeType.Ellipse, secondNode.ShapeType);
                 Assert.True(rail.LeftCm < firstNode.RightCm);
                 Assert.True(rail.RightCm > secondNode.LeftCm);
                 Assert.Null(slide.GetShape("Process Arrow 1"));
@@ -2161,11 +2161,11 @@ namespace OfficeIMO.Tests {
 
                     PowerPointAutoShape connector = Assert.IsAssignableFrom<PowerPointAutoShape>(
                         slide.GetShape("Process Connector 1"));
-                    Assert.Equal(PowerPointShapeType.Line, connector.ShapeType);
+                    Assert.Equal(OfficePresetShapeType.Line, connector.ShapeType);
                     Assert.NotNull(slide.GetShape("Process Connector 2"));
                     Assert.Null(slide.GetShape("Process Rail"));
 
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     presentation.Save();
                 }
@@ -2216,11 +2216,11 @@ namespace OfficeIMO.Tests {
 
                 PowerPointAutoShape dot = Assert.IsAssignableFrom<PowerPointAutoShape>(
                     dotSlide.GetShape("Designer Direction 1"));
-                Assert.Equal(PowerPointShapeType.Ellipse, dot.ShapeType);
+                Assert.Equal(OfficePresetShapeType.Ellipse, dot.ShapeType);
 
                 PowerPointAutoShape bar = Assert.IsAssignableFrom<PowerPointAutoShape>(
                     barSlide.GetShape("Designer Direction 1"));
-                Assert.Equal(PowerPointShapeType.Rectangle, bar.ShapeType);
+                Assert.Equal(OfficePresetShapeType.Rectangle, bar.ShapeType);
 
                 Assert.NotNull(chevronSlide.GetShape("Designer Direction 1"));
                 Assert.NotNull(chevronSlide.GetShape("Designer Direction Chevron 1B"));
@@ -2248,7 +2248,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.NotNull(slide.GetShape("Designer Direction 1"));
 
-                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             } finally {
                 if (File.Exists(filePath)) {
@@ -2291,7 +2291,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(quietSlide.GetShape("Section Title Accent Side Rule"));
                 Assert.Null(quietSlide.GetShape("Section Title Accent Kicker Rule"));
 
-                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             } finally {
                 if (File.Exists(filePath)) {
@@ -2354,7 +2354,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(slide.GetShape("Process Connector 1"));
                 Assert.Null(slide.GetShape("Process Rail"));
 
-                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             } finally {
                 if (File.Exists(filePath)) {
@@ -2534,13 +2534,13 @@ namespace OfficeIMO.Tests {
                         FooterRight = "Custom"
                     });
 
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     presentation.Save();
                 }
 
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes),
                         textBox => textBox.Text == "Custom story");
@@ -2656,13 +2656,13 @@ namespace OfficeIMO.Tests {
                     Assert.NotNull(slide.GetShape("Composer Callout Band"));
                     Assert.NotNull(slide.GetShape("Composer Metric Band"));
 
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     presentation.Save();
                 }
 
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                 }
             } finally {
@@ -2699,13 +2699,13 @@ namespace OfficeIMO.Tests {
                     Assert.NotNull(slide.GetShape("Logo Wall Certificate Header"));
                     Assert.NotNull(slide.GetShape("Logo Wall Certificate Seal Center"));
 
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     presentation.Save();
                 }
 
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                 }
             } finally {
@@ -2848,13 +2848,13 @@ namespace OfficeIMO.Tests {
                     Assert.NotNull(slide.GetShape("Coverage Map Panel"));
                     Assert.NotNull(slide.GetShape("Coverage Pin 1"));
 
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     presentation.Save();
                 }
 
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
-                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                 }
             } finally {
@@ -2955,7 +2955,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(slide.GetShape("Visual Proof Primary Panel"));
                 Assert.Null(slide.GetShape("Visual Device Screen"));
 
-                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             } finally {
                 if (File.Exists(filePath)) {
@@ -3045,14 +3045,14 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        private static string FormatValidationErrors(IEnumerable<ValidationErrorInfo> errors) {
+        private static string FormatValidationErrors(IEnumerable<OfficeOpenXmlValidationError> errors) {
             return string.Join(Environment.NewLine + Environment.NewLine,
                 errors.Select(error =>
                     $"Description: {error.Description}\n" +
                     $"Id: {error.Id}\n" +
                     $"ErrorType: {error.ErrorType}\n" +
-                    $"Part: {error.Part?.Uri}\n" +
-                    $"Path: {error.Path?.XPath}"));
+                    $"Part: {error.PartUri}\n" +
+                    $"Path: {error.Path}"));
         }
 
         private static PowerPointCompositionVariant ResolveVariantForSeed(PowerPointPresentation presentation,

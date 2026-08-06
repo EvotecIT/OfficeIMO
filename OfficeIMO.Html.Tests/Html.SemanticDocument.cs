@@ -110,7 +110,7 @@ public partial class Html {
     public void HtmlDiagnostics_PreserveTheOriginalPublicClrSignatures() {
         Type[] originalParameters = {
             typeof(string), typeof(string), typeof(string), typeof(HtmlDiagnosticSeverity),
-            typeof(string), typeof(string), typeof(HtmlConversionLossKind)
+            typeof(string), typeof(string), typeof(OfficeConversionLossKind)
         };
 
         Assert.NotNull(typeof(HtmlDiagnostic).GetConstructor(originalParameters));

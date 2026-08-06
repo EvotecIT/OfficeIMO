@@ -3484,7 +3484,7 @@ public partial class DrawingTests {
         OfficeImageExportDiagnostic diagnostic = Assert.IsType<OfficeImageExportDiagnostic>(
             fonts.CreateSubstitutionDiagnostic(emoji, "Missing Demo, Emoji Demo", source: "test"));
         Assert.Equal(OfficeImageExportDiagnosticCodes.FontSubstituted, diagnostic.Code);
-        Assert.Equal(OfficeImageExportLossKind.Approximation, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
         Assert.Equal("test", diagnostic.Source);
         Assert.Contains("Emoji Demo", diagnostic.Message, StringComparison.Ordinal);
 

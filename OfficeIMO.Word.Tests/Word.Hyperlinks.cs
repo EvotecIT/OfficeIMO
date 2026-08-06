@@ -282,7 +282,7 @@ namespace OfficeIMO.Tests {
                 hyperlinkWithoutStyle.Highlight = WordHighlightColor.Cyan;
                 hyperlinkWithoutStyle.Strike = true;
                 hyperlinkWithoutStyle.DoubleStrike = true;
-                hyperlinkWithoutStyle.CapsStyle = CapsStyle.SmallCaps;
+                hyperlinkWithoutStyle.CapsStyle = WordCapsStyle.SmallCaps;
 
                 Assert.True(hyperlinkWithoutStyle.Bold);
                 Assert.True(hyperlinkWithoutStyle.Italic);
@@ -294,7 +294,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(hyperlinkWithoutStyle.Highlight == WordHighlightColor.Cyan);
                 Assert.True(hyperlinkWithoutStyle.Strike);
                 Assert.True(hyperlinkWithoutStyle.DoubleStrike);
-                Assert.True(hyperlinkWithoutStyle.CapsStyle == CapsStyle.SmallCaps);
+                Assert.True(hyperlinkWithoutStyle.CapsStyle == WordCapsStyle.SmallCaps);
 
                 Assert.True(hyperlinkWithoutStyleElement._runProperties.Bold != null);
                 Assert.True(hyperlinkWithoutStyleElement._runProperties.Italic != null);
@@ -309,12 +309,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(hyperlinkWithoutStyleElement._runProperties.Caps == null);
                 Assert.True(hyperlinkWithoutStyleElement._runProperties.SmallCaps != null);
 
-                hyperlinkWithoutStyle.CapsStyle = CapsStyle.Caps;
+                hyperlinkWithoutStyle.CapsStyle = WordCapsStyle.Caps;
 
                 Assert.True(hyperlinkWithoutStyleElement._runProperties.Caps != null);
                 Assert.True(hyperlinkWithoutStyleElement._runProperties.SmallCaps == null);
 
-                Assert.True(hyperlinkWithoutStyle.CapsStyle == CapsStyle.Caps);
+                Assert.True(hyperlinkWithoutStyle.CapsStyle == WordCapsStyle.Caps);
 
             }
         }

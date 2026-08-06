@@ -235,9 +235,9 @@ namespace OfficeIMO.Word {
                 var section = ResolveOwningSection();
                 if (section != null) {
                     var page = section.PageSettings;
-                    var width = (int)(page.Width?.Value ?? WordPageSizes.A4.Width!.Value);
-                    var left = (int)(section.Margins.Left?.Value ?? 1440U);
-                    var right = (int)(section.Margins.Right?.Value ?? 1440U);
+                    var width = (int)(page.Width ?? WordPageSizes.A4.WidthTwips);
+                    var left = (int)section.Margins.Left;
+                    var right = (int)section.Margins.Right;
                     int content = Math.Max(0, width - left - right);
                     return content > 0 ? content : 9000; // fallback ~6.25"
                 }
@@ -452,23 +452,19 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the effective layout mode of the table using WordTableLayoutType enum.
-        /// Setting FixedWidth via this property defaults to 100% width.
-        /// Use SetFixedWidth(percentage) for specific percentages.
+        /// Gets or sets the layout algorithm used by Word for the table.
+        /// Changing the algorithm preserves the table and cell preferred widths.
+        /// Use <see cref="AutoFitToWindow"/> or <see cref="SetFixedWidth(int)"/> when the width should also change.
         /// </summary>
-        public WordTableLayoutType LayoutMode {
-            get => GetCurrentLayoutType();
+        public WordTableLayoutMode LayoutMode {
+            get => GetCurrentLayoutMode();
             set {
                 switch (value) {
-                    case WordTableLayoutType.AutoFitToContents:
-                        AutoFitToContents();
+                    case WordTableLayoutMode.AutoFit:
+                        SetLayoutAlgorithm(TableLayoutValues.Autofit);
                         break;
-                    case WordTableLayoutType.AutoFitToWindow:
-                        AutoFitToWindow();
-                        break;
-                    case WordTableLayoutType.FixedWidth:
-                        // Default to 100% when setting via this property
-                        SetFixedWidth(100);
+                    case WordTableLayoutMode.Fixed:
+                        SetLayoutAlgorithm(TableLayoutValues.Fixed);
                         break;
                 }
             }

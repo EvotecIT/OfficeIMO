@@ -2350,7 +2350,7 @@ public sealed class PdfConversionScenarioManifestTests {
         PowerPointTextBox marker = slide.AddTextBoxPoints("Grouped transform marker", 20, 58, 150, 20);
         marker.FontSize = 9;
         marker.Color = "0F172A";
-        PowerPointAutoShape preset = slide.AddShapePoints(OfficeIMO.PowerPoint.PowerPointShapeType.Triangle, 176, 44, 36, 36);
+        PowerPointAutoShape preset = slide.AddShapePoints(OfficeIMO.Drawing.OfficePresetShapeType.Triangle, 176, 44, 36, 36);
         preset.FillColor = "1F4E79";
         preset.OutlineColor = "1F4E79";
         PowerPointAutoShape first = slide.AddRectanglePoints(20, 20, 30, 20);

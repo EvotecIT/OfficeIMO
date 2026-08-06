@@ -28,14 +28,14 @@ namespace OfficeIMO.Tests {
             File.Delete(filePath);
         }
 
-        private static string FormatValidationErrors(IEnumerable<ValidationErrorInfo> errors) {
+        private static string FormatValidationErrors(IEnumerable<OfficeOpenXmlValidationError> errors) {
             return string.Join(Environment.NewLine + Environment.NewLine,
                 errors.Select(error =>
                     $"Description: {error.Description}\n" +
                     $"Id: {error.Id}\n" +
                     $"ErrorType: {error.ErrorType}\n" +
-                    $"Part: {error.Part?.Uri}\n" +
-                    $"Path: {error.Path?.XPath}"));
+                    $"Part: {error.PartUri}\n" +
+                    $"Path: {error.Path}"));
         }
     }
 }

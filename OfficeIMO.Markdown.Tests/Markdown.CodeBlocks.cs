@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_CodeParagraph_OutputFence() {
             using var doc = WordDocument.Create();
-            string mono = FontResolver.Resolve("monospace")!;
+            string mono = WordFontResolver.Resolve("monospace")!;
             doc.AddParagraph("Console.WriteLine(\"Hello\");").SetFontFamily(mono).SetStyleId("CodeLang_csharp");
 
             string markdown = doc.ToMarkdown(new WordToMarkdownOptions());

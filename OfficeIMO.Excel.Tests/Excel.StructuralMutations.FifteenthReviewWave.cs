@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                     sourceDocument,
                     "Images",
                     "Copied",
-                    SheetNameValidationMode.Sanitize,
+                    ExcelSheetNameValidationMode.Sanitize,
                     new ExcelWorksheetCopyOptions { CopyMode = ExcelWorksheetCopyMode.Package });
 
                 ExcelInCellImage image = Assert.Single(copied.GetInCellImages());

@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = Path.Combine(folderPath, "FluentWorkbook.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 // Set Sequential mode to prevent locking issues with combined operations
-                document.Execution.Mode = ExecutionMode.Sequential;
+                document.Execution.Mode = ExcelExecutionMode.Sequential;
 
                 document.AsFluent()
                     .Sheet("Data", s => s
@@ -51,8 +51,8 @@ namespace OfficeIMO.Examples.Excel {
                     Console.WriteLine($"[!] Document has {errors.Count} validation errors:");
                     foreach (var error in errors) {
                         Console.WriteLine($"  - {error.Description}");
-                        Console.WriteLine($"    Path: {error.Path?.XPath ?? "N/A"}");
-                        Console.WriteLine($"    Part: {error.Part?.Uri?.ToString() ?? "N/A"}");
+                        Console.WriteLine($"    Path: {error.Path ?? "N/A"}");
+                        Console.WriteLine($"    Part: {error.PartUri ?? "N/A"}");
                     }
                 } else {
                     Console.WriteLine("[✓] Document is valid");

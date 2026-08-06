@@ -24,7 +24,7 @@ public partial class Excel {
                 "H10:J11",
                 hasHeader: true,
                 name: "IdentityData",
-                style: TableStyle.TableStyleLight9,
+                style: ExcelTableStyle.TableStyleLight9,
                 includeAutoFilter: true);
             document.Save();
             string accentArgb = Assert.IsType<string>(document.ResolveThemeColorArgb(4U));
@@ -50,7 +50,7 @@ public partial class Excel {
         Assert.NotNull(style.CellBorders);
         Assert.Equal(6, style.CellBorders!.Count);
 
-        PdfCore.TextRun headerRun = Assert.Single(table.Cells[0][0].Runs);
+        PdfCore.PdfTextRun headerRun = Assert.Single(table.Cells[0][0].Runs);
         Assert.True(headerRun.Bold);
         Assert.Equal(PdfCore.PdfColor.FromRgb(255, 255, 255), headerRun.Color);
         Assert.False(Assert.Single(table.Cells[1][0].Runs).Bold);
@@ -90,7 +90,7 @@ public partial class Excel {
         PdfCore.TableBlock table = Assert.Single(page.Blocks.OfType<PdfCore.TableBlock>());
         PdfCore.PdfTableStyle style = Assert.IsType<PdfCore.PdfTableStyle>(table.Style);
         Assert.Equal(PdfCore.PdfColor.FromRgb(192, 0, 0), style.CellFills![(0, 0)]);
-        PdfCore.TextRun headerRun = Assert.Single(table.Cells[0][0].Runs);
+        PdfCore.PdfTextRun headerRun = Assert.Single(table.Cells[0][0].Runs);
         Assert.True(headerRun.Bold);
         Assert.Equal(PdfCore.PdfColor.FromRgb(255, 255, 255), headerRun.Color);
         Assert.Equal(2, table.Rows.Count);
@@ -115,7 +115,7 @@ public partial class Excel {
         PdfCore.TableBlock table = Assert.Single(page.Blocks.OfType<PdfCore.TableBlock>());
         PdfCore.PdfTableStyle style = Assert.IsType<PdfCore.PdfTableStyle>(table.Style);
         Assert.Equal(PdfCore.PdfColor.FromRgb(192, 0, 0), style.CellFills![(0, 0)]);
-        PdfCore.TextRun headerRun = Assert.Single(table.Cells[0][0].Runs);
+        PdfCore.PdfTextRun headerRun = Assert.Single(table.Cells[0][0].Runs);
         Assert.True(headerRun.Bold);
         Assert.Equal(PdfCore.PdfColor.FromRgb(255, 255, 255), headerRun.Color);
     }

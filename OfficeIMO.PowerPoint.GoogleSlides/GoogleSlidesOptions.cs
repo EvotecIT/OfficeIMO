@@ -25,13 +25,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         public GoogleWorkspaceFidelityPolicy FidelityPolicy { get; set; } = new GoogleWorkspaceFidelityPolicy();
     }
 
-    public enum GoogleSlidesImportMode {
-        DriveExport = 0,
-        Native = 1,
-    }
-
     public sealed class GoogleSlidesImportOptions {
-        public GoogleSlidesImportMode Mode { get; set; } = GoogleSlidesImportMode.DriveExport;
+        public GoogleWorkspaceImportMode Mode { get; set; } = GoogleWorkspaceImportMode.DriveExport;
         public PowerPointLoadOptions LoadOptions { get; set; } = new PowerPointLoadOptions();
         public IProgress<OfficeIMO.GoogleWorkspace.Drive.GoogleDriveTransferProgress>? Progress { get; set; }
 

@@ -92,7 +92,7 @@ internal static partial class Tables {
             // Need to ensure table width matches column sum if Fixed/Pct
             wordTable8.Width = 1000 + 500 + 500 + 750; // Sum = 2750 (55%)
             wordTable8.WidthType = WordTableWidthUnit.Pct;
-            wordTable8.LayoutType = WordTableLayoutMode.Fixed;
+            wordTable8.LayoutMode = WordTableLayoutMode.Fixed;
             Console.WriteLine($"Table 9 - Individual Pct Cols: {wordTable8.LayoutMode}");
             document.AddParagraph();
 
@@ -103,7 +103,7 @@ internal static partial class Tables {
             wordTable9.ColumnWidthType = WordTableWidthUnit.Pct;
             wordTable9.WidthType = WordTableWidthUnit.Pct; // Setting table type is good practice
             wordTable9.Width = 2750; // Ensure table width matches
-            wordTable9.LayoutType = WordTableLayoutMode.Fixed;
+            wordTable9.LayoutMode = WordTableLayoutMode.Fixed;
             Console.WriteLine($"Table 10 - More Pct Cols: {wordTable9.LayoutMode}");
             document.AddParagraph();
 
@@ -127,7 +127,7 @@ internal static partial class Tables {
             wordTable11.ColumnWidthType = WordTableWidthUnit.Pct;
             wordTable11.Width = 2748; // Set table width to match sum
             wordTable11.WidthType = WordTableWidthUnit.Pct;
-            wordTable11.LayoutType = WordTableLayoutMode.Fixed;
+            wordTable11.LayoutMode = WordTableLayoutMode.Fixed;
             Console.WriteLine($"Table 12 - Manual Distribution: {wordTable11.LayoutMode}");
             document.AddParagraph();
 
@@ -143,7 +143,7 @@ internal static partial class Tables {
             Console.WriteLine($"Table 13 - 100% via Cols: {wordTable12.LayoutMode}");
             document.AddParagraph();
 
-            // --- Demonstrating Layout Changes with GetCurrentLayoutType / LayoutMode ---
+            // --- Demonstrating layout changes with LayoutMode ---
             document.AddParagraph("Table 14: Demonstrate Layout Changes (AutoFit)").Style = WordParagraphStyles.Heading1;
             WordTable wordTable13 = document.AddTable(4, 4, WordTableStyle.PlainTable1);
             wordTable13.Rows[0].Cells[0].Paragraphs[0].Text = "Content";
@@ -151,10 +151,10 @@ internal static partial class Tables {
             wordTable13.Rows[2].Cells[2].Paragraphs[0].Text = "Wider Content Here";
             Console.WriteLine($"Table 14 - Initial: {wordTable13.LayoutMode}");
             // Set via raw property
-            wordTable13.LayoutType = WordTableLayoutMode.Autofit;
+            wordTable13.LayoutMode = WordTableLayoutMode.AutoFit;
             Console.WriteLine($"Table 14 - After LayoutType=Autofit: {wordTable13.LayoutMode}");
             // Set via new property
-            wordTable13.LayoutMode = WordTableLayoutType.AutoFitToContents;
+            wordTable13.LayoutMode = WordTableLayoutMode.AutoFit;
             Console.WriteLine($"Table 14 - After LayoutMode=AutoFitToContents: {wordTable13.LayoutMode}");
             document.AddParagraph();
 
@@ -166,7 +166,7 @@ internal static partial class Tables {
             wordTable14.SetFixedWidth(50);
             Console.WriteLine($"Table 15 - After SetFixedWidth(50): {wordTable14.LayoutMode}");
             // Set via new property (defaults to 100%)
-            wordTable14.LayoutMode = WordTableLayoutType.FixedWidth;
+            wordTable14.LayoutMode = WordTableLayoutMode.Fixed;
             Console.WriteLine($"Table 15 - After LayoutMode=FixedWidth: {wordTable14.LayoutMode}");
             // Set back to 50%
             wordTable14.SetFixedWidth(50);
@@ -184,7 +184,7 @@ internal static partial class Tables {
             wordTable15.AutoFitToContents();
             Console.WriteLine($"Table 16 - After AutoFitToContents(): {wordTable15.LayoutMode}");
             // Set via new property
-            wordTable15.LayoutMode = WordTableLayoutType.AutoFitToWindow;
+            wordTable15.AutoFitToWindow();
             Console.WriteLine($"Table 16 - After LayoutMode=AutoFitToWindow: {wordTable15.LayoutMode}");
             document.AddParagraph();
 

@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 1, "EU");
             sheet.CellValue(2, 2, 10);
             sheet.CellValue(2, 3, 2);
-            sheet.AddTable("A1:C2", true, "Sales", TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:C2", true, "Sales", ExcelTableStyle.TableStyleMedium2);
             sheet.CellFormula(4, 1, "SUM(Sales[Amount])+C2");
             sheet.Protect(new ExcelSheetProtectionOptions { Password = "secret" });
             sheet.SetAllowedEditRange("Inputs", new[] { "B2:C2" });
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(2, 2, 2);
-            sheet.AddTable("A1:B2", true, "DataTable", TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B2", true, "DataTable", ExcelTableStyle.TableStyleMedium2);
 
             Assert.Throws<InvalidOperationException>(() => sheet.PlanDeleteColumns(1, 2));
             Assert.Equal("A1:B2", Assert.Single(document.GetTables()).Range);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(2, 2, 2);
             ExcelStructuralMutationPlan plan = sheet.PlanDeleteColumns(1, 2);
-            sheet.AddTable("A1:B2", true, "DataTable", TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B2", true, "DataTable", ExcelTableStyle.TableStyleMedium2);
 
             Assert.Throws<System.InvalidOperationException>(() => plan.Apply());
             Assert.Equal("A1:B2", Assert.Single(document.GetTables()).Range);
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(2, 2, 2);
             sheet.CellValue(2, 3, 3);
-            sheet.AddTable("A1:C2", true, "DataTable", TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:C2", true, "DataTable", ExcelTableStyle.TableStyleMedium2);
             S.AutoFilter tableFilter = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!.AutoFilter!;
             tableFilter.Append(new S.FilterColumn(new S.Filters { Blank = true }) { ColumnId = 1U });
 
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(2, 2, 2);
-            sheet.AddTable("A1:B2", true, "DataTable", TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B2", true, "DataTable", ExcelTableStyle.TableStyleMedium2);
             sheet.CellFormula(4, 1, "SUM(DataTable[B])");
 
             sheet.DeleteColumns(2);

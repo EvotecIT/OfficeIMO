@@ -36,6 +36,16 @@ namespace OfficeIMO.Tests {
                     $"Path: {error.Path?.XPath}"));
         }
 
+        internal static string FormatValidationErrors(IEnumerable<OfficeOpenXmlValidationError> errors) {
+            return string.Join(Environment.NewLine + Environment.NewLine,
+                errors.Select(error =>
+                    $"Description: {error.Description}\n" +
+                    $"Id: {error.Id}\n" +
+                    $"ErrorType: {error.ErrorType}\n" +
+                    $"Part: {error.PartUri}\n" +
+                    $"Path: {error.Path}"));
+        }
+
         internal static void AssertRoundTripNumericText(double expected, string? actual) {
             Assert.NotNull(actual);
             Assert.Equal(expected, double.Parse(actual!, NumberStyles.Float, CultureInfo.InvariantCulture));

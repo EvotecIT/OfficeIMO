@@ -533,13 +533,13 @@ namespace OfficeIMO.Excel {
                 return data;
             }
 
-            var typedSeries = new List<(OpenXmlCompositeElement Series, ExcelChartType ChartType, ExcelChartAxisGroup AxisGroup)>();
+            var typedSeries = new List<(OpenXmlCompositeElement Series, ExcelChartType ChartType, OfficeChartAxisGroup AxisGroup)>();
             foreach (OpenXmlElement chartElement in plotArea.ChildElements) {
                 if (!TryGetChartElementType(chartElement, out ExcelChartType chartType)) {
                     continue;
                 }
 
-                ExcelChartAxisGroup axisGroup = GetChartAxisGroup(plotArea, chartElement);
+                OfficeChartAxisGroup axisGroup = GetChartAxisGroup(plotArea, chartElement);
                 foreach (OpenXmlElement child in chartElement.ChildElements) {
                     if (child is OpenXmlCompositeElement seriesElement && seriesElement.GetFirstChild<ChartIndex>()?.Val?.Value != null) {
                         typedSeries.Add((seriesElement, chartType, axisGroup));
@@ -551,7 +551,7 @@ namespace OfficeIMO.Excel {
                 return data;
             }
 
-            Dictionary<int, (ExcelChartType ChartType, ExcelChartAxisGroup AxisGroup)> seriesTypes = typedSeries
+            Dictionary<int, (ExcelChartType ChartType, OfficeChartAxisGroup AxisGroup)> seriesTypes = typedSeries
                 .OrderBy(item => item.Series.GetFirstChild<ChartIndex>()?.Val?.Value ?? uint.MaxValue)
                 .Select((item, index) => new { index, item.ChartType, item.AxisGroup })
                 .ToDictionary(item => item.index, item => (item.ChartType, item.AxisGroup));
@@ -560,7 +560,7 @@ namespace OfficeIMO.Excel {
             for (int i = 0; i < data.Series.Count; i++) {
                 ExcelChartSeries current = data.Series[i];
                 ExcelChartType? seriesType = current.ChartType;
-                ExcelChartAxisGroup axisGroup = current.AxisGroup;
+                OfficeChartAxisGroup axisGroup = current.AxisGroup;
                 if (seriesTypes.TryGetValue(i, out var authoredSeries)) {
                     seriesType = authoredSeries.ChartType;
                     axisGroup = authoredSeries.AxisGroup;
@@ -572,7 +572,7 @@ namespace OfficeIMO.Excel {
             return new ExcelChartData(data.Categories, series);
         }
 
-        private static ExcelChartAxisGroup GetChartAxisGroup(PlotArea plotArea, OpenXmlElement chartElement) {
+        private static OfficeChartAxisGroup GetChartAxisGroup(PlotArea plotArea, OpenXmlElement chartElement) {
             HashSet<uint> axisIds = new(chartElement.Elements<AxisId>()
                 .Where(axis => axis.Val?.Value != null)
                 .Select(axis => axis.Val!.Value));
@@ -580,8 +580,8 @@ namespace OfficeIMO.Excel {
                        axis.AxisId?.Val?.Value != null && axisIds.Contains(axis.AxisId.Val.Value) &&
                        (axis.AxisPosition?.Val?.Value == AxisPositionValues.Right ||
                         axis.AxisPosition?.Val?.Value == AxisPositionValues.Top))
-                ? ExcelChartAxisGroup.Secondary
-                : ExcelChartAxisGroup.Primary;
+                ? OfficeChartAxisGroup.Secondary
+                : OfficeChartAxisGroup.Primary;
         }
 
         internal static ExcelChartData ApplyScatterSeriesXValues(ChartPart chartPart, ExcelChartData data, ExcelSheet contextSheet) {

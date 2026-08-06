@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 2, "Result");
                 sheet.CellValue(2, 1, "Ada");
                 sheet.CellValue(2, 2, 7);
-                sheet.AddTable("A1:B2", hasHeader: true, name: "CalculatedResults", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                sheet.AddTable("A1:B2", hasHeader: true, name: "CalculatedResults", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 source.Save();
             }
 
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
             using var targetDocument = ExcelDocument.Create(targetPath);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                targetDocument.CopyWorksheetFrom(sourceDocument, "External", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                targetDocument.CopyWorksheetFrom(sourceDocument, "External", "Imported", ExcelSheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
                     CopyMode = ExcelWorksheetCopyMode.Package
                 }));
             Assert.Contains("CopyExternalWorkbookReferences", exception.Message, StringComparison.Ordinal);
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
             using var targetDocument = ExcelDocument.Create(targetPath);
             int originalSheetCount = targetDocument.Sheets.Count;
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                targetDocument.CopyWorksheetFrom(sourceDocument, "Names", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                targetDocument.CopyWorksheetFrom(sourceDocument, "Names", "Imported", ExcelSheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
                     CopyMode = ExcelWorksheetCopyMode.Package,
                     MaxDefinedNames = 2
                 }));
@@ -226,7 +226,7 @@ namespace OfficeIMO.Tests {
 
             using var sourceDocument = ExcelDocument.Load(sourcePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
             using var targetDocument = ExcelDocument.Create(targetPath);
-            ExcelSheet copied = targetDocument.CopyWorksheetFrom(sourceDocument, "Rows", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+            ExcelSheet copied = targetDocument.CopyWorksheetFrom(sourceDocument, "Rows", "Imported", ExcelSheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
                 CopyMode = ExcelWorksheetCopyMode.Package
             });
             Assert.Equal("Imported", copied.Name);

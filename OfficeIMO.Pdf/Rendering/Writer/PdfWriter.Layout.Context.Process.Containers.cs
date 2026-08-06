@@ -143,11 +143,11 @@ internal static partial class PdfWriter {
             return true;
         }
 
-        private static List<TextRun> BuildTextRunsFromWrappedLines(
+        private static List<PdfTextRun> BuildTextRunsFromWrappedLines(
             IReadOnlyList<List<RichSeg>> lines,
             int start,
             int count) {
-            var runs = new List<TextRun>();
+            var runs = new List<PdfTextRun>();
             for (int lineIndex = 0; lineIndex < count; lineIndex++) {
                 IReadOnlyList<RichSeg> line = lines[start + lineIndex];
                 for (int segmentIndex = 0; segmentIndex < line.Count; segmentIndex++) {
@@ -157,7 +157,7 @@ internal static partial class PdfWriter {
                             runs.Add(BuildTextRunFromWrappedSegment(" ", segment));
                         }
 
-                        runs.Add(TextRun.Inline(segment.InlineElement));
+                        runs.Add(PdfTextRun.Inline(segment.InlineElement));
                         continue;
                     }
 
@@ -171,7 +171,7 @@ internal static partial class PdfWriter {
 
                 if (lineIndex + 1 < count) {
                     if (line.Count == 0 || line[line.Count - 1].EndsWithHardBreak) {
-                        runs.Add(TextRun.LineBreak());
+                        runs.Add(PdfTextRun.LineBreak());
                     } else if (line[line.Count - 1].EndsWithTextSeparator) {
                         runs.Add(BuildTextRunFromWrappedSegment(" ", line[line.Count - 1].WithoutLink()));
                     }
@@ -181,8 +181,8 @@ internal static partial class PdfWriter {
             return runs;
         }
 
-        private static TextRun BuildTextRunFromWrappedSegment(string text, RichSeg segment) =>
-            new TextRun(
+        private static PdfTextRun BuildTextRunFromWrappedSegment(string text, RichSeg segment) =>
+            new PdfTextRun(
                 text,
                 segment.Bold,
                 segment.Underline,

@@ -4,7 +4,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Built-in cover page templates available for Word documents.
     /// </summary>
-    public enum CoverPageTemplate {
+    public enum WordCoverPageTemplate {
         /// <summary>
         /// The "Austin" built-in template.
         /// </summary>
@@ -85,7 +85,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordDocument">Parent document.</param>
         /// <param name="sdtBlock">Structured document tag to wrap.</param>
-        public WordCoverPage(WordDocument wordDocument, SdtBlock sdtBlock) {
+        internal WordCoverPage(WordDocument wordDocument, SdtBlock sdtBlock) {
             _document = wordDocument;
             _sdtBlock = sdtBlock;
         }
@@ -95,7 +95,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordDocument">Parent document.</param>
         /// <param name="coverPageTemplate">Template to insert.</param>
-        public WordCoverPage(WordDocument wordDocument, CoverPageTemplate coverPageTemplate) {
+        public WordCoverPage(WordDocument wordDocument, WordCoverPageTemplate coverPageTemplate) {
             _document = wordDocument;
             _sdtBlock = GetStyle(coverPageTemplate);
             _document.AssignNewSdtIds(_sdtBlock);
@@ -104,22 +104,22 @@ namespace OfficeIMO.Word {
             body.Append(_sdtBlock);
         }
 
-        private SdtBlock GetStyle(CoverPageTemplate template) {
+        private SdtBlock GetStyle(WordCoverPageTemplate template) {
             switch (template) {
-                case CoverPageTemplate.Austin: return CoverPageAustin;
-                case CoverPageTemplate.Banded: return CoverPageBanded;
-                case CoverPageTemplate.Facet: return CoverPageFacet;
-                case CoverPageTemplate.Grid: return CoverPageGrid;
-                case CoverPageTemplate.IonDark: return CoverPageIonDark;
-                case CoverPageTemplate.IonLight: return CoverPageIonLight;
-                case CoverPageTemplate.Element: return CoverPageElement;
-                case CoverPageTemplate.Wisp: return CoverPageWisp;
-                case CoverPageTemplate.ViewMaster: return CoverPageViewMaster;
-                case CoverPageTemplate.SliceLight: return CoverPageSliceLight;
-                case CoverPageTemplate.SliceDark: return CoverPageSliceDark;
-                case CoverPageTemplate.SideLine: return CoverPageSideLine;
-                case CoverPageTemplate.Semaphore: return CoverPageSemaphore;
-                case CoverPageTemplate.Retrospect: return CoverPageRetrospect;
+                case WordCoverPageTemplate.Austin: return CoverPageAustin;
+                case WordCoverPageTemplate.Banded: return CoverPageBanded;
+                case WordCoverPageTemplate.Facet: return CoverPageFacet;
+                case WordCoverPageTemplate.Grid: return CoverPageGrid;
+                case WordCoverPageTemplate.IonDark: return CoverPageIonDark;
+                case WordCoverPageTemplate.IonLight: return CoverPageIonLight;
+                case WordCoverPageTemplate.Element: return CoverPageElement;
+                case WordCoverPageTemplate.Wisp: return CoverPageWisp;
+                case WordCoverPageTemplate.ViewMaster: return CoverPageViewMaster;
+                case WordCoverPageTemplate.SliceLight: return CoverPageSliceLight;
+                case WordCoverPageTemplate.SliceDark: return CoverPageSliceDark;
+                case WordCoverPageTemplate.SideLine: return CoverPageSideLine;
+                case WordCoverPageTemplate.Semaphore: return CoverPageSemaphore;
+                case WordCoverPageTemplate.Retrospect: return CoverPageRetrospect;
             }
             throw new ArgumentOutOfRangeException(nameof(template));
         }

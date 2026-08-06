@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AnchoredShape_Valid.docx");
             using (var document = WordDocument.Create(filePath)) {
                 var p = document.AddParagraph("Anchor here");
-                var shape = WordShape.AddDrawingShapeAnchored(p, ShapeType.Rectangle, 80, 40, leftPt: 36, topPt: 72);
+                var shape = WordShape.AddDrawingShapeAnchored(p, WordShapeType.Rectangle, 80, 40, leftPt: 36, topPt: 72);
                 document.Save();
             }
 
@@ -30,8 +30,8 @@ namespace OfficeIMO.Tests {
         public void AddShapeDrawing_WithNegativeCoordinates_ThrowsException() {
             using var document = WordDocument.Create();
             var p = document.AddParagraph();
-            Assert.Throws<ArgumentOutOfRangeException>(() => WordShape.AddDrawingShapeAnchored(p, ShapeType.Rectangle, 10, 10, -1, 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => WordShape.AddDrawingShapeAnchored(p, ShapeType.Rectangle, 10, 10, 0, -5));
+            Assert.Throws<ArgumentOutOfRangeException>(() => WordShape.AddDrawingShapeAnchored(p, WordShapeType.Rectangle, 10, 10, -1, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => WordShape.AddDrawingShapeAnchored(p, WordShapeType.Rectangle, 10, 10, 0, -5));
         }
 
         [Fact]
@@ -40,8 +40,8 @@ namespace OfficeIMO.Tests {
             var p = document.AddParagraph();
             // Use a very large value to trigger EMU overflow guard
             double huge = double.MaxValue / 2; // will overflow when multiplied
-            Assert.Throws<ArgumentOutOfRangeException>(() => WordShape.AddDrawingShapeAnchored(p, ShapeType.Rectangle, 10, 10, huge, 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => WordShape.AddDrawingShapeAnchored(p, ShapeType.Rectangle, 10, 10, 0, huge));
+            Assert.Throws<ArgumentOutOfRangeException>(() => WordShape.AddDrawingShapeAnchored(p, WordShapeType.Rectangle, 10, 10, huge, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => WordShape.AddDrawingShapeAnchored(p, WordShapeType.Rectangle, 10, 10, 0, huge));
         }
 
         [Fact]
@@ -50,8 +50,8 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 var p1 = document.AddParagraph("A");
                 var p2 = document.AddParagraph("B");
-                WordShape.AddDrawingShapeAnchored(p1, ShapeType.Rectangle, 40, 40, 10, 10);
-                WordShape.AddDrawingShapeAnchored(p2, ShapeType.Ellipse, 30, 30, 20, 20);
+                WordShape.AddDrawingShapeAnchored(p1, WordShapeType.Rectangle, 40, 40, 10, 10);
+                WordShape.AddDrawingShapeAnchored(p2, WordShapeType.Ellipse, 30, 30, 20, 20);
                 document.Save();
             }
 

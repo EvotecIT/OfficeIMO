@@ -7,7 +7,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds an auto shape with the specified geometry.
         /// </summary>
-        public PowerPointAutoShape AddShape(PowerPointShapeType shapeType, long left = 0L, long top = 0L, long width = 914400L,
+        public PowerPointAutoShape AddShape(OfficePresetShapeType shapeType, long left = 0L, long top = 0L, long width = 914400L,
             long height = 914400L, string? name = null) {
             string shapeName = name ?? GenerateUniqueName(shapeType.ToString());
             A.ShapeTypeValues openXmlShapeType = shapeType.ToOpenXml();
@@ -17,7 +17,7 @@ namespace OfficeIMO.PowerPoint {
                 new A.PresetGeometry(new A.AdjustValueList()) { Preset = openXmlShapeType }
             );
 
-            if (shapeType == PowerPointShapeType.Line) {
+            if (shapeType == OfficePresetShapeType.Line) {
                 shapeProperties.Append(new A.NoFill());
             }
 
@@ -61,7 +61,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds an auto shape with the specified geometry using centimeter measurements.
         /// </summary>
-        public PowerPointAutoShape AddShapeCm(PowerPointShapeType shapeType, double leftCm, double topCm, double widthCm,
+        public PowerPointAutoShape AddShapeCm(OfficePresetShapeType shapeType, double leftCm, double topCm, double widthCm,
             double heightCm, string? name = null) {
             return AddShape(shapeType,
                 PowerPointUnits.FromCentimeters(leftCm),
@@ -74,7 +74,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds an auto shape with the specified geometry using inch measurements.
         /// </summary>
-        public PowerPointAutoShape AddShapeInches(PowerPointShapeType shapeType, double leftInches, double topInches,
+        public PowerPointAutoShape AddShapeInches(OfficePresetShapeType shapeType, double leftInches, double topInches,
             double widthInches, double heightInches, string? name = null) {
             return AddShape(shapeType,
                 PowerPointUnits.FromInches(leftInches),
@@ -87,7 +87,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds an auto shape with the specified geometry using point measurements.
         /// </summary>
-        public PowerPointAutoShape AddShapePoints(PowerPointShapeType shapeType, double leftPoints, double topPoints,
+        public PowerPointAutoShape AddShapePoints(OfficePresetShapeType shapeType, double leftPoints, double topPoints,
             double widthPoints, double heightPoints, string? name = null) {
             return AddShape(shapeType,
                 PowerPointUnits.FromPoints(leftPoints),
@@ -101,7 +101,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a rectangle shape.
         /// </summary>
         public PowerPointAutoShape AddRectangle(long left, long top, long width, long height, string? name = null) {
-            return AddShape(PowerPointShapeType.Rectangle, left, top, width, height, name);
+            return AddShape(OfficePresetShapeType.Rectangle, left, top, width, height, name);
         }
 
         /// <summary>
@@ -109,7 +109,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointAutoShape AddRectangleCm(double leftCm, double topCm, double widthCm, double heightCm,
             string? name = null) {
-            return AddShapeCm(PowerPointShapeType.Rectangle, leftCm, topCm, widthCm, heightCm, name);
+            return AddShapeCm(OfficePresetShapeType.Rectangle, leftCm, topCm, widthCm, heightCm, name);
         }
 
         /// <summary>
@@ -117,7 +117,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointAutoShape AddRectangleInches(double leftInches, double topInches, double widthInches,
             double heightInches, string? name = null) {
-            return AddShapeInches(PowerPointShapeType.Rectangle, leftInches, topInches, widthInches, heightInches, name);
+            return AddShapeInches(OfficePresetShapeType.Rectangle, leftInches, topInches, widthInches, heightInches, name);
         }
 
         /// <summary>
@@ -125,14 +125,14 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointAutoShape AddRectanglePoints(double leftPoints, double topPoints, double widthPoints,
             double heightPoints, string? name = null) {
-            return AddShapePoints(PowerPointShapeType.Rectangle, leftPoints, topPoints, widthPoints, heightPoints, name);
+            return AddShapePoints(OfficePresetShapeType.Rectangle, leftPoints, topPoints, widthPoints, heightPoints, name);
         }
 
         /// <summary>
         ///     Adds an ellipse shape.
         /// </summary>
         public PowerPointAutoShape AddEllipse(long left, long top, long width, long height, string? name = null) {
-            return AddShape(PowerPointShapeType.Ellipse, left, top, width, height, name);
+            return AddShape(OfficePresetShapeType.Ellipse, left, top, width, height, name);
         }
 
         /// <summary>
@@ -140,7 +140,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointAutoShape AddEllipseCm(double leftCm, double topCm, double widthCm, double heightCm,
             string? name = null) {
-            return AddShapeCm(PowerPointShapeType.Ellipse, leftCm, topCm, widthCm, heightCm, name);
+            return AddShapeCm(OfficePresetShapeType.Ellipse, leftCm, topCm, widthCm, heightCm, name);
         }
 
         /// <summary>
@@ -148,7 +148,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointAutoShape AddEllipseInches(double leftInches, double topInches, double widthInches,
             double heightInches, string? name = null) {
-            return AddShapeInches(PowerPointShapeType.Ellipse, leftInches, topInches, widthInches, heightInches, name);
+            return AddShapeInches(OfficePresetShapeType.Ellipse, leftInches, topInches, widthInches, heightInches, name);
         }
 
         /// <summary>
@@ -156,7 +156,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointAutoShape AddEllipsePoints(double leftPoints, double topPoints, double widthPoints,
             double heightPoints, string? name = null) {
-            return AddShapePoints(PowerPointShapeType.Ellipse, leftPoints, topPoints, widthPoints, heightPoints, name);
+            return AddShapePoints(OfficePresetShapeType.Ellipse, leftPoints, topPoints, widthPoints, heightPoints, name);
         }
 
         /// <summary>
@@ -171,7 +171,7 @@ namespace OfficeIMO.PowerPoint {
             if (width == 0) width = 1;
             if (height == 0) height = 1;
 
-            return AddShape(PowerPointShapeType.Line, left, top, width, height, name);
+            return AddShape(OfficePresetShapeType.Line, left, top, width, height, name);
         }
 
         /// <summary>

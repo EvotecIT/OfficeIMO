@@ -105,7 +105,7 @@ public sealed partial class PdfDocument {
                     ? (startNumber + itemIndex).ToString(CultureInfo.InvariantCulture) + "."
                     : "•");
             var markerRuns = new[] {
-                new TextRun(
+                new PdfTextRun(
                     marker,
                     bold: style?.MarkerBold == true,
                     italic: style?.MarkerItalic == true,
@@ -201,7 +201,7 @@ public sealed partial class PdfDocument {
             }
 
             var runs = new[] {
-                new TextRun(
+                new PdfTextRun(
                     text.Text,
                     bold: text.Font.IsBold,
                     underline: text.Font.IsUnderline,
@@ -369,7 +369,7 @@ public sealed partial class PdfDocument {
         if (seenPageText.Add(key)) {
             PdfStandardFont fallbackFont = PdfStandardFontMapper.GetFontFamily(font);
             var runs = new[] {
-                new TextRun(
+                new PdfTextRun(
                     text!,
                     bold: IsBoldStandardFont(font),
                     italic: IsItalicStandardFont(font),
@@ -398,7 +398,7 @@ public sealed partial class PdfDocument {
         }
     }
 
-    private static void AddRuns(List<PdfTextEncodingDiagnostic> diagnostics, IEnumerable<TextRun> runs, PdfOptions options, PdfStandardFont defaultFont, string source, string location, int? tableRowIndex = null, int? tableColumnIndex = null, int? pageNumber = null) {
+    private static void AddRuns(List<PdfTextEncodingDiagnostic> diagnostics, IEnumerable<PdfTextRun> runs, PdfOptions options, PdfStandardFont defaultFont, string source, string location, int? tableRowIndex = null, int? tableColumnIndex = null, int? pageNumber = null) {
         if (options.HasDiagnosticsReport) {
             AddRunTextShapingDiagnostics(runs, options, defaultFont, source);
         }
@@ -425,8 +425,8 @@ public sealed partial class PdfDocument {
             PdfStandardFont.CourierOblique or
             PdfStandardFont.CourierBoldOblique;
 
-    private static void AddRunTextShapingDiagnostics(IEnumerable<TextRun> runs, PdfOptions options, PdfStandardFont defaultFont, string source) {
-        foreach (TextRun run in runs) {
+    private static void AddRunTextShapingDiagnostics(IEnumerable<PdfTextRun> runs, PdfOptions options, PdfStandardFont defaultFont, string source) {
+        foreach (PdfTextRun run in runs) {
             if (run == null || string.Equals(run.Text, "\n", StringComparison.Ordinal) || string.Equals(run.Text, "\t", StringComparison.Ordinal)) {
                 continue;
             }
@@ -473,7 +473,7 @@ public sealed partial class PdfDocument {
         (options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) && fontProgram != null) ||
         (options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) && cffFontProgram != null);
 
-    private static PdfStandardFont ResolveDiagnosticRunFont(PdfStandardFont defaultFont, TextRun run) {
+    private static PdfStandardFont ResolveDiagnosticRunFont(PdfStandardFont defaultFont, PdfTextRun run) {
         PdfStandardFont font = run.Font ?? defaultFont;
         if (run.Bold && run.Italic) {
             return PdfStandardFontMapper.GetStyledFont(font, bold: true, italic: true);

@@ -5,22 +5,10 @@ using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown;
 
-/// <summary>Fidelity impact represented by a Word/Markdown conversion diagnostic.</summary>
-public enum WordMarkdownConversionLossKind {
-    /// <summary>The diagnostic does not indicate fidelity loss.</summary>
-    None = 0,
-    /// <summary>The source was represented using an approximation or fallback.</summary>
-    Approximation = 1,
-    /// <summary>Source content was omitted.</summary>
-    Omission = 2,
-    /// <summary>The requested conversion could not be completed.</summary>
-    Failure = 3
-}
-
 /// <summary>One structured diagnostic from a Word/Markdown conversion.</summary>
 public sealed class WordMarkdownConversionDiagnostic {
     /// <summary>Creates a diagnostic.</summary>
-    public WordMarkdownConversionDiagnostic(string code, string message, WordMarkdownConversionLossKind lossKind) {
+    public WordMarkdownConversionDiagnostic(string code, string message, OfficeConversionLossKind lossKind) {
         Code = string.IsNullOrWhiteSpace(code) ? throw new ArgumentException("A diagnostic code is required.", nameof(code)) : code;
         Message = message ?? throw new ArgumentNullException(nameof(message));
         LossKind = lossKind;
@@ -33,7 +21,7 @@ public sealed class WordMarkdownConversionDiagnostic {
     public string Message { get; }
 
     /// <summary>Fidelity impact of the diagnostic.</summary>
-    public WordMarkdownConversionLossKind LossKind { get; }
+    public OfficeConversionLossKind LossKind { get; }
 }
 
 /// <summary>Immutable fidelity report from one Word/Markdown conversion.</summary>
@@ -47,10 +35,10 @@ public sealed class WordMarkdownConversionReport {
     public IReadOnlyList<WordMarkdownConversionDiagnostic> Diagnostics { get; }
 
     /// <summary>Whether conversion completed without a failure diagnostic.</summary>
-    public bool Succeeded => !Diagnostics.Any(static diagnostic => diagnostic.LossKind == WordMarkdownConversionLossKind.Failure);
+    public bool Succeeded => !Diagnostics.Any(static diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
 
     /// <summary>Whether any source content was approximated, omitted, or failed.</summary>
-    public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.LossKind != WordMarkdownConversionLossKind.None);
+    public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Throws when the report contains fidelity loss.</summary>
     public void RequireNoLoss() {

@@ -275,6 +275,200 @@ public sealed class PublicApiNamingContracts {
     }
 
     [Fact]
+    public void SharedOfficeContractsAreOwnedByCore() {
+        Assembly coreAssembly = typeof(OfficeConversionLossPolicy).Assembly;
+        Type[] sharedTypes = {
+            typeof(OfficeConversionLossPolicy),
+            typeof(OfficeConversionFileConflictPolicy),
+            typeof(OfficeConversionDiagnosticCategory),
+            typeof(OfficeConversionDiagnosticSeverity),
+            typeof(OfficeConversionFailureReason),
+            typeof(OfficeConversionLossKind),
+            typeof(OfficeFeatureSupportLevel),
+            typeof(OfficeOpenXmlCompatibilityLevel),
+            typeof(OfficeOpenXmlMarkupCompatibilityMode),
+            typeof(OfficeOpenXmlFileFormatVersion),
+            typeof(OfficeOpenXmlLoadSettings),
+            typeof(OfficeOpenXmlValidationErrorType),
+            typeof(OfficeOpenXmlValidationError),
+            typeof(OfficeImageFormat),
+            typeof(OfficePageOrientation),
+            typeof(OfficeSignatureMutationPolicy),
+            typeof(OfficeChartDisplayUnit),
+            typeof(OfficeChartDataLabelPosition),
+            typeof(OfficeChartLegendPosition),
+            typeof(OfficeChartMarkerShape),
+            typeof(OfficeLineMarkerKind),
+            typeof(OfficePresetShapeType)
+        };
+
+        Assert.All(sharedTypes, type => Assert.Same(coreAssembly, type.Assembly));
+
+        Assert.DoesNotContain(typeof(WordDocument).Assembly.GetExportedTypes(),
+            static type => type.Name == "WordPageOrientation");
+        Assert.DoesNotContain(typeof(ExcelDocument).Assembly.GetExportedTypes(),
+            static type => type.Name is "ExcelPageOrientation" or "ExcelSignatureMutationPolicy");
+        Assert.DoesNotContain(typeof(PdfDocument).Assembly.GetExportedTypes(),
+            static type => type.Name == "PdfPageOrientation");
+        Assert.DoesNotContain(typeof(HtmlConversionDocument).Assembly.GetExportedTypes(),
+            static type => type.Name == "HtmlConversionLossKind");
+        Assert.DoesNotContain(typeof(OfficeIMO.Word.Markdown.WordMarkdownConversionReport).Assembly.GetExportedTypes(),
+            static type => type.Name == "WordMarkdownConversionLossKind");
+        Assert.DoesNotContain(typeof(OfficeIMO.PowerPoint.PowerPointPresentation).Assembly.GetExportedTypes(),
+            static type => type.Name == "PowerPointSignatureMutationPolicy");
+    }
+
+    [Fact]
+    public void GoogleWorkspaceOwnsCrossEditorImportAndDiffContracts() {
+        Assembly owner = typeof(OfficeIMO.GoogleWorkspace.GoogleWorkspaceImportMode).Assembly;
+        Assert.Same(owner, typeof(OfficeIMO.GoogleWorkspace.GoogleWorkspaceDiffKind).Assembly);
+
+        Assembly[] adapters = {
+            typeof(OfficeIMO.Word.GoogleDocs.GoogleDocsImportOptions).Assembly,
+            typeof(OfficeIMO.Excel.GoogleSheets.GoogleSheetsImportOptions).Assembly,
+            typeof(OfficeIMO.PowerPoint.GoogleSlides.GoogleSlidesImportOptions).Assembly
+        };
+        string[] removedNames = {
+            "GoogleDocsImportMode", "GoogleSheetsImportMode", "GoogleSlidesImportMode",
+            "GoogleDocsDiffKind", "GoogleSheetsDiffKind", "GoogleSlidesDiffKind"
+        };
+
+        Assert.All(adapters, assembly => Assert.DoesNotContain(
+            assembly.GetExportedTypes(), type => removedNames.Contains(type.Name, StringComparer.Ordinal)));
+    }
+
+    [Fact]
+    public void WordAlignmentAndTableLayoutUseOneContractPerPurpose() {
+        Assembly wordAssembly = typeof(WordDocument).Assembly;
+        Type[] exportedTypes = wordAssembly.GetExportedTypes();
+
+        Assert.Contains(typeof(WordParagraphAlignment), exportedTypes);
+        Assert.Contains(typeof(WordTableAlignment), exportedTypes);
+        Assert.Contains(typeof(WordTextBoxHorizontalAlignment), exportedTypes);
+        Assert.Contains(typeof(WordTableLayoutMode), exportedTypes);
+        Assert.DoesNotContain(exportedTypes, type => type.Name is
+            "HorizontalAlignment" or
+            "VerticalAlignment" or
+            "WordHorizontalAlignmentValues" or
+            "WordTableLayoutType");
+
+        PropertyInfo layoutMode = Assert.Single(typeof(WordTable).GetProperties(
+            BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+            property => property.Name == "LayoutMode");
+        Assert.Equal(typeof(WordTableLayoutMode), layoutMode.PropertyType);
+        Assert.Null(typeof(WordTable).GetProperty("LayoutType"));
+        Assert.DoesNotContain(typeof(WordTable).GetMethods(BindingFlags.Public | BindingFlags.Instance),
+            method => method.Name is "SetTableLayout" or "GetCurrentLayoutMode" or "GetCurrentLayoutType");
+    }
+
+    [Fact]
+    public void OfficePackagesDoNotExportCollidingSimpleTypeNames() {
+        Assembly[] assemblies = Directory
+            .EnumerateFiles(AppContext.BaseDirectory, "OfficeIMO*.dll")
+            .Where(static path => !Path.GetFileNameWithoutExtension(path).EndsWith(".Tests", StringComparison.Ordinal))
+            .Select(static path => Assembly.Load(new AssemblyName(AssemblyName.GetAssemblyName(path).Name!)))
+            .Distinct()
+            .ToArray();
+        IGrouping<string, Type>[] collisions = assemblies
+            .SelectMany(assembly => assembly.GetExportedTypes())
+            .GroupBy(type => type.Name, StringComparer.Ordinal)
+            .Where(group => group.Select(type => type.Assembly).Distinct().Count() > 1)
+            .ToArray();
+
+        Assert.Empty(collisions);
+    }
+
+    [Fact]
+    public void FormatOwnedBuilderAndTextRunTypesAreUnambiguous() {
+        Type[] canonicalTypes = {
+            typeof(WordParagraphBuilder),
+            typeof(OfficeIMO.Markdown.MarkdownParagraphBuilder),
+            typeof(PdfTextRun),
+            typeof(OfficeIMO.Markdown.MarkdownTextRun)
+        };
+
+        Assert.Equal(4, canonicalTypes.Select(static type => type.Name).Distinct(StringComparer.Ordinal).Count());
+        Assert.DoesNotContain(typeof(WordDocument).Assembly.GetExportedTypes(), static type => type.Name == "ParagraphBuilder");
+        Assert.DoesNotContain(typeof(OfficeIMO.Markdown.MarkdownDoc).Assembly.GetExportedTypes(),
+            static type => type.Name is "ParagraphBuilder" or "TextRun");
+        Assert.DoesNotContain(typeof(PdfDocument).Assembly.GetExportedTypes(), static type => type.Name == "TextRun");
+    }
+
+    [Fact]
+    public void FormatSpecificPublicTypesUseFormatSpecificNames() {
+        Type[] canonicalTypes = {
+            typeof(WordApplicationProperties),
+            typeof(WordBuiltinDocumentProperties),
+            typeof(WordCapsStyle),
+            typeof(WordCompatibilityMode),
+            typeof(WordCoverPageTemplate),
+            typeof(WordDocumentCleanupOptions),
+            typeof(WordImageFillMode),
+            typeof(WordShapeType),
+            typeof(WordSmartArtType),
+            typeof(WordTableOfContentsStyle),
+            typeof(WordHyperlinkTargetFrame),
+            typeof(WordTextMatchType),
+            typeof(WordImageTextWrapping),
+            typeof(ExcelApplicationProperties),
+            typeof(ExcelBuiltinDocumentProperties),
+            typeof(ExcelExecutionMode),
+            typeof(ExcelExecutionPolicy),
+            typeof(ExcelHeaderFooterPosition),
+            typeof(ExcelDefinedNameValidationMode),
+            typeof(ExcelTableStyle),
+            typeof(OfficeIMO.PowerPoint.PowerPointSlideTransition),
+            typeof(OfficeIMO.PowerPoint.PowerPointSlideTransitionSpeed),
+            typeof(OfficeIMO.PowerPoint.PowerPointTableCellBorders)
+        };
+        string[] removedNames = {
+            "ApplicationProperties", "BuiltinDocumentProperties", "CapsStyle", "CompatibilityMode",
+            "CoverPageTemplate", "CustomImagePartType", "WordImagePartType", "DocumentCleanupOptions", "ImageFillMode",
+            "ShapeType", "SmartArtType", "TableOfContentStyle", "TargetFrame", "TextMatchType",
+            "WrapTextImage", "ExecutionMode", "ExecutionPolicy", "HeaderFooterPosition",
+            "NameValidationMode", "TableStyle", "ImagePartType", "PowerPointImagePartType", "SlideTransition",
+            "SlideTransitionSpeed", "TableCellBorders"
+        };
+        Assembly[] assemblies = canonicalTypes.Select(type => type.Assembly).Distinct().ToArray();
+
+        Assert.All(canonicalTypes, type => Assert.StartsWith(
+            type.Assembly == typeof(WordDocument).Assembly ? "Word" :
+            type.Assembly == typeof(ExcelDocument).Assembly ? "Excel" : "PowerPoint",
+            type.Name));
+        Assert.All(assemblies, assembly => Assert.DoesNotContain(
+            assembly.GetExportedTypes(), type => removedNames.Contains(type.Name, StringComparer.Ordinal)));
+    }
+
+    [Fact]
+    public void ExcelBatchingDoesNotExposeLockBypassScopes() {
+        Assert.NotNull(typeof(ExcelSheet).GetMethod("Batch", [typeof(Action<ExcelSheet>)]));
+        Assert.Null(typeof(ExcelSheet).GetMethod("BeginNoLock", BindingFlags.Public | BindingFlags.Instance));
+        Assert.DoesNotContain(typeof(ExcelSheet).GetNestedTypes(BindingFlags.Public),
+            type => type.Name.Contains("NoLock", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ExcelMetadataOperationsReturnOwnedPartDescriptors() {
+        string[] methodNames = {
+            "AddWorkbookConnectionMetadata",
+            "AddWorksheetQueryTableMetadata",
+            "AddWorkbookSlicerCache",
+            "AddWorkbookTimelineCache",
+            "AddWorkbookMetadataPart",
+            "AddWorksheetMetadataPart",
+            "AddPivotSlicerCache",
+            "AddPivotTimelineCache"
+        };
+        MethodInfo[] methods = typeof(ExcelDocument).GetMethods(
+            BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+        Assert.All(methodNames, name => Assert.All(
+            methods.Where(method => method.Name == name),
+            method => Assert.Equal(typeof(ExcelPackagePartInfo), method.ReturnType)));
+        Assert.All(methodNames, name => Assert.Contains(methods, method => method.Name == name));
+    }
+
+    [Fact]
     public void OfficeImageApisUseCanonicalVerbAndCardinalityVocabulary() {
         Assembly[] assemblies = {
             typeof(WordDocument).Assembly,

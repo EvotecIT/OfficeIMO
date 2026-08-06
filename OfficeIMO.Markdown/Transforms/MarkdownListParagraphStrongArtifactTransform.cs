@@ -162,9 +162,9 @@ public sealed class MarkdownListParagraphStrongArtifactTransform : IMarkdownDocu
 
     private static bool TryRewriteDanglingTrailingStrongToken(List<IMarkdownInline> nodes) {
         if (nodes.Count < 2
-            || nodes[nodes.Count - 1] is not TextRun markerRun
+            || nodes[nodes.Count - 1] is not MarkdownTextRun markerRun
             || markerRun.Text != "****"
-            || nodes[nodes.Count - 2] is not TextRun tokenRun) {
+            || nodes[nodes.Count - 2] is not MarkdownTextRun tokenRun) {
             return false;
         }
 
@@ -175,7 +175,7 @@ public sealed class MarkdownListParagraphStrongArtifactTransform : IMarkdownDocu
         nodes.RemoveAt(nodes.Count - 1);
         nodes.RemoveAt(nodes.Count - 1);
         if (prefix.Length > 0) {
-            nodes.Add(new TextRun(prefix));
+            nodes.Add(new MarkdownTextRun(prefix));
         }
 
         nodes.Add(new BoldInline(token));
@@ -190,7 +190,7 @@ public sealed class MarkdownListParagraphStrongArtifactTransform : IMarkdownDocu
         var openerCount = 0;
         var openerStart = nodes.Count - 1;
         while (openerStart > 0
-               && nodes[openerStart - 1] is TextRun opener
+               && nodes[openerStart - 1] is MarkdownTextRun opener
                && opener.Text == "**") {
             openerStart--;
             openerCount++;
@@ -207,11 +207,11 @@ public sealed class MarkdownListParagraphStrongArtifactTransform : IMarkdownDocu
     private static bool TryRewriteAdjacentMetricStrongValue(List<IMarkdownInline> nodes) {
         if (nodes.Count < 5
             || nodes[nodes.Count - 1] is not IStrongMarkdownInline
-            || nodes[nodes.Count - 2] is not TextRun trailingStrongOpen
+            || nodes[nodes.Count - 2] is not MarkdownTextRun trailingStrongOpen
             || trailingStrongOpen.Text != "**"
-            || nodes[nodes.Count - 3] is not TextRun symbolValue
+            || nodes[nodes.Count - 3] is not MarkdownTextRun symbolValue
             || !IsSymbolOnlyValue(symbolValue.Text)
-            || nodes[nodes.Count - 4] is not TextRun leadingStrongOpen
+            || nodes[nodes.Count - 4] is not MarkdownTextRun leadingStrongOpen
             || leadingStrongOpen.Text != "**") {
             return false;
         }
@@ -222,7 +222,7 @@ public sealed class MarkdownListParagraphStrongArtifactTransform : IMarkdownDocu
         }
 
         nodes.RemoveRange(nodes.Count - 4, 3);
-        nodes.Insert(nodes.Count - 1, new TextRun(symbol + " "));
+        nodes.Insert(nodes.Count - 1, new MarkdownTextRun(symbol + " "));
         return true;
     }
 
@@ -230,7 +230,7 @@ public sealed class MarkdownListParagraphStrongArtifactTransform : IMarkdownDocu
         if (nodes.Count < 3
             || nodes[nodes.Count - 1] is not ItalicSequenceInline italic
             || italic.Inlines.Nodes.Count == 0
-            || nodes[nodes.Count - 2] is not TextRun strayOpen
+            || nodes[nodes.Count - 2] is not MarkdownTextRun strayOpen
             || strayOpen.Text != "*") {
             return false;
         }
@@ -310,13 +310,13 @@ public sealed class MarkdownListParagraphStrongArtifactTransform : IMarkdownDocu
                 return;
             }
 
-            compact.Add(new TextRun(textBuffer.ToString()));
+            compact.Add(new MarkdownTextRun(textBuffer.ToString()));
             textBuffer = null;
         }
 
         for (var i = 0; i < nodes.Count; i++) {
             var node = nodes[i];
-            if (node is TextRun textRun) {
+            if (node is MarkdownTextRun textRun) {
                 textBuffer ??= new System.Text.StringBuilder();
                 textBuffer.Append(textRun.Text);
                 continue;

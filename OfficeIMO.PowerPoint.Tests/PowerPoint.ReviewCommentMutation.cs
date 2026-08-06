@@ -446,7 +446,7 @@ namespace OfficeIMO.Tests {
                     finding => finding.Code == "PPT-WRITE-MODERN-COMMENTS");
                 PowerPointFeatureFinding finding = presentation.InspectFeatures().Features
                     .Single(item => item.Name == "Comments");
-                Assert.Equal(PowerPointFeatureSupportLevel.Editable, finding.SupportLevel);
+                Assert.Equal(OfficeFeatureSupportLevel.Editable, finding.SupportLevel);
                 presentation.Save();
             }
 
@@ -699,7 +699,7 @@ namespace OfficeIMO.Tests {
 
             PowerPointFeatureFinding finding = Assert.Single(presentation
                 .InspectFeatures().FindFeatures("Comments"));
-            Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
+            Assert.Equal(OfficeFeatureSupportLevel.Preserved,
                 finding.SupportLevel);
             Assert.Throws<NotSupportedException>(() =>
                 comment.Text = "Replacement");

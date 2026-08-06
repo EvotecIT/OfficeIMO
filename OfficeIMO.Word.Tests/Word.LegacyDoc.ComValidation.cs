@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
             AssertDocumentsOpenViaWordComWhenAvailable(new[] { nativeDocPath }, "The OfficeIMO native DOC output did not open through desktop Word.");
 
             WordDocument.Convert(sourceDocPath, convertedDocxPath, new WordDocumentConversionOptions {
-                LossPolicy = WordConversionLossPolicy.Allow
+                LossPolicy = OfficeConversionLossPolicy.Allow
             });
             AssertDocumentsOpenViaWordComWhenAvailable(new[] { convertedDocxPath }, "The OfficeIMO converted DOCX output did not open through desktop Word.");
         }

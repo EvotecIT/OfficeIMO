@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(180, 100);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape source = slide.AddShapePoints(
-                PowerPointShapeType.Rectangle,
+                OfficePresetShapeType.Rectangle,
                 30,
                 25,
                 100,
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
                 diagnostic =>
                     diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape &&
                     diagnostic.Message.Contains("gradient", StringComparison.OrdinalIgnoreCase) &&
-                    diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+                    diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
 
         [Fact]
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
                 diagnostic =>
                     diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape &&
                     diagnostic.Message.Contains("frame geometry", StringComparison.OrdinalIgnoreCase) &&
-                    diagnostic.LossKind == OfficeImageExportLossKind.Approximation);
+                    diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         }
 
         [Fact]
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
             using var emptyImage = new MemoryStream();
             slide.SetBackgroundImage(
                 emptyImage,
-                ImagePartType.Png);
+                OfficeImageFormat.Png);
 
             OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
                 slide.ExportImage(
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
                 exception.Diagnostics,
                 diagnostic =>
                     diagnostic.Code == PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundImage &&
-                    diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+                    diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
 
         [Fact]
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests {
                 exception.Diagnostics,
                 diagnostic =>
                     diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedSlideBackground &&
-                    diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+                    diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
     }
 }

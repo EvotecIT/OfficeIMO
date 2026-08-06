@@ -39,7 +39,7 @@ public static class WordMarkdownExtractionExtensions {
 
         int blockIndex = 0;
 
-        foreach (var section in DocumentTraversal.EnumerateSections(document)) {
+        foreach (var section in WordDocumentTraversal.EnumerateSections(document)) {
             cancellationToken.ThrowIfCancellationRequested();
 
             var elements = section.Elements;
@@ -77,7 +77,7 @@ public static class WordMarkdownExtractionExtensions {
 
                     // Track heading path for better chunk metadata (best-effort).
                     int? headingLevel = p.Style.HasValue
-                        ? HeadingStyleMapper.GetLevelForHeadingStyle(p.Style.Value)
+                        ? WordHeadingStyleMapper.GetLevelForHeadingStyle(p.Style.Value)
                         : (int?)null;
                     if (headingLevel.HasValue && headingLevel.Value > 0) {
                         var headingText = SafePlainTextFromParagraph(p, markdownOptions, converter);

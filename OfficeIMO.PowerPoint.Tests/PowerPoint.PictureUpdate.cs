@@ -9,18 +9,18 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class PowerPointPictureUpdate {
         public static IEnumerable<object[]> ImageData => new[] {
-            new object[] { "BackgroundImage.png", ImagePartType.Png, "image/png" },
-            new object[] { "Kulek.jpg", ImagePartType.Jpeg, "image/jpeg" },
-            new object[] { "example.gif", ImagePartType.Gif, "image/gif" },
-            new object[] { "snail.bmp", ImagePartType.Bmp, "image/bmp" },
+            new object[] { "BackgroundImage.png", OfficeImageFormat.Png, "image/png" },
+            new object[] { "Kulek.jpg", OfficeImageFormat.Jpeg, "image/jpeg" },
+            new object[] { "example.gif", OfficeImageFormat.Gif, "image/gif" },
+            new object[] { "snail.bmp", OfficeImageFormat.Bmp, "image/bmp" },
         };
 
         [Theory]
         [MemberData(nameof(ImageData))]
-        public void CanAddPictureFromPathWithSharedImageExtensionMapping(string image, ImagePartType expectedType, string expectedContentType) {
+        public void CanAddPictureFromPathWithSharedImageExtensionMapping(string image, OfficeImageFormat expectedType, string expectedContentType) {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", image);
-            Assert.Equal(expectedType, ImagePartTypeExtensions.FromImagePath(imagePath));
+            Assert.Equal(expectedType, PowerPointImageFormatExtensions.FromImagePath(imagePath));
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
@@ -42,17 +42,17 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PowerPointImagePartExtensionsUseSharedDrawingPolicy() {
-            Assert.Equal(ImagePartType.Png, ImagePartTypeExtensions.FromOfficeImageFormat(OfficeImageFormat.Png));
-            Assert.Equal(".png", PowerPointPartFactory.GetImageExtension(ImagePartType.Png));
-            Assert.Equal(".jpeg", PowerPointPartFactory.GetImageExtension(ImagePartType.Jpeg));
-            Assert.Equal(".svg", PowerPointPartFactory.GetImageExtension(ImagePartType.Svg));
-            Assert.Equal(".emf", PowerPointPartFactory.GetImageExtension(ImagePartType.Emf));
-            Assert.Equal(".jpg", PowerPointPartFactory.GetImageExtension(ImagePartType.Jpeg, @"C:\Temp\photo.JPG"));
+            Assert.Equal(OfficeImageFormat.Png, OfficeImageFormat.Png.EnsurePowerPointImagePartSupport());
+            Assert.Equal(".png", PowerPointPartFactory.GetImageExtension(OfficeImageFormat.Png));
+            Assert.Equal(".jpeg", PowerPointPartFactory.GetImageExtension(OfficeImageFormat.Jpeg));
+            Assert.Equal(".svg", PowerPointPartFactory.GetImageExtension(OfficeImageFormat.Svg));
+            Assert.Equal(".emf", PowerPointPartFactory.GetImageExtension(OfficeImageFormat.Emf));
+            Assert.Equal(".jpg", PowerPointPartFactory.GetImageExtension(OfficeImageFormat.Jpeg, @"C:\Temp\photo.JPG"));
         }
 
         [Fact]
         public void PowerPointImagePartExtensionsRejectUnsupportedWebP() {
-            Assert.Throws<NotSupportedException>(() => ImagePartTypeExtensions.FromOfficeImageFormat(OfficeImageFormat.Webp));
+            Assert.Throws<NotSupportedException>(() => OfficeImageFormat.Webp.EnsurePowerPointImagePartSupport());
         }
 
         [Fact]
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
 
         [Theory]
         [MemberData(nameof(ImageData))]
-        public void CanUpdatePicture(string newImage, ImagePartType type, string expectedContentType) {
+        public void CanUpdatePicture(string newImage, OfficeImageFormat type, string expectedContentType) {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string originalImage = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
             string newImagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", newImage);
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
                 PowerPointPicture duplicate = Assert.IsType<PowerPointPicture>(slide.DuplicateShape(original, 250000, 0));
 
                 using FileStream stream = new(replacementImage, FileMode.Open, FileAccess.Read);
-                original.UpdateImage(stream, ImagePartType.Jpeg);
+                original.UpdateImage(stream, OfficeImageFormat.Jpeg);
 
                 Assert.Equal("image/jpeg", original.ContentType);
                 Assert.Equal("image/png", duplicate.ContentType);

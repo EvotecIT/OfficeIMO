@@ -16,7 +16,7 @@ Console.WriteLine(document.SourceFormat); // WordFileFormat.Doc
 
 document.Save("output.docx");
 document.Save("copy.doc", new WordSaveOptions {
-    LossPolicy = WordConversionLossPolicy.Allow
+    LossPolicy = OfficeConversionLossPolicy.Allow
 });
 
 byte[] docx = document.ToBytes();
@@ -32,11 +32,11 @@ WordDocumentConversionResult result = WordDocument.Convert(
     "input.doc",
     "output.docx",
     new WordDocumentConversionOptions {
-        FileConflictPolicy = WordConversionFileConflictPolicy.FailIfExists,
-        LossPolicy = WordConversionLossPolicy.Block
+        FileConflictPolicy = OfficeConversionFileConflictPolicy.FailIfExists,
+        LossPolicy = OfficeConversionLossPolicy.Block
     });
 
-foreach (WordConversionDiagnostic diagnostic in result.Diagnostics) {
+foreach (OfficeConversionDiagnostic diagnostic in result.Diagnostics) {
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 }
 ```
@@ -50,7 +50,7 @@ The defaults are intentionally conservative:
 - output is staged and committed atomically, so a failed save does not expose a partial file;
 - cross-family OLE input, such as XLS passed to Word, is rejected with a format-specific error.
 
-Set `LossPolicy = WordConversionLossPolicy.Allow` only after reviewing the reported legacy features. The policy is available on both `WordDocumentConversionOptions` and `WordSaveOptions`.
+Set `LossPolicy = OfficeConversionLossPolicy.Allow` only after reviewing the reported legacy features. The policy is available on both `WordDocumentConversionOptions` and `WordSaveOptions`.
 
 ## DOC import capability
 

@@ -70,10 +70,10 @@ p2.Highlight = WordHighlightColor.Yellow;
 
 ```csharp
 var p = document.AddParagraph("small caps example");
-p.CapsStyle = CapsStyle.SmallCaps;
+p.CapsStyle = WordCapsStyle.SmallCaps;
 
 var p2 = document.AddParagraph("all caps example");
-p2.CapsStyle = CapsStyle.Caps;
+p2.CapsStyle = WordCapsStyle.Caps;
 ```
 
 ### Subscript and Superscript

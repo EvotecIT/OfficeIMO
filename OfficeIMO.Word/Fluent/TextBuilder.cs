@@ -118,7 +118,7 @@ namespace OfficeIMO.Word.Fluent {
         /// Applies capitalization style to the current run.
         /// </summary>
         /// <param name="capsStyle">Capitalization style.</param>
-        public TextBuilder CapsStyle(CapsStyle capsStyle) {
+        public TextBuilder CapsStyle(WordCapsStyle capsStyle) {
             _paragraph?.SetCapsStyle(capsStyle);
             return this;
         }

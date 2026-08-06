@@ -122,12 +122,12 @@ internal static class AsciiDocInlineToMarkdownConverter {
         int start = 0;
         for (int index = 0; index < value.Length; index++) {
             if (value[index] != '\r' && value[index] != '\n') continue;
-            if (index > start) target.AddRaw(new TextRun(value.Substring(start, index - start)));
+            if (index > start) target.AddRaw(new MarkdownTextRun(value.Substring(start, index - start)));
             if (value[index] == '\r' && index + 1 < value.Length && value[index + 1] == '\n') index++;
             target.AddRaw(new SoftBreakInline());
             start = index + 1;
         }
-        if (start < value.Length) target.AddRaw(new TextRun(value.Substring(start)));
+        if (start < value.Length) target.AddRaw(new MarkdownTextRun(value.Substring(start)));
     }
 
     private static string PlainText(AsciiDocInlineSequence sequence) {

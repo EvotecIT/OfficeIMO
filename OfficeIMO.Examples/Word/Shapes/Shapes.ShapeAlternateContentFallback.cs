@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with shape inside AlternateContent fallback");
             string filePath = System.IO.Path.Combine(folderPath, "ShapeInAlternateContentFallback.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddShapeDrawing(ShapeType.Rectangle, 40, 40);
+                document.AddShapeDrawing(WordShapeType.Rectangle, 40, 40);
                 document.Save();
             }
             using (WordprocessingDocument word = WordprocessingDocument.Open(filePath, true)) {

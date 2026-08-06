@@ -27,7 +27,7 @@ namespace OfficeIMO.Word {
         /// It may impact on how your document looks like, please do extensive testing before using this feature.
         /// </summary>
         /// <returns></returns>
-        public int CleanupDocument(DocumentCleanupOptions options = DocumentCleanupOptions.All) {
+        public int CleanupDocument(WordDocumentCleanupOptions options = WordDocumentCleanupOptions.All) {
             int count = 0;
 
             if (_wordprocessingDocument?.MainDocumentPart?.Document?.Body != null) {

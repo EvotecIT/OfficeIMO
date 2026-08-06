@@ -462,7 +462,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Reads a rectangular A1 range (e.g., "A1:C10") into a dense 2D array of typed values.
         /// </summary>
-        public object?[,] ReadRange(string a1Range, OfficeIMO.Excel.ExecutionMode? mode = null, CancellationToken ct = default) {
+        public object?[,] ReadRange(string a1Range, OfficeIMO.Excel.ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) throw new ArgumentException($"Invalid range '{a1Range}'.");
 
@@ -483,7 +483,7 @@ namespace OfficeIMO.Excel {
             var policy = _opt.Execution;
             var decided = mode ?? policy.Mode;
             int workload = checked((int)cellCount);
-            if (decided == OfficeIMO.Excel.ExecutionMode.Automatic) {
+            if (decided == OfficeIMO.Excel.ExcelExecutionMode.Automatic) {
                 if (CanUseAutomaticXmlReadFastPath(policy)) {
                     if ((ShouldAttemptUtf8Range(r1, r2) && RangeReachesDeclaredWorksheetEnd(r2) && TryFillRangeUtf8Fast(result, r1, c1, r2, c2, ct))
                         || TryFillRangeXmlFast(result, r1, c1, r2, c2, ct)) {
@@ -494,7 +494,7 @@ namespace OfficeIMO.Excel {
                 decided = policy.Decide("ReadRange", workload);
             }
 
-            if (decided == OfficeIMO.Excel.ExecutionMode.Sequential) {
+            if (decided == OfficeIMO.Excel.ExcelExecutionMode.Sequential) {
                 if ((ShouldAttemptUtf8Range(r1, r2) && RangeReachesDeclaredWorksheetEnd(r2) && TryFillRangeUtf8Fast(result, r1, c1, r2, c2, ct))
                     || TryFillRangeXmlFast(result, r1, c1, r2, c2, ct)) {
                     return result;

@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 WordList wordList = document.AddList(WordListStyle.Numbered);
-                wordList.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList.AddItem("Text 1").SetCapsStyle(WordCapsStyle.SmallCaps);
                 wordList.AddItem("Text 1.1", 1).SetColor(Color.Brown);
                 wordList.AddItem("Text 1.2", 1).SetColor(Color.Brown);
                 wordList.AddItem("Text 1.3", 1).SetColor(Color.Brown);
@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph = document.AddParagraph("This is second list").SetColor(Color.OrangeRed).SetUnderline(WordUnderlineStyle.Double);
 
                 WordList wordList1 = document.AddList(WordListStyle.HeadingIA1);
-                wordList1.AddItem("Temp 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList1.AddItem("Temp 1").SetCapsStyle(WordCapsStyle.SmallCaps);
                 wordList1.AddItem("Temp 2.1", 1).SetColor(Color.Brown);
                 wordList1.AddItem("Temp 2.2", 1).SetColor(Color.Brown);
                 wordList1.AddItem("Temp 2.3", 1).SetColor(Color.Brown);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph = document.AddParagraph("This is third list").SetColor(Color.Blue).SetUnderline(WordUnderlineStyle.Double);
 
                 WordList wordList2 = document.AddList(WordListStyle.BulletedChars);
-                wordList2.AddItem("Oops 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList2.AddItem("Oops 1").SetCapsStyle(WordCapsStyle.SmallCaps);
                 wordList2.AddItem("Oops 2.1", 1).SetColor(Color.Brown);
                 wordList2.AddItem("Oops 2.2", 1).SetColor(Color.Brown);
                 wordList2.AddItem("Oops 2.3", 1).SetColor(Color.Brown);
@@ -51,7 +51,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Number of lists - all: " + document.Lists.Count);
 
                 document.AddSection();
-                document.Sections[1].PageSettings.Orientation = WordPageOrientation.Landscape;
+                document.Sections[1].PageSettings.Orientation = OfficePageOrientation.Landscape;
 
 
                 Console.WriteLine("Number of lists - section 1: " + document.Sections[1].Lists.Count);
@@ -60,7 +60,7 @@ namespace OfficeIMO.Examples.Word {
 
                 paragraph = document.AddParagraph("This is fourth list").SetColor(Color.DeepPink).SetUnderline(WordUnderlineStyle.Double);
                 WordList wordList3 = document.AddList(WordListStyle.Heading1ai);
-                wordList3.AddItem("4th 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList3.AddItem("4th 1").SetCapsStyle(WordCapsStyle.SmallCaps);
                 wordList3.AddItem("4th 2.1", 1).SetColor(Color.Brown);
                 wordList3.AddItem("4th 2.2", 1).SetColor(Color.Brown);
                 wordList3.AddItem("4th 2.3", 1).SetColor(Color.Brown);
@@ -69,7 +69,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph = document.AddParagraph("This is five list").SetColor(Color.DeepPink).SetUnderline(WordUnderlineStyle.Double);
 
                 WordList wordList4 = document.AddList(WordListStyle.Headings111Shifted);
-                wordList4.AddItem("5th 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList4.AddItem("5th 1").SetCapsStyle(WordCapsStyle.SmallCaps);
                 wordList4.AddItem("5th 2.1", 1).SetColor(Color.Brown);
                 wordList4.AddItem("5th 2.2", 1).SetColor(Color.Brown);
                 wordList4.AddItem("5th 2.3", 1).SetColor(Color.Brown);

@@ -413,9 +413,9 @@ namespace OfficeIMO.Word.Html {
             string? marginRight = null;
             int? padTop = null, padRight = null, padBottom = null, padLeft = null;
             BorderValues? tableBorderStyle = null;
-            UInt32Value? tableBorderSize = null;
+            uint? tableBorderSize = null;
             SixColor tableBorderColor = default;
-            var sideBorders = new Dictionary<TableBorderSide, (BorderValues Style, UInt32Value Size, SixColor Color)>();
+            var sideBorders = new Dictionary<TableBorderSide, (BorderValues Style, uint Size, SixColor Color)>();
             bool borderSpecified = false;
             bool collapse = true;
             int? cellSpacing = null;
@@ -537,7 +537,7 @@ namespace OfficeIMO.Word.Html {
 
             if (borderSpecified && tableBorderStyle.HasValue && tableBorderSize != null) {
                 if (collapse) {
-                    wordTable.StyleDetails?.SetBordersForAllSides(tableBorderStyle.Value.ToOfficeEnum(), tableBorderSize, tableBorderColor);
+                    wordTable.StyleDetails?.SetBordersForAllSides(tableBorderStyle.Value.ToOfficeEnum(), tableBorderSize.Value, tableBorderColor);
                 } else {
                     var hex = tableBorderColor.ToRgbHex();
                     foreach (var row in wordTable.Rows) {
@@ -721,9 +721,9 @@ namespace OfficeIMO.Word.Html {
 
             string? backgroundValue = null;
             BorderValues? borderStyle = null;
-            UInt32Value? borderSize = null;
+            uint? borderSize = null;
             SixColor borderColor = default;
-            var sideBorders = new Dictionary<TableBorderSide, (BorderValues Style, UInt32Value Size, SixColor Color)>();
+            var sideBorders = new Dictionary<TableBorderSide, (BorderValues Style, uint Size, SixColor Color)>();
 
             foreach (var part in (style ?? string.Empty).Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
                 var pieces = part.Split(new[] { ':' }, 2);
@@ -929,7 +929,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static void ApplyCellBorder(WordTableCell cell, TableBorderSide side, BorderValues style, UInt32Value size, SixColor color) {
+        private static void ApplyCellBorder(WordTableCell cell, TableBorderSide side, BorderValues style, uint size, SixColor color) {
             var hex = color.ToRgbHex();
             switch (side) {
                 case TableBorderSide.Left:
@@ -958,14 +958,14 @@ namespace OfficeIMO.Word.Html {
         private static bool TryParseBorder(
             string value,
             out BorderValues style,
-            out UInt32Value size,
+            out uint size,
             out SixColor color) =>
             TryParseBorder(value, out style, out size, out color, out _, out _);
 
         private static bool TryParseBorder(
             string value,
             out BorderValues style,
-            out UInt32Value size,
+            out uint size,
             out SixColor color,
             out bool hasExplicitStyle) =>
             TryParseBorder(value, out style, out size, out color, out hasExplicitStyle, out _);
@@ -973,7 +973,7 @@ namespace OfficeIMO.Word.Html {
         private static bool TryParseBorder(
             string value,
             out BorderValues style,
-            out UInt32Value size,
+            out uint size,
             out SixColor color,
             out bool hasExplicitStyle,
             out bool hasExplicitColor) {
@@ -1045,7 +1045,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static bool TryParseBorderWidth(string token, out UInt32Value size) {
+        private static bool TryParseBorderWidth(string token, out uint size) {
             size = 0;
             var raw = token.Trim().ToLowerInvariant();
             if (raw.EndsWith("px") &&
@@ -1054,7 +1054,7 @@ namespace OfficeIMO.Word.Html {
                     NumberStyles.Float,
                     CultureInfo.InvariantCulture,
                     out double px)) {
-                size = (UInt32Value)(uint)Math.Max(1, Math.Round(px * 6));
+                size = (uint)Math.Max(1, Math.Round(px * 6));
                 return true;
             }
             if (raw.EndsWith("pt") &&
@@ -1063,7 +1063,7 @@ namespace OfficeIMO.Word.Html {
                     NumberStyles.Float,
                     CultureInfo.InvariantCulture,
                     out double pt)) {
-                size = (UInt32Value)(uint)Math.Max(1, Math.Round(pt * 8));
+                size = (uint)Math.Max(1, Math.Round(pt * 8));
                 return true;
             }
             return false;

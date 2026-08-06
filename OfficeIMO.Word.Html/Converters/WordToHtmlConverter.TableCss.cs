@@ -65,7 +65,7 @@ namespace OfficeIMO.Word.Html {
             int tableIndex) {
             int? precedingNumberId = null;
             for (int index = tableIndex - 1; index >= 0; index--) {
-                if (elements[index] is WordParagraph paragraph && DocumentTraversal.GetListInfo(paragraph) != null) {
+                if (elements[index] is WordParagraph paragraph && WordDocumentTraversal.GetListInfo(paragraph) != null) {
                     precedingNumberId = paragraph._listNumberId;
                     break;
                 }
@@ -74,7 +74,7 @@ namespace OfficeIMO.Word.Html {
 
             for (int index = tableIndex + 1; index < elements.Count; index++) {
                 if (elements[index] is not WordParagraph paragraph || paragraph.IsEmpty) continue;
-                return DocumentTraversal.GetListInfo(paragraph) != null &&
+                return WordDocumentTraversal.GetListInfo(paragraph) != null &&
                        paragraph._listNumberId == precedingNumberId;
             }
             return false;

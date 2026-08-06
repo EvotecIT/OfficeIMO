@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             ms.Position = 0;
             using WordprocessingDocument docx = WordprocessingDocument.Open(ms, false);
             RunFonts fonts = docx.MainDocumentPart!.Document.Body!.Descendants<RunFonts>().First();
-            Assert.Equal(FontResolver.Resolve("monospace"), fonts.Ascii);
+            Assert.Equal(WordFontResolver.Resolve("monospace"), fonts.Ascii);
         }
 
         [Fact]

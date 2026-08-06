@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
-            Assert.Equal(CapsStyle.SmallCaps, run.CapsStyle);
+            Assert.Equal(WordCapsStyle.SmallCaps, run.CapsStyle);
         }
     }
 }

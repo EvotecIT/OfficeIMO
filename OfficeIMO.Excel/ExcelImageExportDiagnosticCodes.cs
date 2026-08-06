@@ -157,7 +157,7 @@ public static class ExcelImageExportDiagnosticCodes {
     public const string ChartAxisMinorTickMarkPlacementApproximation = "ExcelChartAxisMinorTickMarkPlacementApproximation";
 
     /// <summary>Chart axis crossing behavior is approximate.</summary>
-    public const string ChartAxisCrossingApproximation = "ExcelChartAxisCrossingApproximation";
+    public const string ChartAxisCrossingApproximation = "OfficeChartAxisCrossingPositionApproximation";
 
     /// <summary>Chart axis scaling behavior is approximate.</summary>
     public const string ChartAxisScaleApproximation = "ExcelChartAxisScaleApproximation";

@@ -32,6 +32,6 @@ Locale-sensitive currency pictures, layout-dependent page/index/table-of-content
 
 [`Word/EvidenceCorpus/corpus-manifest.json`](../OfficeIMO.TestAssets/Documents/Word/EvidenceCorpus/corpus-manifest.json) is the executable provenance index for review, redline, template, mail-merge, legacy DOC, Word/HTML, rendering, and performance evidence. Every file entry has a SHA-256, producer, oracle set, source test, and loss policy; generated entries name their deterministic generator and executable oracle.
 
-The legacy DOC entry requires its approved import report and guarded loss policy. OfficeIMO can write the documented native DOC subset, but the corpus and public API do not claim arbitrary DOC authoring. Use `AssessLegacyDocWrite`, `WordDocument.Convert` reports, and an explicit `WordConversionLossPolicy` decision for legacy output.
+The legacy DOC entry requires its approved import report and guarded loss policy. OfficeIMO can write the documented native DOC subset, but the corpus and public API do not claim arbitrary DOC authoring. Use `AssessLegacyDocWrite`, `WordDocument.Convert` reports, and an explicit `OfficeConversionLossPolicy` decision for legacy output.
 
 For reciprocal HTML behavior, see the [Word/HTML support matrix](officeimo.word-html-support-matrix.md). For template boundaries, see the [template and mail-merge scenario matrix](officeimo.word-template-mail-merge-scenarios.md). For the native DOC subset, see [DOC and DOCX compatibility](officeimo.word.legacy-doc-compatibility.md).

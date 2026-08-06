@@ -326,7 +326,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Renames an existing workbook or sheet-scoped defined name.
         /// </summary>
-        public bool RenameNamedRange(string oldName, string newName, ExcelSheet? scope = null, NameValidationMode validationMode = NameValidationMode.Sanitize, bool save = true) {
+        public bool RenameNamedRange(string oldName, string newName, ExcelSheet? scope = null, ExcelDefinedNameValidationMode validationMode = ExcelDefinedNameValidationMode.Sanitize, bool save = true) {
             if (string.IsNullOrWhiteSpace(oldName)) throw new ArgumentException("Old name is required.", nameof(oldName));
             if (string.IsNullOrWhiteSpace(newName)) throw new ArgumentException("New name is required.", nameof(newName));
 

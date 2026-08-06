@@ -187,11 +187,11 @@ namespace OfficeIMO.Excel.Pdf {
         private static PdfCore.PageSize GetEffectivePageSize(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup) {
             if (options.PageSize.HasValue) {
                 PdfCore.PageSize pageSize = options.PageSize.Value;
-                if (pageSetup?.Orientation == ExcelPageOrientation.Landscape) {
+                if (pageSetup?.Orientation == OfficePageOrientation.Landscape) {
                     return pageSize.Landscape();
                 }
 
-                if (pageSetup?.Orientation == ExcelPageOrientation.Portrait) {
+                if (pageSetup?.Orientation == OfficePageOrientation.Portrait) {
                     return pageSize.Portrait();
                 }
 

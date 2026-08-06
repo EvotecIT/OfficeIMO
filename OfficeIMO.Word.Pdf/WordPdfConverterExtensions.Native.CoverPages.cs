@@ -177,7 +177,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            IReadOnlyList<PdfCore.TextRun> textRuns = GetNativeVmlTextRuns(document, element);
+            IReadOnlyList<PdfCore.PdfTextRun> textRuns = GetNativeVmlTextRuns(document, element);
             if (textRuns.Count > 0) {
                 PdfCore.PdfCanvasTextBoxStyle style = CreateNativeVmlTextBoxStyle(element, textRuns);
                 double textRotation = GetNativeVmlRotationDegrees(element) ?? 0D;
@@ -910,12 +910,12 @@ namespace OfficeIMO.Word.Pdf {
                 child.LocalName.Equals(localName, StringComparison.OrdinalIgnoreCase));
         }
 
-        private static IReadOnlyList<PdfCore.TextRun> GetNativeVmlTextRuns(WordDocument document, OpenXmlElement element) {
-            var runs = new List<PdfCore.TextRun>();
+        private static IReadOnlyList<PdfCore.PdfTextRun> GetNativeVmlTextRuns(WordDocument document, OpenXmlElement element) {
+            var runs = new List<PdfCore.PdfTextRun>();
             bool hasParagraph = false;
             foreach (W.Paragraph paragraph in element.Descendants<W.Paragraph>()) {
                 if (hasParagraph) {
-                    runs.Add(PdfCore.TextRun.LineBreak());
+                    runs.Add(PdfCore.PdfTextRun.LineBreak());
                 }
 
                 hasParagraph = true;
@@ -925,9 +925,9 @@ namespace OfficeIMO.Word.Pdf {
                         if (child is W.Text text) {
                             AddNativeVmlTextRun(runs, document, run, properties, text);
                         } else if (child is W.Break) {
-                            runs.Add(PdfCore.TextRun.LineBreak());
+                            runs.Add(PdfCore.PdfTextRun.LineBreak());
                         } else if (child is W.TabChar) {
-                            runs.Add(PdfCore.TextRun.Tab());
+                            runs.Add(PdfCore.PdfTextRun.Tab());
                         } else {
                             foreach (W.Text nestedText in child.Descendants<W.Text>()) {
                                 AddNativeVmlTextRun(runs, document, run, properties, nestedText);
@@ -950,13 +950,13 @@ namespace OfficeIMO.Word.Pdf {
             return runs;
         }
 
-        private static void AddNativeVmlTextRun(List<PdfCore.TextRun> runs, WordDocument document, W.Run run, W.RunProperties? properties, W.Text text) {
+        private static void AddNativeVmlTextRun(List<PdfCore.PdfTextRun> runs, WordDocument document, W.Run run, W.RunProperties? properties, W.Text text) {
             string value = ResolveNativeVmlRunText(document, run, text);
             if (string.IsNullOrEmpty(value)) {
                 return;
             }
 
-            runs.Add(new PdfCore.TextRun(
+            runs.Add(new PdfCore.PdfTextRun(
                 value,
                 bold: HasNativeOnOff(properties?.Bold),
                 underline: HasNativeVmlUnderline(properties?.Underline),
@@ -967,7 +967,7 @@ namespace OfficeIMO.Word.Pdf {
                 font: GetNativeVmlRunFont(properties)));
         }
 
-        private static void AddNativeVmlTextPathRuns(List<PdfCore.TextRun> runs, WordDocument document, OpenXmlElement element) {
+        private static void AddNativeVmlTextPathRuns(List<PdfCore.PdfTextRun> runs, WordDocument document, OpenXmlElement element) {
             foreach (V.TextPath textPath in element.Descendants<V.TextPath>()) {
                 if (textPath.On != null && textPath.On.Value == false) {
                     continue;
@@ -980,10 +980,10 @@ namespace OfficeIMO.Word.Pdf {
 
                 string value = ResolveNativeBuiltInPropertyPlaceholders(document, raw!);
                 if (runs.Count > 0 && runs[runs.Count - 1].Text != "\n") {
-                    runs.Add(PdfCore.TextRun.LineBreak());
+                    runs.Add(PdfCore.PdfTextRun.LineBreak());
                 }
 
-                runs.Add(new PdfCore.TextRun(
+                runs.Add(new PdfCore.PdfTextRun(
                     value,
                     bold: false,
                     underline: false,
@@ -1061,7 +1061,7 @@ namespace OfficeIMO.Word.Pdf {
             return sourceText.Substring(0, leading) + value + sourceText.Substring(sourceText.Length - trailing, trailing);
         }
 
-        private static PdfCore.PdfCanvasTextBoxStyle CreateNativeVmlTextBoxStyle(OpenXmlElement element, IReadOnlyList<PdfCore.TextRun> runs) {
+        private static PdfCore.PdfCanvasTextBoxStyle CreateNativeVmlTextBoxStyle(OpenXmlElement element, IReadOnlyList<PdfCore.PdfTextRun> runs) {
             var style = new PdfCore.PdfCanvasTextBoxStyle {
                 Background = null,
                 BorderColor = null,
@@ -1489,9 +1489,9 @@ namespace OfficeIMO.Word.Pdf {
             return null;
         }
 
-        private static double GetNativeVmlDefaultFontSize(IReadOnlyList<PdfCore.TextRun> runs) {
+        private static double GetNativeVmlDefaultFontSize(IReadOnlyList<PdfCore.PdfTextRun> runs) {
             double max = 0D;
-            foreach (PdfCore.TextRun run in runs) {
+            foreach (PdfCore.PdfTextRun run in runs) {
                 if (run.FontSize.HasValue && run.FontSize.Value > max) {
                     max = run.FontSize.Value;
                 }

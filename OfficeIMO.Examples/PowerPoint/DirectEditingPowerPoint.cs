@@ -33,7 +33,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 bullets.AddBullet("No parallel builder vocabulary");
                 bullets.TextAutoFit = PowerPointTextAutoFit.Normal;
 
-                slide.AddShape(PowerPointShapeType.Rectangle,
+                slide.AddShape(OfficePresetShapeType.Rectangle,
                         PowerPointUnits.FromCentimeters(content.LeftCm + 12.0), PowerPointUnits.FromCentimeters(content.TopCm + 2.1),
                         PowerPointUnits.FromCentimeters(10.0), PowerPointUnits.FromCentimeters(4.0))
                     .Fill("E7F7FF")

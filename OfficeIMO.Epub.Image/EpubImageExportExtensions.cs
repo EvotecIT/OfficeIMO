@@ -187,7 +187,7 @@ public static class EpubImageExportExtensions {
                 "EPUB_IMAGE_RAW_HTML_UNAVAILABLE",
                 "Raw chapter HTML was not retained; the extracted chapter text was rendered instead.",
                 chapter.Path,
-                OfficeImageExportLossKind.Approximation));
+                OfficeConversionLossKind.Approximation));
         }
         if (chapter.Encryption?.RequiresDecryption == true) {
             diagnostics.Add(new OfficeImageExportDiagnostic(
@@ -195,7 +195,7 @@ public static class EpubImageExportExtensions {
                 "EPUB_IMAGE_CHAPTER_ENCRYPTED",
                 "The chapter declares unsupported encryption and may be incomplete.",
                 chapter.Path,
-                OfficeImageExportLossKind.Omission));
+                OfficeConversionLossKind.Omission));
         }
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             html,
@@ -344,13 +344,13 @@ public static class EpubImageExportExtensions {
                     diagnostic.Message,
                     diagnostic.Path,
                     severity == OfficeImageExportDiagnosticSeverity.Error
-                        ? OfficeImageExportLossKind.Failure
+                        ? OfficeConversionLossKind.Failure
                         : severity == OfficeImageExportDiagnosticSeverity.Warning &&
                           IsPackageOmissionDiagnostic(diagnostic.Code)
-                            ? OfficeImageExportLossKind.Omission
+                            ? OfficeConversionLossKind.Omission
                             : severity == OfficeImageExportDiagnosticSeverity.Warning
-                                ? OfficeImageExportLossKind.Approximation
-                                : OfficeImageExportLossKind.None));
+                                ? OfficeConversionLossKind.Approximation
+                                : OfficeConversionLossKind.None));
             }
         }
         diagnostics.AddRange(chapterDiagnostics);

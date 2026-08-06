@@ -12,7 +12,7 @@ public static class ExcelHostExtensions
     /// <summary>
     /// Returns the named sheet if it exists, otherwise creates it; falls back to the last sheet.
     /// </summary>
-    public static ExcelSheet GetOrCreateSheet(this ExcelDocument document, string? name, SheetNameValidationMode validationMode)
+    public static ExcelSheet GetOrCreateSheet(this ExcelDocument document, string? name, ExcelSheetNameValidationMode validationMode)
     {
         if (document == null) throw new ArgumentNullException(nameof(document));
 
@@ -21,7 +21,7 @@ public static class ExcelHostExtensions
         if (!string.IsNullOrWhiteSpace(name))
         {
             string requestedName = name!;
-            var existing = validationMode == SheetNameValidationMode.Sanitize
+            var existing = validationMode == ExcelSheetNameValidationMode.Sanitize
                 ? SheetNameLookup.FindByRequestedName(sheetsCollection, requestedName)
                 : sheetsCollection.FirstOrDefault(s => string.Equals(s.Name, requestedName, StringComparison.OrdinalIgnoreCase));
             if (existing != null)

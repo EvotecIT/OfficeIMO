@@ -358,60 +358,6 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Sets the table layout with proper AutoFit options
-        /// </summary>
-        /// <param name="layoutType">Type of layout to apply</param>
-        /// <param name="percentage">Optional percentage for fixed width (0-100)</param>
-        public void SetTableLayout(WordTableLayoutType layoutType, int? percentage = null) {
-            CheckTableProperties();
-
-            // Apply the appropriate settings based on the layout type
-            switch (layoutType) {
-                case WordTableLayoutType.FixedWidth:
-                    // Set OpenXML layout type to Fixed
-                    if (_tableProperties!.TableLayout == null) {
-                        _tableProperties.TableLayout = new TableLayout();
-                    }
-                    _tableProperties.TableLayout.Type = TableLayoutValues.Fixed;
-
-                    if (percentage.HasValue) {
-                        // For fixed width, set the width to the specified percentage
-                        this.WidthType = WordTableWidthUnit.Pct;
-                        this.Width = percentage.Value * 50; // Convert percentage to Word's internal units (50 = 1%)
-                    } else {
-                        // Default to 100% if no percentage specified
-                        this.WidthType = WordTableWidthUnit.Pct;
-                        this.Width = 5000; // 100% width
-                    }
-                    break;
-
-                case WordTableLayoutType.AutoFitToContents:
-                    // Set OpenXML layout type to Autofit
-                    if (_tableProperties!.TableLayout == null) {
-                        _tableProperties.TableLayout = new TableLayout();
-                    }
-                    _tableProperties.TableLayout.Type = TableLayoutValues.Autofit;
-
-                    // For AutoFit to Contents
-                    this.WidthType = WordTableWidthUnit.Auto;
-                    this.Width = 0;
-                    break;
-
-                case WordTableLayoutType.AutoFitToWindow:
-                    // Set OpenXML layout type to Fixed
-                    if (_tableProperties!.TableLayout == null) {
-                        _tableProperties.TableLayout = new TableLayout();
-                    }
-                    _tableProperties.TableLayout.Type = TableLayoutValues.Fixed;
-
-                    // For AutoFit to Window
-                    this.WidthType = WordTableWidthUnit.Pct;
-                    this.Width = 5000; // 100% width
-                    break;
-            }
-        }
-
-        /// <summary>
         /// Sets the table to AutoFit to Contents
         /// </summary>
         public void AutoFitToContents() {
@@ -615,27 +561,12 @@ namespace OfficeIMO.Word {
             _tableProperties.TableWidth.Type = TableWidthUnitValues.Pct;
             _tableProperties.TableWidth.Width = (percentage * 50).ToString(); // Convert percentage to Word units (50 = 1%)
 
-            // Set fixed column widths proportionally
-            if (Rows.Count > 0 && Rows[0].Cells.Count > 0) {
-                int columnCount = Rows[0].Cells.Count;
-                int columnWidth = percentage * 50 / columnCount;
+        }
 
-                foreach (var row in Rows) {
-                    foreach (var cell in row.Cells) {
-                        var tcPr = cell._tableCellProperties;
-                        if (tcPr == null) {
-                            tcPr = new TableCellProperties();
-                            cell._tableCellProperties = tcPr;
-                        }
-
-                        if (tcPr.TableCellWidth == null) {
-                            tcPr.TableCellWidth = new TableCellWidth();
-                        }
-                        tcPr.TableCellWidth.Type = TableWidthUnitValues.Pct;
-                        tcPr.TableCellWidth.Width = columnWidth.ToString();
-                    }
-                }
-            }
+        private void SetLayoutAlgorithm(TableLayoutValues layout) {
+            CheckTableProperties();
+            _tableProperties!.TableLayout ??= new TableLayout();
+            _tableProperties.TableLayout.Type = layout;
         }
 
         /// <summary>
@@ -727,57 +658,20 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the current table layout mode based on its properties
         /// </summary>
-        /// <returns>The current WordTableLayoutType</returns>
-        public WordTableLayoutType GetCurrentLayoutType() {
+        /// <returns>The current WordTableLayoutMode</returns>
+        private WordTableLayoutMode GetCurrentLayoutMode() {
             // Get properties defensively
             TableLayoutValues? layoutType = null;
-            TableWidthUnitValues? widthType = null;
-            string? widthValue = null;
-
             if (_tableProperties != null) {
                 if (_tableProperties.TableLayout != null && _tableProperties.TableLayout.Type != null) {
                     layoutType = _tableProperties.TableLayout.Type.Value;
                 }
-                if (_tableProperties.TableWidth != null) {
-                    if (_tableProperties.TableWidth.Type != null) {
-                        widthType = _tableProperties.TableWidth.Type.Value;
-                    }
-                    widthValue = _tableProperties.TableWidth.Width;
-                }
             }
 
-            // Debugging line (optional, remove in production)
-            // Console.WriteLine($"DEBUG: Layout={layoutType}, WidthType={widthType}, WidthValue={widthValue}");
-
-            // --- Decision Logic ---
-
-            // 1. Explicit Autofit Layout = AutoFitToContents (Highest priority)
-            if (layoutType.HasValue && layoutType.Value == TableLayoutValues.Autofit) {
-                return WordTableLayoutType.AutoFitToContents;
-            }
-
-            // 2. Width Type Percentage = AutoFitToWindow or FixedWidth
-            if (widthType.HasValue && widthType.Value == TableWidthUnitValues.Pct) {
-                if (widthValue == "5000") {
-                    return WordTableLayoutType.AutoFitToWindow;
-                } else {
-                    return WordTableLayoutType.FixedWidth;
-                }
-            }
-
-            // 3. Width Type DXA = FixedWidth
-            if (widthType.HasValue && widthType.Value == TableWidthUnitValues.Dxa) {
-                return WordTableLayoutType.FixedWidth;
-            }
-
-            // 4. Width Type Auto or No Width Spec -> Defaults to AutoFitToWindow visually in Word
-            // (Unless LayoutType was explicitly Autofit, which is handled in #1)
-            if ((widthType.HasValue && widthType.Value == TableWidthUnitValues.Auto) || !widthType.HasValue) {
-                return WordTableLayoutType.AutoFitToWindow;
-            }
-
-            // Final fallback - should technically not be reached if logic covers all OpenXML states
-            return WordTableLayoutType.AutoFitToWindow;
+            // Word defaults to autofit when tblLayout is omitted.
+            return layoutType == TableLayoutValues.Fixed
+                ? WordTableLayoutMode.Fixed
+                : WordTableLayoutMode.AutoFit;
         }
 
         /// <summary>

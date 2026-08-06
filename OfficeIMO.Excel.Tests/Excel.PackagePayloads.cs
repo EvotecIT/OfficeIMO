@@ -150,8 +150,8 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                     Assert.Equal(replacement, document.ExtractEmbeddedPayload(payloadId));
                     ExcelFeatureReport featureReport = document.InspectFeatures();
-                    Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, Assert.Single(featureReport.FindFeatures("Embedded packages")).SupportLevel);
-                    Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, Assert.Single(featureReport.FindFeatures("OLE objects")).SupportLevel);
+                    Assert.Equal(OfficeFeatureSupportLevel.PartiallyEditable, Assert.Single(featureReport.FindFeatures("Embedded packages")).SupportLevel);
+                    Assert.Equal(OfficeFeatureSupportLevel.PartiallyEditable, Assert.Single(featureReport.FindFeatures("OLE objects")).SupportLevel);
                     Assert.True(document.RemoveEmbeddedPayload(payloadId));
                     Assert.False(document.RemoveEmbeddedPayload(payloadId));
                     Assert.Empty(document.GetEmbeddedPayloads());

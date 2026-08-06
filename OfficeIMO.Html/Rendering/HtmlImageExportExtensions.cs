@@ -120,10 +120,10 @@ public static partial class HtmlImageExportExtensions {
                 diagnostic.Message,
                 diagnostic.Source,
                 diagnostic.LossKind switch {
-                    HtmlConversionLossKind.Approximation => OfficeImageExportLossKind.Approximation,
-                    HtmlConversionLossKind.Omission => OfficeImageExportLossKind.Omission,
-                    HtmlConversionLossKind.Failure => OfficeImageExportLossKind.Failure,
-                    _ => OfficeImageExportLossKind.None
+                    OfficeConversionLossKind.Approximation => OfficeConversionLossKind.Approximation,
+                    OfficeConversionLossKind.Omission => OfficeConversionLossKind.Omission,
+                    OfficeConversionLossKind.Failure => OfficeConversionLossKind.Failure,
+                    _ => OfficeConversionLossKind.None
                 }));
         }
         return diagnostics.AsReadOnly();

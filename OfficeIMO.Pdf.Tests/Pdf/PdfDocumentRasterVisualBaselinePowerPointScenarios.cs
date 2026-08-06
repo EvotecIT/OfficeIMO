@@ -29,7 +29,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         background.FillColor = "F6FAFC";
         background.OutlineColor = "F6FAFC";
 
-        PowerPointAutoShape panel = slide.AddShapePoints(PowerPointShapeType.RoundRectangle, 14, 14, 132, 72);
+        PowerPointAutoShape panel = slide.AddShapePoints(OfficePresetShapeType.RoundRectangle, 14, 14, 132, 72);
         panel.FillColor = "FFFFFF";
         panel.OutlineColor = "B9D7EA";
         panel.OutlineWidthPoints = 1.2D;
@@ -46,7 +46,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         body.FillTransparency = 100;
         body.SetBullets(new[] { "Text placement", "Tables and charts" });
 
-        slide.AddPicture(new MemoryStream(CreatePowerPointVisualGatePng()), ImagePartType.Png, PowerPointUnits.FromPoints(250), PowerPointUnits.FromPoints(22), PowerPointUnits.FromPoints(42), PowerPointUnits.FromPoints(30));
+        slide.AddPicture(new MemoryStream(CreatePowerPointVisualGatePng()), OfficeImageFormat.Png, PowerPointUnits.FromPoints(250), PowerPointUnits.FromPoints(22), PowerPointUnits.FromPoints(42), PowerPointUnits.FromPoints(30));
 
         PowerPointTable table = slide.AddTablePoints(2, 2, 20, 98, 120, 48);
         table.ApplyToCells(cell => cell.FontSize = 8);
@@ -74,7 +74,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         PowerPointChart chart = slide.AddChartPoints(chartData, 166, 78, 132, 86);
         chart.SetTitle("Revenue");
 
-        PowerPointAutoShape rule = slide.AddShapePoints(PowerPointShapeType.Line, 154, 20, 80, 0);
+        PowerPointAutoShape rule = slide.AddShapePoints(OfficePresetShapeType.Line, 154, 20, 80, 0);
         rule.OutlineColor = "1E5A96";
         rule.OutlineWidthPoints = 1.5D;
 
@@ -134,7 +134,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         table.GetCell(1, 1).HorizontalAlignment = OfficeIMO.PowerPoint.PowerPointTextAlignment.Center;
 
         byte[] logoBytes = File.ReadAllBytes(System.IO.Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png"));
-        PowerPointPicture picture = slide.AddPicture(new MemoryStream(logoBytes), ImagePartType.Png, PowerPointUnits.FromPoints(220), PowerPointUnits.FromPoints(18), PowerPointUnits.FromPoints(64), PowerPointUnits.FromPoints(30));
+        PowerPointPicture picture = slide.AddPicture(new MemoryStream(logoBytes), OfficeImageFormat.Png, PowerPointUnits.FromPoints(220), PowerPointUnits.FromPoints(18), PowerPointUnits.FromPoints(64), PowerPointUnits.FromPoints(30));
         picture.AltText = "OfficeIMO visual gate logo";
 
         var chartData = new PowerPointChartData(

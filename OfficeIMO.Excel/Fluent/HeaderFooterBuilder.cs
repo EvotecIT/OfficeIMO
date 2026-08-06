@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel.Fluent {
         private bool _diffFirst, _diffOddEven, _alignMargins = true, _scaleWithDoc = true;
         private sealed class ImageRequest {
             public bool Header { get; set; }
-            public HeaderFooterPosition Position { get; set; }
+            public ExcelHeaderFooterPosition Position { get; set; }
             public byte[]? Bytes { get; set; }
             public string? ContentType { get; set; }
             public double? W { get; set; }
@@ -40,26 +40,26 @@ namespace OfficeIMO.Excel.Fluent {
 
         /// <summary>Adds a centered header image.</summary>
         public HeaderFooterBuilder CenterImage(byte[] bytes, string contentType = "image/png", double? widthPoints = null, double? heightPoints = null)
-            => Image(true, HeaderFooterPosition.Center, bytes, contentType, widthPoints, heightPoints);
+            => Image(true, ExcelHeaderFooterPosition.Center, bytes, contentType, widthPoints, heightPoints);
         /// <summary>Adds a left header image.</summary>
         public HeaderFooterBuilder LeftImage(byte[] bytes, string contentType = "image/png", double? widthPoints = null, double? heightPoints = null)
-            => Image(true, HeaderFooterPosition.Left, bytes, contentType, widthPoints, heightPoints);
+            => Image(true, ExcelHeaderFooterPosition.Left, bytes, contentType, widthPoints, heightPoints);
         /// <summary>Adds a right header image.</summary>
         public HeaderFooterBuilder RightImage(byte[] bytes, string contentType = "image/png", double? widthPoints = null, double? heightPoints = null)
-            => Image(true, HeaderFooterPosition.Right, bytes, contentType, widthPoints, heightPoints);
+            => Image(true, ExcelHeaderFooterPosition.Right, bytes, contentType, widthPoints, heightPoints);
 
         /// <summary>Adds a centered footer image.</summary>
         public HeaderFooterBuilder FooterCenterImage(byte[] bytes, string contentType = "image/png", double? widthPoints = null, double? heightPoints = null)
-            => Image(false, HeaderFooterPosition.Center, bytes, contentType, widthPoints, heightPoints);
+            => Image(false, ExcelHeaderFooterPosition.Center, bytes, contentType, widthPoints, heightPoints);
         /// <summary>Adds a left footer image.</summary>
         public HeaderFooterBuilder FooterLeftImage(byte[] bytes, string contentType = "image/png", double? widthPoints = null, double? heightPoints = null)
-            => Image(false, HeaderFooterPosition.Left, bytes, contentType, widthPoints, heightPoints);
+            => Image(false, ExcelHeaderFooterPosition.Left, bytes, contentType, widthPoints, heightPoints);
         /// <summary>Adds a right footer image.</summary>
         public HeaderFooterBuilder FooterRightImage(byte[] bytes, string contentType = "image/png", double? widthPoints = null, double? heightPoints = null)
-            => Image(false, HeaderFooterPosition.Right, bytes, contentType, widthPoints, heightPoints);
+            => Image(false, ExcelHeaderFooterPosition.Right, bytes, contentType, widthPoints, heightPoints);
 
         /// <summary>Adds header/footer image from raw bytes.</summary>
-        private HeaderFooterBuilder Image(bool header, HeaderFooterPosition pos, byte[] bytes, string contentType, double? w, double? h) {
+        private HeaderFooterBuilder Image(bool header, ExcelHeaderFooterPosition pos, byte[] bytes, string contentType, double? w, double? h) {
             if (bytes == null || bytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(bytes));
             var normalizedContentType = ExcelSheet.NormalizeImageContentType(contentType, nameof(contentType));
             _images.Add(new ImageRequest { Header = header, Position = pos, Bytes = bytes, ContentType = normalizedContentType, W = w, H = h });

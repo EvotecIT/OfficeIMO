@@ -93,11 +93,11 @@ namespace OfficeIMO.Tests {
                 .Fill("D9EAF7")
                 .Stroke("2563EB", 1.5D);
             using (var stream = new MemoryStream(image, writable: false)) {
-                first.AddPicture(stream, ImagePartType.Png,
+                first.AddPicture(stream, OfficeImageFormat.Png,
                     3600000, 2700000, 1800000, 1200000);
             }
             first.Notes.Text = "LibreOffice round-trip notes " + marker;
-            first.Transition = SlideTransition.Fade;
+            first.Transition = PowerPointSlideTransition.Fade;
 
             PowerPointSlide second = presentation.AddSlide();
             second.AddTextBox("Second slide " + marker,
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
             table.GetCell(0, 1).Text = "Revenue";
             table.GetCell(1, 0).Text = marker;
             table.GetCell(1, 1).Text = "120";
-            table.SetCellBorders(TableCellBorders.All, "2563EB",
+            table.SetCellBorders(PowerPointTableCellBorders.All, "2563EB",
                 widthPoints: 1.25D);
             presentation.Save();
         }
@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
                 presentation.Slides[0].Shapes.OfType<PowerPointAutoShape>());
             Assert.Equal("D9EAF7", rectangle.FillColor, ignoreCase: true);
             Assert.Equal("2563EB", rectangle.OutlineColor, ignoreCase: true);
-            Assert.Equal(SlideTransition.Fade,
+            Assert.Equal(PowerPointSlideTransition.Fade,
                 presentation.Slides[0].Transition);
             Assert.Empty(presentation.ValidateDocument());
         }

@@ -216,7 +216,7 @@ public partial class Word {
             paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
             var wordList = document.AddList(WordListStyle.Numbered);
-            wordList.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
+            wordList.AddItem("Text 1").SetCapsStyle(WordCapsStyle.SmallCaps);
             wordList.AddItem("Text 2.1", 1).SetColor(Color.Brown);
             wordList.AddItem("Text 2.2", 1).SetColor(Color.Brown);
             wordList.AddItem("Text 2.3", 1).SetColor(Color.Brown);
@@ -234,7 +234,7 @@ public partial class Word {
                 .SetUnderline(WordUnderlineStyle.Double);
 
             WordList wordList1 = document.AddList(WordListStyle.HeadingIA1);
-            wordList1.AddItem("Temp 1").SetCapsStyle(CapsStyle.SmallCaps);
+            wordList1.AddItem("Temp 1").SetCapsStyle(WordCapsStyle.SmallCaps);
             wordList1.AddItem("Temp 2.1", 1).SetColor(Color.Brown);
             wordList1.AddItem("Temp 2.2", 1).SetColor(Color.Brown);
             wordList1.AddItem("Temp 2.3", 1).SetColor(Color.Brown);
@@ -251,7 +251,7 @@ public partial class Word {
                 .SetUnderline(WordUnderlineStyle.Double);
 
             var wordList2 = document.AddList(WordListStyle.BulletedChars);
-            wordList2.AddItem("Oops 1").SetCapsStyle(CapsStyle.SmallCaps);
+            wordList2.AddItem("Oops 1").SetCapsStyle(WordCapsStyle.SmallCaps);
             wordList2.AddItem("Oops 2.1", 1).SetColor(Color.Brown);
             wordList2.AddItem("Oops 2.2", 1).SetColor(Color.Brown);
             wordList2.AddItem("Oops 2.3", 1).SetColor(Color.Brown);
@@ -266,7 +266,7 @@ public partial class Word {
                 .SetUnderline(WordUnderlineStyle.Double);
 
             var wordList3 = document.AddList(WordListStyle.Heading1ai);
-            wordList3.AddItem("4th 1").SetCapsStyle(CapsStyle.SmallCaps);
+            wordList3.AddItem("4th 1").SetCapsStyle(WordCapsStyle.SmallCaps);
             wordList3.AddItem("4th 2.1", 1).SetColor(Color.Brown);
             wordList3.AddItem("4th 2.2", 1).SetColor(Color.Brown);
             wordList3.AddItem("4th 2.3", 1).SetColor(Color.Brown);
@@ -281,7 +281,7 @@ public partial class Word {
                 .SetUnderline(WordUnderlineStyle.Double);
 
             var wordList4 = document.AddList(WordListStyle.Headings111Shifted);
-            wordList4.AddItem("5th 1").SetCapsStyle(CapsStyle.SmallCaps);
+            wordList4.AddItem("5th 1").SetCapsStyle(WordCapsStyle.SmallCaps);
             wordList4.AddItem("5th 2.1", 1).SetColor(Color.Brown);
             wordList4.AddItem("5th 2.2", 1).SetColor(Color.Brown);
             wordList4.AddItem("5th 2.3", 1).SetColor(Color.Brown);
@@ -319,10 +319,10 @@ public partial class Word {
             Assert.Equal(6, document.Lists[3].ListItems.Count);
 
             var section = document.AddSection();
-            section.PageSettings.Orientation = WordPageOrientation.Landscape;
+            section.PageSettings.Orientation = OfficePageOrientation.Landscape;
 
-            Assert.Equal(WordPageOrientation.Portrait, document.Sections[0].PageSettings.Orientation);
-            Assert.Equal(WordPageOrientation.Landscape, document.Sections[1].PageSettings.Orientation);
+            Assert.Equal(OfficePageOrientation.Portrait, document.Sections[0].PageSettings.Orientation);
+            Assert.Equal(OfficePageOrientation.Landscape, document.Sections[1].PageSettings.Orientation);
 
             Assert.Equal(5, document.Lists.Count);
             Assert.Equal(5, document.Sections[0].Lists.Count);
@@ -330,7 +330,7 @@ public partial class Word {
             Assert.Empty(document.Sections[1].Lists);
 
             var wordList5 = document.AddList(WordListStyle.Numbered);
-            wordList5.AddItem("Section 1").SetCapsStyle(CapsStyle.SmallCaps);
+            wordList5.AddItem("Section 1").SetCapsStyle(WordCapsStyle.SmallCaps);
             wordList5.AddItem("Section 2.1", 1).SetColor(Color.Brown);
             wordList5.AddItem("Section 2.2", 1).SetColor(Color.Brown);
 
@@ -349,7 +349,7 @@ public partial class Word {
             Assert.Single(document.Sections[1].Lists);
 
             var wordList6 = document.AddList(WordListStyle.Numbered);
-            wordList6.AddItem("Section 1").SetCapsStyle(CapsStyle.SmallCaps);
+            wordList6.AddItem("Section 1").SetCapsStyle(WordCapsStyle.SmallCaps);
             wordList6.AddItem("Section 2.1", 1).SetColor(Color.Brown);
             wordList6.AddItem("Section 2.2", 1).SetColor(Color.Brown);
 

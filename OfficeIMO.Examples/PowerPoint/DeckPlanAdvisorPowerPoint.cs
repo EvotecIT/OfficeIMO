@@ -135,7 +135,7 @@ namespace OfficeIMO.Examples.PowerPoint {
         }
 
         private static void Validate(string filePath, PowerPointPresentation presentation) {
-            List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+            List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
             if (errors.Count > 0) {
                 string details = string.Join(Environment.NewLine, errors.Take(5).Select(error => error.Description));
                 throw new InvalidOperationException($"PowerPoint validation failed with {errors.Count} error(s).{Environment.NewLine}{details}");

@@ -14,12 +14,12 @@ namespace OfficeIMO.Tests {
                 doc.TableNameComparer = System.StringComparer.Ordinal; // case-sensitive
                 var s = doc.AddWorksheet("Data");
                 s.CellValue(1, 1, "A");
-                s.AddTable("A1:A1", hasHeader: true, name: "Table", TableStyle.TableStyleMedium9);
+                s.AddTable("A1:A1", hasHeader: true, name: "Table", ExcelTableStyle.TableStyleMedium9);
 
                 // Switch to case-insensitive and ensure suffixing now applies for the same base name
                 doc.TableNameComparer = System.StringComparer.OrdinalIgnoreCase; // resets cache
                 s.CellValue(2, 1, "B");
-                s.AddTable("A2:A2", hasHeader: true, name: "TABLE", TableStyle.TableStyleMedium9);
+                s.AddTable("A2:A2", hasHeader: true, name: "TABLE", ExcelTableStyle.TableStyleMedium9);
                 doc.Save();
             }
 

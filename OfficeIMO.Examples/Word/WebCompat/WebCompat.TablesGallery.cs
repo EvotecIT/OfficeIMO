@@ -138,7 +138,7 @@ namespace OfficeIMO.Examples.Word {
             doc.AddParagraph().AddText("Narrow layout: preferred width 60% (centered)");
             var tNarrowPct = doc.AddTable(2, 2, WordTableStyle.TableGrid);
             // Use fixed layout at 60% to make Word Online honor the percentage strictly
-            tNarrowPct.SetTableLayout(WordTableLayoutType.FixedWidth, 60);
+            tNarrowPct.SetFixedWidth(60);
             tNarrowPct.Alignment = WordTableAlignment.Center;
             tNarrowPct.ColumnWidthType = WordTableWidthUnit.Pct; tNarrowPct.ColumnWidth = new() { 2500, 2500 };
             tNarrowPct.Rows[0].Cells[0].AddParagraph("L", true);
@@ -149,11 +149,11 @@ namespace OfficeIMO.Examples.Word {
             // 7b) Container table (1x1) that constrains inner table like a narrow block
             doc.AddParagraph().AddText("Narrow layout: 1×1 container table (centered) with inner table");
             var container = doc.AddTable(1, 1, WordTableStyle.TableGrid);
-            container.SetTableLayout(WordTableLayoutType.FixedWidth, 60); // 60%
+            container.SetFixedWidth(60); // 60%
             container.Alignment = WordTableAlignment.Center;
             // Build the inner table inside the single cell
             var inner = container.Rows[0].Cells[0].AddTable(2, 2, WordTableStyle.TableGrid);
-            inner.SetTableLayout(WordTableLayoutType.FixedWidth, 100); // inner 100% of container cell
+            inner.SetFixedWidth(100); // inner 100% of container cell
             inner.ColumnWidthType = WordTableWidthUnit.Pct; inner.ColumnWidth = new() { 2500, 2500 };
             inner.Rows[0].Cells[0].AddParagraph("Inner L", true);
             inner.Rows[0].Cells[1].AddParagraph("Inner R", true);
@@ -163,7 +163,7 @@ namespace OfficeIMO.Examples.Word {
             // 7c) Narrow preferred width 60% but left-aligned
             doc.AddParagraph().AddText("Narrow layout: preferred width 60% (left-aligned)");
             var tNarrowPctLeft = doc.AddTable(2, 2, WordTableStyle.TableGrid);
-            tNarrowPctLeft.SetTableLayout(WordTableLayoutType.FixedWidth, 60); // 60%
+            tNarrowPctLeft.SetFixedWidth(60); // 60%
             tNarrowPctLeft.Alignment = WordTableAlignment.Left;
             tNarrowPctLeft.ColumnWidthType = WordTableWidthUnit.Pct; tNarrowPctLeft.ColumnWidth = new() { 2500, 2500 };
             tNarrowPctLeft.Rows[0].Cells[0].AddParagraph("L", true);
@@ -174,11 +174,11 @@ namespace OfficeIMO.Examples.Word {
             // 7d) Container with fixed DXA width (5 inches) and centered
             doc.AddParagraph().AddText("Narrow layout: 1×1 container (fixed 5\" width, centered) with inner table");
             var containerFixed = doc.AddTable(1, 1, WordTableStyle.TableGrid);
-            containerFixed.SetTableLayout(WordTableLayoutType.FixedWidth, null); // switch to Fixed layout
+            containerFixed.LayoutMode = WordTableLayoutMode.Fixed;
             containerFixed.WidthType = WordTableWidthUnit.Dxa; containerFixed.Width = 7200; // 5 inches * 1440 twips
             containerFixed.Alignment = WordTableAlignment.Center;
             var innerFixed = containerFixed.Rows[0].Cells[0].AddTable(2, 2, WordTableStyle.TableGrid);
-            innerFixed.SetTableLayout(WordTableLayoutType.FixedWidth, 100); // inner 100% of container cell
+            innerFixed.SetFixedWidth(100); // inner 100% of container cell
             innerFixed.WidthType = WordTableWidthUnit.Pct; innerFixed.Width = 5000;
             innerFixed.ColumnWidthType = WordTableWidthUnit.Pct; innerFixed.ColumnWidth = new() { 2500, 2500 };
             innerFixed.Rows[0].Cells[0].AddParagraph("Inner L", true);

@@ -616,7 +616,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordDocument">The parent document.</param>
         /// <param name="sdtBlock">The structured document tag block representing the watermark.</param>
-        public WordWatermark(WordDocument wordDocument, SdtBlock sdtBlock) {
+        internal WordWatermark(WordDocument wordDocument, SdtBlock sdtBlock) {
             _document = wordDocument;
             _sdtBlock = sdtBlock;
         }

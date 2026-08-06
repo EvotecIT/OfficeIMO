@@ -100,24 +100,23 @@ namespace OfficeIMO.Word {
 
         private static ImageCharacteristics GetImageCharacteristicsCore(Stream imageStream, string? fileName) {
             if (OfficeImageReader.TryIdentify(imageStream, fileName, out var imageInfo)) {
-                return new ImageCharacteristics(imageInfo.Width, imageInfo.Height, ConvertToImagePartType(imageInfo.Format));
+                return new ImageCharacteristics(imageInfo.Width, imageInfo.Height, EnsureSupportedImageFormat(imageInfo.Format));
             }
 
-            return new ImageCharacteristics(0, 0, CustomImagePartType.Png);
+            return new ImageCharacteristics(0, 0, OfficeImageFormat.Png);
         }
 
-        private static CustomImagePartType ConvertToImagePartType(OfficeImageFormat imageFormat) =>
-            imageFormat switch {
-                OfficeImageFormat.Bmp => CustomImagePartType.Bmp,
-                OfficeImageFormat.Gif => CustomImagePartType.Gif,
-                OfficeImageFormat.Jpeg => CustomImagePartType.Jpeg,
-                OfficeImageFormat.Png => CustomImagePartType.Png,
-                OfficeImageFormat.Tiff => CustomImagePartType.Tiff,
-                OfficeImageFormat.Emf => CustomImagePartType.Emf,
-                OfficeImageFormat.Wmf => CustomImagePartType.Wmf,
-                OfficeImageFormat.Svg => CustomImagePartType.Svg,
-                _ => throw new NotSupportedException($"Word image parts do not support {imageFormat} images.")
-            };
+        private static OfficeImageFormat EnsureSupportedImageFormat(OfficeImageFormat imageFormat) =>
+            imageFormat is OfficeImageFormat.Bmp or
+                OfficeImageFormat.Gif or
+                OfficeImageFormat.Jpeg or
+                OfficeImageFormat.Png or
+                OfficeImageFormat.Tiff or
+                OfficeImageFormat.Emf or
+                OfficeImageFormat.Wmf or
+                OfficeImageFormat.Svg
+                ? imageFormat
+                : throw new NotSupportedException($"Word image parts do not support {imageFormat} images.");
 
         /// <summary>
         /// Converts centimeters to EMUs and returns int value
@@ -299,5 +298,5 @@ namespace OfficeIMO.Word {
         }
     }
 
-    internal record ImageCharacteristics(double Width, double Height, CustomImagePartType Type);
+    internal record ImageCharacteristics(double Width, double Height, OfficeImageFormat Type);
 }

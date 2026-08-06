@@ -8,7 +8,7 @@ public sealed class PdfTableCell {
     public PdfTableCell(string? text, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, System.Collections.Generic.IEnumerable<PdfTableCellImage>? images = null, string? linkDestinationName = null, string? namedDestinationName = null) {
         Validate(columnSpan, rowSpan, linkUri, linkDestinationName, linkContents, namedDestinationName);
         Text = text ?? string.Empty;
-        Runs = System.Array.AsReadOnly(new[] { TextRun.Normal(Text) });
+        Runs = System.Array.AsReadOnly(new[] { PdfTextRun.Normal(Text) });
         ColumnSpan = columnSpan;
         RowSpan = rowSpan;
         LinkUri = linkUri;
@@ -22,12 +22,12 @@ public sealed class PdfTableCell {
     }
 
     /// <summary>Creates a table cell with rich text runs, optional column/row spans, optional link metadata, images, and form fields.</summary>
-    public PdfTableCell(System.Collections.Generic.IEnumerable<TextRun> runs, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, System.Collections.Generic.IEnumerable<PdfTableCellImage>? images = null, string? linkDestinationName = null, string? namedDestinationName = null) {
+    public PdfTableCell(System.Collections.Generic.IEnumerable<PdfTextRun> runs, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, System.Collections.Generic.IEnumerable<PdfTableCellImage>? images = null, string? linkDestinationName = null, string? namedDestinationName = null) {
         Guard.NotNull(runs, nameof(runs));
         Validate(columnSpan, rowSpan, linkUri, linkDestinationName, linkContents, namedDestinationName);
-        var snapshot = new System.Collections.Generic.List<TextRun>();
+        var snapshot = new System.Collections.Generic.List<PdfTextRun>();
         var text = new System.Text.StringBuilder();
-        foreach (TextRun run in runs) {
+        foreach (PdfTextRun run in runs) {
             if (run is null) {
                 throw new System.ArgumentException("Table cell text runs cannot contain null entries.", nameof(runs));
             }
@@ -50,12 +50,12 @@ public sealed class PdfTableCell {
         Paragraphs = System.Array.AsReadOnly(System.Array.Empty<PdfTableCellParagraph>());
     }
 
-    internal PdfTableCell(System.Collections.Generic.IEnumerable<TextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellParagraph>? paragraphs, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, System.Collections.Generic.IEnumerable<PdfTableCellImage>? images = null, string? linkDestinationName = null, string? namedDestinationName = null, bool noWrap = false) {
+    internal PdfTableCell(System.Collections.Generic.IEnumerable<PdfTextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellParagraph>? paragraphs, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, System.Collections.Generic.IEnumerable<PdfTableCellImage>? images = null, string? linkDestinationName = null, string? namedDestinationName = null, bool noWrap = false) {
         Guard.NotNull(runs, nameof(runs));
         Validate(columnSpan, rowSpan, linkUri, linkDestinationName, linkContents, namedDestinationName);
-        var snapshot = new System.Collections.Generic.List<TextRun>();
+        var snapshot = new System.Collections.Generic.List<PdfTextRun>();
         var text = new System.Text.StringBuilder();
-        foreach (TextRun run in runs) {
+        foreach (PdfTextRun run in runs) {
             if (run is null) {
                 throw new System.ArgumentException("Table cell text runs cannot contain null entries.", nameof(runs));
             }
@@ -83,7 +83,7 @@ public sealed class PdfTableCell {
     public string Text { get; }
 
     /// <summary>Rich text runs for the cell. Plain text cells expose a single unstyled run.</summary>
-    public System.Collections.Generic.IReadOnlyList<TextRun> Runs { get; }
+    public System.Collections.Generic.IReadOnlyList<PdfTextRun> Runs { get; }
 
     /// <summary>Number of logical columns covered by this cell.</summary>
     public int ColumnSpan { get; }
@@ -120,34 +120,34 @@ public sealed class PdfTableCell {
     public static PdfTableCell TextCell(string? text, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null, string? namedDestinationName = null) => new PdfTableCell(text, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName, namedDestinationName: namedDestinationName);
 
     /// <summary>Creates a single-column rich text cell.</summary>
-    public static PdfTableCell RichTextCell(System.Collections.Generic.IEnumerable<TextRun> runs, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null, string? namedDestinationName = null) => new PdfTableCell(runs, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName, namedDestinationName: namedDestinationName);
+    public static PdfTableCell RichTextCell(System.Collections.Generic.IEnumerable<PdfTextRun> runs, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null, string? namedDestinationName = null) => new PdfTableCell(runs, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName, namedDestinationName: namedDestinationName);
 
     /// <summary>Creates a cell spanning multiple logical columns.</summary>
     public static PdfTableCell Span(string? text, int columnSpan, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) => new PdfTableCell(text, columnSpan, linkUri, linkContents, linkDestinationName: linkDestinationName);
 
     /// <summary>Creates a rich text cell spanning multiple logical columns.</summary>
-    public static PdfTableCell Span(System.Collections.Generic.IEnumerable<TextRun> runs, int columnSpan, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) => new PdfTableCell(runs, columnSpan, linkUri, linkContents, linkDestinationName: linkDestinationName);
+    public static PdfTableCell Span(System.Collections.Generic.IEnumerable<PdfTextRun> runs, int columnSpan, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) => new PdfTableCell(runs, columnSpan, linkUri, linkContents, linkDestinationName: linkDestinationName);
 
     /// <summary>Creates a merged cell spanning logical columns and rows.</summary>
     public static PdfTableCell Merge(string? text, int columnSpan = 1, int rowSpan = 1, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) => new PdfTableCell(text, columnSpan, linkUri, linkContents, rowSpan, linkDestinationName: linkDestinationName);
 
     /// <summary>Creates a rich text merged cell spanning logical columns and rows.</summary>
-    public static PdfTableCell Merge(System.Collections.Generic.IEnumerable<TextRun> runs, int columnSpan = 1, int rowSpan = 1, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) => new PdfTableCell(runs, columnSpan, linkUri, linkContents, rowSpan, linkDestinationName: linkDestinationName);
+    public static PdfTableCell Merge(System.Collections.Generic.IEnumerable<PdfTextRun> runs, int columnSpan = 1, int rowSpan = 1, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) => new PdfTableCell(runs, columnSpan, linkUri, linkContents, rowSpan, linkDestinationName: linkDestinationName);
 
     /// <summary>Creates a table cell with rich text and simple AcroForm check boxes.</summary>
-    public static PdfTableCell WithCheckBoxes(System.Collections.Generic.IEnumerable<TextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox> checkBoxes, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, string? linkDestinationName = null) => new PdfTableCell(runs, columnSpan, linkUri, linkContents, rowSpan, checkBoxes, linkDestinationName: linkDestinationName);
+    public static PdfTableCell WithCheckBoxes(System.Collections.Generic.IEnumerable<PdfTextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox> checkBoxes, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, string? linkDestinationName = null) => new PdfTableCell(runs, columnSpan, linkUri, linkContents, rowSpan, checkBoxes, linkDestinationName: linkDestinationName);
 
     /// <summary>Creates a table cell with plain text and simple AcroForm check boxes.</summary>
     public static PdfTableCell WithCheckBoxes(string? text, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox> checkBoxes, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, string? linkDestinationName = null) => new PdfTableCell(text, columnSpan, linkUri, linkContents, rowSpan, checkBoxes, linkDestinationName: linkDestinationName);
 
     /// <summary>Creates a table cell with rich text and simple AcroForm text or choice fields.</summary>
-    public static PdfTableCell WithFormFields(System.Collections.Generic.IEnumerable<TextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellFormField> formFields, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, string? linkDestinationName = null) => new PdfTableCell(runs, columnSpan, linkUri, linkContents, rowSpan, checkBoxes, formFields, linkDestinationName: linkDestinationName);
+    public static PdfTableCell WithFormFields(System.Collections.Generic.IEnumerable<PdfTextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellFormField> formFields, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, string? linkDestinationName = null) => new PdfTableCell(runs, columnSpan, linkUri, linkContents, rowSpan, checkBoxes, formFields, linkDestinationName: linkDestinationName);
 
     /// <summary>Creates a table cell with plain text and simple AcroForm text or choice fields.</summary>
     public static PdfTableCell WithFormFields(string? text, System.Collections.Generic.IEnumerable<PdfTableCellFormField> formFields, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, string? linkDestinationName = null) => new PdfTableCell(text, columnSpan, linkUri, linkContents, rowSpan, checkBoxes, formFields, linkDestinationName: linkDestinationName);
 
     /// <summary>Creates a table cell with rich text and images.</summary>
-    public static PdfTableCell WithImages(System.Collections.Generic.IEnumerable<TextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellImage> images, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, string? linkDestinationName = null) => new PdfTableCell(runs, columnSpan, linkUri, linkContents, rowSpan, checkBoxes, formFields, images, linkDestinationName);
+    public static PdfTableCell WithImages(System.Collections.Generic.IEnumerable<PdfTextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellImage> images, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, string? linkDestinationName = null) => new PdfTableCell(runs, columnSpan, linkUri, linkContents, rowSpan, checkBoxes, formFields, images, linkDestinationName);
 
     /// <summary>Creates a table cell with plain text and images.</summary>
     public static PdfTableCell WithImages(string? text, System.Collections.Generic.IEnumerable<PdfTableCellImage> images, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, string? linkDestinationName = null) => new PdfTableCell(text, columnSpan, linkUri, linkContents, rowSpan, checkBoxes, formFields, images, linkDestinationName);
@@ -267,7 +267,7 @@ public sealed class PdfTableCell {
 }
 
 internal sealed class PdfTableCellParagraph {
-    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<TextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D, double? lineHeight = null, double? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null) {
+    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D, double? lineHeight = null, double? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null) {
         Guard.NotNull(runs, nameof(runs));
         if (spacingBefore < 0 || double.IsNaN(spacingBefore) || double.IsInfinity(spacingBefore)) {
             throw new System.ArgumentOutOfRangeException(nameof(spacingBefore), "Table cell paragraph spacing must be a non-negative finite value.");
@@ -297,8 +297,8 @@ internal sealed class PdfTableCellParagraph {
             throw new System.ArgumentOutOfRangeException(nameof(defaultTabStopWidth), "Table cell paragraph default tab stop width must be a positive finite value.");
         }
 
-        var snapshot = new System.Collections.Generic.List<TextRun>();
-        foreach (TextRun run in runs) {
+        var snapshot = new System.Collections.Generic.List<PdfTextRun>();
+        foreach (PdfTextRun run in runs) {
             if (run is null) {
                 throw new System.ArgumentException("Table cell paragraph runs cannot contain null entries.", nameof(runs));
             }
@@ -329,7 +329,7 @@ internal sealed class PdfTableCellParagraph {
         TabStops = tabStopSnapshot.AsReadOnly();
     }
 
-    public System.Collections.Generic.IReadOnlyList<TextRun> Runs { get; }
+    public System.Collections.Generic.IReadOnlyList<PdfTextRun> Runs { get; }
 
     public double SpacingBefore { get; }
 

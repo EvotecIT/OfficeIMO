@@ -16,7 +16,7 @@ Console.WriteLine(workbook.SourceFormat); // ExcelFileFormat.Xls
 
 workbook.Save("output.xlsx");
 workbook.Save("copy.xls", new ExcelSaveOptions {
-    LossPolicy = ExcelConversionLossPolicy.Allow
+    LossPolicy = OfficeConversionLossPolicy.Allow
 });
 
 byte[] xlsx = workbook.ToBytes();
@@ -32,11 +32,11 @@ ExcelDocumentConversionResult result = ExcelDocument.Convert(
     "input.xls",
     "output.xlsx",
     new ExcelDocumentConversionOptions {
-        FileConflictPolicy = ExcelConversionFileConflictPolicy.FailIfExists,
-        LossPolicy = ExcelConversionLossPolicy.Block
+        FileConflictPolicy = OfficeConversionFileConflictPolicy.FailIfExists,
+        LossPolicy = OfficeConversionLossPolicy.Block
     });
 
-foreach (ExcelConversionDiagnostic diagnostic in result.Diagnostics) {
+foreach (OfficeConversionDiagnostic diagnostic in result.Diagnostics) {
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 }
 ```
@@ -50,7 +50,7 @@ The defaults are conservative:
 - output is staged and atomically committed;
 - cross-family OLE input, such as DOC passed to Excel, is rejected clearly.
 
-Set `LossPolicy = ExcelConversionLossPolicy.Allow` only for reviewed, intentional loss. The same policy exists on conversion and save options.
+Set `LossPolicy = OfficeConversionLossPolicy.Allow` only for reviewed, intentional loss. The same policy exists on conversion and save options.
 
 ## XLS import capability
 

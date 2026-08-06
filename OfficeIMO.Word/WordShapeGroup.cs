@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
     /// </summary>
     public sealed class WordShapeGroupItem {
         /// <summary>Creates a shape-group item.</summary>
-        public WordShapeGroupItem(ShapeType shapeType, double leftPt, double topPt, double widthPt, double heightPt) {
+        public WordShapeGroupItem(WordShapeType shapeType, double leftPt, double topPt, double widthPt, double heightPt) {
             ShapeType = shapeType;
             LeftPt = leftPt;
             TopPt = topPt;
@@ -27,7 +27,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>Preset DrawingML geometry.</summary>
-        public ShapeType ShapeType { get; }
+        public WordShapeType ShapeType { get; }
         /// <summary>Horizontal position relative to the group.</summary>
         public double LeftPt { get; }
         /// <summary>Vertical position relative to the group.</summary>

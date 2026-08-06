@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         /// <param name="header">Header text used to resolve the target column after applying any configured normalization.</param>
         /// <param name="includeHeader">True to include the header row when styling; false to begin styling from the first data row.</param>
         /// <param name="options">Read options that control header normalization and other resolution behavior.</param>
-        public ColumnStyleByHeaderBuilder ColumnStyleByHeader(string header, bool includeHeader = false, ExcelReadOptions? options = null) {
+        public ExcelColumnStyleByHeaderBuilder ColumnStyleByHeader(string header, bool includeHeader = false, ExcelReadOptions? options = null) {
             TryGetColumnStyleByHeader(header, includeHeader, out var builder, out _, options);
             return builder;
         }
@@ -29,14 +29,14 @@ namespace OfficeIMO.Excel {
         public bool TryGetColumnStyleByHeader(
             string header,
             bool includeHeader,
-            out ColumnStyleByHeaderBuilder builder,
+            out ExcelColumnStyleByHeaderBuilder builder,
             out int columnIndex,
             ExcelReadOptions? options = null,
             bool preferDirectTabularMetadata = true) {
             if (preferDirectTabularMetadata && options == null &&
                 _excelDocument.TryGetDirectTabularSaveCandidateColumnByHeader(this, header, includeHeader, options, out int directColumnIndex, out int directStartRow, out int directEndRow)) {
                 columnIndex = directColumnIndex;
-                builder = new ColumnStyleByHeaderBuilder(this, directColumnIndex, directStartRow, directEndRow);
+                builder = new ExcelColumnStyleByHeaderBuilder(this, directColumnIndex, directStartRow, directEndRow);
                 return true;
             }
 
@@ -45,12 +45,12 @@ namespace OfficeIMO.Excel {
             int startRow = includeHeader ? r1 : r1 + 1;
             if (!TryGetColumnIndexByHeader(header, out var colIndex, options)) {
                 columnIndex = 0;
-                builder = new ColumnStyleByHeaderBuilder(this, 0, startRow, startRow - 1);
+                builder = new ExcelColumnStyleByHeaderBuilder(this, 0, startRow, startRow - 1);
                 return false;
             }
 
             columnIndex = colIndex;
-            builder = new ColumnStyleByHeaderBuilder(this, colIndex, startRow, r2);
+            builder = new ExcelColumnStyleByHeaderBuilder(this, colIndex, startRow, r2);
             return true;
         }
     }

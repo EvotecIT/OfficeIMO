@@ -10,7 +10,7 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf {
     public partial class RichParagraphWrappingTests {
 
-        private static object InvokeWrapRichRuns(IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double? tabStopWidth = null, IReadOnlyList<PdfTabStop>? tabStops = null) {
+        private static object InvokeWrapRichRuns(IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double? tabStopWidth = null, IReadOnlyList<PdfTabStop>? tabStops = null) {
             if (tabStops == null) {
                 var wrapMethod = typeof(PdfWriter).GetMethod("WrapRichRuns", BindingFlags.NonPublic | BindingFlags.Static);
                 Assert.NotNull(wrapMethod);

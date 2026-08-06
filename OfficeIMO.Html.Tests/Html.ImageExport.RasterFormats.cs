@@ -142,7 +142,7 @@ public sealed partial class HtmlRenderingTests {
             exception.Diagnostics,
             diagnostic =>
                 diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported &&
-                diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Fact]

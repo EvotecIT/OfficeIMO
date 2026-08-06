@@ -14,7 +14,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a new instance of the <see cref="WordEndNote"/> class.
         /// </summary>
-        public WordEndNote(WordDocument document, Paragraph paragraph, Run run) {
+        internal WordEndNote(WordDocument document, Paragraph paragraph, Run run) {
             this._document = document;
             this._paragraph = paragraph;
             this._run = run;

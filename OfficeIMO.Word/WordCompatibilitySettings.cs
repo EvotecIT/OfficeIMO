@@ -7,7 +7,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Specifies compatibility modes corresponding to different Word versions.
     /// </summary>
-    public enum CompatibilityMode {
+    public enum WordCompatibilityMode {
         /// <summary>
         /// No specific compatibility mode is applied.
         /// </summary>
@@ -54,24 +54,24 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets compatibility mode of a Word Document
         /// </summary>
-        public CompatibilityMode CompatibilityMode {
+        public WordCompatibilityMode CompatibilityMode {
             get {
                 Settings settings = GetSettings();
                 Compatibility? compatibility = settings.Elements<Compatibility>().FirstOrDefault();
                 if (compatibility == null) {
-                    return CompatibilityMode.None;
+                    return WordCompatibilityMode.None;
                 }
                 foreach (CompatibilitySetting setting in compatibility.Elements<CompatibilitySetting>()) {
                     if (setting.Name?.Value == CompatSettingNameValues.CompatibilityMode) {
                         string? valueText = setting.Val?.Value ?? setting.Val;
-                        if (int.TryParse(valueText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int modeValue) && Enum.IsDefined(typeof(CompatibilityMode), modeValue)) {
-                            return (CompatibilityMode)modeValue;
+                        if (int.TryParse(valueText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int modeValue) && Enum.IsDefined(typeof(WordCompatibilityMode), modeValue)) {
+                            return (WordCompatibilityMode)modeValue;
                         }
                         break;
                     }
                 }
 
-                return CompatibilityMode.None;
+                return WordCompatibilityMode.None;
             }
             set {
                 Settings settings = GetSettings();
@@ -83,7 +83,7 @@ namespace OfficeIMO.Word {
 
                 foreach (CompatibilitySetting setting in compatibility.Elements<CompatibilitySetting>()) {
                     if (setting.Name?.Value == CompatSettingNameValues.CompatibilityMode) {
-                        if (value == CompatibilityMode.None) {
+                        if (value == WordCompatibilityMode.None) {
                             setting.Remove();
                         } else {
                             setting.Val = ((int)value).ToString(CultureInfo.InvariantCulture);
@@ -94,7 +94,7 @@ namespace OfficeIMO.Word {
                     }
                 }
 
-                if (value != CompatibilityMode.None) {
+                if (value != WordCompatibilityMode.None) {
                     compatibility.Append(new CompatibilitySetting {
                         Name = CompatSettingNameValues.CompatibilityMode,
                         Uri = "http://schemas.microsoft.com/office/word",

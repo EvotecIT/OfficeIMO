@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 5, "Two");
             sheet.CellValue(2, 4, 1);
             sheet.CellValue(2, 5, 2);
-            sheet.AddTable("D1:E2", true, "Destination", TableStyle.TableStyleMedium2);
+            sheet.AddTable("D1:E2", true, "Destination", ExcelTableStyle.TableStyleMedium2);
 
             Assert.Throws<System.InvalidOperationException>(() => plan.Apply());
             Assert.Throws<System.InvalidOperationException>(() => sheet.CopyRange("A1", "D1"));
@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 3, 1);
                 sheet.CellValue(2, 4, 2);
             }
-            sheet.AddTable(tableRange, true, "Owned", TableStyle.TableStyleMedium2);
+            sheet.AddTable(tableRange, true, "Owned", ExcelTableStyle.TableStyleMedium2);
 
             Assert.Throws<System.InvalidOperationException>(() => {
                 if (inserting) sheet.InsertCells("A1", direction);

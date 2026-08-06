@@ -16,8 +16,8 @@ namespace OfficeIMO.Examples.Word {
                     .Image(img => img
                         .Add(Path.Combine(imagesPath, "EvotecLogo.png"))
                         .Size(120, 120)
-                        .Wrap(WrapTextImage.Square)
-                        .Align(HorizontalAlignment.Center))
+                        .Wrap(WordImageTextWrapping.Square)
+                        .Align(WordParagraphAlignment.Center))
                     .End();
                 document.Save();
             }

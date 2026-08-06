@@ -40,7 +40,7 @@ public partial class Html {
         Assert.Contains("https://example.com", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("link", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("font-family", roundTrip, StringComparison.OrdinalIgnoreCase);
-        var resolved = FontResolver.Resolve("Calibri");
+        var resolved = WordFontResolver.Resolve("Calibri");
         bool hasFont = (!string.IsNullOrEmpty(resolved) && roundTrip.IndexOf(resolved, StringComparison.OrdinalIgnoreCase) >= 0) ||
                        roundTrip.IndexOf("Calibri", StringComparison.OrdinalIgnoreCase) >= 0;
         Assert.True(hasFont);
@@ -143,7 +143,7 @@ public partial class Html {
         var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { FontFamily = "monospace" });
         string roundTrip = doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true });
 
-        string expected = FontResolver.Resolve("monospace")!;
+        string expected = WordFontResolver.Resolve("monospace")!;
         Assert.Contains("font-family", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(expected, roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("monospace", roundTrip, StringComparison.OrdinalIgnoreCase);

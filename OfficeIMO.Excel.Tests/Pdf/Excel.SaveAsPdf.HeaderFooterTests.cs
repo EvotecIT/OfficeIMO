@@ -286,7 +286,7 @@ public partial class Excel {
             sheet.SetFirstPageHeaderFooter(headerCenter: "First Header &A", footerCenter: "First Footer &P");
             sheet.SetEvenPageHeaderFooter(headerCenter: "Even Header &A", footerCenter: "Even Footer &P");
 
-            ExcelSheet.HeaderFooterSnapshot snapshot = sheet.GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterSnapshot snapshot = sheet.GetHeaderFooter();
             Assert.True(snapshot.DifferentFirstPage);
             Assert.True(snapshot.DifferentOddEven);
             Assert.Equal("Odd Header &A", snapshot.HeaderCenter);
@@ -366,12 +366,12 @@ public partial class Excel {
             sheet.Cell(1, 1, "Metric");
             sheet.Cell(2, 1, "HeaderFooterImageBody");
             sheet.SetHeaderFooter(headerCenter: "Logo Header");
-            sheet.SetHeaderImage(HeaderFooterPosition.Center, imageBytes, "image/png", widthPoints: 24, heightPoints: 16);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, imageBytes, "image/png", widthPoints: 24, heightPoints: 16);
 
-            ExcelSheet.HeaderFooterSnapshot snapshot = sheet.GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterSnapshot snapshot = sheet.GetHeaderFooter();
             Assert.True(snapshot.HeaderHasPicturePlaceholder);
             Assert.NotNull(snapshot.HeaderCenterImage);
-            Assert.Equal(HeaderFooterPosition.Center, snapshot.HeaderCenterImage!.Position);
+            Assert.Equal(ExcelHeaderFooterPosition.Center, snapshot.HeaderCenterImage!.Position);
             Assert.Equal("image/png", snapshot.HeaderCenterImage.ContentType);
             Assert.Equal(24, snapshot.HeaderCenterImage.WidthPoints);
             Assert.Equal(16, snapshot.HeaderCenterImage.HeightPoints);
@@ -423,7 +423,7 @@ public partial class Excel {
             }
 
             sheet.SetHeaderFooter(headerCenter: "Odd Header &A", footerCenter: "Odd Footer &P");
-            sheet.SetHeaderImage(HeaderFooterPosition.Center, imageBytes, "image/png", widthPoints: 24, heightPoints: 16);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, imageBytes, "image/png", widthPoints: 24, heightPoints: 16);
 
             HeaderFooter headerFooter = sheet.WorksheetPart.Worksheet.GetFirstChild<HeaderFooter>()!;
             headerFooter.DifferentFirst = true;
@@ -433,7 +433,7 @@ public partial class Excel {
             headerFooter.EvenHeader = new EvenHeader("&C&GEven Header &A");
             sheet.WorksheetPart.Worksheet.Save();
 
-            ExcelSheet.HeaderFooterSnapshot snapshot = sheet.GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterSnapshot snapshot = sheet.GetHeaderFooter();
             Assert.Equal("Odd Header &A", snapshot.HeaderCenter);
             Assert.Equal("&GFirst Header &A", snapshot.FirstHeaderCenter);
             Assert.Equal("&GEven Header &A", snapshot.EvenHeaderCenter);

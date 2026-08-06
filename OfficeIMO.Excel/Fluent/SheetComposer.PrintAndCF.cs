@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         /// <summary>Sets page orientation (Portrait/Landscape).</summary>
-        public SheetComposer Orientation(ExcelPageOrientation orientation) {
+        public SheetComposer Orientation(OfficePageOrientation orientation) {
             Sheet.SetOrientation(orientation);
             return this;
         }

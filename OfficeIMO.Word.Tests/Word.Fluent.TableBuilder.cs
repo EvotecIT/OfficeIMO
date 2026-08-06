@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
                         .Row("Alice", "Dev", 98)
                         .Row("Bob", "Ops", 91)
                         .Style(WordTableStyle.TableGrid)
-                        .Align(HorizontalAlignment.Center))
+                        .Align(WordTableAlignment.Center))
                     .Table(t => t
                         .From2D(new object[,] {
                             { "Q", "Revenue", "Churn" },

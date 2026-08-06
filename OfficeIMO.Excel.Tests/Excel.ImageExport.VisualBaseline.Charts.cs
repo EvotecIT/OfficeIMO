@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
 
             ExcelChart chart = sheet.AddChartFromRange("A2:B6", row: 2, column: 4, widthPixels: 340, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Axis Label Density");
             chart.SetValueAxisNumberFormat("#,##0");
-            chart.SetLegend(ExcelChartLegendPosition.Bottom);
+            chart.SetLegend(OfficeChartLegendPosition.Bottom);
 
             for (int column = 1; column <= 8; column++) {
                 sheet.SetColumnWidth(column, column <= 2 ? 13 : 11);
@@ -169,11 +169,11 @@ namespace OfficeIMO.Tests {
                 showSeriesName: false,
                 showLegendKey: false,
                 showPercent: false,
-                position: ExcelChartDataLabelPosition.OutsideEnd,
+                position: OfficeChartDataLabelPosition.OutsideEnd,
                 numberFormat: "0");
             chart.SetDataLabelShapeStyle(fillColor: "FDE68A", lineColor: "B45309", lineWidthPoints: 1.5D);
             chart.SetDataLabelTextStyle(color: "7C2D12", bold: true);
-            chart.SetLegend(ExcelChartLegendPosition.Bottom);
+            chart.SetLegend(OfficeChartLegendPosition.Bottom);
 
             for (int column = 1; column <= 8; column++) {
                 sheet.SetColumnWidth(column, column <= 2 ? 13 : 11);

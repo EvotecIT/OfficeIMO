@@ -296,7 +296,7 @@ namespace OfficeIMO.Tests {
                     imported.ToBytes(PowerPointFileFormat.Ppt));
                 savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 
@@ -344,7 +344,7 @@ namespace OfficeIMO.Tests {
                     imported.ToBytes(PowerPointFileFormat.Ppt));
                 savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
-                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                        LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 

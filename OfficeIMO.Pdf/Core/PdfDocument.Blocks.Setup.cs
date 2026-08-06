@@ -56,7 +56,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Sets the document-wide default page orientation while preserving the current page size dimensions.</summary>
-    public PdfDocument Orientation(PdfPageOrientation orientation) {
+    public PdfDocument Orientation(OfficePageOrientation orientation) {
         _options.PageSize = _options.PageSize.WithOrientation(orientation);
         return this;
     }
@@ -185,10 +185,10 @@ public sealed partial class PdfDocument {
         BackgroundShape(PdfPageBackgroundShape.RightBand(_options.PageWidth, _options.PageHeight, width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Sets the document-wide default page orientation to portrait.</summary>
-    public PdfDocument Portrait() => Orientation(PdfPageOrientation.Portrait);
+    public PdfDocument Portrait() => Orientation(OfficePageOrientation.Portrait);
 
     /// <summary>Sets the document-wide default page orientation to landscape.</summary>
-    public PdfDocument Landscape() => Orientation(PdfPageOrientation.Landscape);
+    public PdfDocument Landscape() => Orientation(OfficePageOrientation.Landscape);
 
     /// <summary>Sets uniform document-wide default page margins in points.</summary>
     public PdfDocument Margin(double all) {

@@ -74,7 +74,7 @@ namespace OfficeIMO.Word.Html {
                         "HtmlFigureStructureFlattened",
                         "Figure content did not materialize as exactly one reciprocal Word block, so no grouping marker was emitted.",
                         "figure",
-                        lossKind: HtmlConversionLossKind.Approximation);
+                        lossKind: OfficeConversionLossKind.Approximation);
                 }
             }
         }

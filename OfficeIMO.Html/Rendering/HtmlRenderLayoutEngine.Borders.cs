@@ -22,7 +22,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style.UnsupportedBorderPaint,
                 source,
                 sourceDescription,
-                HtmlConversionLossKind.Omission);
+                OfficeConversionLossKind.Omission);
             return;
         }
         if (!style.Borders.HasPaint) return;
@@ -63,7 +63,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style.UnsupportedOutlinePaint,
                 source,
                 sourceDescription,
-                HtmlConversionLossKind.Omission);
+                OfficeConversionLossKind.Omission);
             return;
         }
         if (style.OutlineWidth <= 0D || style.OutlineStyle == "none" || style.OutlineStyle == "hidden") return;
@@ -94,7 +94,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string detail,
         IElement source,
         string sourceDescription,
-        HtmlConversionLossKind lossKind) {
+        OfficeConversionLossKind lossKind) {
         if (!reported.Add(sourceDescription)) return;
         _diagnostics.Add(
             ComponentName,

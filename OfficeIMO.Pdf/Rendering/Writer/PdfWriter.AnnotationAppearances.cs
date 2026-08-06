@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
         double availableWidth = Math.Max(0D, width - annotation.Padding * 2D);
         double availableHeight = Math.Max(0D, height - annotation.Padding * 2D);
         var runs = new[] {
-            TextRun.Normal(annotation.Contents, resolvedTextColor, annotation.FontSize, font: PdfStandardFont.Helvetica)
+            PdfTextRun.Normal(annotation.Contents, resolvedTextColor, annotation.FontSize, font: PdfStandardFont.Helvetica)
         };
         var wrapped = WrapRichRunsCore(
             runs,

@@ -19,7 +19,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            DocumentTraversal.ListInfo? info = DocumentTraversal.GetListInfo(paragraphReference);
+            WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraphReference);
             WordParagraph? firstRun = GetFirstTextRun(document, paragraph);
             OfficeFontInfo baseFont = firstRun == null ? OfficeFontInfo.Default : CreateFont(firstRun);
             OfficeFontInfo markerFont = CreateListMarkerFont(info, baseFont);
@@ -51,7 +51,7 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        private static OfficeFontInfo CreateListMarkerFont(DocumentTraversal.ListInfo? info, OfficeFontInfo baseFont) {
+        private static OfficeFontInfo CreateListMarkerFont(WordDocumentTraversal.ListInfo? info, OfficeFontInfo baseFont) {
             OfficeFontStyle style = OfficeFontStyle.Regular;
             if (info?.MarkerBold ?? baseFont.IsBold) {
                 style |= OfficeFontStyle.Bold;
@@ -67,7 +67,7 @@ namespace OfficeIMO.Word {
                 style);
         }
 
-        private static OfficeColor ResolveListMarkerColor(DocumentTraversal.ListInfo? info, OfficeColor fallback) {
+        private static OfficeColor ResolveListMarkerColor(WordDocumentTraversal.ListInfo? info, OfficeColor fallback) {
             string? colorHex = info?.MarkerColorHex;
             if (string.IsNullOrWhiteSpace(colorHex)) {
                 return fallback;

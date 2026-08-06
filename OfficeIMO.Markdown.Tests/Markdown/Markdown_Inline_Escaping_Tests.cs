@@ -5,7 +5,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
     public class Markdown_Inline_Escaping_Tests {
         [Fact]
         public void TextRun_EscapesReservedCharacters() {
-            var run = new TextRun("[demo](test)|back\\slash");
+            var run = new MarkdownTextRun("[demo](test)|back\\slash");
 
             var markdown = run.RenderMarkdown();
 

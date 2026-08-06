@@ -108,7 +108,7 @@ namespace OfficeIMO.Shared.Tests {
             }));
 
             using var explicitLoad = WordDocument.LoadEncrypted(path, Password, new WordLoadOptions {
-                OpenSettings = new OpenSettings { AutoSave = true }
+                OpenSettings = new OfficeOpenXmlLoadSettings()
             });
             Assert.Equal(OfficeIMO.DocumentPersistenceMode.Explicit, explicitLoad.PersistenceMode);
         }
@@ -170,7 +170,7 @@ namespace OfficeIMO.Shared.Tests {
             }));
 
             using var explicitLoad = ExcelDocument.LoadEncrypted(path, Password, new ExcelLoadOptions {
-                OpenSettings = new OpenSettings { AutoSave = true }
+                OpenSettings = new OfficeOpenXmlLoadSettings()
             });
             Assert.Equal(OfficeIMO.DocumentPersistenceMode.Explicit, explicitLoad.PersistenceMode);
         }

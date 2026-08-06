@@ -162,7 +162,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     htmlResult.ImageDiagnostics.Count);
             visualProof.SaveJson(visualProofPath);
 
-            List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+            List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
             if (errors.Count > 0) {
                 throw new InvalidOperationException("End-to-end proof deck has " + errors.Count +
                     " Open XML validation error(s): " +

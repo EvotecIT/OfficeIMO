@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
                 PowerPointTable table = slide.AddTable(2, 2);
                 PowerPointTableCell cell = table.GetCell(0, 0);
                 cell.Text = "Header";
-                cell.SetBorders(TableCellBorders.All, "FF0000", 1.5);
+                cell.SetBorders(PowerPointTableCellBorders.All, "FF0000", 1.5);
                 cell.PaddingLeftPoints = 4;
                 cell.PaddingRightPoints = 4;
                 cell.PaddingTopPoints = 3;

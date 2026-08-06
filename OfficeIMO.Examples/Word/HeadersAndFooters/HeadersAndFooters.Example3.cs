@@ -32,7 +32,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
 
-                document.Sections[0].PageOrientation = WordPageOrientation.Landscape;
+                document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
 
                 var headers = RequireHeaders(document.Header, "Document headers");
                 var defaultHeader = RequireHeader(headers.Default, "Default header");

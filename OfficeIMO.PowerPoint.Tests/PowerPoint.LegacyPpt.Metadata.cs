@@ -254,7 +254,7 @@ namespace OfficeIMO.Tests {
                 text.Name = "Summary object";
                 text.Description = "Summary alternative text";
                 PowerPointPicture picture = slide.AddPicture(
-                    new MemoryStream(image), ImagePartType.Png,
+                    new MemoryStream(image), OfficeIMO.Drawing.OfficeImageFormat.Png,
                     PowerPointUnits.FromPoints(20),
                     PowerPointUnits.FromPoints(70),
                     PowerPointUnits.FromPoints(90),
@@ -270,11 +270,11 @@ namespace OfficeIMO.Tests {
                 connector.Name = "Trend connector";
                 connector.Description = "Connects the summary to detail";
                 PowerPointAutoShape child = slide.AddShapePoints(
-                    PowerPointShapeType.Rectangle, 190, 20, 70, 45);
+                    OfficePresetShapeType.Rectangle, 190, 20, 70, 45);
                 child.Name = "Grouped child";
                 child.Description = "Child description";
                 PowerPointAutoShape secondChild = slide.AddShapePoints(
-                    PowerPointShapeType.Ellipse, 205, 75, 45, 35);
+                    OfficePresetShapeType.Ellipse, 205, 75, 45, 35);
                 secondChild.Name = "Second grouped child";
                 secondChild.Description = "Second child description";
                 PowerPointGroupShape group = slide.GroupShapes(
@@ -323,7 +323,7 @@ namespace OfficeIMO.Tests {
                 PowerPointPresentation.Create();
             PowerPointAutoShape shape = source.AddSlide(
                     PowerPointSlideLayoutType.Blank)
-                .AddShapePoints(PowerPointShapeType.Rectangle,
+                .AddShapePoints(OfficePresetShapeType.Rectangle,
                     20, 20, 100, 60);
             shape.Title = "Concise modern title";
 

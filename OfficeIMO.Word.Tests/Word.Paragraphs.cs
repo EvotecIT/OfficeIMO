@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 paragraph.SetBold().SetFontFamily("Tahoma");
                 paragraph.AddText(" This is continuation").SetUnderline(WordUnderlineStyle.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(WordHighlightColor.DarkGreen);
 
-                paragraph.AddText(" this is more continuation").SetItalic().SetCapsStyle(CapsStyle.Caps);
+                paragraph.AddText(" this is more continuation").SetItalic().SetCapsStyle(WordCapsStyle.Caps);
 
                 Assert.True(document.Paragraphs[0].ColorHex == OfficeIMO.Drawing.OfficeColor.Blue.ToRgbHex(), "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[0].Color == OfficeIMO.Drawing.OfficeColor.Blue, "1st paragraph color should be the same");
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Paragraphs[2].Bold == false, "3rd paragraph should not be bold");
                 Assert.True(document.Paragraphs[2].Italic == true, "3rd paragraph should be italic");
-                Assert.True(document.Paragraphs[2].CapsStyle == CapsStyle.Caps, "3rd paragraph should be CapsStyle.Caps");
+                Assert.True(document.Paragraphs[2].CapsStyle == WordCapsStyle.Caps, "3rd paragraph should be CapsStyle.Caps");
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Paragraphs[2].Bold == false, "3rd paragraph should not be bold");
                 Assert.True(document.Paragraphs[2].Italic == true, "3rd paragraph should be italic");
-                Assert.True(document.Paragraphs[2].CapsStyle == CapsStyle.Caps, "3rd paragraph should be CapsStyle.Caps");
+                Assert.True(document.Paragraphs[2].CapsStyle == WordCapsStyle.Caps, "3rd paragraph should be CapsStyle.Caps");
                 document.Save();
             }
         }

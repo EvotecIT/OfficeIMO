@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
                 source,
                 Classify(code));
 
-        internal static OfficeImageExportLossKind Classify(string code) {
+        internal static OfficeConversionLossKind Classify(string code) {
             if (string.IsNullOrWhiteSpace(code)) {
                 throw new ArgumentException("Excel image-export diagnostics require a stable code.", nameof(code));
             }
@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
             switch (code) {
                 case ExcelImageExportDiagnosticCodes.PrintAreaMultipleAreasSplit:
                 case ExcelImageExportDiagnosticCodes.ManualPageBreaksSplit:
-                    return OfficeImageExportLossKind.None;
+                    return OfficeConversionLossKind.None;
 
                 case ExcelImageExportDiagnosticCodes.CellTextRotationApproximation:
                 case ExcelImageExportDiagnosticCodes.CellStackedTextRotationUnsupported:
@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel {
                 case ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation:
                 case ExcelImageExportDiagnosticCodes.HeaderFooterImageApproximation:
                 case ExcelImageExportDiagnosticCodes.SparklineRenderingApproximation:
-                    return OfficeImageExportLossKind.Approximation;
+                    return OfficeConversionLossKind.Approximation;
 
                 case ExcelImageExportDiagnosticCodes.CellTextClipped:
                 case ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing:
@@ -102,7 +102,7 @@ namespace OfficeIMO.Excel {
                 case ExcelImageExportDiagnosticCodes.SparklineRangeUnsupported:
                 case ExcelImageExportDiagnosticCodes.SparklineExternalRangeUnsupported:
                 case ExcelImageExportDiagnosticCodes.SparklineDataMissing:
-                    return OfficeImageExportLossKind.Omission;
+                    return OfficeConversionLossKind.Omission;
 
                 default:
                     throw new ArgumentOutOfRangeException(

@@ -283,8 +283,8 @@ namespace OfficeIMO.Tests {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
                     chart.SetCategoryAxisLabelRotation(45)
-                        .SetCategoryAxisTickLabelPosition(PowerPointChartTickLabelPosition.High)
-                        .SetValueAxisTickLabelPosition(PowerPointChartTickLabelPosition.Low);
+                        .SetCategoryAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.High)
+                        .SetValueAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.Low);
                     presentation.Save();
                 }
 
@@ -365,8 +365,8 @@ namespace OfficeIMO.Tests {
                     PowerPointChart chart = slide.AddChart();
                     chart.SetCategoryAxisReverseOrder()
                         .SetValueAxisScale(minimum: 0, maximum: 100, majorUnit: 25, minorUnit: 5, reverseOrder: true)
-                        .SetValueAxisCrossing(PowerPointChartAxisCrossing.Maximum)
-                        .SetCategoryAxisCrossing(PowerPointChartAxisCrossing.Minimum);
+                        .SetValueAxisCrossing(OfficeChartAxisCrossingPosition.Maximum)
+                        .SetCategoryAxisCrossing(OfficeChartAxisCrossingPosition.Minimum);
                     presentation.Save();
                 }
 
@@ -403,7 +403,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
-                    chart.SetValueAxisCrossing(PowerPointChartAxisCrossing.AutoZero, crossesAt: 2.5);
+                    chart.SetValueAxisCrossing(OfficeChartAxisCrossingPosition.AutoZero, crossesAt: 2.5);
                     presentation.Save();
                 }
 
@@ -582,8 +582,8 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
-                    chart.SetValueAxisCrossBetween(PowerPointChartAxisCrossBetween.Between)
-                        .SetValueAxisDisplayUnits(PowerPointChartDisplayUnit.Thousands, "Thousands USD", showLabel: true);
+                    chart.SetValueAxisCrossBetween(OfficeChartAxisCrossBetween.Between)
+                        .SetValueAxisDisplayUnits(OfficeChartDisplayUnit.Thousands, "Thousands USD", showLabel: true);
                     presentation.Save();
                 }
 
@@ -619,7 +619,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
-                    chart.SetValueAxisDisplayUnits(PowerPointChartDisplayUnit.Thousands, "Thousands USD", showLabel: true)
+                    chart.SetValueAxisDisplayUnits(OfficeChartDisplayUnit.Thousands, "Thousands USD", showLabel: true)
                         .ClearValueAxisDisplayUnits();
                     presentation.Save();
                 }
@@ -728,8 +728,8 @@ namespace OfficeIMO.Tests {
                     PowerPointChart chart = slide.AddScatterChart();
                     chart.SetScatterXAxisLabelRotation(45)
                         .SetScatterYAxisLabelRotation(-30)
-                        .SetScatterXAxisTickLabelPosition(PowerPointChartTickLabelPosition.Low)
-                        .SetScatterYAxisTickLabelPosition(PowerPointChartTickLabelPosition.High);
+                        .SetScatterXAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.Low)
+                        .SetScatterYAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.High);
                     presentation.Save();
                 }
 
@@ -770,7 +770,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddScatterChart();
-                    chart.SetScatterXAxisDisplayUnits(PowerPointChartDisplayUnit.Hundreds, "Hundreds X", showLabel: true)
+                    chart.SetScatterXAxisDisplayUnits(OfficeChartDisplayUnit.Hundreds, "Hundreds X", showLabel: true)
                         .SetScatterYAxisDisplayUnits(1000d, "Thousands Y", showLabel: true);
                     presentation.Save();
                 }
@@ -811,8 +811,8 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddScatterChart();
-                    chart.SetScatterXAxisDisplayUnits(PowerPointChartDisplayUnit.Hundreds, "Hundreds X", showLabel: true)
-                        .SetScatterYAxisDisplayUnits(PowerPointChartDisplayUnit.Thousands, "Thousands Y", showLabel: true)
+                    chart.SetScatterXAxisDisplayUnits(OfficeChartDisplayUnit.Hundreds, "Hundreds X", showLabel: true)
+                        .SetScatterYAxisDisplayUnits(OfficeChartDisplayUnit.Thousands, "Thousands Y", showLabel: true)
                         .ClearScatterXAxisDisplayUnits()
                         .ClearScatterYAxisDisplayUnits();
                     presentation.Save();
@@ -1024,7 +1024,7 @@ namespace OfficeIMO.Tests {
                     chart.SetScatterXAxisScale(minimum: 1, maximum: 10, logScale: true);
 
                     Assert.Throws<ArgumentOutOfRangeException>(() =>
-                        chart.SetScatterXAxisCrossing(PowerPointChartAxisCrossing.AutoZero, crossesAt: 0));
+                        chart.SetScatterXAxisCrossing(OfficeChartAxisCrossingPosition.AutoZero, crossesAt: 0));
                 }
             } finally {
                 if (File.Exists(filePath)) {
@@ -1112,19 +1112,19 @@ namespace OfficeIMO.Tests {
                         .SetCategoryAxisTitleTextStyle(fontSizePoints: 11, bold: true, color: "1F4E79", fontName: "Calibri")
                         .SetCategoryAxisNumberFormat("0")
                         .SetCategoryAxisLabelRotation(35)
-                        .SetCategoryAxisTickLabelPosition(PowerPointChartTickLabelPosition.High)
+                        .SetCategoryAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.High)
                         .SetCategoryAxisGridlines(showMajor: true, showMinor: false, lineColor: "D9D9D9", lineWidthPoints: 0.5)
                         .SetCategoryAxisReverseOrder()
-                        .SetCategoryAxisCrossing(PowerPointChartAxisCrossing.Minimum)
+                        .SetCategoryAxisCrossing(OfficeChartAxisCrossingPosition.Minimum)
                         .SetValueAxisTitle("Revenue")
                         .SetValueAxisTitleTextStyle(fontSizePoints: 10, italic: true, color: "C55A11", fontName: "Arial")
                         .SetValueAxisNumberFormat("#,##0.00")
                         .SetValueAxisLabelTextStyle(fontSizePoints: 10, color: "404040", fontName: "Aptos")
                         .SetValueAxisGridlines(showMajor: true, showMinor: true, lineColor: "C0C0C0", lineWidthPoints: 0.75)
                         .SetValueAxisScale(minimum: 0, maximum: 100, majorUnit: 25, minorUnit: 5)
-                        .SetValueAxisCrossing(PowerPointChartAxisCrossing.Maximum)
-                        .SetValueAxisCrossBetween(PowerPointChartAxisCrossBetween.Between)
-                        .SetValueAxisDisplayUnits(PowerPointChartDisplayUnit.Thousands, "Thousands USD", showLabel: true);
+                        .SetValueAxisCrossing(OfficeChartAxisCrossingPosition.Maximum)
+                        .SetValueAxisCrossBetween(OfficeChartAxisCrossBetween.Between)
+                        .SetValueAxisDisplayUnits(OfficeChartDisplayUnit.Thousands, "Thousands USD", showLabel: true);
 
                     PowerPointSlide scatterSlide = presentation.AddSlide();
                     PowerPointChart scatterChart = scatterSlide.AddScatterChart();
@@ -1133,17 +1133,17 @@ namespace OfficeIMO.Tests {
                         .SetScatterXAxisNumberFormat("0.0")
                         .SetScatterXAxisLabelTextStyle(fontSizePoints: 9, color: "404040", fontName: "Aptos")
                         .SetScatterXAxisLabelRotation(45)
-                        .SetScatterXAxisTickLabelPosition(PowerPointChartTickLabelPosition.Low)
+                        .SetScatterXAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.Low)
                         .SetScatterXAxisGridlines(showMajor: true, showMinor: false, lineColor: "D9D9D9", lineWidthPoints: 0.5)
                         .SetScatterXAxisScale(minimum: 1, maximum: 10, majorUnit: 1)
-                        .SetScatterXAxisCrossing(PowerPointChartAxisCrossing.AutoZero, crossesAt: 2d)
-                        .SetScatterXAxisDisplayUnits(PowerPointChartDisplayUnit.Hundreds, "Hundreds X", showLabel: true)
+                        .SetScatterXAxisCrossing(OfficeChartAxisCrossingPosition.AutoZero, crossesAt: 2d)
+                        .SetScatterXAxisDisplayUnits(OfficeChartDisplayUnit.Hundreds, "Hundreds X", showLabel: true)
                         .SetScatterYAxisTitle("Revenue")
                         .SetScatterYAxisTitleTextStyle(fontSizePoints: 10, italic: true, color: "C55A11", fontName: "Arial")
                         .SetScatterYAxisNumberFormat("#,##0.00")
                         .SetScatterYAxisLabelTextStyle(fontSizePoints: 10, color: "1F4E79", fontName: "Aptos")
                         .SetScatterYAxisLabelRotation(-30)
-                        .SetScatterYAxisTickLabelPosition(PowerPointChartTickLabelPosition.High)
+                        .SetScatterYAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.High)
                         .SetScatterYAxisGridlines(showMajor: true, showMinor: true, lineColor: "C0C0C0", lineWidthPoints: 0.75)
                         .SetScatterYAxisScale(minimum: 0, maximum: 6, majorUnit: 1)
                         .SetScatterYAxisCrossing(crossesAt: 3d)

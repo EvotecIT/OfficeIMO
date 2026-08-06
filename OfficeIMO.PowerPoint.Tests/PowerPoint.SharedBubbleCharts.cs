@@ -116,10 +116,10 @@ namespace OfficeIMO.Tests {
                         .GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()!
                         .RgbColorModelHex!.Val!.Value);
 
-                    List<ValidationErrorInfo> validation = presentation.ValidateDocument();
+                    List<OfficeOpenXmlValidationError> validation = presentation.ValidateDocument();
                     Assert.True(validation.Count == 0, string.Join(Environment.NewLine,
                         validation.Select(error =>
-                            (error.Path?.XPath ?? string.Empty) + ": " + error.Description)));
+                            (error.Path ?? string.Empty) + ": " + error.Description)));
                     presentation.Save();
                 }
 
@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
                     new[] { 1D },
                     new[] { 2D },
                     new[] { 4D }))
-                .SetLegend(PowerPointChartLegendPosition.Top, overlay: true);
+                .SetLegend(OfficeChartLegendPosition.Top, overlay: true);
 
             Assert.True(chart.TryGetOfficeSnapshot(
                 out OfficeChartSnapshot snapshot));
@@ -378,10 +378,10 @@ namespace OfficeIMO.Tests {
                 snapshot.Layout.LegendPosition);
             Assert.True(snapshot.Layout.OverlayLegend);
 
-            chart.SetLegend(PowerPointChartLegendPosition.TopRight);
+            chart.SetLegend(OfficeChartLegendPosition.TopRight);
             Assert.False(chart.TryGetOfficeSnapshot(out _));
 
-            chart.SetLegend(PowerPointChartLegendPosition.Top, overlay: true);
+            chart.SetLegend(OfficeChartLegendPosition.Top, overlay: true);
             C.Legend legend = presentation.Slides[0].SlidePart.ChartParts
                 .Single().ChartSpace!.GetFirstChild<C.Chart>()!
                 .GetFirstChild<C.Legend>()!;
@@ -1451,7 +1451,7 @@ namespace OfficeIMO.Tests {
                     new[] { 2D, 4D },
                     new[] { 4D, 9D }));
 
-            chart.SetSeriesTrendline(0, PowerPointChartTrendlineType.Linear);
+            chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear);
 
             Assert.NotNull(presentation.Slides[0].SlidePart.ChartParts.Single()
                 .ChartSpace!.Descendants<C.Trendline>().Single());
@@ -1475,7 +1475,7 @@ namespace OfficeIMO.Tests {
                     new[] { 1D, 2D },
                     new[] { 2D, 4D },
                     new[] { 4D, 9D }));
-            chart.SetSeriesTrendline(0, PowerPointChartTrendlineType.Linear);
+            chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear);
 
             chart.UpdateData(CreateBubbleData(
                 new[] { 3D, 6D },
@@ -1505,7 +1505,7 @@ namespace OfficeIMO.Tests {
             });
             PowerPointChart chart = presentation.AddSlide().AddChart(
                 OfficeChartKind.Bubble, initial);
-            chart.SetSeriesTrendline(0, PowerPointChartTrendlineType.Linear);
+            chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear);
             C.BubbleChartSeries[] nativeSeries = presentation.Slides[0]
                 .SlidePart.ChartParts.Single().ChartSpace!
                 .Descendants<C.BubbleChartSeries>().ToArray();

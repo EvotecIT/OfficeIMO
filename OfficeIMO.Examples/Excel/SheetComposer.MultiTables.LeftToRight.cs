@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Excel
 
             using var doc = ExcelDocument.Create(filePath);
             // Ensure predictable behavior for mixed operations
-            doc.Execution.Mode = ExecutionMode.Sequential;
+            doc.Execution.Mode = ExcelExecutionMode.Sequential;
 
             var left = new List<object> {
                 new { Name = "Alpha", Value = 1, Note = "short" },

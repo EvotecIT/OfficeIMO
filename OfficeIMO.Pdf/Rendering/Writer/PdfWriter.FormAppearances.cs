@@ -199,7 +199,7 @@ internal static partial class PdfWriter {
 
     private static IReadOnlyList<RichSeg> BuildFormAppearanceSegments(string text, double fontSize, PdfFormFieldStyle effectiveStyle, PdfOptions formOptions) {
         var runs = new[] {
-            TextRun.Normal(text, effectiveStyle.TextColor, fontSize, font: PdfStandardFont.Helvetica)
+            PdfTextRun.Normal(text, effectiveStyle.TextColor, fontSize, font: PdfStandardFont.Helvetica)
         };
         var wrapped = WrapRichRunsCore(
             runs,

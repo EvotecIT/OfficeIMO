@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
 
         private static void ApplyDataLabels(OpenXmlCompositeElement chartElement, bool showLegendKey, bool showValue,
             bool showCategoryName, bool showSeriesName, bool showPercent,
-            ExcelChartDataLabelPosition? position, string? numberFormat, bool sourceLinked) {
+            OfficeChartDataLabelPosition? position, string? numberFormat, bool sourceLinked) {
             C.DataLabels labels = EnsureDataLabels(chartElement);
             ReplaceChild(labels, new C.ShowLegendKey { Val = showLegendKey });
             ReplaceChild(labels, new C.ShowValue { Val = showValue });
@@ -240,7 +240,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ValidateTrendline(ExcelChartTrendlineType type, int? order, int? period,
+        private static void ValidateTrendline(OfficeChartTrendlineType type, int? order, int? period,
             double? forward, double? backward, string? lineColor, double? lineWidthPoints) {
             if (order != null && (order <= 0 || order > byte.MaxValue)) {
                 throw new ArgumentOutOfRangeException(nameof(order));
@@ -261,8 +261,8 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
             }
 
-            bool isPolynomial = type == ExcelChartTrendlineType.Polynomial;
-            bool isMovingAverage = type == ExcelChartTrendlineType.MovingAverage;
+            bool isPolynomial = type == OfficeChartTrendlineType.Polynomial;
+            bool isMovingAverage = type == OfficeChartTrendlineType.MovingAverage;
             if (isPolynomial && order == null) {
                 throw new ArgumentException("Polynomial trendlines require an order.", nameof(order));
             }
@@ -388,7 +388,7 @@ namespace OfficeIMO.Excel {
 
         private static void ApplyDataLabelOverrides(OpenXmlCompositeElement label, bool? showLegendKey, bool? showValue,
             bool? showCategoryName, bool? showSeriesName, bool? showPercent, bool? showBubbleSize,
-            ExcelChartDataLabelPosition? position, string? numberFormat, bool sourceLinked) {
+            OfficeChartDataLabelPosition? position, string? numberFormat, bool sourceLinked) {
             if (showLegendKey != null) {
                 ReplaceChild(label, new C.ShowLegendKey { Val = showLegendKey.Value });
             }
@@ -441,7 +441,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyDataLabelPosition(OpenXmlCompositeElement labelContainer, OpenXmlElement context, ExcelChartDataLabelPosition position) {
+        private static void ApplyDataLabelPosition(OpenXmlCompositeElement labelContainer, OpenXmlElement context, OfficeChartDataLabelPosition position) {
             if (TryNormalizeDataLabelPosition(context, position, out var normalizedPosition)) {
                 ReplaceChild(labelContainer, new C.DataLabelPosition { Val = normalizedPosition.ToOpenXml() });
                 return;
@@ -450,24 +450,24 @@ namespace OfficeIMO.Excel {
             labelContainer.RemoveAllChildren<C.DataLabelPosition>();
         }
 
-        private static bool TryNormalizeDataLabelPosition(OpenXmlElement context, ExcelChartDataLabelPosition position, out ExcelChartDataLabelPosition normalizedPosition) {
+        private static bool TryNormalizeDataLabelPosition(OpenXmlElement context, OfficeChartDataLabelPosition position, out OfficeChartDataLabelPosition normalizedPosition) {
             normalizedPosition = position;
 
             for (OpenXmlElement? current = context; current != null; current = current.Parent) {
                 if (current is C.DoughnutChart) {
-                    return position != ExcelChartDataLabelPosition.BestFit;
+                    return position != OfficeChartDataLabelPosition.BestFit;
                 }
 
-                if (position == ExcelChartDataLabelPosition.OutsideEnd
+                if (position == OfficeChartDataLabelPosition.OutsideEnd
                     && (current is C.LineChart || current is C.Line3DChart || current is C.LineChartSeries)) {
-                    normalizedPosition = ExcelChartDataLabelPosition.Top;
+                    normalizedPosition = OfficeChartDataLabelPosition.Top;
                     return true;
                 }
 
-                if (position == ExcelChartDataLabelPosition.OutsideEnd && current is C.BarChart barChart) {
+                if (position == OfficeChartDataLabelPosition.OutsideEnd && current is C.BarChart barChart) {
                     var grouping = barChart.BarGrouping?.Val?.Value;
                     if (grouping == C.BarGroupingValues.Stacked || grouping == C.BarGroupingValues.PercentStacked) {
-                        normalizedPosition = ExcelChartDataLabelPosition.Center;
+                        normalizedPosition = OfficeChartDataLabelPosition.Center;
                         return true;
                     }
                 }

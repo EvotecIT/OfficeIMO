@@ -3686,7 +3686,7 @@ namespace OfficeIMO.Tests {
             var paragraph = document.AddParagraph("Base ");
             paragraph.AddText("Small").SetSmallCaps();
             paragraph.AddText(" and ");
-            paragraph.AddText("Caps").SetCapsStyle(CapsStyle.Caps);
+            paragraph.AddText("Caps").SetCapsStyle(WordCapsStyle.Caps);
 
             return document;
         }
@@ -3768,7 +3768,7 @@ namespace OfficeIMO.Tests {
 
             var section = document.Sections[0];
             section.PageSettings.PageSize = WordPageSize.A5;
-            section.PageOrientation = WordPageOrientation.Landscape;
+            section.PageOrientation = OfficePageOrientation.Landscape;
             section.Margins.Top = 720;
             section.Margins.Bottom = 900;
             section.Margins.Left = 1080U;

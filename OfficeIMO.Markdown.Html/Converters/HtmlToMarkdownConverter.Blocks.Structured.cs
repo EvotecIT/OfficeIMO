@@ -103,7 +103,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             switch (node) {
                 case null:
                     continue;
-                case TextRun textRun when string.IsNullOrWhiteSpace(textRun.Text):
+                case MarkdownTextRun textRun when string.IsNullOrWhiteSpace(textRun.Text):
                     continue;
                 default:
                     return true;

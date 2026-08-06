@@ -15,16 +15,16 @@ namespace OfficeIMO.Tests {
             var sheet = document.AddWorksheet("Data");
 
             var cells = Enumerable.Range(1, 10).Select(i => (i, 1, (object)$"Value {i}"));
-            sheet.CellValues(cells, ExecutionMode.Parallel);
+            sheet.CellValues(cells, ExcelExecutionMode.Parallel);
 
             var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             var firstCell = sheetData.Elements<Row>().First().Elements<Cell>().First();
             firstCell.CellReference = "A99";
 
-            var disabled = new ExecutionPolicy { WorksheetValidation = WorksheetValidationMode.Disabled };
+            var disabled = new ExcelExecutionPolicy { WorksheetValidation = ExcelWorksheetValidationMode.Disabled };
             WorksheetIntegrityValidator.Validate(sheet.WorksheetPart, disabled, sheet.Name);
 
-            var diagnosticsOnly = new ExecutionPolicy { WorksheetValidation = WorksheetValidationMode.DiagnosticsOnly };
+            var diagnosticsOnly = new ExcelExecutionPolicy { WorksheetValidation = ExcelWorksheetValidationMode.DiagnosticsOnly };
             WorksheetIntegrityValidator.Validate(sheet.WorksheetPart, diagnosticsOnly, sheet.Name);
 
             diagnosticsOnly.DiagnosticsRequested = true;
@@ -41,13 +41,13 @@ namespace OfficeIMO.Tests {
 
             var cells = Enumerable.Range(1, 5).SelectMany(row =>
                 Enumerable.Range(1, 3).Select(col => (row, col, (object)$"R{row}C{col}")));
-            sheet.CellValues(cells, ExecutionMode.Parallel);
+            sheet.CellValues(cells, ExcelExecutionMode.Parallel);
 
             var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             var secondRow = sheetData.Elements<Row>().ElementAt(1);
             secondRow.RowIndex = 1;
 
-            var policy = new ExecutionPolicy { WorksheetValidation = WorksheetValidationMode.Always };
+            var policy = new ExcelExecutionPolicy { WorksheetValidation = ExcelWorksheetValidationMode.Always };
             var ex = Assert.Throws<InvalidOperationException>(() => WorksheetIntegrityValidator.Validate(sheet.WorksheetPart, policy, sheet.Name));
             Assert.Contains("non-increasing row indices", ex.Message, StringComparison.OrdinalIgnoreCase);
         }
@@ -63,11 +63,11 @@ namespace OfficeIMO.Tests {
                 .SelectMany(row => Enumerable.Range(1, 8).Select(col => (row, col, (object)$"R{row}C{col}")))
                 .ToList();
 
-            sheet.CellValues(cells, ExecutionMode.Parallel);
+            sheet.CellValues(cells, ExcelExecutionMode.Parallel);
 
             // Warm up targeted validation once before timing.
-            WorksheetIntegrityValidator.Validate(sheet.WorksheetPart, new ExecutionPolicy {
-                WorksheetValidation = WorksheetValidationMode.Always,
+            WorksheetIntegrityValidator.Validate(sheet.WorksheetPart, new ExcelExecutionPolicy {
+                WorksheetValidation = ExcelWorksheetValidationMode.Always,
                 DiagnosticsRequested = true,
             }, sheet.Name);
 

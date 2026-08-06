@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTable table = slide.AddTable(rows: 1, columns: 1, left: 0, top: 0, width: 4000, height: 2000);
 
-                table.SetCellBorders(TableCellBorders.All, "FF0000", widthPoints: 1);
+                table.SetCellBorders(PowerPointTableCellBorders.All, "FF0000", widthPoints: 1);
 
                 Assert.Equal("FF0000", table.GetCell(0, 0).BorderColor);
             } finally {
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointTable table = slide.AddTable(rows: 1, columns: 1, left: 0, top: 0, width: 4000, height: 2000);
 
-                    table.SetCellBorders(TableCellBorders.All, "FF0000", widthPoints: 1,
+                    table.SetCellBorders(PowerPointTableCellBorders.All, "FF0000", widthPoints: 1,
                         dash: PowerPointLineDashStyle.Dash);
                     presentation.Save();
                 }

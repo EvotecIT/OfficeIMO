@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.Paragraphs[0];
                 Assert.Equal(WordBorderStyle.Thick, paragraph.Borders.LeftStyle);
                 Assert.Equal(Color.Red.ToRgbHex(), paragraph.Borders.LeftColor!.Value.ToRgbHex());
-                Assert.Equal(24U, paragraph.Borders.LeftSize!.Value);
+                Assert.Equal(24U, paragraph.Borders.LeftSize);
                 Assert.Equal(Color.LightGray.ToRgbHex(), paragraph.ShadingFillColorHex);
             }
         }

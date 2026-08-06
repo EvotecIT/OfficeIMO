@@ -39,7 +39,7 @@ public sealed class PowerPointOfficeInteroperabilityCorpusTests {
 
                 var options = new PowerPointPresentationConversionOptions {
                     CompatibilityMode = OfficeCompatibilityMode.BestEffort,
-                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                    LossPolicy = OfficeConversionLossPolicy.Allow
                 };
                 PowerPointPresentationConversionReport preflight =
                     PowerPointPresentation.AnalyzeConversion(source, destination, options);

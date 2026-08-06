@@ -9,8 +9,6 @@ $typeNames = [ordered]@{
     'DocumentFormat.OpenXml.Drawing.BlipCompressionValues' = 'WordImageCompressionQuality'
     'DocumentFormat.OpenXml.Drawing.Charts.BarDirectionValues' = 'WordChartBarDirection'
     'DocumentFormat.OpenXml.Drawing.Charts.BarGroupingValues' = 'WordChartBarGrouping'
-    'DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues' = 'WordChartLegendPosition'
-    'DocumentFormat.OpenXml.Drawing.ShapeTypeValues' = 'WordImageShapeType'
     'DocumentFormat.OpenXml.Office2010.Word.Drawing.SizeRelativeHorizontallyValues' = 'WordTextBoxHorizontalSizeReference'
     'DocumentFormat.OpenXml.Wordprocessing.BorderValues' = 'WordBorderStyle'
     'DocumentFormat.OpenXml.Wordprocessing.CharacterSpacingValues' = 'WordCharacterSpacing'
@@ -24,13 +22,11 @@ $typeNames = [ordered]@{
     'DocumentFormat.OpenXml.Wordprocessing.LineSpacingRuleValues' = 'WordLineSpacingRule'
     'DocumentFormat.OpenXml.Wordprocessing.MergedCellValues' = 'WordCellMerge'
     'DocumentFormat.OpenXml.Wordprocessing.NumberFormatValues' = 'WordNumberFormat'
-    'DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues' = 'WordPageOrientation'
     'DocumentFormat.OpenXml.Wordprocessing.PresetZoomValues' = 'WordZoomPreset'
     'DocumentFormat.OpenXml.Wordprocessing.RestartNumberValues' = 'WordNoteNumberRestart'
     'DocumentFormat.OpenXml.Wordprocessing.ShadingPatternValues' = 'WordShadingPattern'
     'DocumentFormat.OpenXml.Wordprocessing.TabStopLeaderCharValues' = 'WordTabLeader'
     'DocumentFormat.OpenXml.Wordprocessing.TabStopValues' = 'WordTabAlignment'
-    'DocumentFormat.OpenXml.Wordprocessing.TableLayoutValues' = 'WordTableLayoutMode'
     'DocumentFormat.OpenXml.Wordprocessing.TableOverlapValues' = 'WordTableOverlap'
     'DocumentFormat.OpenXml.Wordprocessing.TableRowAlignmentValues' = 'WordTableAlignment'
     'DocumentFormat.OpenXml.Wordprocessing.TableWidthUnitValues' = 'WordTableWidthUnit'
@@ -41,8 +37,15 @@ $typeNames = [ordered]@{
     'DocumentFormat.OpenXml.Wordprocessing.VerticalTextAlignmentValues' = 'WordVerticalCharacterAlignment'
 }
 
+$sharedTypeNames = [ordered]@{
+    'DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues' = 'OfficeChartLegendPosition'
+    'DocumentFormat.OpenXml.Drawing.ShapeTypeValues' = 'OfficePresetShapeType'
+    'DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues' = 'OfficePageOrientation'
+}
+
 & (Join-Path $PSScriptRoot 'Generate-OpenXmlValueTypes.ps1') `
     -TypeNames $typeNames `
+    -SharedTypeNames $sharedTypeNames `
     -Namespace 'OfficeIMO.Word' `
     -ExtensionClassName 'WordOpenXmlValueTypeExtensions' `
     -AssemblyDirectory $AssemblyDirectory `

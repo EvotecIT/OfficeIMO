@@ -362,14 +362,14 @@ public static class SampleMarkdownRenderer {
             }
 
             for (int i = 0; i < source.Nodes.Count; i++) {
-                if (source.Nodes[i] is not TextRun) {
+                if (source.Nodes[i] is not MarkdownTextRun) {
                     return source;
                 }
             }
 
             var rewritten = new InlineSequence();
             for (int i = 0; i < source.Nodes.Count; i++) {
-                AppendRewrittenText(rewritten, ((TextRun)source.Nodes[i]).Text, ref changed);
+                AppendRewrittenText(rewritten, ((MarkdownTextRun)source.Nodes[i]).Text, ref changed);
             }
 
             return changed ? rewritten : source;

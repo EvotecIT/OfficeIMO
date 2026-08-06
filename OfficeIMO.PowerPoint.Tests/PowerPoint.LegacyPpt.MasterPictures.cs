@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
 
             byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt,
                 new PowerPointSaveOptions {
-                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                    LossPolicy = OfficeConversionLossPolicy.Allow
                 });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
             Assert.Contains(Assert.Single(binary.Masters).Shapes,
@@ -291,7 +291,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide(0, layoutIndex);
             using var image = new MemoryStream(imageBytes, writable: false);
             P.Picture slidePicture = (P.Picture)slide.AddPicture(image,
-                OfficeIMO.PowerPoint.ImagePartType.Png,
+                OfficeIMO.Drawing.OfficeImageFormat.Png,
                 450000L, 300000L, 800000L, 600000L)
                 .Element;
             AddPicturePlaceholder(slidePicture, 7U);

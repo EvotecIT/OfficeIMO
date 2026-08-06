@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 sheet1.CellValue(1, 2, "Value");
                 sheet1.CellValue(2, 1, "A");
                 sheet1.CellValue(2, 2, 1d);
-                sheet1.AddTable("A1:B2", true, "TableOne", TableStyle.TableStyleMedium9);
+                sheet1.AddTable("A1:B2", true, "TableOne", ExcelTableStyle.TableStyleMedium9);
 
                 var sheet2 = document.AddWorksheet("SheetTwo");
                 sheet2.CellValue(1, 1, "Name");
@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
                 sheet2.CellValue(2, 1, "B");
                 sheet2.CellValue(2, 2, 2d);
                 sheet2.CellValue(2, 3, 3);
-                sheet2.AddTable("A1:C2", true, "TableTwo", TableStyle.TableStyleMedium9);
+                sheet2.AddTable("A1:C2", true, "TableTwo", ExcelTableStyle.TableStyleMedium9);
                 sheet2.SetTableTotalsByName("TableTwo", new Dictionary<string, ExcelTableTotalsFunction> {
                     ["Value"] = ExcelTableTotalsFunction.Sum,
                     ["Count"] = ExcelTableTotalsFunction.Sum,

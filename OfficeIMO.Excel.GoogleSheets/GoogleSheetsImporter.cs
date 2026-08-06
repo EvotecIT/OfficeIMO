@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
             GoogleSheetsImportOptions effectiveOptions = options ?? new GoogleSheetsImportOptions();
             ValidateOptions(effectiveOptions);
-            return effectiveOptions.Mode == GoogleSheetsImportMode.DriveExport
+            return effectiveOptions.Mode == GoogleWorkspaceImportMode.DriveExport
                 ? await ImportViaDriveAsync(spreadsheetId, session, effectiveOptions, cancellationToken).ConfigureAwait(false)
                 : await ImportNativeAsync(spreadsheetId, session, effectiveOptions, cancellationToken).ConfigureAwait(false);
         }

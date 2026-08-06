@@ -99,7 +99,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlDiagnosticSeverity.Warning,
                     HtmlRenderStyleResolver.DescribeSource(source),
                     "box-shadow=" + style.UnsupportedBoxShadow,
-                    HtmlConversionLossKind.Omission);
+                    OfficeConversionLossKind.Omission);
             }
             return false;
         }
@@ -114,7 +114,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderStyleResolver.DescribeSource(source),
                 "layers=" + style.BoxShadowLayerCount.ToString(CultureInfo.InvariantCulture)
                     + ";limit=" + _options.MaxBoxShadowLayers.ToString(CultureInfo.InvariantCulture),
-                HtmlConversionLossKind.Omission);
+                OfficeConversionLossKind.Omission);
         }
         return style.BoxShadows.Count > 0;
     }

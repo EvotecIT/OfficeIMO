@@ -65,7 +65,7 @@ namespace OfficeIMO.Word {
         /// <see cref="AbstractNum"/> definition.
         /// </summary>
         /// <param name="abstractNum">Numbering definition to wrap.</param>
-        public WordListNumbering(AbstractNum abstractNum) {
+        internal WordListNumbering(AbstractNum abstractNum) {
             _abstractNum = abstractNum;
         }
 
@@ -156,7 +156,7 @@ namespace OfficeIMO.Word {
         /// Adds the level allowing for customization using OpenXML directly.
         /// </summary>
         /// <param name="level">The level.</param>
-        public void AddLevel(Level level) {
+        internal void AddLevel(Level level) {
             // before adding new level, we need to find the last level index and increment it by 1
             if (level == null) throw new ArgumentNullException(nameof(level));
 

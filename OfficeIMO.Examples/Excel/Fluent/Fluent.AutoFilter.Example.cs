@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Excel {
             // Scenario 1: Table with AutoFilter (default)
             string filePath1 = Path.Combine(folderPath, "FluentWorkbook_TableWithAutoFilter.xlsx");
             using (ExcelDocument document1 = ExcelDocument.Create(filePath1)) {
-                document1.Execution.Mode = ExecutionMode.Sequential;
+                document1.Execution.Mode = ExcelExecutionMode.Sequential;
 
                 document1.AsFluent()
                     .Sheet("TableWithFilter", s => s
@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples.Excel {
             // Scenario 2: Table without AutoFilter
             string filePath2 = Path.Combine(folderPath, "FluentWorkbook_TableNoAutoFilter.xlsx");
             using (ExcelDocument document2 = ExcelDocument.Create(filePath2)) {
-                document2.Execution.Mode = ExecutionMode.Sequential;
+                document2.Execution.Mode = ExcelExecutionMode.Sequential;
 
                 document2.AsFluent()
                     .Sheet("TableNoFilter", s => s
@@ -52,7 +52,7 @@ namespace OfficeIMO.Examples.Excel {
             // Scenario 3: Worksheet-level AutoFilter (no table)
             string filePath3 = Path.Combine(folderPath, "FluentWorkbook_WorksheetAutoFilter.xlsx");
             using (ExcelDocument document3 = ExcelDocument.Create(filePath3)) {
-                document3.Execution.Mode = ExecutionMode.Sequential;
+                document3.Execution.Mode = ExcelExecutionMode.Sequential;
 
                 document3.AsFluent()
                     .Sheet("WorksheetFilter", s => s
@@ -71,7 +71,7 @@ namespace OfficeIMO.Examples.Excel {
             // Scenario 4: Table first (no filter), then AutoFilter - should add filter to table
             string filePath4 = Path.Combine(folderPath, "FluentWorkbook_TableThenFilter.xlsx");
             using (ExcelDocument document4 = ExcelDocument.Create(filePath4)) {
-                document4.Execution.Mode = ExecutionMode.Sequential;
+                document4.Execution.Mode = ExcelExecutionMode.Sequential;
 
                 document4.AsFluent()
                     .Sheet("TableThenFilter", s => s
@@ -93,7 +93,7 @@ namespace OfficeIMO.Examples.Excel {
             // Scenario 5: AutoFilter first, then Table - should migrate filter to table
             string filePath5 = Path.Combine(folderPath, "FluentWorkbook_FilterThenTable.xlsx");
             using (ExcelDocument document5 = ExcelDocument.Create(filePath5)) {
-                document5.Execution.Mode = ExecutionMode.Sequential;
+                document5.Execution.Mode = ExcelExecutionMode.Sequential;
 
                 document5.AsFluent()
                     .Sheet("FilterThenTable", s => s

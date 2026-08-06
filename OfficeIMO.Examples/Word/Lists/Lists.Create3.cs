@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
                 WordList wordList = document.AddList(WordListStyle.Numbered);
-                wordList.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList.AddItem("Text 1").SetCapsStyle(WordCapsStyle.SmallCaps);
                 wordList.AddItem("Text 2.1", 1).SetColor(OfficeIMO.Drawing.OfficeColor.Brown);
                 wordList.AddItem("Text 2.2", 1).SetColor(OfficeIMO.Drawing.OfficeColor.Brown);
                 // here we set another list element but we also change it using standard paragraph change
@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("This is second list").SetColor(OfficeIMO.Drawing.OfficeColor.OrangeRed).SetUnderline(WordUnderlineStyle.Double);
 
                 WordList wordList1 = document.AddList(WordListStyle.HeadingIA1);
-                wordList1.AddItem("Temp 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList1.AddItem("Temp 1").SetCapsStyle(WordCapsStyle.SmallCaps);
                 wordList1.AddItem("Temp 2.1", 1).SetColor(OfficeIMO.Drawing.OfficeColor.Brown);
                 wordList1.AddItem("Temp 2.2", 1).SetColor(OfficeIMO.Drawing.OfficeColor.Brown);
                 wordList1.AddItem("Temp 2.3", 1).SetColor(OfficeIMO.Drawing.OfficeColor.Brown);
@@ -41,13 +41,13 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Lists count - before adding section: " + document.Lists.Count);
 
                 var section = document.AddSection();
-                section.PageSettings.Orientation = WordPageOrientation.Landscape;
+                section.PageSettings.Orientation = OfficePageOrientation.Landscape;
 
                 Console.WriteLine(document.Sections[0].PageSettings.Orientation);
                 Console.WriteLine(document.Sections[1].PageSettings.Orientation);
 
                 WordList wordList2 = document.AddList(WordListStyle.Numbered);
-                wordList2.AddItem("Section 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList2.AddItem("Section 1").SetCapsStyle(WordCapsStyle.SmallCaps);
                 wordList2.AddItem("Section 2.1", 1).SetColor(OfficeIMO.Drawing.OfficeColor.Brown);
                 wordList2.AddItem("Section 2.2", 1).SetColor(OfficeIMO.Drawing.OfficeColor.Brown);
 

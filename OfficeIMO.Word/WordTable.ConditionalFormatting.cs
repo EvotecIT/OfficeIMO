@@ -16,7 +16,7 @@ namespace OfficeIMO.Word {
         /// <param name="highlightColumns">Additional columns to apply the formatting to.</param>
         /// <param name="matchTextFormat">Optional action applied to paragraphs when the condition is met.</param>
         /// <param name="noMatchTextFormat">Optional action applied to paragraphs when the condition is not met.</param>
-        public void ConditionalFormatting(string columnName, string? matchText, TextMatchType matchType,
+        public void ConditionalFormatting(string columnName, string? matchText, WordTextMatchType matchType,
             string? matchFillColorHex = null, string? matchFontColorHex = null,
             string? noMatchFillColorHex = null, string? noMatchFontColorHex = null,
             bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
@@ -59,10 +59,10 @@ namespace OfficeIMO.Word {
                 var cell = Rows[r].Cells[headerIndex];
                 var text = cell.Paragraphs.FirstOrDefault()?.Text ?? string.Empty;
                 bool isMatch = matchType switch {
-                    TextMatchType.Equals => string.Equals(text, matchText, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal),
-                    TextMatchType.Contains => text.IndexOf(matchText, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) >= 0,
-                    TextMatchType.StartsWith => text.StartsWith(matchText, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal),
-                    TextMatchType.EndsWith => text.EndsWith(matchText, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal),
+                    WordTextMatchType.Equals => string.Equals(text, matchText, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal),
+                    WordTextMatchType.Contains => text.IndexOf(matchText, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) >= 0,
+                    WordTextMatchType.StartsWith => text.StartsWith(matchText, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal),
+                    WordTextMatchType.EndsWith => text.EndsWith(matchText, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal),
                     _ => false
                 };
 
@@ -109,7 +109,7 @@ namespace OfficeIMO.Word {
         /// <param name="highlightColumns">Additional columns to apply the formatting to.</param>
         /// <param name="matchTextFormat">Optional action applied to paragraphs when the condition is met.</param>
         /// <param name="noMatchTextFormat">Optional action applied to paragraphs when the condition is not met.</param>
-        public void ConditionalFormatting(string columnName, string? matchText, TextMatchType matchType,
+        public void ConditionalFormatting(string columnName, string? matchText, WordTextMatchType matchType,
             Color matchFillColor, Color? matchFontColor = null,
             Color? noMatchFillColor = null, Color? noMatchFontColor = null,
             bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
@@ -135,7 +135,7 @@ namespace OfficeIMO.Word {
         /// <param name="highlightColumns">Columns to apply the formatting to. Defaults to the columns used in conditions.</param>
         /// <param name="matchTextFormat">Optional action applied to paragraphs when conditions match.</param>
         /// <param name="noMatchTextFormat">Optional action applied to paragraphs when conditions do not match.</param>
-        public void ConditionalFormatting(System.Collections.Generic.IEnumerable<(string ColumnName, string MatchText, TextMatchType MatchType)> conditions,
+        public void ConditionalFormatting(System.Collections.Generic.IEnumerable<(string ColumnName, string MatchText, WordTextMatchType MatchType)> conditions,
             bool matchAll,
             string? matchFillColorHex = null, string? matchFontColorHex = null,
             string? noMatchFillColorHex = null, string? noMatchFontColorHex = null,
@@ -159,7 +159,7 @@ namespace OfficeIMO.Word {
                     headerMap[text] = i;
                 }
             }
-            var condIndices = new System.Collections.Generic.List<(int Index, string MatchText, TextMatchType Type)>();
+            var condIndices = new System.Collections.Generic.List<(int Index, string MatchText, WordTextMatchType Type)>();
             foreach (var c in conditionList) {
                 if (!headerMap.TryGetValue(c.ColumnName, out int idx)) {
                     throw new ArgumentException($"Column '{c.ColumnName}' was not found.", nameof(conditions));
@@ -183,11 +183,11 @@ namespace OfficeIMO.Word {
                 highlightIndices = new System.Collections.Generic.HashSet<int>(condIndices.Select(ci => ci.Index));
             }
 
-            static bool Check(string cellText, string matchText, TextMatchType type, bool ic) => type switch {
-                TextMatchType.Equals => string.Equals(cellText, matchText, ic ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal),
-                TextMatchType.Contains => cellText.IndexOf(matchText, ic ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) >= 0,
-                TextMatchType.StartsWith => cellText.StartsWith(matchText, ic ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal),
-                TextMatchType.EndsWith => cellText.EndsWith(matchText, ic ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal),
+            static bool Check(string cellText, string matchText, WordTextMatchType type, bool ic) => type switch {
+                WordTextMatchType.Equals => string.Equals(cellText, matchText, ic ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal),
+                WordTextMatchType.Contains => cellText.IndexOf(matchText, ic ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) >= 0,
+                WordTextMatchType.StartsWith => cellText.StartsWith(matchText, ic ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal),
+                WordTextMatchType.EndsWith => cellText.EndsWith(matchText, ic ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal),
                 _ => false
             };
 
@@ -247,7 +247,7 @@ namespace OfficeIMO.Word {
         /// <param name="highlightColumns">Columns to apply the formatting to. Defaults to the columns used in conditions.</param>
         /// <param name="matchTextFormat">Optional action applied to paragraphs when conditions match.</param>
         /// <param name="noMatchTextFormat">Optional action applied to paragraphs when conditions do not match.</param>
-        public void ConditionalFormatting(System.Collections.Generic.IEnumerable<(string ColumnName, string MatchText, TextMatchType MatchType)> conditions,
+        public void ConditionalFormatting(System.Collections.Generic.IEnumerable<(string ColumnName, string MatchText, WordTextMatchType MatchType)> conditions,
             bool matchAll,
             Color matchFillColor, Color? matchFontColor = null,
             Color? noMatchFillColor = null, Color? noMatchFontColor = null,
@@ -302,7 +302,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a conditional formatting rule based on a column value.
         /// </summary>
-        public WordTableConditionalFormattingBuilder AddRule(string columnName, string? matchText, TextMatchType matchType,
+        public WordTableConditionalFormattingBuilder AddRule(string columnName, string? matchText, WordTextMatchType matchType,
             string? matchFillColorHex = null, string? matchFontColorHex = null,
             string? noMatchFillColorHex = null, string? noMatchFontColorHex = null,
             bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
@@ -317,7 +317,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a conditional formatting rule using <see cref="Color"/> parameters.
         /// </summary>
-        public WordTableConditionalFormattingBuilder AddRule(string columnName, string? matchText, TextMatchType matchType,
+        public WordTableConditionalFormattingBuilder AddRule(string columnName, string? matchText, WordTextMatchType matchType,
             Color matchFillColor, Color? matchFontColor = null,
             Color? noMatchFillColor = null, Color? noMatchFontColor = null,
             bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
@@ -332,7 +332,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a conditional formatting rule based on multiple column values.
         /// </summary>
-        public WordTableConditionalFormattingBuilder AddRule(System.Collections.Generic.IEnumerable<(string ColumnName, string MatchText, TextMatchType MatchType)> conditions,
+        public WordTableConditionalFormattingBuilder AddRule(System.Collections.Generic.IEnumerable<(string ColumnName, string MatchText, WordTextMatchType MatchType)> conditions,
             bool matchAll,
             string? matchFillColorHex = null, string? matchFontColorHex = null,
             string? noMatchFillColorHex = null, string? noMatchFontColorHex = null,
@@ -348,7 +348,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a conditional formatting rule based on multiple column values using <see cref="Color"/> parameters.
         /// </summary>
-        public WordTableConditionalFormattingBuilder AddRule(System.Collections.Generic.IEnumerable<(string ColumnName, string MatchText, TextMatchType MatchType)> conditions,
+        public WordTableConditionalFormattingBuilder AddRule(System.Collections.Generic.IEnumerable<(string ColumnName, string MatchText, WordTextMatchType MatchType)> conditions,
             bool matchAll,
             Color matchFillColor, Color? matchFontColor = null,
             Color? noMatchFillColor = null, Color? noMatchFontColor = null,

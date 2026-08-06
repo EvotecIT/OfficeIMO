@@ -773,7 +773,7 @@ baz*
         Assert.Equal(2, escaped.Length);
         Assert.Equal("*", escaped[0].Literal);
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 6), escaped[0].SourceSpan);
-        var firstEscapedRun = Assert.IsType<TextRun>(escaped[0].AssociatedObject);
+        var firstEscapedRun = Assert.IsType<MarkdownTextRun>(escaped[0].AssociatedObject);
         Assert.Equal("\\", firstEscapedRun.EscapeMarker);
         Assert.Equal("*", firstEscapedRun.EscapedCharacter);
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 5), firstEscapedRun.EscapeMarkerSourceSpan);
@@ -794,7 +794,7 @@ baz*
         Assert.Collection(escaped[1].Children,
             escapeMarker => Assert.Equal(new MarkdownSourceSpan(1, 14, 1, 14), escapeMarker.SourceSpan),
             escapedCharacter => Assert.Equal(new MarkdownSourceSpan(1, 15, 1, 15), escapedCharacter.SourceSpan));
-        var secondEscapedRun = Assert.IsType<TextRun>(escaped[1].AssociatedObject);
+        var secondEscapedRun = Assert.IsType<MarkdownTextRun>(escaped[1].AssociatedObject);
         Assert.Equal("\\", secondEscapedRun.EscapeMarker);
         Assert.Equal("*", secondEscapedRun.EscapedCharacter);
         Assert.Equal(new MarkdownSourceSpan(1, 14, 1, 14), secondEscapedRun.EscapeMarkerSourceSpan);
@@ -1397,7 +1397,7 @@ Lead {{core}} tail
         var list = Assert.IsType<UnorderedListBlock>(document.Blocks[1]);
         var firstItem = Assert.IsType<ListItem>(list.Items[0]);
         var secondItem = Assert.IsType<ListItem>(list.Items[1]);
-        var headingText = Assert.IsType<TextRun>(Assert.Single(heading.Inlines.Nodes));
+        var headingText = Assert.IsType<MarkdownTextRun>(Assert.Single(heading.Inlines.Nodes));
         var link = Assert.Single(firstItem.Content.Nodes.OfType<LinkInline>());
 
         Assert.Null(document.Parent);
@@ -1443,7 +1443,7 @@ Lead {{core}} tail
         var list = Assert.IsType<UnorderedListBlock>(document.Blocks[1]);
         var firstItem = Assert.IsType<ListItem>(list.Items[0]);
         var secondItem = Assert.IsType<ListItem>(list.Items[1]);
-        var firstText = Assert.IsType<TextRun>(Assert.Single(firstItem.Content.Nodes));
+        var firstText = Assert.IsType<MarkdownTextRun>(Assert.Single(firstItem.Content.Nodes));
 
         Assert.Same(document, heading.Parent);
         Assert.Same(document, list.Parent);
@@ -1833,31 +1833,31 @@ Lead {{core}} tail
             "MarkdownDoc",
             "HeadingBlock",
             "InlineSequence",
-            "TextRun",
+            "MarkdownTextRun",
             "UnorderedListBlock",
             "ListItem",
             "ParagraphBlock",
             "InlineSequence",
-            "TextRun",
+            "MarkdownTextRun",
             "TableBlock",
             "TableRow",
             "TableCell",
             "ParagraphBlock",
             "InlineSequence",
-            "TextRun",
+            "MarkdownTextRun",
             "TableCell",
             "ParagraphBlock",
             "InlineSequence",
-            "TextRun",
+            "MarkdownTextRun",
             "TableRow",
             "TableCell",
             "ParagraphBlock",
             "InlineSequence",
-            "TextRun",
+            "MarkdownTextRun",
             "TableCell",
             "ParagraphBlock",
             "InlineSequence",
-            "TextRun"
+            "MarkdownTextRun"
         }, visitor.NodeKinds);
     }
 

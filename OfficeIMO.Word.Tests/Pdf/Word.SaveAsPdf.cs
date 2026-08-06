@@ -329,9 +329,9 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(PdfPageOrientation.Portrait)]
-    [InlineData(PdfPageOrientation.Landscape)]
-    public void Test_WordDocument_SaveAsPdf_PageOrientation(PdfPageOrientation orientation) {
+    [InlineData(OfficePageOrientation.Portrait)]
+    [InlineData(OfficePageOrientation.Landscape)]
+    public void Test_WordDocument_SaveAsPdf_PageOrientation(OfficePageOrientation orientation) {
         string docPath = Path.Combine(_directoryWithFiles, $"PdfOrientation{orientation}.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, $"PdfOrientation{orientation}.pdf");
 
@@ -352,7 +352,7 @@ public partial class Word {
         Assert.True(mediaBox.Success, "MediaBox not found");
         double width = double.Parse(mediaBox.Groups["w"].Value, CultureInfo.InvariantCulture);
         double height = double.Parse(mediaBox.Groups["h"].Value, CultureInfo.InvariantCulture);
-        if (orientation == PdfPageOrientation.Landscape) {
+        if (orientation == OfficePageOrientation.Landscape) {
             Assert.True(width > height);
         } else {
             Assert.True(height > width);
@@ -363,7 +363,7 @@ public partial class Word {
     [InlineData("Portrait")]
     [InlineData("Landscape")]
     public void Test_WordDocument_SaveAsPdf_SectionOrientationWithoutPageSize(string orientationValue) {
-        WordPageOrientation orientation = orientationValue == "Landscape" ? WordPageOrientation.Landscape : WordPageOrientation.Portrait;
+        OfficePageOrientation orientation = orientationValue == "Landscape" ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
         string docPath = Path.Combine(_directoryWithFiles, $"PdfSectionOrientation{orientationValue}.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, $"PdfSectionOrientation{orientationValue}.pdf");
 
@@ -380,7 +380,7 @@ public partial class Word {
         Assert.True(mediaBox.Success, "MediaBox not found");
         double width = double.Parse(mediaBox.Groups["w"].Value, CultureInfo.InvariantCulture);
         double height = double.Parse(mediaBox.Groups["h"].Value, CultureInfo.InvariantCulture);
-        if (orientation == WordPageOrientation.Landscape) {
+        if (orientation == OfficePageOrientation.Landscape) {
             Assert.True(width > height);
         } else {
             Assert.True(height > width);
@@ -481,12 +481,12 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.Sections[0].PageSettings.PageSize = WordPageSize.A4;
-            document.Sections[0].PageSettings.Orientation = WordPageOrientation.Landscape;
+            document.Sections[0].PageSettings.Orientation = OfficePageOrientation.Landscape;
             document.AddParagraph("Section1");
 
             WordSection section2 = document.AddSection();
             section2.PageSettings.PageSize = WordPageSize.A5;
-            section2.PageSettings.Orientation = WordPageOrientation.Portrait;
+            section2.PageSettings.Orientation = OfficePageOrientation.Portrait;
             section2.AddParagraph("Section2");
 
             document.Save();

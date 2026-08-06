@@ -75,7 +75,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordParagraph">The paragraph to which this tab stop belongs.</param>
         /// <param name="tab">The underlying Open XML tab stop element.</param>
-        public WordTabStop(WordParagraph wordParagraph, TabStop tab) {
+        internal WordTabStop(WordParagraph wordParagraph, TabStop tab) {
             _paragraph = wordParagraph;
             _tabStop = tab;
         }

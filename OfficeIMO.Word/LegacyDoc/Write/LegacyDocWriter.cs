@@ -148,7 +148,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 || (document.LegacyDocUnsupportedFeatures.Count == 0
                     && document.LegacyDocPreservedFeatures.Count == 0
                     && document.LegacyDocCompoundFeatures.Count == 0)
-                || options?.LossPolicy == WordConversionLossPolicy.Allow) {
+                || options?.LossPolicy == OfficeConversionLossPolicy.Allow) {
                 return;
             }
 

@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(2, p._paragraph.Elements<Run>().Count());
 
-                document.CleanupDocument(DocumentCleanupOptions.MergeIdenticalRuns);
+                document.CleanupDocument(WordDocumentCleanupOptions.MergeIdenticalRuns);
 
                 Assert.Single(p._paragraph.Elements<Run>());
                 Assert.Equal("AB", p._paragraph.InnerText);

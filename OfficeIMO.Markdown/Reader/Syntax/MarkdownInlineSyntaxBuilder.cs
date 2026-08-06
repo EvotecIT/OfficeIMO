@@ -30,7 +30,7 @@ internal static class MarkdownInlineSyntaxBuilder {
         }
 
         switch (inline) {
-            case TextRun text:
+            case MarkdownTextRun text:
                 var escapedTextChildren = BuildEscapedTextChildren(text);
                 return new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.InlineText,
@@ -228,7 +228,7 @@ internal static class MarkdownInlineSyntaxBuilder {
         return nodes;
     }
 
-    private static IReadOnlyList<MarkdownSyntaxNode> BuildEscapedTextChildren(TextRun text) {
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildEscapedTextChildren(MarkdownTextRun text) {
         var markerSpan = MarkdownInlineMetadataSourceSpans.GetEscapeMarkerSpan(text);
         var characterSpan = MarkdownInlineMetadataSourceSpans.GetEscapedCharacterSpan(text);
 

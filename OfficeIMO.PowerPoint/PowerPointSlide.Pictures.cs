@@ -25,7 +25,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(height));
             }
 
-            ImagePartType imageType = GetImagePartType(imagePath);
+            OfficeIMO.Drawing.OfficeImageFormat imageType = GetImagePartType(imagePath);
             PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();
             string imageExtension = PowerPointPartFactory.GetImageExtension(imageType, imagePath);
             string imagePartUri = PowerPointPartFactory.GetIndexedPartUri(
@@ -76,7 +76,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="top">Top position in EMUs.</param>
         /// <param name="width">Width in EMUs.</param>
         /// <param name="height">Height in EMUs.</param>
-        public PowerPointPicture AddPicture(Stream image, ImagePartType imageType, long left = 0L, long top = 0L,
+        public PowerPointPicture AddPicture(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, long left = 0L, long top = 0L,
             long width = 914400L, long height = 914400L) {
             if (image == null) {
                 throw new ArgumentNullException(nameof(image));
@@ -144,7 +144,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds an image from a stream using a layout box.
         /// </summary>
-        public PowerPointPicture AddPicture(Stream image, ImagePartType imageType, PowerPointLayoutBox layout) {
+        public PowerPointPicture AddPicture(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, PowerPointLayoutBox layout) {
             return AddPicture(image, imageType, layout.Left, layout.Top, layout.Width, layout.Height);
         }
 
@@ -163,7 +163,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds an image from a stream using centimeter measurements.
         /// </summary>
-        public PowerPointPicture AddPictureCm(Stream image, ImagePartType imageType, double leftCm, double topCm,
+        public PowerPointPicture AddPictureCm(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, double leftCm, double topCm,
             double widthCm, double heightCm) {
             return AddPicture(image, imageType,
                 PowerPointUnits.FromCentimeters(leftCm),
@@ -187,7 +187,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds an image from a stream using inch measurements.
         /// </summary>
-        public PowerPointPicture AddPictureInches(Stream image, ImagePartType imageType, double leftInches,
+        public PowerPointPicture AddPictureInches(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, double leftInches,
             double topInches, double widthInches, double heightInches) {
             return AddPicture(image, imageType,
                 PowerPointUnits.FromInches(leftInches),
@@ -211,7 +211,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds an image from a stream using point measurements.
         /// </summary>
-        public PowerPointPicture AddPicturePoints(Stream image, ImagePartType imageType, double leftPoints,
+        public PowerPointPicture AddPicturePoints(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, double leftPoints,
             double topPoints, double widthPoints, double heightPoints) {
             return AddPicture(image, imageType,
                 PowerPointUnits.FromPoints(leftPoints),
@@ -220,8 +220,8 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointUnits.FromPoints(heightPoints));
         }
 
-        private static ImagePartType GetImagePartType(string imagePath) {
-            return ImagePartTypeExtensions.FromImagePath(imagePath);
+        private static OfficeIMO.Drawing.OfficeImageFormat GetImagePartType(string imagePath) {
+            return PowerPointImageFormatExtensions.FromImagePath(imagePath);
         }
 
     }

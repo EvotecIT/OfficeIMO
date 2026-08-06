@@ -106,12 +106,12 @@ namespace OfficeIMO.Tests {
             }
 
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
-            sheet.SetOrientation(ExcelPageOrientation.Landscape);
+            sheet.SetOrientation(OfficePageOrientation.Landscape);
             sheet.SetMargins(0.35D, 0.35D, 0.35D, 0.35D);
             sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
             sheet.SetHeaderFooter(headerLeft: "&BHeader/Footer Image Baseline", footerCenter: "Rendered on page &P");
-            sheet.SetHeaderImage(HeaderFooterPosition.Center, CreateHeaderFooterHeaderLogoPng(), "image/png", widthPoints: 72D, heightPoints: 24D);
-            sheet.SetFooterImage(HeaderFooterPosition.Right, CreateHeaderFooterFooterLogoPng(), "image/png", widthPoints: 56D, heightPoints: 18D);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateHeaderFooterHeaderLogoPng(), "image/png", widthPoints: 72D, heightPoints: 24D);
+            sheet.SetFooterImage(ExcelHeaderFooterPosition.Right, CreateHeaderFooterFooterLogoPng(), "image/png", widthPoints: 56D, heightPoints: 18D);
             sheet.AddManualRowPageBreak(2, save: false);
             return new ExcelBaselineFixture(document, sheet);
         }

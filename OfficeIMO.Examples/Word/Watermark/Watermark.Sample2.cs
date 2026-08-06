@@ -23,8 +23,8 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Sections[0].SetMargins(WordMargin.Normal);
 
-                Console.WriteLine(document.Sections[0].Margins.Left.Value);
-                Console.WriteLine(document.Sections[0].Margins.Right.Value);
+                Console.WriteLine(document.Sections[0].Margins.Left);
+                Console.WriteLine(document.Sections[0].Margins.Right);
 
                 document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Confidential");
 
@@ -34,11 +34,11 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("----");
 
-                Console.WriteLine(document.Sections[0].Margins.Left.Value);
-                Console.WriteLine(document.Sections[0].Margins.Right.Value);
+                Console.WriteLine(document.Sections[0].Margins.Left);
+                Console.WriteLine(document.Sections[0].Margins.Right);
 
-                Console.WriteLine(document.Sections[1].Margins.Left.Value);
-                Console.WriteLine(document.Sections[1].Margins.Right.Value);
+                Console.WriteLine(document.Sections[1].Margins.Left);
+                Console.WriteLine(document.Sections[1].Margins.Right);
 
                 document.Settings.SetBackgroundColor(Color.Azure);
 

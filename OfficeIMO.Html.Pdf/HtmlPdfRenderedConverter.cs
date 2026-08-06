@@ -382,7 +382,7 @@ internal static partial class HtmlPdfRenderedConverter {
             frameWidth = Math.Max(frameWidth, visual.TextAdvanceWidth.Value + metricTolerance);
         }
         frameWidth = Math.Max(0.01D, Math.Min(frameWidth, Math.Max(0.01D, surfaceWidth - visual.X)));
-        var run = new PdfCore.TextRun(
+        var run = new PdfCore.PdfTextRun(
             visual.Text,
             bold: visual.Font.IsBold,
             underline: visual.Font.IsUnderline,
@@ -521,8 +521,8 @@ internal static partial class HtmlPdfRenderedConverter {
                     text.Text,
                     text.Font.FamilyName,
                     text.Font.Style);
-                IReadOnlyList<PdfCore.TextRun> runs = plannedRuns.Select(run =>
-                    new PdfCore.TextRun(
+                IReadOnlyList<PdfCore.PdfTextRun> runs = plannedRuns.Select(run =>
+                    new PdfCore.PdfTextRun(
                         run.Text,
                         bold: text.Font.IsBold,
                         underline: text.Font.IsUnderline,

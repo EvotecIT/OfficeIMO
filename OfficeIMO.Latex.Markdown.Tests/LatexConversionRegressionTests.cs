@@ -96,7 +96,7 @@ public sealed class LatexConversionRegressionTests {
         Assert.DoesNotContain(result.Value.Blocks.OfType<ParagraphBlock>(),
             static paragraph => paragraph.Inlines.Nodes.OfType<HtmlRawInline>().Any());
         Assert.Contains(result.Value.Blocks.OfType<ParagraphBlock>(),
-            static paragraph => paragraph.Inlines.Nodes.OfType<TextRun>().Any(text => text.Text.Contains("Body.", StringComparison.Ordinal)));
+            static paragraph => paragraph.Inlines.Nodes.OfType<MarkdownTextRun>().Any(text => text.Text.Contains("Body.", StringComparison.Ordinal)));
     }
 
     [Fact]

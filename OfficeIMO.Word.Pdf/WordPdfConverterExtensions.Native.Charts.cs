@@ -820,7 +820,7 @@ namespace OfficeIMO.Word.Pdf {
             bool showSeriesName = dataLabels.ShowSeriesName || HasNativeWordChartDataLabelFlag<ShowSeriesName>(labels);
             bool showDataLabels = showValue || showPercent || showCategoryName || showSeriesName;
             bool showLegend = HasNativeWordChartLegend(chart);
-            OfficeChartLegendPosition legendPosition = GetNativeWordChartLegendPosition(chart);
+            OfficeChartLegendPosition legendPosition = GetNativeOfficeChartLegendPosition(chart);
             bool overlayLegend = IsNativeWordChartLegendOverlay(chart);
             OfficeChartDataLabelPosition dataLabelPosition = GetNativeWordChartDataLabelPosition(labels);
             string? dataLabelNumberFormat = GetNativeWordChartDataLabelNumberFormat(labels);
@@ -1223,13 +1223,13 @@ namespace OfficeIMO.Word.Pdf {
                 return OfficeChartDataLabelPosition.Bottom;
             }
 
-            return OfficeChartDataLabelPosition.Auto;
+            return OfficeChartDataLabelPosition.BestFit;
         }
 
         private static bool HasNativeWordChartLegend(Chart chart) =>
             chart.GetFirstChild<Legend>() != null;
 
-        private static OfficeChartLegendPosition GetNativeWordChartLegendPosition(Chart chart) {
+        private static OfficeChartLegendPosition GetNativeOfficeChartLegendPosition(Chart chart) {
             LegendPosition? position = chart.GetFirstChild<Legend>()?.GetFirstChild<LegendPosition>();
             if (position?.Val?.Value == LegendPositionValues.Left) {
                 return OfficeChartLegendPosition.Left;

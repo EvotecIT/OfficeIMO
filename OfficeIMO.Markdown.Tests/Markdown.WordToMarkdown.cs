@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
             paragraph.AddText(" with ");
             paragraph.AddText("strike").Strike = true;
             paragraph.AddText(" and ");
-            paragraph.AddText("code").SetFontFamily(FontResolver.Resolve("monospace")!);
+            paragraph.AddText("code").SetFontFamily(WordFontResolver.Resolve("monospace")!);
 
             var list = doc.AddList(WordListStyle.Bulleted);
             list.AddItem("Item 1");
@@ -575,7 +575,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             WordParagraph paragraph = doc.AddParagraph("Mixed:");
             paragraph.AddEquation(omml);
-            paragraph.AddShape(ShapeType.Rectangle, 60, 30);
+            paragraph.AddShape(WordShapeType.Rectangle, 60, 30);
 
             string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
                 UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder
@@ -738,7 +738,7 @@ namespace OfficeIMO.Tests {
         public void WordToMarkdown_UnsupportedContentMode_Can_Emit_Placeholders() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Before");
-            doc.AddShape(ShapeType.Rectangle, 60, 30);
+            doc.AddShape(WordShapeType.Rectangle, 60, 30);
             doc.AddParagraph("After");
             var warnings = new List<string>();
 
@@ -756,7 +756,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_Result_Reports_Fidelity_Loss() {
             using var document = WordDocument.Create();
-            document.AddShape(ShapeType.Rectangle, 60, 30);
+            document.AddShape(WordShapeType.Rectangle, 60, 30);
 
             WordToMarkdownResult result = document.ToMarkdownDocumentResult(new WordToMarkdownOptions {
                 UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder
@@ -766,7 +766,7 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasLoss);
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
                 diagnostic.Code == "WordToMarkdownWarning" &&
-                diagnostic.LossKind == WordMarkdownConversionLossKind.Approximation);
+                diagnostic.LossKind == OfficeConversionLossKind.Approximation);
             Assert.Throws<WordMarkdownConversionException>(() => result.RequireNoLoss());
         }
 
@@ -774,7 +774,7 @@ namespace OfficeIMO.Tests {
         public void WordToMarkdown_UnsupportedContentMode_Emits_Placeholders_For_Mixed_Paragraph_Content() {
             using var doc = WordDocument.Create();
             var paragraph = doc.AddParagraph("Before");
-            paragraph.AddShape(ShapeType.Rectangle, 60, 30);
+            paragraph.AddShape(WordShapeType.Rectangle, 60, 30);
 
             string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
                 UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder
@@ -787,7 +787,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_UnsupportedContentMode_Can_Emit_HtmlComments() {
             using var doc = WordDocument.Create();
-            doc.AddShape(ShapeType.Rectangle, 60, 30);
+            doc.AddShape(WordShapeType.Rectangle, 60, 30);
 
             string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
                 UnsupportedContentMode = MarkdownUnsupportedContentMode.HtmlComment

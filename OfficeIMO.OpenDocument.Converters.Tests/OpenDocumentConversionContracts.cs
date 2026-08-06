@@ -90,7 +90,7 @@ public sealed class OpenDocumentConversionContracts {
         table.GetCell(1, 1).Text = "B";
         table.MergeCells(0, 0, 0, 1);
         slide.Notes.Text = "Speaker note";
-        slide.Transition = SlideTransition.Fade;
+        slide.Transition = PowerPointSlideTransition.Fade;
 
         OdfConversionResult<OdpPresentation> toOdp = source.ToOpenDocumentResult();
         OdpPresentation odp = toOdp.Value;
@@ -111,7 +111,7 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Contains(roundTripSlide.TextBoxes, box => box.Text.Contains("OpenDocument deck", StringComparison.Ordinal));
         Assert.Single(roundTripSlide.Tables);
         Assert.Equal("Speaker note", roundTripSlide.GetSpeakerNotesText());
-        Assert.Equal(SlideTransition.Fade, roundTripSlide.Transition);
+        Assert.Equal(PowerPointSlideTransition.Fade, roundTripSlide.Transition);
     }
 
     [Fact]

@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             foreach (WorksheetPdfExportPlan plan in exportPlans) {
-                ExcelSheet.HeaderFooterSnapshot? headerFooter = plan.HeaderFooter;
+                ExcelSheet.ExcelHeaderFooterSnapshot? headerFooter = plan.HeaderFooter;
                 if (headerFooter == null) {
                     continue;
                 }
@@ -108,7 +108,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static IEnumerable<string?> EnumerateHeaderFooterTextZones(ExcelSheet.HeaderFooterSnapshot headerFooter) {
+        private static IEnumerable<string?> EnumerateHeaderFooterTextZones(ExcelSheet.ExcelHeaderFooterSnapshot headerFooter) {
             yield return headerFooter.HeaderLeft;
             yield return headerFooter.HeaderCenter;
             yield return headerFooter.HeaderRight;
@@ -242,7 +242,7 @@ namespace OfficeIMO.Excel.Pdf {
                 bool boundedRead = IsBoundedWorksheetRead(options);
                 ExcelSheet? metadataSheet = boundedRead ? null : workbookSheet;
                 ExcelSheetPageSetup? pageSetup = options.UseWorksheetPageSetup ? metadataSheet?.GetPageSetup() : null;
-                ExcelSheet.HeaderFooterSnapshot? headerFooter = (options.UseWorksheetHeadersAndFooters || options.UseWorksheetHeaderFooterImages) ? metadataSheet?.GetHeaderFooter() : null;
+                ExcelSheet.ExcelHeaderFooterSnapshot? headerFooter = (options.UseWorksheetHeadersAndFooters || options.UseWorksheetHeaderFooterImages) ? metadataSheet?.GetHeaderFooter() : null;
                 string exportRange = GetExportRange(sheet, workbookSheet, options);
                 string normalizedExportRange = NormalizeA1Range(exportRange);
                 int sourceRows = GetRangeRowCount(normalizedExportRange);

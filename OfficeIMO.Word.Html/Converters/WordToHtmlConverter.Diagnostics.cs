@@ -194,37 +194,37 @@ namespace OfficeIMO.Word.Html {
 
         private static void ReportKnownExportLimitations(WordDocument document, WordToHtmlOptions options, ExportInspection inspection) {
             if (inspection.HasRevisionText) {
-                AddExportDiagnostic(options, "TrackedRevisionTextOmitted", "Text wrapped in Word tracked-revision markup is omitted because the HTML exporter does not project revision containers.", HtmlConversionLossKind.Omission);
+                AddExportDiagnostic(options, "TrackedRevisionTextOmitted", "Text wrapped in Word tracked-revision markup is omitted because the HTML exporter does not project revision containers.", OfficeConversionLossKind.Omission);
             } else if (inspection.HasRevisions) {
-                AddExportDiagnostic(options, "TrackedRevisionsFlattened", "Tracked revisions are exported as visible document content without Word revision semantics.", HtmlConversionLossKind.Approximation);
+                AddExportDiagnostic(options, "TrackedRevisionsFlattened", "Tracked revisions are exported as visible document content without Word revision semantics.", OfficeConversionLossKind.Approximation);
             }
             if (inspection.HasComments && !options.ExportComments) {
-                AddExportDiagnostic(options, "CommentsOmitted", "Word comments were omitted because ExportComments is false.", HtmlConversionLossKind.Omission);
+                AddExportDiagnostic(options, "CommentsOmitted", "Word comments were omitted because ExportComments is false.", OfficeConversionLossKind.Omission);
             }
             if (inspection.HasFields) {
-                AddExportDiagnostic(options, "FieldInstructionsFlattened", "Word field instructions are exported through their visible results; live field behavior is not represented in HTML.", HtmlConversionLossKind.Approximation);
+                AddExportDiagnostic(options, "FieldInstructionsFlattened", "Word field instructions are exported through their visible results; live field behavior is not represented in HTML.", OfficeConversionLossKind.Approximation);
             }
             if (document.HasMacros) {
-                AddExportDiagnostic(options, "MacroProjectOmitted", "The VBA project is package metadata and is not represented in HTML.", HtmlConversionLossKind.Omission);
+                AddExportDiagnostic(options, "MacroProjectOmitted", "The VBA project is package metadata and is not represented in HTML.", OfficeConversionLossKind.Omission);
             }
             if (document._wordprocessingDocument.DigitalSignatureOriginPart != null ||
-                document.ApplicationProperties.DigitalSignature != null) {
-                AddExportDiagnostic(options, "PackageSignaturesOmitted", "OPC package signature metadata is not represented in HTML.", HtmlConversionLossKind.Omission);
+                document.ApplicationProperties.HasDigitalSignatureMetadata) {
+                AddExportDiagnostic(options, "PackageSignaturesOmitted", "OPC package signature metadata is not represented in HTML.", OfficeConversionLossKind.Omission);
             }
             if (!options.ExportHeadersAndFooters && document.Sections.Any(section =>
                 section.Header.Default != null || section.Header.Even != null || section.Header.First != null ||
                 section.Footer.Default != null || section.Footer.Even != null || section.Footer.First != null)) {
-                AddExportDiagnostic(options, "HeadersFootersOmitted", "Section headers or footers were omitted because ExportHeadersAndFooters is false.", HtmlConversionLossKind.Omission);
+                AddExportDiagnostic(options, "HeadersFootersOmitted", "Section headers or footers were omitted because ExportHeadersAndFooters is false.", OfficeConversionLossKind.Omission);
             }
             if (!options.ExportFootnotes && document.FootNotes.Count > 0) {
-                AddExportDiagnostic(options, "FootnotesOmitted", "Footnotes were omitted because ExportFootnotes is false.", HtmlConversionLossKind.Omission);
+                AddExportDiagnostic(options, "FootnotesOmitted", "Footnotes were omitted because ExportFootnotes is false.", OfficeConversionLossKind.Omission);
             }
             if (!options.ExportEndnotes && document.EndNotes.Count > 0) {
-                AddExportDiagnostic(options, "EndnotesOmitted", "Endnotes were omitted because ExportEndnotes is false.", HtmlConversionLossKind.Omission);
+                AddExportDiagnostic(options, "EndnotesOmitted", "Endnotes were omitted because ExportEndnotes is false.", OfficeConversionLossKind.Omission);
             }
             if (!options.IncludeSectionMetadata &&
                 (document.Sections.Count > 1 || document.Sections.Any(section => HasNonDefaultPageGeometry(section._sectionProperties)))) {
-                AddExportDiagnostic(options, "SectionLayoutFlattened", "Word section page geometry is exported without page metadata because IncludeSectionMetadata is false.", HtmlConversionLossKind.Approximation);
+                AddExportDiagnostic(options, "SectionLayoutFlattened", "Word section page geometry is exported without page metadata because IncludeSectionMetadata is false.", OfficeConversionLossKind.Approximation);
             }
         }
 
@@ -292,7 +292,7 @@ namespace OfficeIMO.Word.Html {
             internal long OutputConstructionCharacters { get; }
         }
 
-        private static void AddExportDiagnostic(WordToHtmlOptions options, string code, string message, HtmlConversionLossKind lossKind) {
+        private static void AddExportDiagnostic(WordToHtmlOptions options, string code, string message, OfficeConversionLossKind lossKind) {
             options.ConversionReport.Add(
                 "OfficeIMO.Word.Html",
                 code,
@@ -318,7 +318,7 @@ namespace OfficeIMO.Word.Html {
                 HtmlDiagnosticSeverity.Error,
                 source,
                 detail,
-                HtmlConversionLossKind.Failure);
+                OfficeConversionLossKind.Failure);
             throw new HtmlConversionLimitException(code, message, source, actual, limit, detail);
         }
 

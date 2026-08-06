@@ -51,7 +51,7 @@ code
             var body = docx.MainDocumentPart!.Document.Body!;
 
             var codeRun = body.Descendants<Run>().First(r => r.InnerText.Contains("code"));
-            Assert.Equal(FontResolver.Resolve("monospace"), codeRun.RunProperties!.RunFonts!.Ascii);
+            Assert.Equal(WordFontResolver.Resolve("monospace"), codeRun.RunProperties!.RunFonts!.Ascii);
         }
 
         [Fact]

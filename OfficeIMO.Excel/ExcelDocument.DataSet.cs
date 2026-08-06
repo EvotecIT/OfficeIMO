@@ -19,11 +19,11 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelDataSetImportResult> InsertDataSet(
             DataSet dataSet,
             bool createTables = true,
-            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeHeaders = true,
             bool includeAutoFilter = true,
             bool autoFit = false,
-            ExecutionMode? mode = null,
+            ExcelExecutionMode? mode = null,
             CancellationToken ct = default) {
             if (dataSet == null) throw new ArgumentNullException(nameof(dataSet));
 
@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
                 string requestedSheetName = string.IsNullOrWhiteSpace(table.TableName)
                     ? "Table" + tableIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)
                     : table.TableName;
-                ExcelSheet sheet = AddWorksheet(requestedSheetName, SheetNameValidationMode.Sanitize);
+                ExcelSheet sheet = AddWorksheet(requestedSheetName, ExcelSheetNameValidationMode.Sanitize);
                 string? requestedTableName = createTables ? requestedSheetName : null;
                 string? actualTableName = null;
                 string range;

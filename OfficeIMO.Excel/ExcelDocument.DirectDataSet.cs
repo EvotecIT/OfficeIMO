@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel {
         public static IReadOnlyList<ExcelDataSetImportResult> WriteDataSet(
             Stream stream,
             DataSet dataSet,
-            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeHeaders = true,
             bool includeAutoFilter = true,
             CancellationToken ct = default,
@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
         private void RegisterDirectDataSetSaveCandidate(
             DataSet dataSet,
             bool createTables,
-            TableStyle tableStyle,
+            ExcelTableStyle tableStyle,
             bool includeHeaders,
             bool includeAutoFilter,
             bool autoFit,
@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel {
             string range,
             string? tableName = null,
             bool createTable = false,
-            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false,
             bool copyTable = true) {
@@ -150,7 +150,7 @@ namespace OfficeIMO.Excel {
             string range,
             string? tableName = null,
             bool createTable = false,
-            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false,
             bool copyTable = false) {
@@ -205,7 +205,7 @@ namespace OfficeIMO.Excel {
             string range,
             string? tableName = null,
             bool createTable = false,
-            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false,
             bool useCellValueNumberFormats = false,
@@ -238,7 +238,7 @@ namespace OfficeIMO.Excel {
             string range,
             string? tableName = null,
             bool createTable = false,
-            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false,
             bool useCellValueNumberFormats = false,
@@ -301,7 +301,7 @@ namespace OfficeIMO.Excel {
             string range,
             string? tableName = null,
             bool createTable = false,
-            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false,
             bool useCellValueNumberFormats = false,
@@ -358,7 +358,7 @@ namespace OfficeIMO.Excel {
             string range,
             string? tableName = null,
             bool createTable = false,
-            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
@@ -408,7 +408,7 @@ namespace OfficeIMO.Excel {
             string range,
             string? tableName = null,
             bool createTable = false,
-            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
@@ -450,7 +450,7 @@ namespace OfficeIMO.Excel {
             string range,
             string tableName,
             bool includeHeaders,
-            TableStyle tableStyle,
+            ExcelTableStyle tableStyle,
             bool includeAutoFilter) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (!ReferenceEquals(sheet.Document, this)) {

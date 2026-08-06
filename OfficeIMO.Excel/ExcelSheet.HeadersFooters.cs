@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Snapshot of header and footer text and related flags for this worksheet.
         /// </summary>
-        public sealed class HeaderFooterSnapshot {
+        public sealed class ExcelHeaderFooterSnapshot {
             /// <summary>Left section text of the header (odd pages).</summary>
             public string HeaderLeft { get; set; } = string.Empty;
             /// <summary>Center section text of the header (odd pages).</summary>
@@ -58,17 +58,17 @@ namespace OfficeIMO.Excel {
             /// <summary>True if any footer section contains the picture placeholder (&amp;G).</summary>
             public bool FooterHasPicturePlaceholder { get; set; }
             /// <summary>Left section image of the header (odd pages), when available.</summary>
-            public HeaderFooterImageSnapshot? HeaderLeftImage { get; set; }
+            public ExcelHeaderFooterImageSnapshot? HeaderLeftImage { get; set; }
             /// <summary>Center section image of the header (odd pages), when available.</summary>
-            public HeaderFooterImageSnapshot? HeaderCenterImage { get; set; }
+            public ExcelHeaderFooterImageSnapshot? HeaderCenterImage { get; set; }
             /// <summary>Right section image of the header (odd pages), when available.</summary>
-            public HeaderFooterImageSnapshot? HeaderRightImage { get; set; }
+            public ExcelHeaderFooterImageSnapshot? HeaderRightImage { get; set; }
             /// <summary>Left section image of the footer (odd pages), when available.</summary>
-            public HeaderFooterImageSnapshot? FooterLeftImage { get; set; }
+            public ExcelHeaderFooterImageSnapshot? FooterLeftImage { get; set; }
             /// <summary>Center section image of the footer (odd pages), when available.</summary>
-            public HeaderFooterImageSnapshot? FooterCenterImage { get; set; }
+            public ExcelHeaderFooterImageSnapshot? FooterCenterImage { get; set; }
             /// <summary>Right section image of the footer (odd pages), when available.</summary>
-            public HeaderFooterImageSnapshot? FooterRightImage { get; set; }
+            public ExcelHeaderFooterImageSnapshot? FooterRightImage { get; set; }
 
             internal long SourceImageByteCount =>
                 (HeaderLeftImage?.SourceByteCount ?? 0L) +
@@ -82,10 +82,10 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Snapshot of an Excel header/footer image.
         /// </summary>
-        public sealed class HeaderFooterImageSnapshot {
+        public sealed class ExcelHeaderFooterImageSnapshot {
             private readonly byte[] _bytes;
 
-            internal HeaderFooterImageSnapshot(HeaderFooterPosition position, byte[] bytes, string contentType, double widthPoints, double heightPoints) {
+            internal ExcelHeaderFooterImageSnapshot(ExcelHeaderFooterPosition position, byte[] bytes, string contentType, double widthPoints, double heightPoints) {
                 Position = position;
                 _bytes = (byte[])bytes.Clone();
                 ContentType = contentType;
@@ -94,7 +94,7 @@ namespace OfficeIMO.Excel {
             }
 
             /// <summary>Header/footer section position.</summary>
-            public HeaderFooterPosition Position { get; }
+            public ExcelHeaderFooterPosition Position { get; }
             /// <summary>Image bytes.</summary>
             public byte[] Bytes => (byte[])_bytes.Clone();
             /// <summary>Image content type, such as image/png or image/jpeg.</summary>
@@ -120,10 +120,10 @@ namespace OfficeIMO.Excel {
         /// Returns a snapshot of the current header and footer strings (odd pages) split into left/center/right sections,
         /// including flags and whether a picture placeholder (&amp;G) is present.
         /// </summary>
-        public HeaderFooterSnapshot GetHeaderFooter() =>
+        public ExcelHeaderFooterSnapshot GetHeaderFooter() =>
             GetHeaderFooter(ExcelImageExportOptions.DefaultMaximumTotalSourceImageBytes);
 
-        internal HeaderFooterSnapshot GetHeaderFooter(long maximumTotalSourceImageBytes) {
+        internal ExcelHeaderFooterSnapshot GetHeaderFooter(long maximumTotalSourceImageBytes) {
             if (maximumTotalSourceImageBytes <= 0L) {
                 throw new ArgumentOutOfRangeException(nameof(maximumTotalSourceImageBytes));
             }
@@ -144,7 +144,7 @@ namespace OfficeIMO.Excel {
             var (ehl, ehc, ehr) = ParseHeaderFooterSections(evenHeader);
             var (efl, efc, efr) = ParseHeaderFooterSections(evenFooter);
 
-            Dictionary<string, HeaderFooterImageSnapshot> imagesByShapeId = ReadHeaderFooterImages(maximumTotalSourceImageBytes);
+            Dictionary<string, ExcelHeaderFooterImageSnapshot> imagesByShapeId = ReadHeaderFooterImages(maximumTotalSourceImageBytes);
             bool hasHeaderImageRel = imagesByShapeId.ContainsKey("LH") || imagesByShapeId.ContainsKey("CH") || imagesByShapeId.ContainsKey("RH");
             bool hasFooterImageRel = imagesByShapeId.ContainsKey("LF") || imagesByShapeId.ContainsKey("CF") || imagesByShapeId.ContainsKey("RF");
             try {
@@ -158,7 +158,7 @@ namespace OfficeIMO.Excel {
                 }
             } catch { /* ignore */ }
 
-            return new HeaderFooterSnapshot {
+            return new ExcelHeaderFooterSnapshot {
                 HeaderLeft = hl,
                 HeaderCenter = hc,
                 HeaderRight = hr,
@@ -200,8 +200,8 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private Dictionary<string, HeaderFooterImageSnapshot> ReadHeaderFooterImages(long maximumTotalSourceImageBytes) {
-            var images = new Dictionary<string, HeaderFooterImageSnapshot>(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, ExcelHeaderFooterImageSnapshot> ReadHeaderFooterImages(long maximumTotalSourceImageBytes) {
+            var images = new Dictionary<string, ExcelHeaderFooterImageSnapshot>(StringComparer.OrdinalIgnoreCase);
             VmlDrawingPart? vmlPart = null;
             try {
                 var legacy = WorksheetRoot.GetFirstChild<LegacyDrawingHeaderFooter>();
@@ -228,7 +228,7 @@ namespace OfficeIMO.Excel {
 
             foreach (XElement shape in vmlDocument.Descendants().Where(element => string.Equals(element.Name.LocalName, "shape", StringComparison.OrdinalIgnoreCase))) {
                 string? shapeId = shape.Attribute("id")?.Value;
-                if (string.IsNullOrWhiteSpace(shapeId) || !TryGetHeaderFooterPosition(shapeId!, out bool isHeader, out HeaderFooterPosition position)) {
+                if (string.IsNullOrWhiteSpace(shapeId) || !TryGetHeaderFooterPosition(shapeId!, out bool isHeader, out ExcelHeaderFooterPosition position)) {
                     continue;
                 }
 
@@ -244,7 +244,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (TryReadHeaderFooterImage(vmlPart, relationshipId!, shape.Attribute("style")?.Value, position, ref remainingSourceImageBytes, out HeaderFooterImageSnapshot? image)) {
+                if (TryReadHeaderFooterImage(vmlPart, relationshipId!, shape.Attribute("style")?.Value, position, ref remainingSourceImageBytes, out ExcelHeaderFooterImageSnapshot? image)) {
                     images[shapeId!] = image!;
                 }
             }
@@ -256,9 +256,9 @@ namespace OfficeIMO.Excel {
             VmlDrawingPart vmlPart,
             string relationshipId,
             string? style,
-            HeaderFooterPosition position,
+            ExcelHeaderFooterPosition position,
             ref long remainingSourceImageBytes,
-            out HeaderFooterImageSnapshot? image) {
+            out ExcelHeaderFooterImageSnapshot? image) {
             image = null;
             ImagePart imagePart;
             try {
@@ -293,7 +293,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            image = new HeaderFooterImageSnapshot(position, bytes, imagePart.ContentType, widthPoints, heightPoints);
+            image = new ExcelHeaderFooterImageSnapshot(position, bytes, imagePart.ContentType, widthPoints, heightPoints);
             return true;
         }
 
@@ -322,30 +322,30 @@ namespace OfficeIMO.Excel {
             return null;
         }
 
-        private static bool TryGetHeaderFooterPosition(string shapeId, out bool isHeader, out HeaderFooterPosition position) {
+        private static bool TryGetHeaderFooterPosition(string shapeId, out bool isHeader, out ExcelHeaderFooterPosition position) {
             isHeader = false;
-            position = HeaderFooterPosition.Left;
+            position = ExcelHeaderFooterPosition.Left;
             switch (shapeId.ToUpperInvariant()) {
                 case "LH":
                     isHeader = true;
-                    position = HeaderFooterPosition.Left;
+                    position = ExcelHeaderFooterPosition.Left;
                     return true;
                 case "CH":
                     isHeader = true;
-                    position = HeaderFooterPosition.Center;
+                    position = ExcelHeaderFooterPosition.Center;
                     return true;
                 case "RH":
                     isHeader = true;
-                    position = HeaderFooterPosition.Right;
+                    position = ExcelHeaderFooterPosition.Right;
                     return true;
                 case "LF":
-                    position = HeaderFooterPosition.Left;
+                    position = ExcelHeaderFooterPosition.Left;
                     return true;
                 case "CF":
-                    position = HeaderFooterPosition.Center;
+                    position = ExcelHeaderFooterPosition.Center;
                     return true;
                 case "RF":
-                    position = HeaderFooterPosition.Right;
+                    position = ExcelHeaderFooterPosition.Right;
                     return true;
                 default:
                     return false;
@@ -547,7 +547,7 @@ namespace OfficeIMO.Excel {
         /// <param name="contentType">e.g. image/png, image/jpeg. Defaults to image/png.</param>
         /// <param name="widthPoints">Optional width in points. If omitted, inferred from image size at 96 DPI.</param>
         /// <param name="heightPoints">Optional height in points. If omitted, inferred proportionally.</param>
-        public void SetHeaderImage(HeaderFooterPosition position, byte[] imageBytes, string contentType = "image/png", double? widthPoints = null, double? heightPoints = null) {
+        public void SetHeaderImage(ExcelHeaderFooterPosition position, byte[] imageBytes, string contentType = "image/png", double? widthPoints = null, double? heightPoints = null) {
             if (imageBytes == null || imageBytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(imageBytes));
             WriteLock(() => {
                 var normalizedContentType = NormalizeImageContentType(contentType, nameof(contentType));
@@ -558,20 +558,20 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Asynchronously downloads an image from a URL and sets it in the header at the given position.
         /// </summary>
-        public async Task SetHeaderImageFromUrlAsync(HeaderFooterPosition position, string url, double? widthPoints = null,
+        public async Task SetHeaderImageFromUrlAsync(ExcelHeaderFooterPosition position, string url, double? widthPoints = null,
             double? heightPoints = null, CancellationToken cancellationToken = default) {
             await SetHeaderImageFromUrlCoreAsync(position, url, null, widthPoints, heightPoints, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Downloads a header image using an explicit remote-network policy.</summary>
-        public Task SetHeaderImageFromUrlAsync(HeaderFooterPosition position, string url,
+        public Task SetHeaderImageFromUrlAsync(ExcelHeaderFooterPosition position, string url,
             OfficeRemoteImageLoadOptions remoteImageOptions, double? widthPoints = null,
             double? heightPoints = null, CancellationToken cancellationToken = default) {
             if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
             return SetHeaderImageFromUrlCoreAsync(position, url, remoteImageOptions, widthPoints, heightPoints, cancellationToken);
         }
 
-        private async Task SetHeaderImageFromUrlCoreAsync(HeaderFooterPosition position, string url,
+        private async Task SetHeaderImageFromUrlCoreAsync(ExcelHeaderFooterPosition position, string url,
             OfficeRemoteImageLoadOptions? remoteImageOptions, double? widthPoints, double? heightPoints,
             CancellationToken cancellationToken) {
             OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(
@@ -586,7 +586,7 @@ namespace OfficeIMO.Excel {
         /// contains the picture placeholder (&amp;G) in the corresponding section. Subsequent calls replace any
         /// previously set header/footer images for this sheet.
         /// </summary>
-        public void SetFooterImage(HeaderFooterPosition position, byte[] imageBytes, string contentType = "image/png", double? widthPoints = null, double? heightPoints = null) {
+        public void SetFooterImage(ExcelHeaderFooterPosition position, byte[] imageBytes, string contentType = "image/png", double? widthPoints = null, double? heightPoints = null) {
             if (imageBytes == null || imageBytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(imageBytes));
             WriteLock(() => {
                 var normalizedContentType = NormalizeImageContentType(contentType, nameof(contentType));
@@ -597,20 +597,20 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Asynchronously downloads an image from a URL and sets it in the footer at the given position.
         /// </summary>
-        public async Task SetFooterImageFromUrlAsync(HeaderFooterPosition position, string url, double? widthPoints = null,
+        public async Task SetFooterImageFromUrlAsync(ExcelHeaderFooterPosition position, string url, double? widthPoints = null,
             double? heightPoints = null, CancellationToken cancellationToken = default) {
             await SetFooterImageFromUrlCoreAsync(position, url, null, widthPoints, heightPoints, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Downloads a footer image using an explicit remote-network policy.</summary>
-        public Task SetFooterImageFromUrlAsync(HeaderFooterPosition position, string url,
+        public Task SetFooterImageFromUrlAsync(ExcelHeaderFooterPosition position, string url,
             OfficeRemoteImageLoadOptions remoteImageOptions, double? widthPoints = null,
             double? heightPoints = null, CancellationToken cancellationToken = default) {
             if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
             return SetFooterImageFromUrlCoreAsync(position, url, remoteImageOptions, widthPoints, heightPoints, cancellationToken);
         }
 
-        private async Task SetFooterImageFromUrlCoreAsync(HeaderFooterPosition position, string url,
+        private async Task SetFooterImageFromUrlCoreAsync(ExcelHeaderFooterPosition position, string url,
             OfficeRemoteImageLoadOptions? remoteImageOptions, double? widthPoints, double? heightPoints,
             CancellationToken cancellationToken) {
             OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(
@@ -672,7 +672,7 @@ namespace OfficeIMO.Excel {
             return sb.ToString();
         }
 
-        private void EnsureHeaderFooterPicture(HeaderFooterPosition position, bool isHeader, byte[] imageBytes, string contentType, double? widthPoints, double? heightPoints) {
+        private void EnsureHeaderFooterPicture(ExcelHeaderFooterPosition position, bool isHeader, byte[] imageBytes, string contentType, double? widthPoints, double? heightPoints) {
             var ws = WorksheetRoot;
 
             // 1) Ensure HeaderFooter element exists and contains &G in correct section
@@ -685,7 +685,7 @@ namespace OfficeIMO.Excel {
             }
 
             // Build/update section string to include &G placeholder
-            void UpsertSection(bool header, HeaderFooterPosition pos) {
+            void UpsertSection(bool header, ExcelHeaderFooterPosition pos) {
                 string? current = null;
                 if (header)
                     current = hf.OddHeader?.Text;
@@ -720,9 +720,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 switch (pos) {
-                    case HeaderFooterPosition.Left: l = EnsureG(l); break;
-                    case HeaderFooterPosition.Center: c = EnsureG(c); break;
-                    case HeaderFooterPosition.Right: r = EnsureG(r); break;
+                    case ExcelHeaderFooterPosition.Left: l = EnsureG(l); break;
+                    case ExcelHeaderFooterPosition.Center: c = EnsureG(c); break;
+                    case ExcelHeaderFooterPosition.Right: r = EnsureG(r); break;
                 }
 
                 string rebuilt = new StringBuilder()
@@ -777,8 +777,8 @@ namespace OfficeIMO.Excel {
 
             // 4) Upsert the VML shape for the selected section while preserving other header/footer images.
             string shapeId = isHeader
-                ? (position == HeaderFooterPosition.Left ? "LH" : position == HeaderFooterPosition.Center ? "CH" : "RH")
-                : (position == HeaderFooterPosition.Left ? "LF" : position == HeaderFooterPosition.Center ? "CF" : "RF");
+                ? (position == ExcelHeaderFooterPosition.Left ? "LH" : position == ExcelHeaderFooterPosition.Center ? "CH" : "RH")
+                : (position == ExcelHeaderFooterPosition.Left ? "LF" : position == ExcelHeaderFooterPosition.Center ? "CF" : "RF");
 
             XDocument vmlDocument = LoadOrCreateHeaderFooterVmlDocument(vmlPart);
             UpsertHeaderFooterVmlShape(vmlDocument, shapeId, imgRelId, wPt, hPt);

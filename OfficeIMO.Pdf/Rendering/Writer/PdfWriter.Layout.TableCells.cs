@@ -186,11 +186,11 @@ internal static partial class PdfWriter {
         return width;
     }
 
-    private static double MeasureTableRunsTextWidth(System.Collections.Generic.IReadOnlyList<TextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions? options) {
+    private static double MeasureTableRunsTextWidth(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions? options) {
         PdfOptions effectiveOptions = options ?? new PdfOptions();
-        System.Collections.Generic.IReadOnlyList<TextRun> normalizedRuns = NormalizeFallbackRuns(runs, baseFont, effectiveOptions);
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> normalizedRuns = NormalizeFallbackRuns(runs, baseFont, effectiveOptions);
         double width = 0D;
-        foreach (System.Collections.Generic.IReadOnlyList<TextRun> line in BuildPageTextLineRuns(normalizedRuns)) {
+        foreach (System.Collections.Generic.IReadOnlyList<PdfTextRun> line in BuildPageTextLineRuns(normalizedRuns)) {
             width = Math.Max(width, MeasurePageTextLineRuns(line, baseFont, fontSize, effectiveOptions));
         }
 
@@ -280,9 +280,9 @@ internal static partial class PdfWriter {
         return max;
     }
 
-    private static double GetMaxExplicitRunFontSize(System.Collections.Generic.IReadOnlyList<TextRun> runs) {
+    private static double GetMaxExplicitRunFontSize(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs) {
         double max = 0D;
-        foreach (TextRun run in runs) {
+        foreach (PdfTextRun run in runs) {
             if (run.FontSize.HasValue) {
                 max = Math.Max(max, run.FontSize.Value);
             }
@@ -714,14 +714,14 @@ internal static partial class PdfWriter {
         return new TableCellTextLayout(wrap.Lines, wrap.LineHeights);
     }
 
-    private static System.Collections.Generic.IReadOnlyList<TextRun> ScaleTableRunsForShrink(System.Collections.Generic.IReadOnlyList<TextRun> runs, double runFontSizeScale, double minimumShrinkFontSize) {
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> ScaleTableRunsForShrink(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, double runFontSizeScale, double minimumShrinkFontSize) {
         if (runFontSizeScale >= 0.999D) {
             return runs;
         }
 
         double minimumExplicitFontSize = minimumShrinkFontSize > 0D ? minimumShrinkFontSize : 0.001D;
-        var scaledRuns = new System.Collections.Generic.List<TextRun>(runs.Count);
-        foreach (TextRun run in runs) {
+        var scaledRuns = new System.Collections.Generic.List<PdfTextRun>(runs.Count);
+        foreach (PdfTextRun run in runs) {
             if (run.InlineElement != null) {
                 scaledRuns.Add(run);
                 continue;
@@ -734,7 +734,7 @@ internal static partial class PdfWriter {
                     : System.Math.Max(minimumExplicitFontSize, run.FontSize.Value * runFontSizeScale);
             }
 
-            scaledRuns.Add(new TextRun(
+            scaledRuns.Add(new PdfTextRun(
                 run.Text,
                 run.Bold,
                 run.Underline,

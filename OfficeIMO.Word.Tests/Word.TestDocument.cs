@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Paragraphs.Count == 6, "Paragraphs not matching. Current: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.Sections.Count == 1, "Sections not matching. Current: " + document.Sections.Count);
 
-                Assert.True(document.PageOrientation == WordPageOrientation.Portrait, "Page orientation. Current: " + document.PageOrientation);
+                Assert.True(document.PageOrientation == OfficePageOrientation.Portrait, "Page orientation. Current: " + document.PageOrientation);
                 //Assert.True(document.Settings == PageOrientationValues.Portrait, "Page orientation. Current: " + document.PageOrientation);
 
 

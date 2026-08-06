@@ -141,15 +141,15 @@ namespace OfficeIMO.Excel {
             var data = new ExcelChartData(
                 points.Select(point => point.Category),
                 new[] {
-                    new ExcelChartSeries("Value", points.Select(point => point.Value), ExcelChartType.ColumnClustered, ExcelChartAxisGroup.Primary, "4F46E5"),
-                    new ExcelChartSeries("Cumulative %", cumulative, ExcelChartType.Line, ExcelChartAxisGroup.Secondary, "F59E0B")
+                    new ExcelChartSeries("Value", points.Select(point => point.Value), ExcelChartType.ColumnClustered, OfficeChartAxisGroup.Primary, "4F46E5"),
+                    new ExcelChartSeries("Cumulative %", cumulative, ExcelChartType.Line, OfficeChartAxisGroup.Secondary, "F59E0B")
                 });
             ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, ExcelChartType.ColumnClustered, title);
-            return chart.SetLegend(ExcelChartLegendPosition.Bottom)
+            return chart.SetLegend(OfficeChartLegendPosition.Bottom)
                 .SetSeriesLineColor(1, "F59E0B", 2)
-                .SetSeriesMarker(1, ExcelChartMarkerStyle.Circle, size: 6, fillColor: "F59E0B", lineColor: "F59E0B")
-                .SetValueAxisNumberFormat("0%", sourceLinked: false, ExcelChartAxisGroup.Secondary)
-                .SetValueAxisScale(minimum: 0, maximum: 1, majorUnit: 0.2, axisGroup: ExcelChartAxisGroup.Secondary)
+                .SetSeriesMarker(1, OfficeChartMarkerShape.Circle, size: 6, fillColor: "F59E0B", lineColor: "F59E0B")
+                .SetValueAxisNumberFormat("0%", sourceLinked: false, OfficeChartAxisGroup.Secondary)
+                .SetValueAxisScale(minimum: 0, maximum: 1, majorUnit: 0.2, axisGroup: OfficeChartAxisGroup.Secondary)
                 .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "E5E7EB", lineWidthPoints: 0.5);
         }
 
@@ -187,7 +187,7 @@ namespace OfficeIMO.Excel {
             chart.ApplyAuthoredSeriesStyles(data.Series, new[] { false, true, false });
             return chart.SetSeriesNoFill(0)
                 .SetSeriesNoFill(2)
-                .SetSeriesDataLabels(1, showValue: true, position: ExcelChartDataLabelPosition.Center, numberFormat: "#,##0.###############")
+                .SetSeriesDataLabels(1, showValue: true, position: OfficeChartDataLabelPosition.Center, numberFormat: "#,##0.###############")
                 .SetCategoryAxisReverseOrder()
                 .SetValueAxisGridlines(showMajor: false, showMinor: false);
         }
@@ -277,16 +277,16 @@ namespace OfficeIMO.Excel {
 
             if (increasePoints.Count > 0) {
                 chart.SetSeriesDataLabelsForPoints(1, increasePoints, showValue: true,
-                    position: ExcelChartDataLabelPosition.OutsideEnd, numberFormat: "+" + waterfallNumberFormat);
+                    position: OfficeChartDataLabelPosition.OutsideEnd, numberFormat: "+" + waterfallNumberFormat);
             }
             if (decreasePoints.Count > 0) {
                 chart.SetSeriesDataLabelsForPoints(2, decreasePoints, showValue: true,
-                    position: ExcelChartDataLabelPosition.OutsideEnd, numberFormat: "-" + waterfallNumberFormat);
+                    position: OfficeChartDataLabelPosition.OutsideEnd, numberFormat: "-" + waterfallNumberFormat);
             }
 
             if (includeTotal) {
                 chart.SetSeriesDataLabelsForPoints(3, new[] { count - 1 }, showValue: true,
-                    position: ExcelChartDataLabelPosition.OutsideEnd, numberFormat: waterfallNumberFormat);
+                    position: OfficeChartDataLabelPosition.OutsideEnd, numberFormat: waterfallNumberFormat);
             }
 
             return chart;

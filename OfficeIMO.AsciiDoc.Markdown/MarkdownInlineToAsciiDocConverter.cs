@@ -9,7 +9,7 @@ internal static class MarkdownInlineToAsciiDocConverter {
         for (int index = 0; index < source.Nodes.Count; index++) {
             IMarkdownInline inline = source.Nodes[index];
             switch (inline) {
-                case TextRun text: output.Append(EscapeText(text.Text)); break;
+                case MarkdownTextRun text: output.Append(EscapeText(text.Text)); break;
                 case BoldInline bold: output.Append('*').Append(EscapeText(bold.Text)).Append('*'); break;
                 case BoldSequenceInline bold: output.Append('*').Append(Convert(bold.Inlines, diagnostics, owner)).Append('*'); break;
                 case BoldItalicInline boldItalic: output.Append("*_").Append(EscapeText(boldItalic.Text)).Append("_*"); break;

@@ -16,7 +16,7 @@ public partial class Word {
     [InlineData(9, WordParagraphStyles.Heading9)]
     [InlineData(0, WordParagraphStyles.Heading1)]
     public void Test_GetHeadingStyleForLevel(int level, WordParagraphStyles expected) {
-        var style = HeadingStyleMapper.GetHeadingStyleForLevel(level);
+        var style = WordHeadingStyleMapper.GetHeadingStyleForLevel(level);
         Assert.Equal(expected, style);
     }
 
@@ -32,7 +32,7 @@ public partial class Word {
     [InlineData(WordParagraphStyles.Heading9, 9)]
     [InlineData(WordParagraphStyles.Normal, 0)]
     public void Test_GetLevelForHeadingStyle(WordParagraphStyles style, int expected) {
-        var level = HeadingStyleMapper.GetLevelForHeadingStyle(style);
+        var level = WordHeadingStyleMapper.GetLevelForHeadingStyle(style);
         Assert.Equal(expected, level);
     }
 }

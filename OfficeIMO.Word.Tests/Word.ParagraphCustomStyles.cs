@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
         public void Test_RegisterCustomParagraphStyle() {
-            var style = new Style { Type = StyleValues.Paragraph, StyleId = "MyStyle" };
+            var style = new WordParagraphStyleDefinition("MyStyle");
             WordParagraphStyle.RegisterCustomStyle("MyStyle", style);
 
             string filePath = Path.Combine(_directoryWithFiles, "CustomParagraphStyle.docx");
@@ -36,20 +36,20 @@ namespace OfficeIMO.Tests {
         public void Test_OverrideBuiltInParagraphStyle() {
             var original = WordParagraphStyle.GetStyleDefinition(WordParagraphStyles.Normal);
             Assert.NotNull(original);
-            var custom = new Style { Type = StyleValues.Paragraph, StyleId = "Normal" };
+            var custom = new WordParagraphStyleDefinition("Normal") { Bold = true };
             WordParagraphStyle.OverrideBuiltInStyle(WordParagraphStyles.Normal, custom);
 
             var retrieved = WordParagraphStyle.GetStyleDefinition(WordParagraphStyles.Normal);
             Assert.NotNull(retrieved);
-            Assert.Equal(custom, retrieved);
+            Assert.Equal("Normal", retrieved!.StyleId);
+            Assert.True(retrieved.Bold);
 
             WordParagraphStyle.OverrideBuiltInStyle(WordParagraphStyles.Normal, original!);
         }
 
         [Fact]
         public void Test_LoadDocumentWithExistingCustomStyle() {
-            var style = new Style { Type = StyleValues.Paragraph, StyleId = "MyStyle" };
-            style.Append(new StyleName { Val = "Original" });
+            var style = new WordParagraphStyleDefinition("MyStyle") { Name = "Original" };
             WordParagraphStyle.RegisterCustomStyle("MyStyle", style);
 
             string filePath = Path.Combine(_directoryWithFiles, "CustomStylePreserve.docx");
@@ -58,8 +58,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            var updated = new Style { Type = StyleValues.Paragraph, StyleId = "MyStyle" };
-            updated.Append(new StyleName { Val = "Updated" });
+            var updated = new WordParagraphStyleDefinition("MyStyle") { Name = "Updated" };
             WordParagraphStyle.RegisterCustomStyle("MyStyle", updated);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -82,8 +81,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_LoadDocumentWithExistingCustomStyle_ReadOnly() {
-            var style = new Style { Type = StyleValues.Paragraph, StyleId = "MyStyle" };
-            style.Append(new StyleName { Val = "Original" });
+            var style = new WordParagraphStyleDefinition("MyStyle") { Name = "Original" };
             WordParagraphStyle.RegisterCustomStyle("MyStyle", style);
 
             string filePath = Path.Combine(_directoryWithFiles, "CustomStyleReadOnly.docx");
@@ -92,8 +90,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            var updated = new Style { Type = StyleValues.Paragraph, StyleId = "MyStyle" };
-            updated.Append(new StyleName { Val = "Updated" });
+            var updated = new WordParagraphStyleDefinition("MyStyle") { Name = "Updated" };
             WordParagraphStyle.RegisterCustomStyle("MyStyle", updated);
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions {

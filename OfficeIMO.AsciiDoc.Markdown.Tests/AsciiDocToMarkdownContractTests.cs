@@ -121,7 +121,7 @@ public sealed class AsciiDocToMarkdownContractTests {
         Assert.Equal(2, paragraph.Inlines.Nodes.OfType<CodeSpanInline>().Count());
         Assert.Contains(paragraph.Inlines.Nodes, node => node is LinkInline);
         Assert.Contains(paragraph.Inlines.Nodes, node => node is ImageInline);
-        Assert.Contains("OfficeIMO", paragraph.Inlines.Nodes.OfType<BoldSequenceInline>().Single().Inlines.Nodes.OfType<TextRun>().Single().Text);
+        Assert.Contains("OfficeIMO", paragraph.Inlines.Nodes.OfType<BoldSequenceInline>().Single().Inlines.Nodes.OfType<MarkdownTextRun>().Single().Text);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "ADOCMD103");
     }
 
@@ -141,7 +141,7 @@ public sealed class AsciiDocToMarkdownContractTests {
         UnorderedListBlock list = Assert.Single(result.Value.Blocks.OfType<UnorderedListBlock>());
         Assert.Single(list.Items[0].NestedBlocks.OfType<ParagraphBlock>());
         Assert.DoesNotContain(result.Value.Blocks.OfType<ParagraphBlock>(), paragraph =>
-            paragraph.Inlines.Nodes.OfType<TextRun>().Any(text => text.Text == "continued"));
+            paragraph.Inlines.Nodes.OfType<MarkdownTextRun>().Any(text => text.Text == "continued"));
         TableBlock table = Assert.Single(result.Value.Blocks.OfType<TableBlock>());
         Assert.Equal(2, table.HeaderCells.Count);
         Assert.Equal(2, table.GetCell(0, 0)!.ColumnSpan);

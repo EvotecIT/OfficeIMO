@@ -367,8 +367,8 @@ public partial class PdfDocumentVisualQualityTests {
                     .Paragraph(p => p.Text("A reusable panel can combine regular document blocks."))
                     .RichBullets(new[] {
                         PdfListItem.Rich(new[] {
-                            TextRun.Bolded("Reusable"),
-                            TextRun.Normal(" core behavior")
+                            PdfTextRun.Bolded("Reusable"),
+                            PdfTextRun.Normal(" core behavior")
                         })
                     })
                     .Table(new[] {
@@ -462,13 +462,13 @@ public partial class PdfDocumentVisualQualityTests {
                             item.Element(element => element
                                 .RichBullets(new[] {
                                     PdfListItem.Rich(new[] {
-                                        TextRun.Bolded("Rich"),
-                                        TextRun.Normal(" bullet")
+                                        PdfTextRun.Bolded("Rich"),
+                                        PdfTextRun.Normal(" bullet")
                                     })
                                 })
                                 .RichNumbered(new[] {
                                     PdfListItem.Rich(new[] {
-                                        TextRun.Normal("Numbered element item")
+                                        PdfTextRun.Normal("Numbered element item")
                                     })
                                 })
                                 .HR()
@@ -507,7 +507,7 @@ public partial class PdfDocumentVisualQualityTests {
             KeepWithNext = true
         };
 
-        var block = new PanelParagraphBlock(new[] { TextRun.Normal("Stable panel") }, PdfAlign.Left, null, style);
+        var block = new PanelParagraphBlock(new[] { PdfTextRun.Normal("Stable panel") }, PdfAlign.Left, null, style);
 
         style.Background = PdfColor.FromRgb(200, 10, 10);
         style.BorderColor = PdfColor.FromRgb(220, 10, 10);

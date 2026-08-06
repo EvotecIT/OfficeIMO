@@ -49,9 +49,9 @@ namespace OfficeIMO.Word.Markdown {
         private void BuildMarkdownDocument(WordDocument document, MarkdownDoc markdown, WordToMarkdownOptions options, CancellationToken cancellationToken) {
             _visualFallbackResourceIndex = 0;
             _exportedImageFileNames.Clear();
-            var listIndices = DocumentTraversal.BuildListIndices(document);
+            var listIndices = WordDocumentTraversal.BuildListIndices(document);
             int sectionIndex = 0;
-            foreach (var section in DocumentTraversal.EnumerateSections(document)) {
+            foreach (var section in WordDocumentTraversal.EnumerateSections(document)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (options.IncludeHeadersAndFootersAsSemanticBlocks) {
                     AppendHeaderFooterSemanticBlocks(markdown, section, options, cancellationToken, sectionIndex);
@@ -162,7 +162,7 @@ namespace OfficeIMO.Word.Markdown {
             Action<IMarkdownBlock> addRootBlock,
             List<PendingListFrame> listStack,
             WordParagraph paragraph,
-            DocumentTraversal.ListInfo listInfo,
+            WordDocumentTraversal.ListInfo listInfo,
             WordToMarkdownOptions options,
             IReadOnlyDictionary<WordParagraph, (int Level, int Index)>? listIndices,
             bool hasCheckbox,
@@ -186,7 +186,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static int GetListStartForCurrentItem(
             WordParagraph paragraph,
-            DocumentTraversal.ListInfo listInfo,
+            WordDocumentTraversal.ListInfo listInfo,
             IReadOnlyDictionary<WordParagraph, (int Level, int Index)>? listIndices) {
             if (!listInfo.Ordered || listIndices == null) {
                 return listInfo.Start;
@@ -239,7 +239,7 @@ namespace OfficeIMO.Word.Markdown {
             return block is HorizontalRuleBlock;
         }
 
-        private static void EnsureListFrame(Action<IMarkdownBlock> addRootBlock, List<PendingListFrame> listStack, DocumentTraversal.ListInfo listInfo, int start, int maximumDepth) {
+        private static void EnsureListFrame(Action<IMarkdownBlock> addRootBlock, List<PendingListFrame> listStack, WordDocumentTraversal.ListInfo listInfo, int start, int maximumDepth) {
             int boundedLevel = ValidateListLevel(listInfo.Level, maximumDepth);
 
             int targetDepth = boundedLevel + 1;
@@ -366,7 +366,7 @@ namespace OfficeIMO.Word.Markdown {
 
                     ResolveParagraphCheckboxState(paragraph, out bool hasCheckbox, out bool checkboxChecked);
 
-                    var listInfo = DocumentTraversal.GetListInfo(paragraph);
+                    var listInfo = WordDocumentTraversal.GetListInfo(paragraph);
                     if (listInfo != null) {
                         AddListParagraph(addRootBlock, listStack, paragraph, listInfo.Value, options, listIndices, hasCheckbox, checkboxChecked, trimBoundaryWhitespace);
                         continue;
@@ -867,7 +867,7 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             int headingLevel = paragraph.Style.HasValue
-                ? HeadingStyleMapper.GetLevelForHeadingStyle(paragraph.Style.Value)
+                ? WordHeadingStyleMapper.GetLevelForHeadingStyle(paragraph.Style.Value)
                 : 0;
 
             IMarkdownBlock block = headingLevel > 0
@@ -1458,21 +1458,21 @@ namespace OfficeIMO.Word.Markdown {
                 nodes.RemoveAt(nodes.Count - 1);
             }
 
-            if (nodes.Count > 0 && nodes[0] is TextRun leadingText) {
+            if (nodes.Count > 0 && nodes[0] is MarkdownTextRun leadingText) {
                 string trimmed = leadingText.Text.TrimStart();
                 if (trimmed.Length == 0) {
                     nodes.RemoveAt(0);
                 } else if (!string.Equals(trimmed, leadingText.Text, StringComparison.Ordinal)) {
-                    nodes[0] = new TextRun(trimmed);
+                    nodes[0] = new MarkdownTextRun(trimmed);
                 }
             }
 
-            if (nodes.Count > 0 && nodes[nodes.Count - 1] is TextRun trailingText) {
+            if (nodes.Count > 0 && nodes[nodes.Count - 1] is MarkdownTextRun trailingText) {
                 string trimmed = trailingText.Text.TrimEnd();
                 if (trimmed.Length == 0) {
                     nodes.RemoveAt(nodes.Count - 1);
                 } else if (!string.Equals(trimmed, trailingText.Text, StringComparison.Ordinal)) {
-                    nodes[nodes.Count - 1] = new TextRun(trimmed);
+                    nodes[nodes.Count - 1] = new MarkdownTextRun(trimmed);
                 }
             }
 
@@ -1541,7 +1541,7 @@ namespace OfficeIMO.Word.Markdown {
             string? implicitCodeFont) {
             IMarkdownInline node = IsCodeRun(run, preferredCodeFont, implicitCodeFont)
                 ? new CodeSpanInline(text)
-                : new TextRun(text);
+                : new MarkdownTextRun(text);
 
             if (run.VerticalTextAlignment == WordVerticalTextPosition.Superscript) {
                 node = WrapInline("sup", node);

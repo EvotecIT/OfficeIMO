@@ -229,7 +229,7 @@ namespace OfficeIMO.PowerPoint {
                     CenterX(to), CenterY(to), "Architecture Edge " + (index + 1));
                 connector.OutlineColor = GetAccent(theme, index);
                 connector.OutlineWidthPoints = 1.25;
-                connector.SetLineEnds(null, PowerPointLineEndType.Triangle, PowerPointLineEndWidth.Small,
+                connector.SetLineEnds(null, OfficeLineMarkerKind.Triangle, PowerPointLineEndWidth.Small,
                     PowerPointLineEndLength.Small);
                 if (!string.IsNullOrWhiteSpace(edge.Label)) {
                     double labelX = (CenterX(from) + CenterX(to)) / 2D - 1.0;
@@ -242,7 +242,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddArchitectureNode(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointArchitectureNode node, PowerPointLayoutBox bounds) {
-            PowerPointAutoShape panel = slide.AddShapeCm(PowerPointShapeType.RoundRectangle, bounds.LeftCm,
+            PowerPointAutoShape panel = slide.AddShapeCm(OfficePresetShapeType.RoundRectangle, bounds.LeftCm,
                 bounds.TopCm, bounds.WidthCm, bounds.HeightCm, "Architecture Node " + node.Id);
             panel.FillColor = theme.BackgroundColor;
             panel.OutlineColor = theme.AccentColor;

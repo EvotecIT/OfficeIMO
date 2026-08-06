@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
                 projected.ToBytes(PowerPointFileFormat.Ppt));
             Assert.Equal(bytes, projected.ToBytes(PowerPointFileFormat.Ppt,
                 new PowerPointSaveOptions {
-                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                    LossPolicy = OfficeConversionLossPolicy.Allow
                 }));
         }
 

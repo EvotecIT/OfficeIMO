@@ -5,23 +5,6 @@ using System.Xml.Linq;
 
 namespace OfficeIMO.Word {
     /// <summary>
-    /// OfficeIMO's current author/edit/preserve status for a Word feature discovered during inspection.
-    /// </summary>
-    public enum WordFeatureSupportLevel {
-        /// <summary>OfficeIMO can author or edit this feature directly.</summary>
-        Editable,
-
-        /// <summary>OfficeIMO can author or edit common cases, but not the full Word feature surface.</summary>
-        PartiallyEditable,
-
-        /// <summary>OfficeIMO should preserve the feature during round-trip saves, but does not expose a rich authoring API.</summary>
-        Preserved,
-
-        /// <summary>OfficeIMO has no meaningful support for the feature yet.</summary>
-        Unsupported
-    }
-
-    /// <summary>
     /// Document-level feature and compatibility report.
     /// </summary>
     public sealed partial class WordFeatureReport {
@@ -41,28 +24,28 @@ namespace OfficeIMO.Word {
         /// Features OfficeIMO can author or edit directly.
         /// </summary>
         public IReadOnlyList<WordFeatureFinding> EditableFeatures => _features
-            .Where(feature => feature.SupportLevel == WordFeatureSupportLevel.Editable)
+            .Where(feature => feature.SupportLevel == OfficeFeatureSupportLevel.Editable)
             .ToArray();
 
         /// <summary>
         /// Features OfficeIMO can partly author or edit.
         /// </summary>
         public IReadOnlyList<WordFeatureFinding> PartiallyEditableFeatures => _features
-            .Where(feature => feature.SupportLevel == WordFeatureSupportLevel.PartiallyEditable)
+            .Where(feature => feature.SupportLevel == OfficeFeatureSupportLevel.PartiallyEditable)
             .ToArray();
 
         /// <summary>
         /// Advanced features OfficeIMO should preserve but cannot fully author or edit yet.
         /// </summary>
         public IReadOnlyList<WordFeatureFinding> PreservedFeatures => _features
-            .Where(feature => feature.SupportLevel == WordFeatureSupportLevel.Preserved)
+            .Where(feature => feature.SupportLevel == OfficeFeatureSupportLevel.Preserved)
             .ToArray();
 
         /// <summary>
         /// Features OfficeIMO does not meaningfully support yet.
         /// </summary>
         public IReadOnlyList<WordFeatureFinding> UnsupportedFeatures => _features
-            .Where(feature => feature.SupportLevel == WordFeatureSupportLevel.Unsupported)
+            .Where(feature => feature.SupportLevel == OfficeFeatureSupportLevel.Unsupported)
             .ToArray();
 
         /// <summary>
@@ -96,11 +79,11 @@ namespace OfficeIMO.Word {
         /// Returns discovered features with one of the provided support levels.
         /// </summary>
         /// <param name="supportLevels">Support levels to match.</param>
-        public IReadOnlyList<WordFeatureFinding> FindFeatures(params WordFeatureSupportLevel[] supportLevels) {
+        public IReadOnlyList<WordFeatureFinding> FindFeatures(params OfficeFeatureSupportLevel[] supportLevels) {
             if (supportLevels == null) throw new ArgumentNullException(nameof(supportLevels));
             if (supportLevels.Length == 0) return Array.Empty<WordFeatureFinding>();
 
-            var levels = new HashSet<WordFeatureSupportLevel>(supportLevels);
+            var levels = new HashSet<OfficeFeatureSupportLevel>(supportLevels);
             return _features
                 .Where(feature => levels.Contains(feature.SupportLevel))
                 .ToArray();
@@ -153,7 +136,7 @@ namespace OfficeIMO.Word {
         /// Throws when the document contains any features with the provided support levels.
         /// </summary>
         /// <param name="supportLevels">Support levels to reject.</param>
-        public WordFeatureReport EnsureNoFeatures(params WordFeatureSupportLevel[] supportLevels) {
+        public WordFeatureReport EnsureNoFeatures(params OfficeFeatureSupportLevel[] supportLevels) {
             var matches = FindFeatures(supportLevels);
             if (matches.Count > 0) {
                 ThrowBlockedFeatures("Document contains blocked feature support levels", matches);
@@ -283,7 +266,7 @@ namespace OfficeIMO.Word {
     /// One feature discovered in a document.
     /// </summary>
     public sealed class WordFeatureFinding {
-        internal WordFeatureFinding(string category, string name, WordFeatureSupportLevel supportLevel, int count, string? scope, string note,
+        internal WordFeatureFinding(string category, string name, OfficeFeatureSupportLevel supportLevel, int count, string? scope, string note,
             IReadOnlyList<string>? details = null) {
             Category = string.IsNullOrWhiteSpace(category) ? throw new ArgumentNullException(nameof(category)) : category;
             Name = string.IsNullOrWhiteSpace(name) ? throw new ArgumentNullException(nameof(name)) : name;
@@ -307,7 +290,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// OfficeIMO support status for this feature.
         /// </summary>
-        public WordFeatureSupportLevel SupportLevel { get; }
+        public OfficeFeatureSupportLevel SupportLevel { get; }
 
         /// <summary>
         /// Number of matching items discovered.
@@ -341,62 +324,62 @@ namespace OfficeIMO.Word {
             var allParts = EnumerateWordPartsAndRoot(mainPart).ToList();
             var bibliographyDetails = DescribeBibliographyParts(allParts);
 
-            Add(features, "Content", "Paragraphs", WordFeatureSupportLevel.Editable, Paragraphs.Count, null,
+            Add(features, "Content", "Paragraphs", OfficeFeatureSupportLevel.Editable, Paragraphs.Count, null,
                 "Paragraphs, runs, common formatting, styles, lists, bookmarks, fields, and hyperlinks can be authored and inspected.");
-            Add(features, "Content", "Tables", WordFeatureSupportLevel.Editable, TablesIncludingNestedTables.Count, null,
+            Add(features, "Content", "Tables", OfficeFeatureSupportLevel.Editable, TablesIncludingNestedTables.Count, null,
                 "Tables, rows, cells, borders, widths, merges, and nested table structures can be authored and inspected.");
-            Add(features, "Content", "Sections", WordFeatureSupportLevel.Editable, Sections.Count, null,
+            Add(features, "Content", "Sections", OfficeFeatureSupportLevel.Editable, Sections.Count, null,
                 "Sections, page settings, margins, columns, headers, and footers can be authored and inspected.");
-            Add(features, "Media", "Images", WordFeatureSupportLevel.PartiallyEditable, Images.Count, null,
+            Add(features, "Media", "Images", OfficeFeatureSupportLevel.PartiallyEditable, Images.Count, null,
                 "Images can be inserted and inspected in common document/header/footer scenarios; advanced drawing behaviors remain partial.");
             IReadOnlyList<WordFieldInfo> fieldInventory = InspectFields();
             WordReviewInfo reviewInfo = InspectReview();
-            Add(features, "Content", "Fields", WordFeatureSupportLevel.PartiallyEditable, Math.Max(Fields.Count, fieldInventory.Count), null,
+            Add(features, "Content", "Fields", OfficeFeatureSupportLevel.PartiallyEditable, Math.Max(Fields.Count, fieldInventory.Count), null,
                 "Common field codes can be authored, updated, and inventoried with InspectFields(); full Word field evaluation remains partial.",
                 DescribeFieldInventory(fieldInventory));
-            Add(features, "Content", "Bookmarks", WordFeatureSupportLevel.Editable, Bookmarks.Count, null,
+            Add(features, "Content", "Bookmarks", OfficeFeatureSupportLevel.Editable, Bookmarks.Count, null,
                 "Bookmarks can be authored, inspected, and used as hyperlink anchors.");
-            Add(features, "Content", "Document variables", WordFeatureSupportLevel.Editable, DocumentVariables.Count, null,
+            Add(features, "Content", "Document variables", OfficeFeatureSupportLevel.Editable, DocumentVariables.Count, null,
                 "Document variables can be authored, inspected, updated, and removed.");
-            Add(features, "References", "Bibliography sources", WordFeatureSupportLevel.Editable, Math.Max(BibliographySources.Count, bibliographyDetails.Count), null,
+            Add(features, "References", "Bibliography sources", OfficeFeatureSupportLevel.Editable, Math.Max(BibliographySources.Count, bibliographyDetails.Count), null,
                 "Bibliography sources can be authored, loaded, and used by citation and bibliography fields.",
                 bibliographyDetails);
-            Add(features, "Content", "Footnotes", WordFeatureSupportLevel.PartiallyEditable, FootNotes.Count, null,
+            Add(features, "Content", "Footnotes", OfficeFeatureSupportLevel.PartiallyEditable, FootNotes.Count, null,
                 "Footnotes can be authored, inspected, and removed; advanced note numbering and cross-format workflows remain partial.");
-            Add(features, "Content", "Endnotes", WordFeatureSupportLevel.PartiallyEditable, EndNotes.Count, null,
+            Add(features, "Content", "Endnotes", OfficeFeatureSupportLevel.PartiallyEditable, EndNotes.Count, null,
                 "Endnotes can be authored, inspected, and removed; advanced note numbering and cross-format workflows remain partial.");
-            Add(features, "Content", "External hyperlinks", WordFeatureSupportLevel.PartiallyEditable, CountExternalHyperlinks(), null,
+            Add(features, "Content", "External hyperlinks", OfficeFeatureSupportLevel.PartiallyEditable, CountExternalHyperlinks(), null,
                 "External hyperlinks can be authored and edited; the report exposes external relationships for round-trip review.",
                 DescribeExternalRelationships(EnumerateWordPartsAndRoot(mainPart)));
-            Add(features, "Content", "Content controls", WordFeatureSupportLevel.PartiallyEditable, StructuredDocumentTags.Count, null,
+            Add(features, "Content", "Content controls", OfficeFeatureSupportLevel.PartiallyEditable, StructuredDocumentTags.Count, null,
                 "Common content controls such as check boxes, combo boxes, dropdown lists, date pickers, picture controls, and repeating sections are editable; the full SDT surface remains partial.");
-            Add(features, "Content", "Text boxes", WordFeatureSupportLevel.PartiallyEditable, TextBoxes.Count, null,
+            Add(features, "Content", "Text boxes", OfficeFeatureSupportLevel.PartiallyEditable, TextBoxes.Count, null,
                 "Text boxes can be authored and inspected in common scenarios; advanced layout behaviors remain partial.");
-            Add(features, "Content", "Shapes", WordFeatureSupportLevel.PartiallyEditable, Shapes.Count, null,
+            Add(features, "Content", "Shapes", OfficeFeatureSupportLevel.PartiallyEditable, Shapes.Count, null,
                 "Basic shapes can be authored and inspected; complex drawing behaviors remain partial.");
             var chartDetails = DescribePartsByType<ChartPart>(allParts);
-            Add(features, "Visualization", "Charts", WordFeatureSupportLevel.PartiallyEditable, Math.Max(Charts.Count, chartDetails.Count), null,
+            Add(features, "Visualization", "Charts", OfficeFeatureSupportLevel.PartiallyEditable, Math.Max(Charts.Count, chartDetails.Count), null,
                 "Common chart authoring is supported; advanced chart editing remains partial.",
                 chartDetails);
             var smartArtDataDetails = DescribePartsByType<DiagramDataPart>(allParts);
             var smartArtDetails = DescribeDiagramParts(allParts);
-            Add(features, "Visualization", "SmartArt", WordFeatureSupportLevel.Preserved, Math.Max(SmartArts.Count, smartArtDataDetails.Count), null,
+            Add(features, "Visualization", "SmartArt", OfficeFeatureSupportLevel.Preserved, Math.Max(SmartArts.Count, smartArtDataDetails.Count), null,
                 "SmartArt diagrams are detected with related diagram package parts and should be treated as preserve-only advanced drawing content.",
                 smartArtDetails);
             var equationDetails = DescribeElementsByLocalName(allParts, "oMath");
-            Add(features, "Math", "Equations", WordFeatureSupportLevel.PartiallyEditable, Math.Max(Equations.Count, CountElementsByLocalName(allParts, "oMath")), null,
+            Add(features, "Math", "Equations", OfficeFeatureSupportLevel.PartiallyEditable, Math.Max(Equations.Count, CountElementsByLocalName(allParts, "oMath")), null,
                 "Equations can be discovered across document parts; rich equation authoring and editing remains partial.",
                 equationDetails);
-            Add(features, "Review", "Comments", WordFeatureSupportLevel.PartiallyEditable, reviewInfo.CommentCount, null,
+            Add(features, "Review", "Comments", OfficeFeatureSupportLevel.PartiallyEditable, reviewInfo.CommentCount, null,
                 "Comments, replies, resolved state, target text, and authors can be inspected through InspectReview(); edit operations remain partial.",
                 DescribeReviewComments(reviewInfo));
 
-            Add(features, "Review", "Revisions", WordFeatureSupportLevel.PartiallyEditable, reviewInfo.RevisionCount, null,
+            Add(features, "Review", "Revisions", OfficeFeatureSupportLevel.PartiallyEditable, reviewInfo.RevisionCount, null,
                 "Inserted, deleted, move, and common formatting revisions can be inspected through InspectReview(); accept/reject operations remain broader but less granular.",
                 DescribeReviewRevisions(reviewInfo));
 
             int protectionCount = CountDescendantsByLocalName(mainPart.DocumentSettingsPart?.Settings, "documentProtection");
-            Add(features, "Protection", "Document protection", WordFeatureSupportLevel.PartiallyEditable, protectionCount, null,
+            Add(features, "Protection", "Document protection", OfficeFeatureSupportLevel.PartiallyEditable, protectionCount, null,
                 "Document protection metadata can be inspected through settings; complete protection workflows remain partial.");
 
             var vbaDetails = DescribePartsByUriOrContentType(allParts, "vbaProject");
@@ -436,55 +419,55 @@ namespace OfficeIMO.Word {
             var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
             WordSignatureInfo signatureInfo = InspectSignatures();
 
-            Add(features, "Compatibility", "Alternative format imports", WordFeatureSupportLevel.PartiallyEditable, altChunkDetails.Count, null,
+            Add(features, "Compatibility", "Alternative format imports", OfficeFeatureSupportLevel.PartiallyEditable, altChunkDetails.Count, null,
                 "Alternative-format imports can be authored, extracted, and removed through embedded document APIs; imported content remains package-backed until Word processes it.",
                 altChunkDetails);
-            Add(features, "Media", "External linked images", WordFeatureSupportLevel.PartiallyEditable, externalImageDetails.Count, null,
+            Add(features, "Media", "External linked images", OfficeFeatureSupportLevel.PartiallyEditable, externalImageDetails.Count, null,
                 "Externally linked images can be authored, inspected, and removed; extracting or saving image bytes requires embedded image data.",
                 externalImageDetails);
-            Add(features, "Compatibility", "Attached templates", WordFeatureSupportLevel.Preserved, attachedTemplateDetails.Count, null,
+            Add(features, "Compatibility", "Attached templates", OfficeFeatureSupportLevel.Preserved, attachedTemplateDetails.Count, null,
                 "Attached template relationships are detected as preserve-only package metadata before edit-heavy workflows.",
                 attachedTemplateDetails);
-            Add(features, "Compatibility", "Legacy DOC preserved metadata", WordFeatureSupportLevel.Preserved, legacyDocPreservedDetails.Length, "Legacy DOC",
+            Add(features, "Compatibility", "Legacy DOC preserved metadata", OfficeFeatureSupportLevel.Preserved, legacyDocPreservedDetails.Length, "Legacy DOC",
                 "Legacy binary DOC picture and revision-tracking indicators are detected as preserve-only import metadata.",
                 legacyDocPreservedDetails);
-            Add(features, "Compatibility", "Legacy DOC compound storage", WordFeatureSupportLevel.Preserved, legacyDocCompoundDetails.Length, "Legacy DOC",
+            Add(features, "Compatibility", "Legacy DOC compound storage", OfficeFeatureSupportLevel.Preserved, legacyDocCompoundDetails.Length, "Legacy DOC",
                 "Legacy binary DOC compound storage such as macros, embedded objects, ActiveX controls, embedded packages, and binary payload streams is detected as preserve-only import metadata.",
                 legacyDocCompoundDetails);
-            Add(features, "Content", "Content-control data bindings", WordFeatureSupportLevel.PartiallyEditable, contentControlDataBindingDetails.Count, null,
+            Add(features, "Content", "Content-control data bindings", OfficeFeatureSupportLevel.PartiallyEditable, contentControlDataBindingDetails.Count, null,
                 "Bound content controls can be refreshed from backing Custom XML or filled from supplied values with backing XML updates; broader SDT mapping workflows remain partial.",
                 contentControlDataBindingDetails);
-            Add(features, "Compatibility", "Building blocks and glossary", WordFeatureSupportLevel.Preserved, glossaryDetails.Count, null,
+            Add(features, "Compatibility", "Building blocks and glossary", OfficeFeatureSupportLevel.Preserved, glossaryDetails.Count, null,
                 "Glossary/building-block package parts are detected as preserve-only document metadata.",
                 glossaryDetails);
-            Add(features, "Review", "Modern comment metadata", WordFeatureSupportLevel.Preserved, modernCommentDetails.Count, null,
+            Add(features, "Review", "Modern comment metadata", OfficeFeatureSupportLevel.Preserved, modernCommentDetails.Count, null,
                 "Modern threaded/resolved comment metadata is detected as preserve-only review metadata.",
                 modernCommentDetails);
-            Add(features, "Compatibility", "Web extensions and task panes", WordFeatureSupportLevel.Preserved, webExtensionDetails.Count, null,
+            Add(features, "Compatibility", "Web extensions and task panes", OfficeFeatureSupportLevel.Preserved, webExtensionDetails.Count, null,
                 "Office add-in and task-pane package metadata is detected as preserve-only advanced content.",
                 webExtensionDetails);
-            Add(features, "Compatibility", "Embedded packages", WordFeatureSupportLevel.PartiallyEditable, embeddedPackageDetails.Count, null,
+            Add(features, "Compatibility", "Embedded packages", OfficeFeatureSupportLevel.PartiallyEditable, embeddedPackageDetails.Count, null,
                 "Embedded package and OLE payloads can be inventoried, hash-checked, extracted with byte limits, replaced, and removed; authoring remains available through the embedded-object API.",
                 embeddedPackageDetails);
-            Add(features, "Compatibility", "ActiveX controls", WordFeatureSupportLevel.Preserved, activeXControlDetails.Count, null,
+            Add(features, "Compatibility", "ActiveX controls", OfficeFeatureSupportLevel.Preserved, activeXControlDetails.Count, null,
                 "ActiveX control package metadata is detected as preserve-only advanced document content.",
                 activeXControlDetails);
-            Add(features, "Compatibility", "VBA macros", WordFeatureSupportLevel.PartiallyEditable, vbaDetails.Count, null,
+            Add(features, "Compatibility", "VBA macros", OfficeFeatureSupportLevel.PartiallyEditable, vbaDetails.Count, null,
                 "VBA projects can be attached, hash-checked, extracted with byte limits, enumerated, and removed; legacy, agile, and V3 signatures can be created and content-validated through the cross-platform managed workflow. OfficeIMO does not execute VBA or edit VBA source.",
                 vbaDetails);
-            Add(features, "Compatibility", "Custom XML parts", WordFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
+            Add(features, "Compatibility", "Custom XML parts", OfficeFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
                 "Custom XML parts are preserve-only package metadata.",
                 customXmlDetails);
-            Add(features, "Compatibility", "Digital signatures", WordFeatureSupportLevel.PartiallyEditable, signatureInfo.FindingCount, null,
+            Add(features, "Compatibility", "Digital signatures", OfficeFeatureSupportLevel.PartiallyEditable, signatureInfo.FindingCount, null,
                 "OPC package and VBA macro-project signatures can be inspected without cryptographic dependencies and validated or created through an explicit OfficeIMO.Security provider; mutating a signed document still requires an explicit signature-invalidation policy.",
                 signatureInfo.Details.Concat(signatureInfo.UnsupportedDetails).Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
 
             return new WordFeatureReport(features);
         }
 
-        private static void Add(List<WordFeatureFinding> features, string category, string name, WordFeatureSupportLevel supportLevel, int count,
+        private static void Add(List<WordFeatureFinding> features, string category, string name, OfficeFeatureSupportLevel supportLevel, int count,
             string? scope, string note, IReadOnlyList<string>? details = null) {
-            if (count <= 0 && supportLevel != WordFeatureSupportLevel.Editable) {
+            if (count <= 0 && supportLevel != OfficeFeatureSupportLevel.Editable) {
                 return;
             }
 

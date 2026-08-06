@@ -104,7 +104,7 @@ internal static class LatexInlineToMarkdownConverter {
             case "cite":
             case "citep":
             case "citet":
-                target.AddRaw(new TextRun("[" + (first?.Content ?? string.Empty) + "]"));
+                target.AddRaw(new MarkdownTextRun("[" + (first?.Content ?? string.Empty) + "]"));
                 Report(diagnostics, "LATEXMD102", LatexMarkdownConversionOutcome.Simplified, "citation",
                     "Citation keys were retained as visible text; bibliography style and numbering require a TeX processor.", command.Syntax.Span);
                 break;
@@ -114,13 +114,13 @@ internal static class LatexInlineToMarkdownConverter {
             case "label":
                 target.AddRaw(new HtmlRawInline("<a id=\"" + EscapeHtml(first?.Content ?? string.Empty) + "\"></a>"));
                 break;
-            case "%": target.AddRaw(new TextRun("%")); break;
-            case "&": target.AddRaw(new TextRun("&")); break;
-            case "_": target.AddRaw(new TextRun("_")); break;
-            case "#": target.AddRaw(new TextRun("#")); break;
-            case "$": target.AddRaw(new TextRun("$")); break;
-            case "{": target.AddRaw(new TextRun("{")); break;
-            case "}": target.AddRaw(new TextRun("}")); break;
+            case "%": target.AddRaw(new MarkdownTextRun("%")); break;
+            case "&": target.AddRaw(new MarkdownTextRun("&")); break;
+            case "_": target.AddRaw(new MarkdownTextRun("_")); break;
+            case "#": target.AddRaw(new MarkdownTextRun("#")); break;
+            case "$": target.AddRaw(new MarkdownTextRun("$")); break;
+            case "{": target.AddRaw(new MarkdownTextRun("{")); break;
+            case "}": target.AddRaw(new MarkdownTextRun("}")); break;
             case "\\":
             case "newline":
             case "linebreak":
@@ -174,7 +174,7 @@ internal static class LatexInlineToMarkdownConverter {
 
     private static void Flush(InlineSequence target, StringBuilder text) {
         if (text.Length == 0) return;
-        target.AddRaw(new TextRun(text.ToString()));
+        target.AddRaw(new MarkdownTextRun(text.ToString()));
         text.Clear();
     }
 

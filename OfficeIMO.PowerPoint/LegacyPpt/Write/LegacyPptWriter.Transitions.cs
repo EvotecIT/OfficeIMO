@@ -52,9 +52,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         slideTimeMilliseconds: 0));
                 return true;
             }
-            SlideTransition effect = PowerPointSlide.GetTransitionValue(
+            PowerPointSlideTransition effect = PowerPointSlide.GetTransitionValue(
                 transition);
-            bool hasEffect = effect != SlideTransition.None;
+            bool hasEffect = effect != PowerPointSlideTransition.None;
             bool hasEffectMarkup = transition.ChildElements.Any(child =>
                 child is not DocumentFormat.OpenXml.Presentation.SoundAction
                 && !string.Equals(child.LocalName, "extLst",
@@ -349,7 +349,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal static LegacyPptWriterTransition? FromLegacyProjection(
                 OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition? source) {
                 if (source == null) return null;
-                SlideTransition? projected =
+                PowerPointSlideTransition? projected =
                     LegacyPptTransitionMapping.ToSlideTransition(source);
                 if (!projected.HasValue
                     || !LegacyPptTransitionMapping.TryGetBinary(projected.Value,

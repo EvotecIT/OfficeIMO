@@ -39,7 +39,7 @@ namespace OfficeIMO.Examples.Excel {
                             o.NullPolicy = NullPolicy.EmptyString;
                             o.Formatters["Age"] = v => $"{v} years";
                         })
-                        .Table("People", t => t.Style(TableStyle.TableStyleMedium9))
+                        .Table("People", t => t.Style(ExcelTableStyle.TableStyleMedium9))
                         .AutoFit(columns: true, rows: false))
                     .End();
 
@@ -52,7 +52,7 @@ namespace OfficeIMO.Examples.Excel {
                             o.Include(nameof(Person.Name), nameof(Person.Age), "Address.City");
                             o.Exclude("Address.Street");
                         })
-                        .Table("People", t => t.Style(TableStyle.TableStyleMedium4))
+                        .Table("People", t => t.Style(ExcelTableStyle.TableStyleMedium4))
                         .AutoFit(columns: true, rows: false))
                     .End();
 
@@ -68,7 +68,7 @@ namespace OfficeIMO.Examples.Excel {
                                 pinLast: new[] { "Address.Street" }
                             );
                         })
-                        .Table("People", t => t.Style(TableStyle.TableStyleMedium6))
+                        .Table("People", t => t.Style(ExcelTableStyle.TableStyleMedium6))
                         .AutoFit(columns: true, rows: false))
                     .End();
 

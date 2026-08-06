@@ -5,80 +5,80 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public enum OfficeConditionalIconKind {
     /// <summary>Green upward arrow.</summary>
-    GreenUpArrow,
+    GreenUpArrow = 0,
 
     /// <summary>Yellow upward arrow.</summary>
-    YellowUpArrow,
+    YellowUpArrow = 9,
 
     /// <summary>Yellow sideways arrow.</summary>
-    YellowSideArrow,
+    YellowSideArrow = 1,
 
     /// <summary>Yellow downward arrow.</summary>
-    YellowDownArrow,
+    YellowDownArrow = 10,
 
     /// <summary>Red downward arrow.</summary>
-    RedDownArrow,
+    RedDownArrow = 2,
 
     /// <summary>Green check mark.</summary>
-    GreenCheck,
+    GreenCheck = 3,
 
     /// <summary>Yellow exclamation mark.</summary>
-    YellowExclamation,
+    YellowExclamation = 4,
 
     /// <summary>Red cross.</summary>
-    RedCross,
+    RedCross = 5,
 
     /// <summary>Green traffic-light circle.</summary>
-    GreenCircle,
+    GreenCircle = 6,
 
     /// <summary>Light green traffic-light circle.</summary>
-    LightGreenCircle,
+    LightGreenCircle = 11,
 
     /// <summary>Yellow traffic-light circle.</summary>
-    YellowCircle,
+    YellowCircle = 7,
 
     /// <summary>Orange traffic-light circle.</summary>
-    OrangeCircle,
+    OrangeCircle = 12,
 
     /// <summary>Red traffic-light circle.</summary>
-    RedCircle,
+    RedCircle = 8,
 
     /// <summary>Lowest rating symbol.</summary>
-    RatingOne,
+    RatingOne = 13,
 
     /// <summary>Low rating symbol.</summary>
-    RatingTwo,
+    RatingTwo = 14,
 
     /// <summary>Middle rating symbol.</summary>
-    RatingThree,
+    RatingThree = 15,
 
     /// <summary>High rating symbol.</summary>
-    RatingFour,
+    RatingFour = 16,
 
     /// <summary>Highest rating symbol.</summary>
-    RatingFive,
+    RatingFive = 17,
 
     /// <summary>Empty quarter-pie indicator.</summary>
-    QuarterEmpty,
+    QuarterEmpty = 18,
 
     /// <summary>One-quarter filled pie indicator.</summary>
-    QuarterOne,
+    QuarterOne = 19,
 
     /// <summary>Half-filled pie indicator.</summary>
-    QuarterTwo,
+    QuarterTwo = 20,
 
     /// <summary>Three-quarter filled pie indicator.</summary>
-    QuarterThree,
+    QuarterThree = 21,
 
     /// <summary>Fully filled pie indicator.</summary>
-    QuarterFull,
+    QuarterFull = 22,
 
     /// <summary>Green flag indicator.</summary>
-    GreenFlag,
+    GreenFlag = 23,
 
     /// <summary>Yellow flag indicator.</summary>
-    YellowFlag,
+    YellowFlag = 24,
 
     /// <summary>Red flag indicator.</summary>
-    RedFlag
+    RedFlag = 25
 }

@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         private bool TryRegisterDeferredDirectDataSetImport(
             DataSet dataSet,
             bool createTables,
-            TableStyle tableStyle,
+            ExcelTableStyle tableStyle,
             bool includeHeaders,
             bool includeAutoFilter,
             bool autoFit,
@@ -196,7 +196,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 ExcelSheet sheet = TryGetExistingSheet(sheetModel.SheetName)
-                    ?? AddWorksheet(sheetModel.SheetName, SheetNameValidationMode.Strict);
+                    ?? AddWorksheet(sheetModel.SheetName, ExcelSheetNameValidationMode.Strict);
                 if (sheetModel.Range.Length == 0) {
                     continue;
                 }

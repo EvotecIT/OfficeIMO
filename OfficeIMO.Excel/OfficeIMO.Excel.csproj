@@ -38,6 +38,7 @@
     <ItemGroup>
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlPackagePayload.cs" Link="SharedSource\OpenXml\OfficeOpenXmlPackagePayload.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlContractMappings.cs" Link="SharedSource\OpenXml\OfficeOpenXmlContractMappings.cs" />
     </ItemGroup>
 
     <ItemGroup>
@@ -65,6 +66,7 @@
         <Using Include="System.IO" />
         <Using Include="OfficeIMO.Drawing" />
         <Using Include="OfficeIMO.Data" />
+        <Using Include="OfficeIMO.OpenXml.Internal" />
     </ItemGroup>
 
     <ItemGroup>

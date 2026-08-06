@@ -23,7 +23,7 @@ public sealed class PdfExcelTableImportOptions {
         /// <summary>
         /// Excel table style applied to imported tables.
         /// </summary>
-        public TableStyle TableStyle { get; set; } = TableStyle.TableStyleMedium2;
+        public ExcelTableStyle TableStyle { get; set; } = ExcelTableStyle.TableStyleMedium2;
 
         /// <summary>
         /// When true, created Excel tables include a table-scoped AutoFilter.

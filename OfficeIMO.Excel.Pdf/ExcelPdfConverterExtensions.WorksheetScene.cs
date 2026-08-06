@@ -174,7 +174,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             if (headingHeight > 0D) {
                 canvas.Text(
-                    new[] { PdfCore.TextRun.Bolded(plan.SheetName, fontSize: 15D) },
+                    new[] { PdfCore.PdfTextRun.Bolded(plan.SheetName, fontSize: 15D) },
                     PdfCore.PdfCanvasTextStructureRole.Heading1,
                     margins.Left,
                     margins.Top,

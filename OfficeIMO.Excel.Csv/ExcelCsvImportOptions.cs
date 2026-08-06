@@ -37,7 +37,7 @@ public sealed class ExcelCsvImportOptions {
     public string? TableName { get; set; }
 
     /// <summary>Gets or sets the Excel table style.</summary>
-    public TableStyle TableStyle { get; set; } = TableStyle.TableStyleMedium2;
+    public ExcelTableStyle TableStyle { get; set; } = ExcelTableStyle.TableStyleMedium2;
 
     /// <summary>Gets or sets whether table filter controls are included.</summary>
     public bool IncludeAutoFilter { get; set; } = true;

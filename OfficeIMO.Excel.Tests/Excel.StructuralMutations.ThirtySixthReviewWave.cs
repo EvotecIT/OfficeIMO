@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 2, 10d);
             sheet.CellValue(3, 1, "West");
             sheet.CellValue(3, 2, 20d);
-            sheet.AddTable("A1:B4", true, "Sales", OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B4", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             table.TotalsRowShown = true;
             table.TotalsRowCount = 1U;

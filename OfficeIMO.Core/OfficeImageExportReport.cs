@@ -33,14 +33,14 @@ public sealed class OfficeImageExportReport {
     public IReadOnlyList<OfficeImageExportDiagnostic> Diagnostics => _diagnostics;
 
     /// <summary>True when at least one diagnostic represents fidelity loss.</summary>
-    public bool HasLoss => _diagnostics.Any(diagnostic => diagnostic.LossKind != OfficeImageExportLossKind.None);
+    public bool HasLoss => _diagnostics.Any(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>True when at least one source feature was omitted or replaced.</summary>
-    public bool HasOmissions => _diagnostics.Any(diagnostic => diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+    public bool HasOmissions => _diagnostics.Any(diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
 
     /// <summary>True when at least one requested operation or part failed.</summary>
     public bool HasFailures => _diagnostics.Any(diagnostic =>
-        diagnostic.LossKind == OfficeImageExportLossKind.Failure ||
+        diagnostic.LossKind == OfficeConversionLossKind.Failure ||
         diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
 
     /// <summary>Applies an acceptance policy to this report.</summary>

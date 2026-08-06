@@ -30,20 +30,20 @@ public sealed partial class PdfDocument {
 
     internal static PanelParagraphBlock CreatePanelParagraphBlock(System.Collections.Generic.IEnumerable<IPdfBlock> blocks, PanelStyle? style, PdfAlign align, PdfColor? defaultColor) {
         Guard.NotNull(blocks, nameof(blocks));
-        var runs = new System.Collections.Generic.List<TextRun>();
+        var runs = new System.Collections.Generic.List<PdfTextRun>();
         bool wroteContent = false;
         foreach (IPdfBlock block in blocks) {
             AppendPanelBlockRuns(runs, block, ref wroteContent);
         }
 
         if (runs.Count == 0) {
-            runs.Add(TextRun.Normal(string.Empty));
+            runs.Add(PdfTextRun.Normal(string.Empty));
         }
 
         return new PanelParagraphBlock(runs, align, defaultColor, style);
     }
 
-    private static void AppendPanelBlockRuns(System.Collections.Generic.List<TextRun> runs, IPdfBlock block, ref bool wroteContent) {
+    private static void AppendPanelBlockRuns(System.Collections.Generic.List<PdfTextRun> runs, IPdfBlock block, ref bool wroteContent) {
         switch (block) {
             case BookmarkBlock:
                 return;
@@ -55,7 +55,7 @@ public sealed partial class PdfDocument {
                 return;
             case HorizontalRuleBlock:
                 AppendPanelBlockBreak(runs, ref wroteContent);
-                runs.Add(TextRun.Normal(new string('-', 32)));
+                runs.Add(PdfTextRun.Normal(new string('-', 32)));
                 return;
             case RichParagraphBlock paragraph:
                 if (paragraph.Runs.Count == 0) {
@@ -91,11 +91,11 @@ public sealed partial class PdfDocument {
         }
     }
 
-    private static void AppendPanelHeadingRun(System.Collections.Generic.List<TextRun> runs, HeadingBlock heading) {
+    private static void AppendPanelHeadingRun(System.Collections.Generic.List<PdfTextRun> runs, HeadingBlock heading) {
         double fontSize = heading.Style?.GetFontSize(heading.Level) ?? PdfHeadingStyle.GetDefaultFontSize(heading.Level);
         bool bold = heading.Style?.Bold ?? true;
         PdfColor? color = heading.Color ?? heading.Style?.Color;
-        runs.Add(new TextRun(
+        runs.Add(new PdfTextRun(
             heading.Text,
             bold: bold,
             underline: heading.LinkUri != null || heading.LinkDestinationName != null,
@@ -108,18 +108,18 @@ public sealed partial class PdfDocument {
             fontFamily: heading.Style?.FontFamily));
     }
 
-    private static void AppendPanelListRuns(System.Collections.Generic.List<TextRun> runs, System.Collections.Generic.IReadOnlyList<PdfListItem> items, int? startNumber, ref bool wroteContent) {
+    private static void AppendPanelListRuns(System.Collections.Generic.List<PdfTextRun> runs, System.Collections.Generic.IReadOnlyList<PdfListItem> items, int? startNumber, ref bool wroteContent) {
         for (int i = 0; i < items.Count; i++) {
             AppendPanelLineBreak(runs, ref wroteContent);
             string marker = items[i].Marker ?? (startNumber.HasValue
                 ? (startNumber.Value + i).ToString(System.Globalization.CultureInfo.InvariantCulture) + "."
                 : "•");
-            runs.Add(TextRun.Normal(marker + " "));
+            runs.Add(PdfTextRun.Normal(marker + " "));
             runs.AddRange(items[i].Runs);
         }
     }
 
-    private static void AppendPanelTableRuns(System.Collections.Generic.List<TextRun> runs, TableBlock table, ref bool wroteContent) {
+    private static void AppendPanelTableRuns(System.Collections.Generic.List<PdfTextRun> runs, TableBlock table, ref bool wroteContent) {
         if (table.Cells.Count == 0) {
             return;
         }
@@ -137,11 +137,11 @@ public sealed partial class PdfDocument {
             System.Collections.Generic.IReadOnlyList<PdfTableCell> row = table.Cells[rowIndex];
             for (int columnIndex = 0; columnIndex < row.Count; columnIndex++) {
                 if (columnIndex > 0) {
-                    runs.Add(TextRun.Normal(" | "));
+                    runs.Add(PdfTextRun.Normal(" | "));
                 }
 
                 if (headers != null && columnIndex < headers.Count) {
-                    runs.Add(TextRun.Bolded(headers[columnIndex].Text + ": "));
+                    runs.Add(PdfTextRun.Bolded(headers[columnIndex].Text + ": "));
                 }
 
                 runs.AddRange(row[columnIndex].Runs);
@@ -149,7 +149,7 @@ public sealed partial class PdfDocument {
         }
     }
 
-    private static bool TryAppendChecklistTableRuns(System.Collections.Generic.List<TextRun> runs, TableBlock table, PdfTableStyle? tableStyle, ref bool wroteContent) {
+    private static bool TryAppendChecklistTableRuns(System.Collections.Generic.List<PdfTextRun> runs, TableBlock table, PdfTableStyle? tableStyle, ref bool wroteContent) {
         if (tableStyle?.CellIcons == null || table.ColumnCount < 2) {
             return false;
         }
@@ -164,11 +164,11 @@ public sealed partial class PdfDocument {
             foundChecklistRow = true;
             AppendPanelLineBreak(runs, ref wroteContent);
             bool isChecked = icon.Kind == PdfCellIconKind.CheckBoxChecked;
-            runs.Add(TextRun.Bolded(isChecked ? "Done: " : "Open: "));
+            runs.Add(PdfTextRun.Bolded(isChecked ? "Done: " : "Open: "));
             System.Collections.Generic.IReadOnlyList<PdfTableCell> row = table.Cells[rowIndex];
             for (int columnIndex = 1; columnIndex < row.Count; columnIndex++) {
                 if (columnIndex > 1) {
-                    runs.Add(TextRun.Normal(" "));
+                    runs.Add(PdfTextRun.Normal(" "));
                 }
 
                 runs.AddRange(row[columnIndex].Runs);
@@ -178,18 +178,18 @@ public sealed partial class PdfDocument {
         return foundChecklistRow;
     }
 
-    private static void AppendPanelBlockBreak(System.Collections.Generic.List<TextRun> runs, ref bool wroteContent) {
+    private static void AppendPanelBlockBreak(System.Collections.Generic.List<PdfTextRun> runs, ref bool wroteContent) {
         if (wroteContent) {
-            runs.Add(TextRun.LineBreak());
-            runs.Add(TextRun.LineBreak());
+            runs.Add(PdfTextRun.LineBreak());
+            runs.Add(PdfTextRun.LineBreak());
         }
 
         wroteContent = true;
     }
 
-    private static void AppendPanelLineBreak(System.Collections.Generic.List<TextRun> runs, ref bool wroteContent) {
+    private static void AppendPanelLineBreak(System.Collections.Generic.List<PdfTextRun> runs, ref bool wroteContent) {
         if (wroteContent) {
-            runs.Add(TextRun.LineBreak());
+            runs.Add(PdfTextRun.LineBreak());
         }
 
         wroteContent = true;

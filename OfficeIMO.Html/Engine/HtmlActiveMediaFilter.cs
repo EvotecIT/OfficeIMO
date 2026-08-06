@@ -205,7 +205,7 @@ public static class HtmlActiveMediaFilter {
             HtmlDiagnosticSeverity.Warning,
             source,
             exception.GetType().Name,
-            HtmlConversionLossKind.Approximation);
+            OfficeConversionLossKind.Approximation);
     }
 
     private static void AppendActiveMediaStyleRule(StringBuilder builder, ICssRule rule, HtmlCssMediaContext mediaContext, ref bool changed) {

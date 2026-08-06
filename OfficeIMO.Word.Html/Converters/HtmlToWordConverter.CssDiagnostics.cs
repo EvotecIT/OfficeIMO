@@ -219,7 +219,7 @@ namespace OfficeIMO.Word.Html {
                 throw exception;
             }
 
-            AddDiagnostic(_options, code, message, source, detail == null ? null : new HtmlUnsupportedCssException(code, message, source, detail), lossKind: HtmlConversionLossKind.Approximation);
+            AddDiagnostic(_options, code, message, source, detail == null ? null : new HtmlUnsupportedCssException(code, message, source, detail), lossKind: OfficeConversionLossKind.Approximation);
         }
 
         private static bool TryGetUnsupportedCssValueReason(string elementName, string propertyName, string? rawValue, out string reason) {

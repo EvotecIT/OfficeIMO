@@ -102,7 +102,7 @@ Control parallel vs sequential operations for large workbooks:
 
 ```csharp
 var workbook = ExcelDocument.Create("large.xlsx");
-workbook.Execution.Mode = ExecutionMode.Parallel;
+workbook.Execution.Mode = ExcelExecutionMode.Parallel;
 workbook.Execution.MaxDegreeOfParallelism = 4;
 ```
 

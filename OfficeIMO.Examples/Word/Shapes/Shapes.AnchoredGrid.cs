@@ -12,22 +12,22 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Anchored DrawingML Shapes (tight grid)");
 
                 // Define shapes succinctly and build the anchored grid via a helper
-                var shapes = new List<(ShapeType type, double wPt, double hPt, Color fill, Color stroke, string label)> {
-                    (ShapeType.Rectangle, 90, 50, Color.LightSkyBlue, Color.DarkBlue, "Rectangle"),
-                    (ShapeType.Ellipse, 80, 50, Color.LightGreen, Color.DarkGreen, "Ellipse"),
-                    (ShapeType.RoundedRectangle, 90, 50, Color.Khaki, Color.Olive, "RoundedRectangle"),
-                    (ShapeType.Triangle, 70, 60, Color.Coral, Color.DarkRed, "Triangle"),
-                    (ShapeType.Diamond, 70, 70, Color.Plum, Color.Purple, "Diamond"),
-                    (ShapeType.Hexagon, 90, 60, Color.SandyBrown, Color.SaddleBrown, "Hexagon"),
-                    (ShapeType.RightArrow, 100, 40, Color.CornflowerBlue, Color.SteelBlue, "RightArrow"),
-                    (ShapeType.LeftArrow, 100, 40, Color.Gold, Color.DarkGoldenrod, "LeftArrow"),
-                    (ShapeType.UpArrow, 60, 90, Color.LightPink, Color.HotPink, "UpArrow"),
-                    (ShapeType.DownArrow, 60, 90, Color.LightGray, Color.DimGray, "DownArrow"),
-                    (ShapeType.Heart, 80, 70, Color.Pink, Color.HotPink, "Heart"),
-                    (ShapeType.Cloud, 110, 70, Color.WhiteSmoke, Color.Gray, "Cloud"),
-                    (ShapeType.Donut, 90, 90, Color.Goldenrod, Color.Maroon, "Donut"),
-                    (ShapeType.Can, 80, 100, Color.LightSteelBlue, Color.SteelBlue, "Can"),
-                    (ShapeType.Cube, 90, 90, Color.MediumPurple, Color.Indigo, "Cube"),
+                var shapes = new List<(WordShapeType type, double wPt, double hPt, Color fill, Color stroke, string label)> {
+                    (WordShapeType.Rectangle, 90, 50, Color.LightSkyBlue, Color.DarkBlue, "Rectangle"),
+                    (WordShapeType.Ellipse, 80, 50, Color.LightGreen, Color.DarkGreen, "Ellipse"),
+                    (WordShapeType.RoundedRectangle, 90, 50, Color.Khaki, Color.Olive, "RoundedRectangle"),
+                    (WordShapeType.Triangle, 70, 60, Color.Coral, Color.DarkRed, "Triangle"),
+                    (WordShapeType.Diamond, 70, 70, Color.Plum, Color.Purple, "Diamond"),
+                    (WordShapeType.Hexagon, 90, 60, Color.SandyBrown, Color.SaddleBrown, "Hexagon"),
+                    (WordShapeType.RightArrow, 100, 40, Color.CornflowerBlue, Color.SteelBlue, "RightArrow"),
+                    (WordShapeType.LeftArrow, 100, 40, Color.Gold, Color.DarkGoldenrod, "LeftArrow"),
+                    (WordShapeType.UpArrow, 60, 90, Color.LightPink, Color.HotPink, "UpArrow"),
+                    (WordShapeType.DownArrow, 60, 90, Color.LightGray, Color.DimGray, "DownArrow"),
+                    (WordShapeType.Heart, 80, 70, Color.Pink, Color.HotPink, "Heart"),
+                    (WordShapeType.Cloud, 110, 70, Color.WhiteSmoke, Color.Gray, "Cloud"),
+                    (WordShapeType.Donut, 90, 90, Color.Goldenrod, Color.Maroon, "Donut"),
+                    (WordShapeType.Can, 80, 100, Color.LightSteelBlue, Color.SteelBlue, "Can"),
+                    (WordShapeType.Cube, 90, 90, Color.MediumPurple, Color.Indigo, "Cube"),
                 };
 
                 OfficeIMO.Examples.Utils.AnchoredDiagram.BuildGrid(

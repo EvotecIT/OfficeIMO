@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 10d);
                 sheet.CellValue(3, 1, "Beta");
                 sheet.CellValue(3, 2, 20d);
-                sheet.AddTable("A1:B3", hasHeader: true, name: "Scores", style: TableStyle.TableStyleMedium4);
+                sheet.AddTable("A1:B3", hasHeader: true, name: "Scores", style: ExcelTableStyle.TableStyleMedium4);
                 document.Save();
             }
 
@@ -520,8 +520,8 @@ namespace OfficeIMO.Tests {
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] {
-                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, ExcelChartType.ColumnClustered, ExcelChartAxisGroup.Primary),
-                        new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d }, ExcelChartType.Line, ExcelChartAxisGroup.Secondary)
+                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, ExcelChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
+                        new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d }, ExcelChartType.Line, OfficeChartAxisGroup.Secondary)
                     });
                 sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220,
                     type: ExcelChartType.ColumnClustered, title: "Combo Chart");
@@ -659,7 +659,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Images");
                 sheet.CellValue(1, 1, "Image");
-                sheet.SetHeaderImage(HeaderFooterPosition.Center, CreateFeatureReportGif(), "image/gif",
+                sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateFeatureReportGif(), "image/gif",
                     widthPoints: 24, heightPoints: 24);
                 document.Save();
             }

@@ -18,10 +18,10 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.CellValue(2, 2, 10d);
                 sheet.CellValue(3, 1, "B");
                 sheet.CellValue(3, 2, 20d);
-                sheet.AddTable("A1:B3", true, "Table1", TableStyle.TableStyleMedium9);
+                sheet.AddTable("A1:B3", true, "Table1", ExcelTableStyle.TableStyleMedium9);
 
                 try {
-                    sheet.AddTable("B2:C4", true, "Table2", TableStyle.TableStyleMedium9);
+                    sheet.AddTable("B2:C4", true, "Table2", ExcelTableStyle.TableStyleMedium9);
                 } catch (InvalidOperationException ex) {
                     Console.WriteLine($"Expected error: {ex.Message}");
                 }

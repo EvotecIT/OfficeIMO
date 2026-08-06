@@ -65,13 +65,13 @@ namespace OfficeIMO.Word {
         /// <param name="value">Value to assign.</param>
         /// <param name="propertyType">Type of the value.</param>
         /// <returns>The created <see cref="CustomDocumentProperty"/>.</returns>
-        public CustomDocumentProperty Add(string name, object value, PropertyTypes propertyType) {
+        internal CustomDocumentProperty Add(string name, object value, WordCustomPropertyType propertyType) {
             var newProp = new CustomDocumentProperty();
             bool propSet = false;
 
             // Calculate the correct type.
             switch (propertyType) {
-                case PropertyTypes.DateTime:
+                case WordCustomPropertyType.DateTime:
                     // Be sure you were passed a real date, 
                     // and if so, format in the correct way. 
                     // The date/time value passed in should 
@@ -83,7 +83,7 @@ namespace OfficeIMO.Word {
 
                     break;
 
-                case PropertyTypes.NumberInteger:
+                case WordCustomPropertyType.NumberInteger:
                     if (value is int i) {
                         newProp.VTInt32 = new VTInt32(i.ToString(CultureInfo.InvariantCulture));
                         propSet = true;
@@ -94,7 +94,7 @@ namespace OfficeIMO.Word {
 
                     break;
 
-                case PropertyTypes.NumberDouble:
+                case WordCustomPropertyType.NumberDouble:
                     if (value is double d) {
                         newProp.VTFloat = new VTFloat(d.ToString(CultureInfo.InvariantCulture));
                         propSet = true;
@@ -102,13 +102,13 @@ namespace OfficeIMO.Word {
 
                     break;
 
-                case PropertyTypes.Text:
+                case WordCustomPropertyType.Text:
                     newProp.VTLPWSTR = new VTLPWSTR(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
                     propSet = true;
 
                     break;
 
-                case PropertyTypes.YesNo:
+                case WordCustomPropertyType.YesNo:
                     if (value is bool) {
                         // Must be lowercase.
                         newProp.VTBool = new VTBool(Convert.ToBoolean(value).ToString().ToLower());
@@ -117,7 +117,7 @@ namespace OfficeIMO.Word {
 
                     break;
 
-                case PropertyTypes.Binary:
+                case WordCustomPropertyType.Binary:
                     newProp.VTBlob = new VTBlob(Convert.ToBase64String(GetBinaryValue(value)));
                     propSet = true;
 

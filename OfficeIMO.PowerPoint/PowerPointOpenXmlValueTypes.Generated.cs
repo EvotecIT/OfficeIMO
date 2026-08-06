@@ -4,68 +4,6 @@ using System.Globalization;
 
 namespace OfficeIMO.PowerPoint;
 
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues.</summary>
-public enum PowerPointChartDisplayUnit {
-    /// <summary>Represents the Open XML value <c>hundreds</c>.</summary>
-    Hundreds,
-    /// <summary>Represents the Open XML value <c>thousands</c>.</summary>
-    Thousands,
-    /// <summary>Represents the Open XML value <c>tenThousands</c>.</summary>
-    TenThousands,
-    /// <summary>Represents the Open XML value <c>hundredThousands</c>.</summary>
-    HundredThousands,
-    /// <summary>Represents the Open XML value <c>millions</c>.</summary>
-    Millions,
-    /// <summary>Represents the Open XML value <c>tenMillions</c>.</summary>
-    TenMillions,
-    /// <summary>Represents the Open XML value <c>hundredMillions</c>.</summary>
-    HundredMillions,
-    /// <summary>Represents the Open XML value <c>billions</c>.</summary>
-    Billions,
-    /// <summary>Represents the Open XML value <c>trillions</c>.</summary>
-    Trillions,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues.</summary>
-public enum PowerPointChartAxisCrossBetween {
-    /// <summary>Represents the Open XML value <c>between</c>.</summary>
-    Between,
-    /// <summary>Represents the Open XML value <c>midCat</c>.</summary>
-    MidpointCategory,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.CrossesValues.</summary>
-public enum PowerPointChartAxisCrossing {
-    /// <summary>Represents the Open XML value <c>autoZero</c>.</summary>
-    AutoZero,
-    /// <summary>Represents the Open XML value <c>max</c>.</summary>
-    Maximum,
-    /// <summary>Represents the Open XML value <c>min</c>.</summary>
-    Minimum,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues.</summary>
-public enum PowerPointChartDataLabelPosition {
-    /// <summary>Represents the Open XML value <c>bestFit</c>.</summary>
-    BestFit,
-    /// <summary>Represents the Open XML value <c>b</c>.</summary>
-    Bottom,
-    /// <summary>Represents the Open XML value <c>ctr</c>.</summary>
-    Center,
-    /// <summary>Represents the Open XML value <c>inBase</c>.</summary>
-    InsideBase,
-    /// <summary>Represents the Open XML value <c>inEnd</c>.</summary>
-    InsideEnd,
-    /// <summary>Represents the Open XML value <c>l</c>.</summary>
-    Left,
-    /// <summary>Represents the Open XML value <c>outEnd</c>.</summary>
-    OutsideEnd,
-    /// <summary>Represents the Open XML value <c>r</c>.</summary>
-    Right,
-    /// <summary>Represents the Open XML value <c>t</c>.</summary>
-    Top,
-}
-
 /// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.GroupingValues.</summary>
 public enum PowerPointChartGrouping {
     /// <summary>Represents the Open XML value <c>percentStacked</c>.</summary>
@@ -76,76 +14,6 @@ public enum PowerPointChartGrouping {
     Stacked,
 }
 
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues.</summary>
-public enum PowerPointChartLegendPosition {
-    /// <summary>Represents the Open XML value <c>b</c>.</summary>
-    Bottom,
-    /// <summary>Represents the Open XML value <c>tr</c>.</summary>
-    TopRight,
-    /// <summary>Represents the Open XML value <c>l</c>.</summary>
-    Left,
-    /// <summary>Represents the Open XML value <c>r</c>.</summary>
-    Right,
-    /// <summary>Represents the Open XML value <c>t</c>.</summary>
-    Top,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues.</summary>
-public enum PowerPointChartMarkerStyle {
-    /// <summary>Represents the Open XML value <c>auto</c>.</summary>
-    Auto,
-    /// <summary>Represents the Open XML value <c>circle</c>.</summary>
-    Circle,
-    /// <summary>Represents the Open XML value <c>dash</c>.</summary>
-    Dash,
-    /// <summary>Represents the Open XML value <c>diamond</c>.</summary>
-    Diamond,
-    /// <summary>Represents the Open XML value <c>dot</c>.</summary>
-    Dot,
-    /// <summary>Represents the Open XML value <c>none</c>.</summary>
-    None,
-    /// <summary>Represents the Open XML value <c>picture</c>.</summary>
-    Picture,
-    /// <summary>Represents the Open XML value <c>plus</c>.</summary>
-    Plus,
-    /// <summary>Represents the Open XML value <c>square</c>.</summary>
-    Square,
-    /// <summary>Represents the Open XML value <c>star</c>.</summary>
-    Star,
-    /// <summary>Represents the Open XML value <c>triangle</c>.</summary>
-    Triangle,
-    /// <summary>Represents the Open XML value <c>x</c>.</summary>
-    X,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues.</summary>
-public enum PowerPointChartTickLabelPosition {
-    /// <summary>Represents the Open XML value <c>high</c>.</summary>
-    High,
-    /// <summary>Represents the Open XML value <c>low</c>.</summary>
-    Low,
-    /// <summary>Represents the Open XML value <c>nextTo</c>.</summary>
-    NextTo,
-    /// <summary>Represents the Open XML value <c>none</c>.</summary>
-    None,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues.</summary>
-public enum PowerPointChartTrendlineType {
-    /// <summary>Represents the Open XML value <c>exp</c>.</summary>
-    Exponential,
-    /// <summary>Represents the Open XML value <c>linear</c>.</summary>
-    Linear,
-    /// <summary>Represents the Open XML value <c>log</c>.</summary>
-    Logarithmic,
-    /// <summary>Represents the Open XML value <c>movingAvg</c>.</summary>
-    MovingAverage,
-    /// <summary>Represents the Open XML value <c>poly</c>.</summary>
-    Polynomial,
-    /// <summary>Represents the Open XML value <c>power</c>.</summary>
-    Power,
-}
-
 /// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.LineEndLengthValues.</summary>
 public enum PowerPointLineEndLength {
     /// <summary>Represents the Open XML value <c>sm</c>.</summary>
@@ -154,22 +22,6 @@ public enum PowerPointLineEndLength {
     Medium,
     /// <summary>Represents the Open XML value <c>lg</c>.</summary>
     Large,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.LineEndValues.</summary>
-public enum PowerPointLineEndType {
-    /// <summary>Represents the Open XML value <c>none</c>.</summary>
-    None,
-    /// <summary>Represents the Open XML value <c>triangle</c>.</summary>
-    Triangle,
-    /// <summary>Represents the Open XML value <c>stealth</c>.</summary>
-    Stealth,
-    /// <summary>Represents the Open XML value <c>diamond</c>.</summary>
-    Diamond,
-    /// <summary>Represents the Open XML value <c>oval</c>.</summary>
-    Oval,
-    /// <summary>Represents the Open XML value <c>arrow</c>.</summary>
-    Arrow,
 }
 
 /// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.LineEndWidthValues.</summary>
@@ -228,384 +80,6 @@ public enum PowerPointRectangleAlignment {
     Bottom,
     /// <summary>Represents the Open XML value <c>br</c>.</summary>
     BottomRight,
-}
-
-/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.ShapeTypeValues.</summary>
-public enum PowerPointShapeType {
-    /// <summary>Represents the Open XML value <c>line</c>.</summary>
-    Line,
-    /// <summary>Represents the Open XML value <c>lineInv</c>.</summary>
-    LineInverse,
-    /// <summary>Represents the Open XML value <c>triangle</c>.</summary>
-    Triangle,
-    /// <summary>Represents the Open XML value <c>rtTriangle</c>.</summary>
-    RightTriangle,
-    /// <summary>Represents the Open XML value <c>rect</c>.</summary>
-    Rectangle,
-    /// <summary>Represents the Open XML value <c>diamond</c>.</summary>
-    Diamond,
-    /// <summary>Represents the Open XML value <c>parallelogram</c>.</summary>
-    Parallelogram,
-    /// <summary>Represents the Open XML value <c>trapezoid</c>.</summary>
-    Trapezoid,
-    /// <summary>Represents the Open XML value <c>nonIsoscelesTrapezoid</c>.</summary>
-    NonIsoscelesTrapezoid,
-    /// <summary>Represents the Open XML value <c>pentagon</c>.</summary>
-    Pentagon,
-    /// <summary>Represents the Open XML value <c>hexagon</c>.</summary>
-    Hexagon,
-    /// <summary>Represents the Open XML value <c>heptagon</c>.</summary>
-    Heptagon,
-    /// <summary>Represents the Open XML value <c>octagon</c>.</summary>
-    Octagon,
-    /// <summary>Represents the Open XML value <c>decagon</c>.</summary>
-    Decagon,
-    /// <summary>Represents the Open XML value <c>dodecagon</c>.</summary>
-    Dodecagon,
-    /// <summary>Represents the Open XML value <c>star4</c>.</summary>
-    Star4,
-    /// <summary>Represents the Open XML value <c>star5</c>.</summary>
-    Star5,
-    /// <summary>Represents the Open XML value <c>star6</c>.</summary>
-    Star6,
-    /// <summary>Represents the Open XML value <c>star7</c>.</summary>
-    Star7,
-    /// <summary>Represents the Open XML value <c>star8</c>.</summary>
-    Star8,
-    /// <summary>Represents the Open XML value <c>star10</c>.</summary>
-    Star10,
-    /// <summary>Represents the Open XML value <c>star12</c>.</summary>
-    Star12,
-    /// <summary>Represents the Open XML value <c>star16</c>.</summary>
-    Star16,
-    /// <summary>Represents the Open XML value <c>star24</c>.</summary>
-    Star24,
-    /// <summary>Represents the Open XML value <c>star32</c>.</summary>
-    Star32,
-    /// <summary>Represents the Open XML value <c>roundRect</c>.</summary>
-    RoundRectangle,
-    /// <summary>Represents the Open XML value <c>round1Rect</c>.</summary>
-    Round1Rectangle,
-    /// <summary>Represents the Open XML value <c>round2SameRect</c>.</summary>
-    Round2SameRectangle,
-    /// <summary>Represents the Open XML value <c>round2DiagRect</c>.</summary>
-    Round2DiagonalRectangle,
-    /// <summary>Represents the Open XML value <c>snipRoundRect</c>.</summary>
-    SnipRoundRectangle,
-    /// <summary>Represents the Open XML value <c>snip1Rect</c>.</summary>
-    Snip1Rectangle,
-    /// <summary>Represents the Open XML value <c>snip2SameRect</c>.</summary>
-    Snip2SameRectangle,
-    /// <summary>Represents the Open XML value <c>snip2DiagRect</c>.</summary>
-    Snip2DiagonalRectangle,
-    /// <summary>Represents the Open XML value <c>plaque</c>.</summary>
-    Plaque,
-    /// <summary>Represents the Open XML value <c>ellipse</c>.</summary>
-    Ellipse,
-    /// <summary>Represents the Open XML value <c>teardrop</c>.</summary>
-    Teardrop,
-    /// <summary>Represents the Open XML value <c>homePlate</c>.</summary>
-    HomePlate,
-    /// <summary>Represents the Open XML value <c>chevron</c>.</summary>
-    Chevron,
-    /// <summary>Represents the Open XML value <c>pieWedge</c>.</summary>
-    PieWedge,
-    /// <summary>Represents the Open XML value <c>pie</c>.</summary>
-    Pie,
-    /// <summary>Represents the Open XML value <c>blockArc</c>.</summary>
-    BlockArc,
-    /// <summary>Represents the Open XML value <c>donut</c>.</summary>
-    Donut,
-    /// <summary>Represents the Open XML value <c>noSmoking</c>.</summary>
-    NoSmoking,
-    /// <summary>Represents the Open XML value <c>rightArrow</c>.</summary>
-    RightArrow,
-    /// <summary>Represents the Open XML value <c>leftArrow</c>.</summary>
-    LeftArrow,
-    /// <summary>Represents the Open XML value <c>upArrow</c>.</summary>
-    UpArrow,
-    /// <summary>Represents the Open XML value <c>downArrow</c>.</summary>
-    DownArrow,
-    /// <summary>Represents the Open XML value <c>stripedRightArrow</c>.</summary>
-    StripedRightArrow,
-    /// <summary>Represents the Open XML value <c>notchedRightArrow</c>.</summary>
-    NotchedRightArrow,
-    /// <summary>Represents the Open XML value <c>bentUpArrow</c>.</summary>
-    BentUpArrow,
-    /// <summary>Represents the Open XML value <c>leftRightArrow</c>.</summary>
-    LeftRightArrow,
-    /// <summary>Represents the Open XML value <c>upDownArrow</c>.</summary>
-    UpDownArrow,
-    /// <summary>Represents the Open XML value <c>leftUpArrow</c>.</summary>
-    LeftUpArrow,
-    /// <summary>Represents the Open XML value <c>leftRightUpArrow</c>.</summary>
-    LeftRightUpArrow,
-    /// <summary>Represents the Open XML value <c>quadArrow</c>.</summary>
-    QuadArrow,
-    /// <summary>Represents the Open XML value <c>leftArrowCallout</c>.</summary>
-    LeftArrowCallout,
-    /// <summary>Represents the Open XML value <c>rightArrowCallout</c>.</summary>
-    RightArrowCallout,
-    /// <summary>Represents the Open XML value <c>upArrowCallout</c>.</summary>
-    UpArrowCallout,
-    /// <summary>Represents the Open XML value <c>downArrowCallout</c>.</summary>
-    DownArrowCallout,
-    /// <summary>Represents the Open XML value <c>leftRightArrowCallout</c>.</summary>
-    LeftRightArrowCallout,
-    /// <summary>Represents the Open XML value <c>upDownArrowCallout</c>.</summary>
-    UpDownArrowCallout,
-    /// <summary>Represents the Open XML value <c>quadArrowCallout</c>.</summary>
-    QuadArrowCallout,
-    /// <summary>Represents the Open XML value <c>bentArrow</c>.</summary>
-    BentArrow,
-    /// <summary>Represents the Open XML value <c>uturnArrow</c>.</summary>
-    UTurnArrow,
-    /// <summary>Represents the Open XML value <c>circularArrow</c>.</summary>
-    CircularArrow,
-    /// <summary>Represents the Open XML value <c>leftCircularArrow</c>.</summary>
-    LeftCircularArrow,
-    /// <summary>Represents the Open XML value <c>leftRightCircularArrow</c>.</summary>
-    LeftRightCircularArrow,
-    /// <summary>Represents the Open XML value <c>curvedRightArrow</c>.</summary>
-    CurvedRightArrow,
-    /// <summary>Represents the Open XML value <c>curvedLeftArrow</c>.</summary>
-    CurvedLeftArrow,
-    /// <summary>Represents the Open XML value <c>curvedUpArrow</c>.</summary>
-    CurvedUpArrow,
-    /// <summary>Represents the Open XML value <c>curvedDownArrow</c>.</summary>
-    CurvedDownArrow,
-    /// <summary>Represents the Open XML value <c>swooshArrow</c>.</summary>
-    SwooshArrow,
-    /// <summary>Represents the Open XML value <c>cube</c>.</summary>
-    Cube,
-    /// <summary>Represents the Open XML value <c>can</c>.</summary>
-    Can,
-    /// <summary>Represents the Open XML value <c>lightningBolt</c>.</summary>
-    LightningBolt,
-    /// <summary>Represents the Open XML value <c>heart</c>.</summary>
-    Heart,
-    /// <summary>Represents the Open XML value <c>sun</c>.</summary>
-    Sun,
-    /// <summary>Represents the Open XML value <c>moon</c>.</summary>
-    Moon,
-    /// <summary>Represents the Open XML value <c>smileyFace</c>.</summary>
-    SmileyFace,
-    /// <summary>Represents the Open XML value <c>irregularSeal1</c>.</summary>
-    IrregularSeal1,
-    /// <summary>Represents the Open XML value <c>irregularSeal2</c>.</summary>
-    IrregularSeal2,
-    /// <summary>Represents the Open XML value <c>foldedCorner</c>.</summary>
-    FoldedCorner,
-    /// <summary>Represents the Open XML value <c>bevel</c>.</summary>
-    Bevel,
-    /// <summary>Represents the Open XML value <c>frame</c>.</summary>
-    Frame,
-    /// <summary>Represents the Open XML value <c>halfFrame</c>.</summary>
-    HalfFrame,
-    /// <summary>Represents the Open XML value <c>corner</c>.</summary>
-    Corner,
-    /// <summary>Represents the Open XML value <c>diagStripe</c>.</summary>
-    DiagonalStripe,
-    /// <summary>Represents the Open XML value <c>chord</c>.</summary>
-    Chord,
-    /// <summary>Represents the Open XML value <c>arc</c>.</summary>
-    Arc,
-    /// <summary>Represents the Open XML value <c>leftBracket</c>.</summary>
-    LeftBracket,
-    /// <summary>Represents the Open XML value <c>rightBracket</c>.</summary>
-    RightBracket,
-    /// <summary>Represents the Open XML value <c>leftBrace</c>.</summary>
-    LeftBrace,
-    /// <summary>Represents the Open XML value <c>rightBrace</c>.</summary>
-    RightBrace,
-    /// <summary>Represents the Open XML value <c>bracketPair</c>.</summary>
-    BracketPair,
-    /// <summary>Represents the Open XML value <c>bracePair</c>.</summary>
-    BracePair,
-    /// <summary>Represents the Open XML value <c>straightConnector1</c>.</summary>
-    StraightConnector1,
-    /// <summary>Represents the Open XML value <c>bentConnector2</c>.</summary>
-    BentConnector2,
-    /// <summary>Represents the Open XML value <c>bentConnector3</c>.</summary>
-    BentConnector3,
-    /// <summary>Represents the Open XML value <c>bentConnector4</c>.</summary>
-    BentConnector4,
-    /// <summary>Represents the Open XML value <c>bentConnector5</c>.</summary>
-    BentConnector5,
-    /// <summary>Represents the Open XML value <c>curvedConnector2</c>.</summary>
-    CurvedConnector2,
-    /// <summary>Represents the Open XML value <c>curvedConnector3</c>.</summary>
-    CurvedConnector3,
-    /// <summary>Represents the Open XML value <c>curvedConnector4</c>.</summary>
-    CurvedConnector4,
-    /// <summary>Represents the Open XML value <c>curvedConnector5</c>.</summary>
-    CurvedConnector5,
-    /// <summary>Represents the Open XML value <c>callout1</c>.</summary>
-    Callout1,
-    /// <summary>Represents the Open XML value <c>callout2</c>.</summary>
-    Callout2,
-    /// <summary>Represents the Open XML value <c>callout3</c>.</summary>
-    Callout3,
-    /// <summary>Represents the Open XML value <c>accentCallout1</c>.</summary>
-    AccentCallout1,
-    /// <summary>Represents the Open XML value <c>accentCallout2</c>.</summary>
-    AccentCallout2,
-    /// <summary>Represents the Open XML value <c>accentCallout3</c>.</summary>
-    AccentCallout3,
-    /// <summary>Represents the Open XML value <c>borderCallout1</c>.</summary>
-    BorderCallout1,
-    /// <summary>Represents the Open XML value <c>borderCallout2</c>.</summary>
-    BorderCallout2,
-    /// <summary>Represents the Open XML value <c>borderCallout3</c>.</summary>
-    BorderCallout3,
-    /// <summary>Represents the Open XML value <c>accentBorderCallout1</c>.</summary>
-    AccentBorderCallout1,
-    /// <summary>Represents the Open XML value <c>accentBorderCallout2</c>.</summary>
-    AccentBorderCallout2,
-    /// <summary>Represents the Open XML value <c>accentBorderCallout3</c>.</summary>
-    AccentBorderCallout3,
-    /// <summary>Represents the Open XML value <c>wedgeRectCallout</c>.</summary>
-    WedgeRectangleCallout,
-    /// <summary>Represents the Open XML value <c>wedgeRoundRectCallout</c>.</summary>
-    WedgeRoundRectangleCallout,
-    /// <summary>Represents the Open XML value <c>wedgeEllipseCallout</c>.</summary>
-    WedgeEllipseCallout,
-    /// <summary>Represents the Open XML value <c>cloudCallout</c>.</summary>
-    CloudCallout,
-    /// <summary>Represents the Open XML value <c>cloud</c>.</summary>
-    Cloud,
-    /// <summary>Represents the Open XML value <c>ribbon</c>.</summary>
-    Ribbon,
-    /// <summary>Represents the Open XML value <c>ribbon2</c>.</summary>
-    Ribbon2,
-    /// <summary>Represents the Open XML value <c>ellipseRibbon</c>.</summary>
-    EllipseRibbon,
-    /// <summary>Represents the Open XML value <c>ellipseRibbon2</c>.</summary>
-    EllipseRibbon2,
-    /// <summary>Represents the Open XML value <c>leftRightRibbon</c>.</summary>
-    LeftRightRibbon,
-    /// <summary>Represents the Open XML value <c>verticalScroll</c>.</summary>
-    VerticalScroll,
-    /// <summary>Represents the Open XML value <c>horizontalScroll</c>.</summary>
-    HorizontalScroll,
-    /// <summary>Represents the Open XML value <c>wave</c>.</summary>
-    Wave,
-    /// <summary>Represents the Open XML value <c>doubleWave</c>.</summary>
-    DoubleWave,
-    /// <summary>Represents the Open XML value <c>plus</c>.</summary>
-    Plus,
-    /// <summary>Represents the Open XML value <c>flowChartProcess</c>.</summary>
-    FlowChartProcess,
-    /// <summary>Represents the Open XML value <c>flowChartDecision</c>.</summary>
-    FlowChartDecision,
-    /// <summary>Represents the Open XML value <c>flowChartInputOutput</c>.</summary>
-    FlowChartInputOutput,
-    /// <summary>Represents the Open XML value <c>flowChartPredefinedProcess</c>.</summary>
-    FlowChartPredefinedProcess,
-    /// <summary>Represents the Open XML value <c>flowChartInternalStorage</c>.</summary>
-    FlowChartInternalStorage,
-    /// <summary>Represents the Open XML value <c>flowChartDocument</c>.</summary>
-    FlowChartDocument,
-    /// <summary>Represents the Open XML value <c>flowChartMultidocument</c>.</summary>
-    FlowChartMultidocument,
-    /// <summary>Represents the Open XML value <c>flowChartTerminator</c>.</summary>
-    FlowChartTerminator,
-    /// <summary>Represents the Open XML value <c>flowChartPreparation</c>.</summary>
-    FlowChartPreparation,
-    /// <summary>Represents the Open XML value <c>flowChartManualInput</c>.</summary>
-    FlowChartManualInput,
-    /// <summary>Represents the Open XML value <c>flowChartManualOperation</c>.</summary>
-    FlowChartManualOperation,
-    /// <summary>Represents the Open XML value <c>flowChartConnector</c>.</summary>
-    FlowChartConnector,
-    /// <summary>Represents the Open XML value <c>flowChartPunchedCard</c>.</summary>
-    FlowChartPunchedCard,
-    /// <summary>Represents the Open XML value <c>flowChartPunchedTape</c>.</summary>
-    FlowChartPunchedTape,
-    /// <summary>Represents the Open XML value <c>flowChartSummingJunction</c>.</summary>
-    FlowChartSummingJunction,
-    /// <summary>Represents the Open XML value <c>flowChartOr</c>.</summary>
-    FlowChartOr,
-    /// <summary>Represents the Open XML value <c>flowChartCollate</c>.</summary>
-    FlowChartCollate,
-    /// <summary>Represents the Open XML value <c>flowChartSort</c>.</summary>
-    FlowChartSort,
-    /// <summary>Represents the Open XML value <c>flowChartExtract</c>.</summary>
-    FlowChartExtract,
-    /// <summary>Represents the Open XML value <c>flowChartMerge</c>.</summary>
-    FlowChartMerge,
-    /// <summary>Represents the Open XML value <c>flowChartOfflineStorage</c>.</summary>
-    FlowChartOfflineStorage,
-    /// <summary>Represents the Open XML value <c>flowChartOnlineStorage</c>.</summary>
-    FlowChartOnlineStorage,
-    /// <summary>Represents the Open XML value <c>flowChartMagneticTape</c>.</summary>
-    FlowChartMagneticTape,
-    /// <summary>Represents the Open XML value <c>flowChartMagneticDisk</c>.</summary>
-    FlowChartMagneticDisk,
-    /// <summary>Represents the Open XML value <c>flowChartMagneticDrum</c>.</summary>
-    FlowChartMagneticDrum,
-    /// <summary>Represents the Open XML value <c>flowChartDisplay</c>.</summary>
-    FlowChartDisplay,
-    /// <summary>Represents the Open XML value <c>flowChartDelay</c>.</summary>
-    FlowChartDelay,
-    /// <summary>Represents the Open XML value <c>flowChartAlternateProcess</c>.</summary>
-    FlowChartAlternateProcess,
-    /// <summary>Represents the Open XML value <c>flowChartOffpageConnector</c>.</summary>
-    FlowChartOffpageConnector,
-    /// <summary>Represents the Open XML value <c>actionButtonBlank</c>.</summary>
-    ActionButtonBlank,
-    /// <summary>Represents the Open XML value <c>actionButtonHome</c>.</summary>
-    ActionButtonHome,
-    /// <summary>Represents the Open XML value <c>actionButtonHelp</c>.</summary>
-    ActionButtonHelp,
-    /// <summary>Represents the Open XML value <c>actionButtonInformation</c>.</summary>
-    ActionButtonInformation,
-    /// <summary>Represents the Open XML value <c>actionButtonForwardNext</c>.</summary>
-    ActionButtonForwardNext,
-    /// <summary>Represents the Open XML value <c>actionButtonBackPrevious</c>.</summary>
-    ActionButtonBackPrevious,
-    /// <summary>Represents the Open XML value <c>actionButtonEnd</c>.</summary>
-    ActionButtonEnd,
-    /// <summary>Represents the Open XML value <c>actionButtonBeginning</c>.</summary>
-    ActionButtonBeginning,
-    /// <summary>Represents the Open XML value <c>actionButtonReturn</c>.</summary>
-    ActionButtonReturn,
-    /// <summary>Represents the Open XML value <c>actionButtonDocument</c>.</summary>
-    ActionButtonDocument,
-    /// <summary>Represents the Open XML value <c>actionButtonSound</c>.</summary>
-    ActionButtonSound,
-    /// <summary>Represents the Open XML value <c>actionButtonMovie</c>.</summary>
-    ActionButtonMovie,
-    /// <summary>Represents the Open XML value <c>gear6</c>.</summary>
-    Gear6,
-    /// <summary>Represents the Open XML value <c>gear9</c>.</summary>
-    Gear9,
-    /// <summary>Represents the Open XML value <c>funnel</c>.</summary>
-    Funnel,
-    /// <summary>Represents the Open XML value <c>mathPlus</c>.</summary>
-    MathPlus,
-    /// <summary>Represents the Open XML value <c>mathMinus</c>.</summary>
-    MathMinus,
-    /// <summary>Represents the Open XML value <c>mathMultiply</c>.</summary>
-    MathMultiply,
-    /// <summary>Represents the Open XML value <c>mathDivide</c>.</summary>
-    MathDivide,
-    /// <summary>Represents the Open XML value <c>mathEqual</c>.</summary>
-    MathEqual,
-    /// <summary>Represents the Open XML value <c>mathNotEqual</c>.</summary>
-    MathNotEqual,
-    /// <summary>Represents the Open XML value <c>cornerTabs</c>.</summary>
-    CornerTabs,
-    /// <summary>Represents the Open XML value <c>squareTabs</c>.</summary>
-    SquareTabs,
-    /// <summary>Represents the Open XML value <c>plaqueTabs</c>.</summary>
-    PlaqueTabs,
-    /// <summary>Represents the Open XML value <c>chartX</c>.</summary>
-    ChartX,
-    /// <summary>Represents the Open XML value <c>chartStar</c>.</summary>
-    ChartStar,
-    /// <summary>Represents the Open XML value <c>chartPlus</c>.</summary>
-    ChartPlus,
 }
 
 /// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.</summary>
@@ -891,89 +365,6 @@ public enum PowerPointSlideSizeType {
 }
 
 internal static class PowerPointOpenXmlValueTypeExtensions {
-    private static readonly string[] PowerPointChartDisplayUnitTokens = {
-        "hundreds",
-        "thousands",
-        "tenThousands",
-        "hundredThousands",
-        "millions",
-        "tenMillions",
-        "hundredMillions",
-        "billions",
-        "trillions",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues ToOpenXml(this PowerPointChartDisplayUnit value) =>
-        new(GetToken(value, PowerPointChartDisplayUnitTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues? ToOpenXml(this PowerPointChartDisplayUnit? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static PowerPointChartDisplayUnit ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues value) =>
-        (PowerPointChartDisplayUnit)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, PowerPointChartDisplayUnitTokens, nameof(PowerPointChartDisplayUnit));
-
-    internal static PowerPointChartDisplayUnit? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] PowerPointChartAxisCrossBetweenTokens = {
-        "between",
-        "midCat",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues ToOpenXml(this PowerPointChartAxisCrossBetween value) =>
-        new(GetToken(value, PowerPointChartAxisCrossBetweenTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues? ToOpenXml(this PowerPointChartAxisCrossBetween? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static PowerPointChartAxisCrossBetween ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues value) =>
-        (PowerPointChartAxisCrossBetween)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, PowerPointChartAxisCrossBetweenTokens, nameof(PowerPointChartAxisCrossBetween));
-
-    internal static PowerPointChartAxisCrossBetween? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] PowerPointChartAxisCrossingTokens = {
-        "autoZero",
-        "max",
-        "min",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossesValues ToOpenXml(this PowerPointChartAxisCrossing value) =>
-        new(GetToken(value, PowerPointChartAxisCrossingTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossesValues? ToOpenXml(this PowerPointChartAxisCrossing? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static PowerPointChartAxisCrossing ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossesValues value) =>
-        (PowerPointChartAxisCrossing)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, PowerPointChartAxisCrossingTokens, nameof(PowerPointChartAxisCrossing));
-
-    internal static PowerPointChartAxisCrossing? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossesValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] PowerPointChartDataLabelPositionTokens = {
-        "bestFit",
-        "b",
-        "ctr",
-        "inBase",
-        "inEnd",
-        "l",
-        "outEnd",
-        "r",
-        "t",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues ToOpenXml(this PowerPointChartDataLabelPosition value) =>
-        new(GetToken(value, PowerPointChartDataLabelPositionTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues? ToOpenXml(this PowerPointChartDataLabelPosition? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static PowerPointChartDataLabelPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues value) =>
-        (PowerPointChartDataLabelPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, PowerPointChartDataLabelPositionTokens, nameof(PowerPointChartDataLabelPosition));
-
-    internal static PowerPointChartDataLabelPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
     private static readonly string[] PowerPointChartGroupingTokens = {
         "percentStacked",
         "standard",
@@ -992,93 +383,6 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static PowerPointChartGrouping? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.GroupingValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
-    private static readonly string[] PowerPointChartLegendPositionTokens = {
-        "b",
-        "tr",
-        "l",
-        "r",
-        "t",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues ToOpenXml(this PowerPointChartLegendPosition value) =>
-        new(GetToken(value, PowerPointChartLegendPositionTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues? ToOpenXml(this PowerPointChartLegendPosition? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static PowerPointChartLegendPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues value) =>
-        (PowerPointChartLegendPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, PowerPointChartLegendPositionTokens, nameof(PowerPointChartLegendPosition));
-
-    internal static PowerPointChartLegendPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] PowerPointChartMarkerStyleTokens = {
-        "auto",
-        "circle",
-        "dash",
-        "diamond",
-        "dot",
-        "none",
-        "picture",
-        "plus",
-        "square",
-        "star",
-        "triangle",
-        "x",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues ToOpenXml(this PowerPointChartMarkerStyle value) =>
-        new(GetToken(value, PowerPointChartMarkerStyleTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues? ToOpenXml(this PowerPointChartMarkerStyle? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static PowerPointChartMarkerStyle ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues value) =>
-        (PowerPointChartMarkerStyle)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, PowerPointChartMarkerStyleTokens, nameof(PowerPointChartMarkerStyle));
-
-    internal static PowerPointChartMarkerStyle? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] PowerPointChartTickLabelPositionTokens = {
-        "high",
-        "low",
-        "nextTo",
-        "none",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues ToOpenXml(this PowerPointChartTickLabelPosition value) =>
-        new(GetToken(value, PowerPointChartTickLabelPositionTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues? ToOpenXml(this PowerPointChartTickLabelPosition? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static PowerPointChartTickLabelPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues value) =>
-        (PowerPointChartTickLabelPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, PowerPointChartTickLabelPositionTokens, nameof(PowerPointChartTickLabelPosition));
-
-    internal static PowerPointChartTickLabelPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] PowerPointChartTrendlineTypeTokens = {
-        "exp",
-        "linear",
-        "log",
-        "movingAvg",
-        "poly",
-        "power",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues ToOpenXml(this PowerPointChartTrendlineType value) =>
-        new(GetToken(value, PowerPointChartTrendlineTypeTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues? ToOpenXml(this PowerPointChartTrendlineType? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static PowerPointChartTrendlineType ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues value) =>
-        (PowerPointChartTrendlineType)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, PowerPointChartTrendlineTypeTokens, nameof(PowerPointChartTrendlineType));
-
-    internal static PowerPointChartTrendlineType? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
     private static readonly string[] PowerPointLineEndLengthTokens = {
         "sm",
         "med",
@@ -1095,27 +399,6 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         (PowerPointLineEndLength)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, PowerPointLineEndLengthTokens, nameof(PowerPointLineEndLength));
 
     internal static PowerPointLineEndLength? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.LineEndLengthValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] PowerPointLineEndTypeTokens = {
-        "none",
-        "triangle",
-        "stealth",
-        "diamond",
-        "oval",
-        "arrow",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.LineEndValues ToOpenXml(this PowerPointLineEndType value) =>
-        new(GetToken(value, PowerPointLineEndTypeTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.LineEndValues? ToOpenXml(this PowerPointLineEndType? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static PowerPointLineEndType ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.LineEndValues value) =>
-        (PowerPointLineEndType)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, PowerPointLineEndTypeTokens, nameof(PowerPointLineEndType));
-
-    internal static PowerPointLineEndType? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.LineEndValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
     private static readonly string[] PowerPointLineEndWidthTokens = {
@@ -1184,208 +467,6 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         (PowerPointRectangleAlignment)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, PowerPointRectangleAlignmentTokens, nameof(PowerPointRectangleAlignment));
 
     internal static PowerPointRectangleAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.RectangleAlignmentValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
-    private static readonly string[] PowerPointShapeTypeTokens = {
-        "line",
-        "lineInv",
-        "triangle",
-        "rtTriangle",
-        "rect",
-        "diamond",
-        "parallelogram",
-        "trapezoid",
-        "nonIsoscelesTrapezoid",
-        "pentagon",
-        "hexagon",
-        "heptagon",
-        "octagon",
-        "decagon",
-        "dodecagon",
-        "star4",
-        "star5",
-        "star6",
-        "star7",
-        "star8",
-        "star10",
-        "star12",
-        "star16",
-        "star24",
-        "star32",
-        "roundRect",
-        "round1Rect",
-        "round2SameRect",
-        "round2DiagRect",
-        "snipRoundRect",
-        "snip1Rect",
-        "snip2SameRect",
-        "snip2DiagRect",
-        "plaque",
-        "ellipse",
-        "teardrop",
-        "homePlate",
-        "chevron",
-        "pieWedge",
-        "pie",
-        "blockArc",
-        "donut",
-        "noSmoking",
-        "rightArrow",
-        "leftArrow",
-        "upArrow",
-        "downArrow",
-        "stripedRightArrow",
-        "notchedRightArrow",
-        "bentUpArrow",
-        "leftRightArrow",
-        "upDownArrow",
-        "leftUpArrow",
-        "leftRightUpArrow",
-        "quadArrow",
-        "leftArrowCallout",
-        "rightArrowCallout",
-        "upArrowCallout",
-        "downArrowCallout",
-        "leftRightArrowCallout",
-        "upDownArrowCallout",
-        "quadArrowCallout",
-        "bentArrow",
-        "uturnArrow",
-        "circularArrow",
-        "leftCircularArrow",
-        "leftRightCircularArrow",
-        "curvedRightArrow",
-        "curvedLeftArrow",
-        "curvedUpArrow",
-        "curvedDownArrow",
-        "swooshArrow",
-        "cube",
-        "can",
-        "lightningBolt",
-        "heart",
-        "sun",
-        "moon",
-        "smileyFace",
-        "irregularSeal1",
-        "irregularSeal2",
-        "foldedCorner",
-        "bevel",
-        "frame",
-        "halfFrame",
-        "corner",
-        "diagStripe",
-        "chord",
-        "arc",
-        "leftBracket",
-        "rightBracket",
-        "leftBrace",
-        "rightBrace",
-        "bracketPair",
-        "bracePair",
-        "straightConnector1",
-        "bentConnector2",
-        "bentConnector3",
-        "bentConnector4",
-        "bentConnector5",
-        "curvedConnector2",
-        "curvedConnector3",
-        "curvedConnector4",
-        "curvedConnector5",
-        "callout1",
-        "callout2",
-        "callout3",
-        "accentCallout1",
-        "accentCallout2",
-        "accentCallout3",
-        "borderCallout1",
-        "borderCallout2",
-        "borderCallout3",
-        "accentBorderCallout1",
-        "accentBorderCallout2",
-        "accentBorderCallout3",
-        "wedgeRectCallout",
-        "wedgeRoundRectCallout",
-        "wedgeEllipseCallout",
-        "cloudCallout",
-        "cloud",
-        "ribbon",
-        "ribbon2",
-        "ellipseRibbon",
-        "ellipseRibbon2",
-        "leftRightRibbon",
-        "verticalScroll",
-        "horizontalScroll",
-        "wave",
-        "doubleWave",
-        "plus",
-        "flowChartProcess",
-        "flowChartDecision",
-        "flowChartInputOutput",
-        "flowChartPredefinedProcess",
-        "flowChartInternalStorage",
-        "flowChartDocument",
-        "flowChartMultidocument",
-        "flowChartTerminator",
-        "flowChartPreparation",
-        "flowChartManualInput",
-        "flowChartManualOperation",
-        "flowChartConnector",
-        "flowChartPunchedCard",
-        "flowChartPunchedTape",
-        "flowChartSummingJunction",
-        "flowChartOr",
-        "flowChartCollate",
-        "flowChartSort",
-        "flowChartExtract",
-        "flowChartMerge",
-        "flowChartOfflineStorage",
-        "flowChartOnlineStorage",
-        "flowChartMagneticTape",
-        "flowChartMagneticDisk",
-        "flowChartMagneticDrum",
-        "flowChartDisplay",
-        "flowChartDelay",
-        "flowChartAlternateProcess",
-        "flowChartOffpageConnector",
-        "actionButtonBlank",
-        "actionButtonHome",
-        "actionButtonHelp",
-        "actionButtonInformation",
-        "actionButtonForwardNext",
-        "actionButtonBackPrevious",
-        "actionButtonEnd",
-        "actionButtonBeginning",
-        "actionButtonReturn",
-        "actionButtonDocument",
-        "actionButtonSound",
-        "actionButtonMovie",
-        "gear6",
-        "gear9",
-        "funnel",
-        "mathPlus",
-        "mathMinus",
-        "mathMultiply",
-        "mathDivide",
-        "mathEqual",
-        "mathNotEqual",
-        "cornerTabs",
-        "squareTabs",
-        "plaqueTabs",
-        "chartX",
-        "chartStar",
-        "chartPlus",
-    };
-
-    internal static DocumentFormat.OpenXml.Drawing.ShapeTypeValues ToOpenXml(this PowerPointShapeType value) =>
-        new(GetToken(value, PowerPointShapeTypeTokens));
-
-    internal static DocumentFormat.OpenXml.Drawing.ShapeTypeValues? ToOpenXml(this PowerPointShapeType? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static PowerPointShapeType ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.ShapeTypeValues value) =>
-        (PowerPointShapeType)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, PowerPointShapeTypeTokens, nameof(PowerPointShapeType));
-
-    internal static PowerPointShapeType? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.ShapeTypeValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
     private static readonly string[] PowerPointTextAlignmentTokens = {
@@ -1670,6 +751,399 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         (PowerPointSlideSizeType)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, PowerPointSlideSizeTypeTokens, nameof(PowerPointSlideSizeType));
 
     internal static PowerPointSlideSizeType? ToOfficeEnum(this DocumentFormat.OpenXml.Presentation.SlideSizeValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartDisplayUnitTokens = {
+        "hundreds",
+        "thousands",
+        "tenThousands",
+        "hundredThousands",
+        "millions",
+        "tenMillions",
+        "hundredMillions",
+        "billions",
+        "trillions",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues ToOpenXml(this OfficeChartDisplayUnit value) =>
+        new(GetToken(value, OfficeChartDisplayUnitTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues? ToOpenXml(this OfficeChartDisplayUnit? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartDisplayUnit ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues value) =>
+        (OfficeChartDisplayUnit)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartDisplayUnitTokens, nameof(OfficeChartDisplayUnit));
+
+    internal static OfficeChartDisplayUnit? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartAxisCrossBetweenTokens = {
+        "between",
+        "midCat",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues ToOpenXml(this OfficeChartAxisCrossBetween value) =>
+        new(GetToken(value, OfficeChartAxisCrossBetweenTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues? ToOpenXml(this OfficeChartAxisCrossBetween? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartAxisCrossBetween ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues value) =>
+        (OfficeChartAxisCrossBetween)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartAxisCrossBetweenTokens, nameof(OfficeChartAxisCrossBetween));
+
+    internal static OfficeChartAxisCrossBetween? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartAxisCrossingPositionTokens = {
+        "autoZero",
+        "max",
+        "min",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossesValues ToOpenXml(this OfficeChartAxisCrossingPosition value) =>
+        new(GetToken(value, OfficeChartAxisCrossingPositionTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.CrossesValues? ToOpenXml(this OfficeChartAxisCrossingPosition? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartAxisCrossingPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossesValues value) =>
+        (OfficeChartAxisCrossingPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartAxisCrossingPositionTokens, nameof(OfficeChartAxisCrossingPosition));
+
+    internal static OfficeChartAxisCrossingPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossesValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartDataLabelPositionTokens = {
+        "bestFit",
+        "b",
+        "ctr",
+        "inBase",
+        "inEnd",
+        "l",
+        "outEnd",
+        "r",
+        "t",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues ToOpenXml(this OfficeChartDataLabelPosition value) =>
+        new(GetToken(value, OfficeChartDataLabelPositionTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues? ToOpenXml(this OfficeChartDataLabelPosition? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartDataLabelPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues value) =>
+        (OfficeChartDataLabelPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartDataLabelPositionTokens, nameof(OfficeChartDataLabelPosition));
+
+    internal static OfficeChartDataLabelPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartLegendPositionTokens = {
+        "b",
+        "tr",
+        "l",
+        "r",
+        "t",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues ToOpenXml(this OfficeChartLegendPosition value) =>
+        new(GetToken(value, OfficeChartLegendPositionTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues? ToOpenXml(this OfficeChartLegendPosition? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartLegendPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues value) =>
+        (OfficeChartLegendPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartLegendPositionTokens, nameof(OfficeChartLegendPosition));
+
+    internal static OfficeChartLegendPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartMarkerShapeTokens = {
+        "auto",
+        "circle",
+        "dash",
+        "diamond",
+        "dot",
+        "none",
+        "picture",
+        "plus",
+        "square",
+        "star",
+        "triangle",
+        "x",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues ToOpenXml(this OfficeChartMarkerShape value) =>
+        new(GetToken(value, OfficeChartMarkerShapeTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues? ToOpenXml(this OfficeChartMarkerShape? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartMarkerShape ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues value) =>
+        (OfficeChartMarkerShape)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartMarkerShapeTokens, nameof(OfficeChartMarkerShape));
+
+    internal static OfficeChartMarkerShape? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartAxisTickLabelPositionTokens = {
+        "high",
+        "low",
+        "nextTo",
+        "none",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues ToOpenXml(this OfficeChartAxisTickLabelPosition value) =>
+        new(GetToken(value, OfficeChartAxisTickLabelPositionTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues? ToOpenXml(this OfficeChartAxisTickLabelPosition? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartAxisTickLabelPosition ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues value) =>
+        (OfficeChartAxisTickLabelPosition)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartAxisTickLabelPositionTokens, nameof(OfficeChartAxisTickLabelPosition));
+
+    internal static OfficeChartAxisTickLabelPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeChartTrendlineTypeTokens = {
+        "exp",
+        "linear",
+        "log",
+        "movingAvg",
+        "poly",
+        "power",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues ToOpenXml(this OfficeChartTrendlineType value) =>
+        new(GetToken(value, OfficeChartTrendlineTypeTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues? ToOpenXml(this OfficeChartTrendlineType? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeChartTrendlineType ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues value) =>
+        (OfficeChartTrendlineType)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeChartTrendlineTypeTokens, nameof(OfficeChartTrendlineType));
+
+    internal static OfficeChartTrendlineType? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficeLineMarkerKindTokens = {
+        "none",
+        "triangle",
+        "stealth",
+        "diamond",
+        "oval",
+        "arrow",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.LineEndValues ToOpenXml(this OfficeLineMarkerKind value) =>
+        new(GetToken(value, OfficeLineMarkerKindTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.LineEndValues? ToOpenXml(this OfficeLineMarkerKind? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficeLineMarkerKind ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.LineEndValues value) =>
+        (OfficeLineMarkerKind)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficeLineMarkerKindTokens, nameof(OfficeLineMarkerKind));
+
+    internal static OfficeLineMarkerKind? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.LineEndValues? value) =>
+        value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    private static readonly string[] OfficePresetShapeTypeTokens = {
+        "line",
+        "lineInv",
+        "triangle",
+        "rtTriangle",
+        "rect",
+        "diamond",
+        "parallelogram",
+        "trapezoid",
+        "nonIsoscelesTrapezoid",
+        "pentagon",
+        "hexagon",
+        "heptagon",
+        "octagon",
+        "decagon",
+        "dodecagon",
+        "star4",
+        "star5",
+        "star6",
+        "star7",
+        "star8",
+        "star10",
+        "star12",
+        "star16",
+        "star24",
+        "star32",
+        "roundRect",
+        "round1Rect",
+        "round2SameRect",
+        "round2DiagRect",
+        "snipRoundRect",
+        "snip1Rect",
+        "snip2SameRect",
+        "snip2DiagRect",
+        "plaque",
+        "ellipse",
+        "teardrop",
+        "homePlate",
+        "chevron",
+        "pieWedge",
+        "pie",
+        "blockArc",
+        "donut",
+        "noSmoking",
+        "rightArrow",
+        "leftArrow",
+        "upArrow",
+        "downArrow",
+        "stripedRightArrow",
+        "notchedRightArrow",
+        "bentUpArrow",
+        "leftRightArrow",
+        "upDownArrow",
+        "leftUpArrow",
+        "leftRightUpArrow",
+        "quadArrow",
+        "leftArrowCallout",
+        "rightArrowCallout",
+        "upArrowCallout",
+        "downArrowCallout",
+        "leftRightArrowCallout",
+        "upDownArrowCallout",
+        "quadArrowCallout",
+        "bentArrow",
+        "uturnArrow",
+        "circularArrow",
+        "leftCircularArrow",
+        "leftRightCircularArrow",
+        "curvedRightArrow",
+        "curvedLeftArrow",
+        "curvedUpArrow",
+        "curvedDownArrow",
+        "swooshArrow",
+        "cube",
+        "can",
+        "lightningBolt",
+        "heart",
+        "sun",
+        "moon",
+        "smileyFace",
+        "irregularSeal1",
+        "irregularSeal2",
+        "foldedCorner",
+        "bevel",
+        "frame",
+        "halfFrame",
+        "corner",
+        "diagStripe",
+        "chord",
+        "arc",
+        "leftBracket",
+        "rightBracket",
+        "leftBrace",
+        "rightBrace",
+        "bracketPair",
+        "bracePair",
+        "straightConnector1",
+        "bentConnector2",
+        "bentConnector3",
+        "bentConnector4",
+        "bentConnector5",
+        "curvedConnector2",
+        "curvedConnector3",
+        "curvedConnector4",
+        "curvedConnector5",
+        "callout1",
+        "callout2",
+        "callout3",
+        "accentCallout1",
+        "accentCallout2",
+        "accentCallout3",
+        "borderCallout1",
+        "borderCallout2",
+        "borderCallout3",
+        "accentBorderCallout1",
+        "accentBorderCallout2",
+        "accentBorderCallout3",
+        "wedgeRectCallout",
+        "wedgeRoundRectCallout",
+        "wedgeEllipseCallout",
+        "cloudCallout",
+        "cloud",
+        "ribbon",
+        "ribbon2",
+        "ellipseRibbon",
+        "ellipseRibbon2",
+        "leftRightRibbon",
+        "verticalScroll",
+        "horizontalScroll",
+        "wave",
+        "doubleWave",
+        "plus",
+        "flowChartProcess",
+        "flowChartDecision",
+        "flowChartInputOutput",
+        "flowChartPredefinedProcess",
+        "flowChartInternalStorage",
+        "flowChartDocument",
+        "flowChartMultidocument",
+        "flowChartTerminator",
+        "flowChartPreparation",
+        "flowChartManualInput",
+        "flowChartManualOperation",
+        "flowChartConnector",
+        "flowChartPunchedCard",
+        "flowChartPunchedTape",
+        "flowChartSummingJunction",
+        "flowChartOr",
+        "flowChartCollate",
+        "flowChartSort",
+        "flowChartExtract",
+        "flowChartMerge",
+        "flowChartOfflineStorage",
+        "flowChartOnlineStorage",
+        "flowChartMagneticTape",
+        "flowChartMagneticDisk",
+        "flowChartMagneticDrum",
+        "flowChartDisplay",
+        "flowChartDelay",
+        "flowChartAlternateProcess",
+        "flowChartOffpageConnector",
+        "actionButtonBlank",
+        "actionButtonHome",
+        "actionButtonHelp",
+        "actionButtonInformation",
+        "actionButtonForwardNext",
+        "actionButtonBackPrevious",
+        "actionButtonEnd",
+        "actionButtonBeginning",
+        "actionButtonReturn",
+        "actionButtonDocument",
+        "actionButtonSound",
+        "actionButtonMovie",
+        "gear6",
+        "gear9",
+        "funnel",
+        "mathPlus",
+        "mathMinus",
+        "mathMultiply",
+        "mathDivide",
+        "mathEqual",
+        "mathNotEqual",
+        "cornerTabs",
+        "squareTabs",
+        "plaqueTabs",
+        "chartX",
+        "chartStar",
+        "chartPlus",
+    };
+
+    internal static DocumentFormat.OpenXml.Drawing.ShapeTypeValues ToOpenXml(this OfficePresetShapeType value) =>
+        new(GetToken(value, OfficePresetShapeTypeTokens));
+
+    internal static DocumentFormat.OpenXml.Drawing.ShapeTypeValues? ToOpenXml(this OfficePresetShapeType? value) =>
+        value.HasValue ? value.Value.ToOpenXml() : null;
+
+    internal static OfficePresetShapeType ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.ShapeTypeValues value) =>
+        (OfficePresetShapeType)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, OfficePresetShapeTypeTokens, nameof(OfficePresetShapeType));
+
+    internal static OfficePresetShapeType? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.ShapeTypeValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
     private static string GetToken<TEnum>(TEnum value, string[] tokens) where TEnum : struct, Enum {

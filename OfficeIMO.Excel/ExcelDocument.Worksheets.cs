@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
         public static ExcelDocument Create(string filePath, string worksheetName) {
             ExcelDocument excelDocument = Create(filePath);
             // Prefer a sanitized sheet name for convenience in the common Create(path, name) flow
-            excelDocument.AddWorksheet(worksheetName, SheetNameValidationMode.Sanitize);
+            excelDocument.AddWorksheet(worksheetName, ExcelSheetNameValidationMode.Sanitize);
             return excelDocument;
         }
 
@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel {
         /// <param name="worksheetName">Worksheet name.</param>
         /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
         public ExcelSheet AddWorksheet(string worksheetName = "") {
-            return AddWorksheet(worksheetName, SheetNameValidationMode.Sanitize);
+            return AddWorksheet(worksheetName, ExcelSheetNameValidationMode.Sanitize);
         }
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
         /// <param name="worksheetName">Requested worksheet name.</param>
         /// <param name="validationMode">How to validate the sheet name: None (no checks), Sanitize (coerce), or Strict (throw on invalid).</param>
         /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
-        public ExcelSheet AddWorksheet(string worksheetName, SheetNameValidationMode validationMode) {
+        public ExcelSheet AddWorksheet(string worksheetName, ExcelSheetNameValidationMode validationMode) {
             if (!_materializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImport();
             }
@@ -58,7 +58,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        internal void RenameWorksheet(ExcelSheet sheet, string worksheetName, SheetNameValidationMode validationMode) {
+        internal void RenameWorksheet(ExcelSheet sheet, string worksheetName, ExcelSheetNameValidationMode validationMode) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
 
             Locking.ExecuteWrite(EnsureLock(), () => {
@@ -83,7 +83,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private string ValidateOrSanitizeSheetName(string name, SheetNameValidationMode mode, string? currentSheetName) {
+        private string ValidateOrSanitizeSheetName(string name, ExcelSheetNameValidationMode mode, string? currentSheetName) {
             // Collect existing names (case-insensitive)
             var existing = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
             foreach (var s in WorkbookRoot.Sheets?.OfType<DocumentFormat.OpenXml.Spreadsheet.Sheet>() ?? System.Linq.Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Sheet>()) {
@@ -93,7 +93,7 @@ namespace OfficeIMO.Excel {
                 existing.Add(existingName!);
             }
 
-            if (mode == SheetNameValidationMode.None) {
+            if (mode == ExcelSheetNameValidationMode.None) {
                 // Preserve historical behavior: default to "Sheet1" when empty
                 if (string.IsNullOrEmpty(name)) name = "Sheet1";
                 return name;
@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel {
             baseName = baseName.Trim();
             baseName = baseName.Trim('\'', ' ');
 
-            if (mode == SheetNameValidationMode.Strict) {
+            if (mode == ExcelSheetNameValidationMode.Strict) {
                 if (string.IsNullOrEmpty(baseName)) throw new System.ArgumentException("Worksheet name cannot be empty.", nameof(name));
                 if (baseName.Length > 31) throw new System.ArgumentException("Worksheet name cannot exceed 31 characters.", nameof(name));
                 if (ContainsInvalidChars(baseName)) throw new System.ArgumentException("Worksheet name contains invalid characters (: \\ / ? * [ ]).", nameof(name));

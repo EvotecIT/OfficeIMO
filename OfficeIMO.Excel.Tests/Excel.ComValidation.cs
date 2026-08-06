@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 2, 80d);
             sheet.CellValue(3, 1, "South");
             sheet.CellValue(3, 2, 95d);
-            sheet.AddTable("A1:B3", true, "ScoresTable", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+            sheet.AddTable("A1:B3", true, "ScoresTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
             sheet.AddAutoFilter("A1:B3", new Dictionary<uint, IEnumerable<string>> {
                 { 0, new[] { "North", "South" } }
             });
@@ -189,14 +189,14 @@ namespace OfficeIMO.Tests {
             var data = new ExcelChartData(
                 new[] { "Q1", "Q2", "Q3", "Q4" },
                 new[] {
-                    new ExcelChartSeries("Sales", new[] { 10d, 20d, 25d, 30d }, ExcelChartType.ColumnClustered, ExcelChartAxisGroup.Primary),
-                    new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d, 35d }, ExcelChartType.Line, ExcelChartAxisGroup.Secondary)
+                    new ExcelChartSeries("Sales", new[] { 10d, 20d, 25d, 30d }, ExcelChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
+                    new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d, 35d }, ExcelChartType.Line, OfficeChartAxisGroup.Secondary)
                 });
 
             ExcelChart chart = sheet.AddChart(data, row: 2, column: 6, widthPixels: 640, heightPixels: 360,
                 type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
-            chart.SetSeriesDataLabels(1, showValue: true, position: ExcelChartDataLabelPosition.Top)
-                 .SetSeriesDataLabelForPoint(1, 2, showValue: true, position: ExcelChartDataLabelPosition.OutsideEnd);
+            chart.SetSeriesDataLabels(1, showValue: true, position: OfficeChartDataLabelPosition.Top)
+                 .SetSeriesDataLabelForPoint(1, 2, showValue: true, position: OfficeChartDataLabelPosition.OutsideEnd);
 
             document.Save();
             return filePath;
@@ -213,7 +213,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 16d);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 13d);
-            sheet.AddTable("A1:B4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+            sheet.AddTable("A1:B4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
 
             sheet.AddRevenueTrendChart("A1:B4", row: 1, column: 5);
             sheet.AddTopNBarChart("A1:B4", row: 18, column: 5, title: "Top Revenue");

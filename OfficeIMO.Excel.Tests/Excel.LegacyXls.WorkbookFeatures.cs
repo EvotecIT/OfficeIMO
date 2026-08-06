@@ -355,7 +355,7 @@ namespace OfficeIMO.Tests {
             });
 
             ExcelSheetPageSetup setup = document.Sheets[0].GetPageSetup();
-            Assert.Equal(ExcelPageOrientation.Landscape, setup.Orientation);
+            Assert.Equal(OfficePageOrientation.Landscape, setup.Orientation);
             Assert.Equal((uint)125, setup.Scale);
             Assert.Equal((uint)1, setup.FitToWidth);
             Assert.Equal((uint)2, setup.FitToHeight);
@@ -434,7 +434,7 @@ namespace OfficeIMO.Tests {
 
             using var output = new MemoryStream();
             result.Document.Save(output, new ExcelSaveOptions {
-                LossPolicy = ExcelConversionLossPolicy.Allow
+                LossPolicy = OfficeConversionLossPolicy.Allow
             });
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
             WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
@@ -786,7 +786,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            ExcelSheet.HeaderFooterSnapshot snapshot = document.Sheets[0].GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterSnapshot snapshot = document.Sheets[0].GetHeaderFooter();
             Assert.Equal("Left &P&E Again", snapshot.HeaderLeft);
             Assert.Equal("Quarterly", snapshot.HeaderCenter);
             Assert.Equal("Confidential", snapshot.HeaderRight);

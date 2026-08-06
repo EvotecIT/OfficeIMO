@@ -131,7 +131,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlDiagnosticSeverity.Warning,
                     sourceDescription,
                     "features=" + unsupportedFeatures,
-                    HtmlConversionLossKind.Omission);
+                    OfficeConversionLossKind.Omission);
             }
             return true;
         }
@@ -147,7 +147,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlDiagnosticSeverity.Warning,
             sourceDescription,
             "image/svg+xml",
-            HtmlConversionLossKind.Omission);
+            OfficeConversionLossKind.Omission);
         return false;
     }
 
@@ -187,7 +187,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 "features=" + (unsupportedFeatures.HasValue
                     ? unsupportedFeatures.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
                     : "managed-parse-failed") + ";pixels=" + pixels,
-                HtmlConversionLossKind.Approximation);
+                OfficeConversionLossKind.Approximation);
             return true;
         } catch (Exception exception) when (exception is not OperationCanceledException && exception is not OutOfMemoryException && exception is not StackOverflowException) {
             return false;

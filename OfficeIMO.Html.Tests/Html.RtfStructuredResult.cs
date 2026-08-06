@@ -18,7 +18,7 @@ public class HtmlRtfStructuredResult {
         Assert.True(export.Succeeded);
         Assert.Contains("Value", export.Value, StringComparison.Ordinal);
         Assert.Equal(import.Report.Diagnostics.Count, import.RtfDiagnostics.Count);
-        Assert.Contains(export.Report.Diagnostics, diagnostic => diagnostic.LossKind == HtmlConversionLossKind.Omission);
+        Assert.Contains(export.Report.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Fact]

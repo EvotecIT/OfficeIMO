@@ -18,9 +18,9 @@ namespace OfficeIMO.Word.Fluent {
         /// <summary>
         /// Provides fluent access to document information.
         /// </summary>
-        /// <param name="action">Action that receives an <see cref="InfoBuilder"/>.</param>
-        public WordFluentDocument Info(Action<InfoBuilder> action) {
-            action(new InfoBuilder(this));
+        /// <param name="action">Action that receives an <see cref="WordInfoBuilder"/>.</param>
+        public WordFluentDocument Info(Action<WordInfoBuilder> action) {
+            action(new WordInfoBuilder(this));
             return this;
         }
 
@@ -45,10 +45,10 @@ namespace OfficeIMO.Word.Fluent {
         /// <summary>
         /// Adds a new paragraph and allows fluent configuration of its contents.
         /// </summary>
-        /// <param name="action">Action that receives a <see cref="ParagraphBuilder"/>.</param>
-        public WordFluentDocument Paragraph(Action<ParagraphBuilder> action) {
+        /// <param name="action">Action that receives a <see cref="WordParagraphBuilder"/>.</param>
+        public WordFluentDocument Paragraph(Action<WordParagraphBuilder> action) {
             var paragraph = Document.AddParagraph();
-            action(new ParagraphBuilder(this, paragraph));
+            action(new WordParagraphBuilder(this, paragraph));
             return this;
         }
 
@@ -64,9 +64,9 @@ namespace OfficeIMO.Word.Fluent {
         /// <summary>
         /// Adds or modifies a table.
         /// </summary>
-        /// <param name="action">Action that receives a <see cref="TableBuilder"/>.</param>
-        public WordFluentDocument Table(Action<TableBuilder> action) {
-            action(new TableBuilder(this));
+        /// <param name="action">Action that receives a <see cref="WordTableBuilder"/>.</param>
+        public WordFluentDocument Table(Action<WordTableBuilder> action) {
+            action(new WordTableBuilder(this));
             return this;
         }
 
@@ -89,7 +89,7 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
-        /// Adds a plain paragraph (Markdown-style alias of <see cref="Paragraph(Action{ParagraphBuilder})"/>).
+        /// Adds a plain paragraph (Markdown-style alias of <see cref="Paragraph(Action{WordParagraphBuilder})"/>).
         /// </summary>
         /// <param name="text">Text to insert.</param>
         public WordFluentDocument P(string text) {
@@ -147,7 +147,7 @@ namespace OfficeIMO.Word.Fluent {
         /// <param name="content">Code text.</param>
         public WordFluentDocument Code(string language, string content) {
             var p = Document.AddParagraph(content);
-            var mono = FontResolver.Resolve("monospace") ?? "Consolas";
+            var mono = WordFontResolver.Resolve("monospace") ?? "Consolas";
             p.SetFontFamily(mono);
             return this;
         }
@@ -280,8 +280,8 @@ namespace OfficeIMO.Word.Fluent {
         /// Executes an action for each paragraph in the document.
         /// </summary>
         /// <param name="action">Action to execute for every paragraph.</param>
-        public WordFluentDocument ForEachParagraph(Action<ParagraphBuilder> action) {
-            Document.ForEachParagraph(p => action(new ParagraphBuilder(this, p)));
+        public WordFluentDocument ForEachParagraph(Action<WordParagraphBuilder> action) {
+            Document.ForEachParagraph(p => action(new WordParagraphBuilder(this, p)));
             return this;
         }
 
@@ -300,9 +300,9 @@ namespace OfficeIMO.Word.Fluent {
         /// <param name="text">Text to search for.</param>
         /// <param name="action">Action executed for each matching paragraph.</param>
         /// <param name="stringComparison">String comparison option.</param>
-        public WordFluentDocument Find(string text, Action<ParagraphBuilder> action, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+        public WordFluentDocument Find(string text, Action<WordParagraphBuilder> action, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
             foreach (var paragraph in Document.FindParagraphs(text, stringComparison)) {
-                action(new ParagraphBuilder(this, paragraph));
+                action(new WordParagraphBuilder(this, paragraph));
             }
             return this;
         }
@@ -312,9 +312,9 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         /// <param name="pattern">Regular expression pattern.</param>
         /// <param name="action">Action executed for each matching run.</param>
-        public WordFluentDocument FindRegex(string pattern, Action<ParagraphBuilder> action) {
+        public WordFluentDocument FindRegex(string pattern, Action<WordParagraphBuilder> action) {
             foreach (var run in Document.FindRunsRegex(pattern)) {
-                action(new ParagraphBuilder(this, run));
+                action(new WordParagraphBuilder(this, run));
             }
             return this;
         }
@@ -325,9 +325,9 @@ namespace OfficeIMO.Word.Fluent {
         /// <param name="pattern">Regular expression pattern.</param>
         /// <param name="matchTimeout">Maximum time allowed for one regex match.</param>
         /// <param name="action">Action executed for each matching run.</param>
-        public WordFluentDocument FindRegex(string pattern, TimeSpan matchTimeout, Action<ParagraphBuilder> action) {
+        public WordFluentDocument FindRegex(string pattern, TimeSpan matchTimeout, Action<WordParagraphBuilder> action) {
             foreach (var run in Document.FindRunsRegex(pattern, matchTimeout)) {
-                action(new ParagraphBuilder(this, run));
+                action(new WordParagraphBuilder(this, run));
             }
             return this;
         }
@@ -336,9 +336,9 @@ namespace OfficeIMO.Word.Fluent {
         /// Selects paragraphs that match the specified predicate.
         /// </summary>
         /// <param name="predicate">Filter predicate.</param>
-        public IEnumerable<ParagraphBuilder> Select(Func<ParagraphBuilder, bool> predicate) {
-            foreach (var paragraph in Document.SelectParagraphs(p => predicate(new ParagraphBuilder(this, p)))) {
-                yield return new ParagraphBuilder(this, paragraph);
+        public IEnumerable<WordParagraphBuilder> Select(Func<WordParagraphBuilder, bool> predicate) {
+            foreach (var paragraph in Document.SelectParagraphs(p => predicate(new WordParagraphBuilder(this, p)))) {
+                yield return new WordParagraphBuilder(this, paragraph);
             }
         }
     }

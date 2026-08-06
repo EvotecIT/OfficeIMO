@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Settings.UpdateFieldsOnOpen = true;
-                document.AddTableOfContent(tableOfContentStyle: TableOfContentStyle.Template2);
+                document.AddTableOfContent(tableOfContentStyle: WordTableOfContentsStyle.Template2);
                 var pageNumber = document.HeaderDefaultOrCreate.AddPageNumber(WordPageNumberStyle.Dots);
                 //var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
                 //var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.Dots);
@@ -48,7 +48,7 @@ namespace OfficeIMO.Examples.Word {
                 wordListToc.AddItem("Text 2.2", 2);
 
                 var para = document.AddParagraph("Let's show everyone how to create a list within already defined list");
-                para.CapsStyle = CapsStyle.Caps;
+                para.CapsStyle = WordCapsStyle.Caps;
                 para.Highlight = WordHighlightColor.DarkMagenta;
 
                 var wordList = document.AddList(WordListStyle.Bulleted);

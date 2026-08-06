@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "Amount");
             sheet.CellValue(2, 1, "EU");
             sheet.CellValue(2, 2, 10);
-            sheet.AddTable("A1:B2", true, "Sales", TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B2", true, "Sales", ExcelTableStyle.TableStyleMedium2);
             sheet.CellFormula(4, 1, "SUM(Sales[Amount])");
 
             ExcelTable renamed = sheet.Table("Sales").Rename("Ledger");
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(2, 2, 2);
-            sheet.AddTable("A1:B2", true, "DataTable", TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B2", true, "DataTable", ExcelTableStyle.TableStyleMedium2);
 
             Assert.Throws<ArgumentException>(() =>
                 sheet.SetTableSchema("DataTable", new[] { "Same", "same" }));
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(2, 2, 2);
-            sheet.AddTable("A1:B2", true, "DataTable", TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B2", true, "DataTable", ExcelTableStyle.TableStyleMedium2);
             sheet.CellFormula(4, 1, "DataTable[A]+DataTable[B]");
 
             sheet.SetTableSchema("DataTable", new[] { "B", "A" });
@@ -65,8 +65,8 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(1, 3, "B");
             sheet.CellValue(2, 3, 2);
-            sheet.AddTable("A1:A2", true, "First", TableStyle.TableStyleMedium2);
-            sheet.AddTable("C1:C2", true, "Second", TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:A2", true, "First", ExcelTableStyle.TableStyleMedium2);
+            sheet.AddTable("C1:C2", true, "Second", ExcelTableStyle.TableStyleMedium2);
 
             Assert.Throws<InvalidOperationException>(() => sheet.SetTableSchema("First", new[] { "A", "New", "B" }, "A1:C2"));
             Assert.Equal("A1:A2", document.GetTables().Single(table => table.Name == "First").Range);
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(2, 2, 2);
-            sheet.AddTable("A1:B2", true, "Sales", TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B2", true, "Sales", ExcelTableStyle.TableStyleMedium2);
             sheet.CellFormula(4, 1, "SUM(Sales[B])");
 
             sheet.ResizeTable("Sales", "A1:A2");
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Amount");
             sheet.CellValue(2, 1, 1);
-            sheet.AddTable("A1:A2", true, "Sales", TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:A2", true, "Sales", ExcelTableStyle.TableStyleMedium2);
             sheet.CellFormula(4, 1, "Sales[@Amount]*2");
 
             sheet.SetTableSchema("Sales", new[] { "Net" });
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Column2");
             sheet.CellValue(2, 1, 1);
-            sheet.AddTable("A1:A2", true, "Sales", TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:A2", true, "Sales", ExcelTableStyle.TableStyleMedium2);
 
             sheet.ResizeTable("Sales", "A1:B2");
 
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "Cost [ old");
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(2, 2, 2);
-            sheet.AddTable("A1:B2", true, "Table1", TableStyle.TableStyleMedium2);
+            sheet.AddTable("A1:B2", true, "Table1", ExcelTableStyle.TableStyleMedium2);
             sheet.CellFormula(4, 1, "SUM(Table1[Cost '[ old])");
 
             ExcelFormulaStructuredReferenceSyntax parsed = Assert.Single(

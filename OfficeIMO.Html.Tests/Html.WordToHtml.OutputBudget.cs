@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(new string('x', 256), result.RequireValue(), StringComparison.Ordinal);
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
                 diagnostic.Code == "TrackedRevisionTextOmitted" &&
-                diagnostic.LossKind == HtmlConversionLossKind.Omission);
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
 
         [Fact]
@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests {
                 document.AddSection(WordSectionBreakType.NextPage).AddParagraph("Section " + index);
             }
             foreach (WordSection section in document.Sections) {
-                section.PageOrientation = WordPageOrientation.Landscape;
+                section.PageOrientation = OfficePageOrientation.Landscape;
                 section.PageSettings.PageSize = WordPageSize.Letter;
                 section.Margins.Top = 1440;
                 section.Margins.Right = 1200;

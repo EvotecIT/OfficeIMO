@@ -151,7 +151,7 @@ public class Markdown_Reader_Profile_Tests {
 
         var document = OfficeIMO.Markdown.MarkdownReader.Parse("&copy; stays literal", options);
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
-        var text = Assert.IsType<TextRun>(Assert.Single(paragraph.Inlines.Nodes));
+        var text = Assert.IsType<MarkdownTextRun>(Assert.Single(paragraph.Inlines.Nodes));
 
         Assert.Equal("&copy; stays literal", text.Text);
         Assert.Equal(
@@ -977,10 +977,10 @@ Missing[^nope].
 
         Assert.Collection(
             paragraph.Inlines.Nodes,
-            node => Assert.Equal("This is some text", Assert.IsType<TextRun>(node).Text),
-            node => Assert.Equal("!", Assert.IsType<TextRun>(node).Text),
+            node => Assert.Equal("This is some text", Assert.IsType<MarkdownTextRun>(node).Text),
+            node => Assert.Equal("!", Assert.IsType<MarkdownTextRun>(node).Text),
             node => Assert.Equal("1", Assert.IsType<FootnoteRefInline>(node).Label),
-            node => Assert.Equal(".", Assert.IsType<TextRun>(node).Text));
+            node => Assert.Equal(".", Assert.IsType<MarkdownTextRun>(node).Text));
     }
 
     [Fact]

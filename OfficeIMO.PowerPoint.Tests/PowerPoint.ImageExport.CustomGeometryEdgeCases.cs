@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape source = slide.AddShapePoints(
-                PowerPointShapeType.Rectangle, 20, 20, 120, 80);
+                OfficePresetShapeType.Rectangle, 20, 20, 120, 80);
             Shape shape = Assert.IsType<Shape>(source.Element);
             ShapeProperties properties = shape.ShapeProperties!;
             A.Transform2D transform = properties.GetFirstChild<A.Transform2D>()!;

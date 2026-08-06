@@ -31,7 +31,7 @@ public partial class WordDocument {
         OfficeFormatDescriptor destinationDescriptor = WordFormatCatalog.GetByExtension(paths.Destination);
         OfficeCompatibilityMode mode = GetCompatibilityMode(options);
         bool allowsLoss = AllowsLoss(options, mode);
-        IReadOnlyList<WordConversionDiagnostic> diagnostics = CreateWordConversionDiagnostics(
+        IReadOnlyList<OfficeConversionDiagnostic> diagnostics = CreateOfficeConversionDiagnostics(
             document,
             paths.Source,
             sourceDescriptor,

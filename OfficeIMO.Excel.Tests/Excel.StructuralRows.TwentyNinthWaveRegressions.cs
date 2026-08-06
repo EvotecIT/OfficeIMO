@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
                 "A1:A2",
                 hasHeader: true,
                 name: "SummaryTable",
-                style: OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
 
             Table table = Assert.Single(summary.WorksheetPart.TableDefinitionParts).Table;
             TableColumn tableColumn = Assert.Single(table.TableColumns!.Elements<TableColumn>());

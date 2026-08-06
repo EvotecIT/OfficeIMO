@@ -269,7 +269,7 @@ public partial class PdfDocumentVisualQualityTests {
             result.Diagnostics,
             item =>
                 item.Code == PdfRenderCapabilities.SynthesizedAnnotationAppearanceId &&
-                item.LossKind == OfficeImageExportLossKind.Approximation);
+                item.LossKind == OfficeConversionLossKind.Approximation);
 
         var strict = new PdfImageExportOptions {
             Policy = new OfficeImageExportPolicy { RequireNoLoss = true }

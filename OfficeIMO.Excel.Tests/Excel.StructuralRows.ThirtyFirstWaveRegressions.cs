@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
                 "A1:B2",
                 hasHeader: true,
                 name: "DataTable",
-                OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+                OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
 
             ExcelRowMutationPlan plan = sheet.PlanInsertRows(100);
 

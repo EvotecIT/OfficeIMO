@@ -26,7 +26,7 @@ public sealed class OpenDocumentImageExportContracts {
         Assert.True(result.Height > 0);
         Assert.Contains(result.Diagnostics, diagnostic =>
             diagnostic.Code == "ODF_IMAGE_SOURCE_TRACKED_CHANGES_UNSUPPORTED" &&
-            diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Fact]

@@ -162,7 +162,7 @@ namespace OfficeIMO.Excel {
                         "Chartsheets and similar sheet parts are preserve-only for worksheet workflows."));
                     break;
                 default:
-                    if (finding.SupportLevel == ExcelFeatureSupportLevel.Preserved || finding.SupportLevel == ExcelFeatureSupportLevel.Unsupported) {
+                    if (finding.SupportLevel == OfficeFeatureSupportLevel.Preserved || finding.SupportLevel == OfficeFeatureSupportLevel.Unsupported) {
                         hints.Add(new ExcelPreflightRepairHint(
                             capability,
                             finding.Name,

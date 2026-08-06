@@ -452,7 +452,7 @@ namespace OfficeIMO.PowerPoint {
                 diagnostics,
                 textBox,
                 "Rendered the PowerPoint text content inside a rectangular frame because its preset frame geometry is not yet projected through OfficeIMO.Drawing.",
-                OfficeImageExportLossKind.Approximation);
+                OfficeConversionLossKind.Approximation);
             return OfficeShape.Rectangle(width, height);
         }
 
@@ -1048,7 +1048,7 @@ namespace OfficeIMO.PowerPoint {
                         diagnostics,
                         PowerPointImageExportDiagnosticCodes.ImageBoundsUnsupported,
                         "Skipped a PowerPoint image because its projected bounds are outside the slide drawing canvas.",
-                        OfficeImageExportLossKind.Omission);
+                        OfficeConversionLossKind.Omission);
                 } else {
                     AddUnsupportedShapeDiagnostic(diagnostics, shape, "Skipped a PowerPoint image because its projected bounds are outside the slide drawing canvas.");
                 }
@@ -1069,7 +1069,7 @@ namespace OfficeIMO.PowerPoint {
                     diagnostics,
                     PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundImage,
                     "Used the configured fallback background because the PowerPoint slide background image exceeded the export limit.",
-                    OfficeImageExportLossKind.Omission);
+                    OfficeConversionLossKind.Omission);
                 return;
             }
             switch (background.Kind) {
@@ -1083,7 +1083,7 @@ namespace OfficeIMO.PowerPoint {
                             diagnostics,
                             PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundColor,
                             "Used the configured fallback background because the PowerPoint slide background color could not be parsed.",
-                            OfficeImageExportLossKind.Omission);
+                            OfficeConversionLossKind.Omission);
                     }
                     return;
                 case PowerPointSlideBackgroundKind.LinearGradient:
@@ -1094,7 +1094,7 @@ namespace OfficeIMO.PowerPoint {
                             diagnostics,
                             PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundGradient,
                             "Used the configured fallback background because the PowerPoint slide background gradient colors could not be parsed.",
-                            OfficeImageExportLossKind.Omission);
+                            OfficeConversionLossKind.Omission);
                     }
                     return;
                 case PowerPointSlideBackgroundKind.Image:
@@ -1105,7 +1105,7 @@ namespace OfficeIMO.PowerPoint {
                         diagnostics,
                         PowerPointImageExportDiagnosticCodes.UnsupportedSlideBackground,
                         "Used the configured fallback background because " + (background.UnsupportedReason ?? "the PowerPoint slide background is not supported."),
-                        OfficeImageExportLossKind.Omission);
+                        OfficeConversionLossKind.Omission);
                     return;
             }
         }
@@ -1141,7 +1141,7 @@ namespace OfficeIMO.PowerPoint {
                     diagnostics,
                     PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundImage,
                     "Used the configured fallback background because the PowerPoint slide background image bytes could not be read.",
-                    OfficeImageExportLossKind.Omission);
+                    OfficeConversionLossKind.Omission);
                 return;
             }
 
@@ -1221,7 +1221,7 @@ namespace OfficeIMO.PowerPoint {
             List<OfficeImageExportDiagnostic> diagnostics,
             string code,
             string message,
-            OfficeImageExportLossKind lossKind) {
+            OfficeConversionLossKind lossKind) {
             diagnostics.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 code,
@@ -1237,7 +1237,7 @@ namespace OfficeIMO.PowerPoint {
             List<OfficeImageExportDiagnostic> diagnostics,
             PowerPointShape shape,
             string message,
-            OfficeImageExportLossKind lossKind = OfficeImageExportLossKind.Omission) {
+            OfficeConversionLossKind lossKind = OfficeConversionLossKind.Omission) {
             diagnostics.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 PowerPointImageExportDiagnosticCodes.UnsupportedShape,

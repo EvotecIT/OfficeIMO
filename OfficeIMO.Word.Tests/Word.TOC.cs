@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.TableOfContent == null, "TableOfContent Should not be set");
                 Assert.True(document.Settings.UpdateFieldsOnOpen == false, "UpdateFieldsOnOpen should not be set");
 
-                WordTableOfContent wordTableContent = document.AddTableOfContent(TableOfContentStyle.Template1);
+                WordTableOfContent wordTableContent = document.AddTableOfContent(WordTableOfContentsStyle.Template1);
                 wordTableContent.Text = "This is Table of Contents";
                 wordTableContent.TextNoContent = "Ooopsi, no content";
 
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen == false, "Update field settings should be turned off for new document");
 
                 document.Settings.UpdateFieldsOnOpen = true;
-                document.AddTableOfContent(tableOfContentStyle: TableOfContentStyle.Template2);
+                document.AddTableOfContent(tableOfContentStyle: WordTableOfContentsStyle.Template2);
                 document.AddHeadersAndFooters();
                 //var pageNumber = document.Header!.Default.AddPageNumber(WordPageNumberStyle.Circle);
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
                 wordListToc.AddItem("Text 2.2", 2);
 
                 var para = document.AddParagraph("Let's show everyone how to create a list within already defined list");
-                para.CapsStyle = CapsStyle.Caps;
+                para.CapsStyle = WordCapsStyle.Caps;
                 para.Highlight = WordHighlightColor.DarkMagenta;
 
                 var wordList = document.AddList(WordListStyle.Bulleted);

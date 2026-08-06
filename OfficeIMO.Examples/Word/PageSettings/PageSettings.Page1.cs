@@ -16,13 +16,13 @@ internal static partial class PageSettings {
             Console.WriteLine("Default page orientation: " + document.PageSettings.Orientation);
             Console.WriteLine("Default page orientation: " + document.PageOrientation);
             // this sets the page orientation to proper value
-            document.PageOrientation = WordPageOrientation.Portrait;
+            document.PageOrientation = OfficePageOrientation.Portrait;
 
             Console.WriteLine("Page orientation 1: " + document.PageSettings.Orientation);
             Console.WriteLine("Page orientation 1: " + document.PageOrientation);
 
             // this sets the page orientation to proper value, using PageSettings
-            document.PageSettings.Orientation = WordPageOrientation.Landscape;
+            document.PageSettings.Orientation = OfficePageOrientation.Landscape;
 
             Console.WriteLine("Page orientation 2: " + document.PageSettings.Orientation);
             Console.WriteLine("Page orientation 2: " + document.PageOrientation);

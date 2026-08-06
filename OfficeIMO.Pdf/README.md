@@ -209,13 +209,13 @@ Generated headers and footers can combine literal text, visually styled runs, an
 PdfDocument.Create()
     .Header(header => header
         .Text(text => text
-            .Run(TextRun.Bolded("Confidential ", PdfColor.FromRgb(180, 0, 0)))
+            .Run(PdfTextRun.Bolded("Confidential ", PdfColor.FromRgb(180, 0, 0)))
             .Text("- page ")
-            .CurrentPage(TextRun.Italicized(string.Empty))
+            .CurrentPage(PdfTextRun.Italicized(string.Empty))
             .Text(" of ")
-            .TotalPages(TextRun.Italicized(string.Empty)))
-        .FirstPageText(text => text.Run(TextRun.Bolded("Confidential cover")))
-        .EvenPagesText(text => text.Run(TextRun.Underlined("Confidential even page"))))
+            .TotalPages(PdfTextRun.Italicized(string.Empty)))
+        .FirstPageText(text => text.Run(PdfTextRun.Bolded("Confidential cover")))
+        .EvenPagesText(text => text.Run(PdfTextRun.Underlined("Confidential even page"))))
     .Paragraph(p => p.Text("Generated report body."))
     .Save("styled-header.pdf");
 ```
@@ -496,7 +496,7 @@ PdfDocument.Open("contract.pdf")
         canvas.Text($"Page {page.PageNumber} of {page.PageCount}", 36, 24, 220, 24)
             .Table(new[] {
                 new[] { PdfTableCell.TextCell("Status"), PdfTableCell.TextCell("Reviewed") },
-                new[] { PdfTableCell.TextCell("Owner"), PdfTableCell.RichTextCell(new[] { TextRun.Bolded("Legal") }) }
+                new[] { PdfTableCell.TextCell("Owner"), PdfTableCell.RichTextCell(new[] { PdfTextRun.Bolded("Legal") }) }
             }, 36, 620, page.Width - 72, 90);
     }, new PdfCanvasStampOptions {
         TargetPages = PdfPageSelector.Parse("1,last"),

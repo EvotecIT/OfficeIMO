@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
         /// Reads a rectangular range and maps rows (excluding the header row) into instances of T.
         /// Header cells are matched to public writable properties on T by name (case-insensitive).
         /// </summary>
-        public IEnumerable<T> ReadObjects<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string a1Range, OfficeIMO.Excel.ExecutionMode? mode = null, CancellationToken ct = default) where T : new() {
+        public IEnumerable<T> ReadObjects<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string a1Range, OfficeIMO.Excel.ExcelExecutionMode? mode = null, CancellationToken ct = default) where T : new() {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) throw new ArgumentException($"Invalid range '{a1Range}'.");
 
@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
             var requested = mode ?? policy.Mode;
             var decided = requested;
             int workload = rows * cols;
-            if (decided == OfficeIMO.Excel.ExecutionMode.Automatic) {
+            if (decided == OfficeIMO.Excel.ExcelExecutionMode.Automatic) {
                 if (CanUseAutomaticXmlReadFastPath(policy)) {
                     if (_opt.CellValueConverter == null
                         && _opt.TypeConverter == null
@@ -69,17 +69,17 @@ namespace OfficeIMO.Excel {
                 decided = policy.Decide("ReadObjectsAs", workload);
             }
 
-            if (decided != OfficeIMO.Excel.ExecutionMode.Parallel
+            if (decided != OfficeIMO.Excel.ExcelExecutionMode.Parallel
                 && TryReadObjectsFromXmlMaterialized<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var streamResult)) {
                 return streamResult;
             }
 
-            if (decided != OfficeIMO.Excel.ExecutionMode.Parallel
+            if (decided != OfficeIMO.Excel.ExcelExecutionMode.Parallel
                 && TryReadObjectsSequentialSinglePass<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var singlePassResult)) {
                 return singlePassResult;
             }
 
-            if (decided != OfficeIMO.Excel.ExecutionMode.Parallel) {
+            if (decided != OfficeIMO.Excel.ExcelExecutionMode.Parallel) {
                 if (TryReadObjectsFromFastRange<T>(a1Range, r1, c1, rows, cols, ct, out var rangeResult)) {
                     return rangeResult;
                 }
@@ -289,7 +289,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            object?[,] values = ReadRange(a1Range, OfficeIMO.Excel.ExecutionMode.Sequential, ct);
+            object?[,] values = ReadRange(a1Range, OfficeIMO.Excel.ExcelExecutionMode.Sequential, ct);
             var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => values[0, c]?.ToString(), _opt.NormalizeHeaders);
             var headerBindings = GetTypedHeaderBindings<T>(headers, a1Range);
             var bindings = headerBindings.Bindings;

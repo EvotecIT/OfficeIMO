@@ -733,9 +733,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0D, finalBar.StartRatio);
             Assert.Equal(1D, finalBar.Ratio);
             Assert.Equal(3, snapshot.ConditionalIcons.Count);
-            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 1 && icon.Column == 3 && icon.Kind == ExcelConditionalIconKind.RedCircle);
-            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Column == 3 && icon.Kind == ExcelConditionalIconKind.YellowCircle);
-            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Column == 3 && icon.Kind == ExcelConditionalIconKind.GreenCircle);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 1 && icon.Column == 3 && icon.Kind == OfficeConditionalIconKind.RedCircle);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Column == 3 && icon.Kind == OfficeConditionalIconKind.YellowCircle);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Column == 3 && icon.Kind == OfficeConditionalIconKind.GreenCircle);
             Assert.All(snapshot.ConditionalIcons, icon => Assert.True(icon.ShowValue));
             OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Info, diagnostic.Severity);
@@ -841,7 +841,7 @@ namespace OfficeIMO.Tests {
                 snapshot.Diagnostics,
                 item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
-            Assert.Equal(OfficeImageExportLossKind.Omission, diagnostic.LossKind);
+            Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
             Assert.Equal("OversizedConditional!A1:A100001", diagnostic.Source);
         }
 
@@ -859,7 +859,7 @@ namespace OfficeIMO.Tests {
                 snapshot.Diagnostics,
                 item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
-            Assert.Equal(OfficeImageExportLossKind.Omission, diagnostic.LossKind);
+            Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
             Assert.Equal("AggregateConditional!A1:A60000", diagnostic.Source);
             Assert.Contains("aggregate", diagnostic.Message, StringComparison.OrdinalIgnoreCase);
         }
@@ -1274,9 +1274,9 @@ namespace OfficeIMO.Tests {
 
                 ExcelConditionalFormattingInfo info = Assert.Single(sheet.GetConditionalFormattingRules("A1:A3"));
                 Assert.False(info.IconSetThresholds[1].GreaterThanOrEqual);
-                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 1 && icon.Kind == ExcelConditionalIconKind.RedCircle);
-                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Kind == ExcelConditionalIconKind.RedCircle);
-                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Kind == ExcelConditionalIconKind.GreenCircle);
+                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 1 && icon.Kind == OfficeConditionalIconKind.RedCircle);
+                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Kind == OfficeConditionalIconKind.RedCircle);
+                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Kind == OfficeConditionalIconKind.GreenCircle);
             }
         }
 
@@ -1310,9 +1310,9 @@ namespace OfficeIMO.Tests {
 
                 ExcelConditionalFormattingInfo info = Assert.Single(sheet.GetConditionalFormattingRules("A1:A4"));
                 Assert.Equal("percentile", info.IconSetThresholds[1].Type, ignoreCase: true);
-                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Kind == ExcelConditionalIconKind.RedCircle);
-                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Kind == ExcelConditionalIconKind.YellowCircle);
-                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 4 && icon.Kind == ExcelConditionalIconKind.GreenCircle);
+                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Kind == OfficeConditionalIconKind.RedCircle);
+                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Kind == OfficeConditionalIconKind.YellowCircle);
+                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 4 && icon.Kind == OfficeConditionalIconKind.GreenCircle);
             }
         }
 
@@ -1422,7 +1422,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "10.00%", "20.00%", "30.00%" }, snapshot.Cells.Where(cell => cell.Column == 1).Select(cell => cell.Text).ToArray());
             Assert.Equal(3, snapshot.ConditionalDataBars.Count);
             Assert.Equal(3, snapshot.ConditionalIcons.Count);
-            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Column == 2 && icon.Kind == ExcelConditionalIconKind.GreenCircle);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Column == 2 && icon.Kind == OfficeConditionalIconKind.GreenCircle);
         }
 
         [Fact]
@@ -1498,11 +1498,11 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
             Assert.Equal(5, snapshot.ConditionalIcons.Count);
-            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 1 && icon.Kind == ExcelConditionalIconKind.RedDownArrow);
-            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Kind == ExcelConditionalIconKind.YellowDownArrow);
-            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Kind == ExcelConditionalIconKind.YellowSideArrow);
-            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 4 && icon.Kind == ExcelConditionalIconKind.YellowUpArrow);
-            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 5 && icon.Kind == ExcelConditionalIconKind.GreenUpArrow);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 1 && icon.Kind == OfficeConditionalIconKind.RedDownArrow);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Kind == OfficeConditionalIconKind.YellowDownArrow);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Kind == OfficeConditionalIconKind.YellowSideArrow);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 4 && icon.Kind == OfficeConditionalIconKind.YellowUpArrow);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 5 && icon.Kind == OfficeConditionalIconKind.GreenUpArrow);
             Assert.Contains("#16A34A", svg, StringComparison.Ordinal);
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetUnsupported);
             OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation);
@@ -1532,9 +1532,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
             Assert.Equal(3, snapshot.ConditionalIcons.Count);
-            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 1 && icon.Kind == ExcelConditionalIconKind.RedFlag);
-            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Kind == ExcelConditionalIconKind.YellowFlag);
-            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Kind == ExcelConditionalIconKind.GreenFlag);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 1 && icon.Kind == OfficeConditionalIconKind.RedFlag);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Kind == OfficeConditionalIconKind.YellowFlag);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Kind == OfficeConditionalIconKind.GreenFlag);
             Assert.Contains("#16A34A", svg, StringComparison.Ordinal);
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetUnsupported);
             OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation);
@@ -2866,7 +2866,7 @@ namespace OfficeIMO.Tests {
                 showSeriesName: false,
                 showLegendKey: false,
                 showPercent: false,
-                position: ExcelChartDataLabelPosition.OutsideEnd,
+                position: OfficeChartDataLabelPosition.OutsideEnd,
                 numberFormat: "0");
             chart.SetDataLabelTextStyle(italic: true, fontName: "Aptos Data");
 
@@ -3199,7 +3199,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 2, 160);
             ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Line, title: "Marker Fill");
             chart.SetSeriesLineColor(0, "2563EB");
-            chart.SetSeriesMarker(0, ExcelChartMarkerStyle.Circle, fillColor: "F97316");
+            chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, fillColor: "F97316");
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 3D };
@@ -3440,7 +3440,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 2, 160);
             ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Line, title: "Marker Size");
             chart.SetSeriesLineColor(0, "2563EB");
-            chart.SetSeriesMarker(0, ExcelChartMarkerStyle.Circle, size: 12, fillColor: "F97316");
+            chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, size: 12, fillColor: "F97316");
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
@@ -3482,7 +3482,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 2, 160);
             ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Line, title: "Marker Shape");
             chart.SetSeriesLineColor(0, "2563EB");
-            chart.SetSeriesMarker(0, ExcelChartMarkerStyle.Diamond, size: 12, fillColor: "F97316");
+            chart.SetSeriesMarker(0, OfficeChartMarkerShape.Diamond, size: 12, fillColor: "F97316");
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
@@ -3525,7 +3525,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 2, 160);
             ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Line, title: "Marker X");
             chart.SetSeriesLineColor(0, "2563EB");
-            chart.SetSeriesMarker(0, ExcelChartMarkerStyle.X, size: 14, lineColor: "7C3AED", lineWidthPoints: 2D);
+            chart.SetSeriesMarker(0, OfficeChartMarkerShape.X, size: 14, lineColor: "7C3AED", lineWidthPoints: 2D);
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
@@ -3580,9 +3580,9 @@ namespace OfficeIMO.Tests {
             chart.SetSeriesLineColor(0, "CBD5E1");
             chart.SetSeriesLineColor(1, "CBD5E1");
             chart.SetSeriesLineColor(2, "CBD5E1");
-            chart.SetSeriesMarker(0, ExcelChartMarkerStyle.Dash, size: 14, lineColor: "DC2626", lineWidthPoints: 2D);
-            chart.SetSeriesMarker(1, ExcelChartMarkerStyle.Dot, size: 14, fillColor: "059669");
-            chart.SetSeriesMarker(2, ExcelChartMarkerStyle.Star, size: 14, fillColor: "F59E0B");
+            chart.SetSeriesMarker(0, OfficeChartMarkerShape.Dash, size: 14, lineColor: "DC2626", lineWidthPoints: 2D);
+            chart.SetSeriesMarker(1, OfficeChartMarkerShape.Dot, size: 14, fillColor: "059669");
+            chart.SetSeriesMarker(2, OfficeChartMarkerShape.Star, size: 14, fillColor: "F59E0B");
 
             ExcelRange range = sheet.Range("A1:K10");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
@@ -3654,7 +3654,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 2, 160);
             ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Line, title: "Marker Outline");
             chart.SetSeriesLineColor(0, "2563EB");
-            chart.SetSeriesMarker(0, ExcelChartMarkerStyle.Circle, size: 16, fillColor: "F97316", lineColor: "7C2D12", lineWidthPoints: 3D);
+            chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, size: 16, fillColor: "F97316", lineColor: "7C2D12", lineWidthPoints: 3D);
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
@@ -4215,7 +4215,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
             ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 240, heightPixels: 150, type: ExcelChartType.Line, title: "Trendline");
-            chart.SetSeriesTrendline(0, ExcelChartTrendlineType.Linear, displayEquation: true, displayRSquared: true, lineColor: "FF0000", lineWidthPoints: 1);
+            chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear, displayEquation: true, displayRSquared: true, lineColor: "FF0000", lineWidthPoints: 1);
 
             OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 

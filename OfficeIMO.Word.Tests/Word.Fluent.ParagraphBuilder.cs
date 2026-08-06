@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
                     .Paragraph(p => p.Text("Before").Tab().Text("After"))
                     .Paragraph(p => p.Link("https://example.com", "Example", true))
                     .Paragraph(p => p.Text("Line1").Break().Text("Line2"))
-                    .Paragraph(p => p.Align(HorizontalAlignment.Right).Text("Aligned"))
+                    .Paragraph(p => p.Align(WordParagraphAlignment.Right).Text("Aligned"))
                     .End()
                     .Save();
             }
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.Paragraphs[0];
                 Assert.Equal(WordBorderStyle.Thick, paragraph.Borders.LeftStyle);
                 Assert.Equal(Color.Blue.ToRgbHex(), paragraph.Borders.LeftColor!.Value.ToRgbHex());
-                Assert.Equal(24U, paragraph.Borders.LeftSize!.Value);
+                Assert.Equal(24U, paragraph.Borders.LeftSize);
                 Assert.Equal(Color.LightGray.ToRgbHex(), paragraph.ShadingFillColorHex);
             }
         }

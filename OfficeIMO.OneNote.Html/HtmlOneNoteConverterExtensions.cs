@@ -56,7 +56,7 @@ public static class HtmlOneNoteConverterExtensions {
             if (!budget.TryReserveSemanticContainer(out string containerLimit)) {
                 Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                     "Additional HTML sections were omitted because the shared page limit was reached.",
-                    HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Omission, containerLimit);
+                    HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, containerLimit);
                 break;
             }
 
@@ -138,13 +138,13 @@ public static class HtmlOneNoteConverterExtensions {
         if (!budget.IsMetadataWithinLimit(plainText, out string metadataLimit)) {
             Add(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
                 "An HTML text block was omitted because it exceeded the shared field limit.",
-                HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Omission, metadataLimit);
+                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission, metadataLimit);
             return null;
         }
         if (!budget.TryReserveShape(out string shapeLimit)) {
             Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "Additional HTML blocks were omitted because the shared element limit was reached.",
-                HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Omission, shapeLimit);
+                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission, shapeLimit);
             return null;
         }
 
@@ -178,7 +178,7 @@ public static class HtmlOneNoteConverterExtensions {
         if (!budget.TryReserveTableWithShape(out string tableLimit)) {
             Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An HTML table was omitted because the shared import limit was reached.",
-                HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Omission,
+                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission,
                 tableLimit);
             return;
         }
@@ -191,7 +191,7 @@ public static class HtmlOneNoteConverterExtensions {
                 if (++cells > maxTableCells) {
                     Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                         "Remaining HTML table cells were omitted because the configured table limit was reached.",
-                        HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Omission,
+                        HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission,
                         "limit=" + maxTableCells);
                     break;
                 }
@@ -222,26 +222,26 @@ public static class HtmlOneNoteConverterExtensions {
         if (!HtmlImageDataUri.TryParse(resource.Source, out HtmlImageDataUri dataUri)) {
             Add(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
                 "An HTML image was omitted because native import requires a bounded image data URI.",
-                HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Omission, resource.Source);
+                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission, resource.Source);
             return;
         }
         if (!budget.IsImageWithinLimit(dataUri, out string imageLimit)) {
             Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An embedded HTML image was omitted because the shared import limit was reached.",
-                HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Omission,
+                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission,
                 imageLimit);
             return;
         }
         if (!budget.TryReserveImageWithShape(dataUri, out imageLimit)) {
             Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An embedded HTML image was omitted because the shared import limit was reached.",
-                HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Omission,
+                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission,
                 imageLimit);
             return;
         }
         if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
             Add(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
-                "An embedded HTML image could not be decoded.", HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Omission);
+                "An embedded HTML image could not be decoded.", HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission);
             return;
         }
         target.Add(new OneNoteImage {
@@ -266,7 +266,7 @@ public static class HtmlOneNoteConverterExtensions {
         string code,
         string message,
         HtmlDiagnosticSeverity severity,
-        HtmlConversionLossKind lossKind,
+        OfficeConversionLossKind lossKind,
         string? detail = null) =>
         result.AddImportDiagnostic(new HtmlDiagnostic(ComponentName, code, message, severity, detail: detail, lossKind: lossKind));
 

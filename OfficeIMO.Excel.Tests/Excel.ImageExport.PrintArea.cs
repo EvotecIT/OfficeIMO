@@ -342,7 +342,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
-            sheet.SetOrientation(ExcelPageOrientation.Landscape);
+            sheet.SetOrientation(OfficePageOrientation.Landscape);
             sheet.SetPageSetup(fitToWidth: 2, fitToHeight: 1);
             sheet.SetHeaderFooter(headerCenter: "Confidential", footerRight: "Printed &BConfidential");
             sheet.AddManualRowPageBreak(2, save: false);
@@ -376,7 +376,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetOrientation(ExcelPageOrientation.Landscape);
+            sheet.SetOrientation(OfficePageOrientation.Landscape);
             sheet.SetMargins(0.5D, 0.5D, 0.5D, 0.5D);
             sheet.SetPageSetup(scale: 50);
             sheet.AddManualRowPageBreak(2, save: false);
@@ -551,7 +551,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetOrientation(ExcelPageOrientation.Landscape);
+            sheet.SetOrientation(OfficePageOrientation.Landscape);
             sheet.SetMargins(0.25D, 0.25D, 0.25D, 0.25D);
             sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.Legal);
             sheet.AddManualRowPageBreak(2, save: false);

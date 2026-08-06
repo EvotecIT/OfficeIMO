@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
                 ? resolvedPageSize
                 : fallbackPageSize;
 
-            if (pageSetup?.Orientation == ExcelPageOrientation.Landscape) {
+            if (pageSetup?.Orientation == OfficePageOrientation.Landscape) {
                 return pageSize.Landscape();
             }
 

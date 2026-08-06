@@ -655,7 +655,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             WordTextBox? textBox = GetNativeParagraphTextBox(paragraph, out _);
-            zoneOverride = MapNativeTextBoxHeaderFooterZone(textBox?.HorizontalAlignment ?? WordHorizontalAlignmentValues.Center);
+            zoneOverride = MapNativeTextBoxHeaderFooterZone(textBox?.HorizontalAlignment ?? WordTextBoxHorizontalAlignment.Center);
             return textBoxText;
         }
 
@@ -819,12 +819,12 @@ namespace OfficeIMO.Word.Pdf {
             return string.IsNullOrWhiteSpace(ommlText) ? null : ommlText;
         }
 
-        private static NativeHeaderFooterZone MapNativeTextBoxHeaderFooterZone(WordHorizontalAlignmentValues alignment) {
+        private static NativeHeaderFooterZone MapNativeTextBoxHeaderFooterZone(WordTextBoxHorizontalAlignment alignment) {
             switch (alignment) {
-                case WordHorizontalAlignmentValues.Center:
+                case WordTextBoxHorizontalAlignment.Center:
                     return NativeHeaderFooterZone.Center;
-                case WordHorizontalAlignmentValues.Right:
-                case WordHorizontalAlignmentValues.Outside:
+                case WordTextBoxHorizontalAlignment.Right:
+                case WordTextBoxHorizontalAlignment.Outside:
                     return NativeHeaderFooterZone.Right;
                 default:
                     return NativeHeaderFooterZone.Left;

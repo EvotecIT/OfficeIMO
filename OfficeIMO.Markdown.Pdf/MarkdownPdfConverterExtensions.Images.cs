@@ -1,6 +1,6 @@
 using OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
-using PdfTextRun = OfficeIMO.Pdf.TextRun;
+using PdfTextRun = OfficeIMO.Pdf.PdfTextRun;
 
 namespace OfficeIMO.Markdown.Pdf;
 

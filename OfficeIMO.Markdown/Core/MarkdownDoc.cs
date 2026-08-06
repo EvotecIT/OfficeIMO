@@ -415,8 +415,8 @@ public partial class MarkdownDoc : MarkdownObject {
     public MarkdownDoc P(string text) => Add(new ParagraphBlock(new InlineSequence().Text(text)));
 
     /// <summary>Adds a paragraph composed with the paragraph builder.</summary>
-    public MarkdownDoc P(Action<ParagraphBuilder> build) {
-        ParagraphBuilder builder = new ParagraphBuilder();
+    public MarkdownDoc P(Action<MarkdownParagraphBuilder> build) {
+        MarkdownParagraphBuilder builder = new MarkdownParagraphBuilder();
         build(builder);
         return Add(new ParagraphBlock(builder.Inlines));
     }

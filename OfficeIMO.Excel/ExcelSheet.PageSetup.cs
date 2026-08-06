@@ -9,11 +9,11 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets page orientation (Portrait or Landscape) on the sheet's PageSetup.
         /// </summary>
-        public void SetOrientation(ExcelPageOrientation orientation) {
+        public void SetOrientation(OfficePageOrientation orientation) {
             WriteLock(() => {
                 var ws = WorksheetRoot;
                 var pageSetup = GetOrCreatePageSetup(ws);
-                string val = orientation == ExcelPageOrientation.Landscape ? "landscape" : "portrait";
+                string val = orientation == OfficePageOrientation.Landscape ? "landscape" : "portrait";
                 pageSetup.SetAttribute(new OpenXmlAttribute("", "orientation", "", val));
                 ws.Save();
             });
@@ -120,14 +120,6 @@ namespace OfficeIMO.Excel {
         Moderate,
         /// <summary>Wide margins: left/right 1.0 inch, top/bottom 1.0 inch, header/footer 0.5 inch.</summary>
         Wide
-    }
-
-    /// <summary>Sheet page orientation.</summary>
-    public enum ExcelPageOrientation {
-        /// <summary>Portrait orientation (vertical).</summary>
-        Portrait,
-        /// <summary>Landscape orientation (horizontal).</summary>
-        Landscape
     }
 
     /// <summary>Worksheet print page order.</summary>

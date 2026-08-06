@@ -10,12 +10,12 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     public InlineSequence() { }
 
     // When composing via the fluent/builder APIs, auto-spacing between adjacent inline nodes is convenient.
-    // When parsing Markdown source, spacing is already present in TextRun nodes, so auto-spacing would double spaces.
+    // When parsing Markdown source, spacing is already present in MarkdownTextRun nodes, so auto-spacing would double spaces.
     internal bool AutoSpacing { get; set; } = true;
     /// <summary>Exposes the inline nodes for safe iteration.</summary>
     public IReadOnlyList<IMarkdownInline> Nodes => _inlines;
     /// <summary>Adds plain text.</summary>
-    public InlineSequence Text(string text) { _inlines.Add(new TextRun(text)); return this; }
+    public InlineSequence Text(string text) { _inlines.Add(new MarkdownTextRun(text)); return this; }
     /// <summary>Adds a hyperlink.</summary>
     public InlineSequence Link(string text, string url, string? title = null, string? linkTarget = null, string? linkRel = null) { _inlines.Add(new LinkInline(text, url, title, linkTarget, linkRel)); return this; }
     /// <summary>Adds bold text.</summary>
@@ -164,7 +164,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
 
     private static string? RenderMarkdownWithEscapedTextRuns(IMarkdownInline node, Func<string?, string> textEscaper) {
         return node switch {
-            TextRun text => textEscaper(text.Text),
+            MarkdownTextRun text => textEscaper(text.Text),
             BoldSequenceInline bold => "**" + bold.Inlines.RenderMarkdownWithTextEscaper(textEscaper) + "**",
             ItalicSequenceInline italic => "_" + italic.Inlines.RenderMarkdownWithTextEscaper(textEscaper) + "_",
             BoldItalicSequenceInline boldItalic => "***" + boldItalic.Inlines.RenderMarkdownWithTextEscaper(textEscaper) + "***",

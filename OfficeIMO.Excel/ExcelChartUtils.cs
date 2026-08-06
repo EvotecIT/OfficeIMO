@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
         private const string RelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
         private sealed class SeriesDescriptor {
-            public SeriesDescriptor(int index, ExcelChartSeries? series, ExcelChartType chartType, ExcelChartAxisGroup axisGroup) {
+            public SeriesDescriptor(int index, ExcelChartSeries? series, ExcelChartType chartType, OfficeChartAxisGroup axisGroup) {
                 Index = index;
                 Series = series;
                 ChartType = chartType;
@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
             public int Index { get; }
             public ExcelChartSeries? Series { get; }
             public ExcelChartType ChartType { get; }
-            public ExcelChartAxisGroup AxisGroup { get; }
+            public OfficeChartAxisGroup AxisGroup { get; }
         }
 
         private readonly struct AxisIdSet {
@@ -85,14 +85,14 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class SeriesDescriptorGroup {
-            public SeriesDescriptorGroup(ExcelChartType chartType, ExcelChartAxisGroup axisGroup) {
+            public SeriesDescriptorGroup(ExcelChartType chartType, OfficeChartAxisGroup axisGroup) {
                 ChartType = chartType;
                 AxisGroup = axisGroup;
                 Descriptors = new List<SeriesDescriptor>();
             }
 
             public ExcelChartType ChartType { get; }
-            public ExcelChartAxisGroup AxisGroup { get; }
+            public OfficeChartAxisGroup AxisGroup { get; }
             public List<SeriesDescriptor> Descriptors { get; }
         }
 
@@ -154,7 +154,7 @@ namespace OfficeIMO.Excel {
             for (int i = 0; i < count; i++) {
                 ExcelChartSeries? series = seriesList != null && i < seriesList.Count ? seriesList[i] : null;
                 ExcelChartType chartType = defaultType;
-                ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary;
+                OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary;
                 if (useSeriesOverrides && series != null) {
                     chartType = series.ChartType ?? defaultType;
                     axisGroup = series.AxisGroup;
@@ -299,7 +299,7 @@ namespace OfficeIMO.Excel {
                     hasMultipleTypes = true;
                 }
 
-                if (descriptor.AxisGroup == ExcelChartAxisGroup.Secondary) {
+                if (descriptor.AxisGroup == OfficeChartAxisGroup.Secondary) {
                     hasSecondary = true;
                 }
 

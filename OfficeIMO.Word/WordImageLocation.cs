@@ -4,7 +4,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Represents the location and metadata of an image within a document.
     /// </summary>
-    public class WordImageLocation {
+    internal class WordImageLocation {
         /// <summary>
         /// Gets or sets the <see cref="ImagePart"/> associated with the image.
         /// </summary>

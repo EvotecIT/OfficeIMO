@@ -199,15 +199,15 @@ internal static partial class ExcelLibraryComparisonRunner {
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "build-object-datatable-dictionaries", warmupIterations, measuredIterations, [
-            new LibraryComparisonCase("OfficeIMO.Excel", "Build a DataTable from dictionary rows matching the normalized PowerShell object shape.", () => ObjectDataTableBuilder.FromObjects(dictionaryRows, "SalesData").Rows.Count)
+            new LibraryComparisonCase("OfficeIMO.Excel", "Build a DataTable from dictionary rows matching the normalized PowerShell object shape.", () => ExcelObjectDataTableBuilder.FromObjects(dictionaryRows, "SalesData").Rows.Count)
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "build-object-datatable-typed", warmupIterations, measuredIterations, [
-            new LibraryComparisonCase("OfficeIMO.Excel", "Build a DataTable from typed object rows through the normal object projection API.", () => ObjectDataTableBuilder.FromObjects(typedObjectRows, "SalesData").Rows.Count)
+            new LibraryComparisonCase("OfficeIMO.Excel", "Build a DataTable from typed object rows through the normal object projection API.", () => ExcelObjectDataTableBuilder.FromObjects(typedObjectRows, "SalesData").Rows.Count)
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-dictionary-objects-table-direct", warmupIterations, measuredIterations, [
-            new LibraryComparisonCase("OfficeIMO.Excel", "Build a DataTable from normalized dictionary rows, insert it as a styled table, and save.", () => OfficeImoWriteDataTableAsTable(ObjectDataTableBuilder.FromObjects(dictionaryRows, "SalesData")))
+            new LibraryComparisonCase("OfficeIMO.Excel", "Build a DataTable from normalized dictionary rows, insert it as a styled table, and save.", () => OfficeImoWriteDataTableAsTable(ExcelObjectDataTableBuilder.FromObjects(dictionaryRows, "SalesData")))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-table", warmupIterations, measuredIterations, [
@@ -1682,7 +1682,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddWorksheet("Data");
-            sheet.InsertDataTableAsTable(dataTable, tableName: "SalesData", style: TableStyle.TableStyleMedium2);
+            sheet.InsertDataTableAsTable(dataTable, tableName: "SalesData", style: ExcelTableStyle.TableStyleMedium2);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "DataTable table comparison");
         }
@@ -1698,7 +1698,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using (var document = ExcelDocument.Create(stream))
         using (var reader = dataTable.CreateDataReader()) {
             var sheet = document.AddWorksheet("Data");
-            sheet.InsertDataReader(reader, tableName: "SalesData", style: TableStyle.TableStyleMedium2, autoFit: autoFit);
+            sheet.InsertDataReader(reader, tableName: "SalesData", style: ExcelTableStyle.TableStyleMedium2, autoFit: autoFit);
             document.Save(stream);
         }
 
@@ -1762,7 +1762,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddWorksheet("SparseObjects");
-            sheet.CellValues(BuildSparseObjectCells(rowCount), ExecutionMode.Parallel);
+            sheet.CellValues(BuildSparseObjectCells(rowCount), ExcelExecutionMode.Parallel);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "CellValues sparse rectangle comparison");
         }
@@ -2376,7 +2376,7 @@ internal static partial class ExcelLibraryComparisonRunner {
                 (1, 2, (object)"Region"),
                 (1, 3, (object)"Owner"),
                 (1, 4, (object)"Amount")
-            }, ExecutionMode.Sequential);
+            }, ExcelExecutionMode.Sequential);
 
             var cells = rows.SelectMany((row, index) => new[] {
                 (index + 2, 1, (object)row.Id),
@@ -2384,7 +2384,7 @@ internal static partial class ExcelLibraryComparisonRunner {
                 (index + 2, 3, (object)row.Owner),
                 (index + 2, 4, (object)row.Amount)
             }).ToArray();
-            sheet.CellValues(cells, ExecutionMode.Parallel);
+            sheet.CellValues(cells, ExcelExecutionMode.Parallel);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "append plain rows comparison");
         }
@@ -2407,7 +2407,7 @@ internal static partial class ExcelLibraryComparisonRunner {
                 sourceDocument,
                 "Data",
                 "DataCopy",
-                SheetNameValidationMode.Sanitize,
+                ExcelSheetNameValidationMode.Sanitize,
                 new ExcelWorksheetCopyOptions { CopyMode = copyMode });
             targetDocument.Save(targetStream);
         }
@@ -4001,7 +4001,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddWorksheet("Strings");
-            sheet.CellValues(BuildTextHeavyCells(rowCount), ExecutionMode.Parallel);
+            sheet.CellValues(BuildTextHeavyCells(rowCount), ExcelExecutionMode.Parallel);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "shared string comparison");
         }
@@ -4720,7 +4720,7 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static int OfficeImoReadFormulaText(byte[] workbookBytes, int rowCount) {
         using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReadOptions { UseCachedFormulaResult = false });
-        object?[,] values = reader.GetSheet("Formulas").ReadRange($"D2:D{rowCount + 1}", ExecutionMode.Sequential);
+        object?[,] values = reader.GetSheet("Formulas").ReadRange($"D2:D{rowCount + 1}", ExcelExecutionMode.Sequential);
         int metric = 0;
         for (int row = 0; row < values.GetLength(0); row++) {
             metric = AddStringMetric(metric, Convert.ToString(values[row, 0], CultureInfo.InvariantCulture));
@@ -4887,7 +4887,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static int OfficeImoReadHelloWorldRange(byte[] workbookBytes, int rowCount) {
         using var reader = ExcelDocumentReader.Open(workbookBytes);
         string dataRange = "A1:J" + rowCount.ToString(CultureInfo.InvariantCulture);
-        object?[,] values = reader.GetSheet("Data").ReadRange(dataRange, OfficeIMO.Excel.ExecutionMode.Sequential);
+        object?[,] values = reader.GetSheet("Data").ReadRange(dataRange, OfficeIMO.Excel.ExcelExecutionMode.Sequential);
         int metric = 0;
         for (int row = 0; row < values.GetLength(0); row++) {
             int rowIndex = row + 1;
@@ -5050,7 +5050,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddWorksheet("Data");
-            sheet.CellValues(BuildHelloWorldCells(rowCount), ExecutionMode.Parallel);
+            sheet.CellValues(BuildHelloWorldCells(rowCount), ExcelExecutionMode.Parallel);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, DenseHelloWorldReadStreamScenario + " fixture generation");
         }

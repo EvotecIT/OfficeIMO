@@ -86,7 +86,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (!TryReadPictureCatalog(presentation,
                     CreateFontCatalogForWrite(), pictureBullets,
                     convertUnsupportedTables: options?.LossPolicy
-                        == PowerPointConversionLossPolicy.Allow,
+                        == OfficeConversionLossPolicy.Allow,
                     out LegacyPptWriterPictureCatalog pictureCatalog,
                     out _, out string? pictureReason)) {
                 throw new NotSupportedException(pictureReason);

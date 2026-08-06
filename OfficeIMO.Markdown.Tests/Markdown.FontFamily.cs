@@ -7,8 +7,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_UsesSpecifiedFontForCode() {
             using var doc = WordDocument.Create();
-            string codeFont = FontResolver.Resolve("sans-serif")!;
-            string normalFont = FontResolver.Resolve("serif")!;
+            string codeFont = WordFontResolver.Resolve("sans-serif")!;
+            string normalFont = WordFontResolver.Resolve("serif")!;
 
             var paragraph = doc.AddParagraph();
             paragraph.AddText("code").SetFontFamily(codeFont);

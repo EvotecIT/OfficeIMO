@@ -71,13 +71,13 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection firstSection = document.Sections[0];
             firstSection.PageSettings.PageSize = WordPageSize.Letter;
-            firstSection.PageOrientation = WordPageOrientation.Portrait;
+            firstSection.PageOrientation = OfficePageOrientation.Portrait;
             firstSection.SetMargins(WordMargin.Narrow);
             document.AddParagraph("NarrowMarginMarker starts from the Word section margin.");
 
             WordSection secondSection = document.AddSection();
             secondSection.PageSettings.PageSize = WordPageSize.Letter;
-            secondSection.PageOrientation = WordPageOrientation.Landscape;
+            secondSection.PageOrientation = OfficePageOrientation.Landscape;
             secondSection.SetMargins(WordMargin.Wide);
             secondSection.AddParagraph("WideMarginMarker starts from the wider Word section margin.");
 

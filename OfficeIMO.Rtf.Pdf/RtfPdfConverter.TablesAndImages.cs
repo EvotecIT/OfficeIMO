@@ -15,7 +15,7 @@ internal static partial class RtfPdfConverter {
                     continue;
                 }
 
-                List<PdfCore.TextRun> runs = BuildCellRuns(document, cell, options, state);
+                List<PdfCore.PdfTextRun> runs = BuildCellRuns(document, cell, options, state);
                 List<PdfCore.PdfTableCellImage> images = BuildCellImages(cell, options);
                 int columnSpan = GetHorizontalMergeSpan(row, cellIndex);
                 int rowSpan = GetVerticalMergeSpan(table, rowIndex, cellIndex);
@@ -80,18 +80,18 @@ internal static partial class RtfPdfConverter {
         pdf.Image(imageBytes, GetImageWidth(image, options), GetImageHeight(image, options), image.Description);
     }
 
-    private static List<PdfCore.TextRun> BuildCellRuns(RtfDocument document, RtfTableCell cell, RtfPdfSaveOptions options, PdfRenderState state) {
-        List<PdfCore.TextRun> runs = new List<PdfCore.TextRun>();
+    private static List<PdfCore.PdfTextRun> BuildCellRuns(RtfDocument document, RtfTableCell cell, RtfPdfSaveOptions options, PdfRenderState state) {
+        List<PdfCore.PdfTextRun> runs = new List<PdfCore.PdfTextRun>();
         int blockIndex = 0;
         foreach (IRtfBlock block in cell.Blocks) {
             if (blockIndex > 0) {
-                runs.Add(PdfCore.TextRun.LineBreak());
+                runs.Add(PdfCore.PdfTextRun.LineBreak());
             }
 
             if (block is RtfParagraph paragraph) {
                 AppendParagraphRuns(document, paragraph, runs, options, state);
             } else if (block is RtfTable nestedTable) {
-                runs.Add(PdfCore.TextRun.Normal(FlattenNestedTableText(nestedTable)));
+                runs.Add(PdfCore.PdfTextRun.Normal(FlattenNestedTableText(nestedTable)));
                 AddConversionWarning(
                     options,
                     "NestedTableFlattened",
@@ -104,7 +104,7 @@ internal static partial class RtfPdfConverter {
         }
 
         if (runs.Count == 0) {
-            runs.Add(PdfCore.TextRun.Normal(string.Empty));
+            runs.Add(PdfCore.PdfTextRun.Normal(string.Empty));
         }
 
         return runs;

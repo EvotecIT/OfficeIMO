@@ -635,7 +635,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     }
 
     private static void ApplyOfficeImoVariantTable(ExcelSheet sheet, string range, bool autoFit) {
-        sheet.AddTable(range, hasHeader: true, name: "SalesData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+        sheet.AddTable(range, hasHeader: true, name: "SalesData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
         if (autoFit) {
             sheet.AutoFitColumns();
         }
@@ -801,7 +801,7 @@ internal static partial class ExcelLibraryComparisonRunner {
             BuildSalesRange(rowCount),
             hasHeader: true,
             name: "SalesData",
-            style: OfficeIMO.Excel.TableStyle.TableStyleMedium2,
+            style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2,
             includeAutoFilter: true);
         sheet.AutoFitColumns();
     }

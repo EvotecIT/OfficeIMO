@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private static void ApplyWorksheetHeaderFooter(PdfCore.PdfPageCompose page, ExcelSheet.HeaderFooterSnapshot? headerFooter, string sheetName, string? workbookPath, ExcelPdfSaveOptions options) {
+        private static void ApplyWorksheetHeaderFooter(PdfCore.PdfPageCompose page, ExcelSheet.ExcelHeaderFooterSnapshot? headerFooter, string sheetName, string? workbookPath, ExcelPdfSaveOptions options) {
             if (headerFooter == null) {
                 return;
             }
@@ -125,7 +125,7 @@ namespace OfficeIMO.Excel.Pdf {
             text?.IndexOf("&G", StringComparison.Ordinal) >= 0;
 
         private static PreparedHeaderFooterImages PrepareHeaderFooterImages(
-            ExcelSheet.HeaderFooterSnapshot headerFooter,
+            ExcelSheet.ExcelHeaderFooterSnapshot headerFooter,
             string sheetName,
             ExcelPdfSaveOptions options) {
             if (!options.UseWorksheetHeaderFooterImages) return new PreparedHeaderFooterImages();
@@ -141,7 +141,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static PreparedHeaderFooterImage? PrepareHeaderFooterImage(
-            ExcelSheet.HeaderFooterImageSnapshot? image,
+            ExcelSheet.ExcelHeaderFooterImageSnapshot? image,
             string sheetName,
             string location,
             ExcelPdfSaveOptions options) {

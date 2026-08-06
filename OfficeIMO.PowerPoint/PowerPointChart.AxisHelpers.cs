@@ -179,7 +179,7 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
-        private PowerPointChart SetAxisTickLabelPosition<TAxis>(PowerPointChartTickLabelPosition position, Func<TAxis, bool>? predicate = null)
+        private PowerPointChart SetAxisTickLabelPosition<TAxis>(OfficeChartAxisTickLabelPosition position, Func<TAxis, bool>? predicate = null)
             where TAxis : OpenXmlCompositeElement {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -489,7 +489,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyAxisCrossing(OpenXmlCompositeElement axis, PowerPointChartAxisCrossing crosses, double? crossesAt) {
+        private static void ApplyAxisCrossing(OpenXmlCompositeElement axis, OfficeChartAxisCrossingPosition crosses, double? crossesAt) {
             axis.GetFirstChild<C.Crosses>()?.Remove();
             axis.GetFirstChild<C.CrossesAt>()?.Remove();
 

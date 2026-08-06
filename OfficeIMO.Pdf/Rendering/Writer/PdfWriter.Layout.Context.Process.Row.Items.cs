@@ -17,7 +17,7 @@ internal static partial class PdfWriter {
                     double size = GetHeadingFontSize(hb2, headingStyle);
                     double leading = GetHeadingLeading(headingStyle, size);
                     PdfColor? headingColor = hb2.Color ?? headingStyle?.Color;
-                    System.Collections.Generic.IReadOnlyList<TextRun> headingRuns = CreateHeadingTextRuns(hb2, headingStyle, headingColor);
+                    System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(hb2, headingStyle, headingColor);
                     var wrap = WrapRichRunsCore(headingRuns, colWs[i], size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
                     items.Add(new ColHead {
                         Block = hb2,
@@ -251,7 +251,7 @@ internal static partial class PdfWriter {
                     }
                     ApplyTableRowSpanHeights(tb2, style, cols, colPixel, rowLines, rowHeights, rowLeadings, columnGap, tableRowGap);
 
-                    System.Collections.Generic.IReadOnlyList<TextRun>? captionRuns = null;
+                    System.Collections.Generic.IReadOnlyList<PdfTextRun>? captionRuns = null;
                     System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>? captionLines = null;
                     System.Collections.Generic.List<double>? captionLineHeights = null;
                     double captionLeading = 0;
@@ -260,7 +260,7 @@ internal static partial class PdfWriter {
                         double captionSize = style.CaptionFontSize ?? size;
                         captionLeading = captionSize * 1.25;
                         var captionFont = ChooseNormal(currentOpts.DefaultFont);
-                        captionRuns = new[] { TextRun.Normal(style.Caption!, style.CaptionColor, captionSize) };
+                        captionRuns = new[] { PdfTextRun.Normal(style.Caption!, style.CaptionColor, captionSize) };
                         var captionWrap = WrapRichRunsCore(captionRuns, tableWidth, captionSize, captionFont, captionLeading, null, DefaultParagraphTabStopWidth, currentOpts);
                         captionLines = captionWrap.Lines;
                         captionLineHeights = captionWrap.LineHeights;

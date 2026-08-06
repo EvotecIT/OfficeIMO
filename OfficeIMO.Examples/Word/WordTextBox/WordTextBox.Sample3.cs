@@ -16,14 +16,14 @@ namespace OfficeIMO.Examples.Word {
 
                 textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 // horizontal alignment overwrites the horizontal position offset so only one will work
-                textBox.HorizontalAlignment = WordHorizontalAlignmentValues.Left;
+                textBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Left;
                 textBox.VerticalPositionOffsetCentimeters = 3;
 
                 var textBox2 = document.AddTextBox("My textbox on the right");
                 textBox2.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 //    textBox2.WordParagraph.ParagraphAlignment = WordParagraphAlignment.Right;
                 // horizontal alignment overwrites the horizontal position offset so only one will work
-                textBox2.HorizontalAlignment = WordHorizontalAlignmentValues.Right;
+                textBox2.HorizontalAlignment = WordTextBoxHorizontalAlignment.Right;
                 textBox2.VerticalPositionOffsetCentimeters = 3;
 
                 Console.WriteLine(textBox.VerticalPositionOffsetCentimeters);
@@ -34,7 +34,7 @@ namespace OfficeIMO.Examples.Word {
 
                 //var textBox3 = document.AddTextBox("My textbox in the center with borders");
                 //textBox3.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-                //textBox3.HorizontalAlignment = WordHorizontalAlignmentValues.Center;
+                //textBox3.HorizontalAlignment = WordTextBoxHorizontalAlignment.Center;
                 //textBox3.VerticalPositionOffsetCentimeters = 10;
                 //textBox3.WordParagraph.Borders.BottomStyle = WordBorderStyle.BasicWideOutline;
                 //textBox3.WordParagraph.Borders.BottomSize = 10;

@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasLoss);
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
                 diagnostic.Code == "TrackedRevisionTextOmitted" &&
-                diagnostic.LossKind == HtmlConversionLossKind.Omission);
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "CommentsOmitted");
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "FieldInstructionsFlattened");
         }
@@ -258,13 +258,13 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_ReportsSingleLandscapeSectionGeometryWhenMetadataIsDisabled() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Landscape content");
-            doc.Sections[0].PageOrientation = WordPageOrientation.Landscape;
+            doc.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
 
             HtmlTextConversionResult result = doc.ToHtmlResult();
 
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
                 diagnostic.Code == "SectionLayoutFlattened" &&
-                diagnostic.LossKind == HtmlConversionLossKind.Approximation);
+                diagnostic.LossKind == OfficeConversionLossKind.Approximation);
             Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
         }
 
@@ -272,13 +272,13 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_ReportsApplicationOnlySignatureMetadataAsOmitted() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Application signature metadata only");
-            doc.ApplicationProperties.DigitalSignature = new DocumentFormat.OpenXml.ExtendedProperties.DigitalSignature();
+            doc.ApplicationProperties.HasDigitalSignatureMetadata = true;
 
             HtmlTextConversionResult result = doc.ToHtmlResult();
 
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
                 diagnostic.Code == "PackageSignaturesOmitted" &&
-                diagnostic.LossKind == HtmlConversionLossKind.Omission);
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
         }
 
@@ -1411,7 +1411,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddParagraph("First section");
             var second = doc.AddSection(WordSectionBreakType.NextPage);
-            second.PageOrientation = WordPageOrientation.Landscape;
+            second.PageOrientation = OfficePageOrientation.Landscape;
             second.PageSettings.PageSize = WordPageSize.Letter;
             second.Margins.Top = 1440;
             second.Margins.Bottom = 720;
@@ -1463,7 +1463,7 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph("First section");
             var second = doc.AddSection(WordSectionBreakType.NextPage);
             second.PageSettings.PageSize = WordPageSize.Letter;
-            second.PageOrientation = WordPageOrientation.Landscape;
+            second.PageOrientation = OfficePageOrientation.Landscape;
             second.Margins.Top = 1440;
             second.Margins.Bottom = 720;
             second.Margins.Left = 1080;
@@ -1482,12 +1482,12 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(2, roundTrip.Sections.Count);
             var roundTripSecond = roundTrip.Sections[1];
-            Assert.Equal(WordPageOrientation.Landscape, roundTripSecond.PageOrientation);
+            Assert.Equal(OfficePageOrientation.Landscape, roundTripSecond.PageOrientation);
             Assert.Equal(WordPageSize.Letter, roundTripSecond.PageSettings.PageSize);
             Assert.Equal(1440, roundTripSecond.Margins.Top);
             Assert.Equal(720, roundTripSecond.Margins.Bottom);
-            Assert.Equal((UInt32Value)1080U, roundTripSecond.Margins.Left);
-            Assert.Equal((UInt32Value)1200U, roundTripSecond.Margins.Right);
+            Assert.Equal(1080U, roundTripSecond.Margins.Left);
+            Assert.Equal(1200U, roundTripSecond.Margins.Right);
             var paragraph = Assert.Single(roundTripSecond.Paragraphs, paragraph => string.Equals(paragraph.Text, "Second section", StringComparison.Ordinal));
             Assert.Null(paragraph.IndentationBefore);
             Assert.Null(paragraph.IndentationAfter);
