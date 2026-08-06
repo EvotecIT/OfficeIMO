@@ -67,7 +67,7 @@ namespace OfficeIMO.Word {
                     return;
                 case "rad":
                     OpenXmlElement? degree = FindFirstChild(element, "deg");
-                    if (degree == null || GetText(degree).Length == 0) {
+                    if (degree == null || !HasProjectedText(degree)) {
                         builder.Append("<msqrt>");
                         AppendMathMlChild(builder, element, "e");
                         builder.Append("</msqrt>");
@@ -84,7 +84,12 @@ namespace OfficeIMO.Word {
                     return;
                 case "func":
                     builder.Append("<mrow><mi>");
-                    AppendEscapedXml(builder, ReadChildText(element, "fName"));
+                    OpenXmlElement? functionName = FindFirstChild(element, "fName");
+                    if (functionName != null) {
+                        AppendEscapedXml(
+                            builder,
+                            GetTextValidated(functionName, builder.RemainingCharacters));
+                    }
                     builder.Append("</mi><mo>(</mo>");
                     AppendMathMlChild(builder, element, "e");
                     builder.Append("<mo>)</mo></mrow>");
@@ -187,7 +192,7 @@ namespace OfficeIMO.Word {
 
         private static void AppendMathMlChildOrNone(BoundedStringBuilder builder, OpenXmlElement element, string localName) {
             OpenXmlElement? child = FindFirstChild(element, localName);
-            if (child == null || GetText(child).Length == 0) builder.Append("<none/>");
+            if (child == null || !HasProjectedText(child)) builder.Append("<none/>");
             else AppendMathMl(builder, child);
         }
 
@@ -257,16 +262,18 @@ namespace OfficeIMO.Word {
                     case '>':
                         builder.Append("&gt;");
                         break;
-                    case '"':
-                        builder.Append("&quot;");
-                        break;
-                    case '\'':
-                        builder.Append("&apos;");
-                        break;
                     default:
                         builder.Append(character);
                         break;
                 }
+            }
+        }
+
+        private static bool HasProjectedText(OpenXmlElement element) {
+            try {
+                return GetTextValidated(element, 1).Length > 0;
+            } catch (WordMathMlOutputLimitExceededException) {
+                return true;
             }
         }
 
@@ -279,6 +286,10 @@ namespace OfficeIMO.Word {
                 _maxCharacters = maxCharacters;
             }
 
+            internal int Length => _builder.Length;
+
+            internal long RemainingCharacters => Math.Max(0, _maxCharacters - _builder.Length);
+
             internal BoundedStringBuilder Append(string? value) {
                 if (string.IsNullOrEmpty(value)) return this;
                 EnsureCapacity(value!.Length);
@@ -289,6 +300,13 @@ namespace OfficeIMO.Word {
             internal BoundedStringBuilder Append(char value) {
                 EnsureCapacity(1);
                 _builder.Append(value);
+                return this;
+            }
+
+            internal BoundedStringBuilder Insert(int index, string value) {
+                if (value == null) throw new ArgumentNullException(nameof(value));
+                EnsureCapacity(value.Length);
+                _builder.Insert(index, value);
                 return this;
             }
 

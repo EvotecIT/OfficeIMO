@@ -85,6 +85,10 @@ namespace OfficeIMO.Word {
             ? WordMath.GetText(MathElement, maxDepth)
             : FieldParagraph?.Text ?? string.Empty;
 
+        internal string GetText(long maxCharacters, int maxDepth) => MathElement != null
+            ? WordMath.GetText(MathElement, maxCharacters, maxDepth)
+            : FieldParagraph?.Text ?? string.Empty;
+
         /// <summary>Gets raw OMML when the equation is backed by DOCX math markup; otherwise <c>null</c>.</summary>
         public string? Omml => MathElement?.OuterXml;
 
@@ -528,13 +532,6 @@ namespace OfficeIMO.Word {
         private WordParagraph? FieldParagraph => _simpleField != null
             ? new WordParagraph(_document, _paragraph, _simpleField)
             : _runs != null ? new WordParagraph(_document, _paragraph, _runs) : null;
-
-        private static string EscapeXml(string value) => value
-            .Replace("&", "&amp;")
-            .Replace("<", "&lt;")
-            .Replace(">", "&gt;")
-            .Replace("\"", "&quot;")
-            .Replace("'", "&apos;");
     }
 
     internal sealed class WordEquationOccurrence {

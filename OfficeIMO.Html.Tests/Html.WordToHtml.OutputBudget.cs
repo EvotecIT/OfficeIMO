@@ -591,7 +591,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_WordToHtml_OutputBudgetBoundsMathMlBeforeFragmentParsing() {
+        public void Test_WordToHtml_OutputBudgetBoundsEquationLabelBeforeMaterialization() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph()._paragraph.Append(
                 new M.OfficeMath(new M.Run(new M.Text(new string('&', 4096)))));
@@ -603,8 +603,10 @@ namespace OfficeIMO.Tests {
                 }));
 
             Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
-            Assert.Equal("EquationMathMl", exception.LimitSource);
+            Assert.Equal("EquationAriaLabel", exception.LimitSource);
+            Assert.Equal(4096, exception.Limit);
             Assert.True(exception.Actual > exception.Limit);
+            Assert.Equal($"Actual={exception.Actual}; Limit={exception.Limit}", exception.Detail);
         }
 
         [Fact]

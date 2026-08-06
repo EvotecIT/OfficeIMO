@@ -32,8 +32,14 @@ namespace OfficeIMO.Tests {
 
             Assert.True(bounded.Succeeded);
             Assert.Equal(expected, bounded.RequireValue());
+            string projectedMathMl = Assert.Single(document.Equations).ToMathMl();
+            Assert.DoesNotContain("&quot;", projectedMathMl, StringComparison.Ordinal);
+            Assert.DoesNotContain("&apos;", projectedMathMl, StringComparison.Ordinal);
             Assert.Equal("WordHtmlOutputLimitExceeded", exceeded.Code);
-            Assert.StartsWith("Equation", exceeded.LimitSource);
+            Assert.Equal("EquationMathMl", exceeded.LimitSource);
+            Assert.Equal(expected.Length - 1L, exceeded.Limit);
+            Assert.True(exceeded.Actual > exceeded.Limit);
+            Assert.Equal($"Actual={exceeded.Actual}; Limit={exceeded.Limit}", exceeded.Detail);
         }
 
         [Fact]

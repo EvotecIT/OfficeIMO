@@ -889,12 +889,15 @@ namespace OfficeIMO.Excel {
 
                 budget.Consume();
                 var chartElements = new List<OpenXmlElement>();
+                var chartCacheInvalidationParents = new HashSet<OpenXmlElement>();
                 foreach (OpenXmlElement element in chartRoot.Descendants()) {
                     budget.Consume();
                     chartElements.Add(element);
+                    if (ChartChildInvalidatesFormulaCache(element)
+                        && element.Parent is OpenXmlElement reference) {
+                        chartCacheInvalidationParents.Add(reference);
+                    }
                 }
-                ILookup<OpenXmlElement?, OpenXmlElement> chartDirectChildren =
-                    chartElements.ToLookup(element => element.Parent);
                 bool chartChanges = false;
                 foreach (OpenXmlElement element in chartElements) {
                     if (element is OpenXmlLeafTextElement formula
@@ -909,9 +912,8 @@ namespace OfficeIMO.Excel {
                             formulas++;
                             chartChanges = true;
                         }
-                        if (ChartFormulaCacheWillBeInvalidated(
-                                formula,
-                                chartDirectChildren)) {
+                        if (formula.Parent is OpenXmlElement reference
+                            && chartCacheInvalidationParents.Contains(reference)) {
                             chartChanges = true;
                         }
                     }
