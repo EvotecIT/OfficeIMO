@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -79,6 +80,21 @@ public static class DataReaderMappingExtensions {
         return EnumerateExplicit(reader, configure);
     }
 
+    /// <summary>
+    /// Projects the remaining unread rows with a caller-supplied factory.
+    /// This overload supports constructor-bound and other models without a public parameterless constructor.
+    /// The caller retains ownership of the reader.
+    /// </summary>
+    /// <param name="reader">Reader positioned before the first row to project.</param>
+    /// <param name="factory">Creates one model instance from the current row.</param>
+    public static IEnumerable<T> RowsAs<T>(
+        this DbDataReader reader,
+        Func<IDataRecord, T> factory) {
+        if (reader is null) throw new ArgumentNullException(nameof(reader));
+        if (factory is null) throw new ArgumentNullException(nameof(factory));
+        return EnumerateFactory(reader, factory);
+    }
+
     private static IEnumerable<T> EnumerateAutomatic<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
         DbDataReader reader) where T : new() {
@@ -120,6 +136,16 @@ public static class DataReaderMappingExtensions {
                 culture,
                 dateTimeFormats,
                 typeConverter);
+        }
+    }
+
+    private static IEnumerable<T> EnumerateFactory<T>(
+        DbDataReader reader,
+        Func<IDataRecord, T> factory) {
+        if (reader.FieldCount == 0) yield break;
+
+        while (reader.Read()) {
+            yield return factory(reader);
         }
     }
 

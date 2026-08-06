@@ -51,6 +51,8 @@ public partial class Excel {
 
         Assert.Throws<OperationCanceledException>(() =>
             sheet.RowsAs<TypedSalesRow>(cancellationToken: cancellation.Token).ToArray());
+        Assert.Throws<OperationCanceledException>(() =>
+            sheet.RowsAs(factory: _ => new PositionalSalesRow(0, 0m), cancellationToken: cancellation.Token).ToArray());
 
         using var optionsCancellation = new CancellationTokenSource();
         optionsCancellation.Cancel();
@@ -125,6 +127,28 @@ public partial class Excel {
         Assert.Equal(usedRangeRow.Amount, specifiedRangeRow.Amount);
     }
 
+    [Fact]
+    public void RowsAs_FactorySupportsPositionalRecordsForUsedAndSpecifiedRanges() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Order Number");
+        sheet.CellValue(1, 2, "Amount");
+        sheet.CellValue(2, 1, 42);
+        sheet.CellValue(2, 2, 12.5m);
+
+        PositionalSalesRow usedRangeRow = Assert.Single(sheet.RowsAs(factory: row =>
+            new PositionalSalesRow(
+                row.GetInt32(row.GetOrdinal("Order Number")),
+                row.GetDecimal(row.GetOrdinal("Amount")))));
+        PositionalSalesRow specifiedRangeRow = Assert.Single(sheet.RowsAs("A1:B2", factory: row =>
+            new PositionalSalesRow(
+                row.GetInt32(row.GetOrdinal("Order Number")),
+                row.GetDecimal(row.GetOrdinal("Amount")))));
+
+        Assert.Equal(new PositionalSalesRow(42, 12.5m), usedRangeRow);
+        Assert.Equal(usedRangeRow, specifiedRangeRow);
+    }
+
     private sealed class TypedSalesRow {
         public int OrderId { get; set; }
         public decimal Amount { get; set; }
@@ -135,4 +159,6 @@ public partial class Excel {
         public int OrderId { get; set; }
         public decimal Amount { get; set; }
     }
+
+    private sealed record PositionalSalesRow(int OrderId, decimal Amount);
 }
