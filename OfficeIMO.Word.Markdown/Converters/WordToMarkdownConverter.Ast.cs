@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using DocumentFormat.OpenXml;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using M = DocumentFormat.OpenXml.Math;

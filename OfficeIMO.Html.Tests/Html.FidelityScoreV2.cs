@@ -56,7 +56,7 @@ public class HtmlFidelityScoreV2 {
         using MemoryStream artifact = document.ToStream();
         using WordDocument reloaded = WordDocument.Load(
             new MemoryStream(artifact.ToArray()),
-            new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
         string reloadedExport = reloaded.ToHtml();
 
         HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(
@@ -90,7 +90,7 @@ public class HtmlFidelityScoreV2 {
         string initialExport = workbook.ToHtml();
         using MemoryStream artifact = workbook.ToStream();
         using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(artifact.ToArray()),
-            new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
 
         HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(source,
             HtmlConversionDocument.Parse(initialExport),
@@ -111,7 +111,7 @@ public class HtmlFidelityScoreV2 {
         using MemoryStream artifact = presentation.ToStream();
         using PowerPointPresentation reloaded = PowerPointPresentation.Load(
             new MemoryStream(artifact.ToArray()),
-            new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
 
         HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(source,
             HtmlConversionDocument.Parse(initialExport),

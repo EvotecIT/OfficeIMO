@@ -515,7 +515,7 @@ Set `PstPassword` only when a protected PST requires checksum validation. Passwo
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`; `net472` is included when building on Windows.
 - External runtime parser/writer dependencies: none.
-- Direct first-party dependencies of the unified package: `OfficeIMO.Drawing` and `OfficeIMO.Rtf`.
+- Direct first-party dependencies of the unified package: `OfficeIMO.Core` and `OfficeIMO.Rtf`.
 - `OfficeIMO.Email` carries Microsoft's `System.Text.Encoding.CodePages` compatibility package for legacy message
   encodings; no Outlook installation, native component, or third-party PST/OST/OLM parser is used.
 

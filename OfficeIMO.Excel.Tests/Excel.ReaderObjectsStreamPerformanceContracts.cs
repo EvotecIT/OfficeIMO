@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             using var package = new MemoryStream();
 
             using (var document = ExcelDocument.Create(package, new ExcelCreateOptions {
-                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+                PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
                 var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Id");

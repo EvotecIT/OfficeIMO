@@ -1,4 +1,4 @@
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using System;
 using System.IO;
 using System.Threading;

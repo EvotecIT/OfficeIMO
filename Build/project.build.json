@@ -9,7 +9,7 @@
     "OfficeIMO.AsciiDoc.Pdf": "3.1.X",
     "OfficeIMO.CSV": "3.1.X",
     "OfficeIMO.Confluence": "3.1.X",
-    "OfficeIMO.Drawing": "3.1.X",
+    "OfficeIMO.Core": "3.1.X",
     "OfficeIMO.Drawing.CodeGlyphX": "3.1.X",
     "OfficeIMO.Drawing.HarfBuzz": "3.1.X",
     "OfficeIMO.Email": "3.1.X",

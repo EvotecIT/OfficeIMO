@@ -9,7 +9,7 @@ on:
       - master
     paths:
       - 'OfficeIMO.Markup*/**'
-      - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Core/**'
       - 'OfficeIMO.Excel/**'
       - 'OfficeIMO.Markdown/**'
       - 'OfficeIMO.PowerPoint/**'
@@ -21,7 +21,7 @@ on:
       - master
     paths:
       - 'OfficeIMO.Markup*/**'
-      - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Core/**'
       - 'OfficeIMO.Excel/**'
       - 'OfficeIMO.Markdown/**'
       - 'OfficeIMO.PowerPoint/**'

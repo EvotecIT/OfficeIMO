@@ -28,6 +28,6 @@ This bridge converts document meaning, not raw control words. Use `OfficeIMO.Rtf
 ## Dependency footprint
 
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
-- **OfficeIMO:** `OfficeIMO.Rtf`, `OfficeIMO.Markdown`, and `OfficeIMO.Drawing` own parsing, semantic mapping, image export hooks, and loss reports.
+- **OfficeIMO:** `OfficeIMO.Rtf`, `OfficeIMO.Markdown`, and `OfficeIMO.Core` own parsing, semantic mapping, image export hooks, and loss reports.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

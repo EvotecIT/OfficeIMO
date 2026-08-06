@@ -305,7 +305,7 @@ namespace OfficeIMO.Tests {
             var expectedDate = new DateTime(2024, 1, 2);
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Amount");
@@ -335,7 +335,7 @@ namespace OfficeIMO.Tests {
         public void Reader_ReadColumn_MapsMemoryPackageWithWideRows() {
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Name");
@@ -846,7 +846,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Sheet_RowsAs_CanBeEnumeratedAfterReaderScopeDisposes() {
+        public void Sheet_RowsAs_IsDeferredAndRequiresTheDocumentToRemainOpen() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderRowsAsMaterialized.xlsx");
 
             try {
@@ -866,10 +866,7 @@ namespace OfficeIMO.Tests {
                     rows = document.GetSheet("Data").RowsAs<FriendlyHeaderRow>("A1:C2");
                 }
 
-                var row = Assert.Single(rows);
-                Assert.Equal("Alpha", row.FirstName);
-                Assert.Equal("Beta", row.FirstName_2);
-                Assert.Equal(42, row.TotalAmount2);
+                Assert.Throws<ObjectDisposedException>(() => rows.ToArray());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -878,8 +875,8 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Sheet_RowsAsStream_EnumeratesWhileDocumentScopeIsOpen() {
-            string filePath = Path.Combine(_directoryWithFiles, "ReaderRowsAsStreamBridge.xlsx");
+        public void Sheet_RowsAs_EnumeratesWhileDocumentScopeIsOpen() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderRowsAsBridge.xlsx");
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
@@ -894,7 +891,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var loadedDocument = ExcelDocument.Load(filePath);
-                var row = Assert.Single(loadedDocument.GetSheet("Data").RowsAsStream<FriendlyHeaderRow>("A1:C2"));
+                var row = Assert.Single(loadedDocument.GetSheet("Data").RowsAs<FriendlyHeaderRow>("A1:C2"));
 
                 Assert.Equal("Alpha", row.FirstName);
                 Assert.Equal("Beta", row.FirstName_2);
@@ -2328,7 +2325,7 @@ namespace OfficeIMO.Tests {
             var expectedDate = new DateTime(2024, 3, 2);
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Score");
                 sheet.CellValue(1, 2, "Active");
@@ -2354,7 +2351,7 @@ namespace OfficeIMO.Tests {
             var expectedDate = new DateTime(2024, 3, 2);
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Score");
                 sheet.CellValue(1, 2, "Active");

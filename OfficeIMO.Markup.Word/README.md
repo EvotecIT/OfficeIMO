@@ -52,6 +52,6 @@ result.Document.SaveAsWord("status-brief.docx", new MarkupToWordOptions {
 ## Dependency footprint
 
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
-- **OfficeIMO:** `OfficeIMO.Markup`, `OfficeIMO.Word`, and `OfficeIMO.Drawing`; the exporter maps semantic nodes to editable Word content.
+- **OfficeIMO:** `OfficeIMO.Markup`, `OfficeIMO.Word`, and `OfficeIMO.Core`; the exporter maps semantic nodes to editable Word content.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

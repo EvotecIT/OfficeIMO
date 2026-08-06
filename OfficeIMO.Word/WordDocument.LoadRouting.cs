@@ -1,4 +1,4 @@
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Word {
     internal static class WordDocumentLoadRouting {

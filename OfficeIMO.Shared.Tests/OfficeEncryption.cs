@@ -3,7 +3,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Threading;
 using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
@@ -104,13 +104,13 @@ namespace OfficeIMO.Shared.Tests {
             }
 
             Assert.Throws<NotSupportedException>(() => WordDocument.LoadEncrypted(path, Password, new WordLoadOptions {
-                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+                PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             }));
 
             using var explicitLoad = WordDocument.LoadEncrypted(path, Password, new WordLoadOptions {
                 OpenSettings = new OpenSettings { AutoSave = true }
             });
-            Assert.Equal(OfficeIMO.Drawing.DocumentPersistenceMode.Explicit, explicitLoad.PersistenceMode);
+            Assert.Equal(OfficeIMO.DocumentPersistenceMode.Explicit, explicitLoad.PersistenceMode);
         }
 
         [Fact]
@@ -166,13 +166,13 @@ namespace OfficeIMO.Shared.Tests {
             }
 
             Assert.Throws<NotSupportedException>(() => ExcelDocument.LoadEncrypted(path, Password, new ExcelLoadOptions {
-                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+                PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             }));
 
             using var explicitLoad = ExcelDocument.LoadEncrypted(path, Password, new ExcelLoadOptions {
                 OpenSettings = new OpenSettings { AutoSave = true }
             });
-            Assert.Equal(OfficeIMO.Drawing.DocumentPersistenceMode.Explicit, explicitLoad.PersistenceMode);
+            Assert.Equal(OfficeIMO.DocumentPersistenceMode.Explicit, explicitLoad.PersistenceMode);
         }
 
         [Fact]

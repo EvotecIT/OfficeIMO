@@ -1,6 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {

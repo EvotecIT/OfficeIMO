@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.IO.Packaging;
 using OfficeIMO.Drawing;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using System.Threading;
 using System.Threading.Tasks;
 

@@ -20,7 +20,7 @@ public sealed class EmailPackagingContractTests {
             .ToArray();
         Assert.Equal(
             new[] {
-                "../OfficeIMO.Drawing/OfficeIMO.Drawing.csproj",
+                "../OfficeIMO.Core/OfficeIMO.Core.csproj",
                 "../OfficeIMO.Rtf/OfficeIMO.Rtf.csproj"
             },
             projectReferences);
@@ -42,7 +42,7 @@ public sealed class EmailPackagingContractTests {
         Assert.DoesNotContain(references, name => string.Equals(name, "MailKit", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(references, name => string.Equals(name, "Microsoft.Maui.Graphics", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Rtf", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Drawing", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Core", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(references, name => string.Equals(name, "OfficeIMO.Security", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(references, name => string.Equals(name, "System.Text.Encoding.CodePages", StringComparison.OrdinalIgnoreCase));
     }

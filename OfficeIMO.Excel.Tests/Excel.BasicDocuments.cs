@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using OfficeIMO.Excel;
 using Xunit;
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_LoadingReadOnlyExcel() {
             var filePath = Path.Combine(_directoryDocuments, "BasicExcel.xlsx");
-            using var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            using var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             Assert.Equal(FileAccess.Read, document.FileOpenAccess);
         }
     }

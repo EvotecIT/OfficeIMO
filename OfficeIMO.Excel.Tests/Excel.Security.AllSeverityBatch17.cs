@@ -22,7 +22,7 @@ public partial class Excel {
 
         sourceStream.Position = 0;
         using ExcelDocument sourceDocument = ExcelDocument.Load(sourceStream, new ExcelLoadOptions {
-            AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
         });
         using ExcelDocument target = ExcelDocument.Create(new MemoryStream());
         target.AddWorksheet("Existing");

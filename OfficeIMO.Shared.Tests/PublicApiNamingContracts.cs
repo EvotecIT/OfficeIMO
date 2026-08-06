@@ -1,5 +1,7 @@
 using System.Reflection;
 using System.Threading;
+using OfficeIMO.CSV;
+using OfficeIMO.Data;
 using OfficeIMO.Drawing;
 using OfficeIMO.Email;
 using OfficeIMO.Excel;
@@ -14,6 +16,31 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed class PublicApiNamingContracts {
+    [Fact]
+    public void CoreNeutralContractsUsePurposeBasedNamespaces() {
+        Type[] rootContracts = {
+            typeof(IOfficeConversionReport),
+            typeof(OfficeFormatDescriptor),
+            typeof(OfficeCompatibilityReport),
+            typeof(OfficeCompatibilityFinding),
+            typeof(OfficeConversionCapability),
+            typeof(OfficeConversionCapabilityCatalog),
+            typeof(OfficeCapability),
+            typeof(OfficeCapabilityCatalog)
+        };
+        Type[] dataContracts = {
+            typeof(ObjectFlattener),
+            typeof(ObjectFlattenerOptions),
+            typeof(CollectionColumnMapping),
+            typeof(HeaderCase),
+            typeof(NullPolicy),
+            typeof(CollectionMode)
+        };
+
+        Assert.All(rootContracts, static type => Assert.Equal("OfficeIMO", type.Namespace));
+        Assert.All(dataContracts, static type => Assert.Equal("OfficeIMO.Data", type.Namespace));
+    }
+
     [Fact]
     public void ExcelWorksheetApisUseOneCanonicalCasing() {
         MethodInfo[] methods = typeof(ExcelDocument).GetMethods(
@@ -85,6 +112,8 @@ public sealed class PublicApiNamingContracts {
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
         MethodInfo[] sheetMethods = typeof(ExcelSheet).GetMethods(
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+        PropertyInfo[] sheetProperties = typeof(ExcelSheet).GetProperties(
+            BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
         Assert.DoesNotContain("ExcelRead", exportedTypeNames);
         Assert.DoesNotContain("ExcelDocumentReader", exportedTypeNames);
@@ -94,8 +123,45 @@ public sealed class PublicApiNamingContracts {
         Assert.DoesNotContain(documentMethods, static method => method.Name == "Read");
         Assert.DoesNotContain(sheetMethods, static method => method.Name == "Rows");
         Assert.Contains(documentMethods, static method => method.Name == "OpenDataReader");
+        Assert.Contains(sheetMethods, static method => method.Name == "CreateDataReader");
         Assert.Contains(sheetMethods, static method => method.Name == "RowsAs" && method.IsGenericMethodDefinition);
-        Assert.Contains(sheetMethods, static method => method.Name == "RowsAsStream" && method.IsGenericMethodDefinition);
+        Assert.Contains(sheetMethods, static method =>
+            method.Name == "RowsAs" && method.GetParameters().Any(parameter =>
+                parameter.ParameterType.IsGenericType &&
+                parameter.ParameterType.GetGenericTypeDefinition() == typeof(Action<>)));
+        Assert.DoesNotContain(sheetMethods, static method => method.Name == "RowsAsStream");
+        Assert.DoesNotContain(sheetMethods, static method => method.Name == "GetUsedRangeA1");
+        Assert.Contains(sheetProperties, static property => property.Name == "UsedRangeA1");
+        Assert.All(
+            sheetMethods.Where(static method =>
+                method.Name is "RowsAs" or "EnumerateCells" or "EnumerateRange" &&
+                method.GetParameters().Any(static parameter => parameter.ParameterType == typeof(CancellationToken))),
+            static method => Assert.Contains(
+                method.GetParameters(),
+                static parameter => parameter.ParameterType == typeof(CancellationToken) &&
+                                    parameter.Name == "cancellationToken"));
+    }
+
+    [Fact]
+    public void CsvPublicApiExposesOnlyCanonicalMappingAndWriterSurfaces() {
+        Type[] exportedTypes = typeof(CsvDocument).Assembly.GetExportedTypes();
+        string[] exportedTypeNames = exportedTypes.Select(static type => type.Name).ToArray();
+        MethodInfo[] documentMethods = typeof(CsvDocument).GetMethods(
+            BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
+        string[] writerMethodNames = typeof(CsvRowWriter)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Select(static method => method.Name)
+            .ToArray();
+
+        Assert.Contains("CsvRowWriter", exportedTypeNames);
+        Assert.Contains(typeof(RowMapper<>), typeof(RowMapper<>).Assembly.GetExportedTypes());
+        Assert.DoesNotContain("CsvObjectWriter", exportedTypeNames);
+        Assert.DoesNotContain("CsvMapper`1", exportedTypeNames);
+        Assert.DoesNotContain("CsvFile", exportedTypeNames);
+        Assert.DoesNotContain(documentMethods, static method => method.Name == "Materialize");
+        Assert.Contains("WriteRow", writerMethodNames);
+        Assert.Contains("WriteTextRow", writerMethodNames);
+        Assert.DoesNotContain(writerMethodNames, static name => name.Contains("Trusted", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -172,7 +238,7 @@ public sealed class PublicApiNamingContracts {
     }
 
     [Fact]
-    public void DrawingOwnsTheSharedRemoteImageLoader() {
+    public void CoreOwnsTheSharedRemoteImageLoader() {
         MethodInfo[] methods = typeof(OfficeRemoteImageLoader).GetMethods(
             BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
 

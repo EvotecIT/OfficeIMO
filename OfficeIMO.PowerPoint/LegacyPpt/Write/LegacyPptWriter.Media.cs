@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {

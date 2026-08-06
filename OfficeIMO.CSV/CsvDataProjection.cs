@@ -164,7 +164,7 @@ internal static partial class CsvDataProjectionConverter
             return value!;
         }
 
-        if (!CsvValueConverter.TryConvert(value, column.DataType, culture, dateTimeFormats, out var converted, out var error))
+        if (!DataValueConverter.TryConvert(value, column.DataType, culture, dateTimeFormats, typeConverter: null, out var converted, out var error))
         {
             throw new CsvException($"Column '{column.Name}' value on row {rowIndex + 1} cannot be converted to {column.DataType.Name}: {error}");
         }

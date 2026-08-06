@@ -18,5 +18,5 @@ applications that only need generic Excel document extraction.
 ## Targets and dependencies
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.
-- OfficeIMO dependencies: `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, and `OfficeIMO.Drawing`.
+- OfficeIMO dependencies: `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, and `OfficeIMO.Core`.
 - License: MIT.

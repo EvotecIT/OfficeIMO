@@ -2400,7 +2400,7 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoCopyWorksheetFromBytes(byte[] workbookBytes, ExcelWorksheetCopyMode copyMode) {
         using var sourceStream = new MemoryStream(workbookBytes, writable: false);
-        using var sourceDocument = ExcelDocument.Load(sourceStream, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+        using var sourceDocument = ExcelDocument.Load(sourceStream, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
         using var targetStream = new MemoryStream();
         using (var targetDocument = ExcelDocument.Create(targetStream)) {
             targetDocument.CopyWorksheetFrom(

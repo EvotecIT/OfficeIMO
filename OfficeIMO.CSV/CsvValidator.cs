@@ -108,7 +108,7 @@ internal static class CsvValidator
             return true;
         }
 
-        if (!CsvValueConverter.TryConvert(convertedValue, column.DataType, culture, dateTimeFormats, out convertedValue, out error))
+        if (!DataValueConverter.TryConvert(convertedValue, column.DataType, culture, dateTimeFormats, typeConverter: null, out convertedValue, out error))
         {
             return false;
         }

@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Controls which source slides remain in a presentation created from a template.</summary>

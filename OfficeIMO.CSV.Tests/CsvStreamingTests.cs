@@ -146,6 +146,22 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public async Task LoadAsync_HonorsCancellationFromLoadOptionsAndRestoresPosition()
+    {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Id\n1\n"));
+        stream.Position = 2;
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            CsvDocument.LoadAsync(
+                stream,
+                new CsvLoadOptions { CancellationToken = cancellation.Token }));
+
+        Assert.Equal(2, stream.Position);
+    }
+
+    [Fact]
     public async Task StreamLoads_EnforceCompleteInputLimitAndRestorePosition()
     {
         byte[] bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n");

@@ -938,7 +938,7 @@ public partial class Excel {
         Assert.Throws<OperationCanceledException>(() => ExcelDocument.Load(
             GetDataReaderXlsbFixture("basic-values-formula.xlsb"),
             new ExcelLoadOptions {
-                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly,
                 XlsbImportOptions = new Xlsb.XlsbImportOptions {
                     CancellationToken = cancellation.Token
                 }

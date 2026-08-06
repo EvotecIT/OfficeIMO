@@ -1,7 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing.Binary;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Word.LegacyDoc.Model;
 using A = DocumentFormat.OpenXml.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;

@@ -600,7 +600,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document.Sheets[0];
                 Assert.Equal("A2+1", sheet.GetFormulaText(1, 1));
                 Assert.False(sheet.TryGetCachedFormulaValue(1, 1, out _));

@@ -157,6 +157,6 @@ var chunks = reader.ReadFolder("KnowledgeBase", new ReaderFolderOptions {
 ## Dependency footprint
 
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
-- **OfficeIMO:** `OfficeIMO.Reader.Core`, `OfficeIMO.Drawing`, and the first-party `OfficeIMO.Pdf` engine own normalized content, raster compatibility, PDF parsing/generation, assets, and diagnostics.
+- **OfficeIMO:** `OfficeIMO.Reader.Core`, `OfficeIMO.Core`, and the first-party `OfficeIMO.Pdf` engine own normalized content, raster compatibility, PDF parsing/generation, assets, and diagnostics.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

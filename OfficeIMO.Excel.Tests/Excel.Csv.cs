@@ -43,7 +43,7 @@ public class ExcelCsvExtensionsTests {
         Assert.Equal("Empty", result.SheetName);
         Assert.Null(result.TableName);
         Assert.Equal(string.Empty, result.Range);
-        Assert.Equal("A1:A1", document["Empty"].GetUsedRangeA1());
+        Assert.Equal("A1:A1", document["Empty"].UsedRangeA1);
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class ExcelCsvExtensionsTests {
             existing.ImportCsvText("Name\r\nAlpha", options));
 
         Assert.DoesNotContain(document.Sheets, sheet => sheet.Name == "Rejected");
-        Assert.Equal("A1:A1", existing.GetUsedRangeA1());
+        Assert.Equal("A1:A1", existing.UsedRangeA1);
     }
 
     [Fact]
@@ -215,7 +215,7 @@ public class ExcelCsvExtensionsTests {
         stream.Position = 0;
         using ExcelDocument reloaded = ExcelDocument.Load(
             stream,
-            new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
         Assert.Equal("ImportData", reloaded.GetTables().Single().Name);
     }
 
@@ -255,7 +255,7 @@ public class ExcelCsvExtensionsTests {
         stream.Position = 0;
         using ExcelDocument reloaded = ExcelDocument.Load(
             stream,
-            new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
         ExcelTableInfo table = Assert.Single(reloaded.GetTables());
         Assert.Equal("Orders", table.Name);
         Assert.Equal("Orders", table.SheetName);
@@ -306,11 +306,14 @@ public class ExcelCsvExtensionsTests {
     public void DelimitedCompressedFileImportDetectsDelimiterAndReadsRows() {
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.Reader.Csv." + Guid.NewGuid().ToString("N") + ".csv.gz");
         try {
-            using (TextWriter writer = CsvFile.CreateTextWriter(
-                       path,
-                       new CsvSaveOptions { CompressionType = CsvCompressionType.GZip })) {
-                writer.Write("Name;Amount\r\nAlpha;10.5\r\nBeta;11.75");
-            }
+            new CsvDocument()
+                .WithHeader("Name", "Amount")
+                .AddRow("Alpha", 10.5m)
+                .AddRow("Beta", 11.75m)
+                .Save(path, new CsvSaveOptions {
+                    Delimiter = ';',
+                    CompressionType = CsvCompressionType.GZip
+                });
 
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);

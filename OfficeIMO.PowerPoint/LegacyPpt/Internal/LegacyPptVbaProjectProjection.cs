@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {

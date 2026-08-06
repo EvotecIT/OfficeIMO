@@ -15,20 +15,20 @@ public class DrawingArchitectureTests {
 
     [Fact]
     public void OfficeDrawingProjectHasNoRuntimeDependencies() {
-        XDocument project = LoadProject("OfficeIMO.Drawing", "OfficeIMO.Drawing.csproj");
+        XDocument project = LoadProject("OfficeIMO.Core", "OfficeIMO.Core.csproj");
 
         Assert.Empty(GetReferencedItems(project, "PackageReference"));
         Assert.Empty(GetReferencedItems(project, "ProjectReference"));
-        Assert.DoesNotContain("System.Drawing", ReadProjectSource("OfficeIMO.Drawing"));
+        Assert.DoesNotContain("System.Drawing", ReadProjectSource("OfficeIMO.Core"));
     }
 
     [Fact]
-    public void LifecycleContractsAreOwnedByDependencyFreeDrawing() {
+    public void LifecycleContractsAreOwnedByDependencyFreeCore() {
         Assert.Same(typeof(OfficeColor).Assembly, typeof(DocumentAccessMode).Assembly);
         Assert.Same(typeof(OfficeColor).Assembly, typeof(DocumentPersistenceMode).Assembly);
         Assert.Same(typeof(OfficeColor).Assembly, typeof(DocumentCreateOptions).Assembly);
         Assert.Same(typeof(OfficeColor).Assembly, typeof(DocumentLoadOptions).Assembly);
-        Assert.False(File.Exists(Path.Combine(RepositoryRoot, "OfficeIMO.Core", "OfficeIMO.Core.csproj")));
+        Assert.True(File.Exists(Path.Combine(RepositoryRoot, "OfficeIMO.Core", "OfficeIMO.Core.csproj")));
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class DrawingArchitectureTests {
             XDocument project = LoadProject(projectFolder, projectFolder + ".csproj");
             Assert.Contains(
                 GetReferencedItems(project, "ProjectReference"),
-                reference => reference.Replace('\\', '/').EndsWith("/OfficeIMO.Drawing/OfficeIMO.Drawing.csproj", StringComparison.OrdinalIgnoreCase));
+                reference => reference.Replace('\\', '/').EndsWith("/OfficeIMO.Core/OfficeIMO.Core.csproj", StringComparison.OrdinalIgnoreCase));
         }
     }
 
@@ -67,7 +67,7 @@ public class DrawingArchitectureTests {
             XDocument project = XDocument.Load(projectPath);
             Assert.Contains(
                 GetReferencedItems(project, "ProjectReference"),
-                reference => reference.Replace('\\', '/').EndsWith("/OfficeIMO.Drawing/OfficeIMO.Drawing.csproj", StringComparison.OrdinalIgnoreCase));
+                reference => reference.Replace('\\', '/').EndsWith("/OfficeIMO.Core/OfficeIMO.Core.csproj", StringComparison.OrdinalIgnoreCase));
         }
     }
 
@@ -227,7 +227,7 @@ public class DrawingArchitectureTests {
 
     private static IEnumerable<string> EnumerateImageRenderingOwnerSource() {
         string[] projectFolders = {
-            "OfficeIMO.Drawing",
+            "OfficeIMO.Core",
             "OfficeIMO.Excel",
             "OfficeIMO.Word",
             "OfficeIMO.Visio",
@@ -256,7 +256,7 @@ public class DrawingArchitectureTests {
     }
 
     private static bool IsOfficeDrawingProject(string projectPath) =>
-        string.Equals(Path.GetFileNameWithoutExtension(projectPath), "OfficeIMO.Drawing", StringComparison.OrdinalIgnoreCase);
+        string.Equals(Path.GetFileNameWithoutExtension(projectPath), "OfficeIMO.Core", StringComparison.OrdinalIgnoreCase);
 
     private static bool ProjectSourceUsesOfficeDrawing(string projectFolder) {
         foreach (string filePath in Directory.GetFiles(projectFolder, "*.cs", SearchOption.AllDirectories)) {
@@ -280,7 +280,7 @@ public class DrawingArchitectureTests {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);
         while (directory != null) {
             if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln")) ||
-                Directory.Exists(Path.Combine(directory.FullName, "OfficeIMO.Drawing"))) {
+                Directory.Exists(Path.Combine(directory.FullName, "OfficeIMO.Core"))) {
                 return directory.FullName;
             }
 

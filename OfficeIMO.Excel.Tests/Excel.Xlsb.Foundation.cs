@@ -300,9 +300,9 @@ namespace OfficeIMO.Tests {
         public void Xlsb_NormalLoad_ReadOnlyModeUsesReadOnlyPackageAndRejectsSave() {
             using ExcelDocument document = ExcelDocument.Load(
                 GetExcelGeneratedXlsbFixturePath(),
-                new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+                new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
 
-            Assert.Equal(OfficeIMO.Drawing.DocumentAccessMode.ReadOnly, document.AccessMode);
+            Assert.Equal(OfficeIMO.DocumentAccessMode.ReadOnly, document.AccessMode);
             Assert.Equal(FileAccess.Read, document.FileOpenAccess);
             Assert.Equal(ExcelFileFormat.Xlsb, document.SourceFormat);
             Assert.True(document.Sheets[0].TryGetCellText(2, 2, out string? value));

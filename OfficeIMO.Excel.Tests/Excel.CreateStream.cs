@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Create_ToMemoryStream_SaveOnDisposeWritesPackage() {
             using var memory = new MemoryStream();
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorksheet("StreamData");
                 sheet.CellValue(1, 1, "Hello Stream");
             }
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             byte[] copy;
 
             using (var document = ExcelDocument.Create(associated, new ExcelCreateOptions {
-                       PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+                       PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
                    })) {
                 document.AddWorksheet("Associated").CellValue(1, 1, "Persisted");
                 copy = document.ToBytes();
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
             using var copy = new MemoryStream();
 
             await using (var document = ExcelDocument.Create(associated, new ExcelCreateOptions {
-                             PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+                             PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
                          })) {
                 document.AddWorksheet("Associated").CellValue(1, 1, "Persisted async");
                 await document.SaveAsync(copy);
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
                 document.Save(output);
             }
 
-            using var reloaded = ExcelDocument.Load(new MemoryStream(output.ToArray()), new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            using var reloaded = ExcelDocument.Load(new MemoryStream(output.ToArray()), new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             Assert.Equal("Stream Theme", reloaded.GetWorkbookTheme().Name);
         }
 
@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests {
                 document.SetWorkbookThemeName("Unsaved Theme");
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 Assert.Equal("Original Theme", document.GetWorkbookTheme().Name);
             }
 
@@ -169,7 +169,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 Assert.Equal("Saved Theme", document.GetWorkbookTheme().Name);
             }
         }
@@ -182,7 +182,7 @@ namespace OfficeIMO.Tests {
             };
 
             using var memory = new MemoryStream();
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
                 var sheet = document.AddWorksheet("Data");
                 sheet.InsertObjects(rows,
@@ -233,7 +233,7 @@ namespace OfficeIMO.Tests {
             orders.Rows.Add(3, "Northwind", new DateTime(2024, 2, 3), "Open", 87.25d);
 
             using var memory = new MemoryStream();
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
                 var sheet = document.AddWorksheet("Orders");
                 string range = sheet.InsertDataTableAsTable(
@@ -285,7 +285,7 @@ namespace OfficeIMO.Tests {
             };
 
             using var memory = new MemoryStream();
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
                 var sheet = document.AddWorksheet("Sales");
                 sheet.InsertObjects(rows,
@@ -328,7 +328,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Create_ToMemoryStream_WithUnsupportedHyperlink_FallsBackToReadablePackage() {
             using var memory = new MemoryStream();
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorksheet("Links");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 1, "OfficeIMO");
@@ -375,7 +375,7 @@ namespace OfficeIMO.Tests {
             dataSet.Tables.Add(customers);
 
             using var memory = new MemoryStream();
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 var results = document.InsertDataSet(dataSet, autoFit: true);
                 Assert.Equal(2, results.Count);
                 Assert.Equal("Orders", results[0].TableName);
@@ -473,7 +473,7 @@ namespace OfficeIMO.Tests {
 
         private static byte[] CreateStreamSaveWorkbookBytes() {
             using var memory = new MemoryStream();
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorksheet("StreamData");
                 sheet.CellValue(1, 1, "Hello Stream");
                 sheet.AutoFitColumns();

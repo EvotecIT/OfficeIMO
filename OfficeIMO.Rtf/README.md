@@ -117,6 +117,6 @@ See the [living support matrix](https://github.com/EvotecIT/OfficeIMO/blob/maste
 ## Dependency footprint
 
 - **External:** No third-party RTF engine. `System.Text.Encoding.CodePages` supplies legacy encodings.
-- **OfficeIMO:** `OfficeIMO.Drawing`. Lexing, parsing, semantic binding, editing, and writing are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`. Lexing, parsing, semantic binding, editing, and writing are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

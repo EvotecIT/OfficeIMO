@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Markdown;
 using OfficeIMO.Rtf;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Rtf.Markdown;
 

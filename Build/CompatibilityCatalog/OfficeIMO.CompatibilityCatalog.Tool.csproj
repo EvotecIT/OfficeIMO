@@ -9,7 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="../../OfficeIMO.AsciiDoc.Markdown/OfficeIMO.AsciiDoc.Markdown.csproj" />
     <ProjectReference Include="../../OfficeIMO.AsciiDoc.Pdf/OfficeIMO.AsciiDoc.Pdf.csproj" />
-    <ProjectReference Include="../../OfficeIMO.Drawing/OfficeIMO.Drawing.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Core/OfficeIMO.Core.csproj" />
     <ProjectReference Include="../../OfficeIMO.Word/OfficeIMO.Word.csproj" />
     <ProjectReference Include="../../OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj" />
     <ProjectReference Include="../../OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj" />

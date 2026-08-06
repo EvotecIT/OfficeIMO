@@ -413,7 +413,7 @@ For exact pass-through of an ordinary unprotected artifact, read with `preserveR
 ## Dependency footprint
 
 - **External:** no third-party email engine or Outlook interop. `System.Text.Encoding.CodePages` supplies legacy encodings.
-- **OfficeIMO:** `OfficeIMO.Drawing` and `OfficeIMO.Rtf`. MIME, MSG/MAPI, TNEF, mbox, iCalendar, vCard, Store, OAB, protected-wrapper detection, and compressed-RTF handling remain first-party and ship in this package.
+- **OfficeIMO:** `OfficeIMO.Core` and `OfficeIMO.Rtf`. MIME, MSG/MAPI, TNEF, mbox, iCalendar, vCard, Store, OAB, protected-wrapper detection, and compressed-RTF handling remain first-party and ship in this package.
 - **Optional security:** install `OfficeIMO.Security` for S/MIME CMS/X.509 verification and EnvelopedData decryption. It is not a transitive Email dependency.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

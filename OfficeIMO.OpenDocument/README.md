@@ -1,6 +1,6 @@
 # OfficeIMO.OpenDocument
 
-`OfficeIMO.OpenDocument` creates and edits ODT, ODS, and ODP files directly. Its only runtime dependency is the zero-dependency `OfficeIMO.Drawing` foundation used across OfficeIMO for lifecycle and result contracts. It has no third-party runtime dependencies and does not invoke LibreOffice, Microsoft Office, or UNO.
+`OfficeIMO.OpenDocument` creates and edits ODT, ODS, and ODP files directly. Its only runtime dependency is the zero-dependency `OfficeIMO.Core` foundation used across OfficeIMO for lifecycle and result contracts. It has no third-party runtime dependencies and does not invoke LibreOffice, Microsoft Office, or UNO.
 
 ```powershell
 dotnet add package OfficeIMO.OpenDocument
@@ -116,7 +116,7 @@ Interoperability coverage includes ODT, ODS, and ODP files from LibreOffice and 
 ## Dependency footprint
 
 - **External:** None; no OpenDocument SDK and no LibreOffice process.
-- **OfficeIMO:** `OfficeIMO.Drawing`. ODT/ODS/ODP parsing, models, preservation, inspection, and writing are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`. ODT/ODS/ODP parsing, models, preservation, inspection, and writing are first-party.
 - **Security:** ODF signature carriers are detected and changed signed packages fail safely without a cryptographic dependency. `OdfDocument.SignPackage(...)` and `ValidatePackageSignatures(...)` use an explicit provider for the bounded OfficeIMO XML package-manifest profile; `OfficeIMO.Security` is not pulled transitively. ODF encryption/decryption remains deliberately unsupported until a producer-identified interoperability corpus and explicit password/key policy exist.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

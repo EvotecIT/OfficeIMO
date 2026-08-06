@@ -1,6 +1,6 @@
 #nullable enable
 
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using System.Collections;
 using System.Data;
 using System.Globalization;
@@ -138,7 +138,7 @@ public sealed partial class CsvDocument
 
         options ??= new CsvSaveOptions();
 
-        using var objectWriter = new CsvObjectWriter(writer, options, leaveOpen: true);
+        using var objectWriter = new CsvRowWriter(writer, options, leaveOpen: true);
         var wroteAny = false;
         foreach (var item in items)
         {
@@ -201,7 +201,7 @@ public sealed partial class CsvDocument
         CsvSaveOptions options,
         CancellationToken cancellationToken)
     {
-        using var objectWriter = new CsvObjectWriter(writer, options, leaveOpen: true);
+        using var objectWriter = new CsvRowWriter(writer, options, leaveOpen: true);
         objectWriter.WriteDataReader(reader, cancellationToken);
     }
 
@@ -825,7 +825,7 @@ public sealed partial class CsvDocument
     /// <summary>
     /// Forces a streaming document to materialize into memory, enabling transformations.
     /// </summary>
-    public CsvDocument Materialize()
+    internal CsvDocument Materialize()
     {
         if (_mode == CsvLoadMode.InMemory)
         {

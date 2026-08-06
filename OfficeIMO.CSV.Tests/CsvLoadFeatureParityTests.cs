@@ -163,10 +163,10 @@ public class CsvLoadFeatureParityTests
     }
 
     [Fact]
-    public void CsvObjectWriter_TextRows_Use_Null_Token_When_Configured()
+    public void CsvRowWriter_TextRows_Use_Null_Token_When_Configured()
     {
         using var writer = new StringWriter();
-        using (var csv = new CsvObjectWriter(
+        using (var csv = new CsvRowWriter(
             writer,
             new CsvSaveOptions { NewLine = "\n", NullValue = "<null>" },
             leaveOpen: true))
@@ -493,10 +493,10 @@ public class CsvLoadFeatureParityTests
     }
 
     [Fact]
-    public void CsvObjectWriter_Writes_MultiCharacter_Delimiter()
+    public void CsvRowWriter_Writes_MultiCharacter_Delimiter()
     {
         using var writer = new StringWriter();
-        using (var csv = new CsvObjectWriter(writer, new CsvSaveOptions { DelimiterText = "||", NewLine = "\n" }, leaveOpen: true))
+        using (var csv = new CsvRowWriter(writer, new CsvSaveOptions { DelimiterText = "||", NewLine = "\n" }, leaveOpen: true))
         {
             csv.WriteObject(new { Name = "Alpha", Value = "one||two" });
         }
@@ -505,10 +505,10 @@ public class CsvLoadFeatureParityTests
     }
 
     [Fact]
-    public void CsvObjectWriter_Writes_SingleCharacter_DelimiterText()
+    public void CsvRowWriter_Writes_SingleCharacter_DelimiterText()
     {
         using var writer = new StringWriter();
-        using (var csv = new CsvObjectWriter(writer, new CsvSaveOptions { DelimiterText = ";", NewLine = "\n" }, leaveOpen: true))
+        using (var csv = new CsvRowWriter(writer, new CsvSaveOptions { DelimiterText = ";", NewLine = "\n" }, leaveOpen: true))
         {
             csv.WriteObject(new { Name = "Alpha", Value = 1 });
         }

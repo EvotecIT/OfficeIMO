@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             AddDigitalSignatureMetadata(filePath, signatureBytes);
 
             using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
-                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
             });
             WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions {
                 ValidateCryptographicSignature = false
@@ -223,7 +223,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeIMO.Security.OfficePackageSignatureValidationState.Failed, digest.Status);
 
             using WordDocument tampered = WordDocument.Load(filePath, new WordLoadOptions {
-                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
             });
             var validationOptions = new WordSignatureValidationOptions();
             validationOptions.CertificateValidation.ChainEvaluator = static (_, _) => true;

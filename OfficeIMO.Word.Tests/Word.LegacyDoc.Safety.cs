@@ -1,4 +1,4 @@
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc;
 using Xunit;

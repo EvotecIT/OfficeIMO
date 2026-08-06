@@ -1,4 +1,4 @@
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Pdf.Filters;
 using System.Globalization;
 using System.Text.RegularExpressions;

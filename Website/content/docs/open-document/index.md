@@ -40,6 +40,6 @@ OpenDocument can detect annotations, tracked changes, extension namespaces, scri
 
 ## Runtime boundary
 
-The native package depends only on `OfficeIMO.Drawing`. It does not invoke LibreOffice, Microsoft Office, or UNO. Conversion diagnostics identify unsupported or approximated features so callers can enforce their own fidelity policy.
+The native package depends only on `OfficeIMO.Core`. It does not invoke LibreOffice, Microsoft Office, or UNO. Conversion diagnostics identify unsupported or approximated features so callers can enforce their own fidelity policy.
 
 Browse the [OpenDocument API reference](/api/open-document/) for the complete model.

@@ -33,4 +33,8 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="OfficeIMO.Data" />
+  </ItemGroup>
 </Project>

@@ -109,6 +109,6 @@ foreach (var entry in safeJsonEntries) {
 ## Dependency footprint
 
 - **External:** None beyond platform compression APIs.
-- **OfficeIMO:** `OfficeIMO.Drawing`. Traversal policy, safety limits, descriptors, and warnings are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`. Traversal policy, safety limits, descriptors, and warnings are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

@@ -294,7 +294,7 @@ public sealed partial class CsvDocument
         byte[] snapshot;
         try
         {
-            snapshot = OfficeIMO.Drawing.Internal.OfficeStreamReader.ReadRemainingBytes(
+            snapshot = OfficeIMO.Core.Internal.OfficeStreamReader.ReadRemainingBytes(
                 stream,
                 options.CancellationToken,
                 options.MaxInputBytes);

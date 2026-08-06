@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Security;
 
 namespace OfficeIMO.Word {
@@ -297,7 +297,7 @@ namespace OfficeIMO.Word {
 
         internal static WordLoadOptions CreateSigningReadbackLoadOptions(
             WordPackageSigningOptions signingOptions) => new WordLoadOptions {
-                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly,
                 MaxInputBytes = signingOptions.MaxPackageBytes
             };
 

@@ -9,7 +9,7 @@
     "validationProjectCount": 22,
     "apiReferenceCount": 17,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 40335
+    "conceptualWordCount": 40368
   },
   "categories": [
     {
@@ -22,7 +22,7 @@
     },
     {
       "name": "Foundations and integrations",
-      "componentCount": 11
+      "componentCount": 10
     },
     {
       "name": "Google Workspace",
@@ -42,7 +42,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 1
+      "componentCount": 2
     }
   ],
   "components": [
@@ -112,30 +112,30 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Confluence"
     },
     {
+      "name": "OfficeIMO.Core",
+      "packageId": "OfficeIMO.Core",
+      "category": "Specialized components",
+      "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
+      "sourceFileCount": 354,
+      "referencingTestProjectCount": 11,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Core"
+    },
+    {
       "name": "OfficeIMO.CSV",
       "packageId": "OfficeIMO.CSV",
       "category": "Formats and interoperability",
       "description": "A fluent, strongly-typed CSV document model for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.CSV/OfficeIMO.CSV.csproj",
-      "sourceFileCount": 61,
+      "sourceFileCount": 62,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/csv/",
       "apiUrl": "/api/csv/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.CSV"
-    },
-    {
-      "name": "OfficeIMO.Drawing",
-      "packageId": "OfficeIMO.Drawing",
-      "category": "Foundations and integrations",
-      "description": "Shared zero-dependency document, drawing, color, image, and font primitives for OfficeIMO projects.",
-      "kind": "package",
-      "projectPath": "OfficeIMO.Drawing/OfficeIMO.Drawing.csproj",
-      "sourceFileCount": 353,
-      "referencingTestProjectCount": 11,
-      "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing"
     },
     {
       "name": "OfficeIMO.Drawing.CodeGlyphX",
@@ -209,7 +209,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 952,
+      "sourceFileCount": 957,
       "referencingTestProjectCount": 9,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -223,7 +223,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Excel.Csv/OfficeIMO.Excel.Csv.csproj",
       "sourceFileCount": 4,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/excel/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Csv"
@@ -236,7 +236,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Excel.GoogleSheets/OfficeIMO.Excel.GoogleSheets.csproj",
       "sourceFileCount": 32,
-      "referencingTestProjectCount": 2,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/excel/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.GoogleSheets"
@@ -249,7 +249,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Excel.Html/OfficeIMO.Excel.Html.csproj",
       "sourceFileCount": 14,
-      "referencingTestProjectCount": 2,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/excel/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Html"
@@ -262,7 +262,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Excel.OpenDocument/OfficeIMO.Excel.OpenDocument.csproj",
       "sourceFileCount": 4,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/excel/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.OpenDocument"
@@ -496,7 +496,7 @@
       "kind": "library",
       "projectPath": "OfficeIMO.Markup.Excel/OfficeIMO.Markup.Excel.csproj",
       "sourceFileCount": 3,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": null
@@ -509,7 +509,7 @@
       "kind": "library",
       "projectPath": "OfficeIMO.Markup.PowerPoint/OfficeIMO.Markup.PowerPoint.csproj",
       "sourceFileCount": 13,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": null
@@ -522,7 +522,7 @@
       "kind": "library",
       "projectPath": "OfficeIMO.Markup.Word/OfficeIMO.Markup.Word.csproj",
       "sourceFileCount": 3,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": null
@@ -651,7 +651,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 458,
+      "sourceFileCount": 460,
       "referencingTestProjectCount": 8,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
@@ -665,7 +665,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint.GoogleSlides/OfficeIMO.PowerPoint.GoogleSlides.csproj",
       "sourceFileCount": 12,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.GoogleSlides"
@@ -691,7 +691,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint.OpenDocument/OfficeIMO.PowerPoint.OpenDocument.csproj",
       "sourceFileCount": 3,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.OpenDocument"
@@ -795,7 +795,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj",
       "sourceFileCount": 4,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Excel"
@@ -951,7 +951,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.PowerPoint/OfficeIMO.Reader.PowerPoint.csproj",
       "sourceFileCount": 4,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.PowerPoint"
@@ -1016,7 +1016,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Word/OfficeIMO.Reader.Word.csproj",
       "sourceFileCount": 5,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Word"
@@ -1158,7 +1158,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 648,
+      "sourceFileCount": 651,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -1172,7 +1172,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Word.GoogleDocs/OfficeIMO.Word.GoogleDocs.csproj",
       "sourceFileCount": 30,
-      "referencingTestProjectCount": 2,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/word/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.GoogleDocs"
@@ -1211,7 +1211,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Word.OpenDocument/OfficeIMO.Word.OpenDocument.csproj",
       "sourceFileCount": 3,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/word/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.OpenDocument"

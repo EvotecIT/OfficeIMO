@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class WordToMarkdownConverter {

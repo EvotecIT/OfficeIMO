@@ -4,7 +4,7 @@ OfficeIMO image export is a first-party, dependency-free pipeline shared by Draw
 
 ## Ownership
 
-`OfficeIMO.Drawing` owns the reusable contract:
+`OfficeIMO.Core` owns the reusable contract, exposed through the `OfficeIMO.Drawing` namespace:
 
 - PNG, JPEG, TIFF, SVG, and WebP encoding;
 - validated `OfficeImageExportResult` metadata;
@@ -19,7 +19,7 @@ Document packages own selection, pagination, layout, and source semantics. ODT/O
 
 ## Dependency Rule
 
-Product rendering paths may use the libraries already owned by their document package and `OfficeIMO.Drawing`. They must not add Office automation, browser screenshots, native PDF rasterizers, System.Drawing, Skia, ImageSharp, commercial renderers, or another output encoder.
+Product rendering paths may use the libraries already owned by their document package and `OfficeIMO.Core`. They must not add Office automation, browser screenshots, native PDF rasterizers, System.Drawing, Skia, ImageSharp, commercial renderers, or another output encoder.
 
 External renderers are allowed only as optional test references. They are not part of product output.
 

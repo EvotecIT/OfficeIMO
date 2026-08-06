@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
             }
 
             using var reloadStream = new MemoryStream(packageBytes);
-            using var reloaded = WordDocument.Load(reloadStream, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            using var reloaded = WordDocument.Load(reloadStream, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
 
             string roundTrip = reloaded.ToHtml();
 

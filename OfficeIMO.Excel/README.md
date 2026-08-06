@@ -270,6 +270,12 @@ List<RowModel> rows = sheet.RowsAs<RowModel>("A1:C100").ToList();
 // Omitting the range maps the populated worksheet range.
 List<RowModel> populatedRows = sheet.RowsAs<RowModel>().ToList();
 
+// For NativeAOT or explicit column control, use the same mapper shape as CSV.
+List<RowModel> mappedRows = sheet.RowsAs<RowModel>(map => map
+    .FromColumn<string>("Name", static (row, value) => { row.Name = value; return row; })
+    .FromColumn<string>("Status", static (row, value) => { row.Status = value; return row; }))
+    .ToList();
+
 public sealed class RowModel {
     public string Name { get; set; } = "";
     public string Status { get; set; } = "";
@@ -450,7 +456,7 @@ document.Save("report.xlsx", new ExcelSaveOptions {
 ```csharp
 using var document = ExcelDocument.Load(
     "incoming.xlsx",
-    new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+    new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
 
 ExcelFeatureReport report = document.InspectFeatures();
 
@@ -700,7 +706,7 @@ Excel layout, print-title, page-setup, and header/footer composition stays in `O
 ## Dependency footprint
 
 - **External:** Open XML SDK for `.xlsx` package mechanics. Microsoft BCL/JSON compatibility packages are used on older targets.
-- **OfficeIMO:** `OfficeIMO.Drawing`. The workbook API, BIFF8 `.xls` reader/writer, large-data paths, validation, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`. The workbook API, BIFF8 `.xls` reader/writer, large-data paths, validation, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
 - **Security:** Open XML and VBA signature carriers are inspected and signed-package mutations fail safely without a cryptographic dependency. Package and VBA signature creation and cryptographic validation accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

@@ -198,7 +198,7 @@ public sealed class HtmlApiConsistencyTests {
             .ToArray();
 
         Assert.Contains("OfficeIMO.Html", references);
-        Assert.Contains("OfficeIMO.Drawing", references);
+        Assert.Contains("OfficeIMO.Core", references);
         Assert.Contains("OfficeIMO.Pdf", references);
         Assert.DoesNotContain("OfficeIMO.Markdown.Html", references);
         Assert.DoesNotContain("OfficeIMO.Markdown.Pdf", references);

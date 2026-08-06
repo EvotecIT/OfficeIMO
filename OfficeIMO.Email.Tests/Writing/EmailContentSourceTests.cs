@@ -23,8 +23,8 @@ public sealed class EmailContentSourceTests {
 
         byte[] artifact = new EmailDocumentWriter().ToBytes(document, format);
         if (format == EmailFileFormat.OutlookMsg) {
-            Assert.True(OfficeIMO.Drawing.Internal.OfficeCompoundFileReader.TryRead(
-                artifact, out OfficeIMO.Drawing.Internal.OfficeCompoundFile? compound, out string? compoundError),
+            Assert.True(OfficeIMO.Core.Internal.OfficeCompoundFileReader.TryRead(
+                artifact, out OfficeIMO.Core.Internal.OfficeCompoundFile? compound, out string? compoundError),
                 compoundError);
             Assert.True(compound!.Streams.ContainsKey(
                     "__attach_version1.0_#00000000/__substg1.0_37010102"),

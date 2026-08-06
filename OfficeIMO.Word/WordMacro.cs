@@ -1,4 +1,4 @@
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using DocumentFormat.OpenXml.Packaging;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Packaging;

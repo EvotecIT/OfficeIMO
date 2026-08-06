@@ -1,3 +1,5 @@
+using OfficeIMO.Data;
+
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Neutral, Excel-first wrapper for building stacked worksheet content.

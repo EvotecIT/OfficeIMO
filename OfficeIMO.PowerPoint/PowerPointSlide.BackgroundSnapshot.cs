@@ -180,8 +180,8 @@ namespace OfficeIMO.PowerPoint {
 
             using Stream source = imagePart.GetStream(FileMode.Open, FileAccess.Read);
             byte[] imageBytes = maximumImageBytes.HasValue
-                ? OfficeIMO.Drawing.Internal.OfficeStreamReader.ReadAllBytes(source, maximumImageBytes.Value)
-                : OfficeIMO.Drawing.Internal.OfficeStreamReader.ReadAllBytes(source);
+                ? OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(source, maximumImageBytes.Value)
+                : OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(source);
             PowerPointPictureCrop crop = ReadSourceCrop(blipFill.SourceRectangle);
             if (blipFill.GetFirstChild<A.Tile>() != null) {
                 return PowerPointSlideBackground.Unsupported("The slide background image uses tiled placement, which is not currently supported by OfficeIMO exporters.");

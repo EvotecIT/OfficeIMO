@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint {

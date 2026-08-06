@@ -179,7 +179,7 @@ foreach (string warning in book.Warnings) {
 ## Dependency footprint
 
 - **External:** None; no third-party EPUB engine.
-- **OfficeIMO:** `OfficeIMO.Drawing`. Container, OPF, spine, navigation, chapter, and resource parsing are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`. Container, OPF, spine, navigation, chapter, and resource parsing are first-party.
 - **Security:** `META-INF/signatures.xml` discovery is structural and provider-free. Creation and validation of the bounded OfficeIMO XML package-manifest profile accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

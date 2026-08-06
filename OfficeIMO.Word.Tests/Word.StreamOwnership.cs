@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(source.CanRead);
             source.Position = 0;
-            using WordDocument reopened = WordDocument.Load(source, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            using WordDocument reopened = WordDocument.Load(source, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             Assert.Equal("Explicit async save", Assert.Single(reopened.Paragraphs).Text);
         }
 
@@ -28,14 +28,14 @@ namespace OfficeIMO.Tests {
 
             source.Position = 0;
             await using (WordDocument loaded = await WordDocument.LoadAsync(source, new WordLoadOptions {
-                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+                PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
                 Assert.Single(loaded.Paragraphs).SetText("After");
             }
 
             Assert.True(source.CanRead);
             source.Position = 0;
-            using WordDocument reopened = WordDocument.Load(source, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            using WordDocument reopened = WordDocument.Load(source, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             Assert.Equal("After", Assert.Single(reopened.Paragraphs).Text);
         }
 
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument packageCopy = WordDocument.Load(
                        new MemoryStream(ownedPackageStream.ToArray(), writable: false),
-                       new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                       new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 Assert.Equal("After", Assert.Single(packageCopy.Paragraphs).Text);
             }
 
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument loaded = WordDocument.Load(source, new WordLoadOptions {
-                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+                PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
                 Assert.Single(loaded.Paragraphs).SetText("After");
             }
@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
             Assert.True(source.CanRead);
             source.Position = 0;
             using WordDocument reopened = WordDocument.Load(source, new WordLoadOptions {
-                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
             });
             Assert.Equal("After", Assert.Single(reopened.Paragraphs).Text);
         }
@@ -169,11 +169,11 @@ namespace OfficeIMO.Tests {
             document.Save();
 
             using WordDocument oneTimeCopy = WordDocument.Load(oneTimeDestination,
-                new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+                new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             Assert.Single(oneTimeCopy.Paragraphs);
 
             using WordDocument sourceCopy = WordDocument.Load(source,
-                new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+                new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             Assert.Equal(new[] { "Original destination", "Source only" },
                 sourceCopy.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
         }

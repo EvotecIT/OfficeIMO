@@ -120,7 +120,7 @@ public static partial class ExcelHtmlConverterExtensions {
         int rowLimit = options.MaxRowsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxRowsPerSheet;
         int columnLimit = options.MaxColumnsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxColumnsPerSheet;
         IReadOnlyList<ExcelMergedRangeSnapshot> mergedRanges = sheet.GetMergedRanges(options.MaxMergedRangesPerSheet);
-        string reportedUsedRange = sheet.GetUsedRangeA1();
+        string reportedUsedRange = sheet.UsedRangeA1;
         bool isEmptyDefaultRange = mergedRanges.Count == 0
             && (string.Equals(reportedUsedRange, "A1", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(reportedUsedRange, "A1:A1", StringComparison.OrdinalIgnoreCase))
@@ -595,7 +595,7 @@ public static partial class ExcelHtmlConverterExtensions {
             .Append(OfficeHtmlText.EscapeAttribute(result.Source))
             .Append("\">");
         body.Append("<h2>").Append(OfficeHtmlText.Escape(string.IsNullOrWhiteSpace(result.Name) ? "Worksheet" : result.Name)).Append("</h2>");
-        body.Append("<div class=\"officeimo-visual-page\" data-officeimo-visual-owner=\"OfficeIMO.Drawing\">");
+        body.Append("<div class=\"officeimo-visual-page\" data-officeimo-visual-owner=\"OfficeIMO.Core\">");
         body.Append(svg);
         body.Append("</div>");
         foreach (IGrouping<string, OfficeImageExportDiagnostic> group in result.Diagnostics.GroupBy(CreateDiagnosticGroupKey)) {

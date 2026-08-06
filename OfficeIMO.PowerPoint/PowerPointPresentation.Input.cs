@@ -1,5 +1,5 @@
 using OfficeIMO.Drawing;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using Microsoft.Win32.SafeHandles;
 using System;

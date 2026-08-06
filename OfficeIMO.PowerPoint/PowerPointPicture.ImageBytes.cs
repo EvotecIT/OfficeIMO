@@ -16,9 +16,9 @@ namespace OfficeIMO.PowerPoint {
             ImagePart imagePart = GetImagePart() ?? throw new InvalidOperationException("Picture has no embedded image part.");
             using Stream source = imagePart.GetStream(FileMode.Open, FileAccess.Read);
             return maximumBytes.HasValue
-                ? OfficeIMO.Drawing.Internal.OfficeStreamReader.ReadAllBytes(
+                ? OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(
                     source, maximumBytes.Value)
-                : OfficeIMO.Drawing.Internal.OfficeStreamReader.ReadAllBytes(
+                : OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(
                     source);
         }
     }

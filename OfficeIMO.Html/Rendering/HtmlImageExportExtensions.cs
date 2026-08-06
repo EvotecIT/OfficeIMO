@@ -1,6 +1,6 @@
 using AngleSharp.Html.Dom;
 using OfficeIMO.Drawing;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Html;
 

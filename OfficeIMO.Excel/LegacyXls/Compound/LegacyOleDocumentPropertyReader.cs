@@ -1,6 +1,6 @@
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using System.Globalization;
 
 namespace OfficeIMO.Excel.LegacyXls.Compound {

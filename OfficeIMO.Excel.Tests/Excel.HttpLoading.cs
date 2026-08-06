@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
                 new Uri("https://example.test/workbook.xlsx"),
                 new ExcelHttpLoadOptions { HttpMessageHandler = handler });
 
-            Assert.Equal(OfficeIMO.Drawing.DocumentAccessMode.ReadWrite, document.AccessMode);
+            Assert.Equal(OfficeIMO.DocumentAccessMode.ReadWrite, document.AccessMode);
             Assert.Equal("Remote", document.Sheets[0].Name);
             Assert.Null(document.FilePath);
         }
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
             ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() => ExcelDocument.LoadAsync(
                 new Uri("https://example.test/workbook.xlsx"),
                 new ExcelHttpLoadOptions { HttpMessageHandler = handler },
-                new ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }));
+                new ExcelLoadOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose }));
 
             Assert.Equal("options", exception.ParamName);
             Assert.Contains("detached", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -433,7 +433,7 @@ namespace OfficeIMO.Tests {
 
         private static byte[] CreateRemoteWorkbookBytes() {
             using var memory = new MemoryStream();
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorksheet("Remote");
                 sheet.CellValue(1, 1, "Value");
             }

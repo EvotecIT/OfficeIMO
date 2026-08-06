@@ -117,7 +117,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         };
         PptCore.PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(snapshotOptions);
         IReadOnlyList<OfficeImageExportDiagnostic> slideDiagnostics = snapshot.Diagnostics;
-        body.Append("<div class=\"officeimo-shared-slide-snapshot\" data-officeimo-visual-owner=\"OfficeIMO.Drawing\" data-officeimo-snapshot-diagnostics=\"")
+        body.Append("<div class=\"officeimo-shared-slide-snapshot\" data-officeimo-visual-owner=\"OfficeIMO.Core\" data-officeimo-snapshot-diagnostics=\"")
             .Append(snapshot.Diagnostics.Count.ToString(CultureInfo.InvariantCulture))
             .Append("\">")
             .Append(OfficeDrawingSvgExporter.ToSvg(snapshot.Drawing))
@@ -397,7 +397,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         if (TryCreateOfficeChartSnapshot(chart, width, height, out OfficeChartSnapshot? officeSnapshot, out string? warning) && officeSnapshot != null) {
             try {
                 OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(officeSnapshot);
-                body.Append("<div class=\"officeimo-chart-rendered\" data-officeimo-visual-owner=\"OfficeIMO.Drawing\" data-officeimo-chart-kind=\"")
+                body.Append("<div class=\"officeimo-chart-rendered\" data-officeimo-visual-owner=\"OfficeIMO.Core\" data-officeimo-chart-kind=\"")
                     .Append(OfficeHtmlText.EscapeAttribute(officeSnapshot.ChartKind.ToString()))
                     .Append("\">")
                     .Append(OfficeDrawingSvgExporter.ToSvg(rendering.Drawing));

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
 using OfficeIMO.Drawing;
+using OfficeIMO.Data;
 using System.Linq;
 
 namespace OfficeIMO.Examples.Excel {
@@ -242,7 +243,7 @@ namespace OfficeIMO.Examples.Excel {
                 doc.Save();
 
                 // Re-open from disk and verify properties + header/footer
-                using (var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly }))
+                using (var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
                 {
                     Console.WriteLine("[=] Verifying saved workbook properties and header/footer...");
                     Console.WriteLine("    Title   : " + (verify.BuiltinDocumentProperties.Title ?? "<null>"));

@@ -18,16 +18,16 @@ OfficeIMO packages are published under the [MIT License](https://github.com/Evot
 | OfficeIMO package or family | Upstream components used in the repo today | Why they are there |
 |---|---|---|
 | `OfficeIMO.Drawing.HarfBuzz` | `HarfBuzzSharp` `14.2.1.1` plus matching Windows, Linux, macOS, and WebAssembly native assets | Optional full OpenType GSUB/GPOS shaping through the first-party Drawing provider contract; Drawing and PDF core remain independent of HarfBuzz |
-| `OfficeIMO.Word` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`; `Microsoft.Bcl.AsyncInterfaces` `10.0.9` on legacy targets | OOXML document model and compatibility helpers; colors and image metadata use first-party `OfficeIMO.Drawing` |
+| `OfficeIMO.Word` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`; `Microsoft.Bcl.AsyncInterfaces` `10.0.9` on legacy targets | OOXML document model and compatibility helpers; colors and image metadata come from first-party `OfficeIMO.Core` and remain in the `OfficeIMO.Drawing` namespace |
 | `OfficeIMO.Excel` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`; `Microsoft.Bcl.AsyncInterfaces` `10.0.9` and `System.Text.Json` `[10.0.7, 11.0.0)` on legacy targets | Workbook model, first-party image metadata, and compatibility helpers for older target frameworks |
 | `OfficeIMO.PowerPoint` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`; `Microsoft.Bcl.AsyncInterfaces` `10.0.9` on legacy targets | Presentation OOXML model, packaging, and compatibility helpers |
 | `OfficeIMO.Word.Html` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`; `AngleSharp` `1.5.2` and `AngleSharp.Css` `1.0.0-beta.216` through `OfficeIMO.Html` | OOXML plus shared HTML and CSS parsing for Word conversion workflows |
 | `OfficeIMO.Markdown.Html` | `AngleSharp` `1.5.2` and `AngleSharp.Css` `1.0.0-beta.216` through `OfficeIMO.Html` | Shared HTML and CSS parsing for Markdown conversion and bridge scenarios |
 | `OfficeIMO.Word.Pdf` | First-party `OfficeIMO.Word` and `OfficeIMO.Pdf` project references | Word-to-PDF conversion through the OfficeIMO PDF engine |
 | `OfficeIMO.Excel.Pdf` | First-party `OfficeIMO.Excel` and `OfficeIMO.Pdf` project references | Excel-to-PDF conversion through the OfficeIMO PDF engine |
-| `OfficeIMO.Visio` | `System.IO.Packaging` `10.0.8`; `Microsoft.Bcl.AsyncInterfaces` `10.0.9` on `net472` | OPC packaging support for `.vsdx` files and legacy async compatibility; colors and image metadata use first-party `OfficeIMO.Drawing` |
+| `OfficeIMO.Visio` | `System.IO.Packaging` `10.0.8`; `Microsoft.Bcl.AsyncInterfaces` `10.0.9` on `net472` | OPC packaging support for `.vsdx` files and legacy async compatibility; colors and image metadata come from first-party `OfficeIMO.Core` and remain in the `OfficeIMO.Drawing` namespace |
 | `OfficeIMO.Markdown` | No third-party runtime package references | Keeps its runtime surface self-contained |
-| `OfficeIMO.CSV` | `System.Buffers` `4.5.1` on legacy targets | Compatibility buffer primitives; shared document primitives come from first-party `OfficeIMO.Drawing` |
+| `OfficeIMO.CSV` | `System.Buffers` `4.5.1` on legacy targets | Compatibility buffer primitives; shared document and data-mapping contracts come from first-party `OfficeIMO.Core` |
 | `OfficeIMO.Reader.Core`, selective `OfficeIMO.Reader.*` adapters, and `OfficeIMO.Reader.All` | Core uses `System.Text.Json` `[10.0.7, 11.0.0)` only on legacy targets; adapters compose their named first-party format packages | Core stays format-neutral, selective adapters add only their owning engines, and All deliberately composes every local managed adapter |
 | `OfficeIMO.Security` | `BouncyCastle.Cryptography` `[2.6.2, 3.0.0)` | One neutral CMS, S/MIME, RFC 3161, and X.509 engine shared directly by Email and PDF without format-specific cryptography packages |
 

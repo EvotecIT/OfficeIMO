@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
             long originalPosition = stream.CanSeek ? stream.Position : 0L;
             byte[] bytes;
             try {
-                bytes = OfficeIMO.Drawing.Internal.OfficeStreamReader.ReadRemainingBytes(
+                bytes = OfficeIMO.Core.Internal.OfficeStreamReader.ReadRemainingBytes(
                     stream,
                     effectiveOptions.CancellationToken,
                     effectiveOptions.MaxInputBytes);
@@ -88,6 +88,9 @@ namespace OfficeIMO.Excel {
         public ExcelWorkbookDataReader CreateDataReader(ExcelReadOptions? options = null) {
             ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
+            if (_spreadSheetDocument is null) {
+                throw new ObjectDisposedException(nameof(ExcelDocument));
+            }
             MaterializeDeferredDataSetImport(effectiveOptions.CancellationToken);
             return ExcelWorkbookDataReader.WrapOpenXml(
                 ExcelDocumentReader.Wrap(_spreadSheetDocument, effectiveOptions),

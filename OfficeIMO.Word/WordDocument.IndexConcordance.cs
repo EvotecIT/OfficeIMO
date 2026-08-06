@@ -92,7 +92,7 @@ namespace OfficeIMO.Word {
             }
 
             using (WordDocument concordanceDocument = Load(concordancePath, new WordLoadOptions {
-                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
             })) {
                 return MarkIndexEntriesFromConcordance(concordanceDocument, matchCase, matchWholeWord);
             }

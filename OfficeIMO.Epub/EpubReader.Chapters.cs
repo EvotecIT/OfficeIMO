@@ -1,6 +1,6 @@
 namespace OfficeIMO.Epub;
 
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 
 internal static partial class EpubReader {
     private static List<ChapterCandidate> BuildChapterCandidates(

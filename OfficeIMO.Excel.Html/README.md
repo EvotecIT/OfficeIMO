@@ -50,6 +50,6 @@ Set `Profile = OfficeHtmlConversionProfile.ExcelVisualReview` to emit review HTM
 ## Dependency footprint
 
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
-- **OfficeIMO:** `OfficeIMO.Excel`, `OfficeIMO.Html`, and `OfficeIMO.Drawing` own the workbook, HTML source, mapping, visual review, and reports.
+- **OfficeIMO:** `OfficeIMO.Excel`, `OfficeIMO.Html`, and `OfficeIMO.Core` own the workbook, HTML source, mapping, visual review, and reports.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

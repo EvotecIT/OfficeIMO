@@ -1,4 +1,5 @@
 using System.Data;
+using OfficeIMO.Data;
 using OfficeIMO.Excel;
 
 string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-AotSmoke-" + Guid.NewGuid().ToString("N") + ".xlsx");
@@ -36,6 +37,13 @@ try {
     if (!reopened.Sheets[0].TryGetCellText(2, 1, out string region) || region != "North") {
         throw new InvalidOperationException("The Excel round trip lost its typed table data.");
     }
+    AotSalesRow mappedRow = reopened.Sheets[0].RowsAs<AotSalesRow>(map => map
+        .FromColumn<string>("Region", static (row, value) => { row.Region = value; return row; })
+        .FromColumn<decimal>("Revenue", static (row, value) => { row.Revenue = value; return row; }))
+        .First();
+    if (mappedRow.Region != "North" || mappedRow.Revenue != 1250000M) {
+        throw new InvalidOperationException("The AOT-safe typed-row mapping returned unexpected data.");
+    }
 
     Console.WriteLine("PASS | Excel typed table create, save, and reload");
 } finally {
@@ -49,3 +57,8 @@ static async IAsyncEnumerable<SalesRow> CreateRowsAsync() {
 }
 
 internal readonly record struct SalesRow(string Region, decimal Revenue);
+
+internal sealed class AotSalesRow {
+    public string Region { get; set; } = string.Empty;
+    public decimal Revenue { get; set; }
+}

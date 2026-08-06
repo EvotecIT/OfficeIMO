@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Word {
             PremiumWorkflowExampleUtilities.AddSyntheticSignatureMetadata(documentPath);
 
             WordSignatureValidationReport validationReport;
-            using (WordDocument document = WordDocument.Load(documentPath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(documentPath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 validationReport = document.ValidateSignatures(OfficeSecurityProvider.Default);
             }
 

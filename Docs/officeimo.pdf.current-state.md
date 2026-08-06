@@ -5,7 +5,7 @@
 ## Ownership
 
 - `OfficeIMO.Pdf` owns PDF parsing, writing, layout, rendering, security policy, signatures, forms, annotations, manipulation, diagnostics, and compliance evidence.
-- `OfficeIMO.Drawing` owns reusable vector/raster primitives, text measurement and shaping seams, codecs, colors, paths, clipping, and image export policy.
+- `OfficeIMO.Core` owns reusable vector/raster primitives, text measurement and shaping seams, codecs, colors, paths, clipping, and image export policy; drawing APIs remain in the `OfficeIMO.Drawing` namespace.
 - `OfficeIMO.Html` owns HTML/CSS parsing, resource policy, layout, pagination, and its backend-neutral scene. `OfficeIMO.Html.Pdf` maps that scene into PDF primitives.
 - Word, Excel, PowerPoint, OpenDocument, Markdown, RTF, OneNote, AsciiDoc, LaTeX, Email, EPUB, and Visio packages remain source-format adapters over the shared PDF and Drawing owners.
 - OCR execution remains an optional Reader/provider concern. PDF exposes image-only page evidence and accepts traced OCR results without embedding an OCR runtime.

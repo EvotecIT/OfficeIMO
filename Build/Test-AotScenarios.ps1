@@ -43,6 +43,39 @@ New-Item -ItemType Directory -Path $artifactRoot -Force | Out-Null
 $results = [System.Collections.Generic.List[object]]::new()
 $failures = [System.Collections.Generic.List[string]]::new()
 
+function Remove-AotArtifactDirectory {
+    param(
+        [Parameter(Mandatory)]
+        [string] $Path
+    )
+
+    if (-not [System.IO.Directory]::Exists($Path)) {
+        return
+    }
+
+    $maximumAttempts = 10
+    for ($attempt = 1; $attempt -le $maximumAttempts; $attempt++) {
+        try {
+            [System.IO.Directory]::Delete($Path, $true)
+            return
+        } catch [System.IO.IOException] {
+            if ($attempt -eq $maximumAttempts) {
+                throw
+            }
+
+            # Windows can retain the just-executed native image briefly while
+            # antivirus and process teardown release their file handles.
+            Start-Sleep -Milliseconds (100 * $attempt)
+        } catch [System.UnauthorizedAccessException] {
+            if ($attempt -eq $maximumAttempts) {
+                throw
+            }
+
+            Start-Sleep -Milliseconds (100 * $attempt)
+        }
+    }
+}
+
 try {
     foreach ($scenario in $scenarios) {
         $projectPath = Join-Path $RepositoryRoot $scenario.project
@@ -96,9 +129,7 @@ try {
         # so release that scenario before starting the next one instead of
         # making the final linker compete with every previous publish.
         foreach ($scenarioArtifactPath in @($publishPath, $sdkArtifactsPath)) {
-            if ([System.IO.Directory]::Exists($scenarioArtifactPath)) {
-                [System.IO.Directory]::Delete($scenarioArtifactPath, $true)
-            }
+            Remove-AotArtifactDirectory -Path $scenarioArtifactPath
         }
     }
 
@@ -121,7 +152,5 @@ try {
         throw "NativeAOT validation did not match the documented contract:`n- $($failures -join "`n- ")"
     }
 } finally {
-    if ([System.IO.Directory]::Exists($artifactRoot)) {
-        [System.IO.Directory]::Delete($artifactRoot, $true)
-    }
+    Remove-AotArtifactDirectory -Path $artifactRoot
 }

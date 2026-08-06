@@ -167,6 +167,6 @@ Use `OfficeIMO.Pdf` for direct PDF layout and manipulation. PowerShell workflows
 ## Dependency footprint
 
 - **External:** None beyond the dependencies of its OfficeIMO format packages; no browser, native renderer, or commercial PDF SDK.
-- **OfficeIMO:** `OfficeIMO.Word`, `OfficeIMO.Pdf`, and `OfficeIMO.Drawing` own the source model, PDF engine, mapping, and reports.
+- **OfficeIMO:** `OfficeIMO.Word`, `OfficeIMO.Pdf`, and `OfficeIMO.Core` own the source model, PDF engine, mapping, and reports.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

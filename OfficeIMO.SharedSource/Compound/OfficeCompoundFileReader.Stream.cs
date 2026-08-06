@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 
-namespace OfficeIMO.Drawing.Internal {
+namespace OfficeIMO.Core.Internal {
     internal static partial class OfficeCompoundFileReader {
         /// <summary>
         /// Opens one compound payload as a bounded seekable view without materializing its bytes.

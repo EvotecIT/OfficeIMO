@@ -122,6 +122,6 @@ result.Document.SaveAsWord("status-brief.docx", new MarkupToWordOptions {
 ## Dependency footprint
 
 - **External:** None.
-- **OfficeIMO:** `OfficeIMO.Markdown` and `OfficeIMO.Drawing`; the semantic authoring model and validation are first-party.
+- **OfficeIMO:** `OfficeIMO.Markdown` and `OfficeIMO.Core`; the semantic authoring model and validation are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

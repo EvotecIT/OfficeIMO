@@ -1,4 +1,4 @@
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Adds, removes, or replaces Standard password security on supported existing PDFs.</summary>

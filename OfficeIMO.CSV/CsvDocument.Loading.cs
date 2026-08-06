@@ -1,6 +1,6 @@
 #nullable enable
 
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -300,9 +300,14 @@ public sealed partial class CsvDocument
     {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         CsvLoadOptions resolved = options?.Clone() ?? new CsvLoadOptions();
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            resolved.CancellationToken);
+        CancellationToken effectiveCancellation = linkedCancellation.Token;
+        resolved.CancellationToken = effectiveCancellation;
         Encoding encoding = resolved.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         using TextReader reader = CsvFile.OpenTextReaderForAsyncRead(path, resolved, FileBufferSize);
-        string text = await ReadAllTextAsync(reader, cancellationToken).ConfigureAwait(false);
+        string text = await ReadAllTextAsync(reader, effectiveCancellation).ConfigureAwait(false);
         return LoadInternal(() => new StringReader(text), resolved, encoding, text);
     }
 
@@ -312,10 +317,15 @@ public sealed partial class CsvDocument
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         CsvLoadOptions resolved = options?.Clone() ?? new CsvLoadOptions();
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            resolved.CancellationToken);
+        CancellationToken effectiveCancellation = linkedCancellation.Token;
+        resolved.CancellationToken = effectiveCancellation;
         Encoding encoding = resolved.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         byte[] snapshot = await OfficeStreamReader.ReadAllBytesAsync(
             stream,
-            cancellationToken,
+            effectiveCancellation,
             resolved.MaxInputBytes).ConfigureAwait(false);
         return LoadInternal(
             () => CsvFile.OpenTextReader(

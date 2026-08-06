@@ -527,7 +527,7 @@ public partial class Excel {
         using (var document = ExcelDocument.Create(
             memory,
             new ExcelCreateOptions {
-                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+                PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
             ExcelSheet sheet = document.AddWorksheet("Data");
             string[] headers = {

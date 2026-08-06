@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "runtimeDependencyPolicy": "first-party-only",
   "allowedRuntimeRenderingOwners": [
-    "OfficeIMO.Drawing",
+    "OfficeIMO.Core",
     "OfficeIMO.Excel",
     "OfficeIMO.Word",
     "OfficeIMO.PowerPoint",
@@ -14,7 +14,7 @@
   "workstreams": [
     {
       "id": "drawing-engine",
-      "owner": "OfficeIMO.Drawing",
+      "owner": "OfficeIMO.Core",
       "runtimeDependencyPolicy": "first-party-only",
       "currentContract": "Own shared encoding, density metadata, paths, fonts, policies, save behavior, production batch controls, raster safety, image projection, chart primitives, diagnostics, and visual-quality helpers.",
       "boundary": "Document packages retain source semantics; bounded codec variants and managed text-shaping approximations remain diagnosed explicitly.",

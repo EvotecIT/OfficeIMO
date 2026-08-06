@@ -2,7 +2,7 @@ using System.Globalization;
 using DocumentFormat.OpenXml.CustomProperties;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.VariantTypes;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using Ap = DocumentFormat.OpenXml.ExtendedProperties;
 

@@ -1,5 +1,5 @@
 using System.Security.Cryptography.X509Certificates;
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Security;
 
 namespace OfficeIMO.Word {

@@ -169,7 +169,7 @@ namespace OfficeIMO.Excel {
             options ??= new ExcelWorksheetMergeOptions();
             if (options.BlankRowsBefore < 0) throw new ArgumentOutOfRangeException(nameof(options.BlankRowsBefore));
 
-            string sourceRange = string.IsNullOrWhiteSpace(options.SourceRange) ? sourceSheet.GetUsedRangeA1() : options.SourceRange!;
+            string sourceRange = string.IsNullOrWhiteSpace(options.SourceRange) ? sourceSheet.UsedRangeA1 : options.SourceRange!;
             var sourceBounds = ParseRangeOrCell(sourceRange);
             sourceRange = ToRange(sourceBounds);
             object?[,] values;
@@ -224,7 +224,7 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelRangeDifference> CompareWorksheets(ExcelSheet leftSheet, ExcelSheet rightSheet, ExcelRangeCompareOptions? options = null) {
             if (leftSheet == null) throw new ArgumentNullException(nameof(leftSheet));
             if (rightSheet == null) throw new ArgumentNullException(nameof(rightSheet));
-            return CompareRanges(leftSheet, leftSheet.GetUsedRangeA1(), rightSheet, rightSheet.GetUsedRangeA1(), options);
+            return CompareRanges(leftSheet, leftSheet.UsedRangeA1, rightSheet, rightSheet.UsedRangeA1, options);
         }
 
         /// <summary>
@@ -900,7 +900,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (options.MatchColumnsByHeader) {
-                var targetBounds = ParseRangeOrCell(targetSheet.GetUsedRangeA1());
+                var targetBounds = ParseRangeOrCell(targetSheet.UsedRangeA1);
                 return targetBounds.c1;
             }
 
@@ -921,7 +921,7 @@ namespace OfficeIMO.Excel {
                 return options.TargetStartRow.Value - 1;
             }
 
-            var targetBounds = ParseRangeOrCell(targetSheet.GetUsedRangeA1());
+            var targetBounds = ParseRangeOrCell(targetSheet.UsedRangeA1);
             return targetBounds.r1;
         }
 
@@ -930,7 +930,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static int GetAppendStartRow(ExcelSheet targetSheet, int blankRowsBefore) {
-            string usedRange = targetSheet.GetUsedRangeA1();
+            string usedRange = targetSheet.UsedRangeA1;
             var (_, _, endRow, _) = A1.ParseRange(usedRange);
             if (IsWorksheetEffectivelyEmpty(targetSheet, usedRange)) {
                 return 1 + blankRowsBefore;
