@@ -409,13 +409,17 @@ rows lazily while the owning workbook remains open. Replace preview
 `RowsAsStream<T>()` calls with `RowsAs<T>()`; call `ToList()` or `ToArray()` when
 an eagerly materialized collection is required. Use the overload accepting
 `Action<RowMapper<T>>` for explicit, NativeAOT-friendly column assignments.
+That mapper still requires `T : new()`. For positional records and other
+constructor-bound models, use the `factory:` overload accepting
+`Func<IDataRecord, T>`; it does not require a public parameterless constructor.
 Named cancellation arguments on `RowsAs`, `EnumerateCells`, and `EnumerateRange`
 use `cancellationToken` instead of `ct`.
 
 Use `CsvDocument.Load(...).RowsAs<T>()` when a mutable/materialized CSV document
 is required. For a forward-only typed read, use
 `CsvDocument.OpenDataReader(...).RowsAs<T>()`; the same automatic and explicit
-mapping definitions are supported without exposing another CSV reader type.
+mapping definitions and the constructor factory are supported without exposing
+another CSV reader type.
 
 `ExcelDocument.Sheets` now exposes `IReadOnlyList<ExcelSheet>` instead of
 `List<ExcelSheet>`. Enumerate or index the property as before, use the workbook's

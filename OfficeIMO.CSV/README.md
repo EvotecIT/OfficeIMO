@@ -188,6 +188,25 @@ public sealed record PersonRecord {
 }
 ```
 
+The mapper overload still requires a public parameterless constructor. For a
+positional record or another constructor-bound model, use the factory overload:
+
+```csharp
+using OfficeIMO.CSV;
+
+var people = CsvDocument.Load("people.csv")
+    .RowsAs(factory: row => new PersonRecord(
+        row.GetInt32(row.GetOrdinal("Id")),
+        row.GetString(row.GetOrdinal("Name"))))
+    .ToList();
+
+public sealed record PersonRecord(int Id, string Name);
+```
+
+The factory receives the current `IDataRecord`; its typed getters use the CSV
+reader's configured culture and schema conversions. The same overload is
+available on `DbDataReader` and does not require `T : new()`.
+
 ## Read once or edit
 
 Use `CsvDocument.OpenDataReader` when the caller only needs a forward-only

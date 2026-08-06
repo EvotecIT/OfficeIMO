@@ -276,10 +276,18 @@ List<RowModel> mappedRows = sheet.RowsAs<RowModel>(map => map
     .FromColumn<string>("Status", static (row, value) => { row.Status = value; return row; }))
     .ToList();
 
+// Constructor-bound models use an explicit factory and do not require T : new().
+List<ImmutableRow> immutableRows = sheet.RowsAs(factory: row => new ImmutableRow(
+    row.GetString(row.GetOrdinal("Name")),
+    row.GetString(row.GetOrdinal("Status"))))
+    .ToList();
+
 public sealed class RowModel {
     public string Name { get; set; } = "";
     public string Status { get; set; } = "";
 }
+
+public sealed record ImmutableRow(string Name, string Status);
 ```
 
 ### Charts and dashboard recipes
