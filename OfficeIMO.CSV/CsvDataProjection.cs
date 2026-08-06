@@ -115,7 +115,8 @@ internal static partial class CsvDataProjectionConverter
         CsvDataColumnProjection column,
         int rowIndex,
         CultureInfo culture,
-        IReadOnlyList<string>? dateTimeFormats)
+        IReadOnlyList<string>? dateTimeFormats,
+        DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include)
     {
         if (IsMissingValue(value, column))
         {
@@ -134,14 +135,14 @@ internal static partial class CsvDataProjectionConverter
         }
 
         if (column.ConversionKind != CsvDataConversionKind.General &&
-            TryConvertFast(value, column, rowIndex, culture, dateTimeFormats, out var fastValue))
+            TryConvertFast(value, column, rowIndex, culture, dateTimeFormats, errorValuePolicy, out var fastValue))
         {
             return fastValue;
         }
 
         if (column.SchemaColumn?.Converter is { } converter)
         {
-            value = ConvertWithCustomConverter(value, converter, column.Name, rowIndex, culture);
+            value = ConvertWithCustomConverter(value, converter, column.Name, rowIndex, culture, errorValuePolicy);
             if (IsMissingValue(value, column))
             {
                 if (column.SchemaColumn.DefaultValue is not null)
@@ -164,7 +165,7 @@ internal static partial class CsvDataProjectionConverter
             return value!;
         }
 
-        if (!DataValueConverter.TryConvert(value, column.DataType, culture, dateTimeFormats, typeConverter: null, out var converted, out var error))
+        if (!DataValueConverter.TryConvert(value, column.DataType, culture, dateTimeFormats, typeConverter: null, errorValuePolicy, out var converted, out var error))
         {
             throw new CsvException($"Column '{column.Name}' value on row {rowIndex + 1} cannot be converted to {column.DataType.Name}: {error}");
         }
@@ -188,6 +189,7 @@ internal static partial class CsvDataProjectionConverter
         int rowIndex,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
+        DataMappingErrorValuePolicy errorValuePolicy,
         out object converted)
     {
         converted = DBNull.Value;
@@ -289,7 +291,7 @@ internal static partial class CsvDataProjectionConverter
                 return true;
         }
 
-        throw new CsvException($"Column '{column.Name}' value on row {rowIndex + 1} cannot be converted to {column.DataType.Name}: Cannot parse '{text}' as {column.DataType.Name}.");
+        throw CreateConversionException(column, rowIndex, text, errorValuePolicy);
     }
 
     private static bool TryParseDateTime(string text, CultureInfo culture, IReadOnlyList<string>? dateTimeFormats, out DateTime dateTime)
@@ -517,16 +519,38 @@ internal static partial class CsvDataProjectionConverter
         Func<object?, CultureInfo, object?> converter,
         string columnName,
         int rowIndex,
-        CultureInfo culture)
+        CultureInfo culture,
+        DataMappingErrorValuePolicy errorValuePolicy)
     {
         try
         {
             return converter(value, culture);
         }
-        catch (Exception ex) when (ex is not CsvException)
+        catch (Exception ex)
         {
+            if (errorValuePolicy == DataMappingErrorValuePolicy.Redact)
+            {
+                throw new CsvException($"Column '{columnName}' custom converter failed on row {rowIndex + 1}; source details were redacted.");
+            }
+
+            if (ex is CsvException)
+            {
+                throw;
+            }
+
             throw new CsvException($"Column '{columnName}' custom converter failed on row {rowIndex + 1}: {ex.Message}", ex);
         }
+    }
+
+    internal static CsvException CreateConversionException(
+        CsvDataColumnProjection column,
+        int rowIndex,
+        string value,
+        DataMappingErrorValuePolicy errorValuePolicy)
+    {
+        return errorValuePolicy == DataMappingErrorValuePolicy.Redact
+            ? new CsvException($"Column '{column.Name}' value on row {rowIndex + 1} cannot be converted to {column.DataType.Name}; source details were redacted.")
+            : new CsvException($"Column '{column.Name}' value on row {rowIndex + 1} cannot be converted to {column.DataType.Name}: Cannot parse '{value}' as {column.DataType.Name}.");
     }
 
     private static bool IsMissingValue(object? value, CsvDataColumnProjection column) =>

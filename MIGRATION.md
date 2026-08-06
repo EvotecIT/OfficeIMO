@@ -393,10 +393,24 @@ The generic `DbDataReader.RowsAs<T>()` extensions now live in the neutral
 conversion rules. Mapping failures from this shared path throw
 `DataMappingException`.
 
+On .NET 8 and later, explicit `DateOnly` and `TimeOnly` targets work through
+`RowsAs<T>`, `DbDataReader.GetFieldValue<T>`, and CSV schema columns. Default
+CSV and Excel schema inference remains `DateTime`; OfficeIMO does not remap
+inferred dates based on the target framework. Set
+`CsvLoadOptions.MappingErrorValuePolicy` or
+`ExcelReadOptions.MappingErrorValuePolicy` to `Redact` when typed mapping errors
+must omit source values and custom-converter details.
+
 The low-level `CsvFile` compression helper is no longer public. Use
 `CsvDocument.Load`, `OpenDataReader`, `Save`, `WriteDataReader`, or caller-owned
 `TextReader` / `TextWriter` streams so file and compression behavior stays with
 the operation being performed.
+
+CSV `LoadAsync` and `SaveAsync` use asynchronous source or destination I/O but
+still materialize the document or serialized output. Use `OpenDataReader` for a
+bounded forward-only cursor. That reader remains synchronous and can be cast to
+`ICsvDataReaderPositionMetadata` for logical record numbers and available
+physical start/end line numbers.
 
 `WriteRows` keeps typed cell dispatch without boxing when its typed `Write`
 overloads are used. Use `WriteRowsAsync` for an `IAsyncEnumerable<T>` source; it

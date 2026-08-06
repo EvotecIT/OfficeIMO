@@ -108,7 +108,7 @@ internal static partial class CsvWriter
             }
 
             var text = FormatValue(value, culture, dateTimeFormat, useUtc, nullValue);
-            if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
+            if (ShouldEscapeFormulaValue(value, formulaInjectionPolicy))
             {
                 text = ApplyFormulaInjectionPolicy(text, formulaInjectionPolicy);
             }
@@ -141,8 +141,9 @@ internal static partial class CsvWriter
                 writer.Write(delimiter);
             }
 
-            var text = FormatValue(values[i], culture, dateTimeFormat, useUtc, nullValue);
-            if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
+            var value = values[i];
+            var text = FormatValue(value, culture, dateTimeFormat, useUtc, nullValue);
+            if (ShouldEscapeFormulaValue(value, formulaInjectionPolicy))
             {
                 text = ApplyFormulaInjectionPolicy(text, formulaInjectionPolicy);
             }
@@ -174,8 +175,9 @@ internal static partial class CsvWriter
                 writer.Write(delimiter);
             }
 
-            var text = FormatValue(values[i], culture, dateTimeFormat, useUtc, nullValue);
-            if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
+            var value = values[i];
+            var text = FormatValue(value, culture, dateTimeFormat, useUtc, nullValue);
+            if (ShouldEscapeFormulaValue(value, formulaInjectionPolicy))
             {
                 text = ApplyFormulaInjectionPolicy(text, formulaInjectionPolicy);
             }
@@ -624,8 +626,9 @@ internal static partial class CsvWriter
                 writer.Write(delimiter);
             }
 
-            var text = FormatValue(valueAccessor(state, i), culture, dateTimeFormat, useUtc, nullValue);
-            if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
+            var value = valueAccessor(state, i);
+            var text = FormatValue(value, culture, dateTimeFormat, useUtc, nullValue);
+            if (ShouldEscapeFormulaValue(value, formulaInjectionPolicy))
             {
                 text = ApplyFormulaInjectionPolicy(text, formulaInjectionPolicy);
             }
@@ -858,6 +861,32 @@ internal static partial class CsvWriter
             or ulong;
     }
 
+    private static bool ShouldEscapeFormulaValue(
+        object? value,
+        CsvFormulaInjectionPolicy formulaInjectionPolicy)
+    {
+        if (formulaInjectionPolicy != CsvFormulaInjectionPolicy.Escape)
+        {
+            return false;
+        }
+
+        return value is null || ReferenceEquals(value, DBNull.Value) || !IsFormulaSafeTypedValue(value);
+    }
+
+    private static bool IsFormulaSafeTypedValue(object value)
+    {
+        if (value is bool || IsKnownCsvSafeSpanFormattedValue(value))
+        {
+            return true;
+        }
+
+#if NET6_0_OR_GREATER
+        return value is DateOnly or TimeOnly;
+#else
+        return false;
+#endif
+    }
+
     private static void WriteBufferedRecordLine(TextWriter writer, StringBuilder buffer, string newLine)
     {
 #if NET6_0_OR_GREATER
@@ -915,7 +944,7 @@ internal static partial class CsvWriter
 
         if (value is string text)
         {
-            if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
+            if (ShouldEscapeFormulaValue(value, formulaInjectionPolicy))
             {
                 text = ApplyFormulaInjectionPolicy(text, formulaInjectionPolicy);
             }
@@ -928,7 +957,7 @@ internal static partial class CsvWriter
             (value is DateTime || value is DateTimeOffset))
         {
             var formattedDate = FormatValue(value, culture, dateTimeFormat, useUtc, nullValue);
-            if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
+            if (ShouldEscapeFormulaValue(value, formulaInjectionPolicy))
             {
                 formattedDate = ApplyFormulaInjectionPolicy(formattedDate, formulaInjectionPolicy);
             }
@@ -950,7 +979,7 @@ internal static partial class CsvWriter
             if (spanFormattable.TryFormat(destination, out var charsWritten, default, culture))
             {
                 var formattedSpan = destination[..charsWritten];
-                var prefixApostrophe = formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape && StartsWithFormulaTrigger(formattedSpan);
+                var prefixApostrophe = ShouldEscapeFormulaValue(value, formulaInjectionPolicy) && StartsWithFormulaTrigger(formattedSpan);
                 AppendEscapedSpan(buffer, formattedSpan, delimiter, prefixApostrophe, quoteMode, forceQuote);
                 return;
             }
@@ -958,7 +987,7 @@ internal static partial class CsvWriter
 #endif
 
         var formatted = FormatValue(value, culture);
-        if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
+        if (ShouldEscapeFormulaValue(value, formulaInjectionPolicy))
         {
             formatted = ApplyFormulaInjectionPolicy(formatted, formulaInjectionPolicy);
         }
@@ -979,7 +1008,7 @@ internal static partial class CsvWriter
         string? nullValue = null)
     {
         var text = FormatValue(value, culture, dateTimeFormat, useUtc, nullValue);
-        if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
+        if (ShouldEscapeFormulaValue(value, formulaInjectionPolicy))
         {
             text = ApplyFormulaInjectionPolicy(text, formulaInjectionPolicy);
         }

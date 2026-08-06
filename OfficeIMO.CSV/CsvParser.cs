@@ -8,15 +8,18 @@ internal static partial class CsvParser
 {
     private readonly struct CsvLine
     {
-        public CsvLine(string text, string separator)
+        public CsvLine(string text, string separator, int physicalLineNumber)
         {
             Text = text;
             Separator = separator;
+            PhysicalLineNumber = physicalLineNumber;
         }
 
         public string Text { get; }
 
         public string Separator { get; }
+
+        public int PhysicalLineNumber { get; }
     }
 
     internal readonly struct CsvParsedRecord
@@ -893,7 +896,10 @@ internal static partial class CsvParser
                 return true;
             }
 
-            continuations.Add(new CsvLine(next, nextSeparator));
+            continuations.Add(new CsvLine(
+                next,
+                nextSeparator,
+                lineNumber + continuations.Count + 1));
             UpdateQuotedRecordState(next, delimiter, options.TrimWhitespace, ref state);
             if (!state.InQuotes)
             {

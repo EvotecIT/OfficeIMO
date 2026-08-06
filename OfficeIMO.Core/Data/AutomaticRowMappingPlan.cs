@@ -62,10 +62,11 @@ internal sealed class AutomaticRowMappingPlan<
         Func<int, object?> getValue,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
-        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null) {
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null,
+        DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include) {
         T instance = new T();
         foreach (MappingBinding binding in _bindings) {
-            instance = binding.Apply(instance, getValue(binding.ColumnIndex), culture, dateTimeFormats, typeConverter);
+            instance = binding.Apply(instance, getValue(binding.ColumnIndex), culture, dateTimeFormats, typeConverter, errorValuePolicy);
         }
         return instance;
     }
@@ -120,8 +121,9 @@ internal sealed class AutomaticRowMappingPlan<
             object? rawValue,
             CultureInfo culture,
             IReadOnlyList<string>? dateTimeFormats,
-            Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter) {
-            if (!DataValueConverter.TryConvert(rawValue, _property.ValueType, culture, dateTimeFormats, typeConverter, out object? converted, out string? error)) {
+            Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
+            DataMappingErrorValuePolicy errorValuePolicy) {
+            if (!DataValueConverter.TryConvert(rawValue, _property.ValueType, culture, dateTimeFormats, typeConverter, errorValuePolicy, out object? converted, out string? error)) {
                 throw new DataMappingException(
                     $"Column value cannot be assigned to {typeof(T).Name}.{_property.Name}: {error}");
             }

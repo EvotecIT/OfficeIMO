@@ -371,7 +371,14 @@ public sealed partial class CsvDocument
     {
         options = ResolveLoadOptions(readerFactory, options);
         var initialRecordsToSkip = GetInitialRecordsToSkip(options);
-        var document = new CsvDocument(options.Mode, options.Delimiter, options.Culture, encoding, options.ColumnCountMismatchPolicy, options.DateTimeFormats);
+        var document = new CsvDocument(
+            options.Mode,
+            options.Delimiter,
+            options.Culture,
+            encoding,
+            options.ColumnCountMismatchPolicy,
+            options.DateTimeFormats,
+            options.MappingErrorValuePolicy);
 
         var explicitHeader = NormalizeExplicitHeader(options);
         if (explicitHeader is not null)

@@ -91,6 +91,40 @@ public partial class Excel {
     }
 
     [Fact]
+    public void RowsAs_MapsDateOnlyAndTimeOnlyFromExcelDateCells() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Date");
+        sheet.CellValue(1, 2, "Time");
+        sheet.CellValue(2, 1, new DateOnly(2026, 8, 6));
+        sheet.CellValue(2, 2, new TimeOnly(14, 35, 12));
+
+        DateAndTimeRow row = Assert.Single(sheet.RowsAs<DateAndTimeRow>());
+
+        Assert.Equal(new DateOnly(2026, 8, 6), row.Date);
+        Assert.Equal(new TimeOnly(14, 35, 12), row.Time);
+    }
+
+    [Fact]
+    public void RowsAs_RedactsTypeConverterFailuresWhenRequested() {
+        const string secret = "customer-secret-value";
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "OrderId");
+        sheet.CellValue(2, 1, secret);
+        var options = new ExcelReadOptions {
+            MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact,
+            TypeConverter = (_, _, _) => throw new InvalidOperationException($"failed for {secret}")
+        };
+
+        DataMappingException exception = Assert.Throws<DataMappingException>(() =>
+            sheet.RowsAs<TypedSalesRow>(options).ToArray());
+
+        Assert.DoesNotContain(secret, exception.ToString(), StringComparison.Ordinal);
+        Assert.Contains("Custom converter failed", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RowsAs_StrictMappingRejectsUnmappedHeaders() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Data");
@@ -158,6 +192,11 @@ public partial class Excel {
         [ExcelColumn("Order Number")]
         public int OrderId { get; set; }
         public decimal Amount { get; set; }
+    }
+
+    private sealed class DateAndTimeRow {
+        public DateOnly Date { get; set; }
+        public TimeOnly Time { get; set; }
     }
 
     private sealed record PositionalSalesRow(int OrderId, decimal Amount);

@@ -357,7 +357,14 @@ public sealed partial class CsvDocument
         }
 
         var rows = EnumerateRawRows();
-        return new CsvDataReader(columns, rows, _culture, _dateTimeFormats, _delimiter, _rowsAreParsedStringsOnly);
+        return new CsvDataReader(
+            columns,
+            rows,
+            _culture,
+            _dateTimeFormats,
+            _delimiter,
+            _mappingErrorValuePolicy,
+            _rowsAreParsedStringsOnly);
     }
 
     private static bool CanUseSinglePassFileDataReader(CsvLoadOptions options, CsvDataReaderOptions readerOptions) =>
@@ -595,6 +602,7 @@ public sealed partial class CsvDocument
                 _culture,
                 _dateTimeFormats,
                 _streamingSource.Options.Delimiter,
+                _streamingSource.Options.MappingErrorValuePolicy,
                 rowOwner: rowOwner);
         }
         catch

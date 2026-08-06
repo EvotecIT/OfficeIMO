@@ -31,7 +31,8 @@ internal sealed class ExplicitRowMappingPlan<T> where T : new() {
         Func<int, object?> getValue,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
-        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null) {
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null,
+        DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include) {
         T instance = new T();
         foreach (MappingBinding binding in _bindings) {
             instance = binding.Entry.Apply(
@@ -39,7 +40,8 @@ internal sealed class ExplicitRowMappingPlan<T> where T : new() {
                 getValue(binding.ColumnIndex),
                 culture,
                 dateTimeFormats,
-                typeConverter);
+                typeConverter,
+                errorValuePolicy);
         }
         return instance;
     }

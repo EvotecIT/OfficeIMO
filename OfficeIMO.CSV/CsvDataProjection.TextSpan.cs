@@ -37,7 +37,8 @@ internal static partial class CsvDataProjectionConverter
         CsvDataColumnProjection column,
         int rowIndex,
         CultureInfo culture,
-        IReadOnlyList<string>? dateTimeFormats)
+        IReadOnlyList<string>? dateTimeFormats,
+        DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include)
     {
         if (text.Length == 0 &&
             (column.ConversionKind != CsvDataConversionKind.String || column.SchemaColumn?.IsRequired == true))
@@ -85,11 +86,11 @@ internal static partial class CsvDataProjectionConverter
             case CsvDataConversionKind.Guid when Guid.TryParse(text, out var guid):
                 return guid;
             default:
-                return ConvertValue(text.ToString(), column, rowIndex, culture, dateTimeFormats);
+                return ConvertValue(text.ToString(), column, rowIndex, culture, dateTimeFormats, errorValuePolicy);
         }
 
         var value = text.ToString();
-        throw new CsvException($"Column '{column.Name}' value on row {rowIndex + 1} cannot be converted to {column.DataType.Name}: Cannot parse '{value}' as {column.DataType.Name}.");
+        throw CreateConversionException(column, rowIndex, value, errorValuePolicy);
     }
 
     private static bool TryParseInt32(ReadOnlySpan<char> text, CultureInfo culture, out int value)

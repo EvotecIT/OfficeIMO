@@ -75,6 +75,94 @@ public sealed class CsvDataReaderApiTests {
         Assert.False(reader.Read());
     }
 
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    public void OpenDataReader_ReportsLogicalRecordsAndStreamingPhysicalLines(string newLine) {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.Position.{Guid.NewGuid():N}.csv");
+        try {
+            string csv = string.Join(newLine, new[] {
+                "Id,Value",
+                "1,one",
+                "2,\"line one",
+                "line two\"",
+                "# ignored",
+                "3,three"
+            });
+            File.WriteAllText(path, csv);
+            using DbDataReader reader = CsvDocument.OpenDataReader(
+                path,
+                new CsvLoadOptions { SkipCommentRows = true });
+            ICsvDataReaderPositionMetadata position =
+                Assert.IsAssignableFrom<ICsvDataReaderPositionMetadata>(reader);
+
+            Assert.Equal(0, position.RecordNumber);
+            Assert.Null(position.PhysicalLineNumber);
+
+            Assert.True(reader.Read());
+            Assert.Equal(1, position.RecordNumber);
+            Assert.Equal(2, position.PhysicalLineNumber);
+            Assert.Equal(2, position.PhysicalEndLineNumber);
+
+            Assert.True(reader.Read());
+            Assert.Equal(2, position.RecordNumber);
+            Assert.Equal(3, position.PhysicalLineNumber);
+            Assert.Equal(4, position.PhysicalEndLineNumber);
+
+            Assert.True(reader.Read());
+            Assert.Equal(3, position.RecordNumber);
+            Assert.Equal(6, position.PhysicalLineNumber);
+            Assert.Equal(6, position.PhysicalEndLineNumber);
+
+            Assert.False(reader.Read());
+            Assert.Equal(0, position.RecordNumber);
+            Assert.Null(position.PhysicalLineNumber);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    public void OpenDataReader_ReportsMultilineEndPositionAtEndOfFile(string newLine) {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.PositionEof.{Guid.NewGuid():N}.csv");
+        try {
+            File.WriteAllText(path, $"Id,Value{newLine}1,\"first{newLine}second\"");
+            using DbDataReader reader = CsvDocument.OpenDataReader(path);
+            ICsvDataReaderPositionMetadata position =
+                Assert.IsAssignableFrom<ICsvDataReaderPositionMetadata>(reader);
+
+            Assert.True(reader.Read());
+            Assert.Equal(2, position.PhysicalLineNumber);
+            Assert.Equal(3, position.PhysicalEndLineNumber);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    public void OpenDataReader_PreservesPhysicalLinesForReplayedCommentLookahead(string newLine) {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.PositionComment.{Guid.NewGuid():N}.csv");
+        try {
+            File.WriteAllText(path, $"Id,Value{newLine}# \"unterminated{newLine}1,one{newLine}");
+            using DbDataReader reader = CsvDocument.OpenDataReader(
+                path,
+                new CsvLoadOptions { SkipCommentRows = true });
+            ICsvDataReaderPositionMetadata position =
+                Assert.IsAssignableFrom<ICsvDataReaderPositionMetadata>(reader);
+
+            Assert.True(reader.Read());
+            Assert.Equal("1", reader.GetString(0));
+            Assert.Equal(3, position.PhysicalLineNumber);
+            Assert.Equal(3, position.PhysicalEndLineNumber);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void OpenDataReader_StringColumnsSupportTypedGettersWithoutSchemaInference() {
         Guid identifier = Guid.NewGuid();
@@ -97,6 +185,18 @@ public sealed class CsvDataReaderApiTests {
         Assert.Equal(165258.24m, reader.GetDecimal(7));
         Assert.Equal(new DateTime(2026, 7, 29), reader.GetDateTime(8));
         Assert.Equal(identifier, reader.GetGuid(9));
+    }
+
+    [Fact]
+    public void OpenDataReader_ExplicitDateOnlyAndTimeOnlyGettersPreserveStringSchema() {
+        using DbDataReader reader = CsvDocument.OpenTextDataReader(
+            "Date,Time\n2026-08-06,14:35:12\n");
+
+        Assert.True(reader.Read());
+        Assert.Equal(typeof(string), reader.GetFieldType(0));
+        Assert.Equal(typeof(string), reader.GetFieldType(1));
+        Assert.Equal(new DateOnly(2026, 8, 6), reader.GetFieldValue<DateOnly>(0));
+        Assert.Equal(new TimeOnly(14, 35, 12), reader.GetFieldValue<TimeOnly>(1));
     }
 
     [Fact]

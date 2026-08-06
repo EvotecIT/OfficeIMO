@@ -98,6 +98,87 @@ public class CsvSchemaTests
     }
 
     [Fact]
+    public void ExplicitSchema_SupportsDateOnlyAndTimeOnlyWithoutChangingDefaults()
+    {
+        CsvSchema schema = new CsvSchemaBuilder()
+            .Column("Date").AsDateOnly().Required()
+            .Column("Time").AsTimeOnly().Required()
+            .Done()
+            .Build();
+        using var reader = CsvDocument.OpenTextDataReader(
+            "Date,Time\n2026-08-06,14:35:12\n",
+            readerOptions: new CsvDataReaderOptions { Schema = schema });
+
+        Assert.True(reader.Read());
+        Assert.Equal(typeof(DateOnly), reader.GetFieldType(0));
+        Assert.Equal(typeof(TimeOnly), reader.GetFieldType(1));
+        Assert.Equal(new DateOnly(2026, 8, 6), Assert.IsType<DateOnly>(reader.GetValue(0)));
+        Assert.Equal(new TimeOnly(14, 35, 12), Assert.IsType<TimeOnly>(reader.GetValue(1)));
+    }
+
+    [Fact]
+    public void SchemaConversion_RedactsValuesAndInnerExceptionsWhenRequested()
+    {
+        const string secret = "customer-secret-value";
+        CsvDocument document = CsvDocument.Parse(
+                $"Value\n{secret}\n",
+                new CsvLoadOptions { MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact })
+            .EnsureSchema(schema => schema
+                .Column("Value").AsInt32().ConvertUsing(_ =>
+                    throw new InvalidOperationException($"failed for {secret}")));
+        using var reader = document.CreateDataReader();
+
+        Assert.True(reader.Read());
+        CsvException exception = Assert.Throws<CsvException>(() => reader.GetValue(0));
+
+        Assert.DoesNotContain(secret, exception.ToString(), StringComparison.Ordinal);
+        Assert.Null(exception.InnerException);
+        Assert.Contains("redacted", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void SchemaConversion_PreservesConverterDetailsByDefault()
+    {
+        const string detail = "converter-detail";
+        CsvDocument document = CsvDocument.Parse("Value\ninvalid\n")
+            .EnsureSchema(schema => schema
+                .Column("Value").AsInt32().ConvertUsing(_ =>
+                    throw new InvalidOperationException(detail)));
+        using var reader = document.CreateDataReader();
+
+        Assert.True(reader.Read());
+        CsvException exception = Assert.Throws<CsvException>(() => reader.GetValue(0));
+
+        Assert.Contains(detail, exception.ToString(), StringComparison.Ordinal);
+        Assert.IsType<InvalidOperationException>(exception.InnerException);
+
+        document.Validate(out IReadOnlyList<CsvValidationError> validationErrors);
+        Assert.Contains(detail, Assert.Single(validationErrors).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SchemaValidation_RedactsFrameworkValuesAndConverterDetails()
+    {
+        const string sourceValue = "customer-source-value";
+        const string converterDetail = "converter-secret-detail";
+        CsvDocument document = CsvDocument.Parse(
+                $"Number,Converted\n{sourceValue},input\n",
+                new CsvLoadOptions { MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact })
+            .EnsureSchema(schema => schema
+                .Column("Number").AsInt32()
+                .Column("Converted").AsInt32().ConvertUsing(_ =>
+                    throw new InvalidOperationException(converterDetail)));
+
+        document.Validate(out IReadOnlyList<CsvValidationError> errors);
+
+        Assert.Equal(2, errors.Count);
+        string details = string.Join(Environment.NewLine, errors.Select(error => error.Message));
+        Assert.DoesNotContain(sourceValue, details, StringComparison.Ordinal);
+        Assert.DoesNotContain(converterDetail, details, StringComparison.Ordinal);
+        Assert.Contains("redacted", details, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void InferSchema_ForTypedRows_IsNotOrderDependent()
     {
         var doc = new CsvDocument()

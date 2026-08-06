@@ -44,7 +44,14 @@ internal static class CsvValidator
                     }
                 }
 
-                if (!TryConvertValue(value, column, document.Culture, document.DateTimeFormats, out var convertedValue, out var error))
+                if (!TryConvertValue(
+                        value,
+                        column,
+                        document.Culture,
+                        document.DateTimeFormats,
+                        document.MappingErrorValuePolicy,
+                        out var convertedValue,
+                        out var error))
                 {
                     errors.Add(new CsvValidationError(rowIndex, column.Name, error ?? "Invalid value."));
                     continue;
@@ -84,6 +91,7 @@ internal static class CsvValidator
         CsvSchemaColumn column,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
+        DataMappingErrorValuePolicy errorValuePolicy,
         out object? convertedValue,
         out string? error)
     {
@@ -96,8 +104,19 @@ internal static class CsvValidator
             {
                 convertedValue = converter(value, culture);
             }
-            catch (Exception ex) when (ex is not CsvException)
+            catch (Exception ex)
             {
+                if (errorValuePolicy == DataMappingErrorValuePolicy.Redact)
+                {
+                    error = "Custom converter failed; source details were redacted.";
+                    return false;
+                }
+
+                if (ex is CsvException)
+                {
+                    throw;
+                }
+
                 error = $"Custom converter failed: {ex.Message}";
                 return false;
             }
@@ -108,7 +127,15 @@ internal static class CsvValidator
             return true;
         }
 
-        if (!DataValueConverter.TryConvert(convertedValue, column.DataType, culture, dateTimeFormats, typeConverter: null, out convertedValue, out error))
+        if (!DataValueConverter.TryConvert(
+                convertedValue,
+                column.DataType,
+                culture,
+                dateTimeFormats,
+                typeConverter: null,
+                errorValuePolicy,
+                out convertedValue,
+                out error))
         {
             return false;
         }

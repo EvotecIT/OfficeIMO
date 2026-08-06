@@ -12,7 +12,7 @@ namespace OfficeIMO.CSV;
 /// <summary>
 /// Forward-only reader for CSV rows projected through an optional schema.
 /// </summary>
-internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDataReaderMappingMetadata
+internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsvDataReaderPositionMetadata, IDataReaderMappingMetadata, IDataReaderMappingErrorMetadata
 {
     private const string IsReadOnlyColumn = "IsReadOnly";
     private const string IsRowVersionColumn = "IsRowVersion";
@@ -35,6 +35,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
     Func<object, Type, CultureInfo, (bool ok, object? value)>? IDataReaderMappingMetadata.MappingTypeConverter => null;
 
     bool IDataReaderMappingMetadata.RequireAllColumnsMapped => false;
+    DataMappingErrorValuePolicy IDataReaderMappingErrorMetadata.MappingErrorValuePolicy => _mappingErrorValuePolicy;
     private readonly IDisposable? _rowOwner;
     private readonly CsvLoadOptions? _stringRowOptions;
     private readonly object?[]? _staticColumnValues;
@@ -43,6 +44,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
     private readonly bool _useDirectTextSourceStrings;
     private readonly bool _useDirectValueConversion;
     private readonly bool _rawRowsAreParsedStringsOnly;
+    private readonly DataMappingErrorValuePolicy _mappingErrorValuePolicy;
     private readonly string? _stringNullValue;
     private Dictionary<string, int>? _ordinals;
     private object?[]? _currentRawRow;
@@ -63,6 +65,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
         char delimiter,
+        DataMappingErrorValuePolicy mappingErrorValuePolicy = DataMappingErrorValuePolicy.Include,
         bool rawRowsAreParsedStringsOnly = false,
         IDisposable? rowOwner = null)
     {
@@ -71,6 +74,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
         Delimiter = delimiter;
+        _mappingErrorValuePolicy = mappingErrorValuePolicy;
         _rowOwner = rowOwner;
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
@@ -94,6 +98,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
         _staticColumnValues = CaptureStaticColumnValues(_stringRowOptions.StaticColumns);
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
+        _mappingErrorValuePolicy = options.MappingErrorValuePolicy;
         Delimiter = CsvParser.GetDelimiterChar(options);
         _rowOwner = rowOwner;
         _useRawStringValues = CanUseRawStringValues(columns);
@@ -118,6 +123,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
         _stringNullValue = options.NullValue;
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
+        _mappingErrorValuePolicy = options.MappingErrorValuePolicy;
         Delimiter = CsvParser.GetDelimiterChar(options);
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectTextSourceStrings = _useRawStringValues && _stringNullValue is null;
@@ -137,7 +143,23 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
     public char Delimiter { get; }
 
     /// <inheritdoc />
+    public long RecordNumber => IsPositionedOnRow ? _rowIndex + 1L : 0L;
+
+    /// <inheritdoc />
+    public int? PhysicalLineNumber => IsPositionedOnRow
+        ? (_textRowSource as ICsvDataReaderPositionSource)?.CurrentPhysicalLineNumber
+        : null;
+
+    /// <inheritdoc />
+    public int? PhysicalEndLineNumber => IsPositionedOnRow
+        ? (_textRowSource as ICsvDataReaderPositionSource)?.CurrentPhysicalEndLineNumber
+        : null;
+
+    /// <inheritdoc />
     public override int FieldCount => _columns.Length;
+
+    private bool IsPositionedOnRow => !_closed &&
+        (_currentRawRow is not null || _currentStringRow is not null || _hasCurrentTextRow);
 
     /// <inheritdoc />
     public override bool HasRows
@@ -326,6 +348,25 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
     [UnconditionalSuppressMessage("Trimming", "IL2073", Justification = "CSV column types are scalar conversion tokens returned through DbDataReader; OfficeIMO never activates or reflects over their public members.")]
     [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)]
     public override Type GetFieldType(int ordinal) => _columns[ordinal].DataType;
+
+#if NET6_0_OR_GREATER
+    /// <inheritdoc />
+    public override T GetFieldValue<T>(int ordinal)
+    {
+        Type destinationType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+        if (destinationType == typeof(DateOnly) || destinationType == typeof(TimeOnly))
+        {
+            object? sourceValue = IsDBNull(ordinal) ? null : GetValue(ordinal);
+            return DataValueConverter.ConvertTo<T>(
+                sourceValue,
+                _culture,
+                _dateTimeFormats,
+                errorValuePolicy: _mappingErrorValuePolicy)!;
+        }
+
+        return base.GetFieldValue<T>(ordinal);
+    }
+#endif
 
     /// <inheritdoc />
     public override float GetFloat(int ordinal)
@@ -526,7 +567,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
 #endif
         {
             var rawValue = GetRawValue(ordinal);
-            value = CsvDataProjectionConverter.ConvertValue(rawValue, _columns[ordinal], _rowIndex, _culture, _dateTimeFormats);
+            value = CsvDataProjectionConverter.ConvertValue(rawValue, _columns[ordinal], _rowIndex, _culture, _dateTimeFormats, _mappingErrorValuePolicy);
         }
 
         _currentConvertedRow[ordinal] = value;
@@ -565,7 +606,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
                     null => DBNull.Value,
                     DBNull => DBNull.Value,
                     string text => text,
-                    _ => CsvDataProjectionConverter.ConvertValue(rawValue, _columns[i], _rowIndex, _culture, _dateTimeFormats)
+                    _ => CsvDataProjectionConverter.ConvertValue(rawValue, _columns[i], _rowIndex, _culture, _dateTimeFormats, _mappingErrorValuePolicy)
                 };
             }
 
@@ -593,12 +634,12 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
             var rowValueCount = Math.Min(count, row.Length);
             for (var i = 0; i < rowValueCount; i++)
             {
-                values[i] = CsvDataProjectionConverter.ConvertValue(row[i], _columns[i], _rowIndex, _culture, _dateTimeFormats);
+                values[i] = CsvDataProjectionConverter.ConvertValue(row[i], _columns[i], _rowIndex, _culture, _dateTimeFormats, _mappingErrorValuePolicy);
             }
 
             for (var i = rowValueCount; i < count; i++)
             {
-                values[i] = CsvDataProjectionConverter.ConvertValue(null, _columns[i], _rowIndex, _culture, _dateTimeFormats);
+                values[i] = CsvDataProjectionConverter.ConvertValue(null, _columns[i], _rowIndex, _culture, _dateTimeFormats, _mappingErrorValuePolicy);
             }
 
             return count;
@@ -611,7 +652,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
             if (value is null)
             {
                 var rawValue = GetRawValue(i);
-                value = CsvDataProjectionConverter.ConvertValue(rawValue, _columns[i], _rowIndex, _culture, _dateTimeFormats);
+                value = CsvDataProjectionConverter.ConvertValue(rawValue, _columns[i], _rowIndex, _culture, _dateTimeFormats, _mappingErrorValuePolicy);
                 _currentConvertedRow[i] = value;
             }
 
@@ -962,7 +1003,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
                 null => DBNull.Value,
                 DBNull => DBNull.Value,
                 string staticText => staticText,
-                _ => CsvDataProjectionConverter.ConvertValue(staticValue, _columns[ordinal], _rowIndex, _culture, _dateTimeFormats)
+                _ => CsvDataProjectionConverter.ConvertValue(staticValue, _columns[ordinal], _rowIndex, _culture, _dateTimeFormats, _mappingErrorValuePolicy)
             };
         }
 
@@ -977,7 +1018,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
             return text;
         }
 
-        return CsvDataProjectionConverter.ConvertValue(rawValue, _columns[ordinal], _rowIndex, _culture, _dateTimeFormats);
+        return CsvDataProjectionConverter.ConvertValue(rawValue, _columns[ordinal], _rowIndex, _culture, _dateTimeFormats, _mappingErrorValuePolicy);
     }
 
     private object? GetRawValue(int ordinal)
@@ -1075,7 +1116,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
                 ? _staticColumnValues[staticIndex]
                 : null;
 
-            values[i] = CsvDataProjectionConverter.ConvertValue(staticValue, _columns[i], _rowIndex, _culture, _dateTimeFormats);
+            values[i] = CsvDataProjectionConverter.ConvertValue(staticValue, _columns[i], _rowIndex, _culture, _dateTimeFormats, _mappingErrorValuePolicy);
         }
 
         return count;
@@ -1143,7 +1184,8 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
             column,
             _rowIndex,
             _culture,
-            _dateTimeFormats);
+            _dateTimeFormats,
+            _mappingErrorValuePolicy);
     }
 #endif
 
@@ -1215,7 +1257,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, IDat
                 break;
         }
 
-        return CsvDataProjectionConverter.ConvertValue(text, column, _rowIndex, _culture, _dateTimeFormats);
+        return CsvDataProjectionConverter.ConvertValue(text, column, _rowIndex, _culture, _dateTimeFormats, _mappingErrorValuePolicy);
     }
 
     private static int GetParsedStringRawRowValues(object?[] row, object[] values, int count)

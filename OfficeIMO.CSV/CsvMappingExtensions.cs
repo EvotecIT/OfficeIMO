@@ -51,7 +51,8 @@ public static class CsvMappingExtensions {
             yield return plan.MapRow(
                 index => row[index],
                 document.Culture,
-                document.DateTimeFormats);
+                document.DateTimeFormats,
+                errorValuePolicy: document.MappingErrorValuePolicy);
         }
     }
 
@@ -64,7 +65,8 @@ public static class CsvMappingExtensions {
             yield return plan.MapRow(
                 index => row[index],
                 document.Culture,
-                document.DateTimeFormats);
+                document.DateTimeFormats,
+                errorValuePolicy: document.MappingErrorValuePolicy);
         }
     }
 

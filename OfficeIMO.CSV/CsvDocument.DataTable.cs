@@ -50,7 +50,7 @@ public sealed partial class CsvDocument
                 {
                     var column = columns[i];
                     var value = i < row.Length ? row[i] : null;
-                    values[i] = CsvDataProjectionConverter.ConvertValue(value, column, rowIndex, _culture, _dateTimeFormats);
+                    values[i] = CsvDataProjectionConverter.ConvertValue(value, column, rowIndex, _culture, _dateTimeFormats, _mappingErrorValuePolicy);
                 }
 
                 table.Rows.Add(values);

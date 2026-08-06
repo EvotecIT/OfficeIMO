@@ -887,7 +887,7 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
-    public void Formula_Injection_Policy_Escapes_Span_Formatted_Row_Values()
+    public void Formula_Injection_Policy_Preserves_Typed_Negative_Numbers()
     {
         using var writer = new StringWriter();
         using (var csv = new CsvRowWriter(writer, new CsvSaveOptions {
@@ -895,10 +895,26 @@ public class CsvDocumentBasicsTests
             FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape
         }))
         {
-            csv.WriteRow(new[] { "Value" }, new object?[] { -1 });
+            csv.WriteRow(new[] { "Integer", "Decimal", "Text" }, new object?[] { -1, -2.5m, "-cmd" });
         }
 
-        Assert.Equal("Value\n'-1\n", writer.ToString());
+        Assert.Equal("Integer,Decimal,Text\n-1,-2.5,'-cmd\n", writer.ToString());
+    }
+
+    [Fact]
+    public void Formula_Injection_Policy_Preserves_Typed_Numbers_With_Text_Delimiters()
+    {
+        var document = new CsvDocument()
+            .WithHeader("Number", "Text")
+            .AddRow(-1, "-cmd");
+
+        string text = document.ToString(new CsvSaveOptions {
+            DelimiterText = "||",
+            NewLine = "\n",
+            FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape
+        });
+
+        Assert.Equal("Number||Text\n-1||'-cmd\n", text);
     }
 
     [Fact]

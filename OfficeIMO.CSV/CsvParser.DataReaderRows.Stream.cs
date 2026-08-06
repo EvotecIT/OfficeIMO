@@ -12,7 +12,7 @@ internal static partial class CsvParser
     /// Pull-based row source over the existing bounded streaming parser. Field spans point at
     /// the reusable line buffer and are materialized only when a caller requests a string.
     /// </summary>
-    internal sealed class CsvStreamDataReaderRowSource : ICsvDataReaderTextRowSource
+    internal sealed class CsvStreamDataReaderRowSource : ICsvDataReaderTextRowSource, ICsvDataReaderPositionSource
     {
         private const int LargeDataReaderBufferSize = 512 * 1024;
         private readonly TextReader _reader;
@@ -27,6 +27,8 @@ internal static partial class CsvParser
         private CsvDataReaderStreamRowVisitor _visitor;
         private int _lineNumber = 1;
         private int _emittedRecordCount;
+        private int? _currentPhysicalLineNumber;
+        private int? _currentPhysicalEndLineNumber;
         private bool _disposed;
 
         internal CsvStreamDataReaderRowSource(TextReader reader, CsvLoadOptions options)
@@ -43,6 +45,10 @@ internal static partial class CsvParser
 
         internal int FieldCount => _visitor.FieldCount;
 
+        int? ICsvDataReaderPositionSource.CurrentPhysicalLineNumber => _currentPhysicalLineNumber;
+
+        int? ICsvDataReaderPositionSource.CurrentPhysicalEndLineNumber => _currentPhysicalEndLineNumber;
+
         internal void SetSourceColumnCount(int sourceColumnCount)
         {
             if (_lineReader.TryGrowFilledBuffer(LargeDataReaderBufferSize))
@@ -57,9 +63,15 @@ internal static partial class CsvParser
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             _visitor.Reset();
+            _currentPhysicalLineNumber = null;
+            _currentPhysicalEndLineNumber = null;
             while (true)
             {
                 ThrowIfCancellationRequested(_options);
+                bool recordStartedFromPendingLine = _pendingLines.Count > 0;
+                int recordStartLineNumber = recordStartedFromPendingLine
+                    ? _pendingLines.Peek().PhysicalLineNumber
+                    : _lineReader.PhysicalLineSeparatorsConsumed + 1;
                 string? fastLine = null;
                 string lineSeparator;
                 CsvLineReadResult readResult;
@@ -95,6 +107,10 @@ internal static partial class CsvParser
                         _emittedRecordCount++;
                         ReportProgress(_options, _emittedRecordCount, _lineNumber - 1);
                         _visitor.Complete(fieldCount, _options.ColumnCountMismatchPolicy);
+                        _currentPhysicalLineNumber = recordStartLineNumber;
+                        _currentPhysicalEndLineNumber = GetCurrentPhysicalEndLineNumber(
+                            recordStartLineNumber,
+                            recordStartedFromPendingLine);
                         return true;
                     }
                 }
@@ -140,6 +156,10 @@ internal static partial class CsvParser
                     _emittedRecordCount++;
                     ReportProgress(_options, _emittedRecordCount, _lineNumber - 1);
                     _visitor.Complete(fields.Length, _options.ColumnCountMismatchPolicy);
+                    _currentPhysicalLineNumber = recordStartLineNumber;
+                    _currentPhysicalEndLineNumber = GetCurrentPhysicalEndLineNumber(
+                        recordStartLineNumber,
+                        recordStartedFromPendingLine);
                     return true;
                 }
 
@@ -183,9 +203,21 @@ internal static partial class CsvParser
                 _emittedRecordCount++;
                 ReportProgress(_options, _emittedRecordCount, _lineNumber - 1);
                 _visitor.Complete(_quotedFields.Count, _options.ColumnCountMismatchPolicy);
+                _currentPhysicalLineNumber = recordStartLineNumber;
+                _currentPhysicalEndLineNumber = GetCurrentPhysicalEndLineNumber(
+                    recordStartLineNumber,
+                    recordStartedFromPendingLine);
                 return true;
             }
         }
+
+        private int GetCurrentPhysicalEndLineNumber(
+            int recordStartLineNumber,
+            bool recordStartedFromPendingLine) => Math.Max(
+                recordStartLineNumber,
+                recordStartedFromPendingLine
+                    ? _lineNumber - 1
+                    : Math.Max(_lineNumber - 1, _lineReader.PhysicalLineSeparatorsConsumed));
 
         public ReadOnlySpan<char> GetSpan(int ordinal) => _visitor.GetSpan(ordinal);
 
