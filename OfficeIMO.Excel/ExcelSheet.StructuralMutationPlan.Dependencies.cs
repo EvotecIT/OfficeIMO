@@ -260,17 +260,16 @@ namespace OfficeIMO.Excel {
                         .Any(condition => Changes(condition.Reference?.Value)));
         }
 
-        private static bool ChartFormulaCacheWillBeInvalidated(
-            OpenXmlLeafTextElement formula,
-            ILookup<OpenXmlElement?, OpenXmlElement> directChildren) {
-            OpenXmlElement? reference = formula.Parent;
-            return reference != null
-                && (directChildren[reference].Any(element =>
-                        element.LocalName.EndsWith("Cache", StringComparison.OrdinalIgnoreCase))
-                    || (string.Equals(reference.LocalName, "numDim", StringComparison.Ordinal)
-                        || string.Equals(reference.LocalName, "strDim", StringComparison.Ordinal))
-                    && directChildren[reference].Any(element =>
-                        string.Equals(element.LocalName, "lvl", StringComparison.Ordinal)));
+        private static bool ChartChildInvalidatesFormulaCache(OpenXmlElement element) {
+            if (element.LocalName.EndsWith("Cache", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            OpenXmlElement? parent = element.Parent;
+            return parent != null
+                && (string.Equals(parent.LocalName, "numDim", StringComparison.Ordinal)
+                    || string.Equals(parent.LocalName, "strDim", StringComparison.Ordinal))
+                && string.Equals(element.LocalName, "lvl", StringComparison.Ordinal);
         }
 
         private int CountNamedSheetViewPlanImpacts(

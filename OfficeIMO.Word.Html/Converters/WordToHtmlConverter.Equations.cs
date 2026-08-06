@@ -6,8 +6,6 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
-        private const long MaxMathMlEntityEncodingExpansion = 6L;
-
         private static IElement? CreateEquationNode(
             IHtmlDocument htmlDocument,
             IElement context,
@@ -16,7 +14,19 @@ namespace OfficeIMO.Word.Html {
             string label;
             string mathMl;
             try {
-                label = equation.GetText(options.MaxEquationNestingDepth);
+                long labelRemaining = GetRemainingOutputCharacters(htmlDocument);
+                try {
+                    label = equation.GetText(labelRemaining, options.MaxEquationNestingDepth);
+                } catch (WordMathMlOutputLimitExceededException exception) {
+                    ThrowExportLimitExceeded(
+                        options,
+                        "WordHtmlOutputLimitExceeded",
+                        "Generated equation accessibility text exceeds the configured HTML output-character limit before materialization.",
+                        "EquationAriaLabel",
+                        GetCumulativeOutputCharacters(options, exception),
+                        options.MaxOutputCharacters);
+                    return null;
+                }
                 if (equation.Representation == WordEquationRepresentation.EquationField) {
                     // InspectExport charged the cached field result as ordinary Word text. The
                     // MathML projection replaces that source text, so release it before charging
@@ -25,22 +35,22 @@ namespace OfficeIMO.Word.Html {
                         htmlDocument,
                         GetHtmlEncodedLength(label, attributeValue: false));
                 }
+                ReserveOutputCharacters(
+                    htmlDocument,
+                    " aria-label=\"\"".Length + GetHtmlEncodedLength(label, attributeValue: true),
+                    "Generated equation accessibility metadata exceeds the configured HTML output-character limit before DOM construction.",
+                    "EquationAriaLabel");
                 long remaining = GetRemainingOutputCharacters(htmlDocument);
-                // XML entity encoding can make the bounded projection larger than the HTML
-                // serializer's final text (notably for quotes and apostrophes). Keep that
-                // intermediate allocation proportional while enforcing the exact output limit
-                // against the parsed node below.
-                long projectionLimit = remaining > long.MaxValue / MaxMathMlEntityEncodingExpansion
-                    ? long.MaxValue
-                    : remaining * MaxMathMlEntityEncodingExpansion;
-                mathMl = equation.ToMathMl(projectionLimit, options.MaxEquationNestingDepth);
-            } catch (WordMathMlOutputLimitExceededException) {
+                // MathML text projection uses XML text escaping only. Bound the complete parser
+                // input by the remaining HTML budget before AngleSharp allocates a fragment DOM.
+                mathMl = equation.ToMathMl(remaining, options.MaxEquationNestingDepth);
+            } catch (WordMathMlOutputLimitExceededException exception) {
                 ThrowExportLimitExceeded(
                     options,
                     "WordHtmlOutputLimitExceeded",
                     "Generated MathML exceeds the configured HTML output-character limit before DOM construction.",
                     "EquationMathMl",
-                    SaturatingAdd(options.MaxOutputCharacters, 1),
+                    GetCumulativeOutputCharacters(options, exception),
                     options.MaxOutputCharacters);
                 return null;
             } catch (InvalidDataException exception) {
@@ -65,14 +75,17 @@ namespace OfficeIMO.Word.Html {
                 countingWriter.CharacterCount,
                 "Generated MathML exceeds the configured HTML output-character limit before DOM construction.",
                 "EquationMathMl");
-            ReserveOutputCharacters(
-                htmlDocument,
-                " aria-label=\"\"".Length + GetHtmlEncodedLength(label, attributeValue: true),
-                "Generated equation accessibility metadata exceeds the configured HTML output-character limit before DOM construction.",
-                "EquationAriaLabel");
-            // The complete serialized aria-label attribute is reserved before DOM assignment.
+            // The complete serialized aria-label attribute was reserved before materializing
+            // either the MathML fragment DOM or the attribute value.
             mathNode.SetAttribute("aria-label", label);
             return mathNode;
+        }
+
+        private static long GetCumulativeOutputCharacters(
+            WordToHtmlOptions options,
+            WordMathMlOutputLimitExceededException exception) {
+            long consumedBeforeProjection = Math.Max(0, options.MaxOutputCharacters - exception.Limit);
+            return SaturatingAdd(consumedBeforeProjection, exception.Actual);
         }
 
         private INode CreateEquationAdjacentTextNode(
