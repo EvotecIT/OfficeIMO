@@ -86,6 +86,12 @@ public sealed class CsvLoadOptions
     public string[]? DateTimeFormats { get; set; }
 
     /// <summary>
+    /// Gets or sets whether schema and row-mapping failures may include source values.
+    /// Defaults to <see cref="DataMappingErrorValuePolicy.Include"/> for compatibility.
+    /// </summary>
+    public DataMappingErrorValuePolicy MappingErrorValuePolicy { get; set; } = DataMappingErrorValuePolicy.Include;
+
+    /// <summary>
     /// Gets or sets how malformed quoted fields are handled. Default is <see cref="CsvQuoteParsingMode.Lenient"/>
     /// to preserve common PowerShell-style import behavior.
     /// </summary>

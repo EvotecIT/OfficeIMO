@@ -138,7 +138,9 @@ foreach (Person person in reader.RowsAs<Person>()) {
 The same automatic and explicit `RowsAs<T>` mappings work on both a materialized
 `CsvDocument` and a forward-only reader. The caller owns and disposes the reader.
 
-Use the explicit overload for immutable models and trimming or NativeAOT-sensitive applications:
+Use the explicit overload when assignments must be declared without reflection,
+including trimming- and NativeAOT-sensitive applications. This overload still
+requires `T : new()`:
 
 ```csharp
 using OfficeIMO.CSV;
@@ -171,7 +173,8 @@ public sealed class Person {
 }
 ```
 
-For immutable models, return a new instance from each assignment:
+For a non-positional record with a public parameterless constructor, an
+assignment can return a new value from each step:
 
 ```csharp
 using OfficeIMO.CSV;
@@ -206,6 +209,16 @@ public sealed record PersonRecord(int Id, string Name);
 The factory receives the current `IDataRecord`; its typed getters use the CSV
 reader's configured culture and schema conversions. The same overload is
 available on `DbDataReader` and does not require `T : new()`.
+
+On .NET 8 and later, explicit `DateOnly` and `TimeOnly` targets are supported by
+`RowsAs<T>`, `GetFieldValue<T>`, and `CsvColumnBuilder.AsDateOnly()` /
+`AsTimeOnly()`. Default schema inference remains `DateTime`, so moving between
+target frameworks does not silently change a column's inferred type.
+
+Set `CsvLoadOptions.MappingErrorValuePolicy` to
+`DataMappingErrorValuePolicy.Redact` when schema and row-mapping failures must
+not include source values or custom-converter exception details. The default is
+`Include` for compatibility.
 
 ## Read once or edit
 
@@ -260,6 +273,15 @@ table.Load(reader);
 
 `OpenDataReader` is the forward-only entry point. Use `CsvDocument.Load` when a
 materialized document is required; 3.1 no longer exposes a load-mode switch.
+`LoadAsync` and `SaveAsync` perform asynchronous source or destination I/O but
+still materialize the document or serialized output. They are not an async CSV
+cursor; `DbDataReader.Read()` remains the bounded forward-only read path.
+
+Streaming readers also implement `ICsvDataReaderPositionMetadata`. Its
+`RecordNumber` is the one-based data-record number, while
+`PhysicalLineNumber` and `PhysicalEndLineNumber` identify the source lines for
+the current record when the selected reader path retains that information.
+Physical line values are `null` for materialized paths rather than estimated.
 
 ## Real-world headers
 
@@ -347,7 +369,7 @@ Console.WriteLine($"Imported {rowsRead} rows");
 
 ## Export options
 
-CSV output supports null tokens, date/time formatting, UTC conversion, append, no-clobber checks, compression, quoting, encoding, and formula escaping:
+CSV output supports null tokens, date/time formatting, UTC conversion, append, no-clobber checks, compression, quoting, encoding, and formula escaping. Formula escaping applies to text and configured text tokens; typed negative numeric values remain numeric:
 
 ```csharp
 CsvDocument.Load("input.csv")

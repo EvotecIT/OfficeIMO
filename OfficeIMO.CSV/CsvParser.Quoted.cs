@@ -610,7 +610,7 @@ internal static partial class CsvParser
                 return QuotedRecordParseResult.Incomplete;
             }
 
-            continuations.Add(new CsvLine(next, lineSeparator));
+            continuations.Add(new CsvLine(next, lineSeparator, lineNumber + 1));
             line = next;
             index = 0;
             start = 0;

@@ -25,6 +25,21 @@ public interface IDataReaderMappingMetadata {
     bool RequireAllColumnsMapped { get; }
 }
 
+/// <summary>Controls whether typed-mapping failures may include source values.</summary>
+public enum DataMappingErrorValuePolicy {
+    /// <summary>Preserve converter and framework error details, which may include the source value.</summary>
+    Include = 0,
+
+    /// <summary>Omit source values and converter exception details from mapping errors.</summary>
+    Redact = 1
+}
+
+/// <summary>Supplies error-detail policy for typed mapping without extending the base metadata contract.</summary>
+public interface IDataReaderMappingErrorMetadata {
+    /// <summary>Gets how source values are represented in typed-mapping failures.</summary>
+    DataMappingErrorValuePolicy MappingErrorValuePolicy { get; }
+}
+
 /// <summary>Supplies additional column aliases for a model property.</summary>
 public interface IDataColumnAliasProvider {
     /// <summary>Gets the column names that may bind to the decorated property.</summary>
@@ -105,14 +120,16 @@ public static class DataReaderMappingExtensions {
             out CultureInfo culture,
             out IReadOnlyList<string>? dateTimeFormats,
             out Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
-            out bool requireAllColumnsMapped);
+            out bool requireAllColumnsMapped,
+            out DataMappingErrorValuePolicy errorValuePolicy);
         AutomaticRowMappingPlan<T> plan = AutomaticRowMappingPlan<T>.Create(GetHeaders(reader), requireAllColumnsMapped);
         while (reader.Read()) {
             yield return plan.MapRow(
                 index => NormalizeDatabaseNull(reader.GetValue(index)),
                 culture,
                 dateTimeFormats,
-                typeConverter);
+                typeConverter,
+                errorValuePolicy);
         }
     }
 
@@ -129,13 +146,15 @@ public static class DataReaderMappingExtensions {
             out CultureInfo culture,
             out IReadOnlyList<string>? dateTimeFormats,
             out Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
-            out _);
+            out _,
+            out DataMappingErrorValuePolicy errorValuePolicy);
         while (reader.Read()) {
             yield return plan.MapRow(
                 index => NormalizeDatabaseNull(reader.GetValue(index)),
                 culture,
                 dateTimeFormats,
-                typeConverter);
+                typeConverter,
+                errorValuePolicy);
         }
     }
 
@@ -165,19 +184,23 @@ public static class DataReaderMappingExtensions {
         out CultureInfo culture,
         out IReadOnlyList<string>? dateTimeFormats,
         out Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
-        out bool requireAllColumnsMapped) {
+        out bool requireAllColumnsMapped,
+        out DataMappingErrorValuePolicy errorValuePolicy) {
         if (reader is IDataReaderMappingMetadata metadata) {
             culture = metadata.MappingCulture;
             dateTimeFormats = metadata.MappingDateTimeFormats;
             typeConverter = metadata.MappingTypeConverter;
             requireAllColumnsMapped = metadata.RequireAllColumnsMapped;
-            return;
+        } else {
+            culture = CultureInfo.InvariantCulture;
+            dateTimeFormats = null;
+            typeConverter = null;
+            requireAllColumnsMapped = false;
         }
 
-        culture = CultureInfo.InvariantCulture;
-        dateTimeFormats = null;
-        typeConverter = null;
-        requireAllColumnsMapped = false;
+        errorValuePolicy = reader is IDataReaderMappingErrorMetadata errorMetadata
+            ? errorMetadata.MappingErrorValuePolicy
+            : DataMappingErrorValuePolicy.Include;
     }
 }
 
@@ -188,7 +211,8 @@ internal interface IRowMappingEntry<T> {
         object? rawValue,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
-        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter);
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
+        DataMappingErrorValuePolicy errorValuePolicy);
 }
 
 internal sealed class RowMappingEntry<T, TValue> : IRowMappingEntry<T> {
@@ -206,8 +230,9 @@ internal sealed class RowMappingEntry<T, TValue> : IRowMappingEntry<T> {
         object? rawValue,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
-        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter) {
-        TValue? value = DataValueConverter.ConvertTo<TValue>(rawValue, culture, dateTimeFormats, typeConverter);
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
+        DataMappingErrorValuePolicy errorValuePolicy) {
+        TValue? value = DataValueConverter.ConvertTo<TValue>(rawValue, culture, dateTimeFormats, typeConverter, errorValuePolicy);
         return _assign(instance, value!);
     }
 }
@@ -217,9 +242,12 @@ internal static class DataValueConverter {
         object? value,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats = null,
-        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null) {
-        if (!TryConvert(value, typeof(T), culture, dateTimeFormats, typeConverter, out object? result, out string? error)) {
-            throw new DataMappingException(error ?? $"Value '{value}' cannot be converted to {typeof(T).Name}.");
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null,
+        DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include) {
+        if (!TryConvert(value, typeof(T), culture, dateTimeFormats, typeConverter, errorValuePolicy, out object? result, out string? error)) {
+            throw new DataMappingException(error ?? (errorValuePolicy == DataMappingErrorValuePolicy.Redact
+                ? $"Value cannot be converted to {typeof(T).Name}."
+                : $"Value '{value}' cannot be converted to {typeof(T).Name}."));
         }
         return (T?)result;
     }
@@ -230,6 +258,25 @@ internal static class DataValueConverter {
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
         Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
+        out object? result,
+        out string? error) =>
+        TryConvert(
+            value,
+            targetType,
+            culture,
+            dateTimeFormats,
+            typeConverter,
+            DataMappingErrorValuePolicy.Include,
+            out result,
+            out error);
+
+    internal static bool TryConvert(
+        object? value,
+        Type targetType,
+        CultureInfo culture,
+        IReadOnlyList<string>? dateTimeFormats,
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
+        DataMappingErrorValuePolicy errorValuePolicy,
         out object? result,
         out string? error) {
         error = null;
@@ -252,7 +299,9 @@ internal static class DataValueConverter {
                     return true;
                 }
             } catch (Exception ex) {
-                error = ex.Message;
+                error = errorValuePolicy == DataMappingErrorValuePolicy.Redact
+                    ? $"Custom converter failed for {effectiveType.Name}."
+                    : ex.Message;
                 return false;
             }
         }
@@ -261,13 +310,34 @@ internal static class DataValueConverter {
             return true;
         }
         if (value is string text) {
-            return TryConvertFromString(text, effectiveType, culture, dateTimeFormats, out result, out error);
+            return TryConvertFromString(text, effectiveType, culture, dateTimeFormats, errorValuePolicy, out result, out error);
         }
+#if NET6_0_OR_GREATER
+        if (effectiveType == typeof(DateOnly) && value is DateTime dateTime) {
+            result = DateOnly.FromDateTime(dateTime);
+            return true;
+        }
+        if (effectiveType == typeof(TimeOnly) && value is DateTime timeDateTime) {
+            result = TimeOnly.FromDateTime(timeDateTime);
+            return true;
+        }
+        if (effectiveType == typeof(TimeOnly) && value is TimeSpan timeSpan &&
+            timeSpan >= TimeSpan.Zero && timeSpan < TimeSpan.FromDays(1)) {
+            result = TimeOnly.FromTimeSpan(timeSpan);
+            return true;
+        }
+        if (effectiveType == typeof(DateTime) && value is DateOnly dateOnly) {
+            result = dateOnly.ToDateTime(TimeOnly.MinValue);
+            return true;
+        }
+#endif
         try {
             result = Convert.ChangeType(value, effectiveType, culture);
             return true;
         } catch (Exception ex) {
-            error = ex.Message;
+            error = errorValuePolicy == DataMappingErrorValuePolicy.Redact
+                ? $"Value cannot be converted to {effectiveType.Name}."
+                : ex.Message;
             return false;
         }
     }
@@ -277,6 +347,7 @@ internal static class DataValueConverter {
         Type targetType,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
+        DataMappingErrorValuePolicy errorValuePolicy,
         out object? result,
         out string? error) {
         error = null;
@@ -296,12 +367,22 @@ internal static class DataValueConverter {
             else if (targetType == typeof(DateTime) && dateTimeFormats is { Count: > 0 } &&
                      DateTime.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out DateTime formattedDateTime)) result = formattedDateTime;
             else if (targetType == typeof(DateTime)) result = DateTime.Parse(text, culture, DateTimeStyles.None);
+#if NET6_0_OR_GREATER
+            else if (targetType == typeof(DateOnly) && dateTimeFormats is { Count: > 0 } &&
+                     DateOnly.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out DateOnly formattedDateOnly)) result = formattedDateOnly;
+            else if (targetType == typeof(DateOnly)) result = DateOnly.Parse(text, culture, DateTimeStyles.None);
+            else if (targetType == typeof(TimeOnly) && dateTimeFormats is { Count: > 0 } &&
+                     TimeOnly.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out TimeOnly formattedTimeOnly)) result = formattedTimeOnly;
+            else if (targetType == typeof(TimeOnly)) result = TimeOnly.Parse(text, culture, DateTimeStyles.None);
+#endif
             else if (targetType == typeof(Guid) && Guid.TryParse(text, out Guid guidValue)) result = guidValue;
             else if (targetType.IsEnum) result = Enum.Parse(targetType, text, ignoreCase: true);
             else result = Convert.ChangeType(text, targetType, culture);
             return true;
         } catch (Exception ex) {
-            error = ex.Message;
+            error = errorValuePolicy == DataMappingErrorValuePolicy.Redact
+                ? $"Value cannot be converted to {targetType.Name}."
+                : ex.Message;
             return false;
         }
     }

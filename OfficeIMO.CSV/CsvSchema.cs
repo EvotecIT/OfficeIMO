@@ -187,6 +187,18 @@ public sealed class CsvColumnBuilder
     /// </summary>
     public CsvColumnBuilder AsDateTime() => AsType(typeof(DateTime));
 
+#if NET6_0_OR_GREATER
+    /// <summary>
+    /// Sets the expected data type to <see cref="DateOnly"/> without changing default date inference.
+    /// </summary>
+    public CsvColumnBuilder AsDateOnly() => AsType(typeof(DateOnly));
+
+    /// <summary>
+    /// Sets the expected data type to <see cref="TimeOnly"/> without changing default time inference.
+    /// </summary>
+    public CsvColumnBuilder AsTimeOnly() => AsType(typeof(TimeOnly));
+#endif
+
     /// <summary>
     /// Sets the expected data type to <see cref="bool"/>.
     /// </summary>

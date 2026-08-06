@@ -175,6 +175,14 @@ the package's existing first-party reader; use `ExcelDocument.Load` when the
 workbook must be inspected, edited, or saved again. CSV uses the parallel
 `CsvDocument.OpenDataReader` API from the separate `OfficeIMO.CSV` package.
 
+On .NET 8 and later, request `DateOnly` or `TimeOnly` explicitly through
+`GetFieldValue<T>` or `RowsAs<T>`. Inferred Excel date/time columns remain
+`DateTime`, so moving between target frameworks does not silently change the
+reader schema. Set `ExcelReadOptions.MappingErrorValuePolicy` to
+`DataMappingErrorValuePolicy.Redact` when typed mapping failures must omit
+source values and custom-converter exception details; the default is `Include`
+for compatibility.
+
 ### Append to an existing table
 
 ```csharp

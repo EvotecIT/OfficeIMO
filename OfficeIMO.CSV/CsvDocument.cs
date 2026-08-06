@@ -26,6 +26,7 @@ public sealed partial class CsvDocument
     private Encoding _encoding;
     private CsvColumnCountMismatchPolicy _columnCountMismatchPolicy;
     private string[]? _dateTimeFormats;
+    private DataMappingErrorValuePolicy _mappingErrorValuePolicy;
     private CsvSchema? _schema;
     private bool _rowsAreParsedStringsOnly;
 
@@ -41,7 +42,14 @@ public sealed partial class CsvDocument
         _columnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict;
     }
 
-    private CsvDocument(CsvLoadMode mode, char delimiter, CultureInfo culture, Encoding encoding, CsvColumnCountMismatchPolicy columnCountMismatchPolicy, string[]? dateTimeFormats = null)
+    private CsvDocument(
+        CsvLoadMode mode,
+        char delimiter,
+        CultureInfo culture,
+        Encoding encoding,
+        CsvColumnCountMismatchPolicy columnCountMismatchPolicy,
+        string[]? dateTimeFormats = null,
+        DataMappingErrorValuePolicy mappingErrorValuePolicy = DataMappingErrorValuePolicy.Include)
     {
         _mode = mode;
         _delimiter = delimiter;
@@ -49,6 +57,7 @@ public sealed partial class CsvDocument
         _encoding = encoding;
         _columnCountMismatchPolicy = columnCountMismatchPolicy;
         _dateTimeFormats = dateTimeFormats;
+        _mappingErrorValuePolicy = mappingErrorValuePolicy;
     }
 
     /// <summary>
@@ -345,6 +354,9 @@ public sealed partial class CsvDocument
     /// </summary>
     public IReadOnlyList<string>? DateTimeFormats => _dateTimeFormats;
 
+    /// <summary>Gets how source values are represented in schema and row-mapping failures.</summary>
+    public DataMappingErrorValuePolicy MappingErrorValuePolicy => _mappingErrorValuePolicy;
+
     /// <summary>
     /// Saves the document to the specified path.
     /// </summary>
@@ -618,6 +630,13 @@ public sealed partial class CsvDocument
         }
 
         _dateTimeFormats = formats.ToArray();
+        return this;
+    }
+
+    /// <summary>Sets whether schema and row-mapping failures may include source values.</summary>
+    public CsvDocument WithMappingErrorValuePolicy(DataMappingErrorValuePolicy policy)
+    {
+        _mappingErrorValuePolicy = policy;
         return this;
     }
 

@@ -31,6 +31,8 @@ internal sealed partial class CsvLineReader : IDisposable
 
     internal char[] Buffer => _buffer;
 
+    internal int PhysicalLineSeparatorsConsumed { get; private set; }
+
     internal bool TryGrowFilledBuffer(int minimumCapacity)
     {
         if (minimumCapacity <= _buffer.Length || _length < _buffer.Length)
@@ -881,6 +883,7 @@ internal sealed partial class CsvLineReader : IDisposable
     private void ConsumeLineSeparator(char newline, out string separator)
     {
         _position++;
+        PhysicalLineSeparatorsConsumed++;
         if (newline == '\r')
         {
             separator = ConsumeLineFeedAfterCarriageReturn() ? "\r\n" : "\r";

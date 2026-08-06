@@ -29,7 +29,15 @@ internal sealed partial class CsvLineReader
 
         var start = _position;
         Span<StandardCsvFieldSpan> fields = stackalloc StandardCsvFieldSpan[StandardQuotedFieldSpanCapacity];
-        if (!TryParseStandardQuotedFieldSpans(start, delimiter, trim, fields, out var fieldCountValue, out var firstFieldLength, out var recordEnd))
+        if (!TryParseStandardQuotedFieldSpans(
+                start,
+                delimiter,
+                trim,
+                fields,
+                out var fieldCountValue,
+                out var firstFieldLength,
+                out var recordEnd,
+                out var embeddedLineSeparatorCount))
         {
             return false;
         }
@@ -43,6 +51,7 @@ internal sealed partial class CsvLineReader
 
         isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
         _position = recordEnd;
+        PhysicalLineSeparatorsConsumed += embeddedLineSeparatorCount;
         ConsumeLineSeparator(_buffer[recordEnd], out separator);
         readResult = CsvLineReadResult.UnquotedRecord;
         return true;
@@ -99,7 +108,8 @@ internal sealed partial class CsvLineReader
         }
 
         var index = quoteIndex;
-        if (!TryParsePrefixedStandardQuotedField(ref index, out var quotedField) ||
+        var embeddedLineSeparatorCount = 0;
+        if (!TryParsePrefixedStandardQuotedField(ref index, ref embeddedLineSeparatorCount, out var quotedField) ||
             !TryAddStandardField(fields, ref fieldCount, quotedField, ref firstFieldLength))
         {
             return false;
@@ -111,6 +121,7 @@ internal sealed partial class CsvLineReader
                 fields,
                 ref fieldCount,
                 ref firstFieldLength,
+                ref embeddedLineSeparatorCount,
                 out var recordEnd))
         {
             return false;
@@ -124,6 +135,7 @@ internal sealed partial class CsvLineReader
 
         isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
         _position = recordEnd;
+        PhysicalLineSeparatorsConsumed += embeddedLineSeparatorCount;
         ConsumeLineSeparator(_buffer[recordEnd], out separator);
         readResult = CsvLineReadResult.UnquotedRecord;
         return true;
@@ -136,11 +148,13 @@ internal sealed partial class CsvLineReader
         Span<StandardCsvFieldSpan> fields,
         out int fieldCount,
         out int firstFieldLength,
-        out int recordEnd)
+        out int recordEnd,
+        out int embeddedLineSeparatorCount)
     {
         fieldCount = 0;
         firstFieldLength = 0;
         recordEnd = -1;
+        embeddedLineSeparatorCount = 0;
         var index = start;
         var pendingTrailingField = false;
 
@@ -173,7 +187,7 @@ internal sealed partial class CsvLineReader
             StandardCsvFieldSpan field;
             if (value == '"')
             {
-                if (!TryParseStandardQuotedField(ref index, delimiter, trim, out field))
+                if (!TryParseStandardQuotedField(ref index, delimiter, trim, ref embeddedLineSeparatorCount, out field))
                 {
                     return false;
                 }
@@ -217,7 +231,12 @@ internal sealed partial class CsvLineReader
         return false;
     }
 
-    private bool TryParseStandardQuotedField(ref int index, char delimiter, bool trim, out StandardCsvFieldSpan field)
+    private bool TryParseStandardQuotedField(
+        ref int index,
+        char delimiter,
+        bool trim,
+        ref int embeddedLineSeparatorCount,
+        out StandardCsvFieldSpan field)
     {
         index++;
         var valueStart = index;
@@ -226,6 +245,22 @@ internal sealed partial class CsvLineReader
 
         while (index < _length)
         {
+            if (_buffer[index] == '\r')
+            {
+                embeddedLineSeparatorCount++;
+                index++;
+                if (index < _length && _buffer[index] == '\n')
+                {
+                    index++;
+                }
+                continue;
+            }
+            if (_buffer[index] == '\n')
+            {
+                embeddedLineSeparatorCount++;
+                index++;
+                continue;
+            }
             if (_buffer[index] != '"')
             {
                 index++;
@@ -266,7 +301,10 @@ internal sealed partial class CsvLineReader
         return false;
     }
 
-    private bool TryParsePrefixedStandardQuotedField(ref int index, out StandardCsvFieldSpan field)
+    private bool TryParsePrefixedStandardQuotedField(
+        ref int index,
+        ref int embeddedLineSeparatorCount,
+        out StandardCsvFieldSpan field)
     {
         index++;
         var valueStart = index;
@@ -281,6 +319,8 @@ internal sealed partial class CsvLineReader
                 field = default;
                 return false;
             }
+
+            embeddedLineSeparatorCount += CountLineSeparators(_buffer.AsSpan(index, quoteOffset));
 
             index += quoteOffset;
             if (index + 1 < _length && _buffer[index + 1] == '"')
@@ -354,6 +394,7 @@ internal sealed partial class CsvLineReader
         Span<StandardCsvFieldSpan> fields,
         ref int fieldCount,
         ref int firstFieldLength,
+        ref int embeddedLineSeparatorCount,
         out int recordEnd)
     {
         recordEnd = -1;
@@ -388,7 +429,12 @@ internal sealed partial class CsvLineReader
             StandardCsvFieldSpan field;
             if (value == '"')
             {
-                if (!TryParseStandardQuotedField(ref index, delimiter, trim: false, out field))
+                if (!TryParseStandardQuotedField(
+                        ref index,
+                        delimiter,
+                        trim: false,
+                        ref embeddedLineSeparatorCount,
+                        out field))
                 {
                     return false;
                 }
@@ -410,6 +456,28 @@ internal sealed partial class CsvLineReader
         }
 
         return false;
+    }
+
+    private static int CountLineSeparators(ReadOnlySpan<char> value)
+    {
+        int count = 0;
+        for (int index = 0; index < value.Length; index++)
+        {
+            if (value[index] == '\r')
+            {
+                count++;
+                if (index + 1 < value.Length && value[index + 1] == '\n')
+                {
+                    index++;
+                }
+            }
+            else if (value[index] == '\n')
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     private void VisitStandardQuotedFieldSpans<TVisitor>(

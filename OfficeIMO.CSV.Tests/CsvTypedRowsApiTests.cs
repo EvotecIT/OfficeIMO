@@ -145,6 +145,48 @@ public sealed class CsvTypedRowsApiTests {
         Assert.Equal(165258.24m, row.Amount);
     }
 
+    [Fact]
+    public void RowsAs_ConvertsExplicitDateOnlyAndTimeOnlyTargetsWithoutChangingInference() {
+        CsvDocument document = CsvDocument.Parse("Date,Time\n2026-08-06,14:35:12\n");
+
+        DateAndTimeRow row = Assert.Single(document.RowsAs<DateAndTimeRow>());
+        CsvSchema inferred = document.InferSchema();
+
+        Assert.Equal(new DateOnly(2026, 8, 6), row.Date);
+        Assert.Equal(new TimeOnly(14, 35, 12), row.Time);
+        Assert.Equal(typeof(DateTime), inferred.Columns[0].DataType);
+    }
+
+    [Fact]
+    public void RowsAs_RedactsSourceValuesWhenRequested() {
+        const string secret = "customer-secret-value";
+        CsvDocument document = CsvDocument.Parse(
+            $"Order Id\n{secret}\n",
+            new CsvLoadOptions { MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact });
+
+        DataMappingException exception = Assert.Throws<DataMappingException>(() =>
+            document.RowsAs<SalesRow>().ToArray());
+
+        Assert.DoesNotContain(secret, exception.ToString(), StringComparison.Ordinal);
+        Assert.Contains("cannot be converted", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void RowsAs_PreservesSourceValuesByDefault() {
+        const string sourceValue = "not-an-order-id";
+        CsvDocument document = CsvDocument.Parse($"Order Id\n{sourceValue}\n");
+
+        DataMappingException exception = Assert.Throws<DataMappingException>(() =>
+            document.RowsAs<SalesRow>().ToArray());
+
+        Assert.Contains(sourceValue, exception.ToString(), StringComparison.Ordinal);
+    }
+
+    private sealed class DateAndTimeRow {
+        public DateOnly Date { get; set; }
+        public TimeOnly Time { get; set; }
+    }
+
     private sealed class SalesRow {
         public int OrderId { get; set; }
         public string SalesChannel { get; set; } = string.Empty;

@@ -19,12 +19,14 @@ try {
         var sales = new DataTable("Sales");
         sales.Columns.Add("Region", typeof(string));
         sales.Columns.Add("Revenue", typeof(decimal));
-        sales.Rows.Add("North", 1250000M);
-        sales.Rows.Add("South", 980000M);
+        sales.Columns.Add("Date", typeof(DateOnly));
+        sales.Columns.Add("Time", typeof(TimeOnly));
+        sales.Rows.Add("North", 1250000M, new DateOnly(2026, 8, 6), new TimeOnly(14, 35, 12));
+        sales.Rows.Add("South", 980000M, new DateOnly(2026, 8, 7), new TimeOnly(9, 15, 0));
 
         ExcelSheet sheet = document.AddWorksheet("NativeAOT data");
         string range = sheet.InsertDataTableAsTable(sales, tableName: "Sales");
-        if (range != "A1:B3") {
+        if (range != "A1:D3") {
             throw new InvalidOperationException($"The Excel table used the unexpected range '{range}'.");
         }
         document.Save();
@@ -39,9 +41,12 @@ try {
     }
     AotSalesRow mappedRow = reopened.Sheets[0].RowsAs<AotSalesRow>(map => map
         .FromColumn<string>("Region", static (row, value) => { row.Region = value; return row; })
-        .FromColumn<decimal>("Revenue", static (row, value) => { row.Revenue = value; return row; }))
+        .FromColumn<decimal>("Revenue", static (row, value) => { row.Revenue = value; return row; })
+        .FromColumn<DateOnly>("Date", static (row, value) => { row.Date = value; return row; })
+        .FromColumn<TimeOnly>("Time", static (row, value) => { row.Time = value; return row; }))
         .First();
-    if (mappedRow.Region != "North" || mappedRow.Revenue != 1250000M) {
+    if (mappedRow.Region != "North" || mappedRow.Revenue != 1250000M ||
+        mappedRow.Date != new DateOnly(2026, 8, 6) || mappedRow.Time != new TimeOnly(14, 35, 12)) {
         throw new InvalidOperationException("The AOT-safe typed-row mapping returned unexpected data.");
     }
 
@@ -61,4 +66,6 @@ internal readonly record struct SalesRow(string Region, decimal Revenue);
 internal sealed class AotSalesRow {
     public string Region { get; set; } = string.Empty;
     public decimal Revenue { get; set; }
+    public DateOnly Date { get; set; }
+    public TimeOnly Time { get; set; }
 }

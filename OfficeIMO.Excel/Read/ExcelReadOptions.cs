@@ -180,6 +180,12 @@ namespace OfficeIMO.Excel {
         public Func<object, Type, CultureInfo, (bool ok, object? value)>? TypeConverter { get; set; }
 
         /// <summary>
+        /// Gets or sets whether typed mapping failures may include source values.
+        /// Defaults to <see cref="DataMappingErrorValuePolicy.Include"/> for compatibility.
+        /// </summary>
+        public DataMappingErrorValuePolicy MappingErrorValuePolicy { get; set; } = DataMappingErrorValuePolicy.Include;
+
+        /// <summary>
         /// Maximum number of entries loaded from the workbook shared-string table.
         /// This protects readers from malformed workbooks that advertise or contain
         /// unbounded shared-string tables.
