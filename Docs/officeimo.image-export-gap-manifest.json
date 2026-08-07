@@ -62,9 +62,9 @@
     },
     {
       "id": "html-format-conformance",
-      "owner": "OfficeIMO.Html",
+      "owner": "OfficeIMO.Html, OfficeIMO.Email.Image, and OfficeIMO.Epub.Image",
       "runtimeDependencyPolicy": "first-party-only",
-      "currentContract": "Render continuous and paged HTML, email, and EPUB output through the shared five-format image API with bounded resource policies.",
+      "currentContract": "Render continuous and paged HTML output through the shared five-format image API, with explicit Email.Image and Epub.Image bridges for their source models.",
       "boundary": "HTML owns layout and resource semantics while Drawing owns reusable raster and SVG encoding.",
       "evidence": [
         "OfficeIMO.Html.Tests/Html.Rendering.cs",

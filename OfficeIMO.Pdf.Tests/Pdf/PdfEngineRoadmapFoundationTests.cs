@@ -164,15 +164,15 @@ public class PdfEngineRoadmapFoundationTests {
             }
         };
 
-        PdfDocumentConversionResult result = source.ToPdfDocumentResult(new ReaderPdfProjectionOptions {
-            AssetPolicy = ReaderPdfAssetPolicy.ListMetadata
+        PdfDocumentConversionResult result = source.ToPdfDocumentResult(new PdfProjectionOptions {
+            AssetPolicy = PdfProjectionAssetPolicy.ListMetadata
         });
 
         string text = PdfReadDocument.Open(result.ToBytes()).ExtractText();
         Assert.Contains("The release is ready.", text, StringComparison.Ordinal);
         Assert.Contains("notes.txt", text, StringComparison.Ordinal);
         Assert.Contains(result.Warnings, warning => warning.Code == "source-warning");
-        Assert.Contains(result.Warnings, warning => warning.Code == "reader-email-policy" && warning.Severity == PdfConversionWarningSeverity.Information);
+        Assert.Contains(result.Warnings, warning => warning.Code == "pdf-projection-email-policy" && warning.Severity == PdfConversionWarningSeverity.Information);
     }
 
     [Fact]
@@ -213,8 +213,8 @@ public class PdfEngineRoadmapFoundationTests {
             }
         };
 
-        PdfDocumentConversionResult result = source.ToPdfDocumentResult(new ReaderPdfProjectionOptions {
-            AssetPolicy = ReaderPdfAssetPolicy.ListMetadata
+        PdfDocumentConversionResult result = source.ToPdfDocumentResult(new PdfProjectionOptions {
+            AssetPolicy = PdfProjectionAssetPolicy.ListMetadata
         });
 
         string text = PdfReadDocument.Open(result.ToBytes()).ExtractText();
@@ -260,6 +260,28 @@ public class PdfEngineRoadmapFoundationTests {
     }
 
     [Fact]
+    public void ReaderProjection_PreservesSharedReferenceIdentityAcrossAggregateAndPageContent() {
+        var sharedBlock = new OfficeDocumentBlock {
+            Kind = "paragraph",
+            Text = "SHAREDREFERENCEMARKER"
+        };
+        var source = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Unknown,
+            Blocks = new[] { sharedBlock },
+            Pages = new[] {
+                new OfficeDocumentPage {
+                    Number = 1,
+                    Blocks = new[] { sharedBlock }
+                }
+            }
+        };
+
+        string text = PdfReadDocument.Open(source.ToPdfDocumentResult().ToBytes()).ExtractText();
+
+        Assert.Equal(1, CountOccurrences(text, "SHAREDREFERENCEMARKER"));
+    }
+
+    [Fact]
     public void ReaderProjection_ReportsSelectedAnimationFrameAndHonorsExactPolicy() {
         byte[] animatedGif = CreateTwoFrameGif();
         var source = new OfficeDocumentReadResult {
@@ -270,14 +292,14 @@ public class PdfEngineRoadmapFoundationTests {
         };
 
         PdfDocumentConversionResult selected = source.ToPdfDocumentResult();
-        PdfDocumentConversionResult rejected = source.ToPdfDocumentResult(new ReaderPdfProjectionOptions {
+        PdfDocumentConversionResult rejected = source.ToPdfDocumentResult(new PdfProjectionOptions {
             RasterDecodeOptions = new OfficeRasterDecodeOptions {
                 AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
             }
         });
 
-        Assert.Contains(selected.Warnings, warning => warning.Code == "reader-asset-animation-frame-selected");
-        Assert.Contains(rejected.Warnings, warning => warning.Code == "reader-asset-animation-rejected");
+        Assert.Contains(selected.Warnings, warning => warning.Code == "pdf-projection-asset-animation-frame-selected");
+        Assert.Contains(rejected.Warnings, warning => warning.Code == "pdf-projection-asset-animation-rejected");
         Assert.Contains("animation.gif", PdfReadDocument.Open(rejected.ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
@@ -292,7 +314,7 @@ public class PdfEngineRoadmapFoundationTests {
         };
 
         PdfDocumentConversionResult selected = source.ToPdfDocumentResult();
-        PdfDocumentConversionResult rejected = source.ToPdfDocumentResult(new ReaderPdfProjectionOptions {
+        PdfDocumentConversionResult rejected = source.ToPdfDocumentResult(new PdfProjectionOptions {
             RasterDecodeOptions = new OfficeRasterDecodeOptions {
                 AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
             }
@@ -300,8 +322,8 @@ public class PdfEngineRoadmapFoundationTests {
 
         Assert.True(OfficePngReader.TryGetFrameCount(animatedPng, out int frameCount));
         Assert.Equal(2, frameCount);
-        Assert.Contains(selected.Warnings, warning => warning.Code == "reader-asset-animation-frame-selected");
-        Assert.Contains(rejected.Warnings, warning => warning.Code == "reader-asset-animation-rejected");
+        Assert.Contains(selected.Warnings, warning => warning.Code == "pdf-projection-asset-animation-frame-selected");
+        Assert.Contains(rejected.Warnings, warning => warning.Code == "pdf-projection-asset-animation-rejected");
         Assert.Contains("animation.png", PdfReadDocument.Open(rejected.ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
@@ -315,13 +337,13 @@ public class PdfEngineRoadmapFoundationTests {
             }
         };
 
-        PdfDocumentConversionResult result = source.ToPdfDocumentResult(new ReaderPdfProjectionOptions {
+        PdfDocumentConversionResult result = source.ToPdfDocumentResult(new PdfProjectionOptions {
             PdfOptions = new PdfOptions().SetCatalogUriBase("https://officeimo.net/")
         });
         byte[] bytes = result.ToBytes();
 
         Assert.Contains(relativeTarget, PdfInspector.Inspect(bytes).LinkUris);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "reader-navigation-listed");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "pdf-projection-navigation-listed");
     }
 
     [Fact]
@@ -339,12 +361,12 @@ public class PdfEngineRoadmapFoundationTests {
             }
         };
 
-        PdfDocumentConversionResult result = source.ToPdfDocumentResult(new ReaderPdfProjectionOptions {
-            AssetPolicy = ReaderPdfAssetPolicy.ListMetadata
+        PdfDocumentConversionResult result = source.ToPdfDocumentResult(new PdfProjectionOptions {
+            AssetPolicy = PdfProjectionAssetPolicy.ListMetadata
         });
 
-        Assert.Contains(result.Warnings, warning => warning.Code == "reader-visio-preview-listed");
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "reader-visio-preview-embedded");
+        Assert.Contains(result.Warnings, warning => warning.Code == "pdf-projection-visio-preview-listed");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "pdf-projection-visio-preview-embedded");
     }
 
     private static byte[] CreateTwoFrameGif() {

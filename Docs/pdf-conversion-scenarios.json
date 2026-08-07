@@ -98,7 +98,7 @@
     },
     {
       "id": "html",
-      "sourceFormats": [ "html", "htm", "mhtml", "mht" ],
+      "sourceFormats": [ "html", "htm" ],
       "adapter": "OfficeIMO.Html.Pdf",
       "projectPath": "OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
       "ownerPaths": [ "OfficeIMO.Html/**", "OfficeIMO.Html.Pdf/**" ],
@@ -126,6 +126,19 @@
           "evidenceScenarioIds": [ "html-css-resource-policy" ]
         }
       ]
+    },
+    {
+      "id": "mhtml",
+      "sourceFormats": [ "mhtml", "mht" ],
+      "adapter": "OfficeIMO.Mhtml.Pdf",
+      "projectPath": "OfficeIMO.Mhtml.Pdf/OfficeIMO.Mhtml.Pdf.csproj",
+      "ownerPaths": [ "OfficeIMO.Mhtml/**", "OfficeIMO.Mhtml.Pdf/**", "OfficeIMO.Html/**", "OfficeIMO.Html.Pdf/**" ],
+      "optionsType": "OfficeIMO.Html.Pdf.HtmlPdfSaveOptions",
+      "extensionTypes": [ "OfficeIMO.Mhtml.MhtmlPdfConverterExtensions" ],
+      "scenarioIds": [ "html-css-resource-policy" ],
+      "conversionMode": "native-static-paged",
+      "fidelityStatus": "candidate",
+      "referencePolicy": "officeimo-regression"
     },
     {
       "id": "rtf",

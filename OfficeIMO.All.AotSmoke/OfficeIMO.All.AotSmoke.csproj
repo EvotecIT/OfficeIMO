@@ -22,6 +22,7 @@
     <ProjectReference Include="..\OfficeIMO.Drawing.CodeGlyphX\OfficeIMO.Drawing.CodeGlyphX.csproj" />
     <ProjectReference Include="..\OfficeIMO.Drawing.HarfBuzz\OfficeIMO.Drawing.HarfBuzz.csproj" />
     <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Email.Image\OfficeIMO.Email.Image.csproj" />
     <ProjectReference Include="..\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
     <ProjectReference Include="..\OfficeIMO.Epub.Image\OfficeIMO.Epub.Image.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
@@ -36,12 +37,15 @@
     <ProjectReference Include="..\OfficeIMO.GoogleWorkspace.Sync\OfficeIMO.GoogleWorkspace.Sync.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.Rtf\OfficeIMO.Html.Rtf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex\OfficeIMO.Latex.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex.Markdown\OfficeIMO.Latex.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex.Pdf\OfficeIMO.Latex.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown.Pdf\OfficeIMO.Markdown.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Mhtml\OfficeIMO.Mhtml.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Mhtml.Pdf\OfficeIMO.Mhtml.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.MarkdownRenderer\OfficeIMO.MarkdownRenderer.csproj" />
     <ProjectReference Include="..\OfficeIMO.MarkdownRenderer.IntelligenceX\OfficeIMO.MarkdownRenderer.IntelligenceX.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markup\OfficeIMO.Markup.csproj" />
@@ -115,6 +119,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.Drawing.CodeGlyphX" />
     <TrimmerRootAssembly Include="OfficeIMO.Drawing.HarfBuzz" />
     <TrimmerRootAssembly Include="OfficeIMO.Email" />
+    <TrimmerRootAssembly Include="OfficeIMO.Email.Image" />
     <TrimmerRootAssembly Include="OfficeIMO.Epub" />
     <TrimmerRootAssembly Include="OfficeIMO.Epub.Image" />
     <TrimmerRootAssembly Include="OfficeIMO.Excel" />
@@ -128,12 +133,15 @@
     <TrimmerRootAssembly Include="OfficeIMO.GoogleWorkspace.Sync" />
     <TrimmerRootAssembly Include="OfficeIMO.Html" />
     <TrimmerRootAssembly Include="OfficeIMO.Html.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Html.Rtf" />
     <TrimmerRootAssembly Include="OfficeIMO.Latex" />
     <TrimmerRootAssembly Include="OfficeIMO.Latex.Markdown" />
     <TrimmerRootAssembly Include="OfficeIMO.Latex.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.Markdown" />
     <TrimmerRootAssembly Include="OfficeIMO.Markdown.Html" />
     <TrimmerRootAssembly Include="OfficeIMO.Markdown.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Mhtml" />
+    <TrimmerRootAssembly Include="OfficeIMO.Mhtml.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.MarkdownRenderer" />
     <TrimmerRootAssembly Include="OfficeIMO.MarkdownRenderer.IntelligenceX" />
     <TrimmerRootAssembly Include="OfficeIMO.Markup" />

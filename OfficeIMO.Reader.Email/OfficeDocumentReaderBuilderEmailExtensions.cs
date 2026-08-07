@@ -89,6 +89,7 @@ public static class OfficeDocumentReaderBuilderEmailExtensions {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         return builder
             .AddEmailHandler(options?.Artifacts, replaceExisting)
+            .AddMhtmlHandler(options?.Mhtml, replaceExisting)
             .AddEmailStoreHandler(options?.Stores, replaceExisting)
             .AddEmailAddressBookHandler(options?.AddressBooks, replaceExisting);
     }

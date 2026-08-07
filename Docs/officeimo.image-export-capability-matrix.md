@@ -11,7 +11,7 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 | `OfficeIMO.PowerPoint` | Slide size, backgrounds, master/layout inheritance, shapes, text boxes, tables, chart snapshots, picture relationships | Duplicate chart renderer, duplicate transform engine, private image encoder |
 | `OfficeIMO.Word` | Section/page policy, estimated pagination, body/header/footer traversal, paragraph/table/image flow, Word-specific diagnostics | Duplicate drawing renderer or claims of Microsoft Word-exact pagination |
 | `OfficeIMO.Html` | CSS layout, resource policy, continuous/paged surfaces, async resource resolution, HTML diagnostics | Private image encoders or duplicate Drawing primitives |
-| `OfficeIMO.Html` email bridge | Email body selection, message chrome, and MIME/CID resource mapping into HTML | Another email layout or image engine |
+| `OfficeIMO.Email.Image` | Email body selection, message chrome, RTF/plain-text fallback, and MIME/CID resource mapping into HTML | Another email layout or image engine |
 | `OfficeIMO.Epub.Image` | EPUB chapter selection and retained package-resource mapping into HTML | Another EPUB parser, CSS layout engine, or image encoder |
 | `OfficeIMO.OneNote` | Page hierarchy, positioned content, ink/math/image projection, page selection | Private image encoders |
 | `OfficeIMO.Visio` | Page geometry, shapes, connectors, stencil artwork, labels, native Visio text/layout decisions, and the richer Visio embedded-SVG interpreter needed for linked images, clipping, nested opacity, and CSS | Private output encoders or duplicate shared format mechanics |

@@ -1,4 +1,6 @@
-namespace OfficeIMO.Html;
+using OfficeIMO.Html;
+
+namespace OfficeIMO.Email;
 
 /// <summary>HTML-backed email image-export options.</summary>
 public sealed class EmailImageExportOptions : HtmlRenderOptions {

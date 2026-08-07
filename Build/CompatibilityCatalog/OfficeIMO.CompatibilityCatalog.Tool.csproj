@@ -25,6 +25,8 @@
     <ProjectReference Include="../../OfficeIMO.PowerPoint.OpenDocument/OfficeIMO.PowerPoint.OpenDocument.csproj" />
     <ProjectReference Include="../../OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj" />
     <ProjectReference Include="../../OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Mhtml.Pdf/OfficeIMO.Mhtml.Pdf.csproj" />
     <ProjectReference Include="../../OfficeIMO.Latex.Markdown/OfficeIMO.Latex.Markdown.csproj" />
     <ProjectReference Include="../../OfficeIMO.Latex.Pdf/OfficeIMO.Latex.Pdf.csproj" />
     <ProjectReference Include="../../OfficeIMO.Markdown.Html/OfficeIMO.Markdown.Html.csproj" />

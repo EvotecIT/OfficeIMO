@@ -32,7 +32,7 @@ Reader chunks <------ RTF <-------------> Word/DOCX
 | --- | --- | --- |
 | Core syntax, semantic model, writer, limits, reports, and editing | `OfficeIMO.Rtf` | Reusable RTF engine. |
 | Word mapping and document workflows | `OfficeIMO.Word.Rtf` | Thin bridge over `OfficeIMO.Word`. |
-| Web-safe and round-trip HTML | `OfficeIMO.Html` | URL/resource policy plus semantic HTML mapping. |
+| Web-safe and round-trip HTML | `OfficeIMO.Html.Rtf` | URL/resource policy plus semantic HTML mapping over the independent HTML and RTF engines. |
 | Markdown | `OfficeIMO.Rtf.Markdown` | Semantic `RtfDocument`/`MarkdownDoc` bridge. |
 | PDF | `OfficeIMO.Rtf.Pdf` | Visual export and extractive import through `OfficeIMO.Pdf`. |
 | Reader | `OfficeIMO.Reader.Rtf` | Bounded chunk, table, visual, warning, and provenance extraction. |

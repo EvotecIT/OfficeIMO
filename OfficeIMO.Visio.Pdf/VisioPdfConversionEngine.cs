@@ -1,5 +1,4 @@
-using OfficeIMO.Reader;
-using OfficeIMO.Reader.Visio;
+using OfficeIMO;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Visio.Pdf;
@@ -14,11 +13,10 @@ internal static class VisioPdfConversionEngine {
         operation.Validate();
         cancellationToken.ThrowIfCancellationRequested();
 
-        OfficeDocumentReadResult normalized = document.ToOfficeDocumentReadResult(
+        OfficeDocumentModel normalized = document.ToOfficeDocumentModel(
             operation.SourceName,
-            operation.ReaderOptions,
             operation.VisioOptions,
             cancellationToken);
-        return normalized.ToPdfDocumentResult(operation.ProjectionOptions);
+        return PdfCore.OfficeDocumentModelPdfExtensions.ToPdfDocumentResult(normalized, operation.ProjectionOptions);
     }
 }

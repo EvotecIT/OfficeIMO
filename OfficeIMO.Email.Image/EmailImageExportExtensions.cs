@@ -1,10 +1,11 @@
 using AngleSharp.Html.Dom;
 using OfficeIMO.Drawing;
 using OfficeIMO.Email;
+using OfficeIMO.Html;
 using OfficeIMO.Rtf;
 using System.Net;
 
-namespace OfficeIMO.Html;
+namespace OfficeIMO.Email;
 
 /// <summary>Thin email image-export bridge over the HTML renderer.</summary>
 public static class EmailImageExportExtensions {

@@ -289,12 +289,12 @@ if ($catalog.repository.productionComponentCount -ne @($catalog.components).Coun
     Add-Failure 'The OfficeIMO component summary does not match the generated component list.'
 }
 $expectedRepositoryCounts = [ordered]@{
-    projectCount = 160
-    productionComponentCount = 93
+    projectCount = 164
+    productionComponentCount = 97
     testProjectCount = 31
     benchmarkProjectCount = 15
     validationProjectCount = 22
-    apiReferenceCount = 17
+    apiReferenceCount = 21
     conceptualPageCount = 95
 }
 foreach ($expectedCount in $expectedRepositoryCounts.GetEnumerator()) {
@@ -317,15 +317,43 @@ if ($epubCatalogComponents.Count -eq 0 -or
     Add-Failure 'Every generated OfficeIMO.Epub catalog entry must route to the dedicated EPUB guide.'
 }
 
+$expectedIntegrationGuides = [ordered]@{
+    'OfficeIMO.Html.Rtf' = '/docs/html/'
+    'OfficeIMO.Mhtml' = '/docs/html/'
+    'OfficeIMO.Email.Image' = '/docs/email/'
+    'OfficeIMO.Mhtml.Pdf' = '/docs/html/'
+}
+foreach ($expectedGuide in $expectedIntegrationGuides.GetEnumerator()) {
+    $component = @($catalog.components | Where-Object name -eq $expectedGuide.Key)
+    if ($component.Count -ne 1 -or $component[0].docsUrl -ne $expectedGuide.Value) {
+        Add-Failure "$($expectedGuide.Key) must route to '$($expectedGuide.Value)' in the documentation catalog."
+    }
+}
+
+$pipelinePath = Join-Path $SiteRoot 'pipeline.json'
+$pipeline = Get-Content -LiteralPath $pipelinePath -Raw | ConvertFrom-Json
+$expectedApiDocsHomes = [ordered]@{
+    'build-apidocs-html-rtf' = '/docs/html/'
+    'build-apidocs-mhtml' = '/docs/html/'
+    'build-apidocs-email-image' = '/docs/email/'
+    'build-apidocs-mhtml-pdf' = '/docs/html/'
+}
+foreach ($expectedHome in $expectedApiDocsHomes.GetEnumerator()) {
+    $apiDocsStep = @($pipeline.steps | Where-Object id -eq $expectedHome.Key)
+    if ($apiDocsStep.Count -ne 1 -or $apiDocsStep[0].docsHome -ne $expectedHome.Value) {
+        Add-Failure "$($expectedHome.Key) must link generated API pages to '$($expectedHome.Value)'."
+    }
+}
+
 $aotMatrixPath = Join-Path $SiteRoot 'static\data\aot-compatibility.json'
 $aotMatrix = Get-Content -LiteralPath $aotMatrixPath -Raw | ConvertFrom-Json
 if ($aotMatrix.summary.productionProjectCount -ne $catalog.repository.productionComponentCount) {
     Add-Failure 'The NativeAOT matrix does not account for every production project.'
 }
-if ($aotMatrix.summary.nativeAotValidatedProjectCount -ne 92) {
-    Add-Failure "The NativeAOT matrix validates $($aotMatrix.summary.nativeAotValidatedProjectCount) projects; expected 92."
+if ($aotMatrix.summary.nativeAotValidatedProjectCount -ne 96) {
+    Add-Failure "The NativeAOT matrix validates $($aotMatrix.summary.nativeAotValidatedProjectCount) projects; expected 96."
 }
-if ($aotMatrix.summary.fullyRootedLibraryCount -ne 90 -or
+if ($aotMatrix.summary.fullyRootedLibraryCount -ne 94 -or
     $aotMatrix.summary.boundedWorkflowLibraryCount -ne 1 -or
     $aotMatrix.summary.nativeExecutableCount -ne 1 -or
     $aotMatrix.summary.managedWindowsProjectCount -ne 1) {

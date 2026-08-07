@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.Rtf\OfficeIMO.Html.Rtf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Rtf\OfficeIMO.Reader.Rtf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Rtf\OfficeIMO.Rtf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Rtf.Markdown\OfficeIMO.Rtf.Markdown.csproj" />

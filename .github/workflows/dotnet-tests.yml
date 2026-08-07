@@ -93,9 +93,14 @@ jobs:
           New-Item -ItemType Directory -Force -Path $feed | Out-Null
           $projects = @(
             'OfficeIMO.Core/OfficeIMO.Core.csproj',
+            'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
             'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
             'OfficeIMO.Email/OfficeIMO.Email.csproj',
+            'OfficeIMO.Html/OfficeIMO.Html.csproj',
+            'OfficeIMO.Markdown.Html/OfficeIMO.Markdown.Html.csproj',
+            'OfficeIMO.Mhtml/OfficeIMO.Mhtml.csproj',
             'OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj',
+            'OfficeIMO.Reader.Html/OfficeIMO.Reader.Html.csproj',
             'OfficeIMO.Reader.Email/OfficeIMO.Reader.Email.csproj',
             'OfficeIMO.Reader.Image/OfficeIMO.Reader.Image.csproj'
           )
@@ -117,7 +122,12 @@ jobs:
           $readerEmailVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Email'
           $readerImageVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Image'
           $coreVersion = Get-PackedPackageVersion 'OfficeIMO.Core'
+          $markdownVersion = Get-PackedPackageVersion 'OfficeIMO.Markdown'
           $rtfVersion = Get-PackedPackageVersion 'OfficeIMO.Rtf'
+          $htmlVersion = Get-PackedPackageVersion 'OfficeIMO.Html'
+          $markdownHtmlVersion = Get-PackedPackageVersion 'OfficeIMO.Markdown.Html'
+          $mhtmlVersion = Get-PackedPackageVersion 'OfficeIMO.Mhtml'
+          $readerHtmlVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Html'
           $smokeProperties = @(
             '--property:EnableOfficeIMOEmailPackageSmoke=true',
             "--property:OfficeIMOEmailPackageVersion=$emailVersion",
@@ -144,9 +154,14 @@ jobs:
           $localMapping.SetAttribute('key', 'OfficeIMOLocal')
           foreach ($packageId in @(
             'OfficeIMO.Core',
+            'OfficeIMO.Markdown',
             'OfficeIMO.Rtf',
             'OfficeIMO.Email',
+            'OfficeIMO.Html',
+            'OfficeIMO.Markdown.Html',
+            'OfficeIMO.Mhtml',
             'OfficeIMO.Reader.Core',
+            'OfficeIMO.Reader.Html',
             'OfficeIMO.Reader.Email',
             'OfficeIMO.Reader.Image'
           )) {
@@ -168,7 +183,12 @@ jobs:
             @{ Id = 'officeimo.reader.email'; Version = $readerEmailVersion },
             @{ Id = 'officeimo.reader.image'; Version = $readerImageVersion },
             @{ Id = 'officeimo.core'; Version = $coreVersion },
-            @{ Id = 'officeimo.rtf'; Version = $rtfVersion }
+            @{ Id = 'officeimo.markdown'; Version = $markdownVersion },
+            @{ Id = 'officeimo.rtf'; Version = $rtfVersion },
+            @{ Id = 'officeimo.html'; Version = $htmlVersion },
+            @{ Id = 'officeimo.markdown.html'; Version = $markdownHtmlVersion },
+            @{ Id = 'officeimo.mhtml'; Version = $mhtmlVersion },
+            @{ Id = 'officeimo.reader.html'; Version = $readerHtmlVersion }
           )) {
             $metadataPath = Join-Path $env:NUGET_PACKAGES "$($package.Id)/$($package.Version)/.nupkg.metadata"
             $metadata = Get-Content $metadataPath -Raw | ConvertFrom-Json
@@ -225,8 +245,6 @@ jobs:
           $projects = @(
             'OfficeIMO.Core/OfficeIMO.Core.csproj',
             'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
-            'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
-            'OfficeIMO.Email/OfficeIMO.Email.csproj',
             'OfficeIMO.Html/OfficeIMO.Html.csproj',
             'OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj',
             'OfficeIMO.OneNote/OfficeIMO.OneNote.csproj',
@@ -253,8 +271,6 @@ jobs:
           $packageIds = @(
             'OfficeIMO.Core',
             'OfficeIMO.Markdown',
-            'OfficeIMO.Rtf',
-            'OfficeIMO.Email',
             'OfficeIMO.Html',
             'OfficeIMO.Reader.Core',
             'OfficeIMO.OneNote',

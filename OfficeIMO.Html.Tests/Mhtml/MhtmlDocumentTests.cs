@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using OfficeIMO.Html;
+using OfficeIMO.Mhtml;
 using Xunit;
 
 namespace OfficeIMO.Html.Tests;

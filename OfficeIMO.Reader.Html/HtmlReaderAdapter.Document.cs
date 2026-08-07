@@ -16,12 +16,6 @@ internal static partial class HtmlReaderAdapter {
         ReaderOptions effective = readerOptions ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(htmlPath, effective.MaxInputBytes);
         SourceMetadata source = BuildSourceMetadataFromPath(htmlPath, effective.ComputeHashes);
-        if (IsMhtmlSource(htmlPath)) {
-            MhtmlDocument archive = MhtmlDocument.Load(htmlPath, CreateMhtmlReaderOptions(effective),
-                cancellationToken: cancellationToken);
-            return BuildHtmlDocumentResult(archive.Html, source, effective,
-                PrepareMhtmlHtmlOptions(htmlOptions, archive), cancellationToken, archive);
-        }
         using var stream = new FileStream(htmlPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         string html = ReadAllText(stream, cancellationToken);
         return BuildHtmlDocumentResult(html, source, effective, htmlOptions, cancellationToken);
@@ -37,13 +31,8 @@ internal static partial class HtmlReaderAdapter {
         Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(htmlStream, effective.MaxInputBytes, cancellationToken, out bool ownsParseStream);
         try {
             UpdateSourceMetadataFromSeekableStream(source, parseStream, effective.ComputeHashes);
-            MhtmlDocument? archive = IsMhtmlSource(logicalSourceName)
-                ? LoadMhtml(parseStream, effective, cancellationToken)
-                : null;
-            string html = archive?.Html ?? ReadAllText(parseStream, cancellationToken);
-            return BuildHtmlDocumentResult(html, source, effective,
-                archive == null ? htmlOptions : PrepareMhtmlHtmlOptions(htmlOptions, archive),
-                cancellationToken, archive);
+            string html = ReadAllText(parseStream, cancellationToken);
+            return BuildHtmlDocumentResult(html, source, effective, htmlOptions, cancellationToken);
         } finally {
             if (ownsParseStream) parseStream.Dispose();
         }
@@ -57,6 +46,13 @@ internal static partial class HtmlReaderAdapter {
         string logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.html" : sourceName.Trim();
         SourceMetadata source = BuildSourceMetadataFromHtmlString(logicalSourceName, html, effective.ComputeHashes);
         return BuildHtmlDocumentResult(html, source, effective, htmlOptions, cancellationToken);
+    }
+
+    internal static OfficeDocumentReadResult ReadContentDocument(string html, SourceMetadata source, ReaderOptions readerOptions, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken) {
+        if (html == null) throw new ArgumentNullException(nameof(html));
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (readerOptions == null) throw new ArgumentNullException(nameof(readerOptions));
+        return BuildHtmlDocumentResult(html, source, readerOptions, htmlOptions, cancellationToken);
     }
 
     /// <summary>Reads an HTML file into the shared rich document JSON envelope.</summary>
@@ -75,8 +71,7 @@ internal static partial class HtmlReaderAdapter {
     }
 
     private static OfficeDocumentReadResult BuildHtmlDocumentResult(string html, SourceMetadata source,
-        ReaderOptions readerOptions, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken,
-        MhtmlDocument? archive = null) {
+        ReaderOptions readerOptions, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken) {
         ReaderHtmlOptions effectiveHtmlOptions = ReaderHtmlOptionsCloner.CloneOrDefault(htmlOptions);
         HtmlToMarkdownOptions projectionOptions = effectiveHtmlOptions.HtmlToMarkdownOptions ?? HtmlToMarkdownOptions.CreateOfficeIMOProfile();
         bool hasProjectionFilters = projectionOptions.ExcludeSelectors.Count > 0 || projectionOptions.ElementFilters.Count > 0;
@@ -99,14 +94,13 @@ internal static partial class HtmlReaderAdapter {
         }
         ReaderChunk[] chunks = ReadContent(projectedHtml, source, readerOptions, chunkHtmlOptions, cancellationToken).ToArray();
         HtmlProjection projection = ProjectHtml(logical, source.Path, readerOptions.MaxTableRows, projectionOptions, cancellationToken);
-        if (archive != null) MergeMhtmlResources(projection, archive, source.Path);
         var documentSource = new OfficeDocumentSource {
             Path = source.Path,
             SourceId = source.SourceId,
             SourceHash = source.SourceHash,
             LastWriteUtc = source.LastWriteUtc,
             LengthBytes = source.LengthBytes,
-            Title = FindHtmlMetadata(logical.Root, "title", null) ?? archive?.Subject,
+            Title = FindHtmlMetadata(logical.Root, "title", null),
             Author = FindHtmlMetadata(logical.Root, "meta", "author"),
             Subject = FindHtmlMetadata(logical.Root, "meta", "description"),
             Keywords = FindHtmlMetadata(logical.Root, "meta", "keywords")
@@ -116,7 +110,6 @@ internal static partial class HtmlReaderAdapter {
             ReaderInputKind.Html,
             documentSource,
             new[] { "officeimo.reader.html.rich-v5", "officeimo.html.logical-document" }
-                .Concat(archive == null ? Array.Empty<string>() : new[] { "officeimo.html.mhtml" })
                 .Concat(logical.Capabilities.Select(static capability => "officeimo.html." + capability)),
             projection.Assets);
         result.Html = projectedHtml;
@@ -126,7 +119,6 @@ internal static partial class HtmlReaderAdapter {
         result.Forms = projection.Forms;
         result.Visuals = projection.Visuals;
         result.Metadata = BuildHtmlMetadata(logical, projection);
-        if (archive != null) result.Diagnostics = result.Diagnostics.Concat(MapMhtmlDiagnostics(archive, source.Path)).ToArray();
         return result;
     }
 
@@ -527,7 +519,7 @@ internal static partial class HtmlReaderAdapter {
         Path = path, SourceBlockIndex = blockIndex, SourceBlockKind = kind, BlockAnchor = anchor, TableIndex = tableIndex
     };
 
-    private static string ComputeHtmlHash(byte[] bytes) {
+    internal static string ComputeHtmlHash(byte[] bytes) {
         using var sha = SHA256.Create();
         return string.Concat(sha.ComputeHash(bytes).Select(static value => value.ToString("x2", CultureInfo.InvariantCulture)));
     }

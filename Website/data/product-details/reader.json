@@ -20,6 +20,7 @@
     { "name": "OfficeIMO.Reader.Xml", "description": "XML adapter with element-oriented extraction", "install": "dotnet add package OfficeIMO.Reader.Xml" },
     { "name": "OfficeIMO.Reader.Yaml", "description": "YAML adapter for configuration and manifest ingestion", "install": "dotnet add package OfficeIMO.Reader.Yaml" },
     { "name": "OfficeIMO.Reader.Html", "description": "HTML adapter backed by the Markdown pipeline", "install": "dotnet add package OfficeIMO.Reader.Html" },
+    { "name": "OfficeIMO.Reader.Email", "description": "Email and MHTML adapters, including embedded archive resources", "install": "dotnet add package OfficeIMO.Reader.Email" },
     { "name": "OfficeIMO.Reader.Epub", "description": "EPUB adapter for packaged publications", "install": "dotnet add package OfficeIMO.Reader.Epub" },
     { "name": "OfficeIMO.Reader.Zip", "description": "ZIP archive adapter for safe traversal", "install": "dotnet add package OfficeIMO.Reader.Zip" }
   ]

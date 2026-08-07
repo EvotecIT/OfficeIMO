@@ -2,7 +2,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Visio.Pdf;
 
-/// <summary>Converts loaded Visio documents through the shared Reader and PDF engines.</summary>
+/// <summary>Converts loaded Visio documents through the Visio-owned neutral projection and PDF engine.</summary>
 public static class VisioPdfConverterExtensions {
     /// <summary>Converts a Visio document to the first-party PDF document model.</summary>
     public static PdfCore.PdfDocument ToPdfDocument(this VisioDocument document, VisioPdfSaveOptions? options = null) =>

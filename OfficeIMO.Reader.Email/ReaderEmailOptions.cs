@@ -1,4 +1,5 @@
 using OfficeIMO.Email;
+using OfficeIMO.Reader.Html;
 
 namespace OfficeIMO.Reader.Email;
 
@@ -21,6 +22,9 @@ public sealed class ReaderEmailOptions {
 public sealed class ReaderEmailHandlersOptions {
     /// <summary>Direct message, mailbox, calendar, and vCard options.</summary>
     public ReaderEmailOptions? Artifacts { get; set; }
+
+    /// <summary>MHTML archive projection options.</summary>
+    public ReaderHtmlOptions? Mhtml { get; set; }
 
     /// <summary>PST, OST, OLM, EMLX, and mailbox-directory options.</summary>
     public ReaderEmailStoreOptions? Stores { get; set; }

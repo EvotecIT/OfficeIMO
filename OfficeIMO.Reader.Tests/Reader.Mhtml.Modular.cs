@@ -1,4 +1,5 @@
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.Email;
 using OfficeIMO.Reader.Html;
 using System.Linq;
 using System.Text;
@@ -9,20 +10,40 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderMhtmlModularTests {
     [Fact]
-    public void HtmlHandlerRegistersMhtmlExtensions() {
+    public void HtmlHandlerDoesNotClaimMhtmlExtensions() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddHtmlHandler().Build();
 
         ReaderHandlerCapability capability = Assert.Single(reader.GetCapabilities(), item =>
             item.Id == OfficeDocumentReaderBuilderHtmlExtensions.HandlerId);
+
+        Assert.DoesNotContain(".mht", capability.Extensions);
+        Assert.DoesNotContain(".mhtml", capability.Extensions);
+    }
+
+    [Fact]
+    public void EmailPackageRegistersDedicatedMhtmlHandler() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddMhtmlHandler().Build();
+
+        ReaderHandlerCapability capability = Assert.Single(reader.GetCapabilities(), item =>
+            item.Id == OfficeDocumentReaderBuilderMhtmlExtensions.HandlerId);
 
         Assert.Contains(".mht", capability.Extensions);
         Assert.Contains(".mhtml", capability.Extensions);
     }
 
     [Fact]
-    public void ReaderHtmlProjectsMhtmlTextAndEmbeddedAssets() {
+    public void AggregateEmailRegistrationIncludesMhtml() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddEmailHandlers().Build();
+
+        Assert.Contains(reader.GetCapabilities(), item =>
+            item.Id == OfficeDocumentReaderBuilderMhtmlExtensions.HandlerId &&
+            item.Extensions.Contains(".mhtml", StringComparer.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void ReaderEmailProjectsMhtmlTextAndEmbeddedAssets() {
         byte[] archive = CreateArchive();
-        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddHtmlHandler().Build();
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddMhtmlHandler().Build();
         using var chunkStream = new MemoryStream(archive, writable: false);
 
         ReaderChunk[] chunks = reader.Read(chunkStream, "saved.mhtml").ToArray();
@@ -34,7 +55,8 @@ public sealed class ReaderMhtmlModularTests {
 
         Assert.Equal(ReaderInputKind.Html, result.Kind);
         Assert.Equal("MHTML document", result.Source.Title);
-        Assert.Contains("officeimo.html.mhtml", result.CapabilitiesUsed);
+        Assert.Contains("officeimo.reader.mhtml", result.CapabilitiesUsed);
+        Assert.Contains("officeimo.mhtml", result.CapabilitiesUsed);
         OfficeDocumentAsset asset = Assert.Single(result.Assets);
         Assert.Equal("image", asset.Kind);
         Assert.Equal("image/png", asset.MediaType);
@@ -47,9 +69,9 @@ public sealed class ReaderMhtmlModularTests {
     }
 
     [Fact]
-    public void ReaderHtmlMhtmlHonorsReaderInputLimit() {
+    public void ReaderEmailMhtmlHonorsReaderInputLimit() {
         byte[] archive = CreateArchive();
-        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddHtmlHandler().Build();
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddMhtmlHandler().Build();
         using var stream = new MemoryStream(archive, writable: false);
 
         Exception exception = Assert.ThrowsAny<Exception>(() => reader.ReadDocument(stream, "saved.mht",
