@@ -65,8 +65,10 @@ try {
         !reopened["Dictionary builder"].TryGetCellText(2, 1, out string builderValue) || builderValue != "10") {
         throw new InvalidOperationException("RowsFrom did not preserve generic-only dictionary columns under NativeAOT.");
     }
-    if (!reopened["Dictionary composer"].TryGetCellText(2, 1, out string composerHeader) || composerHeader != "Score" ||
-        !reopened["Dictionary composer"].TryGetCellText(3, 1, out string composerValue) || composerValue != "10") {
+    if (!reopened["Dictionary composer"].TryGetCellText(2, 1, out string composerRankHeader) || composerRankHeader != "Rank" ||
+        !reopened["Dictionary composer"].TryGetCellText(2, 2, out string composerScoreHeader) || composerScoreHeader != "Score" ||
+        !reopened["Dictionary composer"].TryGetCellText(3, 1, out string composerRankValue) || composerRankValue != "1" ||
+        !reopened["Dictionary composer"].TryGetCellText(3, 2, out string composerScoreValue) || composerScoreValue != "10") {
         throw new InvalidOperationException("TableFrom did not preserve generic-only dictionary columns under NativeAOT.");
     }
 
