@@ -7,7 +7,33 @@ This guide contains version-to-version changes that require application code, pa
 - Use support matrices for current coverage and limits.
 - Use this guide when an upgrade no longer compiles or changes an existing workflow.
 
-OfficeIMO 3.1 is a coordinated breaking release. Upgrade every OfficeIMO package in an application to the same `3.1.x` version and perform a clean restore after changing versions.
+OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIMO package in an application to the same `3.2.x` version and perform a clean restore after changing versions.
+
+## OfficeIMO 3.2: neutral conversion model
+
+Direct format conversion no longer uses Reader as its intermediate ownership
+layer. `OfficeIMO.Core` now contains the dependency-free `OfficeDocumentModel`,
+source formats project into that model, and destination packages own their
+output policy.
+
+| OfficeIMO 3.1 usage | OfficeIMO 3.2 replacement |
+| --- | --- |
+| `OfficeIMO.Reader.ReaderPdfProjectionOptions` | `OfficeIMO.Pdf.PdfProjectionOptions` |
+| `ReaderPdfPagePolicy` | `PdfProjectionPagePolicy` |
+| `ReaderPdfAssetPolicy` | `PdfProjectionAssetPolicy` |
+| `ReaderPdfLinkPolicy` | `PdfProjectionLinkPolicy` |
+| `ReaderPdfFormPolicy` | `PdfProjectionFormPolicy` |
+| Reader options passed through `VisioPdfSaveOptions` | `VisioDocumentProjectionOptions` for source projection and `PdfProjectionOptions` for PDF output |
+
+`OfficeIMO.Visio.Pdf` now depends only on `OfficeIMO.Core`, `OfficeIMO.Visio`,
+and `OfficeIMO.Pdf`; it no longer installs `OfficeIMO.Reader.Visio` or
+`OfficeIMO.Reader.Pdf`. Existing Reader-result-to-PDF calls remain available
+through a thin `OfficeIMO.Reader.Pdf` compatibility bridge, but the projection
+implementation and options belong to `OfficeIMO.Pdf`.
+
+## OfficeIMO 3.1
+
+OfficeIMO 3.1 was a coordinated breaking release. The sections below describe upgrades from 3.0 to aligned `3.1.x` packages.
 
 ## Start here: most OfficeIMO.Word applications
 

@@ -25,9 +25,8 @@
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Reader.Pdf\OfficeIMO.Reader.Pdf.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Reader.Visio\OfficeIMO.Reader.Visio.csproj" />
     <ProjectReference Include="..\OfficeIMO.Visio\OfficeIMO.Visio.csproj" />
   </ItemGroup>
   <ItemGroup>

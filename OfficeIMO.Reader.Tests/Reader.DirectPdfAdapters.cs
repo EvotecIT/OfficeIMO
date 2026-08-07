@@ -22,7 +22,7 @@ public sealed class ReaderDirectPdfAdapterTests {
         byte[] pdf = conversion.ToBytes();
 
         Assert.Contains("delivery is ready", PdfReadDocument.Open(pdf).ExtractText(), StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(conversion.Warnings, static warning => warning.Code == "reader-email-policy");
+        Assert.Contains(conversion.Warnings, static warning => warning.Code == "pdf-projection-email-policy");
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public sealed class ReaderDirectPdfAdapterTests {
 
         Assert.True(text.IndexOf("First chapter", StringComparison.Ordinal) <
                     text.IndexOf("Second chapter", StringComparison.Ordinal));
-        Assert.Contains(conversion.Warnings, static warning => warning.Code == "reader-epub-policy");
+        Assert.Contains(conversion.Warnings, static warning => warning.Code == "pdf-projection-epub-policy");
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public sealed class ReaderDirectPdfAdapterTests {
         string text = PdfReadDocument.Open(conversion.ToBytes()).ExtractText();
 
         Assert.Contains("Gateway service", text, StringComparison.Ordinal);
-        Assert.Contains(conversion.Warnings, static warning => warning.Code == "reader-visio-semantic-fallback");
+        Assert.Contains(conversion.Warnings, static warning => warning.Code == "pdf-projection-visio-semantic-fallback");
     }
 
     private static MemoryStream CreateEpub() {

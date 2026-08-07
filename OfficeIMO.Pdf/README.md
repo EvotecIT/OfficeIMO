@@ -709,12 +709,12 @@ PdfHtmlConverterExtensions.SaveAsHtml(
 | [OfficeIMO.OpenDocument.Ods.Pdf](../OfficeIMO.OpenDocument.Ods.Pdf/README.md) | Provides direct ODS and PDF façades without Word or PowerPoint dependencies. |
 | [OfficeIMO.OpenDocument.Odp.Pdf](../OfficeIMO.OpenDocument.Odp.Pdf/README.md) | Provides direct ODP and PDF façades without Word or Excel dependencies. |
 
-The generated [PDF conversion support matrix](../Docs/officeimo.pdf-conversion-support-matrix.md) records current direct and composed routes from the canonical [`Docs/pdf-conversion-scenarios.json`](../Docs/pdf-conversion-scenarios.json) manifest. `OfficeIMO.Reader.Pdf` can project any normalized `OfficeDocumentReadResult` through one explicit PDF policy and merged evidence contract. Email, EPUB, and Visio are advertised as direct conversion only when their route-specific artifact gates are proven. Open PDF work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
+The generated [PDF conversion support matrix](../Docs/officeimo.pdf-conversion-support-matrix.md) records current direct and composed routes from the canonical [`Docs/pdf-conversion-scenarios.json`](../Docs/pdf-conversion-scenarios.json) manifest. `OfficeIMO.Pdf` projects the dependency-free `OfficeDocumentModel` through `PdfProjectionOptions`; `OfficeIMO.Reader.Pdf` keeps a thin compatibility bridge for existing `OfficeDocumentReadResult` workflows. Email, EPUB, and Visio are advertised as direct conversion only when their route-specific artifact gates are proven. Open PDF work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
 
 ## Related packages and docs
 
 - `OfficeIMO.Pdf` provides first-party PDF parsing, layout, writing, rendering, password security, and signature structure. Optional CMS, DER, and X.509 services come from an explicitly supplied `OfficeIMO.Security` provider.
-- Source-format adapters map their document models onto the shared PDF engine.
+- Source-format adapters map their document models onto the neutral `OfficeDocumentModel`; PDF projection remains owned by this package.
 - See the [PDF current-state guide](../Docs/officeimo.pdf.current-state.md) for the detailed capability inventory and known limits.
 
 ## Repository validation

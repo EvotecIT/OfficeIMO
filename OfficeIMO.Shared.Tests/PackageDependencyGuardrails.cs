@@ -241,6 +241,7 @@ public sealed class PackageDependencyGuardrailTests {
     [InlineData("OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj")]
     [InlineData("OfficeIMO.Markdown.Pdf/OfficeIMO.Markdown.Pdf.csproj")]
     [InlineData("OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj")]
+    [InlineData("OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj")]
     [InlineData("OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj")]
     [InlineData("OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj")]
     [InlineData("OfficeIMO.Reader.Rtf/OfficeIMO.Reader.Rtf.csproj")]
@@ -720,6 +721,21 @@ public sealed class PackageDependencyGuardrailTests {
 
         Assert.DoesNotContain(projectReferences, reference => reference.Contains("iText", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(projectReferences, reference => reference.Contains("PdfSharp", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void VisioPdf_DependsOnlyOnTheNeutralModelAndItsFormatEngines() {
+        string[] references = GetProjectReferences(GetRepositoryPath("OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj"));
+
+        Assert.Equal(
+            [
+                "../OfficeIMO.Core/OfficeIMO.Core.csproj",
+                "../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+                "../OfficeIMO.Visio/OfficeIMO.Visio.csproj"
+            ],
+            references);
+        Assert.DoesNotContain(references, static reference =>
+            reference.Contains("OfficeIMO.Reader", StringComparison.OrdinalIgnoreCase));
     }
 
     public static IEnumerable<object[]> OpenDocumentPdfAdapters() {
