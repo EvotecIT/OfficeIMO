@@ -317,6 +317,34 @@ if ($epubCatalogComponents.Count -eq 0 -or
     Add-Failure 'Every generated OfficeIMO.Epub catalog entry must route to the dedicated EPUB guide.'
 }
 
+$expectedIntegrationGuides = [ordered]@{
+    'OfficeIMO.Html.Rtf' = '/docs/html/'
+    'OfficeIMO.Mhtml' = '/docs/html/'
+    'OfficeIMO.Email.Image' = '/docs/email/'
+    'OfficeIMO.Mhtml.Pdf' = '/docs/html/'
+}
+foreach ($expectedGuide in $expectedIntegrationGuides.GetEnumerator()) {
+    $component = @($catalog.components | Where-Object name -eq $expectedGuide.Key)
+    if ($component.Count -ne 1 -or $component[0].docsUrl -ne $expectedGuide.Value) {
+        Add-Failure "$($expectedGuide.Key) must route to '$($expectedGuide.Value)' in the documentation catalog."
+    }
+}
+
+$pipelinePath = Join-Path $SiteRoot 'pipeline.json'
+$pipeline = Get-Content -LiteralPath $pipelinePath -Raw | ConvertFrom-Json
+$expectedApiDocsHomes = [ordered]@{
+    'build-apidocs-html-rtf' = '/docs/html/'
+    'build-apidocs-mhtml' = '/docs/html/'
+    'build-apidocs-email-image' = '/docs/email/'
+    'build-apidocs-mhtml-pdf' = '/docs/html/'
+}
+foreach ($expectedHome in $expectedApiDocsHomes.GetEnumerator()) {
+    $apiDocsStep = @($pipeline.steps | Where-Object id -eq $expectedHome.Key)
+    if ($apiDocsStep.Count -ne 1 -or $apiDocsStep[0].docsHome -ne $expectedHome.Value) {
+        Add-Failure "$($expectedHome.Key) must link generated API pages to '$($expectedHome.Value)'."
+    }
+}
+
 $aotMatrixPath = Join-Path $SiteRoot 'static\data\aot-compatibility.json'
 $aotMatrix = Get-Content -LiteralPath $aotMatrixPath -Raw | ConvertFrom-Json
 if ($aotMatrix.summary.productionProjectCount -ne $catalog.repository.productionComponentCount) {

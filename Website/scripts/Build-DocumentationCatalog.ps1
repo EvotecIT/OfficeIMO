@@ -46,6 +46,7 @@ function Get-DocumentationUrl {
         '^OfficeIMO\.Email' { return '/docs/email/' }
         '^OfficeIMO\.OneNote' { return '/docs/onenote/' }
         '^OfficeIMO\.Html' { return '/docs/html/' }
+        '^OfficeIMO\.Mhtml' { return '/docs/html/' }
         '^OfficeIMO\.OpenDocument' { return '/docs/open-document/' }
         '^OfficeIMO\.Markdown' { return '/docs/markdown/' }
         '^OfficeIMO\.Rtf' { return '/docs/rtf/' }
