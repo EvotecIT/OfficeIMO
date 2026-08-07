@@ -1,17 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Shared HTML and MHTML parsing, resource policy, layout, diagnostics, and direct rendering for OfficeIMO converters.</Description>
+    <Description>HTML parsing, resource policy, CSS layout, diagnostics, and direct rendering for OfficeIMO converters.</Description>
     <AssemblyName>OfficeIMO.Html</AssemblyName>
     <AssemblyTitle>OfficeIMO.Html</AssemblyTitle>
-    <VersionPrefix>3.1.1</VersionPrefix>
+    <VersionPrefix>3.2.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Html</PackageId>
-    <PackageTags>html;mhtml;mht;policy;converter;rtf;image-export;png;jpeg;tiff;svg;webp;officeimo;net472;netstandard2.0;net8.0;net10.0</PackageTags>
+    <PackageTags>html;css;policy;converter;image-export;png;jpeg;tiff;svg;webp;officeimo;net472;netstandard2.0;net8.0;net10.0</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -45,8 +45,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Rtf\OfficeIMO.Rtf.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -55,6 +53,10 @@
     <InternalsVisibleTo Include="OfficeIMO.Epub.Image" />
     <InternalsVisibleTo Include="OfficeIMO.Excel.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.Rtf" />
+    <InternalsVisibleTo Include="OfficeIMO.Mhtml" />
+    <InternalsVisibleTo Include="OfficeIMO.Email.Image" />
+    <InternalsVisibleTo Include="OfficeIMO.Mhtml.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Markdown.Html" />
     <InternalsVisibleTo Include="OfficeIMO.OneNote.Html" />
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Html" />
@@ -73,7 +75,6 @@
     <Using Include="System.Threading.Tasks" />
     <Using Include="AngleSharp.Dom" />
     <Using Include="OfficeIMO.Drawing" />
-    <Using Include="OfficeIMO.Rtf" />
   </ItemGroup>
 
 </Project>

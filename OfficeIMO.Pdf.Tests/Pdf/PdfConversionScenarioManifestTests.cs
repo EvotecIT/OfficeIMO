@@ -2082,7 +2082,7 @@ public sealed class PdfConversionScenarioManifestTests {
             foreach (string scenarioId in adapterScenarioIds) Assert.Contains(scenarioId, scenarioIds);
         }
 
-        Assert.Equal(new[] { "asciidoc", "excel", "html", "latex", "markdown", "onenote", "powerpoint", "rtf", "word" },
+        Assert.Equal(new[] { "asciidoc", "excel", "html", "latex", "markdown", "mhtml", "onenote", "powerpoint", "rtf", "word" },
             catalogIds.OrderBy(id => id, StringComparer.Ordinal));
     }
 

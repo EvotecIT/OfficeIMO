@@ -41,7 +41,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | --- | --- | --- |
 | Drawing, OneNote, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
 | Word, Excel, PowerPoint | [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) | Fluent/editable object models, lifecycle, validation, conversions, managed image export, and first-party `.doc`/`.xls`/`.ppt` support |
-| HTML and MHTML | [AngleSharp](https://github.com/AngleSharp/AngleSharp) and AngleSharp.Css | Resource policy, web-archive projection, media filtering, layout scene, Office/RTF mappings, and PDF/PNG/JPEG/TIFF/SVG/WebP output |
+| HTML | [AngleSharp](https://github.com/AngleSharp/AngleSharp) and AngleSharp.Css | Resource policy, media filtering, layout scene, and PNG/JPEG/TIFF/SVG/WebP output; opt-in bridges add RTF, MHTML, email-image, and PDF workflows |
 | PDF | No third-party PDF or cryptographic dependency | PDF parsing/writing/rendering, password security, signature structure, preservation policy, limits, and diagnostics |
 | Email, email stores, and address books | `System.Text.Encoding.CodePages` | EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, protected-wrapper preservation, limits, and diagnostics |
 | Optional Security provider | [Bouncy Castle](https://www.bouncycastle.org/csharp/) and `System.Security.Cryptography.Xml` | CMS/S/MIME/RFC 3161/X.509/XML DSig orchestration behind one typed provider explicitly supplied to Word, PDF, or Email |
@@ -56,10 +56,10 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated `3.1.x` source packages | 89 |
-| Documented package, tool, and example projects below | 96 |
+| Coordinated `3.2.x` source packages | 93 |
+| Documented package, tool, and example projects below | 100 |
 | Native format, foundation, and shared-service packages | 26 |
-| Conversion and cloud bridge packages | 32 |
+| Conversion and cloud bridge packages | 36 |
 | Unified Reader packages | 27 |
 | Markdown renderer and OfficeIMO Markup surfaces | 10 |
 | Runnable example projects | 1 |
@@ -279,14 +279,40 @@ _Dependency footprint:_ OfficeIMO Markdown, Markdown.Html, and HTML plus `System
 #### [OfficeIMO.Html](OfficeIMO.Html/README.md)
 
 - [x] Canonical `HtmlConversionDocument` with DOM, base-URI, media, resource, and URL-policy ownership
-- [x] MHTML/MHT loading and deterministic saving with HTML root selection plus CID/Content-Location resource resolution
 - [x] CSS-aware layout scene shared by PNG, JPEG, TIFF, SVG, WebP, PDF, and Office adapters
-- [x] Direct PNG, JPEG, TIFF, SVG, and lossless WebP output with structured diagnostics and bounded local/remote resource loading; `OfficeIMO.Html.Pdf` adds PDF
+- [x] Direct PNG, JPEG, TIFF, SVG, and lossless WebP output with structured diagnostics and bounded local/remote resource loading
 - [x] Bounded CSS math, deterministic media preferences, caller stylesheets, paged running strings, shared CSS/SVG color parsing, WOFF 1, and Unicode-range-aware font selection
-- [x] Email body export through the same image pipeline with plain-text fallback, inline MIME resources, page selection, diagnostics, and bounded output
-- [x] Semantic HTML/RTF conversion and shared mappings for Word, Excel, PowerPoint, and Markdown
+- [x] Stable HTML contracts reused by Office, Markdown, Reader, PDF, and optional cross-format bridges
 
-_Dependency footprint:_ AngleSharp and AngleSharp.Css for DOM/CSS parsing, plus first-party OfficeIMO drawing, email, and RTF engines.
+_Dependency footprint:_ `OfficeIMO.Core`, AngleSharp, and AngleSharp.Css. Email, RTF, MHTML, and PDF are not part of the base HTML restore graph.
+
+#### [OfficeIMO.Html.Rtf](OfficeIMO.Html.Rtf/README.md)
+
+- [x] Semantic HTML-to-RTF and RTF-to-HTML conversion with structured fidelity diagnostics
+- [x] Existing `OfficeIMO.Html` conversion namespaces retained while package ownership becomes explicit
+
+_Dependency footprint:_ `OfficeIMO.Core`, `OfficeIMO.Html`, and `OfficeIMO.Rtf`.
+
+#### [OfficeIMO.Mhtml](OfficeIMO.Mhtml/README.md)
+
+- [x] MHTML/MHT loading and deterministic saving with HTML root selection
+- [x] CID and Content-Location resource resolution through the shared HTML resource policy
+
+_Dependency footprint:_ `OfficeIMO.Core`, `OfficeIMO.Html`, and `OfficeIMO.Email` for MIME parsing.
+
+#### [OfficeIMO.Email.Image](OfficeIMO.Email.Image/README.md)
+
+- [x] Email body export through the HTML image pipeline with plain-text and RTF fallbacks
+- [x] Inline MIME/CID resources, page selection, diagnostics, and bounded output
+
+_Dependency footprint:_ `OfficeIMO.Core`, `OfficeIMO.Email`, `OfficeIMO.Html`, and `OfficeIMO.Html.Rtf`.
+
+#### [OfficeIMO.Mhtml.Pdf](OfficeIMO.Mhtml.Pdf/README.md)
+
+- [x] Bounded MHTML-to-PDF conversion with embedded MIME resources and combined diagnostics
+- [x] First-party PDF document, bytes, stream, path, sync, and async result paths
+
+_Dependency footprint:_ `OfficeIMO.Core`, `OfficeIMO.Mhtml`, `OfficeIMO.Html.Pdf`, and `OfficeIMO.Pdf`.
 
 #### [OfficeIMO.AsciiDoc](OfficeIMO.AsciiDoc/README.md)
 
@@ -731,11 +757,12 @@ _Dependency footprint:_ only OfficeIMO.Reader.Core and CSV.
 #### [OfficeIMO.Reader.Email](OfficeIMO.Reader.Email/README.md)
 
 - [x] One adapter package for EML, MSG/OFT, TNEF, Mbox/MBX, iCalendar, vCard, PST/OST/OLM/EMLX, mailbox directories, and OAB
+- [x] Dedicated MHT/MHTML registration with archive resources projected through the lean HTML Reader
 - [x] Stable artifact/store/folder/item logical paths, typed metadata, semantic bodies, attachments, hashes, and rich results
 - [x] Bounded selective store and address-book projection with visible truncation and opt-in complete-source hashing
 - [x] Nested attachment delegation through only the Reader handlers configured by the host
 
-_Dependency footprint:_ `OfficeIMO.Reader.Core` and the unified `OfficeIMO.Email` package; Store and AddressBook do not add NuGet layers.
+_Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Email`, `OfficeIMO.Mhtml`, and `OfficeIMO.Reader.Html`; Store and AddressBook do not add NuGet layers.
 
 #### [OfficeIMO.Reader.Word](OfficeIMO.Reader.Word/README.md)
 
@@ -775,12 +802,11 @@ _Dependency footprint:_ only `OfficeIMO.Reader.Core`, Reader.Html, and EPUB.
 
 #### [OfficeIMO.Reader.Html](OfficeIMO.Reader.Html/README.md)
 
-- [x] HTML/MHTML-to-Markdown chunks with heading-aware splitting
+- [x] HTML/HTM/XHTML-to-Markdown chunks with heading-aware splitting
 - [x] Tables, figures, links, forms, media visuals, metadata, and bounded data-URI assets
-- [x] Embedded MHTML resources as Reader assets with archive diagnostics and capability evidence
 - [x] HTML profile, transform, converter, and visual round-trip option pass-through
 
-_Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Html`, `OfficeIMO.Markdown.Html`, and `OfficeIMO.Email` for MHTML resources.
+_Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Html`, and `OfficeIMO.Markdown.Html`; Email, RTF, and MHTML stay outside the HTML Reader graph.
 
 #### [OfficeIMO.Reader.Image](OfficeIMO.Reader.Image/README.md)
 

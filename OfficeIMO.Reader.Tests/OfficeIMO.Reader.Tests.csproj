@@ -33,6 +33,7 @@
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Mhtml\OfficeIMO.Mhtml.csproj" />
     <ProjectReference Include="..\OfficeIMO.OpenDocument\OfficeIMO.OpenDocument.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />

@@ -1,6 +1,7 @@
 using OfficeIMO.Email;
+using OfficeIMO.Html;
 
-namespace OfficeIMO.Html;
+namespace OfficeIMO.Mhtml;
 
 /// <summary>
 /// Represents an MHTML web archive as an HTML document plus its decoded MIME related resources.

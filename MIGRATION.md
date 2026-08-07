@@ -31,6 +31,22 @@ and `OfficeIMO.Pdf`; it no longer installs `OfficeIMO.Reader.Visio` or
 through a thin `OfficeIMO.Reader.Pdf` compatibility bridge, but the projection
 implementation and options belong to `OfficeIMO.Pdf`.
 
+## OfficeIMO 3.2: explicit HTML and MHTML bridges
+
+`OfficeIMO.Html` is now the lean HTML engine. It no longer makes ordinary HTML, Markdown, Office-conversion, Reader, or EPUB applications acquire Email or RTF packages. Cross-format behavior moved to packages whose names describe both sides of the operation.
+
+| Existing workflow | 3.2 package and code change |
+| --- | --- |
+| HTML to/from RTF | Add `OfficeIMO.Html.Rtf`. Existing APIs remain in the `OfficeIMO.Html` namespace. |
+| Load or save MHT/MHTML | Add `OfficeIMO.Mhtml` and replace `using OfficeIMO.Html;` for `MhtmlDocument` or `MhtmlResource` with `using OfficeIMO.Mhtml;`. |
+| Render an `EmailDocument` to images | Add `OfficeIMO.Email.Image`. Existing APIs remain in the `OfficeIMO.Email` namespace. |
+| Convert MHT/MHTML to PDF | Add `OfficeIMO.Mhtml.Pdf` plus `OfficeIMO.Mhtml`; use the `OfficeIMO.Mhtml` extension namespace. Plain HTML/PDF remains in `OfficeIMO.Html.Pdf`. |
+| Register HTML with Reader | `AddHtmlHandler()` now registers `.html`, `.htm`, and `.xhtml` only. |
+| Register MHT/MHTML with Reader | Reference `OfficeIMO.Reader.Email`, import `OfficeIMO.Reader.Email`, and call `AddMhtmlHandler()`. `AddEmailHandlers()` and `OfficeIMO.Reader.All` include it automatically. |
+| Read EPUB through Reader | No source change. `OfficeIMO.Reader.Epub` still reuses the HTML projection but no longer receives Email, RTF, or MHTML transitively. |
+
+No `OfficeIMO.Html.Core`, separate document-model package, or `OfficeIMO.Reader.Mhtml` package was introduced. The base HTML and Reader APIs stay focused; optional bridges carry the extra dependency edges.
+
 ## OfficeIMO 3.1
 
 OfficeIMO 3.1 was a coordinated breaking release. The sections below describe upgrades from 3.0 to aligned `3.1.x` packages.

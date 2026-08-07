@@ -4,11 +4,11 @@ description: Publish OfficeIMO applications as native executables, choose AOT-sa
 order: 80
 ---
 
-OfficeIMO's NativeAOT evidence covers the complete production project inventory rather than a hand-picked package list. **92 of 93 production projects publish and execute in NativeAOT validation**; the WPF/WebView2 renderer is deliberately tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
+OfficeIMO's NativeAOT evidence covers the complete production project inventory rather than a hand-picked package list. **96 of 97 production projects publish and execute in NativeAOT validation**; the WPF/WebView2 renderer is deliberately tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
 
 The 92 native-validated projects are not all proved in the same way:
 
-- **90 production libraries** are fully rooted as complete assemblies across two native hosts: 89 in the main compile graph and the optional `OfficeIMO.Security` package in its dedicated host. Both executables must start successfully.
+- **94 production libraries** are fully rooted as complete assemblies across two native hosts: 93 in the main compile graph and the optional `OfficeIMO.Security` package in its dedicated host. Both executables must start successfully.
 - **1 optional Google APIs adapter** runs a bounded token-store workflow natively. Its complete Google authorization dependency surface is not advertised as trim-safe because fully rooting `Google.Apis` and `Newtonsoft.Json` produces upstream warnings.
 - **1 production command-line tool** publishes as a native executable and must start and return its real command help.
 
@@ -40,7 +40,7 @@ The Word, Excel, PowerPoint, and Word-to-HTML packages use the Microsoft Open XM
 
 | Production classification | Projects | What CI proves | Customer guidance |
 |---|---:|---|---|
-| Fully rooted libraries | 90 | The complete assembly surfaces compile into NativeAOT executables on Windows and Linux: 89 libraries in the main host and `OfficeIMO.Security` in its dedicated host. Both executables must start. | These packages are suitable NativeAOT building blocks; still test the exact documents and options your application uses. |
+| Fully rooted libraries | 94 | The complete assembly surfaces compile into NativeAOT executables on Windows and Linux: 93 libraries in the main host and `OfficeIMO.Security` in its dedicated host. Both executables must start. | These packages are suitable NativeAOT building blocks; still test the exact documents and options your application uses. |
 | Bounded Google APIs adapter | 1 | `OfficeIMO.GoogleWorkspace.Auth.GoogleApis` constructs its data-store adapter and round-trips a value in the native executable. | The validated adapter path is native. Treat live OAuth/provider flows as application-specific until your chosen Google dependency graph publishes cleanly. |
 | Native command-line tools | 1 | `OfficeIMO.Tool` publishes and starts as a native executable on Windows and Linux with namespaced HTML, Reader, and Markup commands. | Native CLI deployment is supported; validate the concrete commands and formats used by your job. |
 | Managed Windows UI | 1 | `OfficeIMO.MarkdownRenderer.Wpf` builds and runs through the managed Windows/WPF test lane. | Do not enable NativeAOT for this WPF/WebView2 UI package. Use the managed Windows deployment model. |

@@ -2,6 +2,7 @@ using AngleSharp.Dom;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Mhtml;
 using OfficeIMO.Tests.Pdf;
 using System.Reflection;
 using System.Threading;
@@ -719,7 +720,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void MhtmlPdf_ExposesCompleteDirectLifecycle() {
-        MethodInfo[] methods = typeof(HtmlPdfConverterExtensions)
+        MethodInfo[] methods = typeof(MhtmlPdfConverterExtensions)
             .GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Where(method => method.GetParameters().FirstOrDefault()?.ParameterType == typeof(MhtmlDocument))
             .ToArray();

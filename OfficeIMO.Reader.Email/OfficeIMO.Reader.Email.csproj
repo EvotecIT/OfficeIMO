@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Unified email, Outlook store, and Offline Address Book adapter for OfficeIMO.Reader.Core.</Description>
+    <Description>Unified email, MHTML, Outlook store, and Offline Address Book adapter for OfficeIMO.Reader.Core.</Description>
     <AssemblyName>OfficeIMO.Reader.Email</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Email</AssemblyTitle>
-    <VersionPrefix>3.1.1</VersionPrefix>
+    <VersionPrefix>3.2.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -12,7 +12,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Reader.Email</PackageId>
-    <PackageTags>reader;email;eml;msg;oft;tnef;mbox;pst;ost;olm;emlx;oab;ics;vcard;outlook;ingestion;officeimo</PackageTags>
+    <PackageTags>reader;email;mhtml;mht;eml;msg;oft;tnef;mbox;pst;ost;olm;emlx;oab;ics;vcard;outlook;ingestion;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -26,7 +26,9 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Html\OfficeIMO.Reader.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Mhtml\OfficeIMO.Mhtml.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Assets\OfficeIMO.png" Pack="true" PackagePath="\" Link="OfficeIMO.png" />

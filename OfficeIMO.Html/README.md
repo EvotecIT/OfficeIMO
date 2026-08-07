@@ -1,8 +1,8 @@
 # OfficeIMO.Html
 
-`OfficeIMO.Html` contains the shared HTML and MHTML parser, resource policy, layout scene, and direct PNG/JPEG/TIFF/SVG/WebP rendering APIs used by OfficeIMO converters.
+`OfficeIMO.Html` contains the shared HTML parser, resource policy, layout scene, and direct PNG/JPEG/TIFF/SVG/WebP rendering APIs used by OfficeIMO converters.
 
-It owns the reusable parts that should behave consistently across HTML-to-Markdown, HTML-to-Word, HTML-to/from-RTF, and HTML-backed PDF workflows:
+It owns the reusable parts that should behave consistently across HTML-to-Markdown, HTML-to-Office, image, and PDF workflows:
 
 - trust-aware parsing profiles and shared source, DOM, CSS, selector, responsive-image, and semantic-metadata limits
 - URL policy evaluation and base URI resolution
@@ -10,18 +10,16 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - DOM traversal facts and node/depth limit tracking
 - image source discovery for `img`, lazy-loading attributes, `srcset`, and `picture/source`
 - image data URI parsing and media-type extension mapping
-- MHTML/MHT web-archive loading, deterministic saving, root-part selection, and CID/Content-Location resource resolution
 - deterministic accessible-name, ARIA heading, EPUB structural-semantic, and logical quote/code/footnote projection
 - dependency-free HTML layout for continuous and paged output
 - bounded CSS length math, caller stylesheets, deterministic media preferences, running strings, and Unicode-range-aware WOFF 1/OpenType fonts
 - direct PNG, JPEG, TIFF, SVG, and lossless WebP export over `OfficeIMO.Drawing`
-- semantic HTML to/from RTF conversion over the dependency-free `OfficeIMO.Rtf` model
 - one typed semantic document projection shared by Excel, PowerPoint, and OneNote importers
 - executable target capability contracts, preflight analysis, and source-to-target diagnostic provenance
 - one operation-scoped resource session for policy, resolution, MIME checks, caching, deduplication, budgets, timeouts, and digests
 - fidelity scoring across structure, text, styles, resources, annotations, formulas, charts, geometry, and reopened native artifacts
 
-Markdown, Word, Excel, PowerPoint, RTF, and PDF models remain in their owning packages. Those projections are explicit: for example, HTML becomes a `WordDocument` through `ToWordDocument()` and a `MarkdownDoc` through `ToMarkdownDocument()`.
+Markdown, Word, Excel, PowerPoint, RTF, Email, MHTML, and PDF models remain in their owning packages. Those projections are explicit: for example, HTML becomes a `WordDocument` through `OfficeIMO.Word.Html` and a `MarkdownDoc` through `OfficeIMO.Markdown.Html`.
 
 ## Direct HTML rendering
 
@@ -56,29 +54,10 @@ IReadOnlyList<OfficeImageExportResult> webpPages = source
     .Save("status-pages");
 ```
 
-## MHTML web archives
-
-MHTML uses the same bounded MIME mechanics as `OfficeIMO.Email`, but its root document, base URI, and embedded resources remain an HTML concern:
-
-```csharp
-using OfficeIMO.Html;
-
-MhtmlDocument archive = MhtmlDocument.Load("snapshot.mhtml");
-Console.WriteLine(archive.HtmlDocument.NormalizedHtml);
-
-var renderOptions = new HtmlRenderOptions();
-archive.ConfigureRenderOptions(renderOptions);
-byte[] png = archive.HtmlDocument.ToPng(renderOptions);
-
-archive.Save("copy.mht");
-```
-
-`ConfigureRenderOptions` resolves `cid:` and `Content-Location` references from the archive before falling back to a caller-supplied resolver. It does not grant network access or weaken the configured URL policy.
-
 ## Dependency footprint
 
 - **External:** AngleSharp and AngleSharp.Css for DOM and CSS parsing.
-- **OfficeIMO:** `OfficeIMO.Core`, `OfficeIMO.Email`, and `OfficeIMO.Rtf`. Resource policy, MHTML projection, layout scene, rendering, and format mappings are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`. Resource policy, layout, rendering, and diagnostics are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 
@@ -98,24 +77,17 @@ byte[] png = source.ToPng(options);
 string svg = source.ToSvg(options);
 ```
 
-## RTF Bridge
+## Optional bridges
 
-```csharp
-using OfficeIMO.Html;
-using OfficeIMO.Rtf;
+Install only the bridge required by the application:
 
-HtmlConversionDocument source = HtmlConversionDocument.Parse("<p>Hello <strong>RTF</strong></p>");
-RtfDocument document = source.ToRtfDocument();
-string rtf = document.ToRtf();
-var webOptions = RtfToHtmlOptions.CreateWebSafeProfile();
-RtfToHtmlResult result = document.ToHtmlResult(webOptions);
-string html = result.RequireValue();
-result.Report.RequireNoLoss();
-```
+- `OfficeIMO.Html.Rtf` for semantic HTML/RTF conversion.
+- `OfficeIMO.Mhtml` for MHT/MHTML archives and embedded MIME resources.
+- `OfficeIMO.Email.Image` for email-body image rendering.
+- `OfficeIMO.Html.Pdf` for plain HTML/PDF conversion.
+- `OfficeIMO.Mhtml.Pdf` for MHTML/PDF conversion.
 
-RTF-to-RTF editing in `OfficeIMO.Rtf` remains the lossless preservation path. The HTML bridge is semantic: it preserves supported text, inline formatting, links, lists, tables, bookmarks, fields, form fields, notes, tracked revisions, object metadata, shape metadata, and embedded PNG/JPEG images without Office/COM automation.
-
-The web-safe profile is the default publishing boundary: only allowed web/mail URLs are emitted, private `data-officeimo-rtf-*` metadata is disabled, and image payloads require an explicit resolver. Use `RtfToHtmlOptions.CreateRoundTripProfile()` only for trusted OfficeIMO round trips; it can carry private metadata and embedded binary data and should not be published without sanitization.
+The public HTML/RTF and email-image namespaces remain familiar; the package references now describe the actual cross-format capability.
 
 ## URL Policy
 

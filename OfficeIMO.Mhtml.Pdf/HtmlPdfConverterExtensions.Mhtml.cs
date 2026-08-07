@@ -1,13 +1,16 @@
 using OfficeIMO.Email;
+using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using PdfCore = OfficeIMO.Pdf;
 
-namespace OfficeIMO.Html.Pdf;
+namespace OfficeIMO.Mhtml;
 
-public static partial class HtmlPdfConverterExtensions {
+/// <summary>Converts bounded MHTML archives to the first-party OfficeIMO PDF model.</summary>
+public static class MhtmlPdfConverterExtensions {
     /// <summary>Converts an MHTML archive and its bounded embedded resources to PDF bytes.</summary>
     public static byte[] ToPdf(this MhtmlDocument document, HtmlPdfSaveOptions? options = null) =>
         document.ToPdfDocumentResult(options).ToBytes();
@@ -17,7 +20,9 @@ public static partial class HtmlPdfConverterExtensions {
         this MhtmlDocument document,
         HtmlPdfSaveOptions? options = null,
         CancellationToken cancellationToken = default) =>
-        SerializeToBytes(await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false), cancellationToken);
+        HtmlPdfConverterExtensions.SerializeToBytes(
+            await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false),
+            cancellationToken);
 
     /// <summary>Converts an MHTML archive to the first-party PDF document model.</summary>
     public static PdfCore.PdfDocument ToPdfDocument(this MhtmlDocument document, HtmlPdfSaveOptions? options = null) =>
@@ -137,7 +142,7 @@ public static partial class HtmlPdfConverterExtensions {
 
     private static PdfCore.PdfDocumentConversionResult AddMhtmlDiagnostics(PdfCore.PdfDocumentConversionResult result, MhtmlDocument document) =>
         result.WithAdditionalWarnings(document.MimeDiagnostics.Select(diagnostic => new PdfCore.PdfConversionWarning(
-            "OfficeIMO.Html.Pdf",
+            "OfficeIMO.Mhtml.Pdf",
             diagnostic.Code,
             string.IsNullOrWhiteSpace(diagnostic.Location) ? "mhtml" : diagnostic.Location!,
             diagnostic.Message,

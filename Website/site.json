@@ -232,7 +232,11 @@
         { "Anchor": "/api/visio/", "ServiceDesc": "/api/visio/index.json", "ServiceDoc": "/api/visio/", "Title": "OfficeIMO.Visio API Reference" },
         { "Anchor": "/api/pdf/", "ServiceDesc": "/api/pdf/index.json", "ServiceDoc": "/api/pdf/", "Title": "OfficeIMO.Pdf API Reference" },
         { "Anchor": "/api/html/", "ServiceDesc": "/api/html/index.json", "ServiceDoc": "/api/html/", "Title": "OfficeIMO.Html API Reference" },
+        { "Anchor": "/api/html-rtf/", "ServiceDesc": "/api/html-rtf/index.json", "ServiceDoc": "/api/html-rtf/", "Title": "OfficeIMO.Html.Rtf API Reference" },
+        { "Anchor": "/api/mhtml/", "ServiceDesc": "/api/mhtml/index.json", "ServiceDoc": "/api/mhtml/", "Title": "OfficeIMO.Mhtml API Reference" },
+        { "Anchor": "/api/mhtml-pdf/", "ServiceDesc": "/api/mhtml-pdf/index.json", "ServiceDoc": "/api/mhtml-pdf/", "Title": "OfficeIMO.Mhtml.Pdf API Reference" },
         { "Anchor": "/api/email/", "ServiceDesc": "/api/email/index.json", "ServiceDoc": "/api/email/", "Title": "OfficeIMO.Email API Reference" },
+        { "Anchor": "/api/email-image/", "ServiceDesc": "/api/email-image/index.json", "ServiceDoc": "/api/email-image/", "Title": "OfficeIMO.Email.Image API Reference" },
         { "Anchor": "/api/onenote/", "ServiceDesc": "/api/onenote/index.json", "ServiceDoc": "/api/onenote/", "Title": "OfficeIMO.OneNote API Reference" },
         { "Anchor": "/api/open-document/", "ServiceDesc": "/api/open-document/index.json", "ServiceDoc": "/api/open-document/", "Title": "OfficeIMO.OpenDocument API Reference" },
         { "Anchor": "/api/reader/", "ServiceDesc": "/api/reader/index.json", "ServiceDoc": "/api/reader/", "Title": "OfficeIMO.Reader API Reference" },
@@ -502,7 +506,11 @@
                   { "Title": "OfficeIMO.CSV API", "Url": "/api/csv/" },
                   { "Title": "OfficeIMO.Visio API", "Url": "/api/visio/" },
                   { "Title": "OfficeIMO.Html API", "Url": "/api/html/" },
+                  { "Title": "HTML/RTF API", "Url": "/api/html-rtf/" },
+                  { "Title": "MHTML API", "Url": "/api/mhtml/" },
+                  { "Title": "MHTML/PDF API", "Url": "/api/mhtml-pdf/" },
                   { "Title": "OfficeIMO.Email API", "Url": "/api/email/" },
+                  { "Title": "Email image API", "Url": "/api/email-image/" },
                   { "Title": "OpenDocument API", "Url": "/api/open-document/" }
                 ]
               },

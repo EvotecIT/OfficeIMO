@@ -3,6 +3,7 @@
 One Reader package for the complete `OfficeIMO.Email` data surface:
 
 - EML, MSG/OFT, TNEF, Mbox/MBX, iCalendar, and vCard artifacts
+- MHT/MHTML web archives with embedded MIME resources projected through `OfficeIMO.Reader.Html`
 - PST, OST, OLM, EMLX, Maildir, and mailbox-directory sessions
 - Outlook Offline Address Book files
 
@@ -16,6 +17,15 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 
 OfficeDocumentReadResult message = reader.ReadDocument("message.msg");
 OfficeDocumentReadResult store = reader.ReadDocument("archive.pst");
+OfficeDocumentReadResult webArchive = reader.ReadDocument("snapshot.mhtml");
 ```
 
-Install only this package when Reader needs email data. It depends on `OfficeIMO.Reader.Core` and `OfficeIMO.Email`; store and address-book support do not add separate NuGet layers.
+Register only MHTML when the other email handlers are not needed:
+
+```csharp
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddMhtmlHandler()
+    .Build();
+```
+
+Install this package when Reader needs email or MHTML data. It depends on `OfficeIMO.Reader.Core`, `OfficeIMO.Email`, `OfficeIMO.Mhtml`, and the lean `OfficeIMO.Reader.Html` projection; store and address-book support do not add separate NuGet layers.

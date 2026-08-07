@@ -289,12 +289,12 @@ if ($catalog.repository.productionComponentCount -ne @($catalog.components).Coun
     Add-Failure 'The OfficeIMO component summary does not match the generated component list.'
 }
 $expectedRepositoryCounts = [ordered]@{
-    projectCount = 160
-    productionComponentCount = 93
+    projectCount = 164
+    productionComponentCount = 97
     testProjectCount = 31
     benchmarkProjectCount = 15
     validationProjectCount = 22
-    apiReferenceCount = 17
+    apiReferenceCount = 21
     conceptualPageCount = 95
 }
 foreach ($expectedCount in $expectedRepositoryCounts.GetEnumerator()) {
@@ -322,10 +322,10 @@ $aotMatrix = Get-Content -LiteralPath $aotMatrixPath -Raw | ConvertFrom-Json
 if ($aotMatrix.summary.productionProjectCount -ne $catalog.repository.productionComponentCount) {
     Add-Failure 'The NativeAOT matrix does not account for every production project.'
 }
-if ($aotMatrix.summary.nativeAotValidatedProjectCount -ne 92) {
-    Add-Failure "The NativeAOT matrix validates $($aotMatrix.summary.nativeAotValidatedProjectCount) projects; expected 92."
+if ($aotMatrix.summary.nativeAotValidatedProjectCount -ne 96) {
+    Add-Failure "The NativeAOT matrix validates $($aotMatrix.summary.nativeAotValidatedProjectCount) projects; expected 96."
 }
-if ($aotMatrix.summary.fullyRootedLibraryCount -ne 90 -or
+if ($aotMatrix.summary.fullyRootedLibraryCount -ne 94 -or
     $aotMatrix.summary.boundedWorkflowLibraryCount -ne 1 -or
     $aotMatrix.summary.nativeExecutableCount -ne 1 -or
     $aotMatrix.summary.managedWindowsProjectCount -ne 1) {

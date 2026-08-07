@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Mhtml;
 using OfficeIMO.Tool.Commands.Html;
 using Xunit;
 

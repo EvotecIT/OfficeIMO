@@ -87,7 +87,7 @@ public static class HtmlTargetCapabilityContracts {
                 HtmlSemanticFeature.Comments, HtmlSemanticFeature.Css)),
         Create(
             HtmlConversionTarget.Rtf,
-            "OfficeIMO.Html / OfficeIMO.Rtf",
+            "OfficeIMO.Html.Rtf",
             "RtfDocument",
             "HtmlConversionDocument.ToRtfDocument",
             "HtmlToRtfResult",

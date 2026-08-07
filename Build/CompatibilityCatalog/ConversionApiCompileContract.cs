@@ -3,6 +3,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Html;
 using OfficeIMO.Latex;
 using OfficeIMO.Markdown;
+using OfficeIMO.Mhtml;
 using OfficeIMO.OneNote;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Pdf;
@@ -74,7 +75,7 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdfDocumentResult(powerPoint);
         _ = OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPowerPointPresentationResult(pdf);
         _ = OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResult(html);
-        _ = OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResult(mhtml);
+        _ = OfficeIMO.Mhtml.MhtmlPdfConverterExtensions.ToPdfDocumentResult(mhtml);
         _ = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(pdf);
         _ = OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToPdfDocumentResult(rtf);
         _ = OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocumentResult(pdf);
