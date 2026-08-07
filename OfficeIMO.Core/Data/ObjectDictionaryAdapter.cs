@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Diagnostics.CodeAnalysis;
 
 namespace OfficeIMO.Data {
     /// <summary>
@@ -22,6 +23,20 @@ namespace OfficeIMO.Data {
 
             if (value is IDictionary dictionary) {
                 foreach (DictionaryEntry entry in dictionary) {
+                    AddBounded(entries, new ObjectDictionaryEntry(entry.Key, entry.Value), maximumItems);
+                }
+                return true;
+            }
+
+            if (value is IDictionary<string, object?> genericObjectDictionary) {
+                foreach (KeyValuePair<string, object?> entry in genericObjectDictionary) {
+                    AddBounded(entries, new ObjectDictionaryEntry(entry.Key, entry.Value), maximumItems);
+                }
+                return true;
+            }
+
+            if (value is IReadOnlyDictionary<string, object?> readOnlyObjectDictionary) {
+                foreach (KeyValuePair<string, object?> entry in readOnlyObjectDictionary) {
                     AddBounded(entries, new ObjectDictionaryEntry(entry.Key, entry.Value), maximumItems);
                 }
                 return true;
@@ -49,6 +64,12 @@ namespace OfficeIMO.Data {
             return true;
         }
 
+        internal static bool IsDictionaryType(Type type) {
+            if (type == null) throw new ArgumentNullException(nameof(type));
+            return typeof(IDictionary).IsAssignableFrom(type)
+                || DictionaryTypeCache.GetOrAdd(type, IsGenericDictionaryType);
+        }
+
         private static void AddBounded(List<ObjectDictionaryEntry> entries, ObjectDictionaryEntry entry, int maximumItems) {
             if (entries.Count >= maximumItems) {
                 throw new InvalidDataException($"The dictionary exceeds the {maximumItems}-item flattening limit.");
@@ -56,6 +77,10 @@ namespace OfficeIMO.Data {
             entries.Add(entry);
         }
 
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2070",
+            Justification = "Implemented generic dictionary interfaces are required for runtime interface dispatch and were verified by the published NativeAOT dictionary scenarios.")]
         private static bool IsGenericDictionaryType(Type type) {
             return type.GetInterfaces().Any(interfaceType => {
                 if (!interfaceType.IsGenericType) return false;
@@ -64,6 +89,11 @@ namespace OfficeIMO.Data {
             });
         }
 
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(KeyValuePair<,>))]
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2070",
+            Justification = "The DynamicDependency roots KeyValuePair public properties; published NativeAOT scenarios verify Key and Value access for generic-only dictionary rows.")]
         private static DictionaryEntryAccessor CreateEntryAccessor(Type type) {
             return new DictionaryEntryAccessor(
                 type.GetProperty("Key", BindingFlags.Instance | BindingFlags.Public),

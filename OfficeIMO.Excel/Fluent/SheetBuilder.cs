@@ -66,21 +66,20 @@ namespace OfficeIMO.Excel.Fluent {
             if (rows.Count == 0) return this;
 
             int startRow = _currentRow;
-            if (configure == null && TryRowsFromSimpleFastPath(rows, startRow)) {
+            if (configure == null
+                && !ObjectDictionaryAdapter.IsDictionaryType(typeof(T))
+                && TryRowsFromSimpleFastPath(rows, startRow)) {
                 return this;
             }
 
             var flattener = new ObjectFlattener();
-            var paths = options.Columns?.ToList() ?? flattener.GetPaths(typeof(T), options);
-            if (options.Columns != null) {
-                paths = flattener.ResolvePaths(paths, options);
-            }
+            ObjectTableProjection projection = flattener.FlattenRows(rows, options, "RowsFrom");
+            IReadOnlyList<string> paths = projection.Columns;
             var headers = BuildTransformedHeaders(paths, options);
 
             var rowValues = new List<object?[]>(rows.Count);
             int dataRows = 0;
-            foreach (var item in rows) {
-                var dict = flattener.Flatten(item, options);
+            foreach (Dictionary<string, object?> dict in projection.Rows) {
                 if (options.CollectionMode == CollectionMode.ExpandRows) {
                     var collectionPath = paths.FirstOrDefault(p => dict.TryGetValue(p, out var val) && val is IEnumerable && val is not string);
                     if (collectionPath != null && dict[collectionPath] is IEnumerable coll) {
@@ -481,7 +480,8 @@ namespace OfficeIMO.Excel.Fluent {
         private static RowsFromSimpleTypePlan CreateRowsFromSimpleTypePlan(Type type) {
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(property => property.GetIndexParameters().Length == 0 && property.GetMethod != null)
-                .OrderBy(property => property.MetadataToken)
+                .OrderBy(ObjectFlattener.GetMetadataOrder)
+                .ThenBy(property => property.Name, StringComparer.Ordinal)
                 .ToArray();
             if (properties.Length == 0 || properties.Any(property => !IsRowsFromDirectSaveScalarType(property.PropertyType))) {
                 return RowsFromSimpleTypePlan.NotSupported;

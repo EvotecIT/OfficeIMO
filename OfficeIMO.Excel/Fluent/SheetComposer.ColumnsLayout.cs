@@ -94,23 +94,17 @@ namespace OfficeIMO.Excel.Fluent {
                 configure?.Invoke(opts);
                 var flattener = new ObjectFlattener();
 
-                var rows = FlattenTableRows(items, flattener, opts);
+                ObjectTableProjection projection = flattener.FlattenRows(items, opts, "ColumnComposer TableFrom");
+                IReadOnlyList<Dictionary<string, object?>> rows = projection.Rows;
                 if (rows.Count == 0) {
                     _sheet.Cell(_row, _baseCol, "(no data)");
                     _row++;
                     return $"{SheetComposer.ColumnLetter(_baseCol)}{_row - 1}:{SheetComposer.ColumnLetter(_baseCol)}{_row - 1}";
                 }
 
-                var paths = opts.Columns?.ToList();
-                if (paths == null) {
-                    paths = rows.SelectMany(r => r.Keys)
-                        .Where(k => !string.IsNullOrWhiteSpace(k))
-                        .Distinct(System.StringComparer.OrdinalIgnoreCase)
-                        .OrderBy(s => s, System.StringComparer.Ordinal)
-                        .ToList();
-                    // Respect selection (Ignore/Exclude/Include) and ordering (Pinned/Priority)
-                    paths = flattener.ResolvePaths(paths, opts);
-                }
+                List<string> paths = opts.Columns == null
+                    ? projection.Columns.OrderBy(path => path, System.StringComparer.Ordinal).ToList()
+                    : projection.Columns.ToList();
                 if (paths.Count == 0) {
                     _sheet.Cell(_row, _baseCol, "(no tabular columns)");
                     _row++;

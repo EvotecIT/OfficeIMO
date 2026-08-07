@@ -178,12 +178,9 @@ namespace OfficeIMO.PowerPoint {
             configure?.Invoke(options);
             var flattener = new ObjectFlattener();
 
-            List<T> items = ObjectFlattener.MaterializeRowsBounded(data,
-                options, "PowerPoint AddTable");
-            var paths = options.Columns?.ToList() ?? flattener.GetPaths(typeof(T), options);
-            if (options.Columns != null) {
-                paths = flattener.ResolvePaths(paths, options);
-            }
+            ObjectTableProjection projection = flattener.FlattenRows(
+                data, options, "PowerPoint AddTable");
+            IReadOnlyList<string> paths = projection.Columns;
 
             if (paths.Count == 0) {
                 throw new InvalidOperationException("No columns could be resolved from the supplied data.");
@@ -192,8 +189,7 @@ namespace OfficeIMO.PowerPoint {
             var headers = paths.Select(p => TransformHeader(p, options)).ToList();
             var rowsData = new List<object?[]>();
 
-            foreach (var item in items) {
-                var dict = flattener.Flatten(item, options);
+            foreach (Dictionary<string, object?> dict in projection.Rows) {
                 if (options.CollectionMode == CollectionMode.ExpandRows) {
                     var collectionPath = paths.FirstOrDefault(p =>
                         dict.TryGetValue(p, out var val) && val is IEnumerable && val is not string);

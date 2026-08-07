@@ -202,7 +202,11 @@ namespace OfficeIMO.Data {
             }
 
             object source = item!;
-            var result = new Dictionary<string, object?>(GetInitialFlattenCapacity(source.GetType(), opts), StringComparer.OrdinalIgnoreCase);
+            Type sourceType = source.GetType();
+            int capacity = ObjectDictionaryAdapter.IsDictionaryType(sourceType)
+                ? 0
+                : GetInitialFlattenCapacity(sourceType, opts);
+            var result = new Dictionary<string, object?>(capacity, StringComparer.OrdinalIgnoreCase);
             FlattenInternal(source, result, string.Empty, 0, opts, new HashSet<object>(ObjectReferenceComparer.Instance));
 
             List<string> selectedPaths = ResolvePaths(result.Keys, opts);
@@ -669,7 +673,8 @@ namespace OfficeIMO.Data {
             Justification = "The generic Flatten<T> and GetPaths(Type) entry points preserve public properties for the supplied row type. Reflection is limited to reading those public properties and does not generate code at runtime.")]
         private static ObjectFlattenerProperty[] CreateObjectFlattenerProperties(Type type) {
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .OrderBy(p => p.MetadataToken)
+                .OrderBy(GetMetadataOrder)
+                .ThenBy(p => p.Name, StringComparer.Ordinal)
                 .ToArray();
             var result = new ObjectFlattenerProperty[properties.Length];
             for (int i = 0; i < properties.Length; i++) {
@@ -677,6 +682,16 @@ namespace OfficeIMO.Data {
             }
 
             return result;
+        }
+
+        internal static int GetMetadataOrder(MemberInfo member) {
+            try {
+                return member.MetadataToken;
+            } catch (InvalidOperationException) {
+                return int.MaxValue;
+            } catch (NotSupportedException) {
+                return int.MaxValue;
+            }
         }
 
         private static ObjectFlattenerPropertyGetter CreateObjectFlattenerPropertyGetter(PropertyInfo property) {

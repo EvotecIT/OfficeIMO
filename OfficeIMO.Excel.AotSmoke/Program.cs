@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using System.Data;
 using OfficeIMO.Data;
 using OfficeIMO.Excel;
@@ -29,11 +31,21 @@ try {
         if (range != "A1:D3") {
             throw new InvalidOperationException($"The Excel table used the unexpected range '{range}'.");
         }
+
+        var dictionaryRows = new[] {
+            new GenericOnlyDictionaryRow<int>(("Score", 10), ("Rank", 1)),
+            new GenericOnlyDictionaryRow<int>(("Score", 20), ("Rank", 2))
+        };
+        document.AsFluent()
+            .Sheet("Dictionary builder", builder => builder.RowsFrom(dictionaryRows))
+            .End();
+        document.Compose("Dictionary composer", composer =>
+            composer.TableFrom(dictionaryRows, title: "Scores"));
         document.Save();
     }
 
     using ExcelDocument reopened = ExcelDocument.Load(path);
-    if (reopened.Sheets.Count != 1 || reopened.Sheets[0].Name != "NativeAOT data") {
+    if (reopened.Sheets.Count != 3 || reopened.Sheets[0].Name != "NativeAOT data") {
         throw new InvalidOperationException("The Excel round trip lost its worksheet.");
     }
     if (!reopened.Sheets[0].TryGetCellText(2, 1, out string region) || region != "North") {
@@ -49,8 +61,16 @@ try {
         mappedRow.Date != new DateOnly(2026, 8, 6) || mappedRow.Time != new TimeOnly(14, 35, 12)) {
         throw new InvalidOperationException("The AOT-safe typed-row mapping returned unexpected data.");
     }
+    if (!reopened["Dictionary builder"].TryGetCellText(1, 1, out string builderHeader) || builderHeader != "Score" ||
+        !reopened["Dictionary builder"].TryGetCellText(2, 1, out string builderValue) || builderValue != "10") {
+        throw new InvalidOperationException("RowsFrom did not preserve generic-only dictionary columns under NativeAOT.");
+    }
+    if (!reopened["Dictionary composer"].TryGetCellText(2, 1, out string composerHeader) || composerHeader != "Score" ||
+        !reopened["Dictionary composer"].TryGetCellText(3, 1, out string composerValue) || composerValue != "10") {
+        throw new InvalidOperationException("TableFrom did not preserve generic-only dictionary columns under NativeAOT.");
+    }
 
-    Console.WriteLine("PASS | Excel typed table create, save, and reload");
+    Console.WriteLine("PASS | Excel typed and generic-only dictionary tables create, save, and reload");
 } finally {
     if (File.Exists(path)) File.Delete(path);
 }
@@ -68,4 +88,23 @@ internal sealed class AotSalesRow {
     public decimal Revenue { get; set; }
     public DateOnly Date { get; set; }
     public TimeOnly Time { get; set; }
+}
+
+file sealed class GenericOnlyDictionaryRow<TValue> : IReadOnlyDictionary<string, TValue> {
+    private readonly KeyValuePair<string, TValue>[] _entries;
+    private readonly Dictionary<string, TValue> _lookup;
+
+    internal GenericOnlyDictionaryRow(params (string Key, TValue Value)[] entries) {
+        _entries = entries.Select(entry => new KeyValuePair<string, TValue>(entry.Key, entry.Value)).ToArray();
+        _lookup = _entries.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.OrdinalIgnoreCase);
+    }
+
+    public TValue this[string key] => _lookup[key];
+    public IEnumerable<string> Keys => _entries.Select(entry => entry.Key);
+    public IEnumerable<TValue> Values => _entries.Select(entry => entry.Value);
+    public int Count => _entries.Length;
+    public bool ContainsKey(string key) => _lookup.ContainsKey(key);
+    public bool TryGetValue(string key, out TValue value) => _lookup.TryGetValue(key, out value!);
+    public IEnumerator<KeyValuePair<string, TValue>> GetEnumerator() => ((IEnumerable<KeyValuePair<string, TValue>>)_entries).GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
