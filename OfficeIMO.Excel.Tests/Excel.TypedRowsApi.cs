@@ -90,6 +90,7 @@ public partial class Excel {
         Assert.Equal(12.5m, row.Amount);
     }
 
+#if NET6_0_OR_GREATER
     [Fact]
     public void RowsAs_MapsDateOnlyAndTimeOnlyFromExcelDateCells() {
         using ExcelDocument document = ExcelDocument.Create();
@@ -104,6 +105,7 @@ public partial class Excel {
         Assert.Equal(new DateOnly(2026, 8, 6), row.Date);
         Assert.Equal(new TimeOnly(14, 35, 12), row.Time);
     }
+#endif
 
     [Fact]
     public void RowsAs_RedactsTypeConverterFailuresWhenRequested() {
@@ -194,10 +196,12 @@ public partial class Excel {
         public decimal Amount { get; set; }
     }
 
+#if NET6_0_OR_GREATER
     private sealed class DateAndTimeRow {
         public DateOnly Date { get; set; }
         public TimeOnly Time { get; set; }
     }
+#endif
 
     private sealed record PositionalSalesRow(int OrderId, decimal Amount);
 }

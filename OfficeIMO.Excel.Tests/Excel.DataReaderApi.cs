@@ -135,6 +135,7 @@ public partial class Excel {
         Assert.Equal(42, reader.GetFieldValue<int?>(0));
     }
 
+#if NET6_0_OR_GREATER
     [Fact]
     public void OpenDataReader_GetFieldValueSupportsDateOnlyAndTimeOnlyWithoutChangingSchemaTypes() {
         using var document = ExcelDocument.Create(new MemoryStream());
@@ -176,6 +177,7 @@ public partial class Excel {
 
         Assert.DoesNotContain(sourceValue, exception.ToString(), StringComparison.Ordinal);
     }
+#endif
 
     [Fact]
     public void OpenDataReader_RejectsCaseInsensitiveDuplicateOpenXmlWorksheetNames() {

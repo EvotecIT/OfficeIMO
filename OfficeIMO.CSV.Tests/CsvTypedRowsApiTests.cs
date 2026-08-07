@@ -145,6 +145,7 @@ public sealed class CsvTypedRowsApiTests {
         Assert.Equal(165258.24m, row.Amount);
     }
 
+#if NET6_0_OR_GREATER
     [Fact]
     public void RowsAs_ConvertsExplicitDateOnlyAndTimeOnlyTargetsWithoutChangingInference() {
         CsvDocument document = CsvDocument.Parse("Date,Time\n2026-08-06,14:35:12\n");
@@ -156,6 +157,7 @@ public sealed class CsvTypedRowsApiTests {
         Assert.Equal(new TimeOnly(14, 35, 12), row.Time);
         Assert.Equal(typeof(DateTime), inferred.Columns[0].DataType);
     }
+#endif
 
     [Fact]
     public void RowsAs_RedactsSourceValuesWhenRequested() {
@@ -182,10 +184,12 @@ public sealed class CsvTypedRowsApiTests {
         Assert.Contains(sourceValue, exception.ToString(), StringComparison.Ordinal);
     }
 
+#if NET6_0_OR_GREATER
     private sealed class DateAndTimeRow {
         public DateOnly Date { get; set; }
         public TimeOnly Time { get; set; }
     }
+#endif
 
     private sealed class SalesRow {
         public int OrderId { get; set; }
