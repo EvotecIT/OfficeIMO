@@ -97,6 +97,7 @@ public class CsvSchemaTests
         Assert.Equal(typeof(DateTime), Assert.Single(schema.Columns).DataType);
     }
 
+#if NET6_0_OR_GREATER
     [Fact]
     public void ExplicitSchema_SupportsDateOnlyAndTimeOnlyWithoutChangingDefaults()
     {
@@ -115,6 +116,7 @@ public class CsvSchemaTests
         Assert.Equal(new DateOnly(2026, 8, 6), Assert.IsType<DateOnly>(reader.GetValue(0)));
         Assert.Equal(new TimeOnly(14, 35, 12), Assert.IsType<TimeOnly>(reader.GetValue(1)));
     }
+#endif
 
     [Fact]
     public void SchemaConversion_RedactsValuesAndInnerExceptionsWhenRequested()

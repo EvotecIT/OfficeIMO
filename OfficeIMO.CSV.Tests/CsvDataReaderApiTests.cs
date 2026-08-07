@@ -75,6 +75,7 @@ public sealed class CsvDataReaderApiTests {
         Assert.False(reader.Read());
     }
 
+#if NET8_0_OR_GREATER
     [Theory]
     [InlineData("\n")]
     [InlineData("\r\n")]
@@ -162,6 +163,7 @@ public sealed class CsvDataReaderApiTests {
             File.Delete(path);
         }
     }
+#endif
 
     [Fact]
     public void OpenDataReader_StringColumnsSupportTypedGettersWithoutSchemaInference() {
@@ -187,6 +189,7 @@ public sealed class CsvDataReaderApiTests {
         Assert.Equal(identifier, reader.GetGuid(9));
     }
 
+#if NET6_0_OR_GREATER
     [Fact]
     public void OpenDataReader_ExplicitDateOnlyAndTimeOnlyGettersPreserveStringSchema() {
         using DbDataReader reader = CsvDocument.OpenTextDataReader(
@@ -198,6 +201,7 @@ public sealed class CsvDataReaderApiTests {
         Assert.Equal(new DateOnly(2026, 8, 6), reader.GetFieldValue<DateOnly>(0));
         Assert.Equal(new TimeOnly(14, 35, 12), reader.GetFieldValue<TimeOnly>(1));
     }
+#endif
 
     [Fact]
     public void OpenDataReader_SeekableFallbackStartsAtCallerPosition() {
