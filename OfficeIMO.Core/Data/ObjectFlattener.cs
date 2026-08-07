@@ -70,6 +70,10 @@ namespace OfficeIMO.Data {
         public CollectionMode CollectionMode { get; set; } = CollectionMode.JoinWith;
         /// <summary>Delimiter used when <see cref="CollectionMode.JoinWith"/> is selected.</summary>
         public string CollectionJoinWith { get; set; } = ",";
+        /// <summary>Delimiter used between entries when a dictionary is rendered as one cell.</summary>
+        public string DictionaryEntryJoinWith { get; set; } = "; ";
+        /// <summary>Delimiter used between a dictionary key and value when rendered as one cell.</summary>
+        public string DictionaryKeyValueSeparator { get; set; } = ": ";
 
         /// <summary>
         /// Maps collection paths (e.g., "ScoreBreakdown") to dynamic columns using element properties.
@@ -144,7 +148,7 @@ namespace OfficeIMO.Data {
     /// <summary>
     /// Flattens objects to a dictionary of dotted-path keys to values suitable for table generation.
     /// </summary>
-    public class ObjectFlattener {
+    public partial class ObjectFlattener {
         private static readonly ConcurrentDictionary<Type, ObjectFlattenerProperty[]> _propertyCache = new();
         private static readonly ConcurrentDictionary<CollectionMapAccessorKey, CollectionMapAccessors> _collectionMapAccessorCache = new();
         private static readonly ConcurrentDictionary<Type, FieldInfo[]> _valueTupleFieldCache = new();
@@ -198,7 +202,11 @@ namespace OfficeIMO.Data {
             }
 
             object source = item!;
-            var result = new Dictionary<string, object?>(GetInitialFlattenCapacity(source.GetType(), opts), StringComparer.OrdinalIgnoreCase);
+            Type sourceType = source.GetType();
+            int capacity = ObjectDictionaryAdapter.IsDictionaryType(sourceType)
+                ? 0
+                : GetInitialFlattenCapacity(sourceType, opts);
+            var result = new Dictionary<string, object?>(capacity, StringComparer.OrdinalIgnoreCase);
             FlattenInternal(source, result, string.Empty, 0, opts, new HashSet<object>(ObjectReferenceComparer.Instance));
 
             List<string> selectedPaths = ResolvePaths(result.Keys, opts);
@@ -270,6 +278,11 @@ namespace OfficeIMO.Data {
         }
 
         private static void FlattenInternalCore(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts, HashSet<object> activeObjects, Type type) {
+
+            if (ObjectDictionaryAdapter.TryGetEntries(obj, opts.MaxCollectionItems, out var dictionaryEntries)) {
+                FlattenDictionary(dictionaryEntries, dict, prefix, depth, opts, activeObjects);
+                return;
+            }
 
             // Special-case: ValueTuple (struct tuples) expose public fields (Item1..ItemN) not properties.
             if (IsValueTuple(type)) {
@@ -539,6 +552,15 @@ namespace OfficeIMO.Data {
 
         private static object? HandleCollection(string path, IEnumerable enumerable, ObjectFlattenerOptions opts) {
             if (opts.CollectionMode == CollectionMode.JoinWith) {
+                if (ObjectDictionaryAdapter.TryGetEntries(enumerable, opts.MaxCollectionItems, out var entries)) {
+                    var dictionaryText = string.Join(
+                        opts.DictionaryEntryJoinWith,
+                        entries.Select(entry =>
+                            (entry.Key?.ToString() ?? string.Empty) +
+                            opts.DictionaryKeyValueSeparator +
+                            (entry.Value?.ToString() ?? string.Empty)));
+                    return ApplyFormatting(path, dictionaryText, opts);
+                }
                 var joined = JoinCollectionValues(path, enumerable, opts.CollectionJoinWith, opts.MaxCollectionItems);
                 return ApplyFormatting(path, joined, opts);
             }
@@ -651,7 +673,8 @@ namespace OfficeIMO.Data {
             Justification = "The generic Flatten<T> and GetPaths(Type) entry points preserve public properties for the supplied row type. Reflection is limited to reading those public properties and does not generate code at runtime.")]
         private static ObjectFlattenerProperty[] CreateObjectFlattenerProperties(Type type) {
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .OrderBy(p => p.MetadataToken)
+                .OrderBy(GetMetadataOrder)
+                .ThenBy(p => p.Name, StringComparer.Ordinal)
                 .ToArray();
             var result = new ObjectFlattenerProperty[properties.Length];
             for (int i = 0; i < properties.Length; i++) {
@@ -659,6 +682,16 @@ namespace OfficeIMO.Data {
             }
 
             return result;
+        }
+
+        internal static int GetMetadataOrder(MemberInfo member) {
+            try {
+                return member.MetadataToken;
+            } catch (InvalidOperationException) {
+                return int.MaxValue;
+            } catch (NotSupportedException) {
+                return int.MaxValue;
+            }
         }
 
         private static ObjectFlattenerPropertyGetter CreateObjectFlattenerPropertyGetter(PropertyInfo property) {

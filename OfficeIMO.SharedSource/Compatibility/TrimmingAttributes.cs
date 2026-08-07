@@ -89,7 +89,13 @@ namespace System.Diagnostics.CodeAnalysis {
             Type = type;
         }
 
-        public string MemberSignature { get; }
+        public DynamicDependencyAttribute(DynamicallyAccessedMemberTypes memberTypes, Type type) {
+            MemberTypes = memberTypes;
+            Type = type;
+        }
+
+        public string MemberSignature { get; } = string.Empty;
+        public DynamicallyAccessedMemberTypes MemberTypes { get; }
         public Type? Type { get; }
     }
 }

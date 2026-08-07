@@ -22,23 +22,17 @@ namespace OfficeIMO.Excel.Fluent {
             configure?.Invoke(opts);
             var flattener = new ObjectFlattener();
 
-            var rows = FlattenTableRows(items, flattener, opts);
+            ObjectTableProjection projection = flattener.FlattenRows(items, opts, "TableFrom");
+            IReadOnlyList<System.Collections.Generic.Dictionary<string, object?>> rows = projection.Rows;
             if (rows.Count == 0) {
                 Sheet.Cell(_row, 1, "(no data)");
                 _row++;
                 return $"A{_row - 1}:A{_row - 1}";
             }
 
-            var paths = opts.Columns?.ToList();
-            if (paths == null) {
-                paths = rows.SelectMany(r => r.Keys)
-                            .Where(k => !string.IsNullOrWhiteSpace(k))
-                            .Distinct(System.StringComparer.OrdinalIgnoreCase)
-                            .OrderBy(s => s, System.StringComparer.Ordinal)
-                            .ToList();
-                // Apply selection filters (Ignore/Exclude/Include) then ordering (Pinned/Priority)
-                paths = flattener.ResolvePaths(paths, opts);
-            }
+            IReadOnlyList<string> paths = opts.Columns == null
+                ? projection.Columns.OrderBy(path => path, System.StringComparer.Ordinal).ToList()
+                : projection.Columns;
 
             // If we still have no columns (e.g., row type exposes fields but no public properties),
             // degrade gracefully rather than producing an invalid table definition.
@@ -150,23 +144,5 @@ namespace OfficeIMO.Excel.Fluent {
             return range;
         }
 
-        private static List<System.Collections.Generic.Dictionary<string, object?>> FlattenTableRows<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
-            IEnumerable<T>? items,
-            ObjectFlattener flattener,
-            ObjectFlattenerOptions options) {
-            if (items == null) {
-                return new List<System.Collections.Generic.Dictionary<string, object?>>();
-            }
-
-            List<T> boundedItems = ObjectFlattener.MaterializeRowsBounded(
-                items, options, "TableFrom");
-            var materializedRows = new List<System.Collections.Generic.Dictionary<string, object?>>(
-                boundedItems.Count);
-            foreach (T item in boundedItems) {
-                materializedRows.Add(flattener.Flatten(item, options));
-            }
-
-            return materializedRows;
-        }
     }
 }
