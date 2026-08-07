@@ -399,6 +399,10 @@
   "dependencies": {
     "mermaid": "^11.14.0"
   },
+  "overrides": {
+    "brace-expansion": "5.0.9",
+    "js-yaml": "4.3.1"
+  },
   "devDependencies": {
     "@types/node": "^24.13.2",
     "@types/vscode": "1.107.0",
