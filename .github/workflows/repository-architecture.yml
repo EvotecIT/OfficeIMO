@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   architecture:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-repository-architecture.yml@59c6271c2f6f94bdf5158fc93f18376fb9e49b0a
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-repository-architecture.yml@8002b6fac21c367709092e0fb45f7f69c4eea257
     with:
-      powerforge_ref: 59c6271c2f6f94bdf5158fc93f18376fb9e49b0a
+      powerforge_ref: 8002b6fac21c367709092e0fb45f7f69c4eea257
       config_path: .powerforge/architecture.json

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/59c6271c2f6f94bdf5158fc93f18376fb9e49b0a/Schemas/powerforge.repository-architecture.schema.json",
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/8002b6fac21c367709092e0fb45f7f69c4eea257/Schemas/powerforge.repository-architecture.schema.json",
   "schemaVersion": 1,
   "repositoryRoot": "..",
   "workspaceValidationConfig": ".powerforge/workspace.validation.json",
