@@ -382,7 +382,7 @@ internal static class DataValueConverter {
         } catch (Exception ex) {
             error = errorValuePolicy == DataMappingErrorValuePolicy.Redact
                 ? $"Value cannot be converted to {targetType.Name}."
-                : ex.Message;
+                : $"Value '{text}' cannot be converted to {targetType.Name}: {ex.Message}";
             return false;
         }
     }
