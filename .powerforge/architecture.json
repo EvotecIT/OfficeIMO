@@ -1,0 +1,376 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/59c6271c2f6f94bdf5158fc93f18376fb9e49b0a/Schemas/powerforge.repository-architecture.schema.json",
+  "schemaVersion": 1,
+  "repositoryRoot": "..",
+  "workspaceValidationConfig": ".powerforge/workspace.validation.json",
+  "workspaceValidationProfile": "architecture",
+  "globalImpactPaths": [
+    "Directory.Build.*",
+    ".github/workflows/dotnet-tests.yml",
+    ".github/workflows/repository-architecture.yml"
+  ],
+  "projectRules": [
+    {
+      "id": "core-neutral-owner",
+      "project": "OfficeIMO.Core/OfficeIMO.Core.csproj",
+      "allowedProjectReferences": [],
+      "allowedPackageReferences": []
+    },
+    {
+      "id": "excel-tabular-consumer",
+      "project": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
+      "allowedProjectReferences": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "requiredProjectReferences": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "allowedPackageReferences": [
+        "DocumentFormat.OpenXml",
+        "Microsoft.Bcl.AsyncInterfaces",
+        "System.Text.Json"
+      ],
+      "requiredPackageReferences": [
+        "DocumentFormat.OpenXml",
+        "Microsoft.Bcl.AsyncInterfaces",
+        "System.Text.Json"
+      ]
+    },
+    {
+      "id": "powerpoint-tabular-consumer",
+      "project": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
+      "allowedProjectReferences": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "requiredProjectReferences": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "allowedPackageReferences": [
+        "DocumentFormat.OpenXml",
+        "Microsoft.Bcl.AsyncInterfaces",
+        "System.Text.Encoding.CodePages"
+      ],
+      "requiredPackageReferences": [
+        "DocumentFormat.OpenXml",
+        "Microsoft.Bcl.AsyncInterfaces",
+        "System.Text.Encoding.CodePages"
+      ]
+    },
+    {
+      "id": "html-owner",
+      "project": "OfficeIMO.Html/OfficeIMO.Html.csproj",
+      "allowedProjectReferences": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "requiredProjectReferences": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "allowedPackageReferences": ["AngleSharp", "AngleSharp.Css"],
+      "requiredPackageReferences": ["AngleSharp", "AngleSharp.Css"]
+    },
+    {
+      "id": "html-rtf-bridge",
+      "project": "OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj",
+      "allowedProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Html/OfficeIMO.Html.csproj",
+        "OfficeIMO.Rtf/OfficeIMO.Rtf.csproj"
+      ],
+      "requiredProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Html/OfficeIMO.Html.csproj",
+        "OfficeIMO.Rtf/OfficeIMO.Rtf.csproj"
+      ],
+      "allowedPackageReferences": []
+    },
+    {
+      "id": "html-pdf-bridge",
+      "project": "OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
+      "allowedProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Html/OfficeIMO.Html.csproj",
+        "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj"
+      ],
+      "requiredProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Html/OfficeIMO.Html.csproj",
+        "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj"
+      ],
+      "allowedPackageReferences": []
+    },
+    {
+      "id": "mhtml-owner",
+      "project": "OfficeIMO.Mhtml/OfficeIMO.Mhtml.csproj",
+      "allowedProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Email/OfficeIMO.Email.csproj",
+        "OfficeIMO.Html/OfficeIMO.Html.csproj"
+      ],
+      "requiredProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Email/OfficeIMO.Email.csproj",
+        "OfficeIMO.Html/OfficeIMO.Html.csproj"
+      ],
+      "allowedPackageReferences": []
+    },
+    {
+      "id": "mhtml-pdf-bridge",
+      "project": "OfficeIMO.Mhtml.Pdf/OfficeIMO.Mhtml.Pdf.csproj",
+      "allowedProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
+        "OfficeIMO.Mhtml/OfficeIMO.Mhtml.csproj",
+        "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj"
+      ],
+      "requiredProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
+        "OfficeIMO.Mhtml/OfficeIMO.Mhtml.csproj",
+        "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj"
+      ],
+      "allowedPackageReferences": []
+    },
+    {
+      "id": "email-format-owner",
+      "project": "OfficeIMO.Email/OfficeIMO.Email.csproj",
+      "allowedProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Rtf/OfficeIMO.Rtf.csproj"
+      ],
+      "requiredProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Rtf/OfficeIMO.Rtf.csproj"
+      ],
+      "allowedPackageReferences": ["System.Text.Encoding.CodePages"],
+      "requiredPackageReferences": ["System.Text.Encoding.CodePages"]
+    },
+    {
+      "id": "rtf-format-owner",
+      "project": "OfficeIMO.Rtf/OfficeIMO.Rtf.csproj",
+      "allowedProjectReferences": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "requiredProjectReferences": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "allowedPackageReferences": ["System.Text.Encoding.CodePages"],
+      "requiredPackageReferences": ["System.Text.Encoding.CodePages"]
+    },
+    {
+      "id": "email-image-bridge",
+      "project": "OfficeIMO.Email.Image/OfficeIMO.Email.Image.csproj",
+      "allowedProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Email/OfficeIMO.Email.csproj",
+        "OfficeIMO.Html/OfficeIMO.Html.csproj",
+        "OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj"
+      ],
+      "requiredProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Email/OfficeIMO.Email.csproj",
+        "OfficeIMO.Html/OfficeIMO.Html.csproj",
+        "OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj"
+      ],
+      "allowedPackageReferences": []
+    },
+    {
+      "id": "epub-format-owner",
+      "project": "OfficeIMO.Epub/OfficeIMO.Epub.csproj",
+      "allowedProjectReferences": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "requiredProjectReferences": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "allowedPackageReferences": []
+    },
+    {
+      "id": "epub-image-bridge",
+      "project": "OfficeIMO.Epub.Image/OfficeIMO.Epub.Image.csproj",
+      "allowedProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Epub/OfficeIMO.Epub.csproj",
+        "OfficeIMO.Html/OfficeIMO.Html.csproj"
+      ],
+      "requiredProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Epub/OfficeIMO.Epub.csproj",
+        "OfficeIMO.Html/OfficeIMO.Html.csproj"
+      ],
+      "allowedPackageReferences": []
+    },
+    {
+      "id": "pdf-neutral-projection-owner",
+      "project": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+      "allowedProjectReferences": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "requiredProjectReferences": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "allowedPackageReferences": []
+    },
+    {
+      "id": "reader-pdf-neutral-consumer",
+      "project": "OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj",
+      "allowedProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+        "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj"
+      ],
+      "requiredProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+        "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj"
+      ],
+      "allowedPackageReferences": []
+    },
+    {
+      "id": "reader-core-contract",
+      "project": "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
+      "allowedProjectReferences": [],
+      "allowedPackageReferences": ["System.Text.Json"],
+      "requiredPackageReferences": ["System.Text.Json"]
+    },
+    {
+      "id": "visio-format-owner",
+      "project": "OfficeIMO.Visio/OfficeIMO.Visio.csproj",
+      "allowedProjectReferences": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "requiredProjectReferences": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "allowedPackageReferences": ["Microsoft.Bcl.AsyncInterfaces", "System.IO.Packaging"],
+      "requiredPackageReferences": ["Microsoft.Bcl.AsyncInterfaces", "System.IO.Packaging"]
+    },
+    {
+      "id": "reader-visio-neutral-consumer",
+      "project": "OfficeIMO.Reader.Visio/OfficeIMO.Reader.Visio.csproj",
+      "allowedProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
+        "OfficeIMO.Visio/OfficeIMO.Visio.csproj"
+      ],
+      "requiredProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
+        "OfficeIMO.Visio/OfficeIMO.Visio.csproj"
+      ],
+      "allowedPackageReferences": []
+    },
+    {
+      "id": "visio-pdf-bridge",
+      "project": "OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj",
+      "allowedProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+        "OfficeIMO.Visio/OfficeIMO.Visio.csproj"
+      ],
+      "requiredProjectReferences": [
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+        "OfficeIMO.Visio/OfficeIMO.Visio.csproj"
+      ],
+      "allowedPackageReferences": []
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "tabular-row-projection",
+      "description": "OfficeIMO.Core owns generic and dictionary row projection; Excel and PowerPoint are thin consumers.",
+      "ownerProjects": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "ownerPaths": [
+        "OfficeIMO.Core/Data/ObjectFlattener.Rows.cs",
+        "OfficeIMO.Core/Data/ObjectDictionaryAdapter.cs"
+      ],
+      "consumerProjects": [
+        "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
+        "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj"
+      ],
+      "usagePatterns": ["FlattenRows("],
+      "requiredEvidenceKinds": ["contract", "nativeAot"],
+      "evidence": [
+        {
+          "id": "excel-dictionary-contracts",
+          "kind": "contract",
+          "stepId": "excel-dictionary-contracts",
+          "path": "OfficeIMO.Excel.Tests/Excel.SheetComposer.DictionaryRows.cs",
+          "coversProjects": [
+            "OfficeIMO.Core/OfficeIMO.Core.csproj",
+            "OfficeIMO.Excel/OfficeIMO.Excel.csproj"
+          ]
+        },
+        {
+          "id": "powerpoint-dictionary-contracts",
+          "kind": "contract",
+          "stepId": "powerpoint-dictionary-contracts",
+          "path": "OfficeIMO.PowerPoint.Tests/PowerPoint.DictionaryRows.cs",
+          "coversProjects": ["OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj"]
+        },
+        {
+          "id": "excel-native-aot",
+          "kind": "nativeAot",
+          "stepId": "native-aot",
+          "path": "OfficeIMO.Excel.AotSmoke/Program.cs",
+          "coversProjects": [
+            "OfficeIMO.Core/OfficeIMO.Core.csproj",
+            "OfficeIMO.Excel/OfficeIMO.Excel.csproj"
+          ]
+        },
+        {
+          "id": "powerpoint-native-aot",
+          "kind": "nativeAot",
+          "stepId": "native-aot",
+          "path": "OfficeIMO.PowerPoint.AotSmoke/Program.cs",
+          "coversProjects": ["OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj"]
+        },
+        {
+          "id": "native-aot-runner",
+          "kind": "nativeAot",
+          "stepId": "native-aot",
+          "path": "Build/Test-AotScenarios.ps1",
+          "coversProjects": [
+            "OfficeIMO.Core/OfficeIMO.Core.csproj",
+            "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
+            "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "neutral-document-model",
+      "description": "OfficeIMO.Core owns the source-neutral model; format packages project into it and OfficeIMO.Pdf renders it.",
+      "ownerProjects": ["OfficeIMO.Core/OfficeIMO.Core.csproj"],
+      "ownerPaths": ["OfficeIMO.Core/Documents/OfficeDocumentModel*.cs"],
+      "consumerProjects": [
+        "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+        "OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj",
+        "OfficeIMO.Reader.Visio/OfficeIMO.Reader.Visio.csproj",
+        "OfficeIMO.Visio/OfficeIMO.Visio.csproj",
+        "OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj"
+      ],
+      "ignoredUsageProjects": ["OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj"],
+      "usagePatterns": ["OfficeDocumentModel"],
+      "requiredEvidenceKinds": ["contract", "runtime", "nativeAot"],
+      "evidence": [
+        {
+          "id": "pdf-neutral-model-contracts",
+          "kind": "contract",
+          "stepId": "neutral-pdf-contracts",
+          "path": "OfficeIMO.Pdf.Tests/Pdf/PdfEngineRoadmapFoundationTests.cs",
+          "coversProjects": [
+            "OfficeIMO.Core/OfficeIMO.Core.csproj",
+            "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj"
+          ]
+        },
+        {
+          "id": "visio-neutral-model-contracts",
+          "kind": "contract",
+          "stepId": "neutral-visio-contracts",
+          "path": "OfficeIMO.Visio.Tests/Visio.Pdf.ApiConsistency.cs",
+          "coversProjects": [
+            "OfficeIMO.Visio/OfficeIMO.Visio.csproj",
+            "OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj"
+          ]
+        },
+        {
+          "id": "reader-neutral-model-runtime",
+          "kind": "runtime",
+          "stepId": "neutral-reader-contracts",
+          "path": "OfficeIMO.Reader.Tests/Reader.DirectPdfAdapters.cs",
+          "coversProjects": [
+            "OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj",
+            "OfficeIMO.Reader.Visio/OfficeIMO.Reader.Visio.csproj"
+          ]
+        },
+        {
+          "id": "neutral-model-native-aot",
+          "kind": "nativeAot",
+          "stepId": "native-aot",
+          "path": "Build/Test-AotScenarios.ps1",
+          "coversProjects": [
+            "OfficeIMO.Core/OfficeIMO.Core.csproj",
+            "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+            "OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj",
+            "OfficeIMO.Reader.Visio/OfficeIMO.Reader.Visio.csproj",
+            "OfficeIMO.Visio/OfficeIMO.Visio.csproj",
+            "OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj"
+          ]
+        }
+      ]
+    }
+  ]
+}

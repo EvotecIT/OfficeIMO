@@ -394,3 +394,4 @@ Website/static/data/benchmarks/*
 !Website/static/data/benchmarks/library-comparisons/*.json
 Website/static/data/benchmarks/library-comparisons/.index.json.*.lock
 Website/data/ecosystem/stats.json
+.powerforge/_reports/

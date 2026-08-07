@@ -28,6 +28,12 @@
 - Exercise documentation examples through real compile, restore, or run consumers where practical.
 - When low-value prose-only, implementation-only, duplicate, or obsolete tests are encountered in a touched area, remove them instead of preserving or replacing them for test-count optics.
 
+## Architecture policy
+
+- `.powerforge/architecture.json` is the executable source of truth for registered package boundaries, shared capability owners, direct consumers, and required evidence. Run `powerforge architecture verify --config .powerforge/architecture.json --working-tree --run-evidence` before and after changing a registered owner or consumer.
+- Extend the shared PowerForge contract when a reusable architecture rule cannot be expressed. Do not add an OfficeIMO-local project graph scanner, source-usage analyzer, impact calculator, or evidence runner.
+- Keep consumer packages thin. When a new project consumes a registered capability, add it to the policy and evidence closure in the same change instead of adding another projection, conversion, parser, or compatibility brain.
+
 ## Benchmark boundaries
 
 - Third-party libraries used for comparisons stay isolated in benchmark projects and opt-in verification runners; do not add them to OfficeIMO runtime projects without an explicit product decision.

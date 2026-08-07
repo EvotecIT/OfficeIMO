@@ -1,0 +1,18 @@
+name: Repository Architecture
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  architecture:
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-repository-architecture.yml@59c6271c2f6f94bdf5158fc93f18376fb9e49b0a
+    with:
+      powerforge_ref: 59c6271c2f6f94bdf5158fc93f18376fb9e49b0a
+      config_path: .powerforge/architecture.json

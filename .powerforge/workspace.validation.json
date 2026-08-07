@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "..",
+  "profiles": [
+    {
+      "name": "architecture",
+      "description": "Contracts and runtime evidence for shared OfficeIMO owners and their declared consumers."
+    }
+  ],
+  "steps": [
+    {
+      "id": "excel-dictionary-contracts",
+      "name": "Excel dictionary row contracts",
+      "kind": "DotNet",
+      "profiles": ["architecture"],
+      "arguments": [
+        "test",
+        "OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj",
+        "--configuration",
+        "{configuration}",
+        "--filter",
+        "FullyQualifiedName~ExcelSheetComposerDictionaryRowTests"
+      ]
+    },
+    {
+      "id": "powerpoint-dictionary-contracts",
+      "name": "PowerPoint dictionary row contracts",
+      "kind": "DotNet",
+      "profiles": ["architecture"],
+      "arguments": [
+        "test",
+        "OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj",
+        "--configuration",
+        "{configuration}",
+        "--filter",
+        "FullyQualifiedName~PowerPointDictionaryRowTests"
+      ]
+    },
+    {
+      "id": "neutral-pdf-contracts",
+      "name": "Neutral document model PDF contracts",
+      "kind": "DotNet",
+      "profiles": ["architecture"],
+      "arguments": [
+        "test",
+        "OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj",
+        "--configuration",
+        "{configuration}",
+        "--filter",
+        "FullyQualifiedName~PdfEngineRoadmapFoundationTests"
+      ]
+    },
+    {
+      "id": "neutral-visio-contracts",
+      "name": "Neutral document model Visio contracts",
+      "kind": "DotNet",
+      "profiles": ["architecture"],
+      "arguments": [
+        "test",
+        "OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj",
+        "--configuration",
+        "{configuration}",
+        "--filter",
+        "FullyQualifiedName~VisioPdfApiConsistencyTests"
+      ]
+    },
+    {
+      "id": "neutral-reader-contracts",
+      "name": "Neutral document model Reader runtime contracts",
+      "kind": "DotNet",
+      "profiles": ["architecture"],
+      "arguments": [
+        "test",
+        "OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj",
+        "--configuration",
+        "{configuration}",
+        "--filter",
+        "FullyQualifiedName~ReaderDirectPdfAdapterTests"
+      ]
+    },
+    {
+      "id": "native-aot",
+      "name": "OfficeIMO NativeAOT scenarios",
+      "kind": "Command",
+      "profiles": ["architecture"],
+      "executable": "pwsh",
+      "arguments": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "Build/Test-AotScenarios.ps1",
+        "-Configuration",
+        "{configuration}"
+      ],
+      "failureContext": "A shared OfficeIMO capability failed its NativeAOT publish or runtime evidence.",
+      "failureHint": "Fix the shared owner and every declared consumer instead of adding consumer-local reflection or compatibility branches."
+    }
+  ]
+}
