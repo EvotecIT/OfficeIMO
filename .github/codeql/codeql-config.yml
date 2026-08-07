@@ -4,18 +4,25 @@ paths:
   - OfficeIMO.Adf
   - OfficeIMO.CSV
   - OfficeIMO.Confluence
+  - OfficeIMO.Email
+  - OfficeIMO.Email.Image
   - OfficeIMO.Epub
   - OfficeIMO.Excel
   - OfficeIMO.Excel.OpenDocument
   - OfficeIMO.Excel.GoogleSheets
   - OfficeIMO.Excel.Pdf
   - OfficeIMO.GoogleWorkspace
+  - OfficeIMO.Html
+  - OfficeIMO.Html.Pdf
+  - OfficeIMO.Html.Rtf
   - OfficeIMO.Markdown
   - OfficeIMO.Markdown.Html
   - OfficeIMO.MarkdownRenderer
   - OfficeIMO.MarkdownRenderer.IntelligenceX
   - OfficeIMO.MarkdownRenderer.SamplePlugin
   - OfficeIMO.MarkdownRenderer.Wpf
+  - OfficeIMO.Mhtml
+  - OfficeIMO.Mhtml.Pdf
   - OfficeIMO.OpenDocument
   - OfficeIMO.OpenDocument.Odp.Pdf
   - OfficeIMO.OpenDocument.Ods.Pdf
@@ -25,6 +32,7 @@ paths:
   - OfficeIMO.PowerPoint.OpenDocument
   - OfficeIMO.Reader
   - OfficeIMO.Reader.Csv
+  - OfficeIMO.Reader.Email
   - OfficeIMO.Reader.Epub
   - OfficeIMO.Reader.Html
   - OfficeIMO.Reader.Json

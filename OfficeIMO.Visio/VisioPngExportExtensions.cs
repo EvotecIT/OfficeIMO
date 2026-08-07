@@ -23,6 +23,13 @@ namespace OfficeIMO.Visio {
             return CreateResult(page, options).Bytes;
         }
 
+        internal static byte[] ToPng(
+            VisioPage page,
+            VisioPngSaveOptions? options,
+            CancellationToken cancellationToken) {
+            return CreateResult(page, options, cancellationToken).Bytes;
+        }
+
         /// <summary>
         /// Saves the selected document page as PNG without requiring Microsoft Visio desktop automation.
         /// </summary>

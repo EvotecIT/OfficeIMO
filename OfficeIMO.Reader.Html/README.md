@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Html)](https://www.nuget.org/packages/OfficeIMO.Reader.Html)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Html?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Html)
 
-`OfficeIMO.Reader.Html` provides a modular HTML and MHTML ingestion adapter for `OfficeIMO.Reader.Core`.
+`OfficeIMO.Reader.Html` provides a modular HTML, HTM, and XHTML ingestion adapter for `OfficeIMO.Reader.Core`.
 
 ## Install
 
@@ -22,15 +22,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .Build();
 ```
 
-The same registration handles `.mht` and `.mhtml`. Embedded MHTML resources become normal Reader assets and the archive uses the same rich HTML projection:
-
-```csharp
-OfficeDocumentReadResult result = reader.ReadDocument("snapshot.mhtml");
-
-foreach (OfficeDocumentAsset asset in result.Assets) {
-    Console.WriteLine($"{asset.FileName}: {asset.LengthBytes}");
-}
-```
+Install `OfficeIMO.Reader.Email` and call `AddMhtmlHandler()` when the input is an MHT/MHTML archive. The dedicated registration reuses this HTML projection without placing MIME dependencies in ordinary HTML or EPUB applications.
 
 For untrusted or size-sensitive HTML:
 
@@ -111,7 +103,6 @@ foreach (OfficeDocumentLink link in document.Links) {
 - Heading-aware chunk metadata when `ReaderHtmlOptions.ChunkByHeadings` is enabled.
 - HTML-to-Markdown profile, transform, converter, and visual round-trip option pass-through.
 - A schema-v5 rich result containing semantic headings, quotes, code, footnotes, list markers, figures, tables, links, form controls, media visuals, metadata, and bounded data-URI image assets.
-- MHTML root HTML, decoded related resources, archive diagnostics, and stable `officeimo.html.mhtml` capability evidence.
 - ARIA heading levels and accessible link/image names in rich blocks, links, assets, visuals, JSON, and `officeimo.html.*` capability identifiers.
 
 ## Boundaries
@@ -128,6 +119,6 @@ foreach (OfficeDocumentLink link in document.Links) {
 ## Dependency footprint
 
 - **External:** AngleSharp/AngleSharp.Css only through `OfficeIMO.Html`.
-- **OfficeIMO:** `OfficeIMO.Reader.Core`, `OfficeIMO.Html`, `OfficeIMO.Email`, `OfficeIMO.Markdown`, and `OfficeIMO.Markdown.Html` own MIME mechanics, parsing, projection, chunks, and rich results.
+- **OfficeIMO:** `OfficeIMO.Reader.Core`, `OfficeIMO.Html`, `OfficeIMO.Markdown`, and `OfficeIMO.Markdown.Html` own parsing, projection, chunks, and rich results. Email, RTF, and MHTML are not part of this package graph.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

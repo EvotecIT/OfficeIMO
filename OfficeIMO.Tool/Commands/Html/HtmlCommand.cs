@@ -3,6 +3,7 @@ using System.Text.Json;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Mhtml;
 using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Tool.Commands.Html;

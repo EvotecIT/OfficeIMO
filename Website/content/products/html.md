@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.Html"
-description: "Parse HTML and MHTML, resolve resources safely, and render or project web content into OfficeIMO document models. Compare packages, examples, and limits."
+description: "Parse HTML, resolve resources safely, and render web content into OfficeIMO models. Add focused bridges only for MHTML, RTF, email, or PDF workflows."
 layout: product
 meta.seo_title: "OfficeIMO.Html for web document workflows"
 meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/products/html/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/products/html/" />'
@@ -20,7 +20,7 @@ meta.software.price_currency: "USD"
 
 ## Shared HTML behavior for every converter
 
-`OfficeIMO.Html` owns HTML/MHTML parsing, resource policy, base-URI resolution, accessible structure, layout scenes, and direct image rendering. Word, Excel, PowerPoint, Markdown, RTF, Email, and PDF adapters reuse this owner instead of implementing separate web-content rules.
+`OfficeIMO.Html` owns HTML parsing, resource policy, base-URI resolution, accessible structure, layout scenes, and direct image rendering. Word, Excel, PowerPoint, Markdown, and focused bridge packages reuse this owner instead of implementing separate web-content rules.
 
 ```csharp
 using OfficeIMO.Html;
@@ -34,6 +34,8 @@ byte[] png = source.ToPng(new HtmlRenderOptions { ViewportWidth = 720 });
 
 - Render directly to PNG, JPEG, TIFF, SVG, and lossless WebP.
 - Create PDF output with `OfficeIMO.Html.Pdf`.
-- Convert semantic content to Word, Markdown, and RTF through their focused adapter packages.
-- Load and save MHTML archives with bounded resource handling and deterministic root-part selection.
+- Convert semantic content to Word and Markdown through their focused adapter packages.
+- Add `OfficeIMO.Html.Rtf` only for HTML/RTF conversion.
+- Add `OfficeIMO.Mhtml` for bounded MHT/MHTML load and save, and `OfficeIMO.Mhtml.Pdf` for archive-to-PDF conversion.
+- Add `OfficeIMO.Email.Image` only when an email body must be rendered to images.
 - Apply URL, media, size, node, and depth policies before untrusted web content enters a document workflow.

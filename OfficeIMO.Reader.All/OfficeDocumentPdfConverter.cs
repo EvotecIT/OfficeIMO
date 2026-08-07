@@ -17,7 +17,7 @@ public static class OfficeDocumentPdfConverter {
     public static PdfDocumentConversionResult EmailToPdf(
         Stream source,
         string sourceName = "message.eml",
-        ReaderPdfProjectionOptions? pdfOptions = null,
+        PdfProjectionOptions? pdfOptions = null,
         ReaderOptions? readerOptions = null,
         ReaderEmailOptions? emailOptions = null,
         CancellationToken cancellationToken = default) {
@@ -33,7 +33,7 @@ public static class OfficeDocumentPdfConverter {
     /// <summary>Converts an Email artifact such as EML, MSG, OFT, or TNEF to a searchable PDF.</summary>
     public static PdfDocumentConversionResult EmailToPdf(
         string path,
-        ReaderPdfProjectionOptions? pdfOptions = null,
+        PdfProjectionOptions? pdfOptions = null,
         ReaderOptions? readerOptions = null,
         ReaderEmailOptions? emailOptions = null,
         CancellationToken cancellationToken = default) {
@@ -49,7 +49,7 @@ public static class OfficeDocumentPdfConverter {
     public static PdfDocumentConversionResult EpubToPdf(
         Stream source,
         string sourceName = "book.epub",
-        ReaderPdfProjectionOptions? pdfOptions = null,
+        PdfProjectionOptions? pdfOptions = null,
         ReaderOptions? readerOptions = null,
         EpubReadOptions? epubOptions = null,
         CancellationToken cancellationToken = default) {
@@ -65,7 +65,7 @@ public static class OfficeDocumentPdfConverter {
     /// <summary>Converts an EPUB package to a searchable PDF while retaining chapter order and policy diagnostics.</summary>
     public static PdfDocumentConversionResult EpubToPdf(
         string path,
-        ReaderPdfProjectionOptions? pdfOptions = null,
+        PdfProjectionOptions? pdfOptions = null,
         ReaderOptions? readerOptions = null,
         EpubReadOptions? epubOptions = null,
         CancellationToken cancellationToken = default) {
@@ -81,7 +81,7 @@ public static class OfficeDocumentPdfConverter {
     public static PdfDocumentConversionResult VisioToPdf(
         Stream source,
         string sourceName = "diagram.vsdx",
-        ReaderPdfProjectionOptions? pdfOptions = null,
+        PdfProjectionOptions? pdfOptions = null,
         ReaderOptions? readerOptions = null,
         ReaderVisioOptions? visioOptions = null,
         CancellationToken cancellationToken = default) {
@@ -97,7 +97,7 @@ public static class OfficeDocumentPdfConverter {
     /// <summary>Converts a Visio package to a searchable PDF with explicit preview or semantic-fallback evidence.</summary>
     public static PdfDocumentConversionResult VisioToPdf(
         string path,
-        ReaderPdfProjectionOptions? pdfOptions = null,
+        PdfProjectionOptions? pdfOptions = null,
         ReaderOptions? readerOptions = null,
         ReaderVisioOptions? visioOptions = null,
         CancellationToken cancellationToken = default) {
@@ -113,7 +113,7 @@ public static class OfficeDocumentPdfConverter {
         OfficeDocumentReader reader,
         Stream source,
         string sourceName,
-        ReaderPdfProjectionOptions? pdfOptions,
+        PdfProjectionOptions? pdfOptions,
         ReaderOptions? readerOptions,
         CancellationToken cancellationToken) {
         if (source == null) throw new ArgumentNullException(nameof(source));
@@ -125,7 +125,7 @@ public static class OfficeDocumentPdfConverter {
     private static PdfDocumentConversionResult Convert(
         OfficeDocumentReader reader,
         string path,
-        ReaderPdfProjectionOptions? pdfOptions,
+        PdfProjectionOptions? pdfOptions,
         ReaderOptions? readerOptions,
         CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Source path is required.", nameof(path));

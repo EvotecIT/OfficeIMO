@@ -5,7 +5,7 @@
     <Description>Unified command-line interface for OfficeIMO document conversion, extraction, markup, and capability discovery.</Description>
     <AssemblyName>OfficeIMO.Tool</AssemblyName>
     <AssemblyTitle>OfficeIMO.Tool</AssemblyTitle>
-    <VersionPrefix>3.1.1</VersionPrefix>
+    <VersionPrefix>3.2.0</VersionPrefix>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Tool</PackageId>
@@ -45,6 +45,8 @@
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Mhtml\OfficeIMO.Mhtml.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Mhtml.Pdf\OfficeIMO.Mhtml.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markup\OfficeIMO.Markup.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markup.Excel\OfficeIMO.Markup.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markup.PowerPoint\OfficeIMO.Markup.PowerPoint.csproj" />

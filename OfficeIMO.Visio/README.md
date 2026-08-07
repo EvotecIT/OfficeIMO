@@ -262,6 +262,7 @@ IReadOnlyList<OfficeImageExportResult> pages = document
 ## Related packages and limits
 
 - `OfficeIMO.Visio` generates and edits drawing, template, stencil, and macro-enabled Open XML Visio packages without requiring desktop Visio at runtime.
+- `ToOfficeDocumentModel(...)` projects Visio content into the dependency-free model in `OfficeIMO.Core`; direct converters can consume it without taking Reader dependencies.
 - External stencil packages retain their package and licensing requirements; OfficeIMO records caller-supplied provenance but never infers licensing terms.
 - Use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for PowerShell workflows.
 - Open Visio product work is listed in the repository [roadmap](../Docs/ROADMAP.md).

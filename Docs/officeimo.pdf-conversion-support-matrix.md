@@ -10,7 +10,8 @@ Premium claim rule: A converter can be marked externally-verified only when its 
 | excel | xlsx, xlsm, xltx, xltm, xls, xlsb | native-paged | candidate | microsoft-excel-plus-officeimo-regression |
 | powerpoint | pptx, pptm | native-slide-canvas | candidate | microsoft-powerpoint-plus-officeimo-regression |
 | markdown | md, markdown | semantic-document | regression-proven | officeimo-regression |
-| html | html, htm, mhtml, mht | native-static-paged | candidate | standards-corpus-plus-officeimo-regression |
+| html | html, htm | native-static-paged | candidate | standards-corpus-plus-officeimo-regression |
+| mhtml | mhtml, mht | native-static-paged | candidate | officeimo-regression |
 | rtf | rtf | semantic-document | regression-proven | officeimo-regression |
 | onenote | one, onetoc2, onepkg | explicit-semantic-document | accepted-degradation | semantic-contract |
 | asciidoc | adoc, asciidoc, asc | loss-aware-semantic-document | accepted-degradation | semantic-contract |

@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory)]
     [string] $FeedPath,
 
-    [string] $Version = '3.1.0',
+    [string] $Version = '3.2.0',
 
     [switch] $KeepWorkingDirectory
 )
@@ -115,6 +115,29 @@ try {
         $metadata
     }
 
+    $expectedDirectDependencies = @{
+        'OfficeIMO.Html' = @('OfficeIMO.Core')
+        'OfficeIMO.Html.Rtf' = @('OfficeIMO.Core', 'OfficeIMO.Html', 'OfficeIMO.Rtf')
+        'OfficeIMO.Mhtml' = @('OfficeIMO.Core', 'OfficeIMO.Email', 'OfficeIMO.Html')
+        'OfficeIMO.Email.Image' = @('OfficeIMO.Core', 'OfficeIMO.Email', 'OfficeIMO.Html', 'OfficeIMO.Html.Rtf')
+        'OfficeIMO.Mhtml.Pdf' = @('OfficeIMO.Core', 'OfficeIMO.Html.Pdf', 'OfficeIMO.Mhtml', 'OfficeIMO.Pdf')
+        'OfficeIMO.Reader.Html' = @('OfficeIMO.Html', 'OfficeIMO.Markdown.Html', 'OfficeIMO.Reader.Core')
+        'OfficeIMO.Reader.Email' = @('OfficeIMO.Email', 'OfficeIMO.Mhtml', 'OfficeIMO.Reader.Core', 'OfficeIMO.Reader.Html')
+        'OfficeIMO.Reader.Epub' = @('OfficeIMO.Epub', 'OfficeIMO.Reader.Core', 'OfficeIMO.Reader.Html')
+        'OfficeIMO.Visio.Pdf' = @('OfficeIMO.Core', 'OfficeIMO.Pdf', 'OfficeIMO.Visio')
+    }
+    foreach ($entry in $expectedDirectDependencies.GetEnumerator()) {
+        $metadata = $packageMetadata | Where-Object { $_.Id -eq $entry.Key }
+        if ($null -eq $metadata) {
+            throw "Dependency contract package '$($entry.Key)' was not packed."
+        }
+        $actual = @($metadata.OfficeIMODependencies.Id | Sort-Object -Unique)
+        $expected = @($entry.Value | Sort-Object -Unique)
+        if (($actual -join '|') -ne ($expected -join '|')) {
+            throw "Package '$($entry.Key)' OfficeIMO dependencies were '$($actual -join ', ')'; expected '$($expected -join ', ')'."
+        }
+    }
+
     $toolPackages = @(
         [pscustomobject]@{
             Id = 'OfficeIMO.Tool'
@@ -131,6 +154,10 @@ try {
     $nugetConfigPath = Join-Path $workingPath 'NuGet.Config'
     $packagesPath = Join-Path $workingPath 'packages'
     $toolPath = Join-Path $workingPath 'tool'
+    $visioPdfWorkingPath = Join-Path $workingPath 'visio-pdf'
+    New-Item -ItemType Directory -Path $visioPdfWorkingPath | Out-Null
+    $visioPdfProjectPath = Join-Path $visioPdfWorkingPath 'OfficeIMO.Visio.Pdf.ReleaseConsumer.csproj'
+    $visioPdfProgramPath = Join-Path $visioPdfWorkingPath 'VisioPdfProgram.cs'
 
     $packageReferences = $libraryPackageIds | ForEach-Object {
         '    <PackageReference Include="' +
@@ -319,6 +346,69 @@ internal static class Program
     Invoke-DotNet restore $projectPath --configfile $nugetConfigPath --packages $packagesPath --no-cache --force-evaluate
     Invoke-DotNet build $projectPath --configuration Release --no-restore
     Invoke-DotNet run --project $projectPath --configuration Release --no-build
+
+    $visioPdfProjectXml = @"
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net472;net8.0;net10.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="VisioPdfProgram.cs" />
+    <PackageReference Include="OfficeIMO.Visio.Pdf" Version="[$Version]" />
+  </ItemGroup>
+</Project>
+"@
+    Set-Content -LiteralPath $visioPdfProjectPath -Value $visioPdfProjectXml -Encoding utf8
+    $visioPdfProgramSource = @"
+using OfficeIMO.Visio;
+using OfficeIMO.Visio.Pdf;
+
+string[] readerAssemblies = Directory.GetFiles(
+    AppContext.BaseDirectory,
+    "OfficeIMO.Reader*.dll",
+    SearchOption.TopDirectoryOnly);
+if (readerAssemblies.Length != 0)
+{
+    throw new InvalidOperationException(
+        "OfficeIMO.Visio.Pdf restored Reader assemblies: " +
+        string.Join(", ", readerAssemblies.Select(Path.GetFileName)));
+}
+
+string workingPath = Path.Combine(
+    Path.GetTempPath(),
+    "officeimo-visio-pdf-smoke-" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(workingPath);
+try
+{
+    string visioPath = Path.Combine(workingPath, "diagram.vsdx");
+    string pdfPath = Path.Combine(workingPath, "diagram.pdf");
+    VisioDocument document = VisioDocument.Create(visioPath);
+    document.AddPage("Page-1");
+    document.Save();
+
+    document.SaveAsPdf(pdfPath).RequireSuccess();
+    if (!File.Exists(pdfPath) || new FileInfo(pdfPath).Length == 0)
+    {
+        throw new InvalidOperationException("Packed OfficeIMO.Visio.Pdf produced no PDF output.");
+    }
+
+    Console.WriteLine("OfficeIMO.Visio.Pdf package smoke passed without Reader assemblies.");
+}
+finally
+{
+    Directory.Delete(workingPath, recursive: true);
+}
+"@
+    Set-Content -LiteralPath $visioPdfProgramPath -Value $visioPdfProgramSource -Encoding utf8
+    Invoke-DotNet restore $visioPdfProjectPath --configfile $nugetConfigPath --packages $packagesPath --no-cache --force-evaluate
+    Invoke-DotNet build $visioPdfProjectPath --configuration Release --no-restore
+    Invoke-DotNet run --project $visioPdfProjectPath --configuration Release --framework net8.0 --no-build
+
     foreach ($toolPackage in $toolPackages) {
         Invoke-DotNet tool install $toolPackage.Id --version $Version --tool-path $toolPath --configfile $nugetConfigPath --no-cache
         $toolExecutable = Join-Path $toolPath $toolPackage.Executable

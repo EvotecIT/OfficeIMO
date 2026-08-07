@@ -1,7 +1,7 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Email;
 
-namespace OfficeIMO.Html;
+namespace OfficeIMO.Email;
 
 /// <summary>Fluent image export for one rendered email surface.</summary>
 public sealed class EmailImageExportBuilder :

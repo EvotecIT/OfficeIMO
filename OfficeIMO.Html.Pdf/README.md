@@ -33,13 +33,7 @@ byte[] pdf = source.ToPdf();
 source.SaveAsPdf("quarterly-update.pdf");
 ```
 
-MHTML archives have the same lifecycle. Embedded `cid:` and archive resources are resolved from the bounded source package without enabling local-file or remote-network access:
-
-```csharp
-MhtmlDocument archive = MhtmlDocument.Load("quarterly-update.mhtml");
-var result = await archive.ToPdfDocumentResultAsync();
-await result.SaveAsync("quarterly-update.pdf");
-```
+Install `OfficeIMO.Mhtml.Pdf` when the source is an MHT/MHTML archive. That bridge adds MIME parsing and embedded-resource resolution without putting `OfficeIMO.Email` into ordinary HTML/PDF applications.
 
 Naming is consistent across the direct output APIs:
 

@@ -22,6 +22,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.json",
         "officeimo.reader.latex",
         "officeimo.reader.markdown",
+        "officeimo.reader.mhtml",
         "officeimo.reader.notebook",
         "officeimo.reader.onenote",
         "officeimo.reader.opendocument",

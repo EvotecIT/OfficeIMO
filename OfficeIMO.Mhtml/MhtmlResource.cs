@@ -1,6 +1,6 @@
 using OfficeIMO.Email;
 
-namespace OfficeIMO.Html;
+namespace OfficeIMO.Mhtml;
 
 /// <summary>Immutable decoded resource embedded in an MHTML web archive.</summary>
 public sealed class MhtmlResource {
