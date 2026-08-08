@@ -114,5 +114,45 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("#0C2238", svg, System.StringComparison.OrdinalIgnoreCase);
         }
+
+        [Fact]
+        public void ExcelChart_DirectExportUsesAbsoluteAnchorDimensions() {
+            string filePath = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".xlsx");
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                    ExcelSheet sheet = document.AddWorksheet("Summary");
+                    sheet.CellValue(1, 1, "Category");
+                    sheet.CellValue(1, 2, "Value");
+                    sheet.CellValue(2, 1, "Open");
+                    sheet.CellValue(2, 2, 12);
+                    sheet.AddChartFromRange(
+                        "A1:B2",
+                        row: 1,
+                        column: 4,
+                        widthPixels: 320,
+                        heightPixels: 180,
+                        title: "Absolute chart");
+                    document.Save();
+                }
+
+                MoveFirstChartToAbsoluteAnchor(
+                    filePath,
+                    xPixels: 40,
+                    yPixels: 30,
+                    widthPixels: 210,
+                    heightPixels: 110);
+
+                using ExcelDocument loaded = ExcelDocument.Load(filePath);
+                ExcelChart chart = Assert.Single(loaded.Sheets.Single().Charts);
+                OfficeImageExportResult result = chart.ExportImage(OfficeImageExportFormat.Png);
+
+                Assert.Equal(210, result.Width);
+                Assert.Equal(110, result.Height);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
     }
 }
