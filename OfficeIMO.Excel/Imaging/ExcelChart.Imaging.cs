@@ -103,13 +103,24 @@ namespace OfficeIMO.Excel {
                     "The chart type cannot be rendered by the shared Office chart renderer.");
             }
 
-            OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(officeSnapshot);
+            OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(
+                officeSnapshot,
+                useMinimumCanvas: false);
             drawing.Fonts.AddRange(options.Fonts);
             string source = _sheetName + "!" + snapshot.Name;
             drawing.AppendFontDiagnostics(diagnostics, source);
 
             if (format == OfficeImageExportFormat.Svg) {
-                byte[] svgBytes = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale);
+                OfficeDrawing svgDrawing = new OfficeDrawing(drawing.Width, drawing.Height);
+                OfficeShape background = OfficeShape.Rectangle(drawing.Width, drawing.Height);
+                background.FillColor = options.BackgroundColor;
+                background.StrokeWidth = 0D;
+                svgDrawing.AddShape(background, 0D, 0D);
+                svgDrawing.AddDrawing(drawing, 0D, 0D);
+                byte[] svgBytes = OfficeDrawingSvgExporter.ToSvgBytes(
+                    svgDrawing,
+                    options.Scale,
+                    OfficeSvgSizeUnit.Pixel);
                 if (!OfficeImageReader.TryIdentifyByContent(svgBytes, ".svg", out OfficeImageInfo svgInfo)) {
                     throw new InvalidDataException("The rendered chart SVG dimensions could not be identified.");
                 }

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using Xunit;
@@ -62,6 +63,56 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(OfficeImageExportFormat.Webp, result.Format);
             Assert.True(result.EncodedLength > 0);
+        }
+
+        [Theory]
+        [InlineData(OfficeImageExportFormat.Png)]
+        [InlineData(OfficeImageExportFormat.Svg)]
+        public void ExcelChart_PreservesSmallAnchoredDimensions(OfficeImageExportFormat format) {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Summary");
+            sheet.CellValue(1, 1, "Category");
+            sheet.CellValue(1, 2, "Value");
+            sheet.CellValue(2, 1, "Open");
+            sheet.CellValue(2, 2, 12);
+            ExcelChart chart = sheet.AddChartFromRange(
+                "A1:B2",
+                row: 1,
+                column: 4,
+                widthPixels: 160,
+                heightPixels: 90,
+                title: "Small chart");
+
+            OfficeImageExportResult result = chart.ExportImage(format);
+
+            Assert.Equal(160, result.Width);
+            Assert.Equal(90, result.Height);
+        }
+
+        [Fact]
+        public void ExcelChart_SvgUsesRequestedExportBackgroundWhenChartHasNoFill() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Summary");
+            sheet.CellValue(1, 1, "Category");
+            sheet.CellValue(1, 2, "Value");
+            sheet.CellValue(2, 1, "Open");
+            sheet.CellValue(2, 2, 12);
+            ExcelChart chart = sheet.AddChartFromRange(
+                "A1:B2",
+                row: 1,
+                column: 4,
+                widthPixels: 320,
+                heightPixels: 180,
+                title: "Transparent chart");
+            chart.SetChartAreaStyle(noFill: true, noLine: true);
+
+            string svg = Encoding.UTF8.GetString(chart.ExportImage(
+                OfficeImageExportFormat.Svg,
+                new ExcelImageExportOptions {
+                    BackgroundColor = OfficeColor.FromRgb(12, 34, 56)
+                }).Bytes);
+
+            Assert.Contains("#0C2238", svg, System.StringComparison.OrdinalIgnoreCase);
         }
     }
 }
