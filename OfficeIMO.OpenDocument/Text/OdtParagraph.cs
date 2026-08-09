@@ -106,12 +106,18 @@ public sealed class OdtParagraph {
         get => ResolveStyleValue(style => style.Underline);
         set => EnsureStyle().Underline = value;
     }
+    /// <summary>Whether the effective underline uses a non-solid ODF decoration style.</summary>
+    public bool UsesNonSolidUnderlineStyle =>
+        ResolveStyleValue(style => style.UsesNonSolidUnderlineStyle) == true;
 
     /// <summary>Explicit or inherited strike-through state.</summary>
     public bool? StrikeThrough {
         get => ResolveStyleValue(style => style.StrikeThrough);
         set => EnsureStyle().StrikeThrough = value;
     }
+    /// <summary>Whether the effective line-through uses a non-solid ODF decoration style.</summary>
+    public bool UsesNonSolidLineThroughStyle =>
+        ResolveStyleValue(style => style.UsesNonSolidLineThroughStyle) == true;
 
     /// <summary>Explicit or inherited font size.</summary>
     public OdfLength? FontSize {
@@ -127,7 +133,11 @@ public sealed class OdtParagraph {
 
     /// <summary>Explicit or inherited text background color.</summary>
     public OdfColor? TextBackgroundColor {
-        get => ResolveStyleValue(style => style.TextBackgroundColor);
+        get {
+            OdfStyle? style = StyleName == null ? null : _document.Styles.FindInPart(
+                OdfStyleFamily.Paragraph, StyleName, _partPath);
+            return _document.Styles.ResolveTextBackgroundColor(style);
+        }
         set => EnsureStyle().TextBackgroundColor = value;
     }
 
@@ -139,7 +149,11 @@ public sealed class OdtParagraph {
 
     /// <summary>Explicit or inherited paragraph background color.</summary>
     public OdfColor? BackgroundColor {
-        get => ResolveStyleValue(style => style.BackgroundColor);
+        get {
+            OdfStyle? style = StyleName == null ? null : _document.Styles.FindInPart(
+                OdfStyleFamily.Paragraph, StyleName, _partPath);
+            return _document.Styles.ResolveBackgroundColor(style);
+        }
         set => EnsureStyle().BackgroundColor = value;
     }
 

@@ -89,6 +89,26 @@ public sealed class OdfStyleRepository {
         return result;
     }
 
+    internal OdfColor? ResolveTextBackgroundColor(OdfStyle? style) =>
+        ResolveColorOverride(style, static candidate => candidate.TryGetTextBackgroundColor(out OdfColor? color)
+            ? (true, color)
+            : (false, null));
+
+    internal OdfColor? ResolveBackgroundColor(OdfStyle? style) =>
+        ResolveColorOverride(style, static candidate => candidate.TryGetBackgroundColor(out OdfColor? color)
+            ? (true, color)
+            : (false, null));
+
+    private OdfColor? ResolveColorOverride(OdfStyle? style,
+        Func<OdfStyle, (bool HasValue, OdfColor? Color)> read) {
+        if (style == null) return null;
+        foreach (OdfStyle candidate in Resolve(style)) {
+            (bool hasValue, OdfColor? color) = read(candidate);
+            if (hasValue) return color;
+        }
+        return null;
+    }
+
     internal OdfStyle EnsureAutomaticStyle(XElement owner, XName styleAttribute, OdfStyleFamily family, string prefix, string partPath = "content.xml") {
         string? existingName = (string?)owner.Attribute(styleAttribute);
         OdfStyle? existing = existingName == null ? null : FindInPart(family, existingName, partPath);

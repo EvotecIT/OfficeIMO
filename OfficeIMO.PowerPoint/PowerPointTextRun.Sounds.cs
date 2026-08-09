@@ -2,6 +2,24 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTextRun {
+        /// <summary>Whether this run has click interaction markup, including hyperlinks, actions, or sounds.</summary>
+        public bool HasClickInteraction => GetInteraction(mouseOver: false) != null;
+
+        /// <summary>Whether this run has mouse-over interaction markup, including hyperlinks, actions, or sounds.</summary>
+        public bool HasMouseOverInteraction => GetInteraction(mouseOver: true) != null;
+
+        /// <summary>Gets the DrawingML click action URI, when one is authored.</summary>
+        public string? ClickAction => GetInteraction(mouseOver: false)?.Action?.Value;
+
+        /// <summary>Gets the DrawingML mouse-over action URI, when one is authored.</summary>
+        public string? MouseOverAction => GetInteraction(mouseOver: true)?.Action?.Value;
+
+        /// <summary>Whether clicking this run stops the currently playing sound.</summary>
+        public bool ClickStopsSound => GetInteraction(mouseOver: false)?.EndSound?.Value == true;
+
+        /// <summary>Whether entering this run stops the currently playing sound.</summary>
+        public bool MouseOverStopsSound => GetInteraction(mouseOver: true)?.EndSound?.Value == true;
+
         /// <summary>Gets the sound name played when this text run is clicked.</summary>
         public string? ClickSoundName => GetInteractionSound(mouseOver: false)?
             .Name?.Value;

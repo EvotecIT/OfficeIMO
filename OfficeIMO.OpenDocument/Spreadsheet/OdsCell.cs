@@ -75,7 +75,11 @@ public sealed class OdsCell {
     }
     /// <summary>Explicit or inherited cell background color.</summary>
     public OdfColor? BackgroundColor {
-        get => Resolve(style => style.BackgroundColor);
+        get {
+            OdfStyle? style = StyleName == null ? null : _document.Styles.Find(
+                OdfStyleFamily.TableCell, StyleName);
+            return _document.Styles.ResolveBackgroundColor(style);
+        }
         set => EnsureStyle().BackgroundColor = value;
     }
 

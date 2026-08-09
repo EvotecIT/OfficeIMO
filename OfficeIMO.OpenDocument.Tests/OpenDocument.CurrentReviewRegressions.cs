@@ -490,6 +490,56 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         Assert.False(unsupported.TryGetExcelNumberFormatCode(out _));
     }
 
+    [Fact]
+    public void TransparentTextBackgroundStopsParentStyleInheritance() {
+        OdtDocument document = OdtDocument.Create();
+        OdfStyle parent = document.Styles.CreateNamed("ParentText", OdfStyleFamily.Text);
+        parent.TextBackgroundColor = OdfColor.Parse("#FF0000");
+        OdfStyle child = document.Styles.CreateNamed("ChildText", OdfStyleFamily.Text, parent.Name);
+        child.TextBackgroundColor = OdfColor.Parse("#000000");
+        child.Element.Element(OdfNamespaces.Style + "text-properties")!
+            .SetAttributeValue(OdfNamespaces.Fo + "background-color", "transparent");
+        OdtSpan span = document.AddParagraph().AddSpan("Not highlighted");
+        span.StyleName = child.Name;
+
+        Assert.Equal(OdfColor.Parse("#FF0000"), parent.TextBackgroundColor);
+        Assert.Null(child.TextBackgroundColor);
+        Assert.Null(span.BackgroundColor);
+    }
+
+    [Fact]
+    public void TransparentCellBackgroundStopsParentStyleInheritance() {
+        OdsDocument document = OdsDocument.Create();
+        OdfStyle parent = document.Styles.CreateNamed("ParentCell", OdfStyleFamily.TableCell);
+        parent.BackgroundColor = OdfColor.Parse("#00FF00");
+        OdfStyle child = document.Styles.CreateNamed("ChildCell", OdfStyleFamily.TableCell, parent.Name);
+        child.BackgroundColor = OdfColor.Parse("#000000");
+        child.Element.Element(OdfNamespaces.Style + "table-cell-properties")!
+            .SetAttributeValue(OdfNamespaces.Fo + "background-color", "transparent");
+        OdsCell cell = document.AddSheet("Data").Cell(0, 0);
+        cell.StyleName = child.Name;
+
+        Assert.Null(cell.BackgroundColor);
+    }
+
+    [Fact]
+    public void EffectiveTextFormattingExposesNonSolidDecorationVariants() {
+        OdtDocument document = OdtDocument.Create();
+        OdfStyle style = document.Styles.CreateNamed("Decorated", OdfStyleFamily.Text);
+        style.Underline = true;
+        style.StrikeThrough = true;
+        XElement properties = style.Element.Element(OdfNamespaces.Style + "text-properties")!;
+        properties.SetAttributeValue(OdfNamespaces.Style + "text-underline-style", "wave");
+        properties.SetAttributeValue(OdfNamespaces.Style + "text-line-through-style", "dotted");
+        OdtSpan span = document.AddParagraph().AddSpan("Decorated");
+        span.StyleName = style.Name;
+
+        Assert.True(span.Underline);
+        Assert.True(span.StrikeThrough);
+        Assert.True(span.UsesNonSolidUnderlineStyle);
+        Assert.True(span.UsesNonSolidLineThroughStyle);
+    }
+
     private static void WrapFirstRowAsHeader(XElement table) {
         XElement firstRow = table.Elements(OdfNamespaces.Table + "table-row").First();
         XElement secondRow = firstRow.ElementsAfterSelf(OdfNamespaces.Table + "table-row").First();

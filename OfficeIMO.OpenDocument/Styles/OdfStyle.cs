@@ -50,11 +50,17 @@ public sealed class OdfStyle {
         get => ReadDecorationToggle(TextProperties, OdfNamespaces.Style + "text-underline-style");
         set => WriteDecorationToggle(OdfNamespaces.Style + "text-underline-style", value);
     }
+    /// <summary>Whether this style explicitly uses an underline variant other than <c>solid</c> or <c>none</c>.</summary>
+    public bool? UsesNonSolidUnderlineStyle => ReadNonSolidDecoration(
+        TextProperties, OdfNamespaces.Style + "text-underline-style");
     /// <summary>True when text strike-through is explicitly enabled by this style.</summary>
     public bool? StrikeThrough {
         get => ReadDecorationToggle(TextProperties, OdfNamespaces.Style + "text-line-through-style");
         set => WriteDecorationToggle(OdfNamespaces.Style + "text-line-through-style", value);
     }
+    /// <summary>Whether this style explicitly uses a line-through variant other than <c>solid</c> or <c>none</c>.</summary>
+    public bool? UsesNonSolidLineThroughStyle => ReadNonSolidDecoration(
+        TextProperties, OdfNamespaces.Style + "text-line-through-style");
     /// <summary>Explicit font size.</summary>
     public OdfLength? FontSize {
         get => ReadLength(TextProperties, OdfNamespaces.Fo + "font-size");
@@ -76,17 +82,16 @@ public sealed class OdfStyle {
     /// <summary>Explicit text background color, commonly used for highlighting.</summary>
     public OdfColor? TextBackgroundColor {
         get {
-            string? value = (string?)TextProperties?.Attribute(OdfNamespaces.Fo + "background-color");
-            return value == null || value == "transparent" ? (OdfColor?)null : OdfColor.Parse(value);
+            TryGetTextBackgroundColor(out OdfColor? color);
+            return color;
         }
         set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"), OdfNamespaces.Fo + "background-color", value?.ToString());
     }
     /// <summary>Explicit cell or paragraph background color.</summary>
     public OdfColor? BackgroundColor {
         get {
-            XElement? properties = _element.Element(OdfNamespaces.Style + "table-cell-properties") ?? ParagraphProperties;
-            string? value = (string?)properties?.Attribute(OdfNamespaces.Fo + "background-color");
-            return value == null || value == "transparent" ? (OdfColor?)null : OdfColor.Parse(value);
+            TryGetBackgroundColor(out OdfColor? color);
+            return color;
         }
         set {
             XName properties = Family == OdfStyleFamily.TableCell
@@ -136,6 +141,13 @@ public sealed class OdfStyle {
     internal XElement? TextProperties => _element.Element(OdfNamespaces.Style + "text-properties");
     internal XElement? ParagraphProperties => _element.Element(OdfNamespaces.Style + "paragraph-properties");
 
+    internal bool TryGetTextBackgroundColor(out OdfColor? color) => TryReadColorOverride(
+        TextProperties, OdfNamespaces.Fo + "background-color", out color);
+
+    internal bool TryGetBackgroundColor(out OdfColor? color) => TryReadColorOverride(
+        _element.Element(OdfNamespaces.Style + "table-cell-properties") ?? ParagraphProperties,
+        OdfNamespaces.Fo + "background-color", out color);
+
     internal XElement GetProperties(XName name) {
         XElement? properties = _element.Element(name);
         if (properties == null) {
@@ -172,6 +184,13 @@ public sealed class OdfStyle {
         return string.Equals(value, "none", StringComparison.OrdinalIgnoreCase) ? false : true;
     }
 
+    private static bool? ReadNonSolidDecoration(XElement? element, XName attribute) {
+        string? value = (string?)element?.Attribute(attribute);
+        if (value == null) return null;
+        return !string.Equals(value, "none", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(value, "solid", StringComparison.OrdinalIgnoreCase);
+    }
+
     private void WriteDecorationToggle(XName attribute, bool? value) {
         SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"), attribute,
             value.HasValue ? (value.Value ? "solid" : "none") : null);
@@ -180,5 +199,17 @@ public sealed class OdfStyle {
     private static OdfLength? ReadLength(XElement? element, XName attribute) {
         string? value = (string?)element?.Attribute(attribute);
         return value == null ? (OdfLength?)null : OdfLength.Parse(value);
+    }
+
+    private static bool TryReadColorOverride(XElement? element, XName attribute, out OdfColor? color) {
+        string? value = (string?)element?.Attribute(attribute);
+        if (value == null) {
+            color = null;
+            return false;
+        }
+        color = string.Equals(value, "transparent", StringComparison.OrdinalIgnoreCase)
+            ? (OdfColor?)null
+            : OdfColor.Parse(value);
+        return true;
     }
 }

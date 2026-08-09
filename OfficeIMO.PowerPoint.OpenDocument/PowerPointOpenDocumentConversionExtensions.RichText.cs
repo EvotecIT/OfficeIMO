@@ -15,7 +15,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         ref int textRuns,
         ref int listParagraphs,
         ref int skippedBasicFormatting,
-        ref int unsupportedHyperlinkTooltips) {
+        ref int unsupportedHyperlinkTooltips,
+        ref int unsupportedRunInteractions) {
         OdpParagraph? firstParagraph = target.Paragraphs.FirstOrDefault();
         bool useFirstParagraph = firstParagraph != null;
 
@@ -28,7 +29,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
         CopyPowerPointParagraphsToOdp(source.Paragraphs, AddParagraph, options,
             ref paragraphs, ref textRuns, ref listParagraphs, ref skippedBasicFormatting,
-            ref unsupportedHyperlinkTooltips);
+            ref unsupportedHyperlinkTooltips, ref unsupportedRunInteractions);
     }
 
     private static void CopyPowerPointParagraphsToOdp(
@@ -39,7 +40,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         ref int textRuns,
         ref int listParagraphs,
         ref int skippedBasicFormatting,
-        ref int unsupportedHyperlinkTooltips) {
+        ref int unsupportedHyperlinkTooltips,
+        ref int unsupportedRunInteractions) {
         foreach (PowerPointParagraph sourceParagraph in sourceParagraphs) {
             OdpParagraph targetParagraph = addParagraph();
             IReadOnlyList<PowerPointTextRun> runs = sourceParagraph.Runs;
@@ -49,6 +51,13 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 foreach (PowerPointTextRun run in runs) {
                     if (!options.IncludeBasicFormatting && HasBasicFormatting(run)) skippedBasicFormatting++;
                     Uri? hyperlink = run.Hyperlink;
+                    bool clickActionRepresented = string.IsNullOrWhiteSpace(run.ClickAction)
+                        || string.Equals(run.ClickAction, "ppaction://hlinksldjump", StringComparison.OrdinalIgnoreCase);
+                    if (run.HasClickInteraction && (hyperlink == null || !clickActionRepresented
+                        || run.ClickSoundName != null || run.ClickStopsSound)) {
+                        unsupportedRunInteractions++;
+                    }
+                    if (run.HasMouseOverInteraction) unsupportedRunInteractions++;
                     if (hyperlink != null) {
                         ApplyPowerPointRun(run, targetParagraph.AddHyperlink(run.Text, hyperlink.ToString()), options);
                         if (!string.IsNullOrWhiteSpace(run.HyperlinkTooltip)) unsupportedHyperlinkTooltips++;

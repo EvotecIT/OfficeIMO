@@ -5,7 +5,7 @@ using OfficeIMO.Word;
 namespace OfficeIMO.Word.OpenDocument;
 
 /// <summary>Explicit conversions between OfficeIMO Word and native OpenDocument text models.</summary>
-public static class WordOpenDocumentConversionExtensions {
+public static partial class WordOpenDocumentConversionExtensions {
     /// <summary>Converts a Word document to an in-memory ODT document.</summary>
     public static OdtDocument ToOpenDocument(this WordDocument source,
         WordOpenDocumentConversionOptions? options = null) => source.ToOpenDocumentResult(options).Value;
@@ -133,6 +133,7 @@ public static class WordOpenDocumentConversionExtensions {
         var report = new OdfConversionReport("ODT", "DOCX");
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, externalHyperlinks = 0, images = 0, bookmarks = 0;
         int approximatedRuns = 0, approximatedBookmarkRanges = 0, unsupportedMeasurements = 0;
+        int approximatedTextDecorations = CountNonSolidTextDecorations(source);
         int sourceImages = source.ContentBlocks.Where(block => block.Paragraph != null).Sum(block => block.Paragraph!.Images.Count) +
             source.ContentBlocks.Where(block => block.Table != null).Sum(block => block.Table!.Rows
                 .Sum(row => row.Cells.Sum(cell => cell.Paragraphs.Sum(paragraph => paragraph.Images.Count)))) +
@@ -216,6 +217,8 @@ public static class WordOpenDocumentConversionExtensions {
         AddCount(report, "bookmarks", bookmarks);
         if (approximatedRuns > 0) report.Add("inline-formatting", OdfConversionMappingStatus.Approximated, approximatedRuns,
             "Inline elements outside the typed ODT text, span, hyperlink, image, and bookmark syntax were flattened to text.");
+        if (approximatedTextDecorations > 0) report.Add("text-decorations", OdfConversionMappingStatus.Approximated,
+            approximatedTextDecorations, "Non-solid ODF underline and line-through variants are simplified to solid Word decorations.");
         if (approximatedBookmarkRanges > 0) report.Add("bookmark-ranges", OdfConversionMappingStatus.Approximated,
             approximatedBookmarkRanges, "ODT bookmark ranges were retained as collapsed Word bookmark targets at their start position.");
         if (sourceImages > images) report.Add("images", OdfConversionMappingStatus.Skipped, sourceImages - images,

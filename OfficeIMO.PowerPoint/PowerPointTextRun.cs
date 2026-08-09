@@ -84,8 +84,28 @@ namespace OfficeIMO.PowerPoint {
                 return size != null ? size / 100 : null;
             }
             set {
+                FontSizePoints = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the font size in points while preserving DrawingML hundredth-point precision.
+        /// </summary>
+        public double? FontSizePoints {
+            get {
+                int? size = Run.RunProperties?.FontSize?.Value;
+                return size.HasValue ? size.Value / 100D : (double?)null;
+            }
+            set {
+                if (value.HasValue && (double.IsNaN(value.Value) || double.IsInfinity(value.Value)
+                    || value.Value < 0D || value.Value > int.MaxValue / 100D)) {
+                    throw new ArgumentOutOfRangeException(nameof(value), value,
+                        "Font size must be a finite non-negative point value within the DrawingML integer range.");
+                }
                 A.RunProperties props = EnsureRunProperties();
-                props.FontSize = value != null ? value * 100 : null;
+                props.FontSize = value.HasValue
+                    ? checked((int)Math.Round(value.Value * 100D, MidpointRounding.AwayFromZero))
+                    : (int?)null;
             }
         }
 

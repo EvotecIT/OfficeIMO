@@ -999,6 +999,115 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count >= 1);
     }
 
+    [Fact]
+    public void OdtTransparentChildHighlightDoesNotReapplyTheParentHighlight() {
+        OdtDocument source = OdtDocument.Create();
+        OdfStyle parent = source.Styles.CreateNamed("ParentHighlight", OdfStyleFamily.Text);
+        parent.TextBackgroundColor = OdfColor.Parse("#FF0000");
+        OdfStyle child = source.Styles.CreateNamed("TransparentHighlight", OdfStyleFamily.Text, parent.Name);
+        child.TextBackgroundColor = OdfColor.Parse("#000000");
+        child.Element.Element(OdfNamespaces.Style + "text-properties")!
+            .SetAttributeValue(OdfNamespaces.Fo + "background-color", "transparent");
+        OdtSpan span = source.AddParagraph().AddSpan("Plain");
+        span.StyleName = child.Name;
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        WordRunSnapshot run = Assert.Single(target.CreateInspectionSnapshot().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>()
+            .Single().Runs);
+
+        Assert.Null(run.HighlightColor);
+        Assert.Null(run.RunShadingFillColorHex);
+    }
+
+    [Fact]
+    public void OdtNonSolidDecorationsAreFlattenedAndReported() {
+        OdtDocument source = OdtDocument.Create();
+        OdfStyle style = source.Styles.CreateNamed("WaveText", OdfStyleFamily.Text);
+        style.Underline = true;
+        style.StrikeThrough = true;
+        XElement properties = style.Element.Element(OdfNamespaces.Style + "text-properties")!;
+        properties.SetAttributeValue(OdfNamespaces.Style + "text-underline-style", "wave");
+        properties.SetAttributeValue(OdfNamespaces.Style + "text-line-through-style", "dotted");
+        OdtSpan span = source.AddParagraph().AddSpan("Decorated");
+        span.StyleName = style.Name;
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-decorations"
+            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+    }
+
+    [Fact]
+    public void OdpFractionalFontSizeIsPreservedWhileNonSolidDecorationsAreReported() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpRun run = source.AddSlide("Styled")
+            .AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2)).AddParagraph().AddRun("Precise");
+        run.FontSize = OdfLength.Points(10.5D);
+        OdfStyle style = source.Styles.Find(OdfStyleFamily.Text, run.StyleName!)!;
+        style.Element.Element(OdfNamespaces.Style + "text-properties")!
+            .SetAttributeValue(OdfNamespaces.Style + "text-underline-style", "wave");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        PowerPointTextRun converted = target.Slides.Single().TextBoxes.Single()
+            .Paragraphs.Single().Runs.Single();
+
+        Assert.Equal(10.5D, converted.FontSizePoints);
+        Assert.Equal(10, converted.FontSize);
+        using var stream = new MemoryStream(target.ToBytes());
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+        Assert.Equal(10.5D, reopened.Slides.Single().TextBoxes.Single()
+            .Paragraphs.Single().Runs.Single().FontSizePoints);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-decorations"
+            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+    }
+
+    [Fact]
+    public void PowerPointActionOnlyRunInteractionsAreReportedBeforeLossPolicyIsApplied() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
+        try {
+            using (PowerPointPresentation created = PowerPointPresentation.Create(path)) {
+                created.AddSlide().AddTextBoxPoints("Action", 10, 10, 200, 40);
+                created.Save();
+            }
+            using (PresentationDocument package = PresentationDocument.Open(path, true)) {
+                SlidePart slide = package.PresentationPart!.SlideParts.Single();
+                A.Run run = slide.Slide!.Descendants<A.Run>().Single();
+                run.RunProperties ??= new A.RunProperties();
+                run.RunProperties.Append(
+                    new A.HyperlinkOnClick {
+                        Id = string.Empty,
+                        Action = "ppaction://hlinkshowjump?jump=nextslide"
+                    },
+                    new A.HyperlinkOnMouseOver {
+                        Id = string.Empty,
+                        Action = "ppaction://hlinkshowjump?jump=lastslide"
+                    });
+                slide.Slide.Save();
+            }
+
+            using PowerPointPresentation source = PowerPointPresentation.Load(path);
+            PowerPointTextRun authored = source.Slides.Single().TextBoxes.Single()
+                .Paragraphs.Single().Runs.Single();
+            Assert.True(authored.HasClickInteraction);
+            Assert.True(authored.HasMouseOverInteraction);
+            Assert.Equal("ppaction://hlinkshowjump?jump=nextslide", authored.ClickAction);
+            Assert.Equal("ppaction://hlinkshowjump?jump=lastslide", authored.MouseOverAction);
+
+            OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+            Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "run-interactions"
+                && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
+            Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     private static byte[] RemovePackageEntry(byte[] packageBytes, string removedPath) =>
         OdfTestPackageRewriter.Remove(packageBytes, removedPath);
 
