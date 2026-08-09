@@ -5,6 +5,11 @@ namespace OfficeIMO.Spreadsheet;
 
 internal static class SpreadsheetFormulaParser {
     private const int MaximumNestingDepth = 128;
+    private static readonly string[] KnownErrorLiterals = {
+        "#GETTING_DATA", "#BLOCKED!", "#CONNECT!", "#UNKNOWN!", "#PYTHON!",
+        "#SPILL!", "#CALC!", "#FIELD!", "#VALUE!", "#DIV/0!", "#NULL!",
+        "#NAME?", "#NUM!", "#BUSY!", "#REF!", "#N/A"
+    };
 
     internal static SpreadsheetFormulaSyntaxTree Parse(string text, SpreadsheetFormulaDialect dialect) {
         var diagnostics = new List<SpreadsheetFormulaDiagnostic>();
@@ -408,15 +413,28 @@ internal static class SpreadsheetFormulaParser {
         ICollection<SpreadsheetFormulaDiagnostic> diagnostics) {
         if (text[cursor] != '#') return false;
         if (cursor + 1 >= text.Length || !IsIdentifierStart(text[cursor + 1])) return false;
-        int start = cursor++;
-        while (cursor < text.Length) {
-            char character = text[cursor];
-            if (char.IsWhiteSpace(character) || character == ',' || character == ';' || character == ')' || character == '}') break;
+        int start = cursor;
+        string? literal = null;
+        for (int index = 0; index < KnownErrorLiterals.Length; index++) {
+            string candidate = KnownErrorLiterals[index];
+            if (!MatchesAt(text, cursor, candidate)) continue;
+            literal = candidate;
+            cursor += candidate.Length;
+            break;
+        }
+        if (literal == null) {
             cursor++;
-            if (character == '!' || character == '?') break;
+            while (cursor < text.Length && !IsErrorBoundary(text[cursor])) cursor++;
+            children.Add(Token(SpreadsheetFormulaTokenKind.Unsupported, text.Substring(start, cursor - start), start));
+            diagnostics.Add(Error(
+                "FORMULA_UNKNOWN_ERROR_LITERAL",
+                "The spreadsheet error literal is not recognized and cannot be translated safely.",
+                start,
+                cursor - start));
+            return true;
         }
         if (dialect == SpreadsheetFormulaDialect.ExcelA1
-            && string.Equals(text.Substring(start, cursor - start), "#REF!", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(literal, "#REF!", StringComparison.OrdinalIgnoreCase)
             && cursor < text.Length
             && SpreadsheetRangeReference.TryReadExcelAt(text, cursor, out _, out int consumed)) {
             cursor += consumed;
@@ -428,9 +446,29 @@ internal static class SpreadsheetFormulaParser {
                 cursor - start));
             return true;
         }
+        if (cursor < text.Length && (IsIdentifierStart(text[cursor])
+            || (text[cursor] >= '0' && text[cursor] <= '9') || text[cursor] == '.')) {
+            while (cursor < text.Length && !IsErrorBoundary(text[cursor])) cursor++;
+            children.Add(Token(SpreadsheetFormulaTokenKind.Unsupported, text.Substring(start, cursor - start), start));
+            diagnostics.Add(Error(
+                "FORMULA_INVALID_ERROR_LITERAL",
+                "The spreadsheet error literal has an invalid trailing token.",
+                start,
+                cursor - start));
+            return true;
+        }
         children.Add(Token(SpreadsheetFormulaTokenKind.ErrorLiteral, text.Substring(start, cursor - start), start));
         return true;
     }
+
+    private static bool MatchesAt(string text, int offset, string value) {
+        if (value.Length > text.Length - offset) return false;
+        return string.Compare(text, offset, value, 0, value.Length, StringComparison.OrdinalIgnoreCase) == 0;
+    }
+
+    private static bool IsErrorBoundary(char character) =>
+        char.IsWhiteSpace(character) || character == ',' || character == ';' || character == ')' ||
+        character == '}' || character == ']' || "+-*/^&%=<>:~|!".IndexOf(character) >= 0;
 
     private static bool TryReadIdentifier(
         string text,

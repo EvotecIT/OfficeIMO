@@ -90,6 +90,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         OdsValidationConditionSyntax? condition = validation.ParsedCondition;
         if (condition == null) return false;
         if (condition.ValueKind == OdsValidationValueKind.List) {
+            if (condition.ListValues.Any(static item => item.IndexOf(',') >= 0)) return false;
             sheet.ValidationList(references, condition.ListValues, validation.AllowEmptyCell);
             return true;
         }

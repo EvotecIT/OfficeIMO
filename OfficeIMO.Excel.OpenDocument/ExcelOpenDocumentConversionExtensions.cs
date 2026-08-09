@@ -324,10 +324,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var sourceValidations = source.Validations
             .GroupBy(validation => validation.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        var sourceNamedRangeNames = new HashSet<string>(
+            source.NamedRanges.Select(static namedRange => namedRange.Name),
+            StringComparer.Ordinal);
 
         long expandedCells = 0;
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, externalHyperlinks = 0, comments = 0, combinedComments = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
-        int invalidValues = 0, validations = 0, convertedValidations = 0, unsupportedValidationAssignments = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
+        int invalidValues = 0, validations = 0, convertedValidations = 0, unsupportedValidationAssignments = 0, unsupportedHyperlinks = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
         int forcedVisibleWorksheets = 0;
         bool truncated = false;
         ExcelSheet? activeTarget = null;
@@ -385,19 +388,30 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                             }
                             if (!string.IsNullOrWhiteSpace(cellRun.HyperlinkHref)) {
                                 string href = cellRun.HyperlinkHref!;
+                                bool convertedHyperlink = false;
                                 if (href.StartsWith("#", StringComparison.Ordinal)) {
-                                    string location = SpreadsheetAddressConverter.OpenAddressToExcel(href.Substring(1));
-                                    sheet.SetInternalLink(excelRow, excelColumn, location, cellRun.Text, style: true);
+                                    string fragment = href.Substring(1);
+                                    string location = SpreadsheetAddressConverter.OpenAddressToExcel(fragment);
+                                    if (location.Length == 0 && sourceNamedRangeNames.Contains(fragment)) location = fragment;
+                                    if (location.Length > 0) {
+                                        sheet.SetInternalLink(excelRow, excelColumn, location, cellRun.Text, style: true);
+                                        convertedHyperlink = true;
+                                    } else {
+                                        unsupportedHyperlinks++;
+                                    }
                                 } else {
                                     sheet.SetHyperlink(excelRow, excelColumn, href, cellRun.Text, style: true);
+                                    convertedHyperlink = true;
                                 }
                                 if (cellRun.Value.Kind != OdsCellValueKind.Empty) _ = SetExcelValue(converted, cellRun.Value);
                                 if (!string.IsNullOrWhiteSpace(cellRun.Formula)) {
                                     var translation = SpreadsheetAddressConverter.OpenFormulaToExcel(cellRun.Formula!);
                                     if (translation.IsSuccessful) converted.SetFormula(translation.Formula);
                                 }
-                                hyperlinks++;
-                                if (IsExternalOdfHref(href)) externalHyperlinks++;
+                                if (convertedHyperlink) {
+                                    hyperlinks++;
+                                    if (IsExternalOdfHref(href)) externalHyperlinks++;
+                                }
                             }
                             if (effective.IncludeBasicStyles && cellRun.StyleName != null) {
                                 ApplyOdsStyle(converted, cellRun, dataStyles);
@@ -479,6 +493,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             "Physical ODF column widths are converted to approximate Excel character widths.");
         AddConverted(report, "merges", merges);
         AddConverted(report, "hyperlinks", hyperlinks);
+        AddUnsupported(report, "hyperlinks", unsupportedHyperlinks,
+            "Internal hyperlink fragments that are neither cell addresses nor transferred named ranges were omitted.");
         AddConverted(report, "comments", comments - combinedComments);
         if (combinedComments > 0) report.Add("comments", OdfConversionMappingStatus.Approximated, combinedComments,
             "Multiple annotations on one ODS cell were combined into one Excel legacy comment.");

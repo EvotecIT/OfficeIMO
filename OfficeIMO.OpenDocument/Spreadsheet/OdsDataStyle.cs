@@ -72,7 +72,15 @@ public sealed class OdsDataStyle {
         foreach (XElement child in Element.Elements()) {
             string style = (string?)child.Attribute(OdfNamespaces.Number + "style") ?? "short";
             if (child.Name == OdfNamespaces.Number + "year") builder.Append(style == "long" ? "yyyy" : "yy");
-            else if (child.Name == OdfNamespaces.Number + "month") builder.Append(style == "long" ? "mm" : "m");
+            else if (child.Name == OdfNamespaces.Number + "month") {
+                bool textual = string.Equals(
+                    (string?)child.Attribute(OdfNamespaces.Number + "textual"),
+                    "true",
+                    StringComparison.OrdinalIgnoreCase);
+                builder.Append(textual
+                    ? (style == "long" ? "mmmm" : "mmm")
+                    : (style == "long" ? "mm" : "m"));
+            }
             else if (child.Name == OdfNamespaces.Number + "day") builder.Append(style == "long" ? "dd" : "d");
             else if (child.Name == OdfNamespaces.Number + "hours") builder.Append(style == "long" ? "hh" : "h");
             else if (child.Name == OdfNamespaces.Number + "minutes") builder.Append(style == "long" ? "mm" : "m");

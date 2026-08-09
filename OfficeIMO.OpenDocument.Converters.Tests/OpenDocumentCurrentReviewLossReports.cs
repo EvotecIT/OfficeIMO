@@ -160,6 +160,47 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
+    public void OdpSlideNameFragmentCreatesAnInternalPowerPointRelationship() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide("First").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2))
+            .AddParagraph().AddHyperlink("Agenda", "#Agenda");
+        source.AddSlide("Agenda");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+
+        byte[] package = target.ToBytes();
+        string slideXml = ReadFirstPackageEntry(package, name =>
+            name.StartsWith("ppt/slides/slide", StringComparison.Ordinal)
+            && name.EndsWith(".xml", StringComparison.Ordinal));
+        string relationships = ReadFirstPackageEntry(package, name =>
+            name.StartsWith("ppt/slides/_rels/slide", StringComparison.Ordinal)
+            && name.EndsWith(".xml.rels", StringComparison.Ordinal));
+        Assert.Contains("ppaction://hlinksldjump", slideXml, StringComparison.Ordinal);
+        Assert.DoesNotContain("TargetMode=\"External\"", relationships, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OdpUnknownSlideFragmentIsOmittedAndReportedUnsupported() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide("Only").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2))
+            .AddParagraph().AddHyperlink("Missing", "#Missing");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+
+        string relationships = ReadFirstPackageEntry(target.ToBytes(), name =>
+            name.StartsWith("ppt/slides/_rels/slide", StringComparison.Ordinal)
+            && name.EndsWith(".xml.rels", StringComparison.Ordinal));
+        Assert.DoesNotContain("TargetMode=\"External\"", relationships, StringComparison.Ordinal);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "hyperlinks"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "hyperlinks"
+            && mapping.Status == OdfConversionMappingStatus.Converted);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+    }
+
+    [Fact]
     public void OdtInternalLinkDoesNotMaskUnsupportedExternalImage() {
         OdtDocument template = OdtDocument.Create();
         OdtParagraph paragraph = template.AddParagraph();
@@ -314,6 +355,42 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.NotNull(cell.Hyperlink);
         Assert.False(cell.Hyperlink!.IsExternal);
         Assert.Equal("'Target'!A1", cell.Hyperlink.Target);
+    }
+
+    [Fact]
+    public void OdsToExcelPreservesNamedRangeHyperlinkFragments() {
+        OdsDocument source = OdsDocument.Create();
+        source.AddSheet("Target").Cell(0, 0).SetString("Destination");
+        source.AddNamedRange("MyRange", "$'Target'.A1");
+        OdsCell linked = source.AddSheet("Links").Cell(0, 0);
+        linked.SetHyperlink("Go", "#MyRange");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        ExcelCellSnapshot cell = Assert.Single(target.CreateInspectionSnapshot().Worksheets
+            .Single(sheet => sheet.Name == "Links").Cells);
+
+        Assert.NotNull(cell.Hyperlink);
+        Assert.False(cell.Hyperlink!.IsExternal);
+        Assert.Equal("MyRange", cell.Hyperlink.Target);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "hyperlinks"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void OdsUnknownInternalHyperlinkFragmentIsOmittedAndReportedUnsupported() {
+        OdsDocument source = OdsDocument.Create();
+        OdsCell linked = source.AddSheet("Links").Cell(0, 0);
+        linked.SetHyperlink("Missing", "#Missing");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+
+        ExcelCellSnapshot cell = Assert.Single(target.CreateInspectionSnapshot().Worksheets.Single().Cells);
+        Assert.Null(cell.Hyperlink);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "hyperlinks"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
     }
 
     [Fact]

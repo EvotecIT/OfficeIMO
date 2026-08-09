@@ -67,6 +67,31 @@ public sealed class LatexDocumentIOTests {
     }
 
     [Fact]
+    public void FileLoadDetectsUtf16AndUtf32ByteOrderMarksWhenEncodingIsOmitted() {
+        const string source = "\\documentclass{article}\nZażółć\n";
+        Encoding[] encodings = {
+            Encoding.Unicode,
+            Encoding.BigEndianUnicode,
+            new UTF32Encoding(bigEndian: false, byteOrderMark: true),
+            new UTF32Encoding(bigEndian: true, byteOrderMark: true)
+        };
+
+        foreach (Encoding encoding in encodings) {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".tex");
+            try {
+                byte[] payload = encoding.GetPreamble().Concat(encoding.GetBytes(source)).ToArray();
+                File.WriteAllBytes(path, payload);
+
+                LatexParseResult result = LatexDocument.Load(path);
+
+                Assert.Equal(source, result.Document.ToLatex());
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
     public void Parse_Honors_PreCanceled_Token() {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

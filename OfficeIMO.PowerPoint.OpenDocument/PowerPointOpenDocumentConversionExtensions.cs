@@ -173,7 +173,7 @@ public static class PowerPointOpenDocumentConversionExtensions {
 
         int textBoxes = 0, paragraphs = 0, textRuns = 0, hyperlinks = 0, externalHyperlinks = 0, pictures = 0, tables = 0, basicShapes = 0;
         int notes = 0, transitions = 0, unsupportedTransitions = 0, unsupportedShapes = 0, unsupportedPictures = 0, transformedShapes = 0;
-        int listParagraphs = 0, approximatedRuns = 0, skippedBasicFormatting = 0, skippedNotes = 0, noteContainers = 0;
+        int listParagraphs = 0, approximatedRuns = 0, unsupportedHyperlinks = 0, skippedBasicFormatting = 0, skippedNotes = 0, noteContainers = 0;
         var pendingInternalLinks = new List<(PowerPointTextRun Run, int SlideIndex)>();
         foreach (OdpSlide sourceSlide in source.Slides) {
             PowerPointSlide targetSlide = target.AddSlide();
@@ -219,16 +219,17 @@ public static class PowerPointOpenDocumentConversionExtensions {
                                 } else if (node.Kind == OdpInlineNodeKind.Hyperlink) {
                                     OdpHyperlink hyperlink = node.Hyperlink!;
                                     ApplyOdpHyperlink(hyperlink, sourceParagraph, targetRun, effective);
-                                    hyperlinks++;
-                                    if (TryParseSlideFragment(hyperlink.Href, source.Slides.Count, out int targetSlideIndex)) {
+                                    if (TryResolveSlideFragment(hyperlink.Href, source.Slides, out int targetSlideIndex)) {
                                         pendingInternalLinks.Add((targetRun, targetSlideIndex));
-                                    } else if (hyperlink.Href.StartsWith("#slide-", StringComparison.OrdinalIgnoreCase)) {
-                                        approximatedRuns++;
+                                        hyperlinks++;
+                                    } else if (hyperlink.Href.StartsWith("#", StringComparison.Ordinal)) {
+                                        unsupportedHyperlinks++;
                                     } else if (Uri.TryCreate(hyperlink.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
                                         targetRun.SetHyperlink(uri);
+                                        hyperlinks++;
                                         if (IsExternalOdfHref(hyperlink.Href)) externalHyperlinks++;
                                     } else {
-                                        approximatedRuns++;
+                                        unsupportedHyperlinks++;
                                     }
                                     if (!effective.IncludeBasicFormatting && HasBasicFormatting(hyperlink)) skippedBasicFormatting++;
                                 } else {
@@ -336,6 +337,8 @@ public static class PowerPointOpenDocumentConversionExtensions {
             "ODP list text is retained as paragraphs; PowerPoint bullet and numbering definitions are not translated.");
         if (approximatedRuns > 0) report.Add("inline-formatting", OdfConversionMappingStatus.Approximated, approximatedRuns,
             "Inline ODP elements outside plain text, spans, and hyperlinks were flattened to text.");
+        AddUnsupported(report, "hyperlinks", unsupportedHyperlinks,
+            "Hyperlink targets that could not be resolved as slides or valid URI references were omitted.");
         if (skippedBasicFormatting > 0) report.Add("basic-formatting", OdfConversionMappingStatus.Skipped, skippedBasicFormatting,
             "Common text, fill, and outline formatting was omitted because IncludeBasicFormatting is disabled.");
         if (skippedNotes > 0) report.Add("speaker-notes", OdfConversionMappingStatus.Skipped, skippedNotes,
@@ -351,15 +354,32 @@ public static class PowerPointOpenDocumentConversionExtensions {
         return new OdfConversionResult<PowerPointPresentation>(target, report).ApplyPolicy(effective.LossPolicy);
     }
 
-    private static bool TryParseSlideFragment(string href, int slideCount, out int zeroBasedIndex) {
+    private static bool TryResolveSlideFragment(
+        string href,
+        IReadOnlyList<OdpSlide> slides,
+        out int zeroBasedIndex) {
         zeroBasedIndex = -1;
         const string prefix = "#slide-";
-        if (!href.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-            || !int.TryParse(href.Substring(prefix.Length), System.Globalization.NumberStyles.None,
+        if (href.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(href.Substring(prefix.Length), System.Globalization.NumberStyles.None,
                 System.Globalization.CultureInfo.InvariantCulture, out int oneBased)
-            || oneBased < 1 || oneBased > slideCount) return false;
-        zeroBasedIndex = oneBased - 1;
-        return true;
+            && oneBased >= 1 && oneBased <= slides.Count) {
+            zeroBasedIndex = oneBased - 1;
+            return true;
+        }
+        if (!href.StartsWith("#", StringComparison.Ordinal) || href.Length == 1) return false;
+        string fragment = href.Substring(1);
+        try {
+            fragment = Uri.UnescapeDataString(fragment);
+        } catch (UriFormatException) {
+            return false;
+        }
+        for (int index = 0; index < slides.Count; index++) {
+            if (!string.Equals(slides[index].Name, fragment, StringComparison.Ordinal)) continue;
+            zeroBasedIndex = index;
+            return true;
+        }
+        return false;
     }
 
     private static bool IsExternalOdfHref(string href) =>

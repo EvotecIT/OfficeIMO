@@ -113,7 +113,7 @@ public sealed partial class LatexDocument {
         LatexParseOptions? options,
         CancellationToken cancellationToken) => LatexParser.Parse(source, options, cancellationToken);
 
-    /// <summary>Loads decoded text using runtime UTF-8 BOM detection.</summary>
+    /// <summary>Loads decoded text using Unicode BOM detection when no encoding is specified.</summary>
     public static LatexParseResult Load(string path, LatexParseOptions? options = null, Encoding? encoding = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);

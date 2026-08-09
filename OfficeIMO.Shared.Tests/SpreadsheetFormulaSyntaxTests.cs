@@ -81,6 +81,28 @@ public sealed class SpreadsheetFormulaSyntaxTests {
     }
 
     [Theory]
+    [InlineData("=#N/A+A1", "of:=#N/A+[.A1]")]
+    [InlineData("=#GETTING_DATA+A1", "of:=#GETTING_DATA+[.A1]")]
+    public void ExcelErrorLiteralsStopBeforeFollowingOperators(string formula, string expected) {
+        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
+            .Parse(formula, SpreadsheetFormulaDialect.ExcelA1)
+            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
+
+        Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(expected, result.Formula);
+    }
+
+    [Fact]
+    public void UnknownExcelErrorLiteralFailsClosed() {
+        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
+            .Parse("=#BOGUS+A1", SpreadsheetFormulaDialect.ExcelA1)
+            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
+
+        Assert.False(result.IsSuccessful);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "FORMULA_UNKNOWN_ERROR_LITERAL");
+    }
+
+    [Theory]
     [InlineData("of:=[.A1048577]")]
     [InlineData("of:=[.XFE1]")]
     public void OpenFormulaReferencesOutsideExcelBoundsFailClosed(string formula) {

@@ -46,6 +46,24 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     }
 
     [Fact]
+    public void OdsValidationListWithCommaBearingItemIsReportedUnsupported() {
+        OdsDocument source = OdsDocument.Create();
+        OdsValidation validation = source.AddValidation(
+            "Names",
+            OdsValidationConditionSyntax.CreateList(new[] { "Last, First" }));
+        OdsCell cell = source.AddSheet("Data").Cell(0, 0);
+        cell.SetString("Last, First");
+        cell.ValidationName = validation.Name;
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+
+        Assert.Empty(target.Sheets.Single().GetDataValidations());
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "validations"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
     public void ScalarAndListValidationsRoundTripThroughTypedOdfConditions() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Data");

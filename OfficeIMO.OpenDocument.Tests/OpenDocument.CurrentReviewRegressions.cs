@@ -196,6 +196,21 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
     }
 
     [Fact]
+    public void SpreadsheetDateProjectionPreservesTextualMonthStyle() {
+        OdsDocument document = OdsDocument.Create();
+        document.AddDateStyle("LongDate");
+        XElement style = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Number + "date-style")
+            .Single(element => (string?)element.Attribute(OdfNamespaces.Style + "name") == "LongDate");
+        style.Element(OdfNamespaces.Number + "month")!
+            .SetAttributeValue(OdfNamespaces.Number + "textual", "true");
+
+        OdsDataStyle projected = document.DataStyles.Single(item => item.Name == "LongDate");
+
+        Assert.Equal("yyyy-mmmm-dd", projected.ToExcelNumberFormatCode());
+    }
+
+    [Fact]
     public void SpreadsheetValidationMessagesRoundTripOdfWhitespaceElements() {
         OdsDocument document = OdsDocument.Create();
         OdsValidation validation = document.AddValidation("Message", "cell-content()>0");
