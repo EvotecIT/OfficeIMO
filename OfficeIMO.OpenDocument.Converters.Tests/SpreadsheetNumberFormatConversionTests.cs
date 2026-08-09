@@ -310,6 +310,25 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         Assert.Equal("0000.00", style.ToExcelNumberFormatCode());
     }
 
+    [Theory]
+    [InlineData(false, "#.00")]
+    [InlineData(true, "#,###.00")]
+    public void ZeroOdfMinimumIntegerDigitsBecomeOptionalExcelPlaceholders(bool grouping, string expected) {
+        OdsDocument source = OdsDocument.Create();
+        source.AddNumberStyle("OptionalInteger", decimalPlaces: 2, useGrouping: grouping);
+        XDocument flat = source.ToFlatXml();
+        XElement number = flat.Descendants(OdfNamespaces.Number + "number").Single();
+        number.SetAttributeValue(OdfNamespaces.Number + "min-integer-digits", 0);
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        OdsDataStyle style = Assert.Single(OdsDocument.LoadFlatXml(stream).DataStyles);
+
+        Assert.Equal(0, style.MinimumIntegerDigits);
+        Assert.Equal(expected, style.ToExcelNumberFormatCode());
+    }
+
     [Fact]
     public void ExcessiveOdfDecimalPlacesAreRejectedBeforeExcelFormatAllocationAndReportedAsUnsupported() {
         OdsDocument source = OdsDocument.Create();

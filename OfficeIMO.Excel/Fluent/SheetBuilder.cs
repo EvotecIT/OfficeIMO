@@ -765,7 +765,9 @@ namespace OfficeIMO.Excel.Fluent {
 
         private static (int Row, int Column) ParseCellReference(string reference) {
             SpreadsheetRangeReference syntax = SpreadsheetRangeReference.Parse(reference, SpreadsheetAddressDialect.ExcelA1);
-            if (syntax.End != null || !syntax.Start.IsCell) throw new ArgumentException("Invalid cell reference", nameof(reference));
+            if (syntax.End != null || !syntax.Start.IsCell || syntax.Start.SheetName != null) {
+                throw new ArgumentException("Cell reference must identify one cell on the current worksheet.", nameof(reference));
+            }
             return (checked((int)syntax.Start.Row!.Value), syntax.Start.Column!.Value);
         }
 

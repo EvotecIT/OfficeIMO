@@ -184,11 +184,12 @@ namespace OfficeIMO.PowerPoint {
             if (uri == null) {
                 throw new ArgumentNullException(nameof(uri));
             }
-            if (_slidePart == null) {
-                throw new InvalidOperationException("Hyperlinks require a slide context.");
+            OpenXmlPart? ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
+            if (ownerPart == null) {
+                throw new InvalidOperationException("Hyperlinks require an owning presentation part.");
             }
 
-            HyperlinkRelationship rel = _slidePart.AddHyperlinkRelationship(uri, true);
+            HyperlinkRelationship rel = ownerPart.AddHyperlinkRelationship(uri, true);
             A.RunProperties props = EnsureRunProperties();
             var hyperlink = new A.HyperlinkOnClick { Id = rel.Id };
             if (!string.IsNullOrWhiteSpace(tooltip)) {
@@ -209,6 +210,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException(
                     "Hyperlinks require a slide context.");
             }
+            OpenXmlPart ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
 
             PresentationPart? sourcePresentation = _slidePart.GetParentParts()
                 .OfType<PresentationPart>().FirstOrDefault();
@@ -221,14 +223,14 @@ namespace OfficeIMO.PowerPoint {
                     nameof(targetSlide));
             }
 
-            if (!_slidePart.Parts.Any(pair => ReferenceEquals(
+            if (!ownerPart.Parts.Any(pair => ReferenceEquals(
                     pair.OpenXmlPart, targetSlide.SlidePart))) {
-                _slidePart.AddPart(targetSlide.SlidePart);
+                ownerPart.AddPart(targetSlide.SlidePart);
             }
 
             A.RunProperties props = EnsureRunProperties();
             var hyperlink = new A.HyperlinkOnClick {
-                Id = _slidePart.GetIdOfPart(targetSlide.SlidePart),
+                Id = ownerPart.GetIdOfPart(targetSlide.SlidePart),
                 Action = "ppaction://hlinksldjump"
             };
             if (!string.IsNullOrWhiteSpace(tooltip)) {
@@ -281,33 +283,34 @@ namespace OfficeIMO.PowerPoint {
                 hyperlink.Remove();
             }
             if (replacement != null) properties.Append(replacement);
-            if (_slidePart == null) return;
+            OpenXmlPart? ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
+            if (ownerPart == null) return;
             foreach (string relationshipId in relationshipIds) {
-                RemoveHyperlinkRelationshipIfUnused(_slidePart,
+                RemoveHyperlinkRelationshipIfUnused(ownerPart,
                     relationshipId);
             }
             foreach (string soundRelationshipId in soundRelationshipIds) {
-                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                PowerPointEmbeddedSound.RemoveIfUnused(ownerPart,
                     soundRelationshipId);
             }
         }
 
         private static void RemoveHyperlinkRelationshipIfUnused(
-            SlidePart slidePart, string relationshipId) {
-            if (ReferencesRelationship(slidePart.RootElement,
+            OpenXmlPart ownerPart, string relationshipId) {
+            if (ReferencesRelationship(ownerPart.RootElement,
                     relationshipId)) return;
-            HyperlinkRelationship? external = slidePart
+            HyperlinkRelationship? external = ownerPart
                 .HyperlinkRelationships.FirstOrDefault(relationship =>
                     string.Equals(relationship.Id, relationshipId,
                         StringComparison.Ordinal));
             if (external != null) {
-                slidePart.DeleteReferenceRelationship(external);
+                ownerPart.DeleteReferenceRelationship(external);
                 return;
             }
-            if (slidePart.Parts.Any(pair => string.Equals(
+            if (ownerPart.Parts.Any(pair => string.Equals(
                     pair.RelationshipId, relationshipId,
                     StringComparison.Ordinal))) {
-                slidePart.DeletePart(relationshipId);
+                ownerPart.DeletePart(relationshipId);
             }
         }
 

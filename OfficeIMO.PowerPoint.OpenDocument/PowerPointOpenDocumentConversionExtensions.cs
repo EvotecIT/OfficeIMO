@@ -300,8 +300,15 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
             if (sourceSlide.SpeakerNotes != null) noteContainers++;
             if (effective.IncludeSpeakerNotes && sourceSlide.SpeakerNotes != null) {
-                string noteText = string.Join(Environment.NewLine, sourceSlide.SpeakerNotes.Paragraphs.Select(paragraph => paragraph.Text));
-                if (noteText.Length > 0) { targetSlide.Notes.Text = noteText; notes++; }
+                IReadOnlyList<OdpParagraph> noteParagraphs = sourceSlide.SpeakerNotes.Paragraphs;
+                if (noteParagraphs.Any(paragraph => paragraph.Text.Length > 0)) {
+                    CopyOdpParagraphsToPowerPoint(noteParagraphs,
+                        paragraphTexts => targetSlide.Notes.SetParagraphs(paragraphTexts), source.Slides,
+                        pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
+                        ref externalHyperlinks, ref unsupportedHyperlinks, ref approximatedRuns,
+                        ref skippedBasicFormatting, ref unsupportedMeasurements);
+                    notes++;
+                }
             } else if (!effective.IncludeSpeakerNotes && sourceSlide.SpeakerNotes != null &&
                        sourceSlide.SpeakerNotes.Paragraphs.Any(paragraph => paragraph.Text.Length > 0)) {
                 skippedNotes++;

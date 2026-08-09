@@ -479,6 +479,35 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
+    public void OdpSpeakerNoteRichTextUsesTypedPowerPointRunsAndLinks() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpSlide slide = source.AddSlide("Source");
+        OdpParagraph note = slide.GetOrCreateSpeakerNotes().AddParagraph();
+        note.AddRun("Bold").Bold = true;
+        note.AddText(" ");
+        note.AddHyperlink("Next", "#slide-2").Italic = true;
+        note.AddText(" ");
+        note.AddHyperlink("Web", "https://example.test/").Underline = true;
+        source.AddSlide("Target");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        using var stream = new MemoryStream(target.ToBytes());
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+        PowerPointTextRun[] runs = reopened.Slides[0].Notes.Paragraphs.Single().Runs
+            .Where(run => run.Text.Length > 0).ToArray();
+
+        Assert.Equal(new[] { "Bold", " ", "Next", " ", "Web" }, runs.Select(run => run.Text));
+        Assert.True(runs[0].Bold);
+        Assert.True(runs[2].Italic);
+        Assert.Equal("#slide-2", runs[2].Hyperlink!.ToString());
+        Assert.True(runs[4].Underline);
+        Assert.Equal("https://example.test/", runs[4].Hyperlink!.ToString());
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "source-presentation-notes");
+        conversion.Report.RequireNoSkippedOrUnsupported();
+    }
+
+    [Fact]
     public void OdpInternalSlideLinkCreatesAnInternalPowerPointRelationship() {
         OdpPresentation source = OdpPresentation.Create();
         source.AddSlide("First").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2))

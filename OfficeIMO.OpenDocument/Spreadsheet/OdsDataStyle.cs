@@ -28,7 +28,7 @@ public sealed class OdsDataStyle {
     public int DecimalPlaces => (int?)Element.Descendants(OdfNamespaces.Number + "number").FirstOrDefault()
         ?.Attribute(OdfNamespaces.Number + "decimal-places") ?? 0;
     /// <summary>Minimum integer digits requested by the number component.</summary>
-    public int MinimumIntegerDigits => Math.Max(1,
+    public int MinimumIntegerDigits => Math.Max(0,
         (int?)Element.Descendants(OdfNamespaces.Number + "number").FirstOrDefault()
             ?.Attribute(OdfNamespaces.Number + "min-integer-digits") ?? 1);
     /// <summary>Whether the style requests grouped thousands.</summary>
@@ -101,12 +101,14 @@ public sealed class OdsDataStyle {
                 attribute.Name != OdfNamespaces.Number + "grouping")) return false;
         if (!TryReadNonNegativeInteger(component, "min-integer-digits", 1, out int minimumIntegerDigits) ||
             !TryReadNonNegativeInteger(component, "decimal-places", 0, out int decimalPlaces)) return false;
-        minimumIntegerDigits = Math.Max(1, minimumIntegerDigits);
-        int groupingLength = UsesGrouping ? 4 : 0;
+        string integerPrefix = minimumIntegerDigits == 0
+            ? (UsesGrouping ? "#,###" : "#")
+            : (UsesGrouping ? "#,##" : string.Empty);
+        long integerLength = (long)integerPrefix.Length + minimumIntegerDigits;
         int decimalSeparatorLength = decimalPlaces > 0 ? 1 : 0;
-        if (minimumIntegerDigits > MaximumExcelNumberFormatCodeLength - groupingLength - decimalSeparatorLength ||
-            decimalPlaces > MaximumExcelNumberFormatCodeLength - groupingLength - decimalSeparatorLength - minimumIntegerDigits) return false;
-        number = (UsesGrouping ? "#,##" : string.Empty) + new string('0', minimumIntegerDigits);
+        if (integerLength > MaximumExcelNumberFormatCodeLength - decimalSeparatorLength ||
+            decimalPlaces > MaximumExcelNumberFormatCodeLength - decimalSeparatorLength - integerLength) return false;
+        number = integerPrefix + new string('0', minimumIntegerDigits);
         if (decimalPlaces > 0) number += "." + new string('0', decimalPlaces);
         return true;
     }
