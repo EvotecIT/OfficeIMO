@@ -343,47 +343,63 @@ macOS evidence separate.
 
 Parity check: the class includes all 20 upstream `CsvReaderBenchmarks` methods by benchmark description plus all 10 QuickTest read lanes, then adds matching OfficeIMO lanes beside them. The extra `OfficeIMO-DataReader-QuickTest-GetValues` lane keeps the SQL/bulk-copy-shaped `DbDataReader.GetValues` path visible at the same 100k-row QuickTest size. BenchmarkDotNet groups results by workload category and uses the matching Dataplat method as that category's baseline; it does not rank a small single-column read against a large or all-column read. `TypeConverterBenchmarks` is intentionally out of scope because it measures dbatools vector conversion rather than CSV reader throughput.
 
-### Dated dbatools.library QuickTest snapshot (2026-08-09)
+### Dated dbatools.library QuickTest snapshot (2026-08-10)
 
 This .NET 10 run read the same 100,000-row, ten-column UTF-8 file through
 each library's public decoded-string API. The single-column lane materialized
 column zero; the all-column lane materialized all ten fields. Every invocation
 validated the row count and deterministic field-length checksum. The two
 16-logical-processor L3 domains were separate jobs with `High` process
-priority, eight fixed invocations, twelve warmups, twenty measured iterations,
-one launch, and retained outliers.
+priority, twelve warmups, twenty measured iterations, one launch, and retained
+outliers. The all-column and `GetValues` lanes used twelve fixed invocations;
+the shorter single-column lane used 32 so every measured iteration performed
+enough fixed work without BenchmarkDotNet choosing different pilot counts.
 
 The OfficeIMO all-column row below is
 `OfficeIMO-QuickTest-AllColumns`, which reads each ordinal with
-`DbDataReader.GetValue(i)`. The command also runs the SQL/bulk-copy-shaped
-`OfficeIMO-DataReader-QuickTest-GetValues` lane plus CsvHelper and LumenWorks;
-those supplementary results are intentionally omitted from this focused
-OfficeIMO/Sep/Sylvan/Dataplat table.
+`DbDataReader.GetValue(i)`. CsvHelper and LumenWorks are included as peers in
+both tables. The SQL/bulk-copy-shaped
+`OfficeIMO-DataReader-QuickTest-GetValues` lane is reported separately because
+the other rows do not call the equivalent bulk API.
 
 ```powershell
-dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvDbatoolsLibraryParityBenchmarks*" --anyCategories QuickTestSingleColumn QuickTestAllColumns --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 8 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*QuickTest*AllColumns*" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 12 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*QuickTest*SingleColumn*" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 32 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*OfficeIMO*QuickTest*GetValues*" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 12 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
 ```
 
 | Contract | Library | L3 domain 0 mean (99.9% CI) | L3 domain 1 mean (99.9% CI) | Managed allocation |
 | --- | --- | ---: | ---: | ---: |
-| All columns | OfficeIMO.CSV | 13.351 ms (12.515-14.188) | 12.136 ms (11.069-13.204) | 40.15 MB |
-| All columns | Sep | 10.761 ms (10.170-11.352) | 14.459 ms (13.065-15.853) | 39.40 MB |
-| All columns | Sylvan.Data.Csv | 12.357 ms (11.770-12.944) | 14.794 ms (13.896-15.692) | 39.64 MB |
-| All columns | Dataplat.Dbatools.Csv | 22.363 ms (20.834-23.892) | 22.811 ms (20.458-25.164) | 39.86 MB |
-| First column | OfficeIMO.CSV | 5.056 ms (4.782-5.330) | 5.045 ms (4.786-5.304) | 3.81 MB |
-| First column | Sep | 6.238 ms (5.816-6.660) | 6.158 ms (5.868-6.448) | 3.06 MB |
-| First column | Sylvan.Data.Csv | 6.642 ms (6.283-7.001) | 6.181 ms (6.030-6.332) | 3.09 MB |
-| First column | Dataplat.Dbatools.Csv | 20.480 ms (19.340-21.620) | 19.242 ms (18.330-20.154) | 39.86 MB |
+| All columns | OfficeIMO.CSV | 12.552 ms (11.193-13.911) | 9.865 ms (9.078-10.652) | 39.40 MB |
+| All columns | Sep | 13.307 ms (12.003-14.612) | 10.984 ms (10.275-11.693) | 39.40 MB |
+| All columns | Sylvan.Data.Csv | 12.371 ms (11.635-13.107) | 13.212 ms (12.125-14.299) | 39.64 MB |
+| All columns | Dataplat.Dbatools.Csv | 23.466 ms (21.815-25.117) | 27.776 ms (25.433-30.119) | 39.86 MB |
+| All columns | CsvHelper | 36.090 ms (33.535-38.645) | 37.538 ms (33.926-41.150) | 39.63 MB |
+| All columns | LumenWorks.FastCsvReader | 26.631 ms (23.046-30.216) | 29.060 ms (26.170-31.950) | 39.74 MB |
+| First column | OfficeIMO.CSV | 3.845 ms (3.651-4.039) | 3.950 ms (3.505-4.395) | 3.06 MB |
+| First column | Sep | 6.676 ms (6.379-6.973) | 8.127 ms (7.325-8.929) | 3.06 MB |
+| First column | Sylvan.Data.Csv | 6.887 ms (6.724-7.050) | 6.887 ms (6.701-7.073) | 3.09 MB |
+| First column | Dataplat.Dbatools.Csv | 19.633 ms (19.167-20.099) | 19.499 ms (18.819-20.179) | 39.86 MB |
+| First column | CsvHelper | 24.744 ms (24.082-25.406) | 29.733 ms (28.303-31.163) | 3.08 MB |
+| First column | LumenWorks.FastCsvReader | 77.141 ms (75.447-78.835) | 74.565 ms (67.703-81.427) | 1,619.67 MB |
 
-OfficeIMO is 40-47% faster than Dataplat for all-column reads and 74-75%
-faster for first-column reads. It also allocates about 90% less than Dataplat
-when only the requested column is materialized. OfficeIMO has the lowest
-single-column mean on both domains, with confidence intervals wholly below Sep
-and Sylvan. For all-column reads, Sep leads conclusively on domain 0, while
-OfficeIMO records the lower mean on domain 1 but its confidence interval
-slightly overlaps Sep's. The domain 1 result is therefore inconclusive rather
-than an OfficeIMO win; that lane remains CPU-sensitive and is not a universal
-parser ranking.
+OfficeIMO's single-column confidence intervals are wholly below Sep and Sylvan
+on both domains. For all-column reads, Sylvan has a 0.181 ms lower mean on
+domain 0 and OfficeIMO has the lowest mean on domain 1; the leading intervals
+overlap, so the top all-column result is statistical parity rather than a win.
+An earlier isolated run put OfficeIMO's all-column mean first on both domains,
+which is another reason not to cherry-pick a CPU-sensitive ranking. In this
+final run OfficeIMO is 46-64% faster than Dataplat for all-column reads, about
+80% faster for first-column reads, and allocates about 92% less than Dataplat
+when only the requested column is materialized. These are workload-specific
+results, not a universal parser ranking.
+
+The supplementary `DbDataReader.GetValues` run measured 11.712 ms
+(11.195-12.229 ms) on domain 0 and 10.850 ms (10.046-11.653 ms) on domain 1,
+allocating 39.40 MB. The domain-1 distribution was multimodal and its detected
+outlier was retained. This lane demonstrates the bulk API shape used by SQL
+consumers; it is not ranked against the ordinal-access rows because those
+contracts are different.
 
 The generated table above and the dated sections below record earlier focused
 investigations and their reproduction commands. Do not combine their numbers

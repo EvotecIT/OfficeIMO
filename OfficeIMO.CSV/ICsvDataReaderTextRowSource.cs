@@ -21,6 +21,13 @@ internal interface ICsvDataReaderTextRowSource : IDisposable
     int CopyStringValues(object[] values, int count, string? nullValue);
 }
 
+internal interface ICsvDataReaderHeaderRowSource : ICsvDataReaderTextRowSource
+{
+    int FieldCount { get; }
+
+    void SetSourceColumnCount(int sourceColumnCount);
+}
+
 internal interface ICsvDataReaderParallelBatchInfo
 {
     int RowCount { get; }

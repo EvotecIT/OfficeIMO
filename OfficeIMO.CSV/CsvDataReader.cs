@@ -134,6 +134,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
     private readonly CsvDataReaderTextRowSource? _textRowSource;
 #if NET8_0_OR_GREATER
     private readonly CsvParser.CsvStreamDataReaderRowSource? _streamTextRowSource;
+    private readonly CsvParser.CsvUtf8StreamDataReaderRowSource? _utf8StreamTextRowSource;
 #endif
     private readonly CultureInfo _culture;
     private readonly IReadOnlyList<string>? _dateTimeFormats;
@@ -227,6 +228,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         _textRowSource = rows;
 #if NET8_0_OR_GREATER
         _streamTextRowSource = rows as CsvParser.CsvStreamDataReaderRowSource;
+        _utf8StreamTextRowSource = rows as CsvParser.CsvUtf8StreamDataReaderRowSource;
 #endif
         _sourceColumnCount = sourceColumnCount;
         _stringRowOptions = options;
@@ -653,18 +655,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
     {
         if (_useDirectTextSourceStrings)
         {
-            if (!_hasCurrentTextRow)
-            {
-                ThrowInvalidTextReaderState();
-            }
-
-#if NET8_0_OR_GREATER
-            if (_streamTextRowSource is not null)
-            {
-                return _streamTextRowSource.GetString(ordinal);
-            }
-#endif
-            return _textRowSource!.GetString(ordinal);
+            return GetDirectTextSourceString(ordinal);
         }
 
         EnsureOpenRow();
@@ -698,8 +689,14 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
     }
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override object GetValue(int ordinal)
     {
+        if (_useDirectTextSourceStrings)
+        {
+            return GetDirectTextSourceString(ordinal);
+        }
+
         EnsureOpenRow();
         if (_useRawStringValues)
         {
@@ -737,6 +734,28 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
 
         _currentConvertedRow[ordinal] = value;
         return value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private string GetDirectTextSourceString(int ordinal)
+    {
+        if (!_hasCurrentTextRow)
+        {
+            ThrowInvalidTextReaderState();
+        }
+
+#if NET8_0_OR_GREATER
+        if (_utf8StreamTextRowSource is not null)
+        {
+            return _utf8StreamTextRowSource.GetString(ordinal);
+        }
+
+        if (_streamTextRowSource is not null)
+        {
+            return _streamTextRowSource.GetString(ordinal);
+        }
+#endif
+        return _textRowSource!.GetString(ordinal);
     }
 
     /// <inheritdoc />
@@ -882,9 +901,11 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         if (_useDirectTextSourceStrings && !_hasBufferedRow)
         {
 #if NET8_0_OR_GREATER
-            _hasCurrentTextRow = _streamTextRowSource is not null
-                ? _streamTextRowSource.Read()
-                : _textRowSource!.Read();
+            _hasCurrentTextRow = _utf8StreamTextRowSource is not null
+                ? _utf8StreamTextRowSource.Read()
+                : _streamTextRowSource is not null
+                    ? _streamTextRowSource.Read()
+                    : _textRowSource!.Read();
 #else
             _hasCurrentTextRow = _textRowSource!.Read();
 #endif
@@ -909,9 +930,11 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         if (_textRowSource is not null && !_hasBufferedRow)
         {
 #if NET8_0_OR_GREATER
-            _hasCurrentTextRow = _streamTextRowSource is not null
-                ? _streamTextRowSource.Read()
-                : _textRowSource.Read();
+            _hasCurrentTextRow = _utf8StreamTextRowSource is not null
+                ? _utf8StreamTextRowSource.Read()
+                : _streamTextRowSource is not null
+                    ? _streamTextRowSource.Read()
+                    : _textRowSource.Read();
 #else
             _hasCurrentTextRow = _textRowSource.Read();
 #endif

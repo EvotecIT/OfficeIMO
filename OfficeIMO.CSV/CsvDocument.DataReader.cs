@@ -10,6 +10,8 @@ public sealed partial class CsvDocument
     // Large explicit schema samples are faster when streamed twice than kept live through reader traversal.
     private const int StreamingInferredReaderBufferLimit = 1000;
     private const long MemoryBackedCsvFileLimit = 32L * 1024 * 1024;
+    private const int StreamingDataReaderFileBufferSize = 128 * 1024;
+    private const int Utf8StreamingDataReaderFileBufferSize = 1;
 
     /// <summary>
     /// Creates a forward-only data reader over already-decoded CSV text.
@@ -94,7 +96,30 @@ public sealed partial class CsvDocument
         if (CanUseStreamSpanDataReader(options, readerOptions)
             && CsvFile.ResolveCompression(options.CompressionType, path) == CsvCompressionType.None)
         {
-            var spanReader = CsvFile.OpenTextReader(path, options, FileBufferSize);
+            if (CanUseUtf8StreamDataReader(options))
+            {
+                Stream utf8Stream = CsvFile.OpenReadStream(
+                    path,
+                    options,
+                    Utf8StreamingDataReaderFileBufferSize,
+                    useAsync: false);
+                if (CsvParser.CsvUtf8StreamDataReaderRowSource.TryCreate(
+                        utf8Stream,
+                        options,
+                        out CsvParser.CsvUtf8StreamDataReaderRowSource? utf8Rows))
+                {
+                    if (TryCreateStreamSpanDataReader(utf8Rows!, options, readerOptions, out CsvDataReader? utf8DataReader))
+                    {
+                        return utf8DataReader!;
+                    }
+                }
+                else
+                {
+                    utf8Stream.Dispose();
+                }
+            }
+
+            var spanReader = CsvFile.OpenTextReader(path, options, StreamingDataReaderFileBufferSize);
             if (TryCreateStreamSpanDataReader(spanReader, options, readerOptions, out CsvDataReader? dataReader))
             {
                 return dataReader!;
@@ -205,7 +230,7 @@ public sealed partial class CsvDocument
 #if NET8_0_OR_GREATER
         if (CanUseStreamSpanDataReader(options, readerOptions))
         {
-            var spanReader = CsvFile.OpenTextReader(stream, options, leaveOpen: true, FileBufferSize);
+            var spanReader = CsvFile.OpenTextReader(stream, options, leaveOpen: true, StreamingDataReaderFileBufferSize);
             if (TryCreateStreamSpanDataReader(spanReader, options, readerOptions, out CsvDataReader? dataReader))
             {
                 return dataReader!;
@@ -444,6 +469,16 @@ public sealed partial class CsvDocument
         && !options.NormalizeQuotes
         && !options.InternStrings;
 
+    private static bool CanUseUtf8StreamDataReader(CsvLoadOptions options)
+    {
+        char delimiter = CsvParser.GetDelimiterChar(options);
+        return !options.TrimWhitespace &&
+            (options.Encoding is null || options.Encoding.CodePage == Encoding.UTF8.CodePage) &&
+            delimiter is > (char)0 and <= (char)127 &&
+            delimiter is not '"' and not '\r' and not '\n' &&
+            options.CommentCharacter is > (char)0 and <= (char)127;
+    }
+
     private static bool TryCreateStreamSpanDataReader(
         TextReader reader,
         CsvLoadOptions options,
@@ -451,6 +486,15 @@ public sealed partial class CsvDocument
         out CsvDataReader? dataReader)
     {
         var rows = new CsvParser.CsvStreamDataReaderRowSource(reader, options);
+        return TryCreateStreamSpanDataReader(rows, options, readerOptions, out dataReader);
+    }
+
+    private static bool TryCreateStreamSpanDataReader(
+        ICsvDataReaderHeaderRowSource rows,
+        CsvLoadOptions options,
+        CsvDataReaderOptions readerOptions,
+        out CsvDataReader? dataReader)
+    {
         try
         {
             if (!rows.Read())
