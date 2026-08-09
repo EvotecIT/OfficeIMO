@@ -631,7 +631,9 @@ namespace OfficeIMO.Excel {
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
+            var customXmlDetails = DescribeParts(allParts, part =>
+                part.Uri.OriginalString.IndexOf("/customXml/", StringComparison.OrdinalIgnoreCase) >= 0
+                && !IsCombinedPivotInteractionMetadataPart(part));
             var embeddedPackageDetails = DescribePartsByUri(allParts, "/embeddings/");
             var signatureDetails = DescribePartsByUriOrContentType(allParts, "signature")
                 .Concat(DescribePartsByUriOrContentType(allParts, "xmlsignatures"))

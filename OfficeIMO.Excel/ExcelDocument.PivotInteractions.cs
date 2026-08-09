@@ -211,7 +211,7 @@ namespace OfficeIMO.Excel {
                             .FirstOrDefault(attribute => attribute.Name.LocalName == "pivotTableName")?.Value
                         ?? root.Descendants().FirstOrDefault(element => element.Name.LocalName == "pivotTable")?.Attribute("name")?.Value;
                     caches.Add(new ExcelPivotInteractionCacheInfo(kind, name, sourceName, pivotTableName, pair.RelationshipId));
-                } catch (System.Xml.XmlException) {
+                } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
                     caches.Add(new ExcelPivotInteractionCacheInfo(kind, string.Empty, null, null, pair.RelationshipId));
                 }
             }
@@ -244,7 +244,7 @@ namespace OfficeIMO.Excel {
                         (string?)metadata.Attribute("pivotTableName"),
                         relationshipId));
                 }
-            } catch (System.Xml.XmlException) {
+            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
                 caches.Add(new ExcelPivotInteractionCacheInfo(kind, string.Empty, null, null, relationshipId));
             }
         }
@@ -264,7 +264,7 @@ namespace OfficeIMO.Excel {
                 return xml.Root != null
                     && string.Equals(xml.Root.Name.LocalName, "pivotInteractionBindings", StringComparison.Ordinal)
                     && string.Equals(xml.Root.Name.NamespaceName, WorkbookPivotInteractionNamespace, StringComparison.Ordinal);
-            } catch (System.Xml.XmlException) {
+            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
                 return false;
             }
         }
@@ -283,7 +283,7 @@ namespace OfficeIMO.Excel {
                     : "pivotTimelineBinding";
                 return xml.Descendants().Any(element =>
                     string.Equals(element.Name.LocalName, expectedName, StringComparison.Ordinal));
-            } catch (System.Xml.XmlException) {
+            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
                 return false;
             }
         }
@@ -330,7 +330,7 @@ namespace OfficeIMO.Excel {
                     && string.Equals(root.Name.LocalName, expectedRootName, StringComparison.Ordinal)
                     && (!string.IsNullOrWhiteSpace(pivotTableName)
                         || !string.IsNullOrWhiteSpace(sourceName) && !root.Elements().Any());
-            } catch (System.Xml.XmlException) {
+            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
                 return false;
             }
         }

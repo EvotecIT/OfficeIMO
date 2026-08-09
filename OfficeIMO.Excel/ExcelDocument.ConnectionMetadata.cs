@@ -109,26 +109,29 @@ namespace OfficeIMO.Excel {
                     XName.Get(expectedName, WorkbookPivotInteractionNamespace),
                     new XAttribute("customPayload", true),
                     new XElement(bindingRoot));
-            OpenXmlPart? existingPart = WorkbookPartRoot.Parts
+            List<OpenXmlPart> existingParts = WorkbookPartRoot.Parts
                 .Select(pair => pair.OpenXmlPart)
-                .FirstOrDefault(IsCombinedPivotInteractionMetadataPart);
-
-            if (existingPart == null) {
-                var root = new XElement(XName.Get("pivotInteractionBindings", WorkbookPivotInteractionNamespace));
-                root.Add(storedBinding);
-                CustomXmlPart part = WorkbookPartRoot.AddCustomXmlPart(CustomXmlPartType.CustomXml);
-                WriteMetadataPart(part, new XDocument(root).ToString(SaveOptions.DisableFormatting));
-                MarkMetadataPartChanged();
-                return DescribePart(WorkbookPartRoot, part);
+                .Where(IsCombinedPivotInteractionMetadataPart)
+                .ToList();
+            var root = new XElement(XName.Get("pivotInteractionBindings", WorkbookPivotInteractionNamespace));
+            foreach (OpenXmlPart existingPart in existingParts) {
+                XDocument existingMetadata = XDocument.Parse(ReadPivotInteractionPartText(existingPart));
+                XElement existingRoot = existingMetadata.Root
+                    ?? throw new InvalidDataException("Pivot interaction metadata part has no root element.");
+                foreach (XElement existingBinding in existingRoot.Elements()) {
+                    root.Add(new XElement(existingBinding));
+                }
             }
 
-            XDocument metadata = XDocument.Parse(ReadMetadataPart(existingPart));
-            XElement metadataRoot = metadata.Root
-                ?? throw new InvalidDataException("Pivot interaction metadata part has no root element.");
-            metadataRoot.Add(storedBinding);
-            WriteMetadataPart(existingPart, metadata.ToString(SaveOptions.DisableFormatting));
+            root.Add(storedBinding);
+            CustomXmlPart? canonicalPart = existingParts.OfType<CustomXmlPart>().FirstOrDefault();
+            canonicalPart ??= WorkbookPartRoot.AddCustomXmlPart(CustomXmlPartType.CustomXml);
+            WriteMetadataPart(canonicalPart, new XDocument(root).ToString(SaveOptions.DisableFormatting));
+            foreach (OpenXmlPart obsoletePart in existingParts.Where(part => !ReferenceEquals(part, canonicalPart))) {
+                WorkbookPartRoot.DeletePart(obsoletePart);
+            }
             MarkMetadataPartChanged();
-            return DescribePart(WorkbookPartRoot, existingPart);
+            return DescribePart(WorkbookPartRoot, canonicalPart);
         }
 
         /// <summary>

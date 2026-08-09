@@ -338,6 +338,81 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_PivotInteractionMetadata_MigratesLegacyCombinedPartOnMutation() {
+            string filePath = Path.Combine(_directoryWithFiles, "PackageInteractions.LegacyPivotMetadataMigration.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorksheet("Data").CellValue(1, 1, "Region");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WriteExtendedPart(
+                    spreadsheet.WorkbookPart!.AddExtendedPart(
+                        "https://schemas.evotec.xyz/officeimo/excel/relationships/pivotInteractionMetadata",
+                        "application/vnd.officeimo.excel.pivot-interaction-metadata+xml",
+                        "xml"),
+                    "<pivotInteractionBindings xmlns=\"https://schemas.evotec.xyz/officeimo/excel\">"
+                    + "<pivotSlicerBinding name=\"LegacyRegion\" sourceName=\"Region\" pivotTableName=\"SalesPivot\"/>"
+                    + "</pivotInteractionBindings>");
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                Assert.Equal("LegacyRegion", Assert.Single(document.GetWorkbookSlicerCaches()).Name);
+                document.AddWorkbookTimelineCache(new ExcelTimelineCacheOptions {
+                    Name = "CurrentOrderDate",
+                    SourceName = "OrderDate",
+                    PivotTableName = "SalesPivot"
+                });
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                Assert.DoesNotContain(workbookPart.Parts, pair =>
+                    string.Equals(pair.OpenXmlPart.ContentType,
+                        "application/vnd.officeimo.excel.pivot-interaction-metadata+xml",
+                        StringComparison.OrdinalIgnoreCase));
+                string metadata = Assert.Single(
+                    workbookPart.CustomXmlParts.Select(ReadPivotInteractionMetadataText),
+                    text => text != null)!;
+                Assert.Contains("LegacyRegion", metadata);
+                Assert.Contains("CurrentOrderDate", metadata);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })) {
+                Assert.Equal("LegacyRegion", Assert.Single(document.GetWorkbookSlicerCaches()).Name);
+                Assert.Equal("CurrentOrderDate", Assert.Single(document.GetWorkbookTimelineCaches()).Name);
+            }
+        }
+
+        [Fact]
+        public void Test_PivotInteractionInspection_IgnoresOversizedUnrelatedCustomXml() {
+            string filePath = Path.Combine(_directoryWithFiles, "PackageInteractions.LargeUnrelatedCustomXml.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorksheet("Data").CellValue(1, 1, "Value");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                CustomXmlPart part = spreadsheet.WorkbookPart!.AddCustomXmlPart(CustomXmlPartType.CustomXml);
+                string xml = "<externalMetadata>" + new string('x', 1_000_100) + "</externalMetadata>";
+                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml));
+                part.FeedData(stream);
+            }
+
+            using ExcelDocument inspected = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            Assert.Empty(inspected.GetWorkbookSlicerCaches());
+            Assert.Empty(inspected.GetWorkbookTimelineCaches());
+            ExcelWorkbookSnapshot snapshot = inspected.CreateInspectionSnapshot();
+            Assert.Equal(0, snapshot.SlicerBindingMetadataPartCount);
+            Assert.Equal(0, snapshot.TimelineBindingMetadataPartCount);
+            ExcelFeatureFinding customXml = Assert.Single(inspected.InspectFeatures().FindFeatures("Custom XML parts"));
+            Assert.Equal(1, customXml.Count);
+        }
+
         private static void WriteExtendedPart(ExtendedPart part, string xml) {
             using var stream = part.GetStream(FileMode.Create, FileAccess.Write);
             byte[] bytes = Encoding.UTF8.GetBytes(xml);

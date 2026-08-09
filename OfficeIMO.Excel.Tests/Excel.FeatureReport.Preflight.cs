@@ -81,6 +81,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FeatureReport_Preflight_TreatsOfficeImoPivotMetadataAsEditable() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.PivotMetadata.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AddWorksheet("Metadata").CellValue(1, 1, "Resource");
+                document.AddWorkbookSlicerCache(new ExcelSlicerCacheOptions {
+                    Name = "RegionSlicer",
+                    SourceName = "Region",
+                    PivotTableName = "SalesPivot"
+                });
+                document.Save();
+            }
+
+            using ExcelDocument inspected = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            ExcelFeatureReport report = inspected.InspectFeatures();
+
+            Assert.Empty(report.FindFeatures("Custom XML parts"));
+            Assert.Equal(OfficeFeatureSupportLevel.Editable,
+                Assert.Single(report.FindFeatures("Slicer binding metadata")).SupportLevel);
+            Assert.True(report.Can(ExcelPreflightCapability.EditWorkbookStructure));
+            Assert.True(report.Can(ExcelPreflightCapability.BindTemplate));
+            Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
+        }
+
+        [Fact]
         public void FeatureReport_Preflight_AllowsPdfExportForExternalHyperlinks() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.ExternalHyperlink.xlsx");
 
