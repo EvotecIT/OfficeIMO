@@ -140,6 +140,15 @@ internal static class StreamDecoder {
             return false;
         }
 
+        if (filterNames.Count == 0) {
+            if (!TryUseOriginal(data, maxOutputBytes, out decoded)) {
+                limitException = CreateDecodedLimitException(maxOutputBytes, data.LongLength);
+                return false;
+            }
+
+            return true;
+        }
+
         byte[] current = data;
         for (int filterIndex = 0; filterIndex < filterNames.Count; filterIndex++) {
             string filterName = filterNames[filterIndex];

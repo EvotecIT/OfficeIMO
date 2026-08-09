@@ -727,6 +727,20 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_DoesNotTreatMalformedPredictorBytesAsImagePixels() {
+        byte[] malformedPredictedPixels = Enumerable.Range(0, 64).Select(value => (byte)value).ToArray();
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
+            CompressWithDeflate(malformedPredictedPixels),
+            colorSpace: "/DeviceRGB",
+            imageWidth: 2,
+            extraImageEntries: " /DecodeParms << /Predictor 12 /Colors 1 /BitsPerComponent 8 /Columns 6 >>");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Empty(drawing.Images);
+    }
+
+    [Fact]
     public void RenderPage_AppliesDeviceRgbImageXObjectColorKeyMaskAsPngAlpha() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CompressWithDeflate(new byte[] { 255, 0, 0, 0, 255, 0 }),
@@ -2632,6 +2646,35 @@ public class PdfPageImageRendererTests {
 
         Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
         Assert.Equal(3, exception.Limit);
+    }
+
+    [Fact]
+    public void PackedImageNormalizersRejectMalformedPredictorFallbackBytes() {
+        byte[] malformedPredictedPixels = Enumerable.Range(0, 64).Select(value => (byte)value).ToArray();
+        byte[] encoded = CompressWithDeflate(malformedPredictedPixels);
+        var decodeParameters = new PdfDictionary();
+        decodeParameters.Items["Predictor"] = new PdfNumber(12);
+        decodeParameters.Items["Columns"] = new PdfNumber(8);
+
+        var maskDictionary = new PdfDictionary();
+        maskDictionary.Items["ImageMask"] = new PdfBoolean(true);
+        maskDictionary.Items["Filter"] = new PdfName("FlateDecode");
+        maskDictionary.Items["DecodeParms"] = decodeParameters;
+        var maskStream = new PdfStream(maskDictionary, encoded);
+
+        var indexedDictionary = new PdfDictionary();
+        indexedDictionary.Items["Filter"] = new PdfName("FlateDecode");
+        indexedDictionary.Items["DecodeParms"] = decodeParameters;
+        var indexedStream = new PdfStream(indexedDictionary, encoded);
+        var indexedColorSpace = new PdfArray();
+        indexedColorSpace.Items.Add(new PdfName("Indexed"));
+        indexedColorSpace.Items.Add(new PdfName("DeviceRGB"));
+        indexedColorSpace.Items.Add(new PdfNumber(1));
+        indexedColorSpace.Items.Add(new PdfStringObj(new byte[] { 0, 0, 0, 255, 255, 255 }));
+        var objects = new Dictionary<int, PdfIndirectObject>();
+
+        Assert.False(PdfImageMaskNormalizer.TryBuildPngFile(8, 1, maskStream, objects, out _));
+        Assert.False(PdfIndexedImageNormalizer.TryBuildPngFile(indexedColorSpace, 8, 1, 1, indexedStream, objects, out _));
     }
 
     [Fact]

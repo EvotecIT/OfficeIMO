@@ -137,12 +137,18 @@ internal static class PdfIndexedImageNormalizer {
                 return false;
             }
 
-            lookupBytes = Filters.StreamDecoder.Decode(
-                lookupStream.Dictionary,
-                lookupStream.Data,
-                objects,
-                maxLookupBytes);
-            return lookupBytes.Length > 0;
+            try {
+                lookupBytes = Filters.StreamDecoder.DecodeRequired(
+                    lookupStream.Dictionary,
+                    lookupStream.Data,
+                    objects,
+                    maxLookupBytes);
+                return lookupBytes.Length > 0;
+            } catch (PdfReadLimitException) {
+                throw;
+            } catch (InvalidDataException) {
+                return false;
+            }
         }
 
         return false;
@@ -158,7 +164,14 @@ internal static class PdfIndexedImageNormalizer {
                 return false;
             }
 
-            bytes = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
+            if (!Filters.StreamDecoder.TryDecode(
+                    stream.Dictionary,
+                    stream.Data,
+                    PdfReadLimits.DefaultMaxDecodedStreamBytes,
+                    out bytes,
+                    objects)) {
+                return false;
+            }
         } else {
             bytes = stream.Data;
         }

@@ -79,7 +79,14 @@ internal static class PdfImageMaskNormalizer {
                 return false;
             }
 
-            bytes = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
+            if (!Filters.StreamDecoder.TryDecode(
+                    stream.Dictionary,
+                    stream.Data,
+                    PdfReadLimits.DefaultMaxDecodedStreamBytes,
+                    out bytes,
+                    objects)) {
+                return false;
+            }
         } else {
             bytes = stream.Data;
         }

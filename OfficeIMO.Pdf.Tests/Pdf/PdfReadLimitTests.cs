@@ -517,7 +517,7 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
-    public void TryDecodeAppliesFlatePredictorWithinTheOutputBudget() {
+    public void TryDecodeAppliesPngPredictorWithinTheOutputBudget() {
         var dictionary = new PdfDictionary();
         dictionary.Items["Filter"] = new PdfName("FlateDecode");
         var decodeParameters = new PdfDictionary();
@@ -588,6 +588,12 @@ public class PdfReadLimitTests {
         Assert.True(decoded);
         Assert.Equal(original, output);
         Assert.Empty(StreamDecoder.GetUnsupportedFilters(dictionary));
+
+        Assert.False(StreamDecoder.TryDecode(dictionary, original, 3, out _));
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(
+            () => StreamDecoder.DecodeRequired(dictionary, original, maxOutputBytes: 3));
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(3, exception.Limit);
     }
 
     [Theory]
