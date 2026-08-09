@@ -11,6 +11,72 @@ namespace OfficeIMO.Tests;
 
 public class VisioImageExport {
     [Fact]
+    public void EmbeddedSvgPreviewRejectsExcessiveNestingWithoutRecursingToTheProcessStack() {
+        const int depth = 512;
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                     string.Concat(Enumerable.Repeat("<g>", depth)) +
+                     "<rect width='10' height='10' fill='red'/>" +
+                     string.Concat(Enumerable.Repeat("</g>", depth)) +
+                     "</svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        bool rendered = VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg),
+            imageResolver: null,
+            outlineFont: null,
+            fonts: null,
+            textShapingProvider: null,
+            textShapingLanguage: null,
+            diagnosticSink: diagnostics,
+            diagnosticSource: "nested.svg",
+            cancellationToken: default,
+            out OfficeRasterImage? image);
+
+        Assert.False(rendered);
+        Assert.Null(image);
+        Assert.Contains(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
+    public void EmbeddedSvgPreviewReportsUnsupportedVisualEffects() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                           "<rect width='10' height='10' fill='red' filter='url(#blur)'/>" +
+                           "</svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        bool rendered = VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg),
+            imageResolver: null,
+            outlineFont: null,
+            fonts: null,
+            textShapingProvider: null,
+            textShapingLanguage: null,
+            diagnosticSink: diagnostics,
+            diagnosticSource: "effect.svg",
+            cancellationToken: default,
+            out OfficeRasterImage? image);
+
+        Assert.True(rendered);
+        Assert.NotNull(image);
+        Assert.Contains(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
+    [Fact]
+    public void RetainedSvgApiUsesCanonicalDimensionValidation() {
+        using MemoryStream package = new();
+        VisioDocument document = VisioDocument.Create(package);
+        VisioPage page = document.AddPage("Bounds").Size(2, 1);
+        page.AddRectangle(1, 0.5, 1, 0.5, "Bounds");
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = double.MaxValue }));
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task SaveAsSvgAsync_CancellationDoesNotMutateCallerOptions() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);

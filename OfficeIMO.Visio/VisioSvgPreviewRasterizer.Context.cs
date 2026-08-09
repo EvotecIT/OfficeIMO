@@ -6,10 +6,16 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Visio {
     internal static partial class VisioSvgPreviewRasterizer {
         private sealed class SvgRenderContext {
+            // One SVG level crosses several renderer frames. Keep this well below the
+            // runtime stack limit so hostile nesting is rejected before recursion is risky.
+            private const int MaximumRenderDepth = 48;
+            private const int MaximumRenderedElements = 100000;
             private readonly Dictionary<string, XElement> _definitions;
             private readonly HashSet<string> _activeUseIds = new(StringComparer.Ordinal);
 
             private readonly Func<string, byte[]?>? _imageResolver;
+            private int _renderDepth;
+            private int _renderedElements;
 
             private SvgRenderContext(SvgStyleSheet styleSheet, Dictionary<string, XElement> definitions, Func<string, byte[]?>? imageResolver, SvgPaintBounds viewportBounds) {
                 StyleSheet = styleSheet;
@@ -30,6 +36,10 @@ namespace OfficeIMO.Visio {
 
             internal OfficeFillRule CurrentFillRule { get; private set; } = OfficeFillRule.NonZero;
 
+            internal bool RenderBudgetExceeded { get; private set; }
+
+            internal int UnsupportedFeatureCount { get; private set; }
+
             internal static SvgRenderContext Create(XElement root, SvgPaintBounds viewportBounds, Func<string, byte[]?>? imageResolver = null) =>
                 new(SvgStyleSheet.Parse(root), ReadDefinitions(root), imageResolver, viewportBounds);
 
@@ -39,6 +49,22 @@ namespace OfficeIMO.Visio {
             internal bool TryEnterUse(string id) => _activeUseIds.Add(id);
 
             internal void ExitUse(string id) => _activeUseIds.Remove(id);
+
+            internal bool TryEnterRenderElement() {
+                if (_renderDepth >= MaximumRenderDepth || _renderedElements >= MaximumRenderedElements) {
+                    RenderBudgetExceeded = true;
+                    return false;
+                }
+                _renderDepth++;
+                _renderedElements++;
+                return true;
+            }
+
+            internal void ExitRenderElement() {
+                if (_renderDepth > 0) _renderDepth--;
+            }
+
+            internal void ReportUnsupportedFeature() => UnsupportedFeatureCount++;
 
             internal IDisposable PushPaintBounds(SvgPaintBounds? bounds) {
                 SvgPaintBounds? previous = CurrentPaintBounds;

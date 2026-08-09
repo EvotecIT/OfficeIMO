@@ -92,8 +92,25 @@ namespace OfficeIMO.Visio {
             }
 
             bool rendered = RenderChildren(targetCanvas, root, inherited, transform, context);
+            if (context.RenderBudgetExceeded) {
+                AddSvgLossDiagnostic(
+                    diagnosticSink,
+                    diagnosticSource,
+                    "The embedded SVG preview exceeded the bounded rendering depth or element budget and was omitted.",
+                    OfficeConversionLossKind.Omission);
+                return false;
+            }
             if (!rendered) {
                 return false;
+            }
+
+            if (context.UnsupportedFeatureCount > 0) {
+                AddSvgLossDiagnostic(
+                    diagnosticSink,
+                    diagnosticSource,
+                    context.UnsupportedFeatureCount.ToString(CultureInfo.InvariantCulture) +
+                    " embedded SVG feature(s) were not represented completely by the dependency-free preview renderer.",
+                    OfficeConversionLossKind.Approximation);
             }
 
             if (useRootOpacityLayer && rootLayer != null) {
@@ -116,9 +133,15 @@ namespace OfficeIMO.Visio {
             return rendered;
         }
 
-        private static bool RenderElement(OfficeRasterCanvas canvas, XElement element, SvgPaint inherited, SvgTransform transform, SvgRenderContext context) {
+        private static bool RenderElementWithinBudget(OfficeRasterCanvas canvas, XElement element, SvgPaint inherited, SvgTransform transform, SvgRenderContext context) {
             canvas.CancellationToken.ThrowIfCancellationRequested();
             string name = element.Name.LocalName;
+            if ((!string.IsNullOrEmpty(element.Name.NamespaceName) &&
+                 !string.Equals(element.Name.NamespaceName, "http://www.w3.org/2000/svg", StringComparison.Ordinal)) ||
+                element.Attribute("filter") != null ||
+                element.Attribute("mask") != null) {
+                context.ReportUnsupportedFeature();
+            }
             if (string.Equals(name, "defs", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(name, "style", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(name, "title", StringComparison.OrdinalIgnoreCase) ||
@@ -341,6 +364,7 @@ namespace OfficeIMO.Visio {
                 return RenderPath(canvas, element, contours, paint, localTransform, context);
             }
 
+            context.ReportUnsupportedFeature();
             return RenderChildren(canvas, element, paint, localTransform, context);
         }
 

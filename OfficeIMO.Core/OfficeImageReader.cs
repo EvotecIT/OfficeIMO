@@ -7,7 +7,7 @@ using System.Xml;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Header-only image metadata reader used to avoid full image decoding dependencies.
+/// Bounded image metadata reader used to avoid full image decoding dependencies.
 /// </summary>
 public static partial class OfficeImageReader {
     /// <summary>
@@ -58,18 +58,47 @@ public static partial class OfficeImageReader {
 
         var originalPosition = stream.CanSeek ? stream.Position : 0;
         try {
-            byte[] data;
-            using (var ms = new MemoryStream()) {
-                stream.CopyTo(ms);
-                data = ms.ToArray();
+            if (!TryReadBoundedPayload(stream, out byte[] data)) {
+                info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+                return false;
             }
-
             return TryIdentifyCore(data, fileName, allowExtensionFallback, out info);
         } finally {
             if (stream.CanSeek) {
                 stream.Position = originalPosition;
             }
         }
+    }
+
+    private static bool TryReadBoundedPayload(Stream stream, out byte[] data) {
+        data = Array.Empty<byte>();
+        if (stream.CanSeek) {
+            long remaining = stream.Length - stream.Position;
+            if (remaining <= 0L || remaining > OfficeRasterGuards.MaximumEncodedBytes || remaining > int.MaxValue) {
+                return false;
+            }
+
+            data = new byte[(int)remaining];
+            int offset = 0;
+            while (offset < data.Length) {
+                int read = stream.Read(data, offset, data.Length - offset);
+                if (read <= 0) return false;
+                offset += read;
+            }
+            return true;
+        }
+
+        using var buffer = new MemoryStream();
+        byte[] chunk = new byte[8192];
+        while (true) {
+            int read = stream.Read(chunk, 0, chunk.Length);
+            if (read <= 0) break;
+            if (buffer.Length > OfficeRasterGuards.MaximumEncodedBytes - read) return false;
+            buffer.Write(chunk, 0, read);
+        }
+        if (buffer.Length == 0L) return false;
+        data = buffer.ToArray();
+        return true;
     }
 
     /// <summary>

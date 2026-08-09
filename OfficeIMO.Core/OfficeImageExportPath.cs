@@ -31,6 +31,7 @@ internal static class OfficeImageExportPath {
         OfficeImageExportFormat format,
         byte[] bytes,
         OfficeImageExportFileConflictPolicy conflictPolicy) {
+        ValidateConflictPolicy(conflictPolicy);
         string resolved = NormalizeFile(path, format);
         if (conflictPolicy != OfficeImageExportFileConflictPolicy.CreateUnique) {
             OfficeFileCommit.WriteAllBytes(resolved, bytes, ToCommitPolicy(conflictPolicy));
@@ -59,6 +60,7 @@ internal static class OfficeImageExportPath {
         byte[] bytes,
         OfficeImageExportFileConflictPolicy conflictPolicy,
         CancellationToken cancellationToken) {
+        ValidateConflictPolicy(conflictPolicy);
         string resolved = NormalizeFile(path, format);
         if (conflictPolicy != OfficeImageExportFileConflictPolicy.CreateUnique) {
             await OfficeFileCommit.WriteAllBytesAsync(
@@ -93,6 +95,12 @@ internal static class OfficeImageExportPath {
         policy == OfficeImageExportFileConflictPolicy.Replace
             ? OfficeFileCommit.ConflictPolicy.Replace
             : OfficeFileCommit.ConflictPolicy.FailIfExists;
+
+    private static void ValidateConflictPolicy(OfficeImageExportFileConflictPolicy policy) {
+        if (!Enum.IsDefined(typeof(OfficeImageExportFileConflictPolicy), policy)) {
+            throw new ArgumentOutOfRangeException(nameof(policy));
+        }
+    }
 
     private static string CreateSuffixedPath(string path, int suffix) {
         string? directory = Path.GetDirectoryName(path);

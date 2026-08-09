@@ -55,6 +55,11 @@ public sealed class OfficeImageExportResult {
                     "Encoded image bytes do not match the declared " + format + " export format.",
                     nameof(bytes));
             }
+            if (format == OfficeImageExportFormat.Png && !OfficePngReader.TryValidateDecodedPayload(bytes)) {
+                throw new System.ArgumentException(
+                    "Encoded PNG bytes are not a complete, decodable image.",
+                    nameof(bytes));
+            }
             if (identified.Width != width || identified.Height != height) {
                 throw new System.ArgumentException(
                     "Encoded image dimensions " + identified.Width + "x" + identified.Height +

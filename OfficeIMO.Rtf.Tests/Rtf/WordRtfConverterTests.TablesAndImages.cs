@@ -1,4 +1,5 @@
 using OfficeIMO.Rtf;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Rtf;
 using System.Linq;
@@ -196,6 +197,71 @@ public partial class WordRtfConverterTests {
             inline => Assert.Equal("Before ", Assert.IsType<RtfRun>(inline).Text),
             inline => Assert.Equal(png, Assert.IsType<RtfImage>(inline).Data),
             inline => Assert.Equal(" after", Assert.IsType<RtfRun>(inline).Text));
+    }
+
+    [Fact]
+    public void Rtf_Word_Bridge_Normalizes_Raw_Dib_To_Png() {
+        RtfDocument rtf = RtfDocument.Create();
+        rtf.AddImage(RtfImageFormat.Dib, CreateOnePixelDib());
+
+        RtfConversionResult<WordDocument> conversion = rtf.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+
+        WordImage image = Assert.Single(word.Images);
+        Assert.Equal(OfficeImageFormat.Png, OfficeImageReader.Identify(image.ToBytes()).Format);
+        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "RtfWordDibImagesNormalized" &&
+            diagnostic.Action == RtfConversionAction.Substituted);
+    }
+
+    [Fact]
+    public void Word_Rtf_Bridge_Normalizes_Bmp_To_Png() {
+        byte[] bmp = CreateOnePixelBmp();
+        using WordDocument word = WordDocument.Create();
+        using (var stream = new MemoryStream(bmp, writable: false)) {
+            word.AddParagraph().AddImage(stream, "pixel.bmp", 16, 16);
+        }
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfImage image = Assert.IsType<RtfImage>(Assert.Single(conversion.Value.Blocks));
+
+        Assert.Equal(RtfImageFormat.Png, image.Format);
+        Assert.Equal(OfficeImageFormat.Png, OfficeImageReader.Identify(image.Data).Format);
+        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "WordRtfImagesNormalized" &&
+            diagnostic.Action == RtfConversionAction.Substituted);
+    }
+
+    private static byte[] CreateOnePixelDib() {
+        byte[] dib = new byte[44];
+        WriteLittleEndianInt32(dib, 0, 40);
+        WriteLittleEndianInt32(dib, 4, 1);
+        WriteLittleEndianInt32(dib, 8, 1);
+        dib[12] = 1;
+        dib[14] = 24;
+        WriteLittleEndianInt32(dib, 20, 4);
+        dib[40] = 0x33;
+        dib[41] = 0x22;
+        dib[42] = 0x11;
+        return dib;
+    }
+
+    private static byte[] CreateOnePixelBmp() {
+        byte[] dib = CreateOnePixelDib();
+        byte[] bmp = new byte[dib.Length + 14];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        WriteLittleEndianInt32(bmp, 2, bmp.Length);
+        WriteLittleEndianInt32(bmp, 10, 54);
+        Buffer.BlockCopy(dib, 0, bmp, 14, dib.Length);
+        return bmp;
+    }
+
+    private static void WriteLittleEndianInt32(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+        bytes[offset + 2] = (byte)(value >> 16);
+        bytes[offset + 3] = (byte)(value >> 24);
     }
 
     [Fact]

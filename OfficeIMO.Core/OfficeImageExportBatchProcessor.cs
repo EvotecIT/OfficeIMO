@@ -263,13 +263,16 @@ public static class OfficeImageExportBatchProcessor {
         CancellationToken cancellationToken,
         int? expectedOutputCount) {
         var tracker = new OfficeImageExportBatchTracker(options);
+        var gate = new object();
         return result => {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (result == null) throw new ArgumentNullException(nameof(result));
-            result.Require(options.Policy);
-            int sequenceIndex = tracker.Count;
-            tracker.Add(result);
-            consumer(result.WithSequence(sequenceIndex, expectedOutputCount));
+            lock (gate) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (result == null) throw new ArgumentNullException(nameof(result));
+                result.Require(options.Policy);
+                int sequenceIndex = tracker.Count;
+                tracker.Add(result);
+                consumer(result.WithSequence(sequenceIndex, expectedOutputCount));
+            }
         };
     }
 
@@ -279,14 +282,29 @@ public static class OfficeImageExportBatchProcessor {
         CancellationToken cancellationToken,
         int? expectedOutputCount) {
         var tracker = new OfficeImageExportBatchTracker(options);
+        var gate = new SemaphoreSlim(1, 1);
         return async (result, token) => {
-            cancellationToken.ThrowIfCancellationRequested();
-            token.ThrowIfCancellationRequested();
-            if (result == null) throw new ArgumentNullException(nameof(result));
-            result.Require(options.Policy);
-            int sequenceIndex = tracker.Count;
-            tracker.Add(result);
-            await consumer(result.WithSequence(sequenceIndex, expectedOutputCount), token).ConfigureAwait(false);
+            using CancellationTokenSource? linked = CreateLinkedCancellationSource(cancellationToken, token);
+            CancellationToken effectiveToken = linked?.Token ?? (token.CanBeCanceled ? token : cancellationToken);
+            await gate.WaitAsync(effectiveToken).ConfigureAwait(false);
+            try {
+                cancellationToken.ThrowIfCancellationRequested();
+                token.ThrowIfCancellationRequested();
+                if (result == null) throw new ArgumentNullException(nameof(result));
+                result.Require(options.Policy);
+                int sequenceIndex = tracker.Count;
+                tracker.Add(result);
+                await consumer(result.WithSequence(sequenceIndex, expectedOutputCount), token).ConfigureAwait(false);
+            } finally {
+                gate.Release();
+            }
         };
+    }
+
+    private static CancellationTokenSource? CreateLinkedCancellationSource(
+        CancellationToken first,
+        CancellationToken second) {
+        if (!first.CanBeCanceled || !second.CanBeCanceled || first == second) return null;
+        return CancellationTokenSource.CreateLinkedTokenSource(first, second);
     }
 }

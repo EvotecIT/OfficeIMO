@@ -63,22 +63,29 @@ public static partial class WordRtfConverterExtensions {
 
         int objectCount = 0;
         int shapeCount = 0;
+        int omittedImageCount = 0;
+        int normalizedImageCount = 0;
         IEnumerable<IRtfBlock> blocks = document.Sections.Count > 0
             ? document.Sections.SelectMany(section => section.Blocks)
             : document.Blocks;
         foreach (IRtfBlock block in blocks) {
-            CountUnsupportedRtfBlock(block, ref objectCount, ref shapeCount);
+            CountUnsupportedRtfBlock(block, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
         }
         foreach (RtfHeaderFooter headerFooter in document.HeaderFooters) {
             foreach (RtfParagraph paragraph in headerFooter.Paragraphs) {
-                CountUnsupportedRtfBlock(paragraph, ref objectCount, ref shapeCount);
+                CountUnsupportedRtfBlock(paragraph, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
             }
         }
 
-        AddUnsupportedRtfDiagnostics(report, objectCount, shapeCount);
+        AddUnsupportedRtfDiagnostics(report, objectCount, shapeCount, omittedImageCount, normalizedImageCount);
     }
 
-    private static void CountUnsupportedRtfBlock(IRtfBlock block, ref int objectCount, ref int shapeCount) {
+    private static void CountUnsupportedRtfBlock(
+        IRtfBlock block,
+        ref int objectCount,
+        ref int shapeCount,
+        ref int omittedImageCount,
+        ref int normalizedImageCount) {
         switch (block) {
             case RtfObject:
                 objectCount++;
@@ -86,17 +93,20 @@ public static partial class WordRtfConverterExtensions {
             case RtfShape shape:
                 shapeCount++;
                 foreach (RtfParagraph paragraph in shape.TextBoxParagraphs) {
-                    CountUnsupportedRtfInlines(paragraph.Inlines, ref objectCount, ref shapeCount);
+                    CountUnsupportedRtfInlines(paragraph.Inlines, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
                 }
                 break;
             case RtfParagraph paragraph:
-                CountUnsupportedRtfInlines(paragraph.Inlines, ref objectCount, ref shapeCount);
+                CountUnsupportedRtfInlines(paragraph.Inlines, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
+                break;
+            case RtfImage image:
+                CountRtfImage(image, ref omittedImageCount, ref normalizedImageCount);
                 break;
             case RtfTable table:
                 foreach (RtfTableRow row in table.Rows) {
                     foreach (RtfTableCell cell in row.Cells) {
                         foreach (IRtfBlock child in cell.Blocks) {
-                            CountUnsupportedRtfBlock(child, ref objectCount, ref shapeCount);
+                            CountUnsupportedRtfBlock(child, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
                         }
                     }
                 }
@@ -104,7 +114,12 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static void CountUnsupportedRtfInlines(IReadOnlyList<IRtfInline> inlines, ref int objectCount, ref int shapeCount) {
+    private static void CountUnsupportedRtfInlines(
+        IReadOnlyList<IRtfInline> inlines,
+        ref int objectCount,
+        ref int shapeCount,
+        ref int omittedImageCount,
+        ref int normalizedImageCount) {
         foreach (IRtfInline inline in inlines) {
             switch (inline) {
                 case RtfObject:
@@ -113,14 +128,30 @@ public static partial class WordRtfConverterExtensions {
                 case RtfShape:
                     shapeCount++;
                     break;
+                case RtfImage image:
+                    CountRtfImage(image, ref omittedImageCount, ref normalizedImageCount);
+                    break;
                 case RtfField field:
-                    CountUnsupportedRtfInlines(field.Result.Inlines, ref objectCount, ref shapeCount);
+                    CountUnsupportedRtfInlines(field.Result.Inlines, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
                     break;
             }
         }
     }
 
-    private static void AddUnsupportedRtfDiagnostics(RtfConversionReport report, int objectCount, int shapeCount) {
+    private static void CountRtfImage(RtfImage image, ref int omittedImageCount, ref int normalizedImageCount) {
+        if (!CanWriteToWord(image)) {
+            omittedImageCount++;
+        } else if (image.Format == RtfImageFormat.Dib) {
+            normalizedImageCount++;
+        }
+    }
+
+    private static void AddUnsupportedRtfDiagnostics(
+        RtfConversionReport report,
+        int objectCount,
+        int shapeCount,
+        int omittedImageCount,
+        int normalizedImageCount) {
         if (objectCount > 0) {
             report.Add(
                 RtfConversionSeverity.Warning,
@@ -140,11 +171,33 @@ public static partial class WordRtfConverterExtensions {
                 feature: "shp",
                 count: shapeCount);
         }
+
+        if (normalizedImageCount > 0) {
+            report.Add(
+                RtfConversionSeverity.Information,
+                "RtfWordDibImagesNormalized",
+                "RTF device-independent bitmap images were normalized to PNG for Word compatibility.",
+                RtfConversionAction.Substituted,
+                feature: "dibitmap",
+                count: normalizedImageCount);
+        }
+
+        if (omittedImageCount > 0) {
+            report.Add(
+                RtfConversionSeverity.Warning,
+                "RtfWordImagesOmitted",
+                "RTF images with unsupported formats or invalid payloads are not represented by the Word bridge.",
+                RtfConversionAction.Omitted,
+                feature: "pict",
+                count: omittedImageCount);
+        }
     }
 
     private static void AddWordToRtfDiagnostics(WordDocument document, RtfConversionReport report) {
-        int equationCount = EnumerateWordElements(document.Elements)
+        List<WordElement> elements = EnumerateWordElements(document.Elements)
             .Concat(EnumerateHeaderFooterElements(document))
+            .ToList();
+        int equationCount = elements
             .Count(element => element is WordEquation);
         if (equationCount > 0) {
             report.Add(
@@ -156,8 +209,7 @@ public static partial class WordRtfConverterExtensions {
                 count: equationCount);
         }
 
-        var unsupported = EnumerateWordElements(document.Elements)
-            .Concat(EnumerateHeaderFooterElements(document))
+        var unsupported = elements
             .Where(IsUnsupportedWordElement)
             .GroupBy(element => element.GetType().Name, StringComparer.Ordinal)
             .OrderBy(group => group.Key, StringComparer.Ordinal);
@@ -169,6 +221,38 @@ public static partial class WordRtfConverterExtensions {
                 RtfConversionAction.Omitted,
                 feature: group.Key,
                 count: group.Count());
+        }
+
+        int omittedImageCount = 0;
+        int normalizedImageCount = 0;
+        foreach (WordParagraph paragraph in elements.OfType<WordParagraph>().Where(item => item.IsImage)) {
+            RtfImage? converted = CreateRtfImage(paragraph);
+            if (converted == null) {
+                omittedImageCount++;
+            } else if (converted.Format == RtfImageFormat.Png &&
+                       paragraph.Image != null &&
+                       !string.Equals(Path.GetExtension(paragraph.Image.FileName), ".png", StringComparison.OrdinalIgnoreCase)) {
+                normalizedImageCount++;
+            }
+        }
+
+        if (normalizedImageCount > 0) {
+            report.Add(
+                RtfConversionSeverity.Information,
+                "WordRtfImagesNormalized",
+                "Word raster images that RTF cannot embed directly were normalized to PNG.",
+                RtfConversionAction.Substituted,
+                feature: "image",
+                count: normalizedImageCount);
+        }
+        if (omittedImageCount > 0) {
+            report.Add(
+                RtfConversionSeverity.Warning,
+                "WordRtfImagesOmitted",
+                "Word images with unsupported, external, unavailable, or invalid payloads are not represented by the RTF bridge.",
+                RtfConversionAction.Omitted,
+                feature: "image",
+                count: omittedImageCount);
         }
     }
 
