@@ -231,8 +231,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             value = ResolveButtonLabel(element, type);
             alignment = OfficeTextAlignment.Center;
         } else if (tag == "input" && type == "file") {
-            value = NormalizeControlText(element.GetAttribute("value"));
-            value = value.Length == 0 ? "Choose file" : value;
+            value = "Choose file";
         } else {
             value = NormalizeControlText(element.GetAttribute("value"));
             if (type == "password" && value.Length > 0) value = new string('*', Math.Min(32, value.Length));

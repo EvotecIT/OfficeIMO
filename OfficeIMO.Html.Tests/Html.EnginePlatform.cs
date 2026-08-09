@@ -1695,6 +1695,11 @@ public partial class Html {
             "<main><form><input type=\"number\" name=\"quantity\"></form></main>");
         Assert.Equal(1D, inertNumberPlaceholderScore.Metrics["form-state"], 3);
 
+        HtmlRoundTripScore inertFileValueScore = HtmlRoundTripScorer.Compare(
+            "<main><form><input type=\"file\" name=\"attachment\" value=\"report.pdf\"></form></main>",
+            "<main><form><input type=\"file\" name=\"attachment\"></form></main>");
+        Assert.Equal(1D, inertFileValueScore.Metrics["form-state"], 3);
+
         HtmlRoundTripScore imageSubmitterScore = HtmlRoundTripScorer.Compare(
             "<main><form><input type=\"image\" src=\"save-a.png\" alt=\"Save\"></form></main>",
             "<main><form><input type=\"image\" src=\"save-b.png\" alt=\"Save\"></form></main>");

@@ -89,6 +89,16 @@ public partial class Html {
     }
 
     [Fact]
+    public void SemanticDocument_FileInputDoesNotFabricateASelectedFile() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
+            .Parse("<input type='file' name='attachment' value='report.pdf'>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Empty(control.Values);
+        Assert.Equal(string.Empty, control.Value);
+    }
+
+    [Fact]
     public void SemanticDocument_PreservesOrderedListDirectionAndItemOrdinals() {
         HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument
             .Parse("<ol start='3' reversed><li>A</li><li value='10'>B</li><li>C</li></ol>")
@@ -100,6 +110,25 @@ public partial class Html {
         Assert.Equal(new int?[] { 3, 10, 9 }, list.Children.Select(item => item.ListItem!.Ordinal));
         Assert.Equal(new int?[] { null, 10, null }, list.Children.Select(item => item.ListItem!.ExplicitOrdinal));
         Assert.Equal("3. A\n10. B\n9. C", list.Text);
+    }
+
+    [Fact]
+    public void SemanticDocument_ListTextRecursivelyIncludesNestedItems() {
+        HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument.Parse("""
+            <ul><li>Parent<ol><li>Child<ul><li>Grandchild</li></ul></li></ol></li><li>Sibling</li></ul>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal("• Parent\n  1. Child\n    • Grandchild\n• Sibling", list.Text);
+    }
+
+    [Fact]
+    public void SemanticDocument_ListOrdinalsSaturateInsteadOfOverflowing() {
+        HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument
+            .Parse("<ol start='2147483647'><li>A</li><li>B</li></ol>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal(new int?[] { int.MaxValue, int.MaxValue },
+            list.Children.Select(item => item.ListItem?.Ordinal));
     }
 
     [Fact]
@@ -170,6 +199,22 @@ public partial class Html {
     }
 
     [Fact]
+    public void OneNoteGenericImportRetainsNestedAndFollowingItemsAfterAnEmptyParent() {
+        OfficeIMO.OneNote.OneNotePage page = Assert.Single(HtmlConversionDocument
+            .Parse("<ul><li><ol><li>Nested</li></ol></li><li>Following</li></ul>")
+            .ToOneNoteSectionResult()
+            .RequireValue()
+            .Pages);
+        OfficeIMO.OneNote.OneNoteParagraph[] paragraphs = Assert.Single(page.Outlines).Children
+            .OfType<OfficeIMO.OneNote.OneNoteParagraph>()
+            .ToArray();
+
+        Assert.Equal(new[] { "Nested", "Following" },
+            paragraphs.Select(paragraph => string.Concat(paragraph.Runs.Select(run => run.Text))));
+        Assert.Equal(new int?[] { 1, 0 }, paragraphs.Select(paragraph => paragraph.List?.Level));
+    }
+
+    [Fact]
     public void OneNoteGenericImportPreservesEffectiveOrderedListOrdinals() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<ol start='3' reversed><li>A</li><li value='10'>B</li><li>C</li></ol>");
@@ -235,14 +280,17 @@ public partial class Html {
     [Fact]
     public void OneNoteGenericImportClampsNonpositiveListOrdinalsWithDiagnostic() {
         HtmlToOneNoteSectionResult result = HtmlConversionDocument
-            .Parse("<ol start='0'><li>A</li></ol>")
+            .Parse("<ol start='-2'><li>A</li><li>B</li><li>C</li><li>D</li><li>E</li></ol>")
             .ToOneNoteSectionResult();
-        OfficeIMO.OneNote.OneNoteParagraph paragraph = Assert.Single(
+        OfficeIMO.OneNote.OneNoteParagraph[] paragraphs =
             Assert.Single(Assert.Single(result.Value.Pages).Outlines).Children
-                .OfType<OfficeIMO.OneNote.OneNoteParagraph>());
+                .OfType<OfficeIMO.OneNote.OneNoteParagraph>()
+                .ToArray();
 
-        Assert.Equal(1, paragraph.List?.DisplayIndex);
-        Assert.True(paragraph.List?.Restart);
+        Assert.Equal(new int?[] { 1, 1, 1, 1, null },
+            paragraphs.Select(paragraph => paragraph.List?.DisplayIndex));
+        Assert.Equal(new bool?[] { true, true, true, true, false },
+            paragraphs.Select(paragraph => paragraph.List?.Restart));
         Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
     }

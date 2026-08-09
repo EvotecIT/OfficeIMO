@@ -244,6 +244,21 @@ public class HtmlRichGenericImports {
     }
 
     [Fact]
+    public void PowerPointHtml_GenericImportRestartsWhileClampingConsecutiveOrdinals() {
+        HtmlToPowerPointResult result = HtmlConversionDocument
+            .Parse("<ol start='-2'><li>A</li><li>B</li><li>C</li><li>D</li><li>E</li></ol>")
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.Value;
+        PowerPointTextBox list = Assert.Single(Assert.Single(presentation.Slides).TextBoxes,
+            textBox => textBox.Paragraphs.Any(paragraph => paragraph.IsNumbered));
+
+        Assert.Equal(new int?[] { 1, 1, 1, 1, null },
+            list.Paragraphs.Select(paragraph => paragraph.NumberingStartAt));
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
+    }
+
+    [Fact]
     public void PowerPointHtml_GenericTableImportPreservesRichRunsLinksAndCellStyles() {
         const string html = """
             <section><h1>Data</h1>
@@ -287,6 +302,17 @@ public class HtmlRichGenericImports {
         Assert.Contains("Executive narrative", Enumerable.Range(1, 8).Select(row => narrative.CellAt(row, 1).GetValue<string>()));
         Assert.Equal("Revenue", metrics.CellAt(2, 1).GetValue<string>());
         Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void ExcelHtml_GenericNestedListProjectionIncludesDescendants() {
+        HtmlToExcelResult result = HtmlConversionDocument
+            .Parse("<ul><li>Parent<ol><li>Child<ul><li>Grandchild</li></ul></li></ol></li></ul>")
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+
+        Assert.Contains("• Parent\n  1. Child\n    • Grandchild",
+            Enumerable.Range(1, 8).Select(row => Assert.Single(workbook.Sheets).CellAt(row, 1).GetValue<string>()));
     }
 
     [Fact]

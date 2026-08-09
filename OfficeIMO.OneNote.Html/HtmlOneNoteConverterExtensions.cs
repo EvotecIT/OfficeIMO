@@ -106,24 +106,29 @@ public static class HtmlOneNoteConverterExtensions {
         HtmlToOneNoteSectionResult result,
         HtmlImportBudget budget,
         int level) {
-        int itemIndex = 0;
+        int? previousOrdinal = null;
         foreach (HtmlSemanticBlock item in list.Children) {
             OneNoteParagraph? paragraph = CreateParagraph(item, result, budget);
-            if (paragraph == null) break;
-            bool shouldRestart = list.Ordered
-                && (item.ListItem?.ExplicitOrdinal.HasValue == true
-                    || list.List?.IsReversed == true
-                    || itemIndex == 0);
-            int? displayIndex = shouldRestart
-                ? NormalizeOneNoteListOrdinal(item.ListItem?.Ordinal ?? 1, result)
-                : null;
-            paragraph.List = new OneNoteListInfo {
-                Ordered = list.Ordered,
-                Level = level,
-                DisplayIndex = displayIndex,
-                Restart = displayIndex.HasValue
-            };
-            target.Add(paragraph);
+            if (paragraph == null && item.Text.Length > 0) break;
+            if (paragraph != null) {
+                int? displayIndex = null;
+                if (list.Ordered) {
+                    int ordinal = NormalizeOneNoteListOrdinal(item.ListItem?.Ordinal ?? 1, result);
+                    bool shouldRestart = !previousOrdinal.HasValue
+                        || item.ListItem?.ExplicitOrdinal.HasValue == true
+                        || list.List?.IsReversed == true
+                        || (long)ordinal != (long)previousOrdinal.Value + 1L;
+                    if (shouldRestart) displayIndex = ordinal;
+                    previousOrdinal = ordinal;
+                }
+                paragraph.List = new OneNoteListInfo {
+                    Ordered = list.Ordered,
+                    Level = level,
+                    DisplayIndex = displayIndex,
+                    Restart = displayIndex.HasValue
+                };
+                target.Add(paragraph);
+            }
             if (options.ImportImages) {
                 foreach (HtmlSemanticResource resource in item.InlineResources.Where(candidate => candidate.Kind == HtmlResourceKind.Image)) {
                     ImportImage(resource, target, result, budget);
@@ -132,7 +137,6 @@ public static class HtmlOneNoteConverterExtensions {
             foreach (HtmlSemanticBlock nested in item.Children.Where(child => child.Kind == HtmlSemanticBlockKind.List)) {
                 ImportList(nested, target, options, result, budget, level + 1);
             }
-            itemIndex++;
         }
     }
 

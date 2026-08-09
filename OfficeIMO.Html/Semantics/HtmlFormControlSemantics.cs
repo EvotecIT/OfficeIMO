@@ -136,6 +136,7 @@ internal static class HtmlFormControlSemantics {
             case "max":
             case "step": return IsRangeApplicable(elementName, effectiveType);
             case "placeholder": return IsPlaceholderApplicable(elementName, effectiveType);
+            case "value": return NormalizeName(elementName) != "input" || effectiveType != "file";
             default: return true;
         }
     }
@@ -144,6 +145,9 @@ internal static class HtmlFormControlSemantics {
         string name = NormalizeName(element.LocalName);
         if (name == "select") return GetSelectValues(element);
         if (name == "textarea") return new[] { element.TextContent ?? string.Empty };
+        if (name == "input" && GetEffectiveType(name, element.GetAttribute("type")) == "file") {
+            return Array.Empty<string>();
+        }
 
         string? authored = element.GetAttribute("value");
         if (authored != null) return new[] { authored };

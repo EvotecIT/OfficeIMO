@@ -62,7 +62,7 @@ public sealed partial class HtmlRenderingTests {
               <input id='sized' value='Sized field' style='box-sizing:border-box;width:240px;height:40px'>
               <input id='range' type='range' min='0' max='10' value='6'>
               <input id='color' type='color' value='#ef476f'>
-              <input id='file' type='file'>
+              <input id='file' type='file' value='report.pdf'>
               <select id='multiple' multiple size='3'>
                 <option selected>North</option><option>South</option><option selected>West</option>
               </select>
@@ -84,6 +84,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "input#range:thumb");
         Assert.Contains(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "input#color:swatch");
         Assert.Contains("Choose file", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("report.pdf", rendered.Text, StringComparison.Ordinal);
         Assert.Contains("North", rendered.Text, StringComparison.Ordinal);
         Assert.Contains("West", rendered.Text, StringComparison.Ordinal);
         Assert.Contains("Disabled value", rendered.Text, StringComparison.Ordinal);

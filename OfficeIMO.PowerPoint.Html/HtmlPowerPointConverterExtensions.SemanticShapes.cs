@@ -118,7 +118,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlSemanticBlock list,
         HtmlToPowerPointResult result) {
         var items = new List<SemanticListItem>();
-        AppendSemanticListItems(list, 0, items);
+        AppendSemanticListItems(list, 0, items, result);
         if (items.Count == 0) return;
         textBox.Text = string.Join("\n", items.Select(item => item.Block.Text));
         IReadOnlyList<PptCore.PowerPointParagraph> paragraphs = textBox.Paragraphs;
@@ -127,8 +127,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             PptCore.PowerPointParagraph paragraph = paragraphs[index];
             if (item.Ordered) {
                 if (item.ShouldRestart) {
-                    int ordinal = NormalizePowerPointListOrdinal(item.Ordinal ?? 1, result);
-                    paragraph.SetNumbered(ordinal);
+                    paragraph.SetNumbered(item.Ordinal ?? 1);
                 } else {
                     paragraph.SetNumbered(PptCore.PowerPointNumberingScheme.ArabicPeriod);
                 }
@@ -140,17 +139,25 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
     }
 
-    private static void AppendSemanticListItems(HtmlSemanticBlock list, int level, ICollection<SemanticListItem> result) {
-        int itemIndex = 0;
+    private static void AppendSemanticListItems(
+        HtmlSemanticBlock list,
+        int level,
+        ICollection<SemanticListItem> result,
+        HtmlToPowerPointResult conversionResult) {
+        int? previousOrdinal = null;
         foreach (HtmlSemanticBlock item in list.Children) {
-            bool shouldRestart = itemIndex == 0
+            int? ordinal = list.Ordered
+                ? NormalizePowerPointListOrdinal(item.ListItem?.Ordinal ?? 1, conversionResult)
+                : null;
+            bool shouldRestart = list.Ordered && (!previousOrdinal.HasValue
                 || item.ListItem?.ExplicitOrdinal.HasValue == true
-                || list.List?.IsReversed == true;
-            result.Add(new SemanticListItem(item, list.Ordered, item.ListItem?.Ordinal, shouldRestart, level));
+                || list.List?.IsReversed == true
+                || (long)ordinal.GetValueOrDefault() != (long)previousOrdinal.Value + 1L);
+            result.Add(new SemanticListItem(item, list.Ordered, ordinal, shouldRestart, level));
+            previousOrdinal = ordinal;
             foreach (HtmlSemanticBlock nested in item.Children.Where(child => child.Kind == HtmlSemanticBlockKind.List)) {
-                AppendSemanticListItems(nested, level + 1, result);
+                AppendSemanticListItems(nested, level + 1, result, conversionResult);
             }
-            itemIndex++;
         }
     }
 

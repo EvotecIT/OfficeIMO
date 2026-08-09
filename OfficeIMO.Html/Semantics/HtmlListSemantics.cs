@@ -41,7 +41,7 @@ internal static class HtmlListSemantics {
                     explicitOrdinal = authoredOrdinal;
                 }
                 ordinal = current;
-                current += step;
+                current = Advance(current, step);
             }
             result.Add(new HtmlListItemProjection(element,
                 new HtmlSemanticListItem(HtmlSemanticListItemKind.Item, ordinal, explicitOrdinal)));
@@ -51,13 +51,25 @@ internal static class HtmlListSemantics {
 
     internal static string BuildText(HtmlSemanticList list, IReadOnlyList<HtmlSemanticBlock> items) {
         return string.Join("\n", items.Select(item => {
-            if (item.ListItem?.Kind == HtmlSemanticListItemKind.Term) return item.Text;
-            if (item.ListItem?.Kind == HtmlSemanticListItemKind.Description) return "  " + item.Text;
-            if (list.Kind == HtmlSemanticListKind.Ordered) {
-                return (item.ListItem?.Ordinal ?? 1).ToString(CultureInfo.InvariantCulture) + ". " + item.Text;
+            string ownText;
+            if (item.ListItem?.Kind == HtmlSemanticListItemKind.Term) ownText = item.Text;
+            else if (item.ListItem?.Kind == HtmlSemanticListItemKind.Description) ownText = "  " + item.Text;
+            else if (list.Kind == HtmlSemanticListKind.Ordered) {
+                ownText = (item.ListItem?.Ordinal ?? 1).ToString(CultureInfo.InvariantCulture) + ". " + item.Text;
+            } else {
+                ownText = "• " + item.Text;
             }
-            return "• " + item.Text;
+
+            string nestedText = string.Join("\n", item.Children
+                .Where(child => child.Kind == HtmlSemanticBlockKind.List && child.Text.Length > 0)
+                .Select(child => "  " + child.Text.Replace("\n", "\n  ")));
+            return nestedText.Length == 0 ? ownText : ownText + "\n" + nestedText;
         }));
+    }
+
+    private static int Advance(int value, int step) {
+        if (step > 0) return value == int.MaxValue ? int.MaxValue : value + 1;
+        return value == int.MinValue ? int.MinValue : value - 1;
     }
 
     private static bool TryReadInteger(string? text, out int value) =>

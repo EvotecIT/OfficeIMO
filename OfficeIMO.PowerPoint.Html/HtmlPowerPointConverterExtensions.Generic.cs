@@ -38,7 +38,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 bool importPicture = options.ImportPictures && block.Kind == HtmlSemanticBlockKind.Image;
                 if (importText && !isSectionTitle) {
                     contentTop = ImportTextBox(block.SourceElement, block.Text, slide, contentTop, result, budget,
-                        block.Kind == HtmlSemanticBlockKind.List ? Math.Max(52D, block.Children.Count * 30D) : 52D,
+                        block.Kind == HtmlSemanticBlockKind.List ? Math.Max(52D, CountSemanticListItems(block) * 30D) : 52D,
                         block);
                 } else if (importTable) {
                     contentTop = ImportTable(block.SourceElement, slide, contentTop, result, budget, block);
@@ -110,4 +110,9 @@ public static partial class HtmlPowerPointConverterExtensions {
         kind == HtmlSemanticBlockKind.Heading || kind == HtmlSemanticBlockKind.Paragraph
         || kind == HtmlSemanticBlockKind.Code || kind == HtmlSemanticBlockKind.Quote
         || kind == HtmlSemanticBlockKind.List || kind == HtmlSemanticBlockKind.Note;
+
+    private static int CountSemanticListItems(HtmlSemanticBlock list) =>
+        list.Children.Sum(item => 1 + item.Children
+            .Where(child => child.Kind == HtmlSemanticBlockKind.List)
+            .Sum(CountSemanticListItems));
 }
