@@ -80,6 +80,26 @@ public partial class Html {
     }
 
     [Fact]
+    public void SemanticDocument_ExplicitFormOwnerMatchesTheRawIdentifier() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse("""
+            <form id="checkout"></form><input name="field" form=" checkout ">
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks),
+            block => block.FormControl?.Name == "field").FormControl!;
+
+        Assert.Equal(string.Empty, control.FormOwnerId);
+    }
+
+    [Fact]
+    public void SemanticDocument_ExplicitFormOwnerPreservesAnExactlyMatchingWhitespaceIdentifier() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse("""
+            <form id=" checkout "></form><input name="field" form=" checkout ">
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks),
+            block => block.FormControl?.Name == "field").FormControl!;
+
+        Assert.Equal(" checkout ", control.FormOwnerId);
+    }
+
+    [Fact]
     public void SemanticDocument_NumberInputExcludesInapplicablePlaceholder() {
         HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
             .Parse("<input type='number' name='quantity' placeholder='Count'>")
@@ -104,12 +124,86 @@ public partial class Html {
     [InlineData("<input type='range' min='10' max='20'>", "15")]
     [InlineData("<input type='range' min='10' max='20' value='4'>", "10")]
     [InlineData("<input type='range' min='10' max='20' value='24'>", "20")]
-    [InlineData("<input type='range' min='0' max='10' step='3' value='8'>", "8")]
+    [InlineData("<input type='range' min='0' max='10' step='3' value='8'>", "9")]
+    [InlineData("<input type='range' max='10' step='3' value='200'>", "8")]
+    [InlineData("<input type='range' min='0' max='10' step='4'>", "4")]
+    [InlineData("<input type='range' min='0' max='10' step='any' value='8'>", "8")]
     [InlineData("<input type='range' min='0' max='10' value='005.0'>", "005.0")]
     [InlineData("<input type='range' min='-1e308' max='1e308'>", "0")]
     public void SemanticDocument_RangeInputReportsItsSanitizedCurrentValue(string html, string expected) {
         HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
             .Parse(html)
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(expected, control.Value);
+    }
+
+    [Theory]
+    [InlineData("date", "not-a-date", "")]
+    [InlineData("date", "2026-02-29", "")]
+    [InlineData("date", "2028-02-29", "2028-02-29")]
+    [InlineData("month", "2026-13", "")]
+    [InlineData("week", "2026-W54", "")]
+    [InlineData("time", "25:00", "")]
+    [InlineData("datetime-local", "2026-08-09 12:30", "2026-08-09T12:30")]
+    [InlineData("datetime-local", "2026-08-09T12:30:00.000", "2026-08-09T12:30")]
+    [InlineData("datetime-local", "2026-08-09T12:30:01.2300", "2026-08-09T12:30:01.23")]
+    [InlineData("number", "twelve", "")]
+    [InlineData("color", "red", "#000000")]
+    [InlineData("color", "#A1B2C3", "#a1b2c3")]
+    [InlineData("date", "123456789012345678901234567890-02-29", "")]
+    [InlineData("date", "123456789012345678901234567920-02-29", "123456789012345678901234567920-02-29")]
+    public void SemanticDocument_TypedInputsReportSanitizedCurrentValues(string type, string value, string expected) {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
+            .Parse($"<input type='{type}' value='{value}'>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(expected, control.Value);
+    }
+
+    [Fact]
+    public void SemanticDocument_RadioGroupsExposeOnlyTheEffectiveCheckedControl() {
+        HtmlSemanticBlock form = Assert.Single(HtmlConversionDocument.Parse("""
+            <form><input type="radio" name="choice" value="first" checked>
+              <input type="radio" name="choice" value="last" checked></form>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks));
+        HtmlSemanticFormControl[] controls = form.Children.Select(block => block.FormControl!).ToArray();
+
+        Assert.False(controls[0].IsChecked);
+        Assert.True(controls[1].IsChecked);
+    }
+
+    [Fact]
+    public void SemanticDocument_RadioGroupsRespectOwnersAndNonemptyNames() {
+        HtmlSemanticBlock[] forms = HtmlConversionDocument.Parse("""
+            <form><input type="radio" name="choice" checked></form>
+            <form><input type="radio" name="choice" checked></form>
+            <input type="radio" checked><input type="radio" checked>
+            <input type="radio" name=" " checked><input type="radio" name=" " checked>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks).ToArray();
+        HtmlSemanticFormControl[] controls = forms
+            .SelectMany(block => block.FormControl == null ? block.Children : new[] { block })
+            .Select(block => block.FormControl!)
+            .ToArray();
+
+        Assert.True(controls[0].IsChecked);
+        Assert.True(controls[1].IsChecked);
+        Assert.True(controls[2].IsChecked);
+        Assert.True(controls[3].IsChecked);
+        Assert.False(controls[4].IsChecked);
+        Assert.True(controls[5].IsChecked);
+    }
+
+    [Theory]
+    [InlineData("text", "A&#10;B&#13;C", "ABC")]
+    [InlineData("url", "  https://example.test/&#10; ", "https://example.test/")]
+    [InlineData("email", " first@example.test , second@example.test ", "first@example.test , second@example.test")]
+    [InlineData("email multiple", " first@example.test , second@example.test ", "first@example.test,second@example.test")]
+    public void SemanticDocument_TextualInputsRunTheirValueSanitizers(string typeAndFlags, string value, string expected) {
+        string[] parts = typeAndFlags.Split(' ');
+        string multiple = parts.Length > 1 ? " multiple" : string.Empty;
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
+            .Parse($"<input type='{parts[0]}'{multiple} value='{value}'>")
             .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
 
         Assert.Equal(expected, control.Value);

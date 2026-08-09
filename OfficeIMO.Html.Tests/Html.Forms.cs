@@ -44,12 +44,37 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_RangeInputsUseSanitizedCurrentValues() {
             const string html = """
-                <p><input type="range" name="default"><input type="range" name="bounded" min="10" max="20" value="200"></p>
+                <p><input type="range" name="default"><input type="range" name="bounded" min="10" max="20" value="200">
+                   <input type="range" name="stepped" min="0" max="10" step="3" value="8"></p>
                 """;
 
             using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
 
-            Assert.Equal(new[] { "50", "20" }, doc.StructuredDocumentTags.Select(control => control.Text));
+            Assert.Equal(new[] { "50", "20", "9" }, doc.StructuredDocumentTags.Select(control => control.Text));
+        }
+
+        [Fact]
+        public void HtmlToWord_TypedInputsUseSanitizedCurrentValues() {
+            const string html = """
+                <p><input type="number" value="twelve"><input type="color" value="red"><input type="date" value="not-a-date"></p>
+                """;
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            Assert.Equal(new[] { string.Empty, "#000000", string.Empty }, doc.StructuredDocumentTags.Select(control => control.Text));
+            Assert.Null(Assert.Single(doc.DatePickers).Date);
+        }
+
+        [Fact]
+        public void HtmlToWord_RadioGroupsUseEffectiveCheckedness() {
+            const string html = """
+                <p><input type="radio" name="choice" value="first" checked>
+                   <input type="radio" name="choice" value="last" checked></p>
+                """;
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            Assert.Equal("last", Assert.Single(doc.DropDownLists).SelectedValue);
         }
 
         [Fact]

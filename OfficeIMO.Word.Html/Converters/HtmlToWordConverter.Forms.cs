@@ -36,12 +36,12 @@ namespace OfficeIMO.Word.Html {
             if (IsCheckboxInput(element)) {
                 currentParagraph.AddCheckBox(IsCheckedInput(element), alias, tag);
             } else if (IsDateInput(element)) {
-                var date = TryParseDateInput(element.GetAttribute("value"));
+                var date = TryParseDateInput(HtmlFormControlSemantics.GetValues(element).FirstOrDefault());
                 var datePicker = currentParagraph.AddDatePicker(date, alias, tag);
                 datePicker.Date = date;
             } else if (TryGetDataListOptions(element, out var dataListOptions)) {
                 var hasValueAttribute = element.HasAttribute("value");
-                var value = element.GetAttribute("value") ?? string.Empty;
+                var value = HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty;
                 string? selectedInternalValue = element.GetAttribute("data-word-value");
                 int selectedIndex = selectedInternalValue == null
                     ? dataListOptions.FindIndex(option =>
@@ -65,9 +65,7 @@ namespace OfficeIMO.Word.Html {
                     dataListOptions[selectedIndex].DisplayText);
                 comboBox.SetImportedItems(dataListOptions, selectedIndex);
             } else {
-                string value = string.Equals(GetEffectiveInputType(element), "range", StringComparison.Ordinal)
-                    ? HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty
-                    : element.GetAttribute("value") ?? string.Empty;
+                string value = HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty;
                 currentParagraph.AddStructuredDocumentTag(value, alias, tag);
             }
 
@@ -186,8 +184,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool IsCheckedInput(IElement element) =>
-            element.HasAttribute("checked") ||
-            string.Equals(element.GetAttribute("aria-checked"), "true", StringComparison.OrdinalIgnoreCase);
+            HtmlFormControlSemantics.IsEffectivelyChecked(element);
 
         private static bool IsDateInput(IElement element) {
             return string.Equals(GetEffectiveInputType(element), "date", StringComparison.Ordinal);
@@ -243,7 +240,7 @@ namespace OfficeIMO.Word.Html {
 
         private static List<IElement> GetRadioGroup(IElement element) {
             var name = element.GetAttribute("name");
-            if (string.IsNullOrWhiteSpace(name)) {
+            if (string.IsNullOrEmpty(name)) {
                 return new List<IElement> { element };
             }
 

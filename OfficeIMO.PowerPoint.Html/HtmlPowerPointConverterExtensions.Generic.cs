@@ -24,9 +24,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             double contentTop = 30D;
             if (!string.IsNullOrWhiteSpace(section.Title)) {
                 HtmlSemanticBlock? titleBlock = section.Blocks.FirstOrDefault();
-                if (titleBlock != null) {
-                    contentTop = ImportTextBox(titleBlock.SourceElement, section.Title, slide, 30D, result, budget, 44D);
-                }
+                contentTop = ImportTextBox(titleBlock?.SourceElement, section.Title, slide, 30D, result, budget, 44D);
             }
 
             double pictureTop = contentTop;

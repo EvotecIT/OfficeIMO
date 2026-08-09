@@ -115,10 +115,23 @@ public sealed partial class HtmlRenderingTests {
         double clampedPosition = RangeThumbX("<input id='range' type='range' min='10' max='20' value='200'>");
         double maximumPosition = RangeThumbX("<input id='range' type='range' min='10' max='20' value='20'>");
         double extremeMidpointPosition = RangeThumbX("<input id='range' type='range' min='-1e308' max='1e308'>");
+        double steppedPosition = RangeThumbX("<input id='range' type='range' min='0' max='10' step='3' value='8'>");
+        double roundedPosition = RangeThumbX("<input id='range' type='range' min='0' max='10' step='3' value='9'>");
 
         Assert.Equal(explicitDefaultPosition, defaultPosition, 6);
         Assert.Equal(maximumPosition, clampedPosition, 6);
         Assert.Equal(explicitDefaultPosition, extremeMidpointPosition, 6);
+        Assert.Equal(roundedPosition, steppedPosition, 6);
+
+        HtmlRenderDocument radios = HtmlRenderTestDriver.Render(
+            "<input id='first' type='radio' name='choice' checked><input id='last' type='radio' name='choice' checked>",
+            new HtmlRenderOptions());
+        HtmlRenderShape[] radioMarks = radios.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source.EndsWith(":checked", StringComparison.Ordinal))
+            .ToArray();
+        Assert.DoesNotContain(radioMarks, shape => shape.Source == "input#first:checked");
+        Assert.Contains(radioMarks, shape => shape.Source == "input#last:checked");
     }
 
     [Fact]

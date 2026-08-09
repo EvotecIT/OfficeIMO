@@ -305,6 +305,7 @@ public static partial class HtmlRoundTripScorer {
         AngleSharp.Html.Dom.IHtmlDocument document = source.CreateSourceDocumentForConversion();
         ResolveResourceSourceAttributes(document);
         SynthesizeImplicitSelectedOptions(document);
+        SynthesizeEffectiveInputState(document);
         PropagateFieldsetDisabledState(document);
         PruneHiddenStructure(document);
         return document;
@@ -410,7 +411,8 @@ public static partial class HtmlRoundTripScorer {
                         parts.Add("value=" + HtmlFormControlSemantics.GetRangeValue(
                             null,
                             control.GetAttribute("min"),
-                            control.GetAttribute("max")));
+                            control.GetAttribute("max"),
+                            control.GetAttribute("step")));
                         continue;
                     }
                     string defaultValue = GetDefaultFormControlValue(control.TagName, control.GetAttribute("type"), control.TextContent);
@@ -429,7 +431,8 @@ public static partial class HtmlRoundTripScorer {
                         parts.Add("value=" + HtmlFormControlSemantics.GetRangeValue(
                             control.GetAttribute("value"),
                             control.GetAttribute("min"),
-                            control.GetAttribute("max")));
+                            control.GetAttribute("max"),
+                            control.GetAttribute("step")));
                         continue;
                     }
                     parts.Add(FormatAttributePart(attributeName, control.GetAttribute(attributeName)));
@@ -461,6 +464,22 @@ public static partial class HtmlRoundTripScorer {
         }
     }
 
+    private static void SynthesizeEffectiveInputState(AngleSharp.Html.Dom.IHtmlDocument document) {
+        foreach (AngleSharp.Dom.IElement input in document.QuerySelectorAll("input")) {
+            string effectiveType = HtmlFormControlSemantics.GetEffectiveType("input", input.GetAttribute("type"));
+            if (input.HasAttribute("value") && effectiveType != "file") {
+                string currentValue = HtmlFormControlSemantics.GetValues(input).FirstOrDefault() ?? string.Empty;
+                input.SetAttribute("value", currentValue);
+            }
+            if (effectiveType != "radio") continue;
+            if (HtmlFormControlSemantics.IsEffectivelyChecked(input)) {
+                input.SetAttribute("checked", string.Empty);
+            } else {
+                input.RemoveAttribute("checked");
+            }
+        }
+    }
+
     private static void PropagateFieldsetDisabledState(AngleSharp.Html.Dom.IHtmlDocument document) {
         foreach (var control in document.QuerySelectorAll("input,select,textarea,button")) {
             if (!control.HasAttribute("disabled") && HtmlFormControlSemantics.IsEffectivelyDisabled(control)) {
@@ -473,7 +492,7 @@ public static partial class HtmlRoundTripScorer {
         AngleSharp.Dom.IElement? owner = HtmlFormControlSemantics.ResolveFormOwner(control);
         if (owner == null) return string.Empty;
         string? id = owner.GetAttribute("id");
-        if (!string.IsNullOrWhiteSpace(id)) return id!.Trim();
+        if (!string.IsNullOrEmpty(id)) return id!;
         string? action = owner.GetAttribute("action");
         return string.IsNullOrWhiteSpace(action) ? "ancestor-form" : action!.Trim();
     }
@@ -665,7 +684,8 @@ public static partial class HtmlRoundTripScorer {
                 parts.Add("value=" + HtmlFormControlSemantics.GetRangeValue(
                     null,
                     node.Attributes.TryGetValue("min", out string? minimum) ? minimum : null,
-                    node.Attributes.TryGetValue("max", out string? maximum) ? maximum : null));
+                    node.Attributes.TryGetValue("max", out string? maximum) ? maximum : null,
+                    node.Attributes.TryGetValue("step", out string? step) ? step : null));
                 return;
             }
             node.Attributes.TryGetValue("type", out string? rawType);
@@ -681,7 +701,8 @@ public static partial class HtmlRoundTripScorer {
             parts.Add("value=" + HtmlFormControlSemantics.GetRangeValue(
                 node.Attributes.TryGetValue("value", out string? value) ? value : null,
                 node.Attributes.TryGetValue("min", out string? minimum) ? minimum : null,
-                node.Attributes.TryGetValue("max", out string? maximum) ? maximum : null));
+                node.Attributes.TryGetValue("max", out string? maximum) ? maximum : null,
+                node.Attributes.TryGetValue("step", out string? step) ? step : null));
             return;
         }
 

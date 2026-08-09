@@ -74,7 +74,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     private static double ImportTextBox(
-        IElement source,
+        IElement? source,
         string text,
         PptCore.PowerPointSlide slide,
         double fallbackTop,
@@ -100,15 +100,21 @@ public static partial class HtmlPowerPointConverterExtensions {
             return fallbackTop;
         }
 
-        ReadSemanticShapeGeometry(source, 64D, fallbackTop, 620D, fallbackHeight, budget, result,
-            out double left, out double top, out double width, out double height);
+        double left = 64D;
+        double top = fallbackTop;
+        double width = 620D;
+        double height = fallbackHeight;
+        if (source != null) {
+            ReadSemanticShapeGeometry(source, left, top, width, height, budget, result,
+                out left, out top, out width, out height);
+        }
         PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(text, left, top, width, height);
         if (semanticBlock?.Kind == HtmlSemanticBlockKind.List) {
             ApplySemanticList(textBox, semanticBlock, result);
         } else if (semanticBlock != null && semanticBlock.Runs.Count > 0) {
             ApplySemanticRuns(textBox.Paragraphs[0], semanticBlock.Runs);
         }
-        ApplyShapeTransforms(source, textBox, budget, result);
+        if (source != null) ApplyShapeTransforms(source, textBox, budget, result);
         result.TextBoxes++;
         return Math.Max(fallbackTop + 58D, top + height + 10D);
     }

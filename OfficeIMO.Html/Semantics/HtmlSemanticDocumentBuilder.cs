@@ -397,8 +397,7 @@ internal static class HtmlSemanticDocumentBuilder {
             effectiveType,
             element.GetAttribute("name") ?? string.Empty,
             HtmlFormControlSemantics.GetValues(element),
-            element.HasAttribute("checked")
-                && HtmlFormControlSemantics.IsCheckedStateApplicable(elementName, effectiveType),
+            HtmlFormControlSemantics.IsEffectivelyChecked(element),
             HtmlFormControlSemantics.IsEffectivelyDisabled(element),
             element.HasAttribute("required")
                 && HtmlFormControlSemantics.IsRequiredStateApplicable(elementName, effectiveType),

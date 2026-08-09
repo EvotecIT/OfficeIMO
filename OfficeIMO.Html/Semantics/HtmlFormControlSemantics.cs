@@ -154,7 +154,14 @@ internal static class HtmlFormControlSemantics {
                 return new[] { GetRangeValue(
                     element.GetAttribute("value"),
                     element.GetAttribute("min"),
-                    element.GetAttribute("max")) };
+                    element.GetAttribute("max"),
+                    element.GetAttribute("step")) };
+            }
+            if (element.HasAttribute("value")) {
+                return new[] { SanitizeInputValue(
+                    effectiveType,
+                    element.GetAttribute("value") ?? string.Empty,
+                    element.HasAttribute("multiple")) };
             }
         }
 
@@ -189,12 +196,12 @@ internal static class HtmlFormControlSemantics {
 
     internal static string ResolveFormOwnerId(IElement element) {
         IElement? owner = ResolveFormOwner(element);
-        return (owner?.GetAttribute("id") ?? string.Empty).Trim();
+        return owner?.GetAttribute("id") ?? string.Empty;
     }
 
     internal static IElement? ResolveFormOwner(IElement element) {
         if (element.HasAttribute("form")) {
-            string explicitOwner = (element.GetAttribute("form") ?? string.Empty).Trim();
+            string explicitOwner = element.GetAttribute("form") ?? string.Empty;
             if (explicitOwner.Length == 0) return null;
             IElement? candidate = element.Owner?.GetElementById(explicitOwner);
             return candidate != null && string.Equals(candidate.LocalName, "form", StringComparison.OrdinalIgnoreCase)
@@ -210,6 +217,23 @@ internal static class HtmlFormControlSemantics {
         return null;
     }
 
+    internal static bool IsEffectivelyChecked(IElement element) {
+        string effectiveType = GetEffectiveType(element.LocalName, element.GetAttribute("type"));
+        if (!IsCheckedStateApplicable(element.LocalName, effectiveType) || !element.HasAttribute("checked")) {
+            return false;
+        }
+        if (effectiveType == "checkbox") return true;
+
+        string name = element.GetAttribute("name") ?? string.Empty;
+        if (name.Length == 0 || element.Owner == null) return true;
+        IElement? owner = ResolveFormOwner(element);
+        IElement? effective = element.Owner.QuerySelectorAll("input[checked]").LastOrDefault(candidate =>
+            string.Equals(GetEffectiveType(candidate.LocalName, candidate.GetAttribute("type")), "radio", StringComparison.Ordinal)
+            && string.Equals(candidate.GetAttribute("name") ?? string.Empty, name, StringComparison.Ordinal)
+            && ReferenceEquals(ResolveFormOwner(candidate), owner));
+        return ReferenceEquals(element, effective);
+    }
+
     private static IReadOnlyList<string> GetSelectValues(IElement select) {
         bool multiple = select.HasAttribute("multiple");
         IElement[] options = select.QuerySelectorAll("option").ToArray();
@@ -222,20 +246,24 @@ internal static class HtmlFormControlSemantics {
     private static string GetOptionValue(IElement option) =>
         option.GetAttribute("value") ?? GetDefaultValue("option", null, option.TextContent ?? string.Empty);
 
-    internal static string GetRangeValue(string? value, string? minimum, string? maximum) =>
-        ResolveRange(value, minimum, maximum).ValueText;
+    internal static string GetRangeValue(string? value, string? minimum, string? maximum, string? step = null) =>
+        ResolveRange(value, minimum, maximum, step).ValueText;
 
     internal static double GetRangeFraction(IElement element) => ResolveRange(
         element.GetAttribute("value"),
         element.GetAttribute("min"),
-        element.GetAttribute("max")).Fraction;
+        element.GetAttribute("max"),
+        element.GetAttribute("step")).Fraction;
 
-    private static HtmlRangeState ResolveRange(string? value, string? minimum, string? maximum) {
-        double min = TryParseHtmlNumber(minimum, out double parsedMinimum) ? parsedMinimum : 0D;
+    private static HtmlRangeState ResolveRange(string? value, string? minimum, string? maximum, string? step) {
+        bool hasMinimum = TryParseHtmlNumber(minimum, out double parsedMinimum);
+        double min = hasMinimum ? parsedMinimum : 0D;
         double max = TryParseHtmlNumber(maximum, out double parsedMaximum) ? parsedMaximum : 100D;
         if (max < min) return new HtmlRangeState(FormatHtmlNumber(min), 0D);
 
-        bool preservesAuthoredValue = TryParseHtmlNumber(value, out double current);
+        bool hasAuthoredValue = TryParseHtmlNumber(value, out double current);
+        bool preservesAuthoredValue = hasAuthoredValue;
+        double authoredValue = current;
         if (!preservesAuthoredValue) current = Midpoint(min, max);
         if (current < min) {
             current = min;
@@ -245,10 +273,33 @@ internal static class HtmlFormControlSemantics {
             preservesAuthoredValue = false;
         }
 
+        if (!string.Equals(NormalizeKeyword(step), "any", StringComparison.Ordinal)) {
+            double allowedStep = TryParseHtmlNumber(step, out double parsedStep) && parsedStep > 0D ? parsedStep : 1D;
+            double stepBase = hasMinimum ? min : hasAuthoredValue ? authoredValue : 0D;
+            double stepped = RoundToAllowedStep(current, min, max, stepBase, allowedStep);
+            if (stepped != current) {
+                current = stepped;
+                preservesAuthoredValue = false;
+            }
+        }
+
         double fraction = ResolveRangeFraction(current, min, max);
         return new HtmlRangeState(
             preservesAuthoredValue ? value! : FormatHtmlNumber(current),
             fraction);
+    }
+
+    private static double RoundToAllowedStep(double value, double minimum, double maximum, double stepBase, double step) {
+        double quotient = (value - stepBase) / step;
+        if (double.IsNaN(quotient) || double.IsInfinity(quotient)) return value;
+        double nearestIndex = Math.Floor(quotient + 0.5D);
+        double candidate = stepBase + nearestIndex * step;
+        if (double.IsNaN(candidate) || double.IsInfinity(candidate)) return value;
+        if (candidate < minimum) candidate += step;
+        if (candidate > maximum) candidate -= step;
+        if (candidate < minimum || candidate > maximum) return value;
+        double tolerance = 1e-12D * Math.Max(1D, Math.Max(Math.Abs(value), Math.Abs(candidate)));
+        return Math.Abs(candidate - value) <= tolerance ? value : candidate;
     }
 
     private static bool TryParseHtmlNumber(string? text, out double value) {
@@ -262,6 +313,140 @@ internal static class HtmlFormControlSemantics {
         }
         return true;
     }
+
+    private static string SanitizeInputValue(string effectiveType, string value, bool multiple) {
+        switch (effectiveType) {
+            case "text":
+            case "search":
+            case "tel":
+            case "password":
+                return StripLineBreaks(value);
+            case "url":
+                return TrimAsciiWhitespace(StripLineBreaks(value));
+            case "email":
+                string email = StripLineBreaks(value);
+                return multiple
+                    ? string.Join(",", email.Split(',').Select(TrimAsciiWhitespace))
+                    : TrimAsciiWhitespace(email);
+            case "date":
+                return IsValidDate(value) ? value : string.Empty;
+            case "month":
+                return IsValidMonth(value) ? value : string.Empty;
+            case "week":
+                return IsValidWeek(value) ? value : string.Empty;
+            case "time":
+                return IsValidTime(value) ? value : string.Empty;
+            case "datetime-local":
+                return NormalizeLocalDateAndTime(value);
+            case "number":
+                return TryParseHtmlNumber(value, out _) ? value : string.Empty;
+            case "color":
+                return Regex.IsMatch(value, "^#[0-9A-Fa-f]{6}$", RegexOptions.CultureInvariant)
+                    ? value.ToLowerInvariant()
+                    : "#000000";
+            default:
+                return value;
+        }
+    }
+
+    private static bool IsValidDate(string value) {
+        Match match = Regex.Match(value, "^([0-9]{4,})-([0-9]{2})-([0-9]{2})$", RegexOptions.CultureInvariant);
+        if (!match.Success || !TryReadPositiveYear(match.Groups[1].Value, out int yearModulo400)
+            || !int.TryParse(match.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int month)
+            || !int.TryParse(match.Groups[3].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int day)) {
+            return false;
+        }
+        int maximumDay = DaysInMonth(yearModulo400, month);
+        return maximumDay > 0 && day >= 1 && day <= maximumDay;
+    }
+
+    private static bool IsValidMonth(string value) {
+        Match match = Regex.Match(value, "^([0-9]{4,})-([0-9]{2})$", RegexOptions.CultureInvariant);
+        return match.Success
+            && TryReadPositiveYear(match.Groups[1].Value, out _)
+            && int.TryParse(match.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int month)
+            && month >= 1
+            && month <= 12;
+    }
+
+    private static bool IsValidWeek(string value) {
+        Match match = Regex.Match(value, "^([0-9]{4,})-W([0-9]{2})$", RegexOptions.CultureInvariant);
+        if (!match.Success || !TryReadPositiveYear(match.Groups[1].Value, out int yearModulo400)
+            || !int.TryParse(match.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int week)) {
+            return false;
+        }
+        return week >= 1 && week <= WeeksInYear(yearModulo400);
+    }
+
+    private static bool IsValidTime(string value) {
+        Match match = Regex.Match(
+            value,
+            "^([0-9]{2}):([0-9]{2})(?::([0-9]{2})(?:\\.([0-9]+))?)?$",
+            RegexOptions.CultureInvariant);
+        return match.Success
+            && int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture) <= 23
+            && int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture) <= 59
+            && (!match.Groups[3].Success || int.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture) <= 59);
+    }
+
+    private static string NormalizeLocalDateAndTime(string value) {
+        Match match = Regex.Match(value, "^(.+?)[T ](.+)$", RegexOptions.CultureInvariant);
+        if (!match.Success || !IsValidDate(match.Groups[1].Value) || !IsValidTime(match.Groups[2].Value)) {
+            return string.Empty;
+        }
+
+        Match time = Regex.Match(
+            match.Groups[2].Value,
+            "^([0-9]{2}):([0-9]{2})(?::([0-9]{2})(?:\\.([0-9]+))?)?$",
+            RegexOptions.CultureInvariant);
+        string normalizedTime = time.Groups[1].Value + ":" + time.Groups[2].Value;
+        string fraction = time.Groups[4].Success ? time.Groups[4].Value.TrimEnd('0') : string.Empty;
+        if (time.Groups[3].Success && (time.Groups[3].Value != "00" || fraction.Length > 0)) {
+            normalizedTime += ":" + time.Groups[3].Value;
+            if (fraction.Length > 0) normalizedTime += "." + fraction;
+        }
+        return match.Groups[1].Value + "T" + normalizedTime;
+    }
+
+    private static bool TryReadPositiveYear(string value, out int yearModulo400) {
+        yearModulo400 = 0;
+        bool positive = false;
+        foreach (char character in value) {
+            if (character < '0' || character > '9') return false;
+            int digit = character - '0';
+            if (digit != 0) positive = true;
+            yearModulo400 = (yearModulo400 * 10 + digit) % 400;
+        }
+        return positive;
+    }
+
+    private static int DaysInMonth(int yearModulo400, int month) {
+        if (month < 1 || month > 12) return 0;
+        if (month == 2) return IsLeapYear(yearModulo400) ? 29 : 28;
+        return month == 4 || month == 6 || month == 9 || month == 11 ? 30 : 31;
+    }
+
+    private static bool IsLeapYear(int yearModulo400) =>
+        yearModulo400 % 4 == 0 && (yearModulo400 % 100 != 0 || yearModulo400 == 0);
+
+    private static int WeeksInYear(int yearModulo400) {
+        int januaryFirst = DayOfWeek(yearModulo400, 1, 1);
+        return januaryFirst == 4 || januaryFirst == 3 && IsLeapYear(yearModulo400) ? 53 : 52;
+    }
+
+    private static int DayOfWeek(int yearModulo400, int month, int day) {
+        int cycleYear = yearModulo400 == 0 ? 400 : yearModulo400;
+        int adjustedYear = month < 3 ? cycleYear - 1 : cycleYear;
+        int adjustedMonth = month < 3 ? month + 12 : month;
+        int value = adjustedYear + adjustedYear / 4 - adjustedYear / 100 + adjustedYear / 400
+            + (153 * adjustedMonth - 457) / 5 + day - 306;
+        return (value % 7 + 7) % 7;
+    }
+
+    private static string StripLineBreaks(string value) => value.Replace("\r", string.Empty).Replace("\n", string.Empty);
+
+    private static string TrimAsciiWhitespace(string value) =>
+        value.Trim(' ', '\t', '\r', '\n', '\f');
 
     private static double Midpoint(double minimum, double maximum) {
         double span = maximum - minimum;

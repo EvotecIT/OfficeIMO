@@ -20,6 +20,21 @@ public partial class Html {
             "<main><form method=\" post \" enctype=\" multipart/form-data \"><input type=\" checkbox \" checked></form></main>",
             "<main><form method=\"get\" enctype=\"application/x-www-form-urlencoded\"><input type=\"text\"></form></main>");
         Assert.Equal(1D, whitespacePaddedKeywordScore.Metrics["form-state"], 3);
+
+        HtmlRoundTripScore typedValueScore = HtmlRoundTripScorer.Compare(
+            "<main><form><input type=\"date\" value=\"not-a-date\"><input type=\"color\" value=\"red\"></form></main>",
+            "<main><form><input type=\"date\" value=\"\"><input type=\"color\" value=\"#000000\"></form></main>");
+        Assert.Equal(1D, typedValueScore.Metrics["form-state"], 3);
+
+        HtmlRoundTripScore effectiveRadioScore = HtmlRoundTripScorer.Compare(
+            "<main><form><input type=\"radio\" name=\"choice\" checked><input type=\"radio\" name=\"choice\" checked></form></main>",
+            "<main><form><input type=\"radio\" name=\"choice\"><input type=\"radio\" name=\"choice\" checked></form></main>");
+        Assert.Equal(1D, effectiveRadioScore.Metrics["form-state"], 3);
+
+        HtmlRoundTripScore steppedRangeScore = HtmlRoundTripScorer.Compare(
+            "<main><input type=\"range\" min=\"0\" max=\"10\" step=\"3\" value=\"8\"></main>",
+            "<main><input type=\"range\" min=\"0\" max=\"10\" step=\"3\" value=\"9\"></main>");
+        Assert.Equal(1D, steppedRangeScore.Metrics["form-state"], 3);
     }
 
     [Fact]

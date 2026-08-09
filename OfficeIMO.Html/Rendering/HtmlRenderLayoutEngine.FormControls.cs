@@ -190,12 +190,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentHeight = Math.Max(0.01D, boxHeight - style.VerticalInsets);
 
         if (tag == "input" && type == "checkbox") {
-            if (element.HasAttribute("checked")) AddCheckboxMark(visuals, contentX, contentY, contentWidth, contentHeight, source);
+            if (HtmlFormControlSemantics.IsEffectivelyChecked(element)) AddCheckboxMark(visuals, contentX, contentY, contentWidth, contentHeight, source);
             return;
         }
         if (tag == "input" && type == "radio") {
             ReplaceControlBackgroundWithRadio(visuals, boxX, boxY, boxWidth, boxHeight, style, source);
-            if (element.HasAttribute("checked")) AddRadioMark(visuals, contentX, contentY, contentWidth, contentHeight, source);
+            if (HtmlFormControlSemantics.IsEffectivelyChecked(element)) AddRadioMark(visuals, contentX, contentY, contentWidth, contentHeight, source);
             return;
         }
         if (tag == "input" && type == "range") {
@@ -233,7 +233,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         } else if (tag == "input" && type == "file") {
             value = "Choose file";
         } else {
-            value = NormalizeControlText(element.GetAttribute("value"));
+            value = tag == "input"
+                ? NormalizeControlText(HtmlFormControlSemantics.GetValues(element).FirstOrDefault())
+                : NormalizeControlText(element.GetAttribute("value"));
             if (type == "password" && value.Length > 0) value = new string('*', Math.Min(32, value.Length));
             if (value.Length == 0) {
                 value = NormalizeControlText(element.GetAttribute("placeholder"));
@@ -351,7 +353,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         string source) {
-        OfficeColor color = HtmlRenderCssValues.TryColor(element.GetAttribute("value") ?? string.Empty, out OfficeColor parsed)
+        string value = HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty;
+        OfficeColor color = HtmlRenderCssValues.TryColor(value, out OfficeColor parsed)
             ? parsed
             : OfficeColor.Black;
         OfficeShape swatch = OfficeShape.Rectangle(width, height);
