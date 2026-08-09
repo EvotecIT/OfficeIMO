@@ -186,7 +186,8 @@ public sealed class SpreadsheetRangeReference {
         // A token such as LOG10 is a valid A1 coordinate in isolation, but LOG10(...) is a function call.
         int next = cursor;
         while (next < text.Length && char.IsWhiteSpace(text[next])) next++;
-        if (second == null && first!.SheetName == null && next < text.Length && text[next] == '(') return false;
+        if (second == null && first!.SheetName == null && next == cursor &&
+            next < text.Length && text[next] == '(') return false;
 
         reference = new SpreadsheetRangeReference(first!, second);
         consumed = cursor - start;

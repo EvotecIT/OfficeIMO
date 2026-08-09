@@ -165,6 +165,14 @@ internal static class SpreadsheetFormulaParser {
         int open = nameEnd;
         while (open < text.Length && char.IsWhiteSpace(text[open])) open++;
         if (open >= text.Length || text[open] != '(') return false;
+        if (dialect == SpreadsheetFormulaDialect.ExcelA1 && open > nameEnd &&
+            IsParenthesizedReferenceLikeAt(text, open) &&
+            SpreadsheetRangeReference.TryParse(
+                text.Substring(nameStart, nameEnd - nameStart),
+                SpreadsheetAddressDialect.ExcelA1,
+                out _)) {
+            return false;
+        }
 
         var children = new List<SpreadsheetFormulaSyntaxNode> {
             Token(SpreadsheetFormulaTokenKind.Identifier, text.Substring(nameStart, nameEnd - nameStart), nameStart)
@@ -530,21 +538,51 @@ internal static class SpreadsheetFormulaParser {
     private static bool IsReferenceLikeLast(ICollection<SpreadsheetFormulaSyntaxNode> children) {
         SpreadsheetFormulaSyntaxNode? last = null;
         foreach (SpreadsheetFormulaSyntaxNode child in children) last = child;
-        if (last == null) return false;
-        return last.TokenKind == SpreadsheetFormulaTokenKind.Reference ||
-               last.TokenKind == SpreadsheetFormulaTokenKind.Identifier ||
-               last.Kind == SpreadsheetFormulaSyntaxKind.ParenthesizedExpression;
+        return last != null && IsReferenceLikeNode(last);
     }
 
     private static bool IsReferenceLikeAt(string text, int cursor) {
         if (cursor >= text.Length) return false;
         if (SpreadsheetRangeReference.TryReadExcelAt(
                 text, cursor, out SpreadsheetRangeReference? _, out int _)) return true;
+        if (text[cursor] == '(') return IsParenthesizedReferenceLikeAt(text, cursor);
         if (!IsIdentifierStart(text[cursor])) return false;
         int identifierEnd = ScanIdentifier(text, cursor);
         int next = identifierEnd;
         while (next < text.Length && char.IsWhiteSpace(text[next])) next++;
         return next >= text.Length || text[next] != '(';
+    }
+
+    private static bool IsParenthesizedReferenceLikeAt(string text, int cursor) {
+        var children = new List<SpreadsheetFormulaSyntaxNode>();
+        var diagnostics = new List<SpreadsheetFormulaDiagnostic>();
+        ReadGroup(text, SpreadsheetFormulaDialect.ExcelA1, ref cursor,
+            SpreadsheetFormulaSyntaxKind.ParenthesizedExpression, ')', null,
+            children, diagnostics, depth: 0);
+        return diagnostics.Count == 0 && children.Count == 1 && IsReferenceLikeNode(children[0]);
+    }
+
+    private static bool IsReferenceLikeNode(SpreadsheetFormulaSyntaxNode node) {
+        if (node.TokenKind == SpreadsheetFormulaTokenKind.Reference ||
+            node.TokenKind == SpreadsheetFormulaTokenKind.Identifier) return true;
+        if (node.Kind != SpreadsheetFormulaSyntaxKind.ParenthesizedExpression) return false;
+
+        bool expectOperand = true;
+        bool foundOperand = false;
+        foreach (SpreadsheetFormulaSyntaxNode child in node.Children) {
+            if (child.TokenKind == SpreadsheetFormulaTokenKind.OpenDelimiter ||
+                child.TokenKind == SpreadsheetFormulaTokenKind.CloseDelimiter ||
+                child.TokenKind == SpreadsheetFormulaTokenKind.Whitespace) continue;
+            if (expectOperand) {
+                if (!IsReferenceLikeNode(child)) return false;
+                foundOperand = true;
+            } else if (child.TokenKind != SpreadsheetFormulaTokenKind.UnionOperator &&
+                       child.TokenKind != SpreadsheetFormulaTokenKind.IntersectionOperator) {
+                return false;
+            }
+            expectOperand = !expectOperand;
+        }
+        return foundOperand && !expectOperand;
     }
 
     private static bool IsIdentifierStart(char character) =>

@@ -6,6 +6,7 @@ namespace OfficeIMO.Shared.Tests;
 public sealed class SpreadsheetFormulaSyntaxTests {
     [Theory]
     [InlineData("LOG10(100)", "of:=LOG10(100)")]
+    [InlineData("LOG10 (100)", "of:=LOG10 (100)")]
     [InlineData("=LOG10(A1)", "of:=LOG10([.A1])")]
     [InlineData("=SUM(A1,B1)", "of:=SUM([.A1];[.B1])")]
     [InlineData("={1,2;3,4}", "of:={1;2|3;4}")]
@@ -15,6 +16,10 @@ public sealed class SpreadsheetFormulaSyntaxTests {
     [InlineData("=MyRange A1", "of:=MyRange![.A1]")]
     [InlineData("=A1 OtherRange", "of:=[.A1]!OtherRange")]
     [InlineData("=FirstRange SecondRange", "of:=FirstRange!SecondRange")]
+    [InlineData("=(A1:A3) (B2:B4)", "of:=([.A1:.A3])!([.B2:.B4])")]
+    [InlineData("=(A1:A3) B2", "of:=([.A1:.A3])![.B2]")]
+    [InlineData("=A1 ((B2:B4))", "of:=[.A1]!(([.B2:.B4]))")]
+    [InlineData("=A1 (B1,C1)", "of:=[.A1]!([.B1]~[.C1])")]
     [InlineData("=SUM($1:$2)", "of:=SUM([.$1:.$2])")]
     public void ExcelFormulaTranslationUsesStructuralContext(string excel, string expected) {
         SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
@@ -33,6 +38,19 @@ public sealed class SpreadsheetFormulaSyntaxTests {
 
         Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
         Assert.Equal("of:=[.A1]+SUM ([.B1])", result.Formula);
+    }
+
+    [Theory]
+    [InlineData("=(1+2) A1", "of:=(1+2) [.A1]")]
+    public void ParenthesizedScalarExpressionsRemainTriviaInsteadOfBecomingIntersections(
+        string excel,
+        string expected) {
+        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
+            .Parse(excel, SpreadsheetFormulaDialect.ExcelA1)
+            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
+
+        Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(expected, result.Formula);
     }
 
     [Theory]
