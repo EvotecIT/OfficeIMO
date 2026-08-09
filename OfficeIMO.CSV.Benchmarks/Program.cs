@@ -43,6 +43,62 @@ bool compareTypedSequentialPaired = args.Length > 0 &&
     string.Equals(args[0], "--compare-typed-sequential-paired", StringComparison.OrdinalIgnoreCase);
 bool compareTypedParallelPaired = args.Length > 0 &&
     string.Equals(args[0], "--compare-typed-parallel-paired", StringComparison.OrdinalIgnoreCase);
+bool compareDataReaderWritePaired = args.Length > 0 &&
+    string.Equals(args[0], "--compare-datareader-write-paired", StringComparison.OrdinalIgnoreCase);
+
+if (compareDataReaderWritePaired) {
+    int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
+        ? parsedIterations
+        : 40;
+    if (iterations <= 0) throw new ArgumentOutOfRangeException(nameof(iterations));
+    string affinity = ApplyProcessAffinity(args, argumentIndex: 2);
+    string priority = ApplyProcessPriority(args, argumentIndex: 3);
+    const int warmupIterations = 12;
+    const int invocationsPerLeg = 8;
+
+    foreach (CsvBenchmarkShape shape in Enum.GetValues<CsvBenchmarkShape>()) {
+        var benchmark = new CsvDataReaderWriteBenchmarks { RowCount = 25_000, Shape = shape };
+        benchmark.SetupOfficeIMOAndSylvan();
+        for (int index = 0; index < warmupIterations; index++) {
+            benchmark.OfficeIMO_WriteDataReader();
+            benchmark.Sylvan_WriteDataReader();
+        }
+
+        var officeSamples = new double[iterations];
+        var sylvanSamples = new double[iterations];
+        var pairedRatios = new double[iterations];
+        for (int index = 0; index < iterations; index++) {
+            double officeFirst;
+            double officeSecond;
+            double sylvanFirst;
+            double sylvanSecond;
+            if ((index & 1) == 0) {
+                officeFirst = MeasureMillisecondsBatchValue(benchmark.OfficeIMO_WriteDataReader, invocationsPerLeg, out _);
+                sylvanFirst = MeasureMillisecondsBatchValue(benchmark.Sylvan_WriteDataReader, invocationsPerLeg, out _);
+                sylvanSecond = MeasureMillisecondsBatchValue(benchmark.Sylvan_WriteDataReader, invocationsPerLeg, out _);
+                officeSecond = MeasureMillisecondsBatchValue(benchmark.OfficeIMO_WriteDataReader, invocationsPerLeg, out _);
+            } else {
+                sylvanFirst = MeasureMillisecondsBatchValue(benchmark.Sylvan_WriteDataReader, invocationsPerLeg, out _);
+                officeFirst = MeasureMillisecondsBatchValue(benchmark.OfficeIMO_WriteDataReader, invocationsPerLeg, out _);
+                officeSecond = MeasureMillisecondsBatchValue(benchmark.OfficeIMO_WriteDataReader, invocationsPerLeg, out _);
+                sylvanSecond = MeasureMillisecondsBatchValue(benchmark.Sylvan_WriteDataReader, invocationsPerLeg, out _);
+            }
+
+            officeSamples[index] = (officeFirst + officeSecond) / 2d;
+            sylvanSamples[index] = (sylvanFirst + sylvanSecond) / 2d;
+            pairedRatios[index] = officeSamples[index] / sylvanSamples[index];
+        }
+
+        double officeMedian = Median(officeSamples);
+        double sylvanMedian = Median(sylvanSamples);
+        Console.WriteLine(
+            $"Paired CSV DataReader write ({shape}, {warmupIterations} warmups, {iterations} ABBA samples, {invocationsPerLeg} invocations per leg, affinity {affinity}, priority {priority}): " +
+            $"OfficeIMO median {officeMedian:F3} ms, Sylvan median {sylvanMedian:F3} ms, " +
+            $"ratio of medians {officeMedian / sylvanMedian:F4}, paired ratio median {Median(pairedRatios):F4} " +
+            $"(P25 {Percentile(pairedRatios, 0.25d):F4}, P75 {Percentile(pairedRatios, 0.75d):F4}).");
+    }
+    return;
+}
 
 if (compareTypedParallelPaired) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
@@ -418,7 +474,11 @@ if (profileOfficeIMO || profileSep || profileSylvan) {
     return;
 }
 
-var (benchmarkArgs, affinityMasks) = ExtractAffinityMasks(args);
+var (priorityArgs, benchmarkPriority) = ExtractBenchmarkPriority(args);
+if (benchmarkPriority != null) {
+    BenchmarkProcessorAffinity.ApplyPriority(benchmarkPriority);
+}
+var (benchmarkArgs, affinityMasks) = ExtractAffinityMasks(priorityArgs);
 var config = ManualConfig
     .Create(DefaultConfig.Instance)
     .AddDiagnoser(MemoryDiagnoser.Default)
@@ -431,6 +491,9 @@ for (int index = 0; index < affinityMasks.Length; index++) {
     Job job = Job.Default
         .WithAffinity(affinity)
         .WithId($"Affinity-{BenchmarkProcessorAffinity.Format(affinity)}");
+    if (benchmarkPriority != null) {
+        job = job.WithEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY", benchmarkPriority);
+    }
     config.AddJob(job);
 }
 
@@ -527,6 +590,28 @@ static (string[] Arguments, IntPtr[] Masks) ExtractAffinityMasks(string[] argume
             arguments.Length - optionIndex - 2);
     }
     return (forwarded, masks);
+}
+
+static (string[] Arguments, string? Priority) ExtractBenchmarkPriority(string[] arguments) {
+    int optionIndex = Array.FindIndex(
+        arguments,
+        static argument => string.Equals(argument, "--priority", StringComparison.OrdinalIgnoreCase));
+    if (optionIndex < 0) {
+        return (arguments, null);
+    }
+    if (optionIndex + 1 >= arguments.Length) {
+        throw new ArgumentException("--priority requires Idle, BelowNormal, Normal, AboveNormal, or High.");
+    }
+
+    string priority = arguments[optionIndex + 1];
+    var forwarded = new string[arguments.Length - 2];
+    if (optionIndex > 0) {
+        Array.Copy(arguments, 0, forwarded, 0, optionIndex);
+    }
+    if (optionIndex + 2 < arguments.Length) {
+        Array.Copy(arguments, optionIndex + 2, forwarded, optionIndex, arguments.Length - optionIndex - 2);
+    }
+    return (forwarded, priority);
 }
 
 static double Median(double[] samples) {

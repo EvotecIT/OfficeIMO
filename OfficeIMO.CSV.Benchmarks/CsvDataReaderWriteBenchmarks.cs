@@ -2,6 +2,7 @@
 
 using System.Globalization;
 using BenchmarkDotNet.Attributes;
+using OfficeIMO.Benchmarks;
 using Sylvan.Data.Csv;
 
 namespace OfficeIMO.CSV.Benchmarks;
@@ -37,9 +38,40 @@ public class CsvDataReaderWriteBenchmarks
     [Params(CsvBenchmarkShape.Mixed, CsvBenchmarkShape.Quoted, CsvBenchmarkShape.Multiline)]
     public CsvBenchmarkShape Shape { get; set; }
 
-    [GlobalSetup]
     public void Setup()
     {
+        Initialize();
+        ValidateOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader);
+        ValidateOutput(nameof(Sylvan_WriteDataReader), Sylvan_WriteDataReader);
+    }
+
+    public void SetupOfficeIMOAndSylvan()
+    {
+        Setup();
+    }
+
+    [GlobalSetup(Target = nameof(OfficeIMO_WriteDataReader))]
+    public void SetupOfficeIMO()
+    {
+        Initialize();
+        ValidateOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader);
+    }
+
+    [GlobalSetup(Target = nameof(Sylvan_WriteDataReader))]
+    public void SetupSylvan()
+    {
+        Initialize();
+        ValidateOutput(nameof(Sylvan_WriteDataReader), Sylvan_WriteDataReader);
+    }
+
+    private void Initialize()
+    {
+        string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
+        if (!string.IsNullOrEmpty(priority))
+        {
+            BenchmarkProcessorAffinity.ApplyPriority(priority);
+        }
+
         var source = CsvBenchmarkData.Create(RowCount, Shape);
         _rows = new object?[source.Length][];
         for (var i = 0; i < source.Length; i++)
@@ -60,8 +92,6 @@ public class CsvDataReaderWriteBenchmarks
             ];
         }
 
-        ValidateOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader);
-        ValidateOutput(nameof(Sylvan_WriteDataReader), Sylvan_WriteDataReader);
     }
 
     [Benchmark(Baseline = true)]

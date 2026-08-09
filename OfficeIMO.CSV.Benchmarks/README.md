@@ -76,6 +76,45 @@ Stable Apple M4 snapshot from the command above on 2026-07-14:
 These results use explicit field types, including nullable object-typed text
 columns, rather than inferring a convenient schema from the first row.
 
+### Dated SQL-shaped DataReader write snapshot (2026-08-09)
+
+The same 25,000-row, 10-column contract was measured on .NET 10 with
+BenchmarkDotNet 0.15.8, workstation GC, the Windows High performance power
+plan, and separate jobs for both 16-logical-processor L3 domains on the AMD
+Ryzen 9 9950X3D2. Every benchmark process used `High` priority, twelve warmups,
+forty fixed invocations, twenty measured iterations, one launch, and retained
+outliers. Target-specific setup validates only the output produced by the
+method in that process, so one writer is not primed while measuring the other.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -- --filter "*CsvDataReaderWriteBenchmarks*" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 40 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
+
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj --no-build -- --compare-datareader-write-paired 40 0xFFFF High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj --no-build -- --compare-datareader-write-paired 40 0xFFFF0000 High
+```
+
+| Shape | L3 domain | OfficeIMO mean (99.9% CI) | Sylvan mean (99.9% CI) | OfficeIMO / Sylvan allocation |
+| --- | --- | ---: | ---: | ---: |
+| Mixed | `0xFFFF` | 3.030 ms (2.866-3.194) | 3.742 ms (3.624-3.861) | 5.51 / 5.45 MB |
+| Mixed | `0xFFFF0000` | 2.909 ms (2.831-2.987) | 3.661 ms (3.610-3.711) | 5.51 / 5.45 MB |
+| Quoted | `0xFFFF` | 5.152 ms (4.788-5.516) | 5.985 ms (5.613-6.357) | 7.09 / 7.03 MB |
+| Quoted | `0xFFFF0000` | 4.762 ms (4.328-5.196) | 5.581 ms (5.266-5.896) | 7.09 / 7.03 MB |
+| Multiline | `0xFFFF` | 4.299 ms (3.849-4.749) | 5.668 ms (5.377-5.959) | 6.44 / 6.36 MB |
+| Multiline | `0xFFFF0000` | 3.444 ms (3.167-3.721) | 4.815 ms (4.581-5.049) | 6.44 / 6.36 MB |
+
+OfficeIMO has the lower isolated-process mean and a wholly lower confidence
+interval in all six rows, by 14-29% of Sylvan's mean. Sylvan retains a small
+managed-allocation advantage of about 1%.
+
+The companion symmetric ABBA runner confirms clear OfficeIMO wins for mixed
+and multiline values on both domains. Its paired OfficeIMO/Sylvan medians were
+0.8398 and 0.8323 for mixed values, and 0.7972 and 0.7548 for multiline values.
+Quoted values were more sensitive: domain 0 was a tie at 1.0014 (P25-P75
+0.9474-1.0718), while domain 1 sat at the predeclared 5% boundary at 0.9499
+(0.9351-0.9606). The honest conclusion is that OfficeIMO leads this complete
+SQL-shaped workload in the isolated suite and clearly leads two of three
+shapes in paired execution; it is not a universal CSV-writer ranking.
+
 The suite compares OfficeIMO.CSV object writing, OfficeIMO.CSV projected-row writing, OfficeIMO.CSV trusted text-row writing, OfficeIMO.CSV direct IDataReader writing, OfficeIMO.CSV reusable reads, OfficeIMO.CSV field-span reads, OfficeIMO.CSV in-memory and streaming DataTable materialization with string and inferred-schema columns, OfficeIMO.CSV direct DbDataReader consumption and DbDataReader-to-DataTable loading, CsvHelper typed/projected writes, CsvHelper raw/typed reads, Sylvan raw/string/span field reads and DataTable loading, Dataplat.Dbatools.Csv reader/writer/DataTable paths, and Sep strict reader/writer paths.
 
 Read lanes intentionally touch each field value and return a contract-appropriate checksum. Raw and DataTable lanes checksum field count and text length; typed lanes checksum every projected property and are preflighted against the generated source rows. DataTable lanes materialize the table and then traverse the cells, direct DbDataReader lanes traverse the public reader contract without first materializing a DataTable, and DbDataReader-to-DataTable lanes keep the ADO.NET table-loading path visible. This keeps the comparison honest: a lane cannot win by only counting rows or skipping the field payload.
