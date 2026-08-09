@@ -189,6 +189,10 @@ namespace OfficeIMO.Excel {
             var caches = new List<ExcelPivotInteractionCacheInfo>();
             foreach (IdPartPair pair in WorkbookPartRoot.Parts) {
                 OpenXmlPart part = pair.OpenXmlPart;
+                if (IsCombinedPivotInteractionMetadataPart(part)) {
+                    AddCombinedPivotInteractionCaches(caches, part, pair.RelationshipId, kind);
+                    continue;
+                }
                 if (!IsCurrentPivotInteractionMetadataPart(part, kind)
                     && !IsLegacyOfficeImoPivotInteractionMetadataPart(part, kind)) {
                     continue;
@@ -216,6 +220,57 @@ namespace OfficeIMO.Excel {
                 .OrderBy(cache => cache.Name, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(cache => cache.RelationshipId, StringComparer.Ordinal)
                 .ToList();
+        }
+
+        private static void AddCombinedPivotInteractionCaches(
+            List<ExcelPivotInteractionCacheInfo> caches,
+            OpenXmlPart part,
+            string relationshipId,
+            ExcelPivotInteractionCacheKind kind) {
+            try {
+                XDocument xml = XDocument.Parse(ReadPivotInteractionPartText(part));
+                string expectedName = kind == ExcelPivotInteractionCacheKind.Slicer
+                    ? "pivotSlicerBinding"
+                    : "pivotTimelineBinding";
+                foreach (XElement binding in xml.Descendants().Where(element =>
+                    string.Equals(element.Name.LocalName, expectedName, StringComparison.Ordinal))) {
+                    XElement metadata = string.Equals((string?)binding.Attribute("customPayload"), "true", StringComparison.OrdinalIgnoreCase)
+                        ? binding.Elements().FirstOrDefault() ?? binding
+                        : binding;
+                    caches.Add(new ExcelPivotInteractionCacheInfo(
+                        kind,
+                        (string?)metadata.Attribute("name") ?? string.Empty,
+                        (string?)metadata.Attribute("sourceName"),
+                        (string?)metadata.Attribute("pivotTableName"),
+                        relationshipId));
+                }
+            } catch (System.Xml.XmlException) {
+                caches.Add(new ExcelPivotInteractionCacheInfo(kind, string.Empty, null, null, relationshipId));
+            }
+        }
+
+        private static bool IsCombinedPivotInteractionMetadataPart(OpenXmlPart part) {
+            return string.Equals(part.ContentType, WorkbookPivotInteractionContentType, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(part.RelationshipType, WorkbookPivotInteractionRelationshipType, StringComparison.Ordinal);
+        }
+
+        private static bool CombinedPivotInteractionMetadataContains(
+            OpenXmlPart part,
+            ExcelPivotInteractionCacheKind kind) {
+            if (!IsCombinedPivotInteractionMetadataPart(part)) {
+                return false;
+            }
+
+            try {
+                XDocument xml = XDocument.Parse(ReadPivotInteractionPartText(part));
+                string expectedName = kind == ExcelPivotInteractionCacheKind.Slicer
+                    ? "pivotSlicerBinding"
+                    : "pivotTimelineBinding";
+                return xml.Descendants().Any(element =>
+                    string.Equals(element.Name.LocalName, expectedName, StringComparison.Ordinal));
+            } catch (System.Xml.XmlException) {
+                return false;
+            }
         }
 
         private static bool IsCurrentPivotInteractionMetadataPart(OpenXmlPart part, ExcelPivotInteractionCacheKind kind) {

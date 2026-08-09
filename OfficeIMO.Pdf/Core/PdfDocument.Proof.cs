@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>Compares this document with another PDF through the managed renderer and returns review artifacts.</summary>
-    public PdfVisualComparisonReport CompareVisual(
+    internal PdfVisualComparisonReport CompareVisual(
         byte[] actualPdf,
         PdfPageSelection? selection = null,
         PdfVisualComparisonOptions? options = null,
@@ -11,7 +11,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Compares this document with another fluent PDF through the managed renderer.</summary>
-    public PdfVisualComparisonReport CompareVisual(
+    internal PdfVisualComparisonReport CompareVisual(
         PdfDocument actualDocument,
         PdfPageSelection? selection = null,
         PdfVisualComparisonOptions? options = null) {
@@ -21,7 +21,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Compares this PDF with a rewritten PDF and reports whether important document signals were preserved.
     /// </summary>
-    public PdfRewritePreservationReport AssessRewritePreservation(PdfDocument rewrittenDocument, PdfRewritePreservationOptions? options = null) {
+    internal PdfRewritePreservationReport AssessRewritePreservation(PdfDocument rewrittenDocument, PdfRewritePreservationOptions? options = null) {
         Guard.NotNull(rewrittenDocument, nameof(rewrittenDocument));
         return PdfRewritePreservation.Assess(
             GetBytesForOperation(),
@@ -34,21 +34,21 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Compares this PDF with rewritten PDF bytes and reports whether important document signals were preserved.
     /// </summary>
-    public PdfRewritePreservationReport AssessRewritePreservation(byte[] rewrittenPdf, PdfRewritePreservationOptions? options = null) {
+    internal PdfRewritePreservationReport AssessRewritePreservation(byte[] rewrittenPdf, PdfRewritePreservationOptions? options = null) {
         return PdfRewritePreservation.Assess(GetBytesForOperation(), rewrittenPdf, options, ReadOptions, rewrittenReadOptions: null);
     }
 
     /// <summary>
     /// Compares this PDF with a rewritten PDF stream and reports whether important document signals were preserved.
     /// </summary>
-    public PdfRewritePreservationReport AssessRewritePreservation(Stream rewrittenStream, PdfRewritePreservationOptions? options = null) {
+    internal PdfRewritePreservationReport AssessRewritePreservation(Stream rewrittenStream, PdfRewritePreservationOptions? options = null) {
         return AssessRewritePreservation(ReadProofStream(rewrittenStream), options);
     }
 
     /// <summary>
     /// Compares this PDF with a rewritten PDF file and reports whether important document signals were preserved.
     /// </summary>
-    public PdfRewritePreservationReport AssessRewritePreservation(string rewrittenPath, PdfRewritePreservationOptions? options = null) {
+    internal PdfRewritePreservationReport AssessRewritePreservation(string rewrittenPath, PdfRewritePreservationOptions? options = null) {
         Guard.NotNullOrWhiteSpace(rewrittenPath, nameof(rewrittenPath));
         return AssessRewritePreservation(File.ReadAllBytes(rewrittenPath), options);
     }
@@ -56,7 +56,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Compares this PDF with a rewritten PDF and throws when important document signals were not preserved.
     /// </summary>
-    public PdfRewritePreservationReport AssertRewritePreserved(PdfDocument rewrittenDocument, PdfRewritePreservationOptions? options = null) {
+    internal PdfRewritePreservationReport AssertRewritePreserved(PdfDocument rewrittenDocument, PdfRewritePreservationOptions? options = null) {
         Guard.NotNull(rewrittenDocument, nameof(rewrittenDocument));
         return PdfRewritePreservation.AssertPreserved(
             GetBytesForOperation(),
@@ -69,21 +69,21 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Compares this PDF with rewritten PDF bytes and throws when important document signals were not preserved.
     /// </summary>
-    public PdfRewritePreservationReport AssertRewritePreserved(byte[] rewrittenPdf, PdfRewritePreservationOptions? options = null) {
+    internal PdfRewritePreservationReport AssertRewritePreserved(byte[] rewrittenPdf, PdfRewritePreservationOptions? options = null) {
         return PdfRewritePreservation.AssertPreserved(GetBytesForOperation(), rewrittenPdf, options, ReadOptions, rewrittenReadOptions: null);
     }
 
     /// <summary>
     /// Compares this PDF with a rewritten PDF stream and throws when important document signals were not preserved.
     /// </summary>
-    public PdfRewritePreservationReport AssertRewritePreserved(Stream rewrittenStream, PdfRewritePreservationOptions? options = null) {
+    internal PdfRewritePreservationReport AssertRewritePreserved(Stream rewrittenStream, PdfRewritePreservationOptions? options = null) {
         return AssertRewritePreserved(ReadProofStream(rewrittenStream), options);
     }
 
     /// <summary>
     /// Compares this PDF with a rewritten PDF file and throws when important document signals were not preserved.
     /// </summary>
-    public PdfRewritePreservationReport AssertRewritePreserved(string rewrittenPath, PdfRewritePreservationOptions? options = null) {
+    internal PdfRewritePreservationReport AssertRewritePreserved(string rewrittenPath, PdfRewritePreservationOptions? options = null) {
         Guard.NotNullOrWhiteSpace(rewrittenPath, nameof(rewrittenPath));
         return AssertRewritePreserved(File.ReadAllBytes(rewrittenPath), options);
     }
@@ -91,7 +91,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Runs a one-row rewrite-preservation matrix scenario from this PDF using a normal PdfDocument rewrite operation.
     /// </summary>
-    public PdfRewritePreservationMatrixReport AssessRewritePreservationMatrix(
+    internal PdfRewritePreservationMatrixReport AssessRewritePreservationMatrix(
         string id,
         string operation,
         Func<PdfDocument, PdfDocument> rewrite,
@@ -108,7 +108,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Runs a one-row rewrite-preservation matrix scenario from this PDF with source feature labels.
     /// </summary>
-    public PdfRewritePreservationMatrixReport AssessRewritePreservationMatrix(
+    internal PdfRewritePreservationMatrixReport AssessRewritePreservationMatrix(
         string id,
         string operation,
         Func<PdfDocument, PdfDocument> rewrite,
@@ -126,7 +126,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Runs a one-row rewrite-preservation matrix scenario from this PDF using a normal PdfDocument rewrite operation and expected outcome.
     /// </summary>
-    public PdfRewritePreservationMatrixReport AssessRewritePreservationMatrix(
+    internal PdfRewritePreservationMatrixReport AssessRewritePreservationMatrix(
         string id,
         string operation,
         Func<PdfDocument, PdfDocument> rewrite,
@@ -140,7 +140,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Runs a one-row rewrite-preservation matrix scenario and throws when the observed outcome differs from the expected outcome.
     /// </summary>
-    public PdfRewritePreservationMatrixReport AssertRewritePreservationMatrix(
+    internal PdfRewritePreservationMatrixReport AssertRewritePreservationMatrix(
         string id,
         string operation,
         Func<PdfDocument, PdfDocument> rewrite,
@@ -157,7 +157,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Runs a one-row rewrite-preservation matrix scenario with source feature labels and throws when preservation failed.
     /// </summary>
-    public PdfRewritePreservationMatrixReport AssertRewritePreservationMatrix(
+    internal PdfRewritePreservationMatrixReport AssertRewritePreservationMatrix(
         string id,
         string operation,
         Func<PdfDocument, PdfDocument> rewrite,
@@ -175,7 +175,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Runs a one-row rewrite-preservation matrix scenario and throws when the observed outcome differs from the expected outcome.
     /// </summary>
-    public PdfRewritePreservationMatrixReport AssertRewritePreservationMatrix(
+    internal PdfRewritePreservationMatrixReport AssertRewritePreservationMatrix(
         string id,
         string operation,
         Func<PdfDocument, PdfDocument> rewrite,
@@ -189,14 +189,14 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Verifies that configured redaction markers were removed and retained markers remain readable in this PDF.
     /// </summary>
-    public PdfRedactionVerificationReport VerifyRedactions(PdfRedactionVerificationOptions options) {
+    internal PdfRedactionVerificationReport VerifyRedactions(PdfRedactionVerificationOptions options) {
         return PdfRedactionVerification.Verify(GetBytesForOperation(), options);
     }
 
     /// <summary>
     /// Verifies configured redaction markers and throws when removed content remains or retained content disappeared.
     /// </summary>
-    public PdfRedactionVerificationReport AssertRedactionsVerified(PdfRedactionVerificationOptions options) {
+    internal PdfRedactionVerificationReport AssertRedactionsVerified(PdfRedactionVerificationOptions options) {
         return PdfRedactionVerification.AssertVerified(GetBytesForOperation(), options);
     }
 

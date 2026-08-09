@@ -12,7 +12,9 @@ namespace OfficeIMO.Examples.Pdf {
                 new[] { "Flow", "Generic", "Borders, row separators, and spacing should reveal the preset shape at raster level." }
             };
 
-            PdfDocument doc = PdfDocument.Create(new PdfOptions {
+            PdfDocument doc = PdfDocument.Create(pdf => pdf.Content(content => content
+                .H1("Table Style Gallery", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+                .Paragraph(p => p.Text("Generic Word-style table names rendered by OfficeIMO.Pdf without invoice or report-specific behavior."))), new PdfOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 9.5,
                     DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -27,9 +29,7 @@ namespace OfficeIMO.Examples.Pdf {
                     FooterAlign = PdfAlign.Right,
                     ShowPageNumbers = true
                 })
-                .Meta(title: "OfficeIMO.Pdf Table Style Gallery", author: "OfficeIMO")
-                .H1("Table Style Gallery", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
-                .Paragraph(p => p.Text("Generic Word-style table names rendered by OfficeIMO.Pdf without invoice or report-specific behavior."));
+                .Meta(title: "OfficeIMO.Pdf Table Style Gallery", author: "OfficeIMO");
 
             foreach (string styleName in TableStyles.SupportedWordStyleNames) {
                 PdfTableStyle style = TableStyles.FromWordTableStyle(styleName);
@@ -47,7 +47,7 @@ namespace OfficeIMO.Examples.Pdf {
                     PdfColumnAlign.Left
                 };
 
-                doc.Table(rows, PdfAlign.Left, style);
+                doc.Compose(pdf => pdf.Content(content => content.Table(rows, PdfAlign.Left, style)));
             }
 
             doc.Save(path);

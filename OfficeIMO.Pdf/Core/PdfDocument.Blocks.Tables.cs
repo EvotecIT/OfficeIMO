@@ -15,15 +15,15 @@ public sealed partial class PdfDocument {
     /// <returns>This <see cref="PdfDocument"/> for chaining.</returns>
     /// <example>
     /// <code>
-    /// PdfDocument.Create()
+    /// PdfDocument.Create(pdf => pdf.Content(content => content
     ///     .Row(row => row
     ///         .Gap(16)
     ///         .Column(35, column => column.H2("Signals").Bullets(new[] { "Healthy", "Watch", "Needs action" }))
-    ///         .Column(65, column => column.Panel("Right-side report callout.")))
+    ///         .Column(65, column => column.Panel("Right-side report callout.")))))
     ///     .Save("report.pdf");
     /// </code>
     /// </example>
-    public PdfDocument Row(System.Action<PdfRowCompose> build) {
+    internal PdfDocument Row(System.Action<PdfRowCompose> build) {
         Guard.NotNull(build, nameof(build));
         var row = new PdfRowCompose(this);
         build(row);
@@ -32,13 +32,13 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a simple table from rows of string arrays.</summary>
-    public PdfDocument Table(System.Collections.Generic.IEnumerable<string[]> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
+    internal PdfDocument Table(System.Collections.Generic.IEnumerable<string[]> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
         AddBlock(new TableBlock(rows, align, style));
         return this;
     }
 
     /// <summary>Adds a table from explicit cells, including optional column spans.</summary>
-    public PdfDocument Table(System.Collections.Generic.IEnumerable<PdfTableCell[]> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
+    internal PdfDocument Table(System.Collections.Generic.IEnumerable<PdfTableCell[]> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
         AddBlock(new TableBlock(rows, align, style));
         return this;
     }
@@ -58,7 +58,7 @@ public sealed partial class PdfDocument {
     /// <param name="batchSize">Maximum number of body rows materialized for one layout batch.</param>
     /// <param name="align">Table alignment in the document flow.</param>
     /// <param name="style">Optional table style.</param>
-    public PdfDocument TableDeferred(System.Func<System.Collections.Generic.IEnumerable<string[]>> rowFactory, int batchSize = 256, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
+    internal PdfDocument TableDeferred(System.Func<System.Collections.Generic.IEnumerable<string[]>> rowFactory, int batchSize = 256, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
         Guard.NotNull(rowFactory, nameof(rowFactory));
         AddBlock(new DeferredTableBlock(() => ConvertDeferredTextRows(rowFactory), batchSize, align, style));
         return this;
@@ -77,7 +77,7 @@ public sealed partial class PdfDocument {
     /// <param name="batchSize">Maximum number of body rows materialized for one layout batch.</param>
     /// <param name="align">Table alignment in the document flow.</param>
     /// <param name="style">Optional table style.</param>
-    public PdfDocument TableDeferred(System.Func<System.Collections.Generic.IEnumerable<PdfTableCell[]>> rowFactory, int batchSize = 256, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
+    internal PdfDocument TableDeferred(System.Func<System.Collections.Generic.IEnumerable<PdfTableCell[]>> rowFactory, int batchSize = 256, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
         AddBlock(new DeferredTableBlock(rowFactory, batchSize, align, style));
         return this;
     }
@@ -111,7 +111,7 @@ public sealed partial class PdfDocument {
     /// <param name="includeHeader">When true, emits a header row before the supplied values.</param>
     /// <param name="keyHeader">Header text for the label column.</param>
     /// <param name="valueHeader">Header text for the value column.</param>
-    public PdfDocument KeyValueTable(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, string?>> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") {
+    internal PdfDocument KeyValueTable(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, string?>> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") {
         Guard.NotNull(rows, nameof(rows));
         var keyValueRows = new System.Collections.Generic.List<PdfKeyValueRow>();
         foreach (System.Collections.Generic.KeyValuePair<string, string?> row in rows) {
@@ -130,7 +130,7 @@ public sealed partial class PdfDocument {
     /// <param name="includeHeader">When true, emits a header row before the supplied values.</param>
     /// <param name="keyHeader">Header text for the label column.</param>
     /// <param name="valueHeader">Header text for the value column.</param>
-    public PdfDocument KeyValueTable(System.Collections.Generic.IEnumerable<PdfKeyValueRow> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") {
+    internal PdfDocument KeyValueTable(System.Collections.Generic.IEnumerable<PdfKeyValueRow> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") {
         AddBlock(CreateKeyValueTableBlock(rows, align, style, includeHeader, keyHeader, valueHeader));
         return this;
     }
@@ -185,7 +185,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Adds a table and attaches link URIs to specific cells.
     /// </summary>
-    public PdfDocument TableWithLinks(System.Collections.Generic.IEnumerable<string[]> rows, System.Collections.Generic.Dictionary<(int Row, int Col), string> links, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
+    internal PdfDocument TableWithLinks(System.Collections.Generic.IEnumerable<string[]> rows, System.Collections.Generic.Dictionary<(int Row, int Col), string> links, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
         AddBlock(CreateTableBlockWithLinks(rows, links, align, style));
         return this;
     }

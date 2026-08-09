@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Builder for nested elements used within item builders.</summary>
-public class PdfElementCompose {
+public sealed class PdfElementCompose {
     private readonly PdfDocument _doc;
     internal PdfElementCompose(PdfDocument doc) { _doc = doc; }
     /// <summary>Adds invisible vertical space to the current flow.</summary>

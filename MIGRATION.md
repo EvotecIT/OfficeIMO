@@ -9,6 +9,50 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIMO package in an application to the same `3.2.x` version and perform a clean restore after changing versions.
 
+## OfficeIMO 3.2: one PDF authoring and operation model
+
+`PdfDocument` no longer duplicates every heading, paragraph, table, image, form,
+and page-layout method on the root object. New PDFs use the composition callback;
+an existing generated document can receive another composition through
+`Compose(...)`.
+
+```csharp
+// OfficeIMO 3.1
+PdfDocument.Create(options)
+    .H1("Service report")
+    .Paragraph(paragraph => paragraph.Text("Ready"))
+    .Save("report.pdf");
+
+// OfficeIMO 3.2
+PdfDocument.Create(pdf => pdf.Content(content => content
+        .H1("Service report")
+        .Paragraph(paragraph => paragraph.Text("Ready"))), options)
+    .Save("report.pdf");
+```
+
+Document-wide settings still belong in `PdfOptions`. Page-scoped headers,
+footers, backgrounds, watermarks, and layout use `pdf.Page(page => ...)`.
+Reusable content stays on `PdfItemCompose`, so adapters and applications share
+one authoring vocabulary.
+
+Specialized existing-document operations now use capability objects:
+
+| OfficeIMO 3.1 usage | OfficeIMO 3.2 replacement |
+| --- | --- |
+| `document.Encrypt(options)` | `document.Security.Encrypt(options)` |
+| `document.ValidateSignatures(provider)` | `document.Security.ValidateSignatures(provider)` |
+| `document.PlanRedactions(areas)` | `document.Redactions.Plan(areas)` |
+| `document.ApplyRedactions(plan)` | `document.Redactions.Apply(plan)` |
+| `document.AnalyzeOptimization()` | `document.Optimization.Analyze()` |
+| `document.Optimize(profile)` | `document.Optimization.Apply(profile)` |
+| `document.CompareVisual(actual)` | `document.Proof.CompareVisual(actual)` |
+| `document.AssessRewritePreservation(rewritten)` | `document.Proof.AssessRewritePreservation(rewritten)` |
+
+`Pages`, `Read`, `Forms`, `Attachments`, `Bookmarks`, `Annotations`, and `Stamp`
+keep their existing capability-object shape. The former static implementation
+engines remain internal; applications should not replace the removed root
+methods with calls to those engines.
+
 ## OfficeIMO 3.2: neutral conversion model
 
 Direct format conversion no longer uses Reader as its intermediate ownership

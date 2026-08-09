@@ -14,9 +14,9 @@ The machine-readable [`pdf-conversion-scenarios.json`](pdf-conversion-scenarios.
 
 ## Public workflow
 
-- `PdfDocument.Create(...)` is the normal authoring entry point.
+- `PdfDocument.Create(pdf => ...)` is the normal authoring entry point. `Compose(...)` appends through the same closed builder model; flow authoring is not duplicated on the root document.
 - `PdfDocument.Open(...)` is the normal read, inspect, and processing entry point.
-- `PdfDocument.Read`, `Pages`, `Forms`, `Attachments`, `Bookmarks`, `Annotations`, and `Stamp` expose the workflow surfaces.
+- `PdfDocument.Read`, `Pages`, `Forms`, `Attachments`, `Bookmarks`, `Annotations`, `Stamp`, `Security`, `Redactions`, `Optimization`, and `Proof` expose focused workflow surfaces.
 - `PdfDocument.Preflight(...)` provides non-throwing readiness and security evidence before a workflow is selected.
 - `PdfDocument.Analyze(...)` provides the consolidated health, capability, diagnostic, optimization, signature, repair, mutation, and optional compliance report.
 - `PdfDocument.CreateComplianceArtifact(...)` binds exact output bytes to internal readiness and external validator evidence.
@@ -29,7 +29,7 @@ Byte, stream, path, sync, and async entry points share the same engines. Caller-
 | --- | --- | --- |
 | Create | Fluent flow and canvas APIs cover text, links, lists, tables, inline images/boxes, drawings, headers/footers, watermarks, metadata, sections, TOCs, replayable flow, columns, pagination controls, optional-content layers, portfolios, forms, tags, and viewer settings | Complex producer-specific layout is covered only when backed by a fixture and visible proof |
 | Read and inspect | One bounded canonical parse exposes text, geometry, images, attachments, outlines, links, annotations, forms, actions, metadata, XMP, tags, layers, output intents, security, revisions, signatures, diagnostics, and compliance readback | Strict mode rejects defects; lenient mode reports explicit repairs and does not guess ambiguous intent |
-| Merge, split, extract, reorder, rotate, resize, and copy pages | Shared import/rewrite engine with optional supported-annotation flattening and preservation reporting | Catalog collisions, inherited resources, tags, forms, layers, and incremental structures remain subject to preflight |
+| Merge, split, extract, reorder, rotate, resize, and copy pages | Shared import/rewrite engine with optional supported-annotation flattening and preservation reporting. Document-relative selectors cover absolute and reverse ranges, `last`, `odd`, `even`, and exclusions. | Catalog collisions, inherited resources, tags, forms, layers, and incremental structures remain subject to preflight |
 | Crop | Any standard page boundary box can be changed | Setting `/CropBox` is not presented as destructive content removal |
 | Stamp and watermark | Text, image, and imported PDF-page Form XObject stamps can target selected pages above or below content | Append-only stamping is available only when the signature and permission model allows it |
 | Bookmarks and outlines | Generated nested outlines and destinations; existing outline read/preserve/split | Existing-document outline editing is limited and not a broad contract |
@@ -44,7 +44,7 @@ Byte, stream, path, sync, and async entry points share the same engines. Caller-
 | Render pages | Managed Drawing projection for supported paths, clipping, forms, images, shadings, patterns, appearances, alpha, blend modes, masks, fonts, and color spaces | Type 3/CFF, ICC, advanced patterns, and incomplete layer cases remain in per-page diagnostics |
 | Serialize | Buffered output with memory limits/spillover and opt-in forward-only object serialization to non-seekable destinations | Forward-only object writing is not forward-only layout; `ToBytes()` necessarily buffers the final artifact |
 | Extract text and layout | Fast heuristic plus a pluggable understanding pipeline with stable JSON, Markdown, ALTO, hOCR, and PAGE XML | Editable reconstruction from arbitrary fixed-layout PDFs is not claimed |
-| Compliance artifacts | PDF/A-2b, PDF/A-3b, PDF/UA-1, Factur-X, and ZUGFeRD gates bind internal readiness and external evidence to exact bytes | Tags or metadata alone never establish conformance |
+| Compliance artifacts | PDF/A-2a/b/u, PDF/A-3a/b/u, PDF/A-4/4e/4f, PDF/UA-1, PDF/UA-2, Factur-X, and ZUGFeRD gates bind internal readiness and external evidence to exact bytes | Tags or metadata alone never establish conformance |
 
 ## Conversion and fidelity
 
@@ -52,7 +52,7 @@ Every adapter returns stable conversion evidence. `Faithful`, `FaithfulWithSubst
 
 | Direction | Current contract |
 | --- | --- |
-| Office, OpenDocument, HTML, Markdown, RTF, OneNote, AsciiDoc, and LaTeX to PDF | Thin source adapters use the shared PDF/Drawing owners and the generated scenario manifest records the evidence level |
+| Office, OpenDocument, HTML, Markdown, RTF, OneNote, AsciiDoc, and LaTeX to PDF | Thin source adapters use the shared PDF/Drawing owners and the generated scenario manifest records the evidence level. Excel mixed column/line/area/scatter series and secondary-axis assignment flow into the shared combo-chart renderer instead of being skipped. |
 | Normalized Reader result to PDF | Pages, blocks, tables, assets, links, forms, and diagnostics project through one explicit policy and merged evidence contract |
 | PDF to Word | Metadata, page breaks, headings, paragraphs, lists, logical tables, links, supported images, and form placeholders are recovered when represented by the logical model. Stable warnings identify non-reconstructed outlines, tagged trees, optional-content groups, catalog/page actions, vectors, and non-link annotations. |
 | PDF to Excel | Adjacent compatible tables can continue across pages with repeated multi-row headers suppressed; optional Boolean, date, percentage, and numeric typing is column-consistent. Bounded positioned-cell recovery is used only when tabular evidence is strong, and unrelated fixed-layout content remains explicit in the scope report rather than becoming editable cells. |
@@ -63,6 +63,24 @@ Every adapter returns stable conversion evidence. `Faithful`, `FaithfulWithSubst
 Word, Excel, and PowerPoint reference gates use pinned PDFs exported from the same checked-in fixtures with producer/version provenance, page geometry, source/reference hashes, semantic invariants, and recorded raster-distance budgets. A capability can be exact for a named invariant without claiming whole-document pixel equivalence.
 
 OneNote conversion is a semantic-document projection, not a reconstruction of the free-form OneNote canvas. Email, EPUB, and Visio direct façades report their attachment/resource, pagination, preview, and semantic-fallback decisions rather than implying native-application equivalence.
+
+## Deliberate boundaries and open product gaps
+
+The engine already covers the common document-operation set expected from a
+managed PDF library: authoring, page selection and composition, merge and
+overlay, attachments, encryption, signatures, redaction, optimization and Fast
+Web View, PDF 2.0, PDF/A and PDF/UA evidence, forms, annotations, structured
+readback, and loss-aware format adapters. The remaining gap is mostly depth and
+producer fidelity rather than a missing second API for the same operation.
+
+The highest-value open areas are tracked in [ROADMAP.md](ROADMAP.md): difficult
+Type 3 and color/pattern/transparency rendering, broader native Office layout,
+externally proven standards and producer corpora, stronger hybrid editable
+PDF-to-Office reconstruction, and optional provider packages for capabilities
+that should not become core runtime dependencies. Browser JavaScript, TeX
+execution, XFA execution, and automatic whole-document editable reconstruction
+remain explicit non-contracts unless a separately owned, testable product shape
+is adopted.
 
 ## Resources, fonts, and trust
 

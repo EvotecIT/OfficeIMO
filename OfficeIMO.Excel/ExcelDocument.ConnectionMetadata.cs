@@ -24,6 +24,9 @@ namespace OfficeIMO.Excel {
         private const string WorkbookSlicerCacheContentType = "application/vnd.officeimo.excel.slicerCache-metadata+xml";
         private const string WorkbookTimelineCacheRelationshipType = "https://schemas.evotec.xyz/officeimo/excel/relationships/timelineCacheMetadata";
         private const string WorkbookTimelineCacheContentType = "application/vnd.officeimo.excel.timelineCache-metadata+xml";
+        private const string WorkbookPivotInteractionRelationshipType = "https://schemas.evotec.xyz/officeimo/excel/relationships/pivotInteractionMetadata";
+        private const string WorkbookPivotInteractionContentType = "application/vnd.officeimo.excel.pivot-interaction-metadata+xml";
+        private const string WorkbookPivotInteractionNamespace = "https://schemas.evotec.xyz/officeimo/excel";
 
         /// <summary>
         /// Adds caller-supplied workbook connection metadata XML as a workbook package part.
@@ -77,10 +80,7 @@ namespace OfficeIMO.Excel {
         /// <returns>Information identifying the added package part.</returns>
         public ExcelPackagePartInfo AddWorkbookSlicerCache(ExcelSlicerCacheOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
-            return AddWorkbookMetadataPart(
-                WorkbookSlicerCacheRelationshipType,
-                WorkbookSlicerCacheContentType,
-                options.ToXml());
+            return AddWorkbookPivotInteractionMetadata(options.ToXml(), ExcelPivotInteractionCacheKind.Slicer);
         }
 
         /// <summary>
@@ -91,10 +91,49 @@ namespace OfficeIMO.Excel {
         /// <returns>Information identifying the added package part.</returns>
         public ExcelPackagePartInfo AddWorkbookTimelineCache(ExcelTimelineCacheOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
-            return AddWorkbookMetadataPart(
-                WorkbookTimelineCacheRelationshipType,
-                WorkbookTimelineCacheContentType,
-                options.ToXml());
+            return AddWorkbookPivotInteractionMetadata(options.ToXml(), ExcelPivotInteractionCacheKind.Timeline);
+        }
+
+        private ExcelPackagePartInfo AddWorkbookPivotInteractionMetadata(
+            string bindingXml,
+            ExcelPivotInteractionCacheKind kind) {
+            XDocument binding = XDocument.Parse(bindingXml);
+            XElement bindingRoot = binding.Root
+                ?? throw new InvalidDataException("Pivot interaction metadata must have a root element.");
+            string expectedName = kind == ExcelPivotInteractionCacheKind.Slicer
+                ? "pivotSlicerBinding"
+                : "pivotTimelineBinding";
+            XElement storedBinding = string.Equals(bindingRoot.Name.LocalName, expectedName, StringComparison.Ordinal)
+                ? new XElement(bindingRoot)
+                : new XElement(
+                    XName.Get(expectedName, WorkbookPivotInteractionNamespace),
+                    new XAttribute("customPayload", true),
+                    new XElement(bindingRoot));
+            OpenXmlPart? existingPart = WorkbookPartRoot.Parts
+                .Select(pair => pair.OpenXmlPart)
+                .FirstOrDefault(part =>
+                    string.Equals(part.ContentType, WorkbookPivotInteractionContentType, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(part.RelationshipType, WorkbookPivotInteractionRelationshipType, StringComparison.Ordinal));
+
+            if (existingPart == null) {
+                var root = new XElement(XName.Get("pivotInteractionBindings", WorkbookPivotInteractionNamespace));
+                root.Add(storedBinding);
+                ExtendedPart part = AddMetadataPart(
+                    WorkbookPartRoot,
+                    WorkbookPivotInteractionRelationshipType,
+                    WorkbookPivotInteractionContentType,
+                    new XDocument(root).ToString(SaveOptions.DisableFormatting),
+                    "xml");
+                return DescribePart(WorkbookPartRoot, part);
+            }
+
+            XDocument metadata = XDocument.Parse(ReadMetadataPart(existingPart));
+            XElement metadataRoot = metadata.Root
+                ?? throw new InvalidDataException("Pivot interaction metadata part has no root element.");
+            metadataRoot.Add(storedBinding);
+            WriteMetadataPart(existingPart, metadata.ToString(SaveOptions.DisableFormatting));
+            MarkMetadataPartChanged();
+            return DescribePart(WorkbookPartRoot, existingPart);
         }
 
         /// <summary>

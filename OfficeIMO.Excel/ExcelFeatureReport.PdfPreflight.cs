@@ -290,16 +290,6 @@ namespace OfficeIMO.Excel {
             return snapshot.Data.Categories.Count > 0 && snapshot.Data.Series.Count > 0;
         }
 
-        private static bool HasMixedPdfChartTypes(ExcelChartSnapshot snapshot) {
-            foreach (ExcelChartSeries series in snapshot.Data.Series) {
-                if (series.ChartType.HasValue && series.ChartType.Value != snapshot.ChartType) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         private static string GetSafeChartDisplayName(ExcelChart chart) {
             try {
                 if (!string.IsNullOrWhiteSpace(chart.Title)) {

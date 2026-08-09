@@ -7,28 +7,24 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_ShowcaseDashboard(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.Showcase.Dashboard.pdf");
 
-            PdfDocument.Create(new PdfOptions {
-                    DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 9.5,
-                    DefaultTextColor = PdfColor.FromRgb(30, 41, 59),
-                    HeaderFont = PdfStandardFont.Helvetica,
-                    HeaderFontSize = 8,
-                    HeaderFormat = "OfficeIMO.Pdf showcase - landscape dashboard",
-                    HeaderAlign = PdfAlign.Left,
-                    ShowHeader = true,
-                    FooterFont = PdfStandardFont.Helvetica,
-                    FooterFontSize = 8,
-                    FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                    FooterAlign = PdfAlign.Right,
-                    ShowPageNumbers = true,
-                    CreateOutlineFromHeadings = true
-                })
-                .Meta(
-                    title: "OfficeIMO.Pdf Showcase Dashboard",
-                    author: "OfficeIMO",
-                    subject: "Landscape dashboard from generic PDF primitives",
-                    keywords: "OfficeIMO,Pdf,dashboard,drawings,tables")
-                .Compose(document => {
+            var options = new PdfOptions {
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 9.5,
+                DefaultTextColor = PdfColor.FromRgb(30, 41, 59),
+                HeaderFont = PdfStandardFont.Helvetica,
+                HeaderFontSize = 8,
+                HeaderFormat = "OfficeIMO.Pdf showcase - landscape dashboard",
+                HeaderAlign = PdfAlign.Left,
+                ShowHeader = true,
+                FooterFont = PdfStandardFont.Helvetica,
+                FooterFontSize = 8,
+                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
+                FooterAlign = PdfAlign.Right,
+                ShowPageNumbers = true,
+                CreateOutlineFromHeadings = true
+            };
+
+            PdfDocument.Create(document => {
                     document.Page(page => {
                         page.Size(PageSizes.A4).Landscape().Margin(42, 38, 42, 42);
                         page.DefaultParagraphStyle(new PdfParagraphStyle { LineHeight = 1.18, SpacingAfter = 5 });
@@ -74,7 +70,12 @@ namespace OfficeIMO.Examples.Pdf {
                             });
                         });
                     });
-                })
+                }, options)
+                .Meta(
+                    title: "OfficeIMO.Pdf Showcase Dashboard",
+                    author: "OfficeIMO",
+                    subject: "Landscape dashboard from generic PDF primitives",
+                    keywords: "OfficeIMO,Pdf,dashboard,drawings,tables")
                 .Save(path);
 
             if (open) {

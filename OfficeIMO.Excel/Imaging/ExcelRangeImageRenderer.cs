@@ -388,7 +388,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool TryMapSeriesRenderKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
+        internal static bool TryMapSeriesRenderKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
             if (!TryMapChartKind(type, out kind, out approximation)) {
                 return false;
             }
@@ -726,7 +726,7 @@ namespace OfficeIMO.Excel {
             return fontStyle;
         }
 
-        private static OfficeColor? ResolveArgb(string? argb) {
+        internal static OfficeColor? ResolveArgb(string? argb) {
             if (string.IsNullOrWhiteSpace(argb)) {
                 return null;
             }
@@ -740,7 +740,7 @@ namespace OfficeIMO.Excel {
             return OfficeColor.TryParseHex(value, out OfficeColor rgbColor) ? rgbColor : null;
         }
 
-        private static IReadOnlyList<OfficeColor?>? ResolvePointColors(IReadOnlyList<string?>? colors) {
+        internal static IReadOnlyList<OfficeColor?>? ResolvePointColors(IReadOnlyList<string?>? colors) {
             if (colors == null) {
                 return null;
             }

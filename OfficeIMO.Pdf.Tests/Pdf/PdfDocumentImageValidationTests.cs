@@ -14,20 +14,10 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentImageValidationTests {
     [Fact]
-    public void ImageApis_PreservePreAlternativeTextClrSignatures() {
-        Assert.NotNull(typeof(PdfDocument).GetMethod(nameof(PdfDocument.Image), new[] {
-            typeof(byte[]),
-            typeof(double),
-            typeof(double),
-            typeof(PdfAlign?),
-            typeof(OfficeClipPath),
-            typeof(OfficeImageFit?),
-            typeof(double?),
-            typeof(double?),
-            typeof(PdfImageStyle),
-            typeof(string),
-            typeof(string)
-        }));
+    public void ImageApis_PreserveBuilderClrSignaturesWithoutDuplicatingTheDocumentFacade() {
+        Assert.DoesNotContain(
+            typeof(PdfDocument).GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance),
+            method => method.Name == "Image");
         Assert.NotNull(typeof(PdfItemCompose).GetMethod(nameof(PdfItemCompose.Image), new[] {
             typeof(byte[]),
             typeof(double),

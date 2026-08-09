@@ -11,8 +11,7 @@ namespace OfficeIMO.Examples.Pdf {
             string stampedPath = Path.Combine(folderPath, "Pdf.Showcase.Manipulation.Stamped.pdf");
             string extractedTextPath = Path.Combine(folderPath, "Pdf.Showcase.Manipulation.ExtractedText.txt");
 
-            PdfDocument.Create(StandardOptions("OfficeIMO.Pdf manipulation source A"))
-                .Meta(title: "OfficeIMO.Pdf Manipulation Source A", author: "OfficeIMO")
+            PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Source A", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42))
                 .Paragraph(p => p.Text("This page is created first, then merged with Source B through the fluent PdfDocument API."))
                 .Table(new[] {
@@ -31,11 +30,11 @@ namespace OfficeIMO.Examples.Pdf {
                         BorderWidth = 0.7,
                         PaddingX = 10,
                         PaddingY = 8
-                    })
+                    })), StandardOptions("OfficeIMO.Pdf manipulation source A"))
+                .Meta(title: "OfficeIMO.Pdf Manipulation Source A", author: "OfficeIMO")
                 .Save(sourceAPath);
 
-            PdfDocument.Create(StandardOptions("OfficeIMO.Pdf manipulation source B"))
-                .Meta(title: "OfficeIMO.Pdf Manipulation Source B", author: "OfficeIMO")
+            PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Source B", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42))
                 .Paragraph(p => p.Text("A second input document is merged into the final pack, then a stamp is applied to the combined output."))
                 .Bullets(new[] {
@@ -49,7 +48,8 @@ namespace OfficeIMO.Examples.Pdf {
                     new[] { "Pages.Extract", Path.GetFileName(extractedPath) },
                     new[] { "Stamp.Text", Path.GetFileName(stampedPath) },
                     new[] { "Read.Text", Path.GetFileName(extractedTextPath) }
-                }, style: UtilityTableStyle())
+                }, style: UtilityTableStyle())), StandardOptions("OfficeIMO.Pdf manipulation source B"))
+                .Meta(title: "OfficeIMO.Pdf Manipulation Source B", author: "OfficeIMO")
                 .Save(sourceBPath);
 
             PdfDocument merged = PdfDocument.Open(sourceAPath)

@@ -296,6 +296,12 @@ namespace OfficeIMO.Tests {
                     SourceName = "OrderDate",
                     PivotTableName = "SalesPivot"
                 });
+                document.AddWorkbookSlicerCache(new ExcelSlicerCacheOptions {
+                    Xml = "<customSlicer name=\"CustomRegion\" sourceName=\"Region\" pivotTableName=\"SalesPivot\"><payload /></customSlicer>"
+                });
+                document.AddWorkbookTimelineCache(new ExcelTimelineCacheOptions {
+                    Xml = "<customTimeline name=\"CustomOrderDate\" sourceName=\"OrderDate\" pivotTableName=\"SalesPivot\"><payload /></customTimeline>"
+                });
                 document.Save();
             }
 
@@ -309,6 +315,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, snapshot.TimelineBindingMetadataPartCount);
                 Assert.True(snapshot.HasSlicerBindingMetadata);
                 Assert.True(snapshot.HasTimelineBindingMetadata);
+                Assert.Contains(document.GetWorkbookSlicerCaches(), cache => cache.Name == "CustomRegion");
+                Assert.Contains(document.GetWorkbookTimelineCaches(), cache => cache.Name == "CustomOrderDate");
 
                 ExcelFeatureReport report = document.InspectFeatures();
                 Assert.Empty(report.FindFeatures("Slicers"));
@@ -319,8 +327,11 @@ namespace OfficeIMO.Tests {
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 var workbookPart = spreadsheet.WorkbookPart!;
-                Assert.Contains("RegionSlicer", ReadSinglePackagePartText(workbookPart, "slicerCache"));
-                Assert.Contains("OrderDateTimeline", ReadSinglePackagePartText(workbookPart, "timelineCache"));
+                string metadata = ReadSinglePackagePartText(workbookPart, "pivot-interaction-metadata");
+                Assert.Contains("RegionSlicer", metadata);
+                Assert.Contains("OrderDateTimeline", metadata);
+                Assert.Contains("customSlicer", metadata);
+                Assert.Contains("customTimeline", metadata);
             }
         }
 

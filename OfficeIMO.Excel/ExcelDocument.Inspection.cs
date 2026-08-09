@@ -334,12 +334,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsSlicerBindingMetadataPart(OpenXmlPart part) {
-            return string.Equals(part.ContentType, WorkbookSlicerCacheContentType, StringComparison.OrdinalIgnoreCase)
+            return CombinedPivotInteractionMetadataContains(part, ExcelPivotInteractionCacheKind.Slicer)
+                || string.Equals(part.ContentType, WorkbookSlicerCacheContentType, StringComparison.OrdinalIgnoreCase)
                 || IsLegacyOfficeImoPivotInteractionMetadataPart(part, ExcelPivotInteractionCacheKind.Slicer);
         }
 
         private static bool IsTimelineBindingMetadataPart(OpenXmlPart part) {
-            return string.Equals(part.ContentType, WorkbookTimelineCacheContentType, StringComparison.OrdinalIgnoreCase)
+            return CombinedPivotInteractionMetadataContains(part, ExcelPivotInteractionCacheKind.Timeline)
+                || string.Equals(part.ContentType, WorkbookTimelineCacheContentType, StringComparison.OrdinalIgnoreCase)
                 || IsLegacyOfficeImoPivotInteractionMetadataPart(part, ExcelPivotInteractionCacheKind.Timeline);
         }
 

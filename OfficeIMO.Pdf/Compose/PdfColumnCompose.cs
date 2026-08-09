@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Column container used within <see cref="PdfContentCompose"/>.</summary>
-public class PdfColumnCompose {
+public sealed class PdfColumnCompose {
     private readonly PdfDocument _doc;
     internal PdfColumnCompose(PdfDocument doc) { _doc = doc; }
     /// <summary>Begins a new item builder in this column.</summary>

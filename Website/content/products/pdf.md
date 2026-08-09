@@ -25,10 +25,10 @@ Use `OfficeIMO.Pdf` when a workflow must own the PDF rather than hand it to a de
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument.Create()
+PdfDocument.Create(pdf => pdf.Content(content => content
+        .H1("Quarterly report")
+        .Paragraph(paragraph => paragraph.Text("Generated without Office or a browser runtime."))))
     .Meta(title: "Quarterly report", author: "OfficeIMO")
-    .H1("Quarterly report")
-    .Paragraph("Generated without Office or a browser runtime.")
     .Save("report.pdf");
 ```
 

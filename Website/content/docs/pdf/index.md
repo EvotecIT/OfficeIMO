@@ -29,14 +29,14 @@ The public surface also covers outlines and bookmarks, links, attachments, forms
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument.Create()
+PdfDocument.Create(pdf => pdf.Content(content => content
+        .H1("Status report")
+        .Paragraph(p => p.Text("Created with ").Bold("OfficeIMO.Pdf"))
+        .Table(new[] {
+            new[] { "Area", "Status" },
+            new[] { "Build", "Ready" }
+        })))
     .Meta(title: "Status report", author: "OfficeIMO")
-    .H1("Status report")
-    .Paragraph(p => p.Text("Created with ").Bold("OfficeIMO.Pdf"))
-    .Table(new[] {
-        new[] { "Area", "Status" },
-        new[] { "Build", "Ready" }
-    })
     .Save("status.pdf");
 ```
 

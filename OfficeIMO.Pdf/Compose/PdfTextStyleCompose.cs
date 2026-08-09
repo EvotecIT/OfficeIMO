@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Builder for default text styling applied to page content.</summary>
-public class PdfTextStyleCompose {
+public sealed class PdfTextStyleCompose {
     private readonly PdfOptions _opts;
     internal PdfTextStyleCompose(PdfOptions opts) { _opts = opts; }
     /// <summary>Sets the default font size (points).</summary>

@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Footer builder (alignment, text, page number tokens).</summary>
-public class PdfFooterCompose {
+public sealed class PdfFooterCompose {
     private readonly PdfOptions _opts;
     internal PdfFooterCompose(PdfOptions opts) { _opts = opts; }
     /// <summary>Sets footer alignment to the left.</summary>

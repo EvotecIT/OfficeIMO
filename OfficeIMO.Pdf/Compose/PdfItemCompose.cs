@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Builder for individual flow items (headings, paragraphs, tables, images).</summary>
-public class PdfItemCompose {
+public sealed class PdfItemCompose {
     private readonly PdfDocument _doc;
     internal PdfItemCompose(PdfDocument doc) { _doc = doc; }
     /// <summary>Adds a reusable typed component through the canonical flow engine.</summary>
@@ -26,6 +26,18 @@ public class PdfItemCompose {
     public PdfItemCompose ColumnBreak() { _doc.AddColumnBreak(); return this; }
     /// <summary>Groups common flow blocks inside a padded, styled container.</summary>
     public PdfItemCompose Container(System.Action<PdfItemCompose> build, PanelStyle? style = null) { _doc.Container(build, style); return this; }
+    /// <summary>Adds a row with percentage-based columns.</summary>
+    public PdfItemCompose Row(System.Action<PdfRowCompose> build) { _doc.Row(build); return this; }
+    /// <summary>Adds a deferred simple-text table whose rows are materialized in bounded batches.</summary>
+    public PdfItemCompose TableDeferred(System.Func<System.Collections.Generic.IEnumerable<string[]>> rowFactory, int batchSize = 256, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) { _doc.TableDeferred(rowFactory, batchSize, align, style); return this; }
+    /// <summary>Adds a deferred explicit-cell table whose rows are materialized in bounded batches.</summary>
+    public PdfItemCompose TableDeferred(System.Func<System.Collections.Generic.IEnumerable<PdfTableCell[]>> rowFactory, int batchSize = 256, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) { _doc.TableDeferred(rowFactory, batchSize, align, style); return this; }
+    /// <summary>Adds a two-column key/value table.</summary>
+    public PdfItemCompose KeyValueTable(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, string?>> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") { _doc.KeyValueTable(rows, align, style, includeHeader, keyHeader, valueHeader); return this; }
+    /// <summary>Adds a two-column key/value table with rich row values.</summary>
+    public PdfItemCompose KeyValueTable(System.Collections.Generic.IEnumerable<PdfKeyValueRow> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") { _doc.KeyValueTable(rows, align, style, includeHeader, keyHeader, valueHeader); return this; }
+    /// <summary>Adds page-canvas drawing commands to the current flow.</summary>
+    public PdfItemCompose Canvas(System.Action<PdfPageCanvas> build) { _doc.Canvas(build); return this; }
     /// <summary>Starts a new page.</summary>
     public PdfItemCompose PageBreak() { _doc.PageBreak(); return this; }
     /// <summary>Adds invisible vertical space to the current flow.</summary>

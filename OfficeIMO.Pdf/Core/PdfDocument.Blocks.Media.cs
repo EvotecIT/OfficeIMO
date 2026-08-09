@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>Adds foreground page content at absolute top-left page coordinates.</summary>
-    public PdfDocument Canvas(System.Action<PdfPageCanvas> build) {
+    internal PdfDocument Canvas(System.Action<PdfPageCanvas> build) {
         Guard.NotNull(build, nameof(build));
         var canvas = new PdfPageCanvas();
         build(canvas);
@@ -13,19 +13,19 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a shared OfficeIMO.Drawing shape at the current flow position.</summary>
-    public PdfDocument Shape(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument Shape(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         AddBlock(CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
         return this;
     }
 
     /// <summary>Adds a shared OfficeIMO.Drawing scene at the current flow position.</summary>
-    public PdfDocument Drawing(OfficeDrawing drawing, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument Drawing(OfficeDrawing drawing, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         AddBlock(CreateDrawingBlock(drawing, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
         return this;
     }
 
     /// <summary>Adds a flow line using the shared OfficeIMO.Drawing shape descriptor.</summary>
-    public PdfDocument Line(double x1, double y1, double x2, double y2, PdfColor? strokeColor = null, double strokeWidth = 1, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument Line(double x1, double y1, double x2, double y2, PdfColor? strokeColor = null, double strokeWidth = 1, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         var shape = OfficeShape.Line(x1, y1, x2, y2);
         shape.StrokeColor = (strokeColor ?? PdfColor.Gray).ToOfficeColor();
         shape.StrokeWidth = strokeWidth;
@@ -36,7 +36,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a flow rectangle using the shared OfficeIMO.Drawing shape descriptor.</summary>
-    public PdfDocument Rectangle(double width, double height, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument Rectangle(double width, double height, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         var shape = OfficeShape.Rectangle(width, height);
         shape.StrokeColor = (strokeColor ?? PdfColor.Gray).ToOfficeColor();
         shape.StrokeWidth = strokeWidth;
@@ -48,7 +48,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a flow rounded rectangle using the shared OfficeIMO.Drawing shape descriptor.</summary>
-    public PdfDocument RoundedRectangle(double width, double height, double cornerRadius, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument RoundedRectangle(double width, double height, double cornerRadius, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         var shape = OfficeShape.RoundedRectangle(width, height, cornerRadius);
         shape.StrokeColor = (strokeColor ?? PdfColor.Gray).ToOfficeColor();
         shape.StrokeWidth = strokeWidth;
@@ -60,7 +60,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a flow ellipse using the shared OfficeIMO.Drawing shape descriptor.</summary>
-    public PdfDocument Ellipse(double width, double height, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument Ellipse(double width, double height, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         var shape = OfficeShape.Ellipse(width, height);
         shape.StrokeColor = (strokeColor ?? PdfColor.Gray).ToOfficeColor();
         shape.StrokeWidth = strokeWidth;
@@ -72,7 +72,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a flow polygon using the shared OfficeIMO.Drawing shape descriptor.</summary>
-    public PdfDocument Polygon(System.Collections.Generic.IEnumerable<OfficePoint> points, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument Polygon(System.Collections.Generic.IEnumerable<OfficePoint> points, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         var shape = OfficeShape.Polygon(points);
         shape.StrokeColor = (strokeColor ?? PdfColor.Gray).ToOfficeColor();
         shape.StrokeWidth = strokeWidth;
@@ -84,7 +84,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a flow path using the shared OfficeIMO.Drawing shape descriptor.</summary>
-    public PdfDocument Path(System.Collections.Generic.IEnumerable<OfficePathCommand> commands, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument Path(System.Collections.Generic.IEnumerable<OfficePathCommand> commands, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         var shape = OfficeShape.Path(commands);
         shape.StrokeColor = (strokeColor ?? PdfColor.Gray).ToOfficeColor();
         shape.StrokeWidth = strokeWidth;
@@ -96,15 +96,15 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a raster image supported by OfficeIMO.Drawing at the current flow position.</summary>
-    public PdfDocument Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) =>
+    internal PdfDocument Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) =>
         Image(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, alternativeText: null);
 
     /// <summary>Adds a supported meaningful image at the current flow position with alternate text.</summary>
-    public PdfDocument Image(byte[] jpegBytes, double width, double height, string? alternativeText) =>
+    internal PdfDocument Image(byte[] jpegBytes, double width, double height, string? alternativeText) =>
         Image(jpegBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: null, linkUri: null, linkContents: null, alternativeText: alternativeText);
 
     /// <summary>Adds a raster image supported by OfficeIMO.Drawing at the current flow position.</summary>
-    public PdfDocument Image(byte[] jpegBytes, double width, double height, PdfAlign? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText) {
+    internal PdfDocument Image(byte[] jpegBytes, double width, double height, PdfAlign? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText) {
         Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));

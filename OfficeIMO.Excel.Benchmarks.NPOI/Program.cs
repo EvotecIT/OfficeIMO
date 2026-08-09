@@ -389,12 +389,16 @@ static void WriteNpoiRows(ISheet sheet, IReadOnlyList<SalesRecord> records) {
 }
 
 static int ReadOfficeImoXlsx(byte[] workbookBytes, int rowCount) {
-    using var reader = ExcelDocumentReader.Open(workbookBytes);
-    object?[,] values = reader.GetSheet("Data").ReadRange($"A1:E{rowCount + 1}", ExecutionMode.Sequential);
+    using var reader = ExcelDocument.OpenDataReader(workbookBytes, new ExcelReadOptions {
+        SheetName = "Data",
+        A1Range = $"A1:E{rowCount + 1}",
+        HasHeaderRow = false,
+        InferSchema = false
+    });
     int metric = 0;
-    for (int row = 0; row < values.GetLength(0); row++) {
-        for (int column = 0; column < values.GetLength(1); column++) {
-            metric = AddValueMetric(metric, values[row, column]);
+    while (reader.Read()) {
+        for (int column = 0; column < reader.FieldCount; column++) {
+            metric = AddValueMetric(metric, reader.GetValue(column));
         }
     }
 

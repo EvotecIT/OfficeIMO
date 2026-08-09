@@ -41,10 +41,10 @@ internal static class OneNoteVisualPdfRenderer {
             byte[] png = OfficeRasterImageEncoder.Encode(raster, OfficeImageExportFormat.Png, effective.PageRendering.RasterEncoding);
             cancellationToken.ThrowIfCancellationRequested();
             string alternativeText = string.IsNullOrWhiteSpace(reference.Page.Title) ? "Untitled OneNote page" : reference.Page.Title;
-            document.Page(page => page
+            document.Compose(pdf => pdf.Page(page => page
                 .Size(snapshot.Drawing.Width, snapshot.Drawing.Height)
                 .Margin(0D)
-                .Canvas(canvas => canvas.Image(png, 0D, 0D, snapshot.Drawing.Width, snapshot.Drawing.Height, alternativeText: alternativeText)));
+                .Canvas(canvas => canvas.Image(png, 0D, 0D, snapshot.Drawing.Width, snapshot.Drawing.Height, alternativeText: alternativeText))));
             AddDiagnostics(reference, diagnostics, report);
         }
 

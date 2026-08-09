@@ -12,6 +12,8 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         private static readonly TimeSpan ExcelComOpenTimeout = TimeSpan.FromMinutes(2);
+        private static readonly TimeSpan ExcelComLockTimeout = TimeSpan.FromMinutes(5);
+        private const string ExcelComMutexName = @"Local\OfficeIMO.Excel.Tests.DesktopCom";
 
 #if NET5_0_OR_GREATER
         [SupportedOSPlatformGuard("windows")]
@@ -39,16 +41,38 @@ namespace OfficeIMO.Tests {
                 return;
             }
 
-            List<string> failures = new();
-            var thread = new Thread(() => OpenWorkbooksViaExcelCom(paths.ToList(), failures));
-            thread.IsBackground = true;
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
-            if (!thread.Join(ExcelComOpenTimeout)) {
-                failures.Add($"Excel COM smoke test timed out after {ExcelComOpenTimeout.TotalSeconds:0} seconds.");
-            }
+            RunWithExcelComLock(() => {
+                List<string> failures = new();
+                var thread = new Thread(() => OpenWorkbooksViaExcelCom(paths.ToList(), failures));
+                thread.IsBackground = true;
+                thread.SetApartmentState(ApartmentState.STA);
+                thread.Start();
+                if (!thread.Join(ExcelComOpenTimeout)) {
+                    failures.Add($"Excel COM smoke test timed out after {ExcelComOpenTimeout.TotalSeconds:0} seconds.");
+                }
 
-            Assert.True(failures.Count == 0, failureMessage + Environment.NewLine + string.Join(Environment.NewLine, failures));
+                Assert.True(failures.Count == 0, failureMessage + Environment.NewLine + string.Join(Environment.NewLine, failures));
+            });
+        }
+
+        private static void RunWithExcelComLock(Action action) {
+            using var mutex = new Mutex(initiallyOwned: false, ExcelComMutexName);
+            bool acquired = false;
+            try {
+                try {
+                    acquired = mutex.WaitOne(ExcelComLockTimeout);
+                } catch (AbandonedMutexException) {
+                    acquired = true;
+                }
+
+                Assert.True(acquired,
+                    $"Timed out after {ExcelComLockTimeout.TotalSeconds:0} seconds waiting for another OfficeIMO Excel COM validation process.");
+                action();
+            } finally {
+                if (acquired) {
+                    mutex.ReleaseMutex();
+                }
+            }
         }
 
 #if NET5_0_OR_GREATER
@@ -118,7 +142,7 @@ namespace OfficeIMO.Tests {
                 return;
             }
 
-            string directory = Path.Combine(_directoryWithFiles, "DesktopExcelSmoke");
+            string directory = Path.Combine(_directoryWithFiles, "DesktopExcelSmoke", GetCurrentTargetFrameworkLabel());
             Directory.CreateDirectory(directory);
 
             var files = new[] {

@@ -39,31 +39,17 @@ namespace OfficeIMO.Excel.Pdf {
             return string.Join("; ", qualityReport.Issues.Select(issue => issue.ToString()));
         }
 
-        private static bool HasMixedSeriesChartTypes(ExcelChartSnapshot snapshot) {
-            foreach (ExcelChartSeries series in snapshot.Data.Series) {
-                if (series.ChartType.HasValue && series.ChartType.Value != snapshot.ChartType) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         private static OfficeChartSnapshot CreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, ExcelPdfSaveOptions options) {
             return CreateOfficeChartSnapshotCore(snapshot, options, preserveWorksheetLegend: false);
         }
 
         private static OfficeChartSnapshot CreateOfficeChartSnapshotCore(ExcelChartSnapshot snapshot, ExcelPdfSaveOptions options, bool preserveWorksheetLegend) {
-            if (HasMixedSeriesChartTypes(snapshot)) {
-                throw new NotSupportedException("Excel chart '" + GetChartDisplayName(snapshot) + "' uses mixed per-series chart types, which are not supported by the shared OfficeIMO chart renderer yet.");
-            }
-
             if (!TryMapChartKind(snapshot.ChartType, out OfficeChartKind chartKind)) {
                 throw new NotSupportedException("Excel chart type '" + snapshot.ChartType + "' is not supported by the shared OfficeIMO chart renderer.");
             }
 
             var series = snapshot.Data.Series
-                .Select(item => new OfficeChartSeries(item.Name, item.Values))
+                .Select(item => CreateOfficeChartSeries(item, snapshot.ChartType, chartKind))
                 .ToList();
             var data = new OfficeChartData(snapshot.Data.Categories, series);
             return new OfficeChartSnapshot(
@@ -75,6 +61,42 @@ namespace OfficeIMO.Excel.Pdf {
                 PixelsToPoints(snapshot.HeightPixels),
                 options.ChartStyle ?? snapshot.Style,
                 options.ChartLayout ?? (preserveWorksheetLegend ? snapshot.Layout ?? new OfficeChartLayout() : DefaultExcelPdfChartLayout));
+        }
+
+        private static OfficeChartSeries CreateOfficeChartSeries(ExcelChartSeries series, ExcelChartType defaultType, OfficeChartKind defaultKind) {
+            ExcelChartType effectiveType = series.ChartType ?? defaultType;
+            OfficeChartKind? renderKind = null;
+            if (effectiveType != defaultType) {
+                if (!ExcelRangeImageRenderer.TryMapSeriesRenderKind(defaultType, out _, out _)) {
+                    throw new NotSupportedException(
+                        "Excel combo-chart base type '" + defaultType +
+                        "' cannot be combined by the shared OfficeIMO Cartesian chart renderer.");
+                }
+                if (!ExcelRangeImageRenderer.TryMapSeriesRenderKind(effectiveType, out OfficeChartKind mappedKind, out _)) {
+                    throw new NotSupportedException(
+                        "Excel combo-chart series '" + series.Name + "' uses chart type '" + effectiveType +
+                        "', which cannot be rendered with the shared OfficeIMO Cartesian combo-chart engine.");
+                }
+
+                renderKind = mappedKind == defaultKind ? null : mappedKind;
+            }
+
+            return new OfficeChartSeries(
+                series.Name,
+                series.Values,
+                series.XValues,
+                ExcelRangeImageRenderer.ResolveArgb(series.SeriesColorArgb),
+                ExcelRangeImageRenderer.ResolvePointColors(series.PointColorArgb),
+                series.ShowMarkers,
+                connectLine: series.ConnectLine,
+                markerSize: series.MarkerSize,
+                markerShape: series.MarkerShape,
+                markerOutlineColor: ExcelRangeImageRenderer.ResolveArgb(series.MarkerOutlineColorArgb),
+                markerOutlineWidth: series.MarkerOutlineWidth,
+                strokeWidth: series.SeriesLineWidth,
+                strokeDashStyle: series.SeriesLineDashStyle,
+                renderKind: renderKind,
+                axisGroup: series.AxisGroup);
         }
 
         private static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind) {

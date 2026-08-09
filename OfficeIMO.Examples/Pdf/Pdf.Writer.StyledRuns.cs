@@ -21,8 +21,7 @@ namespace OfficeIMO.Examples.Pdf {
                 ShowPageNumbers = true
             };
 
-            var doc = PdfDocument.Create(options)
-                .Meta(title: "OfficeIMO.Pdf Styled Runs", author: "OfficeIMO")
+            var doc = PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Styled Runs", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
                 .Paragraph(p => p.Text("A compact visual sample for inline font style, color, underline, strike-through, and stateful run toggles."))
                 .PanelParagraph(
@@ -59,7 +58,8 @@ namespace OfficeIMO.Examples.Pdf {
                     .Color(PdfColor.FromRgb(20, 90, 180)).Text("informational ")
                     .Color(PdfColor.FromRgb(22, 101, 52)).Text("healthy ")
                     .Color(PdfColor.FromRgb(31, 41, 55)).Text("normal."))
-                .Paragraph(p => p.Text("End of styled runs sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80));
+                .Paragraph(p => p.Text("End of styled runs sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))), options)
+                .Meta(title: "OfficeIMO.Pdf Styled Runs", author: "OfficeIMO");
             doc.Save(path);
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });
         }

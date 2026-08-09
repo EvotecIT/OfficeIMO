@@ -9,7 +9,7 @@ public sealed partial class PdfDocument {
     private int generatedSectionMaterializationOrdinal;
 
     /// <summary>Adds a semantic section backed by an outline entry and named destination.</summary>
-    public PdfDocument Section(
+    internal PdfDocument Section(
         string title,
         Action<PdfItemCompose> compose,
         PdfSectionOptions? options = null) {
@@ -29,7 +29,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds an automatically generated, internally linked table of contents.</summary>
-    public PdfDocument TableOfContents(PdfTableOfContentsOptions? options = null) {
+    internal PdfDocument TableOfContents(PdfTableOfContentsOptions? options = null) {
         AddBlock(new TableOfContentsBlock(options));
         return this;
     }

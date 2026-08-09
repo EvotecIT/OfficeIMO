@@ -4,8 +4,9 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Root PDF document container and fluent API for composing basic PDF files.
-/// Mirrors the OfficeIMO.Markdown style (H1/H2/H3, paragraph) but targets PDF output.
+/// Root PDF lifecycle and capability container.
+/// Author content through <see cref="Create(System.Action{PdfCompose}, PdfOptions)"/> or <see cref="Compose"/>;
+/// use the focused capability properties for reading and existing-document operations.
 /// </summary>
 public sealed partial class PdfDocument {
     private readonly System.Collections.Generic.List<IPdfBlock> _blocks = new();
@@ -32,6 +33,10 @@ public sealed partial class PdfDocument {
         Attachments = new PdfDocumentAttachments(this);
         Bookmarks = new PdfDocumentBookmarks(this);
         Annotations = new PdfDocumentAnnotations(this);
+        Security = new PdfDocumentSecurity(this);
+        Redactions = new PdfDocumentRedactions(this);
+        Optimization = new PdfDocumentOptimization(this);
+        Proof = new PdfDocumentProof(this);
     }
 
     private PdfDocument(PdfDocumentSource source) : this() {
@@ -49,7 +54,18 @@ public sealed partial class PdfDocument {
     /// </summary>
     /// <param name="options">Page size, margins and default font options. When null, sensible defaults are used.</param>
     /// <returns>New <see cref="PdfDocument"/> instance.</returns>
-    public static PdfDocument Create(PdfOptions? options = null) => new PdfDocument(options);
+    internal static PdfDocument Create(PdfOptions? options = null) => new PdfDocument(options);
+
+    /// <summary>
+    /// Creates and composes a PDF document through the canonical authoring DSL.
+    /// </summary>
+    /// <param name="compose">Document composition callback.</param>
+    /// <param name="options">Optional document-wide rendering, catalog, security, and compliance options.</param>
+    /// <returns>The composed <see cref="PdfDocument"/>.</returns>
+    public static PdfDocument Create(System.Action<PdfCompose> compose, PdfOptions? options = null) {
+        Guard.NotNull(compose, nameof(compose));
+        return new PdfDocument(options).Compose(compose);
+    }
 
     /// <summary>
     /// Opens an existing PDF from bytes and snapshots the caller-owned input once.
@@ -116,6 +132,18 @@ public sealed partial class PdfDocument {
 
     /// <summary>Existing-document annotation editing operations.</summary>
     public PdfDocumentAnnotations Annotations { get; }
+
+    /// <summary>Password encryption and digital-signature operations for this PDF.</summary>
+    public PdfDocumentSecurity Security { get; }
+
+    /// <summary>Search, planning, application, and verification operations for permanent redaction.</summary>
+    public PdfDocumentRedactions Redactions { get; }
+
+    /// <summary>Lossless optimization analysis and rewrite operations for this PDF.</summary>
+    public PdfDocumentOptimization Optimization { get; }
+
+    /// <summary>Visual and structural preservation proof operations for this PDF.</summary>
+    public PdfDocumentProof Proof { get; }
 
     /// <summary>
     /// Immutable create/open and mutation history accumulated by this document.

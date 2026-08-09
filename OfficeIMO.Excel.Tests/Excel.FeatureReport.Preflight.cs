@@ -512,7 +512,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FeatureReport_Preflight_BlocksPdfExportForMixedChartTypes() {
+        public void FeatureReport_Preflight_AllowsSupportedMixedChartTypes() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.ComboChart.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
@@ -531,17 +531,16 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
-                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+                Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
 
                 string diagnostics = string.Join(Environment.NewLine,
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
-                Assert.Contains("PDF-unsupported charts", diagnostics);
-                Assert.Contains("mixed per-series chart types", diagnostics);
+                Assert.DoesNotContain("PDF-unsupported charts", diagnostics);
             }
         }
 
         [Fact]
-        public void FeatureReport_Preflight_BlocksPdfExportForSameFamilyMixedChartTypes() {
+        public void FeatureReport_Preflight_AllowsSupportedSameFamilyMixedChartTypes() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.SameFamilyComboChart.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
@@ -560,12 +559,11 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
-                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+                Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
 
                 string diagnostics = string.Join(Environment.NewLine,
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
-                Assert.Contains("PDF-unsupported charts", diagnostics);
-                Assert.Contains("mixed per-series chart types", diagnostics);
+                Assert.DoesNotContain("PDF-unsupported charts", diagnostics);
             }
         }
 

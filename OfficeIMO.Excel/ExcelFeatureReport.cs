@@ -449,12 +449,31 @@ namespace OfficeIMO.Excel {
                     if (!HasRenderablePdfChartData(snapshot)) {
                         pdfUnreadableChartCount++;
                         pdfUnreadableChartDetails.Add($"{sheet.Name}: {GetChartDisplayName(snapshot)} does not contain renderable chart categories and series.");
-                    } else if (HasMixedPdfChartTypes(snapshot)) {
-                        pdfUnsupportedChartCount++;
-                        pdfUnsupportedChartDetails.Add($"{sheet.Name}: mixed per-series chart types ({GetChartDisplayName(snapshot)})");
                     } else if (!IsPdfSupportedChartType(snapshot.ChartType)) {
                         pdfUnsupportedChartCount++;
                         pdfUnsupportedChartDetails.Add($"{sheet.Name}: {snapshot.ChartType} ({GetChartDisplayName(snapshot)})");
+                    } else {
+                        bool hasMixedSeries = snapshot.Data.Series.Any(series =>
+                            series.ChartType.HasValue && series.ChartType.Value != snapshot.ChartType);
+                        if (hasMixedSeries &&
+                            !ExcelRangeImageRenderer.TryMapSeriesRenderKind(snapshot.ChartType, out _, out _)) {
+                            pdfUnsupportedChartCount++;
+                            pdfUnsupportedChartDetails.Add(
+                                $"{sheet.Name}: combo-chart base type {snapshot.ChartType} is not Cartesian ({GetChartDisplayName(snapshot)})");
+                            continue;
+                        }
+
+                        foreach (ExcelChartSeries series in snapshot.Data.Series) {
+                            ExcelChartType effectiveType = series.ChartType ?? snapshot.ChartType;
+                            if (effectiveType == snapshot.ChartType ||
+                                ExcelRangeImageRenderer.TryMapSeriesRenderKind(effectiveType, out _, out _)) {
+                                continue;
+                            }
+
+                            pdfUnsupportedChartCount++;
+                            pdfUnsupportedChartDetails.Add(
+                                $"{sheet.Name}: combo-chart series '{series.Name}' uses unsupported type {effectiveType} ({GetChartDisplayName(snapshot)})");
+                        }
                     }
                 }
                 var modernCharts = excelSheet.ModernCharts.ToList();
