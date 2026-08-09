@@ -13,7 +13,7 @@ internal static class OdfImageStore {
         if (!OdfImageFormats.TryNormalizeStoredExtension(fileName, out extension)) {
             if (!OfficeImageReader.TryIdentifyByContent(data, fileName, out OfficeImageInfo info) ||
                 !OdfImageFormats.TryGetExtension(info.Format, out extension)) {
-                throw new NotSupportedException("Supported image formats are PNG, JPEG, GIF, SVG, BMP, and WebP.");
+                throw new NotSupportedException("Supported image formats are PNG, JPEG, GIF, SVG, BMP, TIFF, and WebP.");
             }
         }
         OdfImageFormats.TryGetMediaType(extension, out string mediaType);

@@ -147,6 +147,16 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void PngContainerTreatsApngFrameControlAsEndingTheIdatRun() {
+        byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] apng = CreateTwoFrameApng(staticPng);
+        byte[] nonContiguous = InsertPngChunkBefore(apng, "fdAT", "IDAT", Array.Empty<byte>());
+
+        Assert.False(OfficePngReader.TryGetFrameCount(nonContiguous, out _));
+        Assert.False(OfficeImageReader.TryValidateContent(nonContiguous, "non-contiguous-apng.png", out _));
+    }
+
+    [Fact]
     public async Task GuardedAsyncConsumerSerializesConcurrentAdmissionAndSequenceAssignment() {
         const int maximum = 300;
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));

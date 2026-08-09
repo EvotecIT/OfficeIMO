@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Rtf.Writing;
 
@@ -66,16 +68,20 @@ public static partial class WordRtfConverterExtensions {
         int shapeCount = 0;
         int omittedImageCount = 0;
         int normalizedImageCount = 0;
+        var visitedNotes = new HashSet<RtfNote>();
         IEnumerable<IRtfBlock> blocks = document.Sections.Count > 0
             ? document.Sections.SelectMany(section => section.Blocks)
             : document.Blocks;
         foreach (IRtfBlock block in blocks) {
-            CountUnsupportedRtfBlock(block, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
+            CountUnsupportedRtfBlock(block, visitedNotes, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
         }
         foreach (RtfHeaderFooter headerFooter in document.HeaderFooters) {
             foreach (RtfParagraph paragraph in headerFooter.Paragraphs) {
-                CountUnsupportedRtfBlock(paragraph, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
+                CountUnsupportedRtfBlock(paragraph, visitedNotes, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
             }
+        }
+        foreach (RtfNote note in document.Notes) {
+            CountUnsupportedRtfNote(note, visitedNotes, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
         }
 
         AddUnsupportedRtfDiagnostics(report, objectCount, shapeCount, omittedImageCount, normalizedImageCount);
@@ -83,6 +89,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static void CountUnsupportedRtfBlock(
         IRtfBlock block,
+        HashSet<RtfNote> visitedNotes,
         ref int objectCount,
         ref int shapeCount,
         ref int omittedImageCount,
@@ -94,11 +101,11 @@ public static partial class WordRtfConverterExtensions {
             case RtfShape shape:
                 shapeCount++;
                 foreach (RtfParagraph paragraph in shape.TextBoxParagraphs) {
-                    CountUnsupportedRtfInlines(paragraph.Inlines, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
+                    CountUnsupportedRtfInlines(paragraph.Inlines, visitedNotes, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
                 }
                 break;
             case RtfParagraph paragraph:
-                CountUnsupportedRtfInlines(paragraph.Inlines, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
+                CountUnsupportedRtfInlines(paragraph.Inlines, visitedNotes, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
                 break;
             case RtfImage image:
                 CountRtfImage(image, ref omittedImageCount, ref normalizedImageCount);
@@ -107,7 +114,7 @@ public static partial class WordRtfConverterExtensions {
                 foreach (RtfTableRow row in table.Rows) {
                     foreach (RtfTableCell cell in row.Cells) {
                         foreach (IRtfBlock child in cell.Blocks) {
-                            CountUnsupportedRtfBlock(child, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
+                            CountUnsupportedRtfBlock(child, visitedNotes, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
                         }
                     }
                 }
@@ -117,6 +124,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static void CountUnsupportedRtfInlines(
         IReadOnlyList<IRtfInline> inlines,
+        HashSet<RtfNote> visitedNotes,
         ref int objectCount,
         ref int shapeCount,
         ref int omittedImageCount,
@@ -133,9 +141,28 @@ public static partial class WordRtfConverterExtensions {
                     CountRtfImage(image, ref omittedImageCount, ref normalizedImageCount);
                     break;
                 case RtfField field:
-                    CountUnsupportedRtfInlines(field.Result.Inlines, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
+                    CountUnsupportedRtfInlines(field.Result.Inlines, visitedNotes, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
+                    break;
+                case RtfRun run when run.Note != null:
+                    CountUnsupportedRtfNote(run.Note, visitedNotes, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
+                    break;
+                case RtfGeneratedText generatedText when generatedText.Note != null:
+                    CountUnsupportedRtfNote(generatedText.Note, visitedNotes, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
                     break;
             }
+        }
+    }
+
+    private static void CountUnsupportedRtfNote(
+        RtfNote note,
+        HashSet<RtfNote> visitedNotes,
+        ref int objectCount,
+        ref int shapeCount,
+        ref int omittedImageCount,
+        ref int normalizedImageCount) {
+        if (!visitedNotes.Add(note)) return;
+        foreach (RtfParagraph paragraph in note.Paragraphs) {
+            CountUnsupportedRtfBlock(paragraph, visitedNotes, ref objectCount, ref shapeCount, ref omittedImageCount, ref normalizedImageCount);
         }
     }
 
@@ -227,7 +254,7 @@ public static partial class WordRtfConverterExtensions {
 
         int omittedImageCount = 0;
         int normalizedImageCount = 0;
-        foreach (WordParagraph paragraph in elements.OfType<WordParagraph>().Where(item => item.IsImage)) {
+        foreach (WordParagraph paragraph in EnumerateConvertibleWordImages(elements)) {
             RtfImage? converted = CreateRtfImage(paragraph, out OfficeImageFormat sourceFormat);
             if (converted == null) {
                 omittedImageCount++;
@@ -275,6 +302,42 @@ public static partial class WordRtfConverterExtensions {
                         yield return child;
                     }
                 }
+            }
+        }
+    }
+
+    private static IEnumerable<WordParagraph> EnumerateConvertibleWordImages(IEnumerable<WordElement> elements) {
+        var visitedParagraphs = new HashSet<Paragraph>();
+        var visitedRuns = new HashSet<Run>();
+        foreach (WordParagraph paragraph in elements.OfType<WordParagraph>()) {
+            if (!visitedParagraphs.Add(paragraph._paragraph)) continue;
+            foreach (Run run in EnumerateConvertibleWordRuns(paragraph._paragraph)) {
+                if (!visitedRuns.Add(run)) continue;
+                var candidate = new WordParagraph(paragraph._document, paragraph._paragraph, run);
+                if (candidate.IsImage) yield return candidate;
+            }
+        }
+    }
+
+    private static IEnumerable<Run> EnumerateConvertibleWordRuns(OpenXmlElement container) {
+        foreach (OpenXmlElement child in container.ChildElements) {
+            switch (child) {
+                case Run run:
+                    yield return run;
+                    break;
+                case DeletedRun:
+                case MoveFromRun:
+                    break;
+                case SimpleField simpleField:
+                    foreach (Run fieldRun in simpleField.Elements<Run>()) yield return fieldRun;
+                    break;
+                case InsertedRun:
+                case MoveToRun:
+                case Hyperlink:
+                case SdtRun:
+                case SdtContentRun:
+                    foreach (Run nestedRun in EnumerateConvertibleWordRuns(child)) yield return nestedRun;
+                    break;
             }
         }
     }

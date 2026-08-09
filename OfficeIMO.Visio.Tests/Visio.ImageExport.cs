@@ -142,6 +142,40 @@ public class VisioImageExport {
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }
 
+    [Theory]
+    [InlineData("<style>.blur { filter:url(#blur); } .blur { filter:none; }</style>", "class='blur'")]
+    [InlineData("<style>.blur { filter:url(#blur); }</style>", "class='blur' style='filter:none'")]
+    [InlineData("<style>.blur { filter:none; }</style>", "class='blur' filter='url(#blur)'")]
+    [InlineData("<style>.blur { filter:url(#blur) !important; }</style>", "class='blur' style='filter:none !important'")]
+    public void EmbeddedSvgPreviewHonorsCssEffectOverrides(string styleDefinition, string rectangleAttributes) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                     styleDefinition + "<rect width='10' height='10' fill='red' " + rectangleAttributes + "/></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "css-override.svg", default, out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        Assert.DoesNotContain(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
+    [Fact]
+    public void EmbeddedSvgPreviewIgnoresNonvisualMetadata() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                           "<metadata><producer>OfficeIMO</producer></metadata>" +
+                           "<rect width='10' height='10' fill='red'/></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "metadata.svg", default, out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        Assert.DoesNotContain(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss);
+    }
+
     [Fact]
     public void RetainedSvgApiUsesCanonicalDimensionValidation() {
         using MemoryStream package = new();

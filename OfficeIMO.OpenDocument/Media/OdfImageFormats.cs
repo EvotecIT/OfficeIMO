@@ -11,6 +11,7 @@ internal static class OdfImageFormats {
             OfficeImageFormat.Gif => ".gif",
             OfficeImageFormat.Svg => ".svg",
             OfficeImageFormat.Bmp => ".bmp",
+            OfficeImageFormat.Tiff => ".tiff",
             OfficeImageFormat.Webp => ".webp",
             _ => string.Empty
         };
@@ -35,7 +36,8 @@ internal static class OdfImageFormats {
     internal static bool TryNormalizeStoredExtension(string? fileName, out string extension) {
         extension = NormalizeExtension(fileName);
         if (extension == ".jpeg") extension = ".jpg";
-        return extension is ".png" or ".jpg" or ".gif" or ".svg" or ".bmp" or ".webp";
+        if (extension == ".tif") extension = ".tiff";
+        return extension is ".png" or ".jpg" or ".gif" or ".svg" or ".bmp" or ".tiff" or ".webp";
     }
 
     internal static bool TryGetFormat(string? mediaType, out OfficeImageFormat format) {

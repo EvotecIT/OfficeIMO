@@ -1,9 +1,10 @@
-using OfficeIMO.OpenDocument.Testing;
 using System;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+using OfficeIMO.Drawing;
+using OfficeIMO.OpenDocument.Testing;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;
@@ -200,6 +201,28 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         OdtImage image = reopened.Paragraphs.Single().Images.Single();
         Assert.EndsWith(".webp", image.Path, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(webp, image.GetImageBytes());
+    }
+
+    [Fact]
+    public void FlatImageExtractionPreservesDeclaredTiffMedia() {
+        byte[] tiff = OfficeRasterImageEncoder.Encode(
+            new OfficeRasterImage(1, 1, OfficeColor.White),
+            OfficeImageExportFormat.Tiff);
+        OdtDocument document = OdtDocument.Create();
+        document.AddParagraph().AddImage(
+            tiff,
+            "pixel.tif",
+            OdfLength.Centimeters(1),
+            OdfLength.Centimeters(1));
+        using var stream = new MemoryStream();
+
+        document.SaveFlatXml(stream);
+        stream.Position = 0;
+        OdtDocument reopened = OdtDocument.LoadFlatXml(stream);
+
+        OdtImage image = reopened.Paragraphs.Single().Images.Single();
+        Assert.EndsWith(".tiff", image.Path, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(tiff, image.GetImageBytes());
     }
 
     [Fact]

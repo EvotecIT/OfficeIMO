@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 
@@ -8,29 +7,26 @@ namespace OfficeIMO.Visio {
     internal static partial class VisioSvgPreviewRasterizer {
         private sealed class SvgStyleSheet {
             private readonly List<SvgStyleRule> _rules;
+            private readonly List<SvgVisualEffectRule> _visualEffectRules;
 
-            private SvgStyleSheet(List<SvgStyleRule> rules, bool hasAppliedUnsupportedVisualEffect) {
+            private SvgStyleSheet(List<SvgStyleRule> rules, List<SvgVisualEffectRule> visualEffectRules) {
                 _rules = rules;
-                HasAppliedUnsupportedVisualEffect = hasAppliedUnsupportedVisualEffect;
+                _visualEffectRules = visualEffectRules;
             }
-
-            internal bool HasAppliedUnsupportedVisualEffect { get; }
 
             internal static SvgStyleSheet Parse(XElement root) {
                 List<SvgStyleRule> rules = new();
-                List<string> visualEffectSelectors = new();
+                List<SvgVisualEffectRule> visualEffectRules = new();
+                int sourceOrder = 0;
                 foreach (XElement styleElement in root.Descendants()) {
                     if (!string.Equals(styleElement.Name.LocalName, "style", StringComparison.OrdinalIgnoreCase)) {
                         continue;
                     }
 
-                    ReadRules(styleElement.Value, rules, visualEffectSelectors);
+                    ReadRules(styleElement.Value, rules, visualEffectRules, ref sourceOrder);
                 }
 
-                bool hasAppliedUnsupportedVisualEffect = root
-                    .DescendantsAndSelf()
-                    .Any(element => visualEffectSelectors.Any(selector => SvgCssSelectorMatcher.MayMatch(element, selector)));
-                return new SvgStyleSheet(rules, hasAppliedUnsupportedVisualEffect);
+                return new SvgStyleSheet(rules, visualEffectRules);
             }
 
             internal Dictionary<string, string> CreateStyle(XElement element) {
@@ -52,10 +48,11 @@ namespace OfficeIMO.Visio {
                 return style.TryGetValue(name, out value);
             }
 
-            internal static bool TryGetInlineValue(XElement element, string name, out string? value) =>
-                ParseDeclarations(element.Attribute("style")?.Value).TryGetValue(name, out value);
-
-            private static void ReadRules(string? css, List<SvgStyleRule> rules, List<string> visualEffectSelectors) {
+            private static void ReadRules(
+                string? css,
+                List<SvgStyleRule> rules,
+                List<SvgVisualEffectRule> visualEffectRules,
+                ref int sourceOrder) {
                 if (string.IsNullOrWhiteSpace(css)) {
                     return;
                 }
@@ -76,14 +73,17 @@ namespace OfficeIMO.Visio {
                     string selectorList = normalized.Substring(index, open - index);
                     Dictionary<string, string> declarations = ParseDeclarations(normalized.Substring(open + 1, close - open - 1));
                     if (declarations.Count > 0) {
+                        int ruleOrder = sourceOrder++;
                         string[] selectors = selectorList.Split(',');
                         for (int i = 0; i < selectors.Length; i++) {
-                            if ((HasActiveVisualEffectDeclaration(declarations, "filter") ||
-                                 HasActiveVisualEffectDeclaration(declarations, "mask")) &&
+                            if ((declarations.ContainsKey("filter") || declarations.ContainsKey("mask")) &&
                                 !string.IsNullOrWhiteSpace(selectors[i])) {
-                                visualEffectSelectors.Add(selectors[i].Trim());
+                                visualEffectRules.Add(new SvgVisualEffectRule(
+                                    selectors[i].Trim(),
+                                    new Dictionary<string, string>(declarations, StringComparer.OrdinalIgnoreCase),
+                                    ruleOrder));
                             }
-                            if (TryCreateRule(selectors[i], declarations, rules.Count, out SvgStyleRule? rule) && rule != null) {
+                            if (TryCreateRule(selectors[i], declarations, ruleOrder, out SvgStyleRule? rule) && rule != null) {
                                 rules.Add(rule);
                             }
                         }
@@ -93,10 +93,74 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            private static bool HasActiveVisualEffectDeclaration(Dictionary<string, string> declarations, string name) =>
-                declarations.TryGetValue(name, out string? value) &&
-                !string.IsNullOrWhiteSpace(value) &&
-                !string.Equals(value!.Trim(), "none", StringComparison.OrdinalIgnoreCase);
+            internal bool HasActiveVisualEffect(XElement element) =>
+                HasActiveVisualEffect(element, "filter") || HasActiveVisualEffect(element, "mask");
+
+            private bool HasActiveVisualEffect(XElement element, string propertyName) {
+                EffectCandidate candidate = default;
+                string? presentationValue = element.Attribute(propertyName)?.Value;
+                if (TryParseEffectValue(presentationValue, out string? normalizedPresentation, out bool presentationImportant)) {
+                    candidate = new EffectCandidate(normalizedPresentation!, presentationImportant, specificity: 0, order: -1);
+                }
+
+                bool unknownNormalActive = false;
+                bool unknownImportantActive = false;
+                for (int i = 0; i < _visualEffectRules.Count; i++) {
+                    SvgVisualEffectRule rule = _visualEffectRules[i];
+                    if (!rule.Declarations.TryGetValue(propertyName, out string? rawValue) ||
+                        !TryParseEffectValue(rawValue, out string? value, out bool important)) {
+                        continue;
+                    }
+
+                    SvgCssSelectorMatcher.SelectorMatch match = SvgCssSelectorMatcher.Evaluate(
+                        element,
+                        rule.Selector,
+                        out int specificity);
+                    if (match == SvgCssSelectorMatcher.SelectorMatch.NoMatch) continue;
+                    if (match == SvgCssSelectorMatcher.SelectorMatch.Unsupported) {
+                        if (IsActiveEffectValue(value!)) {
+                            if (important) unknownImportantActive = true;
+                            else unknownNormalActive = true;
+                        }
+                        continue;
+                    }
+
+                    var next = new EffectCandidate(value!, important, specificity, rule.Order);
+                    if (!candidate.HasValue || next.HasHigherPriorityThan(candidate)) candidate = next;
+                }
+
+                EffectCandidate inline = default;
+                Dictionary<string, string> inlineDeclarations = ParseDeclarations(element.Attribute("style")?.Value);
+                if (inlineDeclarations.TryGetValue(propertyName, out string? inlineValue) &&
+                    TryParseEffectValue(inlineValue, out string? normalizedInline, out bool inlineImportant)) {
+                    inline = new EffectCandidate(normalizedInline!, inlineImportant, specificity: 1000, order: int.MaxValue);
+                    if (!candidate.HasValue || inline.HasHigherPriorityThan(candidate)) candidate = inline;
+                }
+
+                if (candidate.HasValue && IsActiveEffectValue(candidate.Value!)) return true;
+                if (unknownImportantActive && (!inline.HasValue || !inline.Important)) return true;
+                return unknownNormalActive &&
+                       !inline.HasValue &&
+                       !(candidate.HasValue && candidate.Important && !IsActiveEffectValue(candidate.Value!));
+            }
+
+            private static bool TryParseEffectValue(string? raw, out string? value, out bool important) {
+                value = null;
+                important = false;
+                if (string.IsNullOrWhiteSpace(raw)) return false;
+                string trimmed = raw!.Trim();
+                const string importantSuffix = "!important";
+                if (trimmed.EndsWith(importantSuffix, StringComparison.OrdinalIgnoreCase)) {
+                    important = true;
+                    trimmed = trimmed.Substring(0, trimmed.Length - importantSuffix.Length).TrimEnd();
+                }
+                if (trimmed.Length == 0) return false;
+                value = trimmed;
+                return true;
+            }
+
+            private static bool IsActiveEffectValue(string value) =>
+                !string.Equals(value.Trim(), "none", StringComparison.OrdinalIgnoreCase);
 
             private static Dictionary<string, string> ParseDeclarations(string? raw) {
                 Dictionary<string, string> style = new(StringComparer.OrdinalIgnoreCase);
@@ -293,6 +357,47 @@ namespace OfficeIMO.Visio {
 
                     return true;
                 }
+            }
+
+            private sealed class SvgVisualEffectRule {
+                internal SvgVisualEffectRule(string selector, Dictionary<string, string> declarations, int order) {
+                    Selector = selector;
+                    Declarations = declarations;
+                    Order = order;
+                }
+
+                internal string Selector { get; }
+
+                internal Dictionary<string, string> Declarations { get; }
+
+                internal int Order { get; }
+            }
+
+            private readonly struct EffectCandidate {
+                internal EffectCandidate(string value, bool important, int specificity, int order) {
+                    Value = value;
+                    Important = important;
+                    Specificity = specificity;
+                    Order = order;
+                    HasValue = true;
+                }
+
+                internal bool HasValue { get; }
+
+                internal bool Important { get; }
+
+                internal int Order { get; }
+
+                internal int Specificity { get; }
+
+                internal string? Value { get; }
+
+                internal bool HasHigherPriorityThan(EffectCandidate other) =>
+                    Important != other.Important
+                        ? Important
+                        : Specificity != other.Specificity
+                            ? Specificity > other.Specificity
+                            : Order >= other.Order;
             }
         }
     }

@@ -127,6 +127,27 @@ namespace OfficeIMO.Tests {
             Assert.Null(malformed);
         }
 
+        [Fact]
+        public void CompleteContentValidationRejectsMalformedTrailingGifFrame() {
+            byte[] gif = CreateTwoFrameGif(out int secondFrameDescriptorOffset);
+            gif[secondFrameDescriptorOffset + 12] = 0x07;
+
+            Assert.True(OfficeGifReader.TryDecodeFrame(gif, 0, out OfficeRasterImage? selected, out int frameCount));
+            Assert.NotNull(selected);
+            Assert.Equal(2, frameCount);
+            Assert.False(OfficeImageReader.TryValidateContent(gif, "animated.gif", out _));
+        }
+
+        [Fact]
+        public void CompleteContentValidationRejectsBytesAfterGifTrailer() {
+            byte[] gif = CreateTwoFrameGif();
+            byte[] withTrailingBytes = new byte[gif.Length + 1];
+            Buffer.BlockCopy(gif, 0, withTrailingBytes, 0, gif.Length);
+            withTrailingBytes[withTrailingBytes.Length - 1] = 0x00;
+
+            Assert.False(OfficeImageReader.TryValidateContent(withTrailingBytes, "trailing.gif", out _));
+        }
+
         private static byte[] CreateSinglePixelGif() =>
             Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
 

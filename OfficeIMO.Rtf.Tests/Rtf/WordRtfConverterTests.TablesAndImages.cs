@@ -310,6 +310,48 @@ public partial class WordRtfConverterTests {
         Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
     }
 
+    [Fact]
+    public void Word_Rtf_Image_Diagnostics_Include_Hyperlink_Image_Runs() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        WordParagraph image = paragraph.AddImage(new Uri("https://example.test/hyperlink.png"), 16, 16);
+        Run imageRun = image._run!;
+        imageRun.Remove();
+        paragraph._paragraph.Append(new Hyperlink(imageRun) { Anchor = "linked-image" });
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        RtfConversionDiagnostic diagnostic = Assert.Single(
+            conversion.Report.Diagnostics,
+            item => item.Code == "WordRtfImagesOmitted");
+        Assert.Equal(1, diagnostic.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+    }
+
+    [Fact]
+    public void Rtf_Word_Image_Diagnostics_Include_Referenced_Note_Stories() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        int idatOffset = FindRtfTestPngChunk(png, "IDAT");
+        int length = ReadRtfTestBigEndianInt32(png, idatOffset);
+        png[idatOffset + 8 + length - 1] ^= 0x01;
+        WriteRtfTestPngChunkCrc(png, idatOffset, length);
+        RtfDocument rtf = RtfDocument.Create();
+        RtfRun reference = rtf.AddParagraph().AddText("note");
+        var note = new RtfNote(RtfNoteKind.Footnote);
+        note.AddParagraph().AddImage(RtfImageFormat.Png, png);
+        reference.Note = note;
+
+        RtfConversionResult<WordDocument> conversion = rtf.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+
+        Assert.Empty(word.Images);
+        RtfConversionDiagnostic diagnostic = Assert.Single(
+            conversion.Report.Diagnostics,
+            item => item.Code == "RtfWordImagesOmitted");
+        Assert.Equal(1, diagnostic.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+    }
+
     private static byte[] CreateOnePixelDib() {
         byte[] dib = new byte[44];
         WriteLittleEndianInt32(dib, 0, 40);

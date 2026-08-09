@@ -147,7 +147,7 @@ public static partial class OfficeImageReader {
             case OfficeImageFormat.Jpeg:
                 return HasCompleteJpegPayload(data);
             case OfficeImageFormat.Gif:
-                return data.Length >= 14 && data[data.Length - 1] == 0x3B && OfficeGifReader.TryDecode(data, out _);
+                return data.Length >= 14 && data[data.Length - 1] == 0x3B && OfficeGifReader.TryValidateAllFrames(data);
             default:
                 return true;
         }

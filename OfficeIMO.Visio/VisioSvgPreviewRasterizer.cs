@@ -74,12 +74,12 @@ namespace OfficeIMO.Visio {
                 diagnosticSource,
                 cancellationToken);
             SvgRenderContext context = SvgRenderContext.Create(root, new SvgPaintBounds(viewLeft, viewTop, viewWidth, viewHeight), imageResolver);
-            if (context.StyleSheet.HasAppliedUnsupportedVisualEffect) {
-                context.ReportUnsupportedFeature();
-            }
             double rootOpacity = SvgPaint.ReadOwnOpacity(root, context);
             if (rootOpacity <= 0D) {
                 return false;
+            }
+            if (context.StyleSheet.HasActiveVisualEffect(root)) {
+                context.ReportUnsupportedFeature();
             }
 
             bool useRootOpacityLayer = rootOpacity < 1D;
@@ -140,14 +140,14 @@ namespace OfficeIMO.Visio {
             canvas.CancellationToken.ThrowIfCancellationRequested();
             string name = element.Name.LocalName;
             if ((!string.IsNullOrEmpty(element.Name.NamespaceName) &&
-                 !string.Equals(element.Name.NamespaceName, "http://www.w3.org/2000/svg", StringComparison.Ordinal)) ||
-                HasUnsupportedEffect(element)) {
+                 !string.Equals(element.Name.NamespaceName, "http://www.w3.org/2000/svg", StringComparison.Ordinal))) {
                 context.ReportUnsupportedFeature();
             }
             if (string.Equals(name, "defs", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(name, "style", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(name, "title", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(name, "desc", StringComparison.OrdinalIgnoreCase)) {
+                string.Equals(name, "desc", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "metadata", StringComparison.OrdinalIgnoreCase)) {
                 return false;
             }
 
@@ -164,6 +164,10 @@ namespace OfficeIMO.Visio {
             double elementOpacity = appliesElementOpacity ? SvgPaint.ReadOwnOpacity(element, context) : 1D;
             if (appliesElementOpacity && elementOpacity <= 0D) {
                 return false;
+            }
+
+            if (context.IsVisible && context.StyleSheet.HasActiveVisualEffect(element)) {
+                context.ReportUnsupportedFeature();
             }
 
             bool useElementOpacityLayer = appliesElementOpacity && elementOpacity < 1D;

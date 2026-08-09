@@ -7,8 +7,17 @@ namespace OfficeIMO.Visio {
     internal static partial class VisioSvgPreviewRasterizer {
         private static class SvgCssSelectorMatcher {
             internal static bool MayMatch(XElement element, string selector) {
-                if (!TryTokenize(selector, out List<SelectorPart> parts) || parts.Count == 0) return true;
-                return MatchesPart(element, parts, parts.Count - 1) != SelectorMatch.NoMatch;
+                return Evaluate(element, selector, out _) != SelectorMatch.NoMatch;
+            }
+
+            internal static SelectorMatch Evaluate(XElement element, string selector, out int specificity) {
+                specificity = 0;
+                if (!TryTokenize(selector, out List<SelectorPart> parts) ||
+                    parts.Count == 0 ||
+                    !TryCalculateSpecificity(parts, out specificity)) {
+                    return SelectorMatch.Unsupported;
+                }
+                return MatchesPart(element, parts, parts.Count - 1);
             }
 
             private static SelectorMatch MatchesPart(XElement element, IReadOnlyList<SelectorPart> parts, int index) {
@@ -140,6 +149,44 @@ namespace OfficeIMO.Visio {
                 return nextCombinator == '\0';
             }
 
+            private static bool TryCalculateSpecificity(IReadOnlyList<SelectorPart> parts, out int specificity) {
+                specificity = 0;
+                for (int partIndex = 0; partIndex < parts.Count; partIndex++) {
+                    string compound = parts[partIndex].Compound;
+                    int index = 0;
+                    if (compound[index] == '*') {
+                        index++;
+                    } else if (IsNameStart(compound[index])) {
+                        specificity++;
+                        index++;
+                        while (index < compound.Length && IsNameCharacter(compound[index])) index++;
+                    }
+
+                    while (index < compound.Length) {
+                        char marker = compound[index++];
+                        if (marker == '.' || marker == '#') {
+                            int start = index;
+                            while (index < compound.Length && IsNameCharacter(compound[index])) index++;
+                            if (start == index) return false;
+                            specificity += marker == '#' ? 100 : 10;
+                        } else if (marker == '[') {
+                            int close = compound.IndexOf(']', index);
+                            if (close < 0) return false;
+                            specificity += 10;
+                            index = close + 1;
+                        } else if (marker == ':') {
+                            int start = index;
+                            while (index < compound.Length && IsNameCharacter(compound[index])) index++;
+                            if (start == index) return false;
+                            specificity += 10;
+                        } else {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+
             private static bool IsNameStart(char value) => char.IsLetter(value) || value == '_' || value == '-';
 
             private static bool IsNameCharacter(char value) => IsNameStart(value) || char.IsDigit(value);
@@ -155,7 +202,7 @@ namespace OfficeIMO.Visio {
                 internal char Combinator { get; }
             }
 
-            private enum SelectorMatch {
+            internal enum SelectorMatch {
                 NoMatch,
                 Match,
                 Unsupported
