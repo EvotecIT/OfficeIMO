@@ -576,6 +576,20 @@ public class PdfReadLimitTests {
         Assert.False(StreamDecoder.TryDecode(mismatchedParameters, encoded, 1024, out _));
     }
 
+    [Fact]
+    public void TryDecodeTreatsNullFilterAsAbsent() {
+        byte[] original = { 65, 66, 67, 68 };
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = PdfNull.Instance;
+        dictionary.Items["DecodeParms"] = new PdfNumber(42);
+
+        bool decoded = StreamDecoder.TryDecode(dictionary, original, 1024, out byte[] output);
+
+        Assert.True(decoded);
+        Assert.Equal(original, output);
+        Assert.Empty(StreamDecoder.GetUnsupportedFilters(dictionary));
+    }
+
     [Theory]
     [InlineData(3, 8, 1)]
     [InlineData(2, 3, 1)]

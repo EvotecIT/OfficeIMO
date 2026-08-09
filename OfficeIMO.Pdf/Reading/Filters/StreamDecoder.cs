@@ -399,6 +399,10 @@ internal static class StreamDecoder {
         PdfDictionary dict,
         int filterCount,
         Dictionary<int, PdfIndirectObject>? objects) {
+        if (filterCount == 0) {
+            return true;
+        }
+
         if (!dict.Items.TryGetValue("DecodeParms", out PdfObject? decodeParmsObject)) {
             return true;
         }
@@ -431,6 +435,10 @@ internal static class StreamDecoder {
         out List<string> filterNames) {
         filterNames = new List<string>();
         PdfObject? resolved = ResolveObject(filterObject, objects);
+        if (resolved is PdfNull) {
+            return true;
+        }
+
         if (resolved is PdfName filterName) {
             filterNames.Add(filterName.Name);
             return true;
