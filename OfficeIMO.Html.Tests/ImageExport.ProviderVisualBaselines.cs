@@ -14,6 +14,9 @@ namespace OfficeIMO.Tests;
 [Trait("Category", "ImageExportVisualGate")]
 public sealed class ImageExportProviderVisualBaselineTests {
     private const string UpdateVariable = "OFFICEIMO_UPDATE_IMAGE_EXPORT_BASELINES";
+    private const string PortableFontFamily = "Carlito";
+    private static readonly Lazy<byte[]> PortableRegularFont = new(() => LoadPortableFont("Carlito-Regular.ttf"));
+    private static readonly Lazy<byte[]> PortableBoldFont = new(() => LoadPortableFont("Carlito-Bold.ttf"));
 
     [Fact]
     public void ManagedProvidersMatchApprovedPremiumRasterBaselines() {
@@ -34,9 +37,13 @@ public sealed class ImageExportProviderVisualBaselineTests {
         document.AddParagraph("Quarterly delivery brief")
             .SetFontSize(22)
             .SetBold()
+            .SetFontFamily(PortableFontFamily)
             .SetColor(OfficeColor.FromRgb(30, 64, 175));
-        document.AddParagraph("Polished previews with predictable output.");
+        document.AddParagraph("Polished previews with predictable output.")
+            .SetFontFamily(PortableFontFamily);
         return document.ToImage()
+            .WithFont(PortableFontFamily, PortableRegularFont.Value)
+            .WithFont(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold)
             .FitWithin(360, 360)
             .AsPng()
             .Export()
@@ -52,34 +59,42 @@ public sealed class ImageExportProviderVisualBaselineTests {
         PowerPointTextBox title = slide.AddTextBoxPoints("Delivery dashboard", 28, 22, 300, 34);
         title.FontSize = 24;
         title.Bold = true;
+        title.FontName = PortableFontFamily;
         title.Color = "1E3A8A";
         PowerPointTextBox status = slide.AddTextBoxPoints("On track", 30, 88, 170, 64);
         status.FontSize = 18;
         status.Bold = true;
+        status.FontName = PortableFontFamily;
         status.Color = "166534";
         PowerPointTextBox evidence = slide.AddTextBoxPoints("Evidence ready", 260, 88, 170, 64);
         evidence.FontSize = 18;
         evidence.Bold = true;
+        evidence.FontName = PortableFontFamily;
         evidence.Color = "155E75";
-        return slide.ToImage().AsPng().Export().Bytes;
+        return slide.ToImage()
+            .WithFont(PortableFontFamily, PortableRegularFont.Value)
+            .WithFont(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold)
+            .AsPng()
+            .Export()
+            .Bytes;
     }
 
     private static byte[] RenderHtml() {
         const string html = """
             <style>
-              body{font:16px Arial,sans-serif;background:#eef2ff;color:#172554;padding:24px}
+              body{font:16px Carlito,sans-serif;background:#eef2ff;color:#172554;padding:24px}
               article{background:white;border:1px solid #c7d2fe;border-radius:12px;padding:24px}
               h1{color:#1d4ed8;margin:0 0 12px}.badge{color:#166534;background:#dcfce7;padding:5px 9px}
             </style>
             <article><span class='badge'>Ready</span><h1>Premium export</h1><p>One rendering contract for polished document previews.</p></article>
             """;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        return document.ExportImage(
-            OfficeImageExportFormat.Png,
-            new HtmlRenderOptions {
-                MaximumOutputWidth = 360,
-                MaximumOutputHeight = 360
-            }).Bytes;
+        var options = new HtmlRenderOptions {
+            MaximumOutputWidth = 360,
+            MaximumOutputHeight = 360
+        };
+        AddPortableFonts(options.Fonts);
+        return document.ExportImage(OfficeImageExportFormat.Png, options).Bytes;
     }
 
     private static byte[] RenderOneNote() {
@@ -91,14 +106,24 @@ public sealed class ImageExportProviderVisualBaselineTests {
             Layout = new OneNoteLayout { X = 0.4D, Y = 2.1D, Width = 4.8D }
         };
         var paragraph = new OneNoteParagraph();
-        paragraph.Runs.Add(new OneNoteTextRun { Text = "Key finding: " });
+        var introduction = new OneNoteTextRun { Text = "Key finding: " };
+        introduction.Style.FontFamily = PortableFontFamily;
+        paragraph.Runs.Add(introduction);
         var emphasized = new OneNoteTextRun { Text = "shared contracts keep previews consistent." };
         emphasized.Style.Bold = true;
         emphasized.Style.ColorArgb = 0xFF1D4ED8;
+        emphasized.Style.FontFamily = PortableFontFamily;
         paragraph.Runs.Add(emphasized);
         outline.Children.Add(paragraph);
         page.Outlines.Add(outline);
-        return page.ToImage().FitWithin(360, 360).AsPng().Export().Bytes;
+        return page.ToImage()
+            .ConfigureOptions(options => options.DefaultFont = new OfficeFontInfo(PortableFontFamily, 11D))
+            .WithFont(PortableFontFamily, PortableRegularFont.Value)
+            .WithFont(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold)
+            .FitWithin(360, 360)
+            .AsPng()
+            .Export()
+            .Bytes;
     }
 
     private static byte[] RenderEmail() {
@@ -110,13 +135,13 @@ public sealed class ImageExportProviderVisualBaselineTests {
         email.Recipients.Add(new EmailRecipient(
             EmailRecipientKind.To,
             new EmailAddress("reader@example.com", "Reader")));
-        email.Body.Html = "<h2 style='color:#1d4ed8'>Approved</h2><p>The image export review is ready for delivery.</p>";
-        return email.ExportImage(
-            OfficeImageExportFormat.Png,
-            new EmailImageExportOptions {
-                MaximumOutputWidth = 360,
-                MaximumOutputHeight = 360
-            }).Bytes;
+        email.Body.Html = "<div style='font-family:Carlito,sans-serif'><h2 style='color:#1d4ed8'>Approved</h2><p>The image export review is ready for delivery.</p></div>";
+        var options = new EmailImageExportOptions {
+            MaximumOutputWidth = 360,
+            MaximumOutputHeight = 360
+        };
+        AddPortableFonts(options.Fonts);
+        return email.ExportImage(OfficeImageExportFormat.Png, options).Bytes;
     }
 
     private static byte[] RenderEpub() {
@@ -124,12 +149,12 @@ public sealed class ImageExportProviderVisualBaselineTests {
         EpubDocument book = EpubDocument.Load(
             package,
             new EpubReadOptions { IncludeRawHtml = true });
-        return Assert.Single(book.ExportImages(
-            OfficeImageExportFormat.Png,
-            new EpubImageExportOptions {
-                MaximumOutputWidth = 360,
-                MaximumOutputHeight = 360
-            })).Bytes;
+        var options = new EpubImageExportOptions {
+            MaximumOutputWidth = 360,
+            MaximumOutputHeight = 360
+        };
+        AddPortableFonts(options.Fonts);
+        return Assert.Single(book.ExportImages(OfficeImageExportFormat.Png, options)).Bytes;
     }
 
     private static byte[] CreateEpub() {
@@ -147,7 +172,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
             Write(
                 archive,
                 "OEBPS/chapter.xhtml",
-                "<?xml version=\"1.0\"?><html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Visual systems</title><style>body{font-family:Arial;color:#172554}h1{color:#1d4ed8}</style></head><body><h1>Visual systems</h1><p>Premium output, predictable contracts, and portable rendering.</p></body></html>");
+                "<?xml version=\"1.0\"?><html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Visual systems</title><style>body{font-family:Carlito;color:#172554}h1{color:#1d4ed8}</style></head><body><h1>Visual systems</h1><p>Premium output, predictable contracts, and portable rendering.</p></body></html>");
         }
         return output.ToArray();
     }
@@ -198,5 +223,24 @@ public sealed class ImageExportProviderVisualBaselineTests {
             directory = directory.Parent;
         }
         throw new DirectoryNotFoundException("Could not locate the OfficeIMO.Html.Tests project root.");
+    }
+
+    private static byte[] LoadPortableFont(string fileName) {
+        DirectoryInfo repositoryRoot = Directory.GetParent(GetProjectRoot())
+            ?? throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
+        string fontPath = Path.Combine(
+            repositoryRoot.FullName,
+            "Website",
+            "Apps",
+            "OfficeIMO.Web.Converter",
+            "Assets",
+            "Fonts",
+            fileName);
+        return File.ReadAllBytes(fontPath);
+    }
+
+    private static void AddPortableFonts(OfficeFontFaceCollection fonts) {
+        fonts.Add(PortableFontFamily, PortableRegularFont.Value, OfficeFontStyle.Regular);
+        fonts.Add(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold);
     }
 }

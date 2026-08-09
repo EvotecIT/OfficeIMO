@@ -28,6 +28,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlAsyncBatchPopulatesKnownSequenceCountBeforeEmission() {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<h1>First</h1><section style='break-before:page'><h2>Second</h2></section>");
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 3D)
+        };
+
+        IReadOnlyList<OfficeImageExportResult> results = await document.ExportImagesAsync(
+            OfficeImageExportFormat.Svg,
+            options);
+
+        Assert.True(results.Count >= 2);
+        Assert.Equal(
+            Enumerable.Range(0, results.Count).Select(index => (int?)index),
+            results.Select(result => result.SequenceIndex));
+        Assert.All(results, result => Assert.Equal(results.Count, result.SequenceCount));
+    }
+
+    [Fact]
     public async Task HtmlRenderAsync_UsesCallerResolverForPolicyApprovedExternalImages() {
         byte[] imageBytes = PdfPngTestImages.CreateRgbPng(10, 6);
         int calls = 0;

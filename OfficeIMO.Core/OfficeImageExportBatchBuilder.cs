@@ -439,6 +439,7 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
             string savedPath = result.WriteToFile(path, _conflictPolicy);
             files.Add(new OfficeImageExportSavedFile(result, savedPath));
         });
+        FinalizeSequence(files);
         return new OfficeImageExportBatchSaveResult(files);
     }
 
@@ -474,6 +475,7 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
             string savedPath = await result.WriteToFileAsync(path, _conflictPolicy, token).ConfigureAwait(false);
             files.Add(new OfficeImageExportSavedFile(result, savedPath));
         }, cancellationToken).ConfigureAwait(false);
+        FinalizeSequence(files);
         return new OfficeImageExportBatchSaveResult(files);
     }
 
@@ -492,6 +494,12 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
     private static void FinalizeSequence(List<OfficeImageExportResult> results) {
         for (int index = 0; index < results.Count; index++) {
             results[index] = results[index].WithSequence(index, results.Count);
+        }
+    }
+
+    private static void FinalizeSequence(List<OfficeImageExportSavedFile> files) {
+        for (int index = 0; index < files.Count; index++) {
+            files[index] = files[index].WithSequence(index, files.Count);
         }
     }
 

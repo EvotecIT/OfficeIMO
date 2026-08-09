@@ -655,6 +655,38 @@ namespace OfficeIMO.Tests {
             Assert.Contains(">A3<", svg);
         }
 
+        [Fact]
+        public void ExcelWorksheet_PageSlicedSvgFitAppliesAfterPrintTitlesAndPageCanvasComposition() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Report");
+            FillPageBreakGrid(sheet);
+            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
+            sheet.AddManualRowPageBreak(2, save: false);
+            sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.Letter);
+
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(
+                OfficeImageExportFormat.Svg,
+                new ExcelWorksheetImageExportOptions {
+                    Range = "A1:D4",
+                    SplitByManualPageBreaks = true,
+                    ShowGridlines = false,
+                    MaximumOutputWidth = 180,
+                    MaximumOutputHeight = 180
+                });
+
+            Assert.Equal(2, results.Count);
+            Assert.All(results, result => {
+                Assert.True(result.Width <= 180);
+                Assert.True(result.Height <= 180);
+                OfficeImageInfo info = OfficeImageReader.Identify(result.Bytes);
+                Assert.Equal(result.Width, info.Width);
+                Assert.Equal(result.Height, info.Height);
+            });
+            string svg = Encoding.UTF8.GetString(results[1].Bytes);
+            Assert.Contains(">A1<", svg);
+            Assert.Contains(">A3<", svg);
+        }
+
         private static void FillPageBreakGrid(ExcelSheet sheet) {
             for (int row = 1; row <= 4; row++) {
                 for (int column = 1; column <= 4; column++) {

@@ -98,7 +98,6 @@ internal static class PdfImageExportEngine {
         PdfImageExportOptions effective = options.Clone();
         double requestedScale = options.Scale;
         effective.Scale = options.ResolveScale(drawing);
-        effective.Scale = effective.GetEffectiveScale(drawing.Width, drawing.Height);
         if (options.TargetDpi.HasValue && effective.Scale < requestedScale) {
             double effectiveDpi = effective.Scale * effective.LogicalUnitsPerInch;
             effective.RasterEncoding.DpiX = effectiveDpi;
@@ -120,6 +119,7 @@ internal static class PdfImageExportEngine {
 
         cancellationToken.ThrowIfCancellationRequested();
         if (format == OfficeImageExportFormat.Svg) {
+            effective.Scale = effective.GetEffectiveScale(drawing.Width, drawing.Height);
             drawing = AddBackground(drawing, effective.BackgroundColor);
             byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(
                 drawing,

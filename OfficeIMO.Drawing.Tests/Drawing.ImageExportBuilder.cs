@@ -377,6 +377,8 @@ public partial class DrawingTests {
 
             Assert.Equal(2, saved.Files.Count);
             Assert.Equal(2, saved.Report.ResultCount);
+            Assert.Equal(new int?[] { 0, 1 }, saved.Files.Select(file => file.SequenceIndex));
+            Assert.All(saved.Files, file => Assert.Equal(2, file.SequenceCount));
             Assert.All(saved.Files, file => {
                 Assert.True(File.Exists(file.Path));
                 Assert.True(file.EncodedLength > 0);
@@ -412,6 +414,10 @@ public partial class DrawingTests {
             OfficeImageExportBatchSaveResult saved = await builder.SaveFilesAsync(folder);
 
             Assert.Equal(names.Length, saved.Files.Count);
+            Assert.Equal(
+                Enumerable.Range(0, names.Length).Select(index => (int?)index),
+                saved.Files.Select(file => file.SequenceIndex));
+            Assert.All(saved.Files, file => Assert.Equal(names.Length, file.SequenceCount));
             Assert.InRange(producedWhenSavingStarted, 1, 3);
             Assert.True(producedWhenSavingStarted < names.Length);
         } finally {

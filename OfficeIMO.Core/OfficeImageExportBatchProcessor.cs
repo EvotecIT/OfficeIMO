@@ -102,6 +102,43 @@ public static class OfficeImageExportBatchProcessor {
     }
 
     /// <summary>
+    /// Executes asynchronous count discovery and streaming under the same render deadline.
+    /// Provider adapters use this when rendering must finish before the predictable result count is known.
+    /// </summary>
+    internal static async Task RunAsyncWithPreflight(
+        OfficeImageExportOptions options,
+        Func<CancellationToken, Task<int?>> resolveExpectedOutputCount,
+        Func<OfficeImageExportAsyncConsumer, CancellationToken, Task> producer,
+        OfficeImageExportAsyncConsumer consumer,
+        CancellationToken cancellationToken = default) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        if (resolveExpectedOutputCount == null) throw new ArgumentNullException(nameof(resolveExpectedOutputCount));
+        if (producer == null) throw new ArgumentNullException(nameof(producer));
+        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        options.ValidateImageExportOptions();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
+            options.RenderTimeout,
+            cancellationToken);
+        try {
+            execution.ThrowIfCancellationRequested();
+            int? expectedOutputCount = await resolveExpectedOutputCount(execution.Token).ConfigureAwait(false);
+            execution.ThrowIfCancellationRequested();
+            ValidateExpectedOutputCount(options, expectedOutputCount);
+            OfficeImageExportAsyncConsumer accept = CreateGuardedAsyncConsumerCore(
+                options,
+                consumer,
+                execution.Token,
+                expectedOutputCount);
+            await producer(accept, execution.Token).ConfigureAwait(false);
+            execution.ThrowIfCancellationRequested();
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
+        }
+    }
+
+    /// <summary>
     /// Wraps a consumer with cancellation, diagnostic policy, and aggregate batch-budget enforcement.
     /// </summary>
     public static OfficeImageExportConsumer CreateGuardedConsumer(

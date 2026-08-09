@@ -116,6 +116,24 @@ public sealed class PdfImageExportContractTests {
     }
 
     [Fact]
+    public void PdfRasterFitPreservesDensityRelativeToThePreFitScale() {
+        PdfReadPage page = LoadTwoPageDocument().Pages[0];
+        OfficeImageExportResult baseline = page.ExportImage(OfficeImageExportFormat.Png);
+
+        OfficeImageExportResult fitted = page
+            .ToImage()
+            .WithScale(2D)
+            .FitWithin(baseline.Width, baseline.Height)
+            .AsPng()
+            .Export();
+
+        Assert.Equal(baseline.Width, fitted.Width);
+        Assert.Equal(baseline.Height, fitted.Height);
+        Assert.InRange(fitted.DpiX, baseline.DpiX / 2D - 0.05D, baseline.DpiX / 2D + 0.05D);
+        Assert.InRange(fitted.DpiY, baseline.DpiY / 2D - 0.05D, baseline.DpiY / 2D + 0.05D);
+    }
+
+    [Fact]
     public void PdfSvgUsesTheSharedConfiguredBackground() {
         PdfReadPage page = LoadTwoPageDocument().Pages[0];
 
