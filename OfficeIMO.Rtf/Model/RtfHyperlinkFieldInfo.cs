@@ -70,7 +70,8 @@ public sealed class RtfHyperlinkFieldInfo {
         string.Equals(name, "l", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(name, "m", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(name, "o", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(name, "t", StringComparison.OrdinalIgnoreCase);
+        string.Equals(name, "t", StringComparison.OrdinalIgnoreCase) ||
+        name is "*" or "#" or "@";
 
     private static void ApplySwitch(RtfHyperlinkFieldInfo info, string name, string value) {
         switch (name.ToLowerInvariant()) {

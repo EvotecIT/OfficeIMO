@@ -39,4 +39,15 @@ public sealed class RtfFieldCodeSyntaxTests {
         Assert.False(syntax.IsValid);
         Assert.Equal(instruction, string.Concat(syntax.Tokens.Select(static token => token.Text)));
     }
+
+    [Fact]
+    public void HyperlinkFormattingSwitchArgumentIsNotMistakenForTarget() {
+        const string instruction = "HYPERLINK \\l \"Bookmark\" \\* MERGEFORMAT";
+
+        var field = new RtfField(instruction);
+
+        Assert.NotNull(field.HyperlinkField);
+        Assert.Equal("Bookmark", field.HyperlinkField!.SubAddress);
+        Assert.Null(field.HyperlinkField.Target);
+    }
 }

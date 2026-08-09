@@ -227,15 +227,31 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 long rowSpan = merged.EndRow - merged.StartRow + 1L;
                 long columnSpan = merged.EndColumn - merged.StartColumn + 1L;
                 long mergeCells = checked(rowSpan * columnSpan);
-                long remaining = effective.MaximumExpandedCells - materializedCells;
-                long mergeLimit = Math.Min(OdsSheet.DefaultMaximumMergeCells, Math.Max(0, remaining));
-                if (mergeCells > mergeLimit) {
+                if (mergeCells > OdsSheet.DefaultMaximumMergeCells) {
                     skippedMerges++;
                     truncated = true;
                     continue;
                 }
-                sheet.Merge(merged.StartRow - 1L, merged.StartColumn - 1L, rowSpan, columnSpan, mergeLimit);
-                materializedCells += mergeCells;
+                long remaining = effective.MaximumExpandedCells - materializedCells;
+                long newlyMaterializedCells = 0;
+                for (int row = merged.StartRow; row <= merged.EndRow && newlyMaterializedCells <= remaining; row++) {
+                    for (int column = merged.StartColumn; column <= merged.EndColumn; column++) {
+                        if (!materializedCoordinates.Contains((row, column))) newlyMaterializedCells++;
+                        if (newlyMaterializedCells > remaining) break;
+                    }
+                }
+                if (newlyMaterializedCells > remaining) {
+                    skippedMerges++;
+                    truncated = true;
+                    continue;
+                }
+                sheet.Merge(merged.StartRow - 1L, merged.StartColumn - 1L, rowSpan, columnSpan, mergeCells);
+                for (int row = merged.StartRow; row <= merged.EndRow; row++) {
+                    for (int column = merged.StartColumn; column <= merged.EndColumn; column++) {
+                        materializedCoordinates.Add((row, column));
+                    }
+                }
+                materializedCells += newlyMaterializedCells;
                 merges++;
             }
             tables += worksheet.Tables.Count;

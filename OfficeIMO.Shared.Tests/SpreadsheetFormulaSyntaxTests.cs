@@ -151,6 +151,18 @@ public sealed class SpreadsheetFormulaSyntaxTests {
         Assert.Equal("$'Other'.A1:$'Other'.B2", reference.Format(SpreadsheetAddressDialect.OpenDocument));
     }
 
+    [Theory]
+    [InlineData("Στοιχεία!A1", "Στοιχεία")]
+    [InlineData("Données2!B3", "Données2")]
+    [InlineData("Café!C4", "Café")]
+    public void ExcelUnquotedSheetQualifierAcceptsUnicodeLettersMarksAndDigits(string address, string expectedSheet) {
+        SpreadsheetRangeReference reference = SpreadsheetRangeReference.Parse(
+            address,
+            SpreadsheetAddressDialect.ExcelA1);
+
+        Assert.Equal(expectedSheet, reference.Start.SheetName);
+    }
+
     [Fact]
     public void UnboundedA1AcceptsCoordinatesOutsideExcelsGridWithoutChangingExcelRules() {
         Assert.True(SpreadsheetRangeReference.TryParse(

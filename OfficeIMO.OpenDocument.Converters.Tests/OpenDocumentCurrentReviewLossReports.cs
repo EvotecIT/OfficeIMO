@@ -203,6 +203,25 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
+    public void MergeBudgetChargesOnlyCoordinatesNotAlreadyMaterialized() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.CellAt(1, 1).SetValue("Anchor");
+        sheet.MergeRange("A1:B2");
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult(
+            new ExcelOpenDocumentConversionOptions { MaximumExpandedCells = 4 });
+        OdsCellRun anchor = conversion.Value.Sheets.Single().RowRuns
+            .Single(run => run.StartRow == 0).CellRuns.Single(run => run.StartColumn == 0);
+
+        Assert.Equal(2, anchor.RowSpan);
+        Assert.Equal(2, anchor.ColumnSpan);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "merges"
+            && mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 1);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "expansion-limits");
+    }
+
+    [Fact]
     public void OdpRelativeShapeGeometryIsOmittedAndReportedInsteadOfThrowing() {
         OdpPresentation source = OdpPresentation.Create();
         OdpTextBox textBox = source.AddSlide("Relative").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2), "Body");

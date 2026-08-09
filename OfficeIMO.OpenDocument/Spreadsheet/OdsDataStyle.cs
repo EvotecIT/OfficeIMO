@@ -123,6 +123,8 @@ public sealed class OdsDataStyle {
                     : (style == "long" ? "mm" : "m"))) return false;
             } else if (child.Name == OdfNamespaces.Number + "day") {
                 if (!TryAppend(builder, style == "long" ? "dd" : "d")) return false;
+            } else if (child.Name == OdfNamespaces.Number + "day-of-week") {
+                if (!TryAppend(builder, style == "long" ? "dddd" : "ddd")) return false;
             } else if (child.Name == OdfNamespaces.Number + "hours") {
                 if (!TryAppend(builder, style == "long" ? "hh" : "h")) return false;
             } else if (child.Name == OdfNamespaces.Number + "minutes") {
@@ -136,7 +138,11 @@ public sealed class OdsDataStyle {
                 }
             } else if (child.Name == OdfNamespaces.Number + "am-pm") {
                 if (!TryAppend(builder, "AM/PM")) return false;
-            } else if (child.Name == OdfNamespaces.Number + "text" && !TryAppendExcelLiteral(builder, child.Value)) return false;
+            } else if (child.Name == OdfNamespaces.Number + "text") {
+                if (!TryAppendExcelLiteral(builder, child.Value)) return false;
+            } else {
+                return false;
+            }
         }
         formatCode = builder.Length == 0 ? (Kind == OdsDataStyleKind.Date ? "yyyy-mm-dd" : "hh:mm:ss") : builder.ToString();
         return true;

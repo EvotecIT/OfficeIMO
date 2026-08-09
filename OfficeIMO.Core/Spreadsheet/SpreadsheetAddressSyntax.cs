@@ -413,7 +413,8 @@ public sealed class SpreadsheetRangeReference {
         (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z');
 
     private static bool IsIdentifierCharacter(char character) =>
-        IsAsciiLetter(character) || (character >= '0' && character <= '9') || character == '_';
+        char.IsLetterOrDigit(character) || character == '_' ||
+        CharUnicodeInfo.GetUnicodeCategory(character) is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark;
 
     private static bool UsesA1Syntax(SpreadsheetAddressDialect dialect) =>
         dialect == SpreadsheetAddressDialect.ExcelA1 || dialect == SpreadsheetAddressDialect.UnboundedA1;

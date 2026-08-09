@@ -290,6 +290,35 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         Assert.False(timeStyle.TryGetExcelNumberFormatCode(out _));
     }
 
+    [Fact]
+    public void ExcelFormatProjectionPreservesWeekdaysAndRejectsUnsupportedDateComponents() {
+        OdsDocument weekdayDocument = OdsDocument.Create();
+        weekdayDocument.AddDateStyle("Weekday");
+        XDocument weekdayFlat = weekdayDocument.ToFlatXml();
+        XElement weekdayStyle = weekdayFlat.Descendants(OdfNamespaces.Number + "date-style").Single();
+        weekdayStyle.RemoveNodes();
+        weekdayStyle.Add(new XElement(OdfNamespaces.Number + "day-of-week",
+            new XAttribute(OdfNamespaces.Number + "style", "long")));
+        using var weekdayStream = new MemoryStream();
+        weekdayFlat.Save(weekdayStream);
+        weekdayStream.Position = 0;
+        OdsDataStyle weekday = Assert.Single(OdsDocument.LoadFlatXml(weekdayStream).DataStyles);
+
+        OdsDocument unsupportedDocument = OdsDocument.Create();
+        unsupportedDocument.AddDateStyle("Week");
+        XDocument unsupportedFlat = unsupportedDocument.ToFlatXml();
+        XElement unsupportedStyle = unsupportedFlat.Descendants(OdfNamespaces.Number + "date-style").Single();
+        unsupportedStyle.RemoveNodes();
+        unsupportedStyle.Add(new XElement(OdfNamespaces.Number + "week-of-year"));
+        using var unsupportedStream = new MemoryStream();
+        unsupportedFlat.Save(unsupportedStream);
+        unsupportedStream.Position = 0;
+        OdsDataStyle unsupported = Assert.Single(OdsDocument.LoadFlatXml(unsupportedStream).DataStyles);
+
+        Assert.Equal("dddd", weekday.ToExcelNumberFormatCode());
+        Assert.False(unsupported.TryGetExcelNumberFormatCode(out _));
+    }
+
     private static void WrapFirstRowAsHeader(XElement table) {
         XElement firstRow = table.Elements(OdfNamespaces.Table + "table-row").First();
         XElement secondRow = firstRow.ElementsAfterSelf(OdfNamespaces.Table + "table-row").First();
