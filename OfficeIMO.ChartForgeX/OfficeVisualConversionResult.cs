@@ -21,6 +21,8 @@ public sealed class OfficeVisualConversionResult {
         double widthPoints,
         double heightPoints,
         string alternativeText,
+        bool isDecorative,
+        OfficeVisualSvgPolicy svgPolicy,
         IReadOnlyList<OfficeVisualRegion> regions,
         OfficeVisualConversionReport report) {
         Artifact = artifact;
@@ -33,6 +35,8 @@ public sealed class OfficeVisualConversionResult {
         WidthPoints = widthPoints;
         HeightPoints = heightPoints;
         AlternativeText = alternativeText;
+        IsDecorative = isDecorative;
+        SvgPolicy = svgPolicy;
         Regions = regions;
         Report = report;
     }
@@ -66,6 +70,12 @@ public sealed class OfficeVisualConversionResult {
 
     /// <summary>Gets the resolved accessible description used by document placement helpers.</summary>
     public string AlternativeText { get; }
+
+    /// <summary>Gets whether the source visual is decorative and should be omitted from accessibility structure.</summary>
+    public bool IsDecorative { get; }
+
+    /// <summary>Gets the fidelity policy selected for this conversion.</summary>
+    public OfficeVisualSvgPolicy SvgPolicy { get; }
 
     /// <summary>Gets artifact regions transformed to Office point coordinates.</summary>
     public IReadOnlyList<OfficeVisualRegion> Regions { get; }

@@ -145,9 +145,9 @@ public static class OfficeVisualPlacementExtensions {
         string? linkContents = null) {
         if (content == null) throw new ArgumentNullException(nameof(content));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
-        PdfDrawingStyle effectiveStyle = ResolvePdfDrawingStyle(style, conversion.AlternativeText);
+        PdfDrawingStyle effectiveStyle = ResolvePdfDrawingStyle(style, conversion.AlternativeText, conversion.IsDecorative);
         content.Item(item => item.Drawing(
-            conversion.Drawing,
+            OfficeVisualPdfDrawingResolver.Resolve(conversion),
             align,
             spacingBefore,
             spacingAfter,
@@ -186,11 +186,11 @@ public static class OfficeVisualPlacementExtensions {
         if (item == null) throw new ArgumentNullException(nameof(item));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
         return item.Drawing(
-            conversion.Drawing,
+            OfficeVisualPdfDrawingResolver.Resolve(conversion),
             align,
             spacingBefore,
             spacingAfter,
-            ResolvePdfDrawingStyle(style, conversion.AlternativeText),
+            ResolvePdfDrawingStyle(style, conversion.AlternativeText, conversion.IsDecorative),
             linkUri,
             linkContents);
     }
@@ -223,9 +223,9 @@ public static class OfficeVisualPlacementExtensions {
         string? linkContents = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
-        PdfDrawingStyle effectiveStyle = ResolvePdfDrawingStyle(style, conversion.AlternativeText);
+        PdfDrawingStyle effectiveStyle = ResolvePdfDrawingStyle(style, conversion.AlternativeText, conversion.IsDecorative);
         return document.Compose(compose => compose.Content(item => item.Drawing(
-            conversion.Drawing,
+            OfficeVisualPdfDrawingResolver.Resolve(conversion),
             align,
             spacingBefore,
             spacingAfter,
@@ -239,8 +239,12 @@ public static class OfficeVisualPlacementExtensions {
     private static string ResolveTitle(OfficeVisualConversionResult conversion) =>
         string.IsNullOrWhiteSpace(conversion.Title) ? conversion.Id : conversion.Title;
 
-    private static PdfDrawingStyle ResolvePdfDrawingStyle(PdfDrawingStyle? style, string alternativeText) {
-        PdfDrawingStyle effective = style?.Clone() ?? new PdfDrawingStyle();
+    private static PdfDrawingStyle ResolvePdfDrawingStyle(PdfDrawingStyle? style, string alternativeText, bool isDecorative) {
+        PdfDrawingStyle effective = style?.Clone() ?? new PdfDrawingStyle { Decorative = isDecorative };
+        if (isDecorative) {
+            effective.Decorative = true;
+            effective.AlternativeText = null;
+        }
         if (!effective.Decorative && string.IsNullOrWhiteSpace(effective.AlternativeText)) {
             effective.AlternativeText = alternativeText;
         }

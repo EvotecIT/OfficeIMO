@@ -64,4 +64,36 @@ public sealed class PdfClippedDrawingGroupTests {
         Assert.InRange(Math.Abs(letters[0].StartBaseLine.Y - letters[1].StartBaseLine.Y), 0D, 0.01D);
         Assert.True(letters[1].StartBaseLine.X > letters[0].StartBaseLine.X);
     }
+
+    [Theory]
+    [InlineData(OfficeFillRule.EvenOdd, " W* n")]
+    [InlineData(OfficeFillRule.NonZero, " W n")]
+    public void DrawingFlowPreservesFreeformGroupClipFillRule(OfficeFillRule fillRule, string expectedOperator) {
+        var child = new OfficeDrawing(80D, 40D)
+            .AddShape(new OfficeShape {
+                Kind = OfficeShapeKind.Rectangle,
+                Width = 80D,
+                Height = 40D,
+                FillColor = OfficeColor.FromRgb(37, 99, 235)
+            }, 0D, 0D);
+        OfficeClipPath clip = OfficeClipPath.Path(new[] {
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(60D, 0D),
+            OfficePathCommand.LineTo(60D, 40D),
+            OfficePathCommand.LineTo(0D, 40D),
+            OfficePathCommand.Close(),
+            OfficePathCommand.MoveTo(15D, 10D),
+            OfficePathCommand.LineTo(45D, 10D),
+            OfficePathCommand.LineTo(45D, 30D),
+            OfficePathCommand.LineTo(15D, 30D),
+            OfficePathCommand.Close()
+        }, fillRule);
+        var drawing = new OfficeDrawing(80D, 50D).AddClippedDrawing(child, 10D, 5D, clip);
+
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Drawing(drawing)
+            .ToBytes();
+
+        Assert.Contains(expectedOperator, Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+    }
 }

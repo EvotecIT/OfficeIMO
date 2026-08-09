@@ -165,6 +165,53 @@ public sealed class OfficeVisualIntegrationTests {
     }
 
     [Fact]
+    public void DecorativeArtifactUsesPdfArtifactStructureByDefault() {
+        VisualArtifact artifact = CreateArtifact();
+        artifact.Accessibility.AsDecorative();
+        OfficeVisualConversionResult visual = artifact.ToOfficeVisual(new OfficeVisualConversionOptions { WidthPoints = 300D });
+
+        byte[] pdf = PdfDocument.Create(
+                _ => { },
+                new PdfOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
+            .AddVisualArtifact(visual, style: new PdfDrawingStyle { SpacingBefore = 6D })
+            .ToBytes();
+        string content = Encoding.ASCII.GetString(pdf);
+
+        Assert.True(visual.IsDecorative);
+        Assert.Empty(visual.AlternativeText);
+        Assert.Contains("/Artifact", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Figure << /Alt", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfPlacementRasterizesUnsupportedEffectGroupsOrFailsClosed() {
+        const string blendedSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='80' viewBox='0 0 120 80'><rect width='120' height='80' fill='#ffffff'/><g style='mix-blend-mode:multiply'><rect x='10' y='10' width='70' height='50' fill='#ef4444'/><rect x='40' y='20' width='70' height='50' fill='#2563eb'/></g></svg>";
+        const string maskedSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='80' viewBox='0 0 120 80'><defs><mask id='fade' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='80'><rect width='60' height='80' fill='white'/></mask></defs><rect width='120' height='80' fill='#2563eb' mask='url(#fade)'/></svg>";
+        foreach (string svg in new[] { blendedSvg, maskedSvg }) {
+            var source = new OfficeVisualSource(svg) { AlternativeText = "Effect-group visual" };
+            OfficeVisualConversionResult preserved = source.ToOfficeVisual(new OfficeVisualConversionOptions { SvgPolicy = OfficeVisualSvgPolicy.PreserveVector });
+            Assert.Contains(preserved.Drawing.Elements, element => element is OfficeDrawingEffectGroup);
+            OfficeRasterImage expected = OfficeDrawingRasterRenderer.Render(preserved.Drawing, scale: 96D / 72D);
+
+            byte[] pdf = PdfDocument.Create(_ => { }, new PdfOptions { CompressContentStreams = false })
+                .AddVisualArtifact(preserved)
+                .ToBytes();
+            Assert.Equal("%PDF", Encoding.ASCII.GetString(pdf, 0, 4));
+            Assert.Contains("/Subtype /Image", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+            PdfExtractedImage embedded = Assert.Single(PdfDocument.Open(pdf).Read.Images());
+            Assert.True(OfficeRasterImageDecoder.TryDecode(embedded.Bytes, out OfficeRasterImage? actual));
+            Assert.NotNull(actual);
+            Assert.Equal(expected.Width, actual!.Width);
+            Assert.Equal(expected.Height, actual.Height);
+            Assert.True(expected.GetPixels().SequenceEqual(actual.GetPixels()), "PDF fallback pixels should come from the effect-capable OfficeDrawing raster renderer.");
+        }
+
+        var requiredSource = new OfficeVisualSource(blendedSvg);
+        OfficeVisualConversionResult required = requiredSource.ToOfficeVisual(new OfficeVisualConversionOptions { SvgPolicy = OfficeVisualSvgPolicy.RequireVector });
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Create(_ => { }).AddVisualArtifact(required));
+    }
+
+    [Fact]
     public void SymbolUseGroupsRemainVectorAndCanBeWrittenToPdf() {
         const string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"80\" viewBox=\"0 0 120 80\"><defs><symbol id=\"badge\" viewBox=\"0 0 40 30\"><rect width=\"40\" height=\"30\" rx=\"4\" fill=\"#2563eb\"/><text x=\"20\" y=\"19\" text-anchor=\"middle\" fill=\"white\">OK</text></symbol></defs><use href=\"#badge\" x=\"20\" y=\"15\" width=\"80\" height=\"50\"/></svg>";
         var source = new OfficeVisualSource(svg) {
