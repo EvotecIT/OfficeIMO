@@ -1,17 +1,17 @@
+using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.OpenDocument;
+using OfficeIMO.OpenDocument;
+using OfficeIMO.OpenDocument.Testing;
+using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.OpenDocument;
+using OfficeIMO.Word;
+using OfficeIMO.Word.OpenDocument;
 using System;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.OpenDocument;
-using OfficeIMO.OpenDocument.Testing;
-using OfficeIMO.Excel;
-using OfficeIMO.Excel.OpenDocument;
-using OfficeIMO.PowerPoint;
-using OfficeIMO.PowerPoint.OpenDocument;
-using OfficeIMO.Word;
-using OfficeIMO.Word.OpenDocument;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -375,6 +375,46 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         conversion.Report.RequireNoSkippedOrUnsupported();
         Assert.Single(target.Sheets.Single().GetComments());
         Assert.Contains(target.CreateInspectionSnapshot().NamedRanges, name => name.Name == "Input");
+    }
+
+    [Fact]
+    public void OdsAnnotationListBodyIsPreservedInTheExcelCommentTranscript() {
+        OdsDocument source = OdsDocument.Create();
+        source.AddSheet("Data").Cell(0, 0).AddAnnotation("Placeholder", "Alice");
+        XElement annotation = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Office + "annotation").Single();
+        annotation.Elements(OdfNamespaces.Text + "p").Remove();
+        annotation.Add(new XElement(OdfNamespaces.Text + "list",
+            new XElement(OdfNamespaces.Text + "list-item", new XElement(OdfNamespaces.Text + "p", "First")),
+            new XElement(OdfNamespaces.Text + "list-item", new XElement(OdfNamespaces.Text + "p", "Second"))));
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            });
+        using ExcelDocument target = conversion.Value;
+
+        Assert.Equal("First\nSecond", Assert.Single(target.Sheets.Single().GetComments()).Text);
+        conversion.Report.RequireNoSkippedOrUnsupported();
+    }
+
+    [Fact]
+    public void OversizedInlineOdsValidationIsReportedInsteadOfWritingAnInvalidExcelFormula() {
+        OdsDocument source = OdsDocument.Create();
+        OdsValidation validation = source.AddValidation("Oversized",
+            OdsValidationConditionSyntax.CreateList(new[] { new string('x', 254) }));
+        source.AddSheet("Data").Cell(0, 0).ValidationName = validation.Name;
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+
+        Assert.Empty(target.CreateInspectionSnapshot().Worksheets.Single().Validations);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "validations" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            }));
     }
 
     [Fact]

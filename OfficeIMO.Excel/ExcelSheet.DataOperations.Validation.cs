@@ -1,8 +1,12 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Text;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        /// <summary>Maximum character count supported by an Excel data-validation formula.</summary>
+        public const int MaximumDataValidationFormulaLength = 255;
+
         // -------- Validation --------
 
         /// <summary>
@@ -12,8 +16,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             if (items == null) throw new ArgumentNullException(nameof(items));
 
-            var joined = string.Join(",", items.Select(i => i?.Replace("\"", "\"\"") ?? string.Empty));
-            var formula = "\"" + joined + "\""; // e.g., "New,Processed,Hold"
+            string formula = BuildInlineValidationListFormula(items);
 
             var dv = new DataValidation {
                 Type = DataValidationValues.List,
@@ -34,6 +37,11 @@ namespace OfficeIMO.Excel {
             var normalizedNamedRange = namedRange.Trim();
             if (!normalizedNamedRange.StartsWith("=", StringComparison.Ordinal)) {
                 normalizedNamedRange = "=" + normalizedNamedRange;
+            }
+            if (normalizedNamedRange.Length > MaximumDataValidationFormulaLength) {
+                throw new ArgumentException(
+                    $"The validation source exceeds Excel's {MaximumDataValidationFormulaLength}-character formula limit.",
+                    nameof(namedRange));
             }
 
             var dv = new DataValidation {
@@ -66,6 +74,11 @@ namespace OfficeIMO.Excel {
                 formulaRange = ExcelChartUtils.EnsureSheetQualifiedRange(effectiveSheetName, normalizedSourceRange);
             }
             var formula = "=" + formulaRange;
+            if (formula.Length > MaximumDataValidationFormulaLength) {
+                throw new ArgumentException(
+                    $"The validation source exceeds Excel's {MaximumDataValidationFormulaLength}-character formula limit.",
+                    nameof(sourceA1Range));
+            }
 
             var dv = new DataValidation {
                 Type = DataValidationValues.List,
@@ -132,6 +145,16 @@ namespace OfficeIMO.Excel {
         private void ValidationAdd(string a1Range, DataValidationValues type, DataValidationOperatorValues? @operator, string formula1, string? formula2, bool allowBlank, string? errorTitle, string? errorMessage) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             if (string.IsNullOrWhiteSpace(formula1)) throw new ArgumentNullException(nameof(formula1));
+            if (formula1.Length > MaximumDataValidationFormulaLength) {
+                throw new ArgumentException(
+                    $"The validation formula exceeds Excel's {MaximumDataValidationFormulaLength}-character limit.",
+                    nameof(formula1));
+            }
+            if (formula2 != null && formula2.Length > MaximumDataValidationFormulaLength) {
+                throw new ArgumentException(
+                    $"The validation formula exceeds Excel's {MaximumDataValidationFormulaLength}-character limit.",
+                    nameof(formula2));
+            }
 
             bool requiresTwo = @operator == DataValidationOperatorValues.Between || @operator == DataValidationOperatorValues.NotBetween;
             if (requiresTwo && formula2 == null) throw new ArgumentNullException(nameof(formula2));
@@ -175,6 +198,35 @@ namespace OfficeIMO.Excel {
         internal void AppendLegacyDataValidation(DataValidation dataValidation) {
             AppendDataValidation(dataValidation);
         }
+
+        private static string BuildInlineValidationListFormula(IEnumerable<string> items) {
+            var builder = new StringBuilder(MaximumDataValidationFormulaLength);
+            builder.Append('"');
+            bool first = true;
+            foreach (string? item in items) {
+                if (!first) builder.Append(',');
+                first = false;
+                string value = item ?? string.Empty;
+                if (value.IndexOf(',') >= 0) {
+                    throw new ArgumentException(
+                        "Inline validation-list items cannot contain commas; use a range or named range source instead.",
+                        nameof(items));
+                }
+                foreach (char character in value) {
+                    builder.Append(character);
+                    if (character == '"') builder.Append('"');
+                    if (builder.Length >= MaximumDataValidationFormulaLength) ThrowInlineListTooLong();
+                }
+                if (builder.Length >= MaximumDataValidationFormulaLength) ThrowInlineListTooLong();
+            }
+            builder.Append('"');
+            if (builder.Length > MaximumDataValidationFormulaLength) ThrowInlineListTooLong();
+            return builder.ToString();
+        }
+
+        private static void ThrowInlineListTooLong() => throw new ArgumentException(
+            $"The inline validation list exceeds Excel's {MaximumDataValidationFormulaLength}-character formula limit.",
+            "items");
 
         private static void InsertDataValidations(Worksheet worksheet, DataValidations dataValidations) {
             var tableParts = worksheet.GetFirstChild<TableParts>();

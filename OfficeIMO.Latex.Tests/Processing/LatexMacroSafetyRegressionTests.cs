@@ -115,4 +115,36 @@ public sealed class LatexMacroSafetyRegressionTests {
             });
         });
     }
+
+    [Fact]
+    public void SafeExpansionUsesAnAggregateTokenBudgetIndependentOfTheInputCharacterLimit() {
+        LatexDocument document = LatexDocument.Parse(
+            "\\newcommand{\\shorten}[1]{x}",
+            new LatexParseOptions {
+                MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions,
+                MaximumExpansionInputLength = 4096,
+                MaximumExpansionTokenCount = 32
+            }).Document;
+        string tokenDenseInvocation = "\\shorten{" + string.Concat(Enumerable.Repeat("{}", 64)) + "}";
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            document.ExpandSimpleMacros(tokenDenseInvocation));
+
+        Assert.Contains("MaximumTokenCount", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void EmptyMacroBodiesRemainValidUnderTheAggregateTokenBudget() {
+        LatexDocument document = LatexDocument.Parse(
+            "\\newcommand{\\empty}{}",
+            new LatexParseOptions {
+                MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions,
+                MaximumExpansionTokenCount = 4
+            }).Document;
+
+        LatexMacroExpansionResult result = document.ExpandSimpleMacros("\\empty");
+
+        Assert.Equal(string.Empty, result.Value);
+        Assert.Empty(result.Diagnostics);
+    }
 }

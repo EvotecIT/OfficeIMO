@@ -1,7 +1,7 @@
-using System.Globalization;
-using System.Text;
 using OfficeIMO.Excel;
 using OfficeIMO.OpenDocument;
+using System.Globalization;
+using System.Text;
 
 namespace OfficeIMO.Excel.OpenDocument;
 
@@ -91,6 +91,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (condition == null) return false;
         if (condition.ValueKind == OdsValidationValueKind.List) {
             if (condition.ListValues.Any(static item => item.IndexOf(',') >= 0)) return false;
+            long formulaLength = 2L + Math.Max(0, condition.ListValues.Count - 1);
+            foreach (string item in condition.ListValues) {
+                formulaLength += item.Length + item.Count(static character => character == '"');
+                if (formulaLength > ExcelSheet.MaximumDataValidationFormulaLength) return false;
+            }
             sheet.ValidationList(references, condition.ListValues, validation.AllowEmptyCell);
             return true;
         }

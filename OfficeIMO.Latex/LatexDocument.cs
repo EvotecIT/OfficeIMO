@@ -130,7 +130,8 @@ public sealed partial class LatexDocument {
             throw new InvalidOperationException("Safe simple macro expansion was not enabled in LatexParseOptions.");
         }
         return LatexSimpleMacroExpander.Expand(value, MacroDefinitions, _options.MaximumExpansionDepth,
-            _options.MaximumExpansionLength, _options.MaximumExpansionInputLength);
+            _options.MaximumExpansionLength, _options.MaximumExpansionInputLength,
+            _options.MaximumExpansionTokenCount);
     }
 
     internal IEnumerable<ILatexSourceEdit> GetSourceEdits() {

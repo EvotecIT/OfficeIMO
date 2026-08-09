@@ -1,9 +1,9 @@
+using OfficeIMO.OpenDocument.Testing;
 using System;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
-using OfficeIMO.OpenDocument.Testing;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;
@@ -338,6 +338,68 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
 
         Assert.False(minuteOnly.TryGetExcelNumberFormatCode(out _));
         Assert.Throws<InvalidOperationException>(() => minuteOnly.ToExcelNumberFormatCode());
+    }
+
+    [Fact]
+    public void ExcelFormatProjectionUsesElapsedComponentsForNonTruncatingTimeStyles() {
+        OdsDocument document = OdsDocument.Create();
+        document.AddTimeStyle("Elapsed");
+        XDocument flat = document.ToFlatXml();
+        flat.Descendants(OdfNamespaces.Number + "time-style").Single()
+            .SetAttributeValue(OdfNamespaces.Number + "truncate-on-overflow", false);
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        OdsDataStyle elapsed = Assert.Single(OdsDocument.LoadFlatXml(stream).DataStyles);
+
+        Assert.Equal("[h]:mm:ss", elapsed.ToExcelNumberFormatCode());
+    }
+
+    [Fact]
+    public void ExcelFormatProjectionUsesElapsedMinutesWhenHoursAreNotAuthored() {
+        OdsDocument document = OdsDocument.Create();
+        document.AddTimeStyle("ElapsedMinutes");
+        XDocument flat = document.ToFlatXml();
+        XElement style = flat.Descendants(OdfNamespaces.Number + "time-style").Single();
+        style.SetAttributeValue(OdfNamespaces.Number + "truncate-on-overflow", false);
+        style.RemoveNodes();
+        style.Add(new XElement(OdfNamespaces.Number + "minutes",
+            new XAttribute(OdfNamespaces.Number + "style", "long")));
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        OdsDataStyle elapsed = Assert.Single(OdsDocument.LoadFlatXml(stream).DataStyles);
+
+        Assert.Equal("[m]", elapsed.ToExcelNumberFormatCode());
+    }
+
+    [Fact]
+    public void AnnotationTextReadsNestedListsAndReplacingTextRemovesTheOldBlockBody() {
+        OdsDocument document = OdsDocument.Create();
+        OdsAnnotation annotation = document.AddSheet("Data").Cell(0, 0).AddAnnotation("Original", "Alice");
+        XElement element = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Office + "annotation").Single();
+        element.Elements(OdfNamespaces.Text + "p").Remove();
+        element.Add(
+            new XElement(OdfNamespaces.Text + "p", "Intro"),
+            new XElement(OdfNamespaces.Text + "list",
+                new XElement(OdfNamespaces.Text + "list-item",
+                    new XElement(OdfNamespaces.Text + "p", "First")),
+                new XElement(OdfNamespaces.Text + "list-item",
+                    new XElement(OdfNamespaces.Text + "p", "Second"),
+                    new XElement(OdfNamespaces.Text + "list",
+                        new XElement(OdfNamespaces.Text + "list-item",
+                            new XElement(OdfNamespaces.Text + "p", "Nested"))))));
+
+        Assert.Equal("Intro\nFirst\nSecond\nNested", annotation.Text);
+
+        annotation.Text = "Replacement";
+
+        Assert.Equal("Replacement", annotation.Text);
+        Assert.Empty(element.Elements(OdfNamespaces.Text + "list"));
+        Assert.Equal("Alice", annotation.Creator);
     }
 
     [Theory]

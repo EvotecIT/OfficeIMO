@@ -37,10 +37,10 @@ public sealed class OdsAnnotation {
 
     /// <summary>Plain annotation body with ODF spaces, tabs, and line breaks decoded.</summary>
     public string Text {
-        get => string.Join("\n", _element.Elements(OdfNamespaces.Text + "p").Select(OdfTextCodec.Read));
+        get => string.Join("\n", ReadTextBlocks(_element));
         set {
             if (value == null) throw new ArgumentNullException(nameof(value));
-            _element.Elements(OdfNamespaces.Text + "p").Remove();
+            _element.Elements().Where(IsAnnotationTextBlock).Remove();
             var paragraph = new XElement(OdfNamespaces.Text + "p");
             OdfTextCodec.Append(paragraph, value);
             _element.Add(paragraph);
@@ -65,7 +65,7 @@ public sealed class OdsAnnotation {
         if (string.IsNullOrWhiteSpace(value)) {
             element?.Remove();
         } else if (element == null) {
-            XElement? firstParagraph = _element.Element(OdfNamespaces.Text + "p");
+            XElement? firstParagraph = _element.Elements().FirstOrDefault(IsAnnotationTextBlock);
             var added = new XElement(name, value);
             if (firstParagraph == null) _element.Add(added); else firstParagraph.AddBeforeSelf(added);
         } else {
@@ -73,6 +73,29 @@ public sealed class OdsAnnotation {
         }
         Dirty();
     }
+
+    private static IEnumerable<string> ReadTextBlocks(XElement container) {
+        foreach (XElement child in container.Elements()) {
+            if (child.Name == OdfNamespaces.Text + "p" || child.Name == OdfNamespaces.Text + "h") {
+                yield return OdfTextCodec.Read(child);
+            } else if (child.Name == OdfNamespaces.Text + "list") {
+                foreach (string block in ReadListBlocks(child)) yield return block;
+            }
+        }
+    }
+
+    private static IEnumerable<string> ReadListBlocks(XElement list) {
+        foreach (XElement child in list.Elements()) {
+            if (child.Name != OdfNamespaces.Text + "list-item" &&
+                child.Name != OdfNamespaces.Text + "list-header") continue;
+            foreach (string block in ReadTextBlocks(child)) yield return block;
+        }
+    }
+
+    private static bool IsAnnotationTextBlock(XElement element) =>
+        element.Name == OdfNamespaces.Text + "p" ||
+        element.Name == OdfNamespaces.Text + "h" ||
+        element.Name == OdfNamespaces.Text + "list";
 
     private void Dirty() => _document.MarkPartDirty("content.xml");
 }

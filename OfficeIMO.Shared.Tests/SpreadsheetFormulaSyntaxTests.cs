@@ -69,6 +69,18 @@ public sealed class SpreadsheetFormulaSyntaxTests {
         Assert.Equal(expected, result.Formula);
     }
 
+    [Theory]
+    [InlineData("of1:=SUM([.A1])")]
+    [InlineData("openformula_namespace_prefix_longer_than_thirty_two_characters:=SUM([.A1])")]
+    public void OpenFormulaAcceptsAnyValidXmlNamespacePrefix(string openFormula) {
+        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
+            .Parse(openFormula, SpreadsheetFormulaDialect.OpenFormula)
+            .TranslateTo(SpreadsheetFormulaDialect.ExcelA1);
+
+        Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal("=SUM(A1)", result.Formula);
+    }
+
     [Fact]
     public void StructuredReferenceFailsClosedInsteadOfProducingInvalidOpenFormula() {
         SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree

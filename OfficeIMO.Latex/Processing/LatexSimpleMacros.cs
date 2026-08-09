@@ -63,6 +63,8 @@ public sealed class LatexMacroExpansionResult {
 
 /// <summary>Bounded expander for safe document-local simple macros only.</summary>
 public static class LatexSimpleMacroExpander {
+    private const int DefaultMaximumTokenCount = 2_000_000;
+
     /// <summary>Expands safe definitions in an explicit input string.</summary>
     public static LatexMacroExpansionResult Expand(
         string value,
@@ -78,19 +80,33 @@ public static class LatexSimpleMacroExpander {
         int maximumDepth,
         int maximumOutputLength,
         int maximumInputLength = 64 * 1024 * 1024) {
+        return Expand(value, definitions, maximumDepth, maximumOutputLength, maximumInputLength,
+            DefaultMaximumTokenCount);
+    }
+
+    /// <summary>Expands safe definitions with independent recursion, output, input, and aggregate token limits.</summary>
+    public static LatexMacroExpansionResult Expand(
+        string value,
+        IReadOnlyList<LatexMacroDefinition> definitions,
+        int maximumDepth,
+        int maximumOutputLength,
+        int maximumInputLength,
+        int maximumTokenCount) {
         if (value == null) throw new ArgumentNullException(nameof(value));
         if (definitions == null) throw new ArgumentNullException(nameof(definitions));
         if (maximumDepth < 1) throw new ArgumentOutOfRangeException(nameof(maximumDepth));
         if (maximumOutputLength < 1) throw new ArgumentOutOfRangeException(nameof(maximumOutputLength));
         if (maximumInputLength < 1) throw new ArgumentOutOfRangeException(nameof(maximumInputLength));
+        if (maximumTokenCount < 1) throw new ArgumentOutOfRangeException(nameof(maximumTokenCount));
         var map = new Dictionary<string, LatexMacroDefinition>(StringComparer.Ordinal);
         foreach (LatexMacroDefinition definition in definitions.Where(static definition => definition.IsSafe)) {
             if (string.Equals(definition.Command.Name, "providecommand", StringComparison.Ordinal) && map.ContainsKey(definition.Name)) continue;
             map[definition.Name] = definition;
         }
         var diagnostics = new List<LatexMacroExpansionDiagnostic>();
+        var tokenBudget = new TokenBudget(maximumTokenCount);
         string output = ExpandCore(value, map, diagnostics, new HashSet<string>(StringComparer.Ordinal), 0,
-            maximumDepth, maximumOutputLength, maximumInputLength);
+            maximumDepth, maximumOutputLength, maximumInputLength, tokenBudget);
         return new LatexMacroExpansionResult(output, diagnostics);
     }
 
@@ -102,13 +118,16 @@ public static class LatexSimpleMacroExpander {
         int depth,
         int maximumDepth,
         int maximumOutputLength,
-        int maximumInputLength) {
+        int maximumInputLength,
+        TokenBudget tokenBudget) {
         if (depth > maximumDepth) throw new InvalidDataException("Simple macro expansion exceeds maximumDepth.");
+        if (value.Length == 0) return string.Empty;
         var output = new StringBuilder(value.Length);
         IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(value, new LatexParseOptions {
             MaximumInputLength = maximumInputLength,
-            MaximumTokenCount = Math.Max(1, maximumInputLength)
+            MaximumTokenCount = tokenBudget.GetTokenizerLimit()
         });
+        tokenBudget.Consume(tokens.Count);
         for (int tokenIndex = 0; tokenIndex < tokens.Count;) {
             LatexToken invocation = tokens[tokenIndex];
             string name = invocation.Value ?? string.Empty;
@@ -151,9 +170,9 @@ public static class LatexSimpleMacroExpander {
                 tokenIndex++;
                 continue;
             }
-            string replacement = SubstituteParameters(definition.Body, arguments);
+            string replacement = SubstituteParameters(definition.Body, arguments, tokenBudget);
             output.Append(ExpandCore(replacement, definitions, diagnostics, active, depth + 1,
-                maximumDepth, maximumOutputLength, maximumInputLength));
+                maximumDepth, maximumOutputLength, maximumInputLength, tokenBudget));
             active.Remove(name);
             tokenIndex = cursor;
             EnforceLength(output, maximumOutputLength);
@@ -161,9 +180,17 @@ public static class LatexSimpleMacroExpander {
         return output.ToString();
     }
 
-    private static string SubstituteParameters(string body, IReadOnlyList<string> arguments) {
+    private static string SubstituteParameters(
+        string body,
+        IReadOnlyList<string> arguments,
+        TokenBudget tokenBudget) {
+        if (body.Length == 0) return string.Empty;
         var output = new StringBuilder(body.Length);
-        IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(body);
+        IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(body, new LatexParseOptions {
+            MaximumInputLength = body.Length,
+            MaximumTokenCount = tokenBudget.GetTokenizerLimit()
+        });
+        tokenBudget.Consume(tokens.Count);
         for (int index = 0; index < tokens.Count; index++) {
             LatexToken token = tokens[index];
             if (token.Kind == LatexTokenKind.Parameter && index + 1 < tokens.Count) {
@@ -213,5 +240,21 @@ public static class LatexSimpleMacroExpander {
 
     private static void EnforceLength(StringBuilder output, int maximumOutputLength) {
         if (output.Length > maximumOutputLength) throw new InvalidDataException("Simple macro expansion exceeds maximumOutputLength.");
+    }
+
+    private sealed class TokenBudget {
+        internal TokenBudget(int maximumTokenCount) => Remaining = maximumTokenCount;
+
+        internal int Remaining { get; private set; }
+
+        internal int GetTokenizerLimit() {
+            if (Remaining < 1) throw new InvalidDataException("Simple macro expansion exceeds maximumTokenCount.");
+            return Remaining;
+        }
+
+        internal void Consume(int count) {
+            if (count > Remaining) throw new InvalidDataException("Simple macro expansion exceeds maximumTokenCount.");
+            Remaining -= count;
+        }
     }
 }

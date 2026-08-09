@@ -50,4 +50,7 @@ public sealed class LatexParseOptions {
 
     /// <summary>Maximum input characters accepted by one explicit safe macro expansion step.</summary>
     public int MaximumExpansionInputLength { get; set; } = 64 * 1024 * 1024;
+
+    /// <summary>Maximum tokens consumed across one explicit safe macro expansion.</summary>
+    public int MaximumExpansionTokenCount { get; set; } = 2_000_000;
 }

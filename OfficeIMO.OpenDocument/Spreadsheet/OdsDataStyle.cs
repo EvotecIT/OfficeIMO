@@ -116,6 +116,14 @@ public sealed class OdsDataStyle {
         var builder = new System.Text.StringBuilder();
         bool hasHourContext = Element.Elements().Any(child => child.Name == OdfNamespaces.Number + "hours");
         bool hasSecondContext = Element.Elements().Any(child => child.Name == OdfNamespaces.Number + "seconds");
+        if (!TryReadBoolean(Element, "truncate-on-overflow", true, out bool truncateOnOverflow)) return false;
+        bool useElapsedComponent = Kind == OdsDataStyleKind.Time && !truncateOnOverflow;
+        XName? elapsedComponent = !useElapsedComponent ? null
+            : hasHourContext ? OdfNamespaces.Number + "hours"
+            : Element.Elements().Any(child => child.Name == OdfNamespaces.Number + "minutes")
+                ? OdfNamespaces.Number + "minutes"
+                : hasSecondContext ? OdfNamespaces.Number + "seconds" : null;
+        bool wroteElapsedComponent = false;
         foreach (XElement child in Element.Elements()) {
             string style = (string?)child.Attribute(OdfNamespaces.Number + "style") ?? "short";
             if (child.Name == OdfNamespaces.Number + "year") {
@@ -133,13 +141,25 @@ public sealed class OdsDataStyle {
             } else if (child.Name == OdfNamespaces.Number + "day-of-week") {
                 if (!TryAppend(builder, style == "long" ? "dddd" : "ddd")) return false;
             } else if (child.Name == OdfNamespaces.Number + "hours") {
-                if (!TryAppend(builder, style == "long" ? "hh" : "h")) return false;
+                bool elapsed = child.Name == elapsedComponent && !wroteElapsedComponent;
+                if (!TryAppend(builder, elapsed
+                    ? "[h]"
+                    : (style == "long" ? "hh" : "h"))) return false;
+                wroteElapsedComponent |= elapsed;
             } else if (child.Name == OdfNamespaces.Number + "minutes") {
-                if (!hasHourContext && !hasSecondContext) return false;
-                if (!TryAppend(builder, style == "long" ? "mm" : "m")) return false;
+                if (!hasHourContext && !hasSecondContext && !useElapsedComponent) return false;
+                bool elapsed = child.Name == elapsedComponent && !wroteElapsedComponent;
+                if (!TryAppend(builder, elapsed
+                    ? "[m]"
+                    : (style == "long" ? "mm" : "m"))) return false;
+                wroteElapsedComponent |= elapsed;
             } else if (child.Name == OdfNamespaces.Number + "seconds") {
-                if (!TryAppend(builder, style == "long" ? "ss" : "s") ||
+                bool elapsed = child.Name == elapsedComponent && !wroteElapsedComponent;
+                if (!TryAppend(builder, elapsed
+                        ? "[s]"
+                        : (style == "long" ? "ss" : "s")) ||
                     !TryReadNonNegativeInteger(child, "decimal-places", 0, out int decimalPlaces)) return false;
+                wroteElapsedComponent |= elapsed;
                 if (decimalPlaces > 0) {
                     if (decimalPlaces > MaximumExcelNumberFormatCodeLength - builder.Length - 1 ||
                         !TryAppend(builder, ".") || !TryAppend(builder, new string('0', decimalPlaces))) return false;
@@ -152,7 +172,9 @@ public sealed class OdsDataStyle {
                 return false;
             }
         }
-        formatCode = builder.Length == 0 ? (Kind == OdsDataStyleKind.Date ? "yyyy-mm-dd" : "hh:mm:ss") : builder.ToString();
+        formatCode = builder.Length == 0
+            ? (Kind == OdsDataStyleKind.Date ? "yyyy-mm-dd" : (useElapsedComponent ? "[h]:mm:ss" : "hh:mm:ss"))
+            : builder.ToString();
         return true;
     }
 
@@ -164,6 +186,24 @@ public sealed class OdsDataStyle {
         }
         return int.TryParse(lexical, System.Globalization.NumberStyles.None,
             System.Globalization.CultureInfo.InvariantCulture, out value) && value >= 0;
+    }
+
+    private static bool TryReadBoolean(XElement element, string localName, bool fallback, out bool value) {
+        string? lexical = (string?)element.Attribute(OdfNamespaces.Number + localName);
+        if (lexical == null) {
+            value = fallback;
+            return true;
+        }
+        if (string.Equals(lexical, "true", StringComparison.OrdinalIgnoreCase) || lexical == "1") {
+            value = true;
+            return true;
+        }
+        if (string.Equals(lexical, "false", StringComparison.OrdinalIgnoreCase) || lexical == "0") {
+            value = false;
+            return true;
+        }
+        value = fallback;
+        return false;
     }
 
     private static bool TryAppendExcelLiteral(System.Text.StringBuilder builder, string value) {

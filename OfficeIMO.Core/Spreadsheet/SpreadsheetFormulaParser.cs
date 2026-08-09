@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Xml;
 
 namespace OfficeIMO.Spreadsheet;
 
@@ -42,7 +43,7 @@ internal static class SpreadsheetFormulaParser {
         }
 
         int marker = text.IndexOf(":=", StringComparison.Ordinal);
-        if (marker >= 0 && marker <= 32 && IsOpenFormulaPrefix(text, marker)) {
+        if (marker >= 0 && IsOpenFormulaPrefix(text, marker)) {
             int length = marker + 2;
             children.Add(Token(SpreadsheetFormulaTokenKind.Prefix, text.Substring(0, length), 0));
             cursor = length;
@@ -54,11 +55,12 @@ internal static class SpreadsheetFormulaParser {
 
     private static bool IsOpenFormulaPrefix(string text, int marker) {
         if (marker == 0) return false;
-        for (int index = 0; index < marker; index++) {
-            char character = text[index];
-            if (!IsIdentifierStart(character) && character != '.' && character != '-') return false;
+        try {
+            XmlConvert.VerifyNCName(text.Substring(0, marker));
+            return true;
+        } catch (XmlException) {
+            return false;
         }
-        return true;
     }
 
     private static void ParseSequence(
