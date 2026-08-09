@@ -53,6 +53,34 @@ public class PdfAnnotationCreationTests {
     }
 
     [Fact]
+    public void AddAnnotation_PreservesPageAndReplyTargetGenerations() {
+        byte[] source = BuildNonZeroGenerationAnnotationPdf();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(source, new PdfExternalSignatureOptions {
+            Profile = PdfSignatureProfile.Certification,
+            CertificationPermission = PdfCertificationPermissionLevel.FormFillingAnnotationsAndSignatures,
+            FieldName = "GenerationCertification",
+            ReservedSignatureContentsBytes = 512
+        });
+        byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation, new byte[] { 0x30, 0x01, 0x00 });
+
+        PdfAnnotationEditResult result = PdfAnnotationEditor.AddAnnotation(signed, new PdfAnnotationCreateOptions {
+            Subtype = "Text",
+            Rectangle = new[] { 70D, 70D, 90D, 90D },
+            Contents = "Generation-aware reply",
+            InReplyToObjectNumber = 6,
+            CreatePopup = true
+        });
+
+        string raw = Encoding.ASCII.GetString(result.Bytes);
+        PdfDocumentInfo info = PdfInspector.Inspect(result.Bytes);
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, result.MutationPlan.ExecutionMode);
+        Assert.Equal(2, info.GetAnnotationsBySubtype("Text").Count);
+        Assert.Single(info.GetAnnotationsBySubtype("Popup"));
+        Assert.Contains("/P 3 1 R", raw, StringComparison.Ordinal);
+        Assert.Contains("/IRT 6 2 R", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AddAnnotation_UsesAppendOnlyRevisionWhenCertificationAllowsAnnotations() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Certified page")).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(source, new PdfExternalSignatureOptions {
@@ -185,5 +213,40 @@ public class PdfAnnotationCreationTests {
         Assert.Empty(info.GetAnnotationsBySubtype("FreeText"));
         Assert.Single(info.GetAnnotationsBySubtype("Highlight"));
         Assert.NotNull(result.RewritePreservationReport);
+    }
+
+    private static byte[] BuildNonZeroGenerationAnnotationPdf() {
+        var objects = new[] {
+            (Number: 1, Generation: 0, Body: "<< /Type /Catalog /Pages 2 0 R >>"),
+            (Number: 2, Generation: 0, Body: "<< /Type /Pages /Count 1 /Kids [3 1 R] >>"),
+            (Number: 3, Generation: 1, Body: "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [6 2 R] >>"),
+            (Number: 4, Generation: 0, Body: "<< /Length 0 >>\nstream\n\nendstream"),
+            (Number: 6, Generation: 2, Body: "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Parent) >>")
+        };
+        var builder = new StringBuilder("%PDF-1.7\n");
+        var offsets = new Dictionary<int, (int Offset, int Generation)>();
+        foreach ((int number, int generation, string body) in objects) {
+            offsets[number] = (Encoding.ASCII.GetByteCount(builder.ToString()), generation);
+            builder.Append(number).Append(' ').Append(generation).Append(" obj\n")
+                .Append(body).Append("\nendobj\n");
+        }
+
+        int xrefOffset = Encoding.ASCII.GetByteCount(builder.ToString());
+        builder.Append("xref\n0 7\n0000000000 65535 f \n");
+        for (int number = 1; number < 7; number++) {
+            if (offsets.TryGetValue(number, out (int Offset, int Generation) entry)) {
+                builder.Append(entry.Offset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture))
+                    .Append(' ')
+                    .Append(entry.Generation.ToString("D5", System.Globalization.CultureInfo.InvariantCulture))
+                    .Append(" n \n");
+            } else {
+                builder.Append("0000000000 00000 f \n");
+            }
+        }
+
+        builder.Append("trailer\n<< /Root 1 0 R /Size 7 >>\nstartxref\n")
+            .Append(xrefOffset)
+            .Append("\n%%EOF\n");
+        return Encoding.ASCII.GetBytes(builder.ToString());
     }
 }

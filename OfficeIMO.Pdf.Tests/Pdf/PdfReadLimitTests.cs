@@ -517,6 +517,83 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void TryDecodeAppliesFlatePredictorWithinTheOutputBudget() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var decodeParameters = new PdfDictionary();
+        decodeParameters.Items["Predictor"] = new PdfNumber(12);
+        decodeParameters.Items["Columns"] = new PdfNumber(4);
+        dictionary.Items["DecodeParms"] = decodeParameters;
+        byte[] encoded = CompressForDecoderTest(new byte[] { 0, 65, 66, 67, 68 });
+
+        bool decoded = StreamDecoder.TryDecode(dictionary, encoded, 1024, out byte[] output);
+
+        Assert.True(decoded);
+        Assert.Equal(new byte[] { 65, 66, 67, 68 }, output);
+    }
+
+    [Fact]
+    public void TryDecodeAppliesTiffPredictorAcrossSupportedBitDepths() {
+        AssertTiffPredictorDecode(1, 8, new byte[] { 0x5D }, new byte[] { 0x69 });
+        AssertTiffPredictorDecode(2, 4, new byte[] { 0x1B }, new byte[] { 0x1E });
+        AssertTiffPredictorDecode(4, 4, new byte[] { 0x12, 0x34 }, new byte[] { 0x13, 0x6A });
+        AssertTiffPredictorDecode(4, 2, new byte[] { 0x12, 0x33, 0x46 }, new byte[] { 0x12, 0x34, 0x69 }, colors: 3);
+        AssertTiffPredictorDecode(16, 3, new byte[] { 0x00, 0x01, 0x01, 0x01, 0xFE, 0xFD }, new byte[] { 0x00, 0x01, 0x01, 0x02, 0xFF, 0xFF });
+    }
+
+    [Fact]
+    public void TryDecodeRejectsInvalidLzwEarlyChange() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("LZWDecode");
+        var decodeParameters = new PdfDictionary();
+        decodeParameters.Items["EarlyChange"] = new PdfNumber(2);
+        dictionary.Items["DecodeParms"] = decodeParameters;
+        byte[] encoded = PackNineBitCodes(new[] { 256, 65, 257 });
+
+        Assert.False(StreamDecoder.TryDecode(dictionary, encoded, 1024, out _));
+    }
+
+    [Fact]
+    public void TryDecodeRejectsMalformedFilterAndDecodeParameterArrays() {
+        byte[] encoded = CompressForDecoderTest(new byte[] { 65, 66, 67, 68 });
+        var malformedFilter = new PdfDictionary();
+        var filters = new PdfArray();
+        filters.Items.Add(new PdfNumber(42));
+        filters.Items.Add(new PdfName("FlateDecode"));
+        malformedFilter.Items["Filter"] = filters;
+
+        var mismatchedParameters = new PdfDictionary();
+        var validFilters = new PdfArray();
+        validFilters.Items.Add(new PdfName("ASCII85Decode"));
+        validFilters.Items.Add(new PdfName("FlateDecode"));
+        mismatchedParameters.Items["Filter"] = validFilters;
+        var decodeParameters = new PdfArray();
+        decodeParameters.Items.Add(PdfNull.Instance);
+        mismatchedParameters.Items["DecodeParms"] = decodeParameters;
+
+        Assert.False(StreamDecoder.TryDecode(malformedFilter, encoded, 1024, out _));
+        Assert.Contains("MalformedFilterDeclaration", StreamDecoder.GetUnsupportedFilters(malformedFilter));
+        Assert.False(StreamDecoder.TryDecode(mismatchedParameters, encoded, 1024, out _));
+    }
+
+    [Theory]
+    [InlineData(3, 8, 1)]
+    [InlineData(2, 3, 1)]
+    [InlineData(2, 4, 3)]
+    public void TryDecodeRejectsUnsupportedOrIncompletePredictorDeclarations(int predictor, int bitsPerComponent, int encodedByteCount) {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var decodeParameters = new PdfDictionary();
+        decodeParameters.Items["Predictor"] = new PdfNumber(predictor);
+        decodeParameters.Items["Columns"] = new PdfNumber(3);
+        decodeParameters.Items["BitsPerComponent"] = new PdfNumber(bitsPerComponent);
+        dictionary.Items["DecodeParms"] = decodeParameters;
+        byte[] encoded = CompressForDecoderTest(new byte[encodedByteCount]);
+
+        Assert.False(StreamDecoder.TryDecode(dictionary, encoded, 1024, out _));
+    }
+
+    [Fact]
     public void AsciiDecodersStopBeforeMaterializingOutputBeyondBudget() {
         var hexDictionary = new PdfDictionary();
         hexDictionary.Items["Filter"] = new PdfName("ASCIIHexDecode");
@@ -576,6 +653,40 @@ public class PdfReadLimitTests {
 
         Assert.Equal(PdfReadLimitKind.InputBytes, exception.Kind);
         Assert.Equal(pdf.Length - 1, exception.Limit);
+    }
+
+    [Fact]
+    public void MalformedSupportedPageStreamBlocksPreflightAndRedaction() {
+        byte[] pdf = BuildMalformedFlatePageContentPdf();
+        var area = new PdfRedactionArea(1, 0, 0, 200, 200, "fail-closed");
+
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(pdf, new[] { area });
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfRedactionApplier.Apply(pdf, new[] { area }));
+
+        Assert.False(preflight.CanReadLogicalObjects);
+        Assert.Contains(preflight.ReadBlockers, blocker => blocker.Kind == PdfReadBlockerKind.ParserUnsupported);
+        Assert.False(plan.Preflight.CanReadLogicalObjects);
+        Assert.Contains(plan.Findings, finding => finding.Code == "RedactionPlanBlocked");
+        Assert.Contains("Read.ParserUnsupported", exception.Plan.BlockerCodes);
+    }
+
+    [Fact]
+    public void MalformedFilterArrayBlocksPreflightAndRedaction() {
+        byte[] pdf = BuildMalformedFlatePageContentPdf("[42 /FlateDecode]");
+        var area = new PdfRedactionArea(1, 0, 0, 200, 200, "malformed-filter");
+
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(pdf, new[] { area });
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfRedactionApplier.Apply(pdf, new[] { area }));
+
+        Assert.False(preflight.CanReadLogicalObjects);
+        Assert.Contains(preflight.ReadBlockers, blocker => blocker.Kind == PdfReadBlockerKind.UnsupportedContentStreamFilter);
+        Assert.False(plan.Preflight.CanReadLogicalObjects);
+        Assert.Contains(plan.Findings, finding => finding.Code == "RedactionPlanBlocked");
+        Assert.Contains("Read.UnsupportedContentStreamFilter", exception.Plan.BlockerCodes);
     }
 
     [Fact]
@@ -1019,6 +1130,44 @@ public class PdfReadLimitTests {
             .Append(bodies.Length + 1)
             .Append(" >>\nstartxref\n0\n%%EOF\n");
         return System.Text.Encoding.ASCII.GetBytes(builder.ToString());
+    }
+
+    private static byte[] BuildMalformedFlatePageContentPdf(string filterDeclaration = "/FlateDecode") {
+        const string content = "BT /F1 12 Tf 20 100 Td (SECRET) Tj ET";
+        return System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " /Filter " + filterDeclaration + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static void AssertTiffPredictorDecode(int bitsPerComponent, int columns, byte[] predicted, byte[] expected, int colors = 1) {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var decodeParameters = new PdfDictionary();
+        decodeParameters.Items["Predictor"] = new PdfNumber(2);
+        decodeParameters.Items["Columns"] = new PdfNumber(columns);
+        decodeParameters.Items["Colors"] = new PdfNumber(colors);
+        decodeParameters.Items["BitsPerComponent"] = new PdfNumber(bitsPerComponent);
+        dictionary.Items["DecodeParms"] = decodeParameters;
+
+        bool decoded = StreamDecoder.TryDecode(dictionary, CompressForDecoderTest(predicted), 1024, out byte[] output);
+
+        Assert.True(decoded);
+        Assert.Equal(expected, output);
+    }
+
+    private static byte[] CompressForDecoderTest(byte[] bytes) {
+        using var buffer = new MemoryStream();
+        using (var compressor = new DeflateStream(buffer, CompressionLevel.Optimal, leaveOpen: true)) {
+            compressor.Write(bytes, 0, bytes.Length);
+        }
+
+        return buffer.ToArray();
     }
 
     private static byte[] PackNineBitCodes(IEnumerable<int> codes) {

@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.IO;
 
 namespace OfficeIMO.Pdf;
 
@@ -1438,7 +1439,13 @@ public sealed partial class PdfReadPage {
     }
 
     private byte[] DecodeIfNeeded(PdfStream s, int maxDecodedBytes) {
-        return Filters.StreamDecoder.Decode(s.Dictionary, s.Data, _objects, maxDecodedBytes);
+        if (s.DecodingFailed) {
+            throw new InvalidDataException(
+                "PDF page content stream could not be decoded safely" +
+                (string.IsNullOrWhiteSpace(s.DecodingError) ? "." : ": " + s.DecodingError));
+        }
+
+        return Filters.StreamDecoder.DecodeRequired(s.Dictionary, s.Data, _objects, maxDecodedBytes);
     }
 
     private sealed class PageContentBudget {

@@ -25,9 +25,9 @@ public sealed class PdfOcrRequest {
     public int PixelWidth { get; }
     /// <summary>Rendered pixel height.</summary>
     public int PixelHeight { get; }
-    /// <summary>Page width in PDF points.</summary>
+    /// <summary>Rendered visual page width in PDF points after crop and page rotation.</summary>
     public double PageWidth { get; }
-    /// <summary>Page height in PDF points.</summary>
+    /// <summary>Rendered visual page height in PDF points after crop and page rotation.</summary>
     public double PageHeight { get; }
     /// <summary>Pixels per PDF point.</summary>
     public double Scale { get; }

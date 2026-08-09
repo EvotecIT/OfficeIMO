@@ -301,7 +301,7 @@ internal static partial class PdfAnnotationEditor {
         if (options.InReplyToObjectNumber.HasValue) {
             int replyTarget = options.InReplyToObjectNumber.Value;
             if (!objects.TryGetValue(replyTarget, out PdfIndirectObject? target) || target.Value is not PdfDictionary targetDictionary || !IsAnnotation(targetDictionary)) throw new ArgumentException("Reply target annotation object was not found.", nameof(options));
-            annotation.Items["IRT"] = new PdfReference(replyTarget, 0);
+            annotation.Items["IRT"] = new PdfReference(replyTarget, target.Generation);
         }
         if (options.ReplyType is not null) annotation.Items["RT"] = new PdfName(options.ReplyType);
         if (options.PopupOpen.HasValue || options.PopupRectangle is not null) {
