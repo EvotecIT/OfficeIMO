@@ -42,6 +42,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_RangeInputsUseSanitizedCurrentValues() {
+            const string html = """
+                <p><input type="range" name="default"><input type="range" name="bounded" min="10" max="20" value="200"></p>
+                """;
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            Assert.Equal(new[] { "50", "20" }, doc.StructuredDocumentTags.Select(control => control.Text));
+        }
+
+        [Fact]
+        public void HtmlToWord_WhitespacePaddedInputTypeUsesTheTextState() {
+            const string html = "<p><input type=\" checkbox \" name=\"choice\" value=\"Contoso\" checked></p>";
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            Assert.Empty(doc.CheckBoxes);
+            Assert.Equal("Contoso", Assert.Single(doc.StructuredDocumentTags).Text);
+        }
+
+        [Fact]
         public void HtmlToWord_NonDocumentInputControls_AreIgnored() {
             const string html = "<p>Start <input type=\"hidden\" value=\"secret\"><input type=\"file\" value=\"C:\\fakepath\\report.docx\"><input type=\"button\" value=\"Click\"><input type=\"submit\" value=\"Send\"> End</p>";
 

@@ -98,6 +98,47 @@ public partial class Html {
         Assert.Equal(string.Empty, control.Value);
     }
 
+    [Theory]
+    [InlineData("<input type='range'>", "50")]
+    [InlineData("<input type='range' value='invalid'>", "50")]
+    [InlineData("<input type='range' min='10' max='20'>", "15")]
+    [InlineData("<input type='range' min='10' max='20' value='4'>", "10")]
+    [InlineData("<input type='range' min='10' max='20' value='24'>", "20")]
+    [InlineData("<input type='range' min='0' max='10' step='3' value='8'>", "8")]
+    [InlineData("<input type='range' min='0' max='10' value='005.0'>", "005.0")]
+    [InlineData("<input type='range' min='-1e308' max='1e308'>", "0")]
+    public void SemanticDocument_RangeInputReportsItsSanitizedCurrentValue(string html, string expected) {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
+            .Parse(html)
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(expected, control.Value);
+    }
+
+    [Fact]
+    public void SemanticDocument_WhitespacePaddedFormKeywordsUseTheirInvalidValueDefaults() {
+        HtmlSemanticBlock form = Assert.Single(HtmlConversionDocument.Parse("""
+            <form method=" post " enctype=" multipart/form-data ">
+              <input name="choice" type=" checkbox " checked>
+              <input name="unicode" type="checKbox" checked>
+              <button name="save" type=" reset " formmethod=" post " formenctype=" text/plain ">Save</button>
+            </form>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal("get", form.Form!.Method);
+        Assert.Equal("application/x-www-form-urlencoded", form.Form.EncodingType);
+        HtmlSemanticFormControl input = Assert.Single(form.Children, child => child.FormControl?.Name == "choice").FormControl!;
+        HtmlSemanticFormControl unicode = Assert.Single(form.Children, child => child.FormControl?.Name == "unicode").FormControl!;
+        HtmlSemanticFormControl button = Assert.Single(form.Children, child => child.FormControl?.Name == "save").FormControl!;
+        Assert.Equal("text", input.Type);
+        Assert.False(input.IsChecked);
+        Assert.Equal("text", unicode.Type);
+        Assert.False(unicode.IsChecked);
+        Assert.Equal("submit", button.Type);
+        Assert.Equal("get", button.FormMethod);
+        Assert.Equal("application/x-www-form-urlencoded", button.FormEncodingType);
+    }
+
     [Fact]
     public void SemanticDocument_PreservesOrderedListDirectionAndItemOrdinals() {
         HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument
@@ -119,6 +160,21 @@ public partial class Html {
             """).SemanticDocument.Sections.SelectMany(section => section.Blocks));
 
         Assert.Equal("• Parent\n  1. Child\n    • Grandchild\n• Sibling", list.Text);
+    }
+
+    [Fact]
+    public void SemanticDocument_DefinitionListIncludesDivWrappedGroups() {
+        HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument.Parse("""
+            <dl><div><dt>Term</dt><dd>Description</dd></div><dt>Loose</dt><dd>Tail</dd></dl>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal(new[] {
+            HtmlSemanticListItemKind.Term,
+            HtmlSemanticListItemKind.Description,
+            HtmlSemanticListItemKind.Term,
+            HtmlSemanticListItemKind.Description
+        }, list.Children.Select(item => item.ListItem!.Kind));
+        Assert.Equal("Term\n  Description\nLoose\n  Tail", list.Text);
     }
 
     [Fact]

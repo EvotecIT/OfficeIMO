@@ -20,7 +20,7 @@ internal static class HtmlListSemantics {
         var result = new List<HtmlListItemProjection>();
         int current = semantics.Start ?? 1;
         int step = semantics.IsReversed ? -1 : 1;
-        foreach (IElement element in list.Children) {
+        foreach (IElement element in EnumerateItemElements(list, semantics.Kind)) {
             if (semantics.Kind == HtmlSemanticListKind.Definition) {
                 if (Is(element, "dt")) {
                     result.Add(new HtmlListItemProjection(element,
@@ -47,6 +47,20 @@ internal static class HtmlListSemantics {
                 new HtmlSemanticListItem(HtmlSemanticListItemKind.Item, ordinal, explicitOrdinal)));
         }
         return result;
+    }
+
+    private static IEnumerable<IElement> EnumerateItemElements(
+        IElement list,
+        HtmlSemanticListKind kind) {
+        foreach (IElement child in list.Children) {
+            if (kind == HtmlSemanticListKind.Definition && Is(child, "div")) {
+                foreach (IElement groupedChild in child.Children) {
+                    if (Is(groupedChild, "dt") || Is(groupedChild, "dd")) yield return groupedChild;
+                }
+            } else {
+                yield return child;
+            }
+        }
     }
 
     internal static string BuildText(HtmlSemanticList list, IReadOnlyList<HtmlSemanticBlock> items) {

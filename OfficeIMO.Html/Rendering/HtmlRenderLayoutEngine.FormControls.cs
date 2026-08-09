@@ -322,7 +322,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         string source) {
-        double fraction = ResolveNumericFraction(element, 0D, 100D, 50D);
+        double fraction = HtmlFormControlSemantics.GetRangeFraction(element);
         double trackHeight = Math.Max(2D, Math.Min(4D, height * 0.25D));
         double trackY = y + (height - trackHeight) / 2D;
         OfficeShape track = OfficeShape.RoundedRectangle(width, trackHeight, trackHeight / 2D);
@@ -526,8 +526,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static string NormalizeInputType(IElement element) {
         if (!string.Equals(element.TagName, "input", StringComparison.OrdinalIgnoreCase)) return string.Empty;
-        string type = (element.GetAttribute("type") ?? string.Empty).Trim().ToLowerInvariant();
-        return type.Length == 0 ? "text" : type;
+        return HtmlFormControlSemantics.GetEffectiveType("input", element.GetAttribute("type"));
     }
 
     private static string NormalizeControlText(string? value) =>

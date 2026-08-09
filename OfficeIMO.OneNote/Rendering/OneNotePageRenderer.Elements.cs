@@ -67,7 +67,10 @@ public static partial class OneNotePageRenderer {
             double availableHeight,
             bool forcePageBounds = false,
             bool? inheritedRightToLeft = null) {
-            if (y >= _drawing.Height || x >= _drawing.Width) return 0D;
+            if (y >= _drawing.Height || x >= _drawing.Width) {
+                AdvanceListNumberingForCulledElement(element);
+                return 0D;
+            }
             if (x < 0D || y < 0D) {
                 return RenderElementWithNegativeOffset(
                     element,
@@ -79,7 +82,10 @@ public static partial class OneNotePageRenderer {
                     inheritedRightToLeft);
             }
             availableWidth = Math.Min(availableWidth, _drawing.Width - x);
-            if (availableWidth <= 0D) return 0D;
+            if (availableWidth <= 0D) {
+                AdvanceListNumberingForCulledElement(element);
+                return 0D;
+            }
             double explicitHeight = element is not OneNoteImage
                 && element.Layout?.Height.HasValue == true
                 ? Math.Max(0D, element.Layout.Height.Value * PointsPerHalfInch)

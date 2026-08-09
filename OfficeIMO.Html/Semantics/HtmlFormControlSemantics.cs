@@ -1,12 +1,14 @@
 using AngleSharp.Dom;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Html;
 
 /// <summary>Canonical HTML form-control normalization shared by semantic projection and fidelity scoring.</summary>
 internal static class HtmlFormControlSemantics {
     internal static string GetEffectiveType(string elementName, string? type, bool multiple = false) {
-        string name = NormalizeName(elementName);
-        string normalized = NormalizeName(type);
+        string name = NormalizeIdentifier(elementName);
+        string normalized = NormalizeKeyword(type);
         if (name == "input") return IsValidInputType(normalized) ? normalized : "text";
         if (name == "button") return IsValidButtonType(normalized) ? normalized : "submit";
         if (name == "select") return multiple ? "select-multiple" : "select-one";
@@ -14,41 +16,41 @@ internal static class HtmlFormControlSemantics {
     }
 
     internal static bool IsValidType(string elementName, string? type) {
-        string name = NormalizeName(elementName);
-        string normalized = NormalizeName(type);
+        string name = NormalizeIdentifier(elementName);
+        string normalized = NormalizeKeyword(type);
         return name == "input" ? IsValidInputType(normalized)
             : name == "button" && IsValidButtonType(normalized);
     }
 
     internal static string GetEffectiveFormMethod(string? method) {
-        string normalized = NormalizeName(method);
+        string normalized = NormalizeKeyword(method);
         return normalized == "post" || normalized == "dialog" ? normalized : "get";
     }
 
     internal static string GetEffectiveFormEncoding(string? encodingType) {
-        string normalized = NormalizeName(encodingType);
+        string normalized = NormalizeKeyword(encodingType);
         return normalized == "multipart/form-data" || normalized == "text/plain"
             ? normalized
             : "application/x-www-form-urlencoded";
     }
 
     internal static bool IsSubmitter(IElement element) {
-        string name = NormalizeName(element.LocalName);
+        string name = NormalizeIdentifier(element.LocalName);
         string type = GetEffectiveType(name, element.GetAttribute("type"));
         return name == "button" ? type != "button" && type != "reset"
             : name == "input" && (type == "submit" || type == "image");
     }
 
     internal static bool IsCheckedStateApplicable(string elementName, string effectiveType) =>
-        NormalizeName(elementName) == "input" && (effectiveType == "checkbox" || effectiveType == "radio");
+        NormalizeIdentifier(elementName) == "input" && (effectiveType == "checkbox" || effectiveType == "radio");
 
     internal static bool IsMultipleStateApplicable(string elementName, string effectiveType) {
-        string name = NormalizeName(elementName);
+        string name = NormalizeIdentifier(elementName);
         return name == "select" || name == "input" && (effectiveType == "email" || effectiveType == "file");
     }
 
     internal static bool IsRequiredStateApplicable(string elementName, string effectiveType) {
-        string name = NormalizeName(elementName);
+        string name = NormalizeIdentifier(elementName);
         if (name == "select" || name == "textarea") return true;
         if (name != "input") return false;
         switch (effectiveType) {
@@ -74,7 +76,7 @@ internal static class HtmlFormControlSemantics {
     }
 
     internal static bool IsReadOnlyStateApplicable(string elementName, string effectiveType) {
-        string name = NormalizeName(elementName);
+        string name = NormalizeIdentifier(elementName);
         if (name == "textarea") return true;
         if (name != "input") return false;
         switch (effectiveType) {
@@ -97,14 +99,14 @@ internal static class HtmlFormControlSemantics {
     }
 
     internal static bool IsPatternApplicable(string elementName, string effectiveType) =>
-        NormalizeName(elementName) == "input" && IsTextInputType(effectiveType);
+        NormalizeIdentifier(elementName) == "input" && IsTextInputType(effectiveType);
 
     internal static bool IsLengthApplicable(string elementName, string effectiveType) =>
-        NormalizeName(elementName) == "textarea"
-        || NormalizeName(elementName) == "input" && IsTextInputType(effectiveType);
+        NormalizeIdentifier(elementName) == "textarea"
+        || NormalizeIdentifier(elementName) == "input" && IsTextInputType(effectiveType);
 
     internal static bool IsRangeApplicable(string elementName, string effectiveType) {
-        if (NormalizeName(elementName) != "input") return false;
+        if (NormalizeIdentifier(elementName) != "input") return false;
         switch (effectiveType) {
             case "date":
             case "datetime-local":
@@ -120,11 +122,11 @@ internal static class HtmlFormControlSemantics {
     }
 
     internal static bool IsPlaceholderApplicable(string elementName, string effectiveType) =>
-        NormalizeName(elementName) == "textarea"
-        || NormalizeName(elementName) == "input" && IsTextInputType(effectiveType);
+        NormalizeIdentifier(elementName) == "textarea"
+        || NormalizeIdentifier(elementName) == "input" && IsTextInputType(effectiveType);
 
     internal static bool IsStateAttributeApplicable(string elementName, string effectiveType, string attributeName) {
-        switch (NormalizeName(attributeName)) {
+        switch (NormalizeIdentifier(attributeName)) {
             case "checked": return IsCheckedStateApplicable(elementName, effectiveType);
             case "multiple": return IsMultipleStateApplicable(elementName, effectiveType);
             case "required": return IsRequiredStateApplicable(elementName, effectiveType);
@@ -136,17 +138,24 @@ internal static class HtmlFormControlSemantics {
             case "max":
             case "step": return IsRangeApplicable(elementName, effectiveType);
             case "placeholder": return IsPlaceholderApplicable(elementName, effectiveType);
-            case "value": return NormalizeName(elementName) != "input" || effectiveType != "file";
+            case "value": return NormalizeIdentifier(elementName) != "input" || effectiveType != "file";
             default: return true;
         }
     }
 
     internal static IReadOnlyList<string> GetValues(IElement element) {
-        string name = NormalizeName(element.LocalName);
+        string name = NormalizeIdentifier(element.LocalName);
         if (name == "select") return GetSelectValues(element);
         if (name == "textarea") return new[] { element.TextContent ?? string.Empty };
-        if (name == "input" && GetEffectiveType(name, element.GetAttribute("type")) == "file") {
-            return Array.Empty<string>();
+        if (name == "input") {
+            string effectiveType = GetEffectiveType(name, element.GetAttribute("type"));
+            if (effectiveType == "file") return Array.Empty<string>();
+            if (effectiveType == "range") {
+                return new[] { GetRangeValue(
+                    element.GetAttribute("value"),
+                    element.GetAttribute("min"),
+                    element.GetAttribute("max")) };
+            }
         }
 
         string? authored = element.GetAttribute("value");
@@ -156,7 +165,7 @@ internal static class HtmlFormControlSemantics {
     }
 
     internal static string GetDefaultValue(string elementName, string? type, string textContent) {
-        string name = NormalizeName(elementName);
+        string name = NormalizeIdentifier(elementName);
         if (name == "option") return NormalizeText(textContent);
         if (name == "input") {
             string effectiveType = GetEffectiveType(name, type);
@@ -213,6 +222,69 @@ internal static class HtmlFormControlSemantics {
     private static string GetOptionValue(IElement option) =>
         option.GetAttribute("value") ?? GetDefaultValue("option", null, option.TextContent ?? string.Empty);
 
+    internal static string GetRangeValue(string? value, string? minimum, string? maximum) =>
+        ResolveRange(value, minimum, maximum).ValueText;
+
+    internal static double GetRangeFraction(IElement element) => ResolveRange(
+        element.GetAttribute("value"),
+        element.GetAttribute("min"),
+        element.GetAttribute("max")).Fraction;
+
+    private static HtmlRangeState ResolveRange(string? value, string? minimum, string? maximum) {
+        double min = TryParseHtmlNumber(minimum, out double parsedMinimum) ? parsedMinimum : 0D;
+        double max = TryParseHtmlNumber(maximum, out double parsedMaximum) ? parsedMaximum : 100D;
+        if (max < min) return new HtmlRangeState(FormatHtmlNumber(min), 0D);
+
+        bool preservesAuthoredValue = TryParseHtmlNumber(value, out double current);
+        if (!preservesAuthoredValue) current = Midpoint(min, max);
+        if (current < min) {
+            current = min;
+            preservesAuthoredValue = false;
+        } else if (current > max) {
+            current = max;
+            preservesAuthoredValue = false;
+        }
+
+        double fraction = ResolveRangeFraction(current, min, max);
+        return new HtmlRangeState(
+            preservesAuthoredValue ? value! : FormatHtmlNumber(current),
+            fraction);
+    }
+
+    private static bool TryParseHtmlNumber(string? text, out double value) {
+        string candidate = text ?? string.Empty;
+        if (!Regex.IsMatch(candidate, @"^-?(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$", RegexOptions.CultureInvariant)
+            || !double.TryParse(candidate, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+            || double.IsNaN(value)
+            || double.IsInfinity(value)) {
+            value = 0D;
+            return false;
+        }
+        return true;
+    }
+
+    private static double Midpoint(double minimum, double maximum) {
+        double span = maximum - minimum;
+        return double.IsInfinity(span)
+            ? minimum / 2D + maximum / 2D
+            : minimum + span / 2D;
+    }
+
+    private static double ResolveRangeFraction(double value, double minimum, double maximum) {
+        if (maximum <= minimum) return 0D;
+        double span = maximum - minimum;
+        double offset = value - minimum;
+        if (double.IsInfinity(span) || double.IsInfinity(offset)) {
+            span = maximum / 2D - minimum / 2D;
+            offset = value / 2D - minimum / 2D;
+        }
+        if (span <= 0D || double.IsNaN(span) || double.IsNaN(offset)) return 0D;
+        return Math.Max(0D, Math.Min(1D, offset / span));
+    }
+
+    private static string FormatHtmlNumber(double value) =>
+        value == 0D ? "0" : value.ToString("R", CultureInfo.InvariantCulture);
+
     private static bool IsDescendantOf(IElement element, IElement ancestor) {
         for (IElement? current = element; current != null; current = current.ParentElement) {
             if (ReferenceEquals(current, ancestor)) return true;
@@ -267,8 +339,30 @@ internal static class HtmlFormControlSemantics {
         }
     }
 
-    private static string NormalizeName(string? value) => (value ?? string.Empty).Trim().ToLowerInvariant();
+    private static string NormalizeIdentifier(string? value) => (value ?? string.Empty).Trim().ToLowerInvariant();
+
+    private static string NormalizeKeyword(string? value) {
+        string text = value ?? string.Empty;
+        char[]? normalized = null;
+        for (int index = 0; index < text.Length; index++) {
+            char current = text[index];
+            if (current < 'A' || current > 'Z') continue;
+            normalized ??= text.ToCharArray();
+            normalized[index] = (char)(current + ('a' - 'A'));
+        }
+        return normalized == null ? text : new string(normalized);
+    }
 
     private static string NormalizeText(string? value) =>
         string.Join(" ", (value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+    private readonly struct HtmlRangeState {
+        internal HtmlRangeState(string valueText, double fraction) {
+            ValueText = valueText;
+            Fraction = fraction;
+        }
+
+        internal string ValueText { get; }
+        internal double Fraction { get; }
+    }
 }

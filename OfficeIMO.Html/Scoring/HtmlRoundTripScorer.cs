@@ -403,6 +403,16 @@ public static partial class HtmlRoundTripScorer {
                 }
 
                 if (string.Equals(attributeName, "value", StringComparison.OrdinalIgnoreCase) && !control.HasAttribute(attributeName)) {
+                    if (string.Equals(
+                        HtmlFormControlSemantics.GetEffectiveType(control.TagName, control.GetAttribute("type")),
+                        "range",
+                        StringComparison.Ordinal)) {
+                        parts.Add("value=" + HtmlFormControlSemantics.GetRangeValue(
+                            null,
+                            control.GetAttribute("min"),
+                            control.GetAttribute("max")));
+                        continue;
+                    }
                     string defaultValue = GetDefaultFormControlValue(control.TagName, control.GetAttribute("type"), control.TextContent);
                     if (!string.IsNullOrWhiteSpace(defaultValue)) {
                         parts.Add("value=" + defaultValue);
@@ -411,6 +421,17 @@ public static partial class HtmlRoundTripScorer {
                 }
 
                 if (control.HasAttribute(attributeName)) {
+                    if (string.Equals(attributeName, "value", StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(
+                            HtmlFormControlSemantics.GetEffectiveType(control.TagName, control.GetAttribute("type")),
+                            "range",
+                            StringComparison.Ordinal)) {
+                        parts.Add("value=" + HtmlFormControlSemantics.GetRangeValue(
+                            control.GetAttribute("value"),
+                            control.GetAttribute("min"),
+                            control.GetAttribute("max")));
+                        continue;
+                    }
                     parts.Add(FormatAttributePart(attributeName, control.GetAttribute(attributeName)));
                 }
             }
@@ -640,12 +661,28 @@ public static partial class HtmlRoundTripScorer {
         }
 
         if (string.Equals(attributeName, "value", StringComparison.OrdinalIgnoreCase) && !node.Attributes.ContainsKey(attributeName)) {
+            if (string.Equals(effectiveControlType, "range", StringComparison.Ordinal)) {
+                parts.Add("value=" + HtmlFormControlSemantics.GetRangeValue(
+                    null,
+                    node.Attributes.TryGetValue("min", out string? minimum) ? minimum : null,
+                    node.Attributes.TryGetValue("max", out string? maximum) ? maximum : null));
+                return;
+            }
             node.Attributes.TryGetValue("type", out string? rawType);
             string defaultValue = GetDefaultFormControlValue(node.Name, rawType, ExtractLogicalNodeText(node));
             if (!string.IsNullOrWhiteSpace(defaultValue)) {
                 parts.Add("value=" + defaultValue);
                 return;
             }
+        }
+
+        if (string.Equals(attributeName, "value", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(effectiveControlType, "range", StringComparison.Ordinal)) {
+            parts.Add("value=" + HtmlFormControlSemantics.GetRangeValue(
+                node.Attributes.TryGetValue("value", out string? value) ? value : null,
+                node.Attributes.TryGetValue("min", out string? minimum) ? minimum : null,
+                node.Attributes.TryGetValue("max", out string? maximum) ? maximum : null));
+            return;
         }
 
         AddAttributePart(parts, node, attributeName);

@@ -3,7 +3,7 @@ using System.Text;
 
 namespace OfficeIMO.OneNote.Tests;
 
-public sealed class OneNoteRenderingTests {
+public sealed partial class OneNoteRenderingTests {
     [Theory]
     [InlineData("testOneNote2016.one")]
     [InlineData("testOneNoteFromOffice365.one")]

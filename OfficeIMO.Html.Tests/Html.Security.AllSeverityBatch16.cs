@@ -72,13 +72,13 @@ public sealed class HtmlAllSeverityBatch16SecurityTests {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         cell._tableCell.RemoveAllChildren();
-        OpenXmlCompositeElement parent = cell._tableCell;
+        OpenXmlElement nested = new Paragraph(new Run(new Text("deep-table-cell")));
         for (int index = 0; index < depth; index++) {
             var content = new SdtContentBlock();
-            parent.Append(new SdtBlock(new SdtProperties(), content));
-            parent = content;
+            content.Append(nested);
+            nested = new SdtBlock(new SdtProperties(), content);
         }
-        parent.Append(new Paragraph(new Run(new Text("deep-table-cell"))));
+        cell._tableCell.Append(nested);
 
         string html = document.ToHtml(new WordToHtmlOptions {
             MaxDocumentElements = 100_000

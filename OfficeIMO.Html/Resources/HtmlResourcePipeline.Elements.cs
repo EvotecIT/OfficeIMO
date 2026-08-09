@@ -55,7 +55,10 @@ public static partial class HtmlResourcePipeline {
                 break;
             case "input":
                 AddSubmitterFormAction(manifest, element, baseUri, options);
-                if (string.Equals((element.GetAttribute("type") ?? string.Empty).Trim(), "image", StringComparison.OrdinalIgnoreCase)) {
+                if (string.Equals(
+                    HtmlFormControlSemantics.GetEffectiveType("input", element.GetAttribute("type")),
+                    "image",
+                    StringComparison.Ordinal)) {
                     AddAttribute(manifest, HtmlResourceKind.Image, element, "data-src", baseUri, options);
                     AddAttribute(manifest, HtmlResourceKind.Image, element, "src", baseUri, options);
                 }
@@ -108,12 +111,7 @@ public static partial class HtmlResourcePipeline {
             return;
         }
 
-        string name = element.TagName.ToLowerInvariant();
-        string type = (element.GetAttribute("type") ?? string.Empty).Trim();
-        bool isSubmitter = string.Equals(name, "button", StringComparison.OrdinalIgnoreCase)
-            ? !string.Equals(type, "button", StringComparison.OrdinalIgnoreCase) && !string.Equals(type, "reset", StringComparison.OrdinalIgnoreCase)
-            : string.Equals(type, "submit", StringComparison.OrdinalIgnoreCase) || string.Equals(type, "image", StringComparison.OrdinalIgnoreCase);
-        if (isSubmitter) {
+        if (HtmlFormControlSemantics.IsSubmitter(element)) {
             AddAttribute(manifest, HtmlResourceKind.Hyperlink, element, "formaction", baseUri, options);
         }
     }

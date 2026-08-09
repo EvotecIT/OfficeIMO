@@ -101,6 +101,27 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_UsesEffectiveInputTypesAndSanitizedRangePositions() {
+        HtmlRenderDocument invalidType = HtmlRenderTestDriver.Render(
+            "<input id='choice' type=' checkbox ' value='Text state' checked>",
+            new HtmlRenderOptions());
+        Assert.Contains("Text state", invalidType.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            invalidType.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "input#choice:checked");
+
+        double defaultPosition = RangeThumbX("<input id='range' type='range'>");
+        double explicitDefaultPosition = RangeThumbX("<input id='range' type='range' value='50'>");
+        double clampedPosition = RangeThumbX("<input id='range' type='range' min='10' max='20' value='200'>");
+        double maximumPosition = RangeThumbX("<input id='range' type='range' min='10' max='20' value='20'>");
+        double extremeMidpointPosition = RangeThumbX("<input id='range' type='range' min='-1e308' max='1e308'>");
+
+        Assert.Equal(explicitDefaultPosition, defaultPosition, 6);
+        Assert.Equal(maximumPosition, clampedPosition, 6);
+        Assert.Equal(explicitDefaultPosition, extremeMidpointPosition, 6);
+    }
+
+    [Fact]
     public void HtmlPdf_FormControlSnapshotRemainsSearchableWithoutExposingPasswordValues() {
         const string html = """
             <h1>Approval</h1>
@@ -140,5 +161,12 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(36D, image.Width, 3);
         Assert.Equal(24D, image.Height, 3);
         Assert.DoesNotContain("Button", rendered.Text, StringComparison.Ordinal);
+    }
+
+    private static double RangeThumbX(string html) {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+        return Assert.Single(
+            rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "input#range:thumb").X;
     }
 }

@@ -65,7 +65,10 @@ namespace OfficeIMO.Word.Html {
                     dataListOptions[selectedIndex].DisplayText);
                 comboBox.SetImportedItems(dataListOptions, selectedIndex);
             } else {
-                currentParagraph.AddStructuredDocumentTag(element.GetAttribute("value") ?? string.Empty, alias, tag);
+                string value = string.Equals(GetEffectiveInputType(element), "range", StringComparison.Ordinal)
+                    ? HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty
+                    : element.GetAttribute("value") ?? string.Empty;
+                currentParagraph.AddStructuredDocumentTag(value, alias, tag);
             }
 
             if (ShouldAddSpaceAfterInput(element)) {
@@ -175,13 +178,11 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool IsCheckboxInput(IElement element) {
-            var type = element.GetAttribute("type");
-            return string.Equals(type, "checkbox", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(GetEffectiveInputType(element), "checkbox", StringComparison.Ordinal);
         }
 
         private static bool IsRadioInput(IElement element) {
-            var type = element.GetAttribute("type");
-            return string.Equals(type, "radio", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(GetEffectiveInputType(element), "radio", StringComparison.Ordinal);
         }
 
         private static bool IsCheckedInput(IElement element) =>
@@ -189,23 +190,19 @@ namespace OfficeIMO.Word.Html {
             string.Equals(element.GetAttribute("aria-checked"), "true", StringComparison.OrdinalIgnoreCase);
 
         private static bool IsDateInput(IElement element) {
-            var type = element.GetAttribute("type");
-            return string.Equals(type, "date", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(GetEffectiveInputType(element), "date", StringComparison.Ordinal);
         }
 
         private static bool IsTextInput(IElement element) {
-            var type = element.GetAttribute("type");
-            if (string.IsNullOrWhiteSpace(type)) {
-                return true;
-            }
-
-            var normalizedType = type!.ToLowerInvariant();
-            return normalizedType switch {
+            return GetEffectiveInputType(element) switch {
                 "text" or "search" or "email" or "url" or "tel" or "password" or
                 "number" or "time" or "datetime-local" or "month" or "week" or "color" or "range" => true,
                 _ => false,
             };
         }
+
+        private static string GetEffectiveInputType(IElement element) =>
+            HtmlFormControlSemantics.GetEffectiveType("input", element.GetAttribute("type"));
 
         private static (string? Alias, string? Tag) GetInputMetadata(IElement element) {
             var id = element.GetAttribute("id");
