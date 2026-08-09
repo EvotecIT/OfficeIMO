@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -41,18 +42,22 @@ namespace OfficeIMO.Tests {
                 return;
             }
 
-            RunWithExcelComLock(() => {
-                List<string> failures = new();
-                var thread = new Thread(() => OpenWorkbooksViaExcelCom(paths.ToList(), failures));
-                thread.IsBackground = true;
-                thread.SetApartmentState(ApartmentState.STA);
-                thread.Start();
-                if (!thread.Join(ExcelComOpenTimeout)) {
-                    failures.Add($"Excel COM smoke test timed out after {ExcelComOpenTimeout.TotalSeconds:0} seconds.");
+            var failures = new ConcurrentQueue<string>();
+            var thread = new Thread(() => {
+                try {
+                    RunWithExcelComLock(() => OpenWorkbooksViaExcelCom(paths.ToList(), failures));
+                } catch (Exception ex) {
+                    failures.Enqueue(DescribeExcelComFailure(ex));
                 }
-
-                Assert.True(failures.Count == 0, failureMessage + Environment.NewLine + string.Join(Environment.NewLine, failures));
             });
+            thread.IsBackground = true;
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            if (!thread.Join(ExcelComOpenTimeout)) {
+                failures.Enqueue($"Excel COM smoke test timed out after {ExcelComOpenTimeout.TotalSeconds:0} seconds. The worker continues to own or wait for the cross-process lock until it exits.");
+            }
+
+            Assert.True(failures.IsEmpty, failureMessage + Environment.NewLine + string.Join(Environment.NewLine, failures));
         }
 
         private static void RunWithExcelComLock(Action action) {
@@ -78,7 +83,7 @@ namespace OfficeIMO.Tests {
 #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
 #endif
-        private static void OpenWorkbooksViaExcelCom(IReadOnlyList<string> paths, List<string> failures) {
+        private static void OpenWorkbooksViaExcelCom(IReadOnlyList<string> paths, ConcurrentQueue<string> failures) {
             object? excel = null;
             object? workbooks = null;
 
@@ -98,12 +103,12 @@ namespace OfficeIMO.Tests {
                         workbook = workbooks!.GetType().InvokeMember("Open", BindingFlags.InvokeMethod, null, workbooks,
                             new object[] { path, 0, true });
                     } catch (Exception ex) when (ex is COMException or InvalidOperationException or MissingMethodException or TargetInvocationException) {
-                        failures.Add($"{Path.GetFileName(path)}: {DescribeExcelComFailure(ex)}");
+                        failures.Enqueue($"{Path.GetFileName(path)}: {DescribeExcelComFailure(ex)}");
                     } finally {
                         try {
                             workbook?.GetType().InvokeMember("Close", BindingFlags.InvokeMethod, null, workbook, new object[] { false });
                         } catch (Exception ex) when (ex is COMException or MissingMethodException or TargetInvocationException) {
-                            failures.Add($"{Path.GetFileName(path)} close: {DescribeExcelComFailure(ex)}");
+                            failures.Enqueue($"{Path.GetFileName(path)} close: {DescribeExcelComFailure(ex)}");
                         }
 
                         if (workbook != null && Marshal.IsComObject(workbook)) {
@@ -112,12 +117,12 @@ namespace OfficeIMO.Tests {
                     }
                 }
             } catch (Exception ex) when (ex is COMException or InvalidOperationException or MissingMethodException or TargetInvocationException) {
-                failures.Add(DescribeExcelComFailure(ex));
+                failures.Enqueue(DescribeExcelComFailure(ex));
             } finally {
                 try {
                     excel?.GetType().InvokeMember("Quit", BindingFlags.InvokeMethod, null, excel, null);
                 } catch (Exception ex) when (ex is COMException or MissingMethodException or TargetInvocationException) {
-                    failures.Add("Excel quit: " + DescribeExcelComFailure(ex));
+                    failures.Enqueue("Excel quit: " + DescribeExcelComFailure(ex));
                 }
 
                 if (workbooks != null && Marshal.IsComObject(workbooks)) {

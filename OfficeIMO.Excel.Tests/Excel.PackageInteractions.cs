@@ -327,7 +327,10 @@ namespace OfficeIMO.Tests {
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 var workbookPart = spreadsheet.WorkbookPart!;
-                string metadata = ReadSinglePackagePartText(workbookPart, "pivot-interaction-metadata");
+                string? metadata = Assert.Single(
+                    workbookPart.CustomXmlParts.Select(ReadPivotInteractionMetadataText),
+                    text => text != null);
+                Assert.NotNull(metadata);
                 Assert.Contains("RegionSlicer", metadata);
                 Assert.Contains("OrderDateTimeline", metadata);
                 Assert.Contains("customSlicer", metadata);
@@ -339,6 +342,22 @@ namespace OfficeIMO.Tests {
             using var stream = part.GetStream(FileMode.Create, FileAccess.Write);
             byte[] bytes = Encoding.UTF8.GetBytes(xml);
             stream.Write(bytes, 0, bytes.Length);
+        }
+
+        private static string? ReadPivotInteractionMetadataText(CustomXmlPart part) {
+            using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            string text = reader.ReadToEnd();
+            try {
+                XDocument xml = XDocument.Parse(text);
+                return xml.Root != null
+                    && string.Equals(xml.Root.Name.LocalName, "pivotInteractionBindings", StringComparison.Ordinal)
+                    && string.Equals(xml.Root.Name.NamespaceName, "https://schemas.evotec.xyz/officeimo/excel", StringComparison.Ordinal)
+                        ? text
+                        : null;
+            } catch (System.Xml.XmlException) {
+                return null;
+            }
         }
 
         private static string ReadSinglePackagePartText(OpenXmlPartContainer container, string contentTypeMarker, bool skipTypedParts = false) {

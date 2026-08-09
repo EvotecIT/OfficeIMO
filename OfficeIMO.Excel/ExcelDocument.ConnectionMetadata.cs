@@ -111,19 +111,14 @@ namespace OfficeIMO.Excel {
                     new XElement(bindingRoot));
             OpenXmlPart? existingPart = WorkbookPartRoot.Parts
                 .Select(pair => pair.OpenXmlPart)
-                .FirstOrDefault(part =>
-                    string.Equals(part.ContentType, WorkbookPivotInteractionContentType, StringComparison.OrdinalIgnoreCase)
-                    && string.Equals(part.RelationshipType, WorkbookPivotInteractionRelationshipType, StringComparison.Ordinal));
+                .FirstOrDefault(IsCombinedPivotInteractionMetadataPart);
 
             if (existingPart == null) {
                 var root = new XElement(XName.Get("pivotInteractionBindings", WorkbookPivotInteractionNamespace));
                 root.Add(storedBinding);
-                ExtendedPart part = AddMetadataPart(
-                    WorkbookPartRoot,
-                    WorkbookPivotInteractionRelationshipType,
-                    WorkbookPivotInteractionContentType,
-                    new XDocument(root).ToString(SaveOptions.DisableFormatting),
-                    "xml");
+                CustomXmlPart part = WorkbookPartRoot.AddCustomXmlPart(CustomXmlPartType.CustomXml);
+                WriteMetadataPart(part, new XDocument(root).ToString(SaveOptions.DisableFormatting));
+                MarkMetadataPartChanged();
                 return DescribePart(WorkbookPartRoot, part);
             }
 

@@ -67,15 +67,14 @@ namespace OfficeIMO.Excel.Pdf {
             ExcelChartType effectiveType = series.ChartType ?? defaultType;
             OfficeChartKind? renderKind = null;
             if (effectiveType != defaultType) {
-                if (!ExcelRangeImageRenderer.TryMapSeriesRenderKind(defaultType, out _, out _)) {
+                if (!ExcelRangeImageRenderer.TryMapCompatibleComboSeriesRenderKind(
+                        defaultType,
+                        effectiveType,
+                        out OfficeChartKind mappedKind,
+                        out _,
+                        out string? unsupportedReason)) {
                     throw new NotSupportedException(
-                        "Excel combo-chart base type '" + defaultType +
-                        "' cannot be combined by the shared OfficeIMO Cartesian chart renderer.");
-                }
-                if (!ExcelRangeImageRenderer.TryMapSeriesRenderKind(effectiveType, out OfficeChartKind mappedKind, out _)) {
-                    throw new NotSupportedException(
-                        "Excel combo-chart series '" + series.Name + "' uses chart type '" + effectiveType +
-                        "', which cannot be rendered with the shared OfficeIMO Cartesian combo-chart engine.");
+                        "Excel combo-chart series '" + series.Name + "' uses chart type '" + effectiveType + "': " + unsupportedReason);
                 }
 
                 renderKind = mappedKind == defaultKind ? null : mappedKind;

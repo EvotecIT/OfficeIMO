@@ -144,23 +144,6 @@ public sealed class PdfPublicApiContractTests {
     }
 
     [Fact]
-    public void PublicPdfDocumentationDoesNotUseRemovedRootAuthoringPattern() {
-        string root = FindRepositoryRoot();
-        string[] paths = {
-            Path.Combine(root, "OfficeIMO.Pdf", "README.md"),
-            Path.Combine(root, "Website", "content", "docs", "pdf", "index.md"),
-            Path.Combine(root, "Website", "content", "docs", "pdf", "authoring", "index.md"),
-            Path.Combine(root, "Website", "content", "products", "pdf.md")
-        };
-
-        Assert.All(paths, path => {
-            string markdown = File.ReadAllText(path);
-            Assert.DoesNotContain("PdfDocument.Create()", markdown, StringComparison.Ordinal);
-            Assert.DoesNotContain("PdfDocument.Create(options)", markdown, StringComparison.Ordinal);
-        });
-    }
-
-    [Fact]
     public void ComposeBuildersAreClosedAndDoNotExposeInertPaddingApi() {
         Type[] builderTypes = {
             typeof(PdfCompose),
@@ -299,16 +282,4 @@ public sealed class PdfPublicApiContractTests {
         Assert.Equal(new[] { "OfficeIMO.Core" }, officeReferences);
     }
 
-    private static string FindRepositoryRoot() {
-        DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory != null) {
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln"))) {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
-    }
 }

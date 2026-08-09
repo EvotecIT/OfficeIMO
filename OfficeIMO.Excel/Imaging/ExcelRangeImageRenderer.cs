@@ -408,6 +408,39 @@ namespace OfficeIMO.Excel {
                 kind == OfficeChartKind.Scatter;
         }
 
+        internal static bool TryMapCompatibleComboSeriesRenderKind(
+            ExcelChartType baseType,
+            ExcelChartType seriesType,
+            out OfficeChartKind seriesKind,
+            out string? approximation,
+            out string? unsupportedReason) {
+            seriesKind = default;
+            approximation = null;
+            unsupportedReason = null;
+
+            if (!TryMapSeriesRenderKind(baseType, out OfficeChartKind baseKind, out _)) {
+                unsupportedReason = "combo-chart base type '" + baseType + "' is not supported by the shared Cartesian chart renderer.";
+                return false;
+            }
+
+            if (!TryMapSeriesRenderKind(seriesType, out seriesKind, out approximation)) {
+                unsupportedReason = "combo-chart series type '" + seriesType + "' is not supported by the shared Cartesian chart renderer.";
+                return false;
+            }
+
+            if (IsBarChartKind(baseKind) != IsBarChartKind(seriesKind)) {
+                unsupportedReason = "combo-chart types '" + baseType + "' and '" + seriesType + "' use incompatible horizontal and vertical category-axis orientations.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsBarChartKind(OfficeChartKind kind) =>
+            kind == OfficeChartKind.BarClustered ||
+            kind == OfficeChartKind.BarStacked ||
+            kind == OfficeChartKind.BarStacked100;
+
         private static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
             approximation = null;
             switch (type) {

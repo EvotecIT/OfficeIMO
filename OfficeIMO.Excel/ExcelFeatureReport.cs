@@ -453,26 +453,10 @@ namespace OfficeIMO.Excel {
                         pdfUnsupportedChartCount++;
                         pdfUnsupportedChartDetails.Add($"{sheet.Name}: {snapshot.ChartType} ({GetChartDisplayName(snapshot)})");
                     } else {
-                        bool hasMixedSeries = snapshot.Data.Series.Any(series =>
-                            series.ChartType.HasValue && series.ChartType.Value != snapshot.ChartType);
-                        if (hasMixedSeries &&
-                            !ExcelRangeImageRenderer.TryMapSeriesRenderKind(snapshot.ChartType, out _, out _)) {
+                        List<string> unsupportedComboDetails = GetPdfUnsupportedComboChartDetails(snapshot, sheetName);
+                        if (unsupportedComboDetails.Count > 0) {
                             pdfUnsupportedChartCount++;
-                            pdfUnsupportedChartDetails.Add(
-                                $"{sheet.Name}: combo-chart base type {snapshot.ChartType} is not Cartesian ({GetChartDisplayName(snapshot)})");
-                            continue;
-                        }
-
-                        foreach (ExcelChartSeries series in snapshot.Data.Series) {
-                            ExcelChartType effectiveType = series.ChartType ?? snapshot.ChartType;
-                            if (effectiveType == snapshot.ChartType ||
-                                ExcelRangeImageRenderer.TryMapSeriesRenderKind(effectiveType, out _, out _)) {
-                                continue;
-                            }
-
-                            pdfUnsupportedChartCount++;
-                            pdfUnsupportedChartDetails.Add(
-                                $"{sheet.Name}: combo-chart series '{series.Name}' uses unsupported type {effectiveType} ({GetChartDisplayName(snapshot)})");
+                            pdfUnsupportedChartDetails.AddRange(unsupportedComboDetails);
                         }
                     }
                 }

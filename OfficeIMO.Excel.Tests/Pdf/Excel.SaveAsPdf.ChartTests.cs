@@ -471,10 +471,66 @@ public partial class Excel {
         MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod(
             "IsSupportedChartSnapshot",
             BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] arguments = { snapshot, null };
+        object?[] arguments = { snapshot, null, null };
 
         Assert.False((bool)method.Invoke(null, arguments)!);
         Assert.Contains("base type 'Pie'", Assert.IsType<string>(arguments[1]), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_RejectsComboChartsWithIncompatibleAxisOrientations() {
+        var snapshot = new ExcelChartSnapshot(
+            "IncompatibleCombo",
+            "Column Bar Combo",
+            ExcelChartType.ColumnClustered,
+            new ExcelChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new ExcelChartSeries("Vertical", new[] { 12D, 18D, 24D }, ExcelChartType.ColumnClustered),
+                    new ExcelChartSeries("Horizontal", new[] { 10D, 16D, 22D }, ExcelChartType.BarClustered)
+                }),
+            rowIndex: 1,
+            columnIndex: 5,
+            offsetXPixels: 0,
+            offsetYPixels: 0,
+            widthPixels: 360,
+            heightPixels: 220);
+        MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod(
+            "IsSupportedChartSnapshot",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = { snapshot, null, null };
+
+        Assert.False((bool)method.Invoke(null, arguments)!);
+        Assert.Contains("incompatible horizontal and vertical", Assert.IsType<string>(arguments[1]), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_ReportsLossyComboSeriesApproximations() {
+        var snapshot = new ExcelChartSnapshot(
+            "ApproximatedCombo",
+            "Column Bubble Combo",
+            ExcelChartType.ColumnClustered,
+            new ExcelChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new ExcelChartSeries("Sales", new[] { 12D, 18D, 24D }, ExcelChartType.ColumnClustered),
+                    new ExcelChartSeries("Bubble", new[] { 10D, 16D, 22D }, ExcelChartType.Bubble)
+                }),
+            rowIndex: 1,
+            columnIndex: 5,
+            offsetXPixels: 0,
+            offsetYPixels: 0,
+            widthPixels: 360,
+            heightPixels: 220);
+        MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod(
+            "IsSupportedChartSnapshot",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = { snapshot, null, null };
+
+        Assert.True((bool)method.Invoke(null, arguments)!);
+        List<string> warnings = Assert.IsType<List<string>>(arguments[2]);
+        string warning = Assert.Single(warnings);
+        Assert.Contains("without bubble-size encoding", warning, StringComparison.Ordinal);
     }
 
     [Fact]

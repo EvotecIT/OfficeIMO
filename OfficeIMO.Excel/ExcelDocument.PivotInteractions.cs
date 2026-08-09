@@ -250,8 +250,23 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsCombinedPivotInteractionMetadataPart(OpenXmlPart part) {
-            return string.Equals(part.ContentType, WorkbookPivotInteractionContentType, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(part.RelationshipType, WorkbookPivotInteractionRelationshipType, StringComparison.Ordinal);
+            if (string.Equals(part.ContentType, WorkbookPivotInteractionContentType, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(part.RelationshipType, WorkbookPivotInteractionRelationshipType, StringComparison.Ordinal)) {
+                return true;
+            }
+
+            if (part is not CustomXmlPart) {
+                return false;
+            }
+
+            try {
+                XDocument xml = XDocument.Parse(ReadPivotInteractionPartText(part));
+                return xml.Root != null
+                    && string.Equals(xml.Root.Name.LocalName, "pivotInteractionBindings", StringComparison.Ordinal)
+                    && string.Equals(xml.Root.Name.NamespaceName, WorkbookPivotInteractionNamespace, StringComparison.Ordinal);
+            } catch (System.Xml.XmlException) {
+                return false;
+            }
         }
 
         private static bool CombinedPivotInteractionMetadataContains(

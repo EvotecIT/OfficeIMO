@@ -74,12 +74,11 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                var metadataParts = spreadsheet.WorkbookPart!.Parts
-                    .Select(pair => pair.OpenXmlPart)
-                    .Where(part => part.ContentType.IndexOf("pivot-interaction-metadata", StringComparison.OrdinalIgnoreCase) >= 0)
-                    .ToList();
-                OpenXmlPart metadataPart = Assert.Single(metadataParts);
-                Assert.Equal("application/vnd.officeimo.excel.pivot-interaction-metadata+xml", metadataPart.ContentType);
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                CustomXmlPart metadataPart = Assert.Single(workbookPart.CustomXmlParts,
+                    part => ReadPivotInteractionMetadataText(part) != null);
+                Assert.Equal("application/xml", metadataPart.ContentType);
+                Assert.EndsWith("/customXml", metadataPart.RelationshipType, StringComparison.Ordinal);
                 Assert.DoesNotContain(spreadsheet.WorkbookPart.Parts, pair =>
                     pair.OpenXmlPart.RelationshipType.StartsWith("http://schemas.microsoft.com/office/", StringComparison.OrdinalIgnoreCase));
             }

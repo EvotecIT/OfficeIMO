@@ -178,25 +178,24 @@ namespace OfficeIMO.Tests {
         [SupportedOSPlatform("windows")]
 #endif
         private static void CreateLegacyXlsWorkbookViaExcelCom(string path) {
-            RunWithExcelComLock(() => {
-                var failures = new List<string>();
-                var thread = new Thread(() => {
-                    try {
-                        CreateLegacyXlsWorkbookViaExcelComOnStaThread(path);
-                    } catch (Exception ex) when (ex is COMException or InvalidOperationException or MissingMethodException or TargetInvocationException) {
-                        failures.Add(DescribeExcelComFailure(ex));
-                    }
-                });
-
-                thread.IsBackground = true;
-                thread.SetApartmentState(ApartmentState.STA);
-                thread.Start();
-                if (!thread.Join(ExcelComOpenTimeout)) {
-                    failures.Add($"Excel COM legacy XLS generation timed out after {ExcelComOpenTimeout.TotalSeconds:0} seconds.");
+            var failures = new System.Collections.Concurrent.ConcurrentQueue<string>();
+            var thread = new Thread(() => {
+                try {
+                    RunWithExcelComLock(() =>
+                        CreateLegacyXlsWorkbookViaExcelComOnStaThread(path));
+                } catch (Exception ex) {
+                    failures.Enqueue(DescribeExcelComFailure(ex));
                 }
-
-                Assert.True(failures.Count == 0, "Failed to generate the legacy XLS workbook through desktop Excel." + Environment.NewLine + string.Join(Environment.NewLine, failures));
             });
+
+            thread.IsBackground = true;
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            if (!thread.Join(ExcelComOpenTimeout)) {
+                failures.Enqueue($"Excel COM legacy XLS generation timed out after {ExcelComOpenTimeout.TotalSeconds:0} seconds. The worker continues to own or wait for the cross-process lock until it exits.");
+            }
+
+            Assert.True(failures.IsEmpty, "Failed to generate the legacy XLS workbook through desktop Excel." + Environment.NewLine + string.Join(Environment.NewLine, failures));
         }
 
 #if NET5_0_OR_GREATER

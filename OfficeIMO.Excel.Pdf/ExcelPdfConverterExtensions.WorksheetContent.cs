@@ -138,8 +138,15 @@ namespace OfficeIMO.Excel.Pdf {
                         sheetName,
                         "WorksheetChart",
                         $"Worksheet chart '{GetChartDisplayName(snapshot)}' was not exported because it does not contain renderable chart categories and series.");
-                } else if (IsSupportedChartSnapshot(snapshot, out string? unsupportedReason)) {
+                } else if (IsSupportedChartSnapshot(snapshot, out string? unsupportedReason, out List<string> approximationWarnings)) {
                     charts.Add(new WorksheetChartExportData(snapshot));
+                    foreach (string approximationWarning in approximationWarnings) {
+                        AddWarning(
+                            options,
+                            sheetName,
+                            "chart-approximation",
+                            $"Worksheet chart '{GetChartDisplayName(snapshot)}' was exported with an explicit approximation: {approximationWarning}");
+                    }
                 } else {
                     AddWarning(
                         options,
@@ -155,8 +162,12 @@ namespace OfficeIMO.Excel.Pdf {
                 .ToList();
         }
 
-        private static bool IsSupportedChartSnapshot(ExcelChartSnapshot snapshot, out string? unsupportedReason) {
+        private static bool IsSupportedChartSnapshot(
+            ExcelChartSnapshot snapshot,
+            out string? unsupportedReason,
+            out List<string> approximationWarnings) {
             unsupportedReason = null;
+            approximationWarnings = new List<string>();
             if (!TryMapChartKind(snapshot.ChartType, out _)) {
                 unsupportedReason = $"chart type '{snapshot.ChartType}' is not supported by the first-party PDF chart renderer.";
                 return false;
@@ -173,14 +184,23 @@ namespace OfficeIMO.Excel.Pdf {
 
             foreach (ExcelChartSeries series in snapshot.Data.Series) {
                 ExcelChartType effectiveType = series.ChartType ?? snapshot.ChartType;
-                if (effectiveType == snapshot.ChartType ||
-                    ExcelRangeImageRenderer.TryMapSeriesRenderKind(effectiveType, out _, out _)) {
+                if (effectiveType == snapshot.ChartType) {
                     continue;
                 }
 
-                unsupportedReason =
-                    $"combo-chart series '{series.Name}' uses chart type '{effectiveType}', which is not supported by the shared Cartesian combo-chart renderer.";
-                return false;
+                if (!ExcelRangeImageRenderer.TryMapCompatibleComboSeriesRenderKind(
+                        snapshot.ChartType,
+                        effectiveType,
+                        out _,
+                        out string? approximation,
+                        out string? incompatibility)) {
+                    unsupportedReason = $"combo-chart series '{series.Name}' uses chart type '{effectiveType}': {incompatibility}";
+                    return false;
+                }
+
+                if (!string.IsNullOrWhiteSpace(approximation)) {
+                    approximationWarnings.Add($"series '{series.Name}' ({effectiveType}): {approximation}");
+                }
             }
 
             return true;

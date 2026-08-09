@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
@@ -565,6 +566,36 @@ namespace OfficeIMO.Tests {
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
                 Assert.DoesNotContain("PDF-unsupported charts", diagnostics);
             }
+        }
+
+        [Fact]
+        public void FeatureReport_Preflight_ClassifiesMultipleUnsupportedSeriesWithinOneChart() {
+            var snapshot = new ExcelChartSnapshot(
+                "UnsupportedCombo",
+                "Unsupported Combo Count",
+                ExcelChartType.ColumnClustered,
+                new ExcelChartData(
+                    new[] { "Q1", "Q2", "Q3" },
+                    new[] {
+                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, ExcelChartType.ColumnClustered),
+                        new ExcelChartSeries("Share", new[] { 12d, 18d, 28d }, ExcelChartType.Pie),
+                        new ExcelChartSeries("Ratio", new[] { 8d, 15d, 25d }, ExcelChartType.Doughnut)
+                    }),
+                rowIndex: 1,
+                columnIndex: 5,
+                offsetXPixels: 0,
+                offsetYPixels: 0,
+                widthPixels: 360,
+                heightPixels: 220);
+            MethodInfo method = typeof(ExcelDocument).GetMethod(
+                "GetPdfUnsupportedComboChartDetails",
+                BindingFlags.NonPublic | BindingFlags.Static)!;
+
+            var details = Assert.IsType<List<string>>(method.Invoke(null, new object[] { snapshot, "Charts" }));
+
+            Assert.Equal(2, details.Count);
+            Assert.Contains(details, detail => detail.Contains("Share", StringComparison.Ordinal));
+            Assert.Contains(details, detail => detail.Contains("Ratio", StringComparison.Ordinal));
         }
 
         [Fact]
