@@ -20,11 +20,13 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             out int firstColumn,
             out int lastColumn,
             out int firstDataRow,
-            out int lastDataRow) {
+            out int lastDataRow,
+            out XlsbValidatedRowPlan? validatedRowPlan) {
             firstColumn = int.MaxValue;
             lastColumn = -1;
             firstDataRow = -1;
             lastDataRow = -1;
+            validatedRowPlan = null;
             int currentRow = -1;
             int previousCellColumn = -1;
             byte[] bytes = worksheetPart.Buffer;
@@ -41,6 +43,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 int pendingRecordBudget = 0;
                 int pendingCellBudget = 0;
                 var currentRowSpanBounds = new int[32];
+                var rowPlanBuilder = new XlsbValidatedRowPlanBuilder();
                 int currentRowSpanCount = 0;
                 cancellationToken.ThrowIfCancellationRequested();
                 // Discovery is the full-buffer validation pass. Fuse BIFF12 framing with the
@@ -191,6 +194,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
                         currentRow = nextRow;
                         previousCellColumn = -1;
+                        rowPlanBuilder.BeginRow(nextRow, position);
                         continue;
                     }
                     if (!IsCellRecord(recordType)) {
@@ -274,6 +278,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             $"The XLSB cell record at offset {recordOffset} is duplicated or out of order within its row.");
                     }
                     previousCellColumn = column;
+                    rowPlanBuilder.ObserveCell(
+                        recordType,
+                        payloadOffset,
+                        recordSize,
+                        column);
                     bool covered = currentRowSpanCount == 1
                         ? currentRowSpanBounds[0] <= column && column <= currentRowSpanBounds[1]
                         : IsCoveredByRowSpan(currentRowSpanBounds, currentRowSpanCount, column);
@@ -313,6 +322,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     throw new InvalidDataException(
                         "The XLSB worksheet ended before the required BrtEndSheetData record.");
                 }
+                validatedRowPlan = rowPlanBuilder.Build();
             }
         }
 

@@ -35,6 +35,11 @@ if (comparePairedDataTableExecution) {
     return;
 }
 
+if (comparePairedXlsb || comparePairedXls) {
+    ExcelLegacyReadPairedRunner.Run(args, useXlsb: comparePairedXlsb);
+    return;
+}
+
 if (comparePairedDataReaderWrite) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
@@ -120,71 +125,6 @@ if (profileOfficeIMODataReaderWrite || profileLargeXlsxDataReaderWrite || profil
     Console.WriteLine(
         $"Profiled {implementation} compact DataReader write {iterations} times in {stopwatch.Elapsed.TotalMilliseconds:F2} ms " +
         $"({stopwatch.Elapsed.TotalMilliseconds / iterations:F3} ms/iteration); last package {outputBytes:N0} bytes.");
-    return;
-}
-
-if (comparePairedXlsb || comparePairedXls) {
-    int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
-        ? parsedIterations
-        : 20;
-    if (iterations <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(iterations));
-    }
-    string affinity = ApplyProcessAffinity(args, argumentIndex: 2);
-    const int warmupIterations = 10;
-
-    Func<ExcelReadObservation> runOfficeIMO;
-    Func<ExcelReadObservation> runSylvan;
-    string format;
-    if (comparePairedXlsb) {
-        var benchmark = new MarkPflug65KXlsbBenchmarks();
-        benchmark.Setup();
-        runOfficeIMO = benchmark.OfficeIMO;
-        runSylvan = benchmark.Sylvan;
-        format = "XLSB";
-    } else {
-        var benchmark = new MarkPflug65KXlsBenchmarks();
-        benchmark.Setup();
-        runOfficeIMO = benchmark.OfficeIMO;
-        runSylvan = benchmark.Sylvan;
-        format = "XLS";
-    }
-    for (int index = 0; index < warmupIterations; index++) {
-        runOfficeIMO();
-        runSylvan();
-    }
-
-    var officeSamples = new double[iterations];
-    var sylvanSamples = new double[iterations];
-    var pairedRatios = new double[iterations];
-    for (int index = 0; index < iterations; index++) {
-        ExcelReadObservation officeObservation;
-        ExcelReadObservation sylvanObservation;
-        if ((index & 1) == 0) {
-            officeSamples[index] = MeasureMilliseconds(runOfficeIMO, out officeObservation);
-            sylvanSamples[index] = MeasureMilliseconds(runSylvan, out sylvanObservation);
-        } else {
-            sylvanSamples[index] = MeasureMilliseconds(runSylvan, out sylvanObservation);
-            officeSamples[index] = MeasureMilliseconds(runOfficeIMO, out officeObservation);
-        }
-
-        if (officeObservation != sylvanObservation) {
-            throw new InvalidDataException(
-                $"Paired {format} sample {index} produced different observations: OfficeIMO={officeObservation}; Sylvan={sylvanObservation}.");
-        }
-        pairedRatios[index] = officeSamples[index] / sylvanSamples[index];
-    }
-
-    double officeMedian = Median(officeSamples);
-    double sylvanMedian = Median(sylvanSamples);
-    double pairedRatioMedian = Median(pairedRatios);
-    double pairedRatioP25 = Percentile(pairedRatios, 0.25d);
-    double pairedRatioP75 = Percentile(pairedRatios, 0.75d);
-    Console.WriteLine(
-        $"Paired {format} comparison ({warmupIterations} warmups, {iterations} alternating samples, affinity {affinity}): " +
-        $"OfficeIMO median {officeMedian:F3} ms, Sylvan median {sylvanMedian:F3} ms, " +
-        $"ratio of medians {officeMedian / sylvanMedian:F4}, paired ratio median {pairedRatioMedian:F4} " +
-        $"(P25 {pairedRatioP25:F4}, P75 {pairedRatioP75:F4}).");
     return;
 }
 
@@ -541,6 +481,8 @@ static void WriteUsage() {
     Console.WriteLine("  --profile-datareader-write-spreadcheetah [iterations] [affinity-mask]");
     Console.WriteLine("  --compare-datareader-write-paired [iterations] [affinity-mask] [priority]");
     Console.WriteLine("  --compare-datatable-execution-paired [iterations] [affinity-mask] [priority]");
+    Console.WriteLine("  --compare-markpflug65k-xls-paired [iterations] [affinity-mask] [priority]");
+    Console.WriteLine("  --compare-markpflug65k-xlsb-paired [iterations] [affinity-mask] [priority]");
     Console.WriteLine("  anti-cheat-suite [output-dir] [--row-set 100,2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--warmup N] [--iterations N]");
     Console.WriteLine("  comparison-suite [output-dir] [--row-set 2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--skip-dense-helloworld] [--warmup N] [--iterations N]");
     Console.WriteLine();
@@ -902,14 +844,6 @@ static string[] GetAntiCheatScenarios()
         "realworld-report-extra-column",
         "realworld-report-post-mutation"
     ];
-
-static double MeasureMilliseconds(
-    Func<ExcelReadObservation> operation,
-    out ExcelReadObservation observation) {
-    long started = System.Diagnostics.Stopwatch.GetTimestamp();
-    observation = operation();
-    return System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-}
 
 static string ApplyProcessAffinity(string[] arguments, int argumentIndex)
     => arguments.Length <= argumentIndex

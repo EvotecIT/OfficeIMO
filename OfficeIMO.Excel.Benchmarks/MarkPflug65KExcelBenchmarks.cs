@@ -49,12 +49,6 @@ public class MarkPflug65KXlsxBenchmarks {
 
         MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsxFileName);
         _expected = ExpectedObservation();
-        Validate(nameof(OfficeIMO), OfficeIMO());
-        Validate(nameof(Sylvan), Sylvan());
-        Validate(nameof(ExcelDataReader), ExcelDataReader());
-        Validate(nameof(ClosedXML), ClosedXML());
-        Validate(nameof(EPPlus), EPPlus());
-        Validate(nameof(MiniExcel), MiniExcel());
     }
 
     [Benchmark]
@@ -65,7 +59,7 @@ public class MarkPflug65KXlsxBenchmarks {
                 NumericAsDecimal = true,
                 SheetName = null
             });
-        return Observe(reader);
+        return Validate(nameof(OfficeIMO), Observe(reader));
     }
 
     [Benchmark]
@@ -75,7 +69,7 @@ public class MarkPflug65KXlsxBenchmarks {
             stream,
             ExcelWorkbookType.ExcelXml,
             new ExcelDataReaderOptions { Schema = ExcelSchema.Default });
-        return Observe(reader);
+        return Validate(nameof(Sylvan), Observe(reader));
     }
 
     [Benchmark]
@@ -84,7 +78,7 @@ public class MarkPflug65KXlsxBenchmarks {
         using global::ExcelDataReader.IExcelDataReader reader =
             global::ExcelDataReader.ExcelReaderFactory.CreateReader(stream);
         if (!reader.Read()) {
-            return default;
+            return Validate(nameof(ExcelDataReader), default);
         }
 
         var observation = new ExcelObservationAccumulator();
@@ -97,7 +91,7 @@ public class MarkPflug65KXlsxBenchmarks {
                 ordinal => Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture));
         }
 
-        return observation.Build();
+        return Validate(nameof(ExcelDataReader), observation.Build());
     }
 
     [Benchmark]
@@ -115,7 +109,7 @@ public class MarkPflug65KXlsxBenchmarks {
                 ordinal => worksheet.Cell(row, ordinal + 1).GetValue<decimal>());
         }
 
-        return observation.Build();
+        return Validate(nameof(ClosedXML), observation.Build());
     }
 
     [Benchmark]
@@ -133,7 +127,7 @@ public class MarkPflug65KXlsxBenchmarks {
                 ordinal => Convert.ToDecimal(worksheet.Cells[row, ordinal + 1].Value, CultureInfo.InvariantCulture));
         }
 
-        return observation.Build();
+        return Validate(nameof(EPPlus), observation.Build());
     }
 
     [Benchmark]
@@ -154,7 +148,7 @@ public class MarkPflug65KXlsxBenchmarks {
                 ordinal => Convert.ToDecimal(row[Headers[ordinal]], CultureInfo.InvariantCulture));
         }
 
-        return observation.Build();
+        return Validate(nameof(MiniExcel), observation.Build());
     }
 
     internal static ExcelReadObservation Observe(DbDataReader reader) {
@@ -213,13 +207,15 @@ public class MarkPflug65KXlsxBenchmarks {
         MarkPflug65KFixture.ExpectedRows * MarkPflug65KFixture.ExpectedColumns,
         MarkPflug65KFixture.ExpectedExcelChecksum);
 
-    private void Validate(string library, ExcelReadObservation actual) {
+    private ExcelReadObservation Validate(string library, ExcelReadObservation actual) {
         if (actual != _expected
             || actual.Rows != MarkPflug65KFixture.ExpectedRows
             || actual.Cells != MarkPflug65KFixture.ExpectedRows * MarkPflug65KFixture.ExpectedColumns) {
             throw new InvalidDataException(
                 $"{library} did not perform the same XLSX workload. Expected {_expected}; actual {actual}.");
         }
+
+        return actual;
     }
 }
 
@@ -237,9 +233,6 @@ public class MarkPflug65KXlsbBenchmarks {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsbFileName);
         _expected = MarkPflug65KXlsxBenchmarks.ExpectedObservation();
-        Validate(nameof(OfficeIMO), OfficeIMO());
-        Validate(nameof(Sylvan), Sylvan());
-        Validate(nameof(ExcelDataReader), ExcelDataReader());
     }
 
     [Benchmark]
@@ -247,7 +240,7 @@ public class MarkPflug65KXlsbBenchmarks {
         using DbDataReader reader = ExcelDocument.OpenDataReader(
             MarkPflug65KFixture.XlsbPath,
             new ExcelReadOptions { NumericAsDecimal = true });
-        return MarkPflug65KXlsxBenchmarks.Observe(reader);
+        return Validate(nameof(OfficeIMO), MarkPflug65KXlsxBenchmarks.Observe(reader));
     }
 
     [Benchmark]
@@ -257,7 +250,7 @@ public class MarkPflug65KXlsbBenchmarks {
             stream,
             ExcelWorkbookType.ExcelBinary,
             new ExcelDataReaderOptions { Schema = ExcelSchema.Default });
-        return MarkPflug65KXlsxBenchmarks.Observe(reader);
+        return Validate(nameof(Sylvan), MarkPflug65KXlsxBenchmarks.Observe(reader));
     }
 
     [Benchmark]
@@ -266,7 +259,7 @@ public class MarkPflug65KXlsbBenchmarks {
         using global::ExcelDataReader.IExcelDataReader reader =
             global::ExcelDataReader.ExcelReaderFactory.CreateReader(stream);
         if (!reader.Read()) {
-            return default;
+            return Validate(nameof(ExcelDataReader), default);
         }
 
         var observation = new ExcelObservationAccumulator();
@@ -279,16 +272,18 @@ public class MarkPflug65KXlsbBenchmarks {
                 ordinal => Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture));
         }
 
-        return observation.Build();
+        return Validate(nameof(ExcelDataReader), observation.Build());
     }
 
-    private void Validate(string library, ExcelReadObservation actual) {
+    private ExcelReadObservation Validate(string library, ExcelReadObservation actual) {
         if (actual != _expected
             || actual.Rows != MarkPflug65KFixture.ExpectedRows
             || actual.Cells != MarkPflug65KFixture.ExpectedRows * MarkPflug65KFixture.ExpectedColumns) {
             throw new InvalidDataException(
                 $"{library} did not perform the same XLSB workload. Expected {_expected}; actual {actual}.");
         }
+
+        return actual;
     }
 }
 

@@ -178,6 +178,8 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIM
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-markpflug65k-xls-sylvan 100
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-markpflug65k-xlsb-officeimo 100
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-markpflug65k-xlsb-sylvan 100
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xls-paired 40 0x1 High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xlsb-paired 40 0x1 High
 ```
 
 For one fixed-work run across both measured CPU domains, add affinity jobs and
@@ -215,12 +217,47 @@ has the lowest managed allocation on both domains
 by a wide margin. Several methods were bimodal or changed performance phase;
 the full distributions matter more than selecting one favorable cluster.
 
+### Dated 65K XLS and XLSB snapshot (2026-08-09)
+
+The legacy-format runner uses twelve warmups followed by forty symmetric ABBA
+samples at High process priority. Each sample averages two reads per library,
+alternates which library runs outside the pair, and rejects any row, cell, or
+payload observation mismatch. These results used the same workstation and CPU
+domains as the XLSX snapshot above.
+
+| Format | CPU | OfficeIMO median | Sylvan median | Ratio of medians | Paired ratio median (P25-P75) |
+| --- | --- | ---: | ---: | ---: | ---: |
+| XLS | CPU 0 | 49.494 ms | 50.716 ms | 0.9759 | 0.9847 (0.9498-1.0334) |
+| XLS | CPU 16 | 44.355 ms | 46.572 ms | 0.9524 | 0.9502 (0.9425-0.9661) |
+| XLSB | CPU 0 | 76.264 ms | 74.601 ms | 1.0223 | 0.9913 (0.9294-1.0411) |
+| XLSB | CPU 16 | 55.135 ms | 56.471 ms | 0.9763 | 0.9803 (0.9607-0.9920) |
+
+All four differences are below the repository's predeclared 5% threshold, so
+they are classified as ties rather than wins. OfficeIMO had the lower observed
+median in both XLS domains and one XLSB domain. A separate BenchmarkDotNet run
+with four invocations, twelve warmups, twenty retained-outlier iterations, and
+both affinity jobs measured steady-state XLSB allocation at 115.15-115.23 KB
+for OfficeIMO, 343.78 KB for Sylvan, and 90,233.52-90,236.31 KB for
+ExcelDataReader. Its CPU 16 OfficeIMO timing changed phase dramatically, so the
+ABBA runner above is the relative timing evidence; the BenchmarkDotNet run is
+used for allocation evidence and its timing outliers remain visible.
+
+Reproduce both timing domains and the allocation run with:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xls-paired 40 0x1 High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xls-paired 40 0x10000 High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xlsb-paired 40 0x1 High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xlsb-paired 40 0x10000 High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*MarkPflug65KXlsbBenchmarks*" --affinityMasks "0x1,0x10000" --priority High --invocationCount 4 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
+```
+
 The four `--profile-markpflug65k-*` commands are lightweight profiling loops,
-not publication-grade benchmark runs. Before timing begins, they authenticate
-the fixture and require OfficeIMO, Sylvan.Data.Excel, and ExcelDataReader to
-produce the same row count, cell count, and deterministic payload observation.
-Use the BenchmarkDotNet class filters above when statistical error and
-allocation measurements are required.
+not publication-grade benchmark runs. The fixture is authenticated during
+setup, and every measured library invocation must produce the expected row
+count, cell count, and deterministic payload observation. The paired commands
+control short-run ordering drift; use the BenchmarkDotNet class filters above
+when statistical error and allocation measurements are required.
 
 The XLS lane includes OfficeIMO, Sylvan.Data.Excel, and ExcelDataReader. The
 XLSX lane includes OfficeIMO, Sylvan.Data.Excel, ExcelDataReader,
