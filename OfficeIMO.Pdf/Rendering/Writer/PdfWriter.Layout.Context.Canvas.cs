@@ -338,28 +338,11 @@ internal static partial class PdfWriter {
             double scaleY = item.Height / block.Drawing.Height;
             bool scaled = Math.Abs(scaleX - 1D) > 0.0001D || Math.Abs(scaleY - 1D) > 0.0001D;
             if (scaled) {
-                new ContentStreamBuilder(sb)
-                    .SaveState()
-                    .TransformMatrix(scaleX, 0D, 0D, scaleY, item.X, bottomY);
-            }
-
-            for (int i = 0; i < block.Drawing.Elements.Count; i++) {
-                if (block.Drawing.Elements[i] is OfficeIMO.Drawing.OfficeDrawingShape drawingShape) {
-                    double xShape = scaled ? drawingShape.X : item.X + drawingShape.X;
-                    double shapeBottomY = scaled
-                        ? block.Drawing.Height - drawingShape.Y - drawingShape.Shape.Height
-                        : topY - drawingShape.Y - drawingShape.Shape.Height;
-                    DrawShapeGeometryAt(drawingShape.Shape, xShape, shapeBottomY);
-                } else if (block.Drawing.Elements[i] is OfficeIMO.Drawing.OfficeDrawingText drawingText) {
-                    double textX = scaled ? drawingText.X : item.X + drawingText.X;
-                    double textTopY = scaled ? block.Drawing.Height - drawingText.Y : topY - drawingText.Y;
-                    DrawDrawingTextAt(drawingText, textX, textTopY);
-                }
-            }
-
-            if (scaled) {
-                new ContentStreamBuilder(sb)
-                    .RestoreState();
+                var scaledDrawing = new OfficeDrawing(item.Width, item.Height)
+                    .AddEffectDrawing(block.Drawing, OfficeTransform.Scale(scaleX, scaleY));
+                DrawDrawingElements(scaledDrawing, item.X, topY);
+            } else {
+                DrawDrawingElements(block.Drawing, item.X, topY);
             }
 
             AppendDrawingMarkedContentEnd(markedContent);
@@ -443,48 +426,6 @@ internal static partial class PdfWriter {
             DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
         }
-
-        private void RenderCanvasEffect(PdfCanvasEffectItem item) {
-            OfficeTransform transform = ConvertTopLeftCanvasTransform(item.Transform, currentOpts.PageHeight);
-            int annotationStart = currentPage!.Annotations.Count;
-            int textAnnotationStart = currentPage.TextAnnotations.Count;
-            int freeTextAnnotationStart = currentPage.FreeTextAnnotations.Count;
-            int highlightAnnotationStart = currentPage.HighlightAnnotations.Count;
-            int formFieldStart = currentPage.FormFields.Count;
-            string? opacityState = EnsureGraphicsState(item.Opacity, item.Opacity);
-            int contentStart = sb.Length;
-            _canvasClipDepth++;
-            try {
-                RenderCanvasBlock(new PdfCanvasBlock(item.Items));
-            } finally {
-                _canvasClipDepth--;
-            }
-            string groupContent = sb.ToString(contentStart, sb.Length - contentStart);
-            sb.Length = contentStart;
-            string token = "\n%OIMO_EFFECT_GROUP_" + (currentPage.EffectGroups.Count + 1).ToString("D6", CultureInfo.InvariantCulture) + "\n";
-            currentPage.EffectGroups.Add(new PageEffectGroup {
-                Content = pageContents.Store(groupContent),
-                Token = token,
-                Transform = transform,
-                GraphicsStateName = opacityState
-            });
-            sb.Append(token);
-            TransformCanvasRectangles(currentPage.Annotations, annotationStart, transform);
-            TransformCanvasRectangles(currentPage.TextAnnotations, textAnnotationStart, transform);
-            TransformCanvasRectangles(currentPage.FreeTextAnnotations, freeTextAnnotationStart, transform);
-            TransformCanvasRectangles(currentPage.HighlightAnnotations, highlightAnnotationStart, transform);
-            TransformCanvasRectangles(currentPage.FormFields, formFieldStart, transform);
-            pageDirty = true;
-        }
-
-        private static OfficeTransform ConvertTopLeftCanvasTransform(OfficeTransform transform, double pageHeight) =>
-            new OfficeTransform(
-                transform.M11,
-                -transform.M12,
-                -transform.M21,
-                transform.M22,
-                transform.M21 * pageHeight + transform.OffsetX,
-                pageHeight * (1D - transform.M22) - transform.OffsetY);
 
         private static void TransformCanvasRectangles(System.Collections.Generic.List<LinkAnnotation> annotations, int startIndex, OfficeTransform transform) {
             for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);

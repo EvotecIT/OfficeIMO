@@ -173,18 +173,89 @@ internal static partial class PdfWriter {
             double xDrawing = GetAlignedObjectX(containerX, containerWidth, block.Drawing.Width, style.Align);
             bool markedContent;
             int? structElementIndex = AppendDrawingMarkedContentBegin(style, out markedContent);
-            for (int i = 0; i < block.Drawing.Elements.Count; i++) {
-                if (block.Drawing.Elements[i] is OfficeDrawingShape shape) {
-                    double xShape = xDrawing + shape.X;
-                    double bottomY = topY - shape.Y - shape.Shape.Height;
-                    DrawShapeGeometryAt(shape.Shape, xShape, bottomY);
-                } else if (block.Drawing.Elements[i] is OfficeDrawingText text) {
-                    DrawDrawingTextAt(text, xDrawing + text.X, topY - text.Y);
-                }
-            }
-
+            DrawDrawingElements(block.Drawing, xDrawing, topY);
             AppendDrawingMarkedContentEnd(markedContent);
             return structElementIndex;
+        }
+
+        private void DrawDrawingElements(OfficeDrawing drawing, double originX, double originTopY) {
+            for (int i = 0; i < drawing.Elements.Count; i++) {
+                if (drawing.Elements[i] is OfficeDrawingShape shape) {
+                    double xShape = originX + shape.X;
+                    double bottomY = originTopY - shape.Y - shape.Shape.Height;
+                    DrawShapeGeometryAt(shape.Shape, xShape, bottomY);
+                } else if (drawing.Elements[i] is OfficeDrawingText text) {
+                    DrawDrawingTextAt(text, originX + text.X, originTopY - text.Y);
+                } else if (drawing.Elements[i] is OfficeDrawingImage image) {
+                    DrawDrawingImageAt(image, originX, originTopY);
+                } else if (drawing.Elements[i] is OfficeDrawingEffectGroup effectGroup) {
+                    if (effectGroup.BlendMode != OfficeBlendMode.Normal || effectGroup.SoftMask != null) {
+                        throw new NotSupportedException("OfficeIMO.Pdf does not yet support drawing effect groups with a blend mode or soft mask.");
+                    }
+
+                    OfficeTransform pageTransform = OfficeTransform
+                        .Translate(-originX, -originTopY)
+                        .Then(effectGroup.Transform)
+                        .Then(OfficeTransform.Translate(originX, originTopY));
+                    RenderEffectGroup(
+                        pageTransform,
+                        effectGroup.Opacity,
+                        () => DrawDrawingElements(effectGroup.InnerDrawing, originX, originTopY));
+                } else {
+                    throw new NotSupportedException(
+                        "OfficeIMO.Pdf does not yet support drawing elements of type " +
+                        drawing.Elements[i].GetType().Name + ".");
+                }
+            }
+        }
+
+        private void DrawDrawingImageAt(OfficeDrawingImage image, double originX, double originTopY) {
+            OfficeImageProjection projection = image.Projection;
+            PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(image.EncodedBytes);
+            var imageStyle = new PdfImageStyle {
+                Fit = OfficeImageFit.Stretch,
+                RotationAngle = projection.RotationDegrees,
+                AlternativeText = image.AlternativeText
+            };
+            if (projection.HasCrop) {
+                imageStyle.SourceCrop = new PdfImageSourceCrop(
+                    projection.SourceCrop.Left,
+                    projection.SourceCrop.Top,
+                    projection.SourceCrop.Right,
+                    projection.SourceCrop.Bottom);
+            }
+
+            double targetX = originX + projection.X;
+            double targetBottomY = originTopY - projection.Y - projection.Height;
+            var block = new ImageBlock(
+                prepared.Data,
+                projection.Width,
+                projection.Height,
+                prepared.Info,
+                imageStyle,
+                useDataSnapshot: true);
+            PageImage pageImage = CreatePageImage(
+                block,
+                imageStyle,
+                targetX,
+                targetBottomY,
+                projection.Width,
+                projection.Height);
+            pageImage.Opacity = image.Opacity;
+            pageImage.GraphicsStateName = EnsureGraphicsState(image.Opacity, image.Opacity);
+            pageImage.HorizontalFlip = projection.FlipHorizontal;
+            pageImage.VerticalFlip = projection.FlipVertical;
+            pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
+            currentPage!.Images.Add(pageImage);
+            pageImage.InlineDrawToken = "\n%OIMO_INLINE_IMAGE_" + currentPage.Images.Count.ToString("D6", CultureInfo.InvariantCulture) + "\n";
+            sb.Append(pageImage.InlineDrawToken);
+            if (!_suppressCanvasAccessibilityWrappers && !string.IsNullOrWhiteSpace(pageImage.AlternativeText)) {
+                int? markedContentId = RegisterFigureStructureElement(pageImage.AlternativeText!, _canvasStructureParentElementIndex);
+                pageImage.MarkedContentId = markedContentId;
+                pageImage.StructElementIndex = FindStructElementIndex(currentPage, markedContentId, "Figure");
+            }
+
+            pageDirty = true;
         }
 
         private void DrawDrawingTextAt(OfficeDrawingText text, double x, double topY) {

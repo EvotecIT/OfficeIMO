@@ -292,12 +292,13 @@ public class PdfDocumentCanvasTests {
 
         string content = Encoding.ASCII.GetString(bytes);
 
-        Assert.Contains("2 0 0 2 20 70 cm", content, StringComparison.Ordinal);
-        Assert.Contains("5 5 20 10 re", content, StringComparison.Ordinal);
+        Assert.Contains("/Group << /S /Transparency /I true /K false >>", content, StringComparison.Ordinal);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
-        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        var letters = pdf.GetPage(1).Letters;
+        string text = string.Join("", letters.Select(letter => letter.Value));
         Assert.Contains("SceneText", text, StringComparison.Ordinal);
+        Assert.All(letters, letter => Assert.InRange(letter.StartBaseLine.X, 20D, 120D));
     }
 
     [Fact]

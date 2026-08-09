@@ -45,6 +45,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | PDF | No third-party PDF or cryptographic dependency | PDF parsing/writing/rendering, password security, signature structure, preservation policy, limits, and diagnostics |
 | Email, email stores, and address books | `System.Text.Encoding.CodePages` | EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, protected-wrapper preservation, limits, and diagnostics |
 | Optional Security provider | [Bouncy Castle](https://www.bouncycastle.org/csharp/) and `System.Security.Cryptography.Xml` | CMS/S/MIME/RFC 3161/X.509/XML DSig orchestration behind one typed provider explicitly supplied to Word, PDF, or Email |
+| Optional ChartForgeX bridge | [ChartForgeX](https://github.com/EvotecIT/ChartForgeX) | Vector-first visual artifact conversion, OfficeDrawing fidelity reports, and Word, Excel, PowerPoint, and PDF placement |
 | Visio | `System.IO.Packaging` | VSDX/VSTX/VSSX and macro-enabled package model, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
 | Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
@@ -56,8 +57,8 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated `3.2.x` source packages | 93 |
-| Documented package, tool, and example projects below | 100 |
+| Coordinated `3.2.x` source packages | 94 |
+| Documented package, tool, and example projects below | 102 |
 | Native format, foundation, and shared-service packages | 26 |
 | Conversion and cloud bridge packages | 36 |
 | Unified Reader packages | 27 |
@@ -110,6 +111,15 @@ _Dependency footprint:_ `OfficeIMO.Core`, HarfBuzzSharp, and its platform-native
 - [x] Searchable barcode label text and explicit unsupported-import counts
 
 _Dependency footprint:_ only `OfficeIMO.Core` and CodeGlyphX; both core packages remain independently usable.
+
+#### [OfficeIMO.ChartForgeX](OfficeIMO.ChartForgeX/README.md)
+
+- [x] Optional bridge from every ChartForgeX `VisualArtifact` to reusable SVG and `OfficeDrawing` representations
+- [x] Vector-native placement in Word, Excel, and PowerPoint plus first-party PDF composition through OfficeIMO.Drawing
+- [x] Point-normalized sizing, accessibility text, region metadata, and explicit preserve-vector, raster-fallback, or require-vector policy
+- [x] ChartForgeX watermarks and render options flow through the same conversion, while document/page watermarks remain owned by OfficeIMO
+
+_Dependency footprint:_ ChartForgeX and the OfficeIMO Word, Excel, PowerPoint, PDF, and Core packages. Existing format packages remain independently usable and do not depend on ChartForgeX.
 
 #### [OfficeIMO.Word](OfficeIMO.Word/README.md)
 
