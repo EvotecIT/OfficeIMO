@@ -533,6 +533,69 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void TryDecodeResolvesIndirectPredictorParameters() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var decodeParameters = new PdfDictionary();
+        decodeParameters.Items["Predictor"] = new PdfReference(1, 0);
+        decodeParameters.Items["Columns"] = new PdfReference(2, 0);
+        decodeParameters.Items["Colors"] = new PdfReference(3, 0);
+        decodeParameters.Items["BitsPerComponent"] = new PdfReference(4, 0);
+        dictionary.Items["DecodeParms"] = decodeParameters;
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [1] = new PdfIndirectObject(1, 0, new PdfNumber(12)),
+            [2] = new PdfIndirectObject(2, 0, new PdfReference(5, 0)),
+            [3] = new PdfIndirectObject(3, 0, new PdfNumber(1)),
+            [4] = new PdfIndirectObject(4, 0, new PdfNumber(8)),
+            [5] = new PdfIndirectObject(5, 0, new PdfNumber(4))
+        };
+        byte[] encoded = CompressForDecoderTest(new byte[] { 0, 65, 66, 67, 68 });
+
+        bool decoded = StreamDecoder.TryDecode(dictionary, encoded, 1024, out byte[] output, objects);
+
+        Assert.True(decoded);
+        Assert.Equal(new byte[] { 65, 66, 67, 68 }, output);
+    }
+
+    [Fact]
+    public void TryDecodeResolvesIndirectLzwEarlyChange() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("LZWDecode");
+        var decodeParameters = new PdfDictionary();
+        decodeParameters.Items["EarlyChange"] = new PdfReference(1, 0);
+        dictionary.Items["DecodeParms"] = decodeParameters;
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [1] = new PdfIndirectObject(1, 0, new PdfNumber(0))
+        };
+        byte[] encoded = PackNineBitCodes(new[] { 256, 65, 257 });
+
+        bool decoded = StreamDecoder.TryDecode(dictionary, encoded, 1024, out byte[] output, objects);
+
+        Assert.True(decoded);
+        Assert.Equal(new byte[] { 65 }, output);
+    }
+
+    [Fact]
+    public void TryDecodeRejectsCyclicIndirectDecodeParameters() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var decodeParameters = new PdfDictionary();
+        decodeParameters.Items["Predictor"] = new PdfReference(1, 0);
+        dictionary.Items["DecodeParms"] = decodeParameters;
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [1] = new PdfIndirectObject(1, 0, new PdfReference(2, 0)),
+            [2] = new PdfIndirectObject(2, 0, new PdfReference(1, 0))
+        };
+
+        Assert.False(StreamDecoder.TryDecode(
+            dictionary,
+            CompressForDecoderTest(new byte[] { 65 }),
+            1024,
+            out _,
+            objects));
+    }
+
+    [Fact]
     public void TryDecodeAppliesTiffPredictorAcrossSupportedBitDepths() {
         AssertTiffPredictorDecode(1, 8, new byte[] { 0x5D }, new byte[] { 0x69 });
         AssertTiffPredictorDecode(2, 4, new byte[] { 0x1B }, new byte[] { 0x1E });

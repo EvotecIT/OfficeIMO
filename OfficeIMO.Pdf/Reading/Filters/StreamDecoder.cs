@@ -312,7 +312,7 @@ internal static class StreamDecoder {
             return false;
         }
 
-        int predictor = ReadIntegerParameter(decodeParms, "Predictor", 1);
+        int predictor = ReadIntegerParameter(decodeParms, "Predictor", 1, objects);
         return predictor > 1;
     }
 
@@ -327,7 +327,7 @@ internal static class StreamDecoder {
             return data;
         }
 
-        int predictor = ReadIntegerParameter(decodeParms, "Predictor", 1);
+        int predictor = ReadIntegerParameter(decodeParms, "Predictor", 1, objects);
         if (predictor == 1) {
             return data;
         }
@@ -336,9 +336,9 @@ internal static class StreamDecoder {
             throw new FormatException($"Unsupported PDF predictor value '{predictor}'.");
         }
 
-        int columns = ReadPositiveIntegerParameter(decodeParms, "Columns", 1);
-        int colors = ReadPositiveIntegerParameter(decodeParms, "Colors", 1);
-        int bitsPerComponent = ReadIntegerParameter(decodeParms, "BitsPerComponent", 8);
+        int columns = ReadPositiveIntegerParameter(decodeParms, "Columns", 1, objects);
+        int colors = ReadPositiveIntegerParameter(decodeParms, "Colors", 1, objects);
+        int bitsPerComponent = ReadIntegerParameter(decodeParms, "BitsPerComponent", 8, objects);
         if (bitsPerComponent != 1 && bitsPerComponent != 2 && bitsPerComponent != 4 && bitsPerComponent != 8 && bitsPerComponent != 16) {
             throw new FormatException($"Unsupported PDF predictor bit depth '{bitsPerComponent}'.");
         }
@@ -356,7 +356,7 @@ internal static class StreamDecoder {
             return 1;
         }
 
-        int earlyChange = ReadIntegerParameter(decodeParms, "EarlyChange", 1);
+        int earlyChange = ReadIntegerParameter(decodeParms, "EarlyChange", 1, objects);
         if (earlyChange != 0 && earlyChange != 1) {
             throw new FormatException($"Unsupported LZW EarlyChange value '{earlyChange}'.");
         }
@@ -394,11 +394,19 @@ internal static class StreamDecoder {
     }
 
     private static PdfObject? ResolveObject(PdfObject? obj, Dictionary<int, PdfIndirectObject>? objects) {
-        if (obj is PdfReference reference &&
-            objects is not null &&
-            PdfObjectLookup.TryGet(objects, reference, out var indirect) &&
-            indirect.Value is PdfObject resolvedObject) {
-            return resolvedObject;
+        if (objects is null) {
+            return obj;
+        }
+
+        HashSet<(int ObjectNumber, int Generation)>? visited = null;
+        while (obj is PdfReference reference) {
+            visited ??= new HashSet<(int ObjectNumber, int Generation)>();
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
+                !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) {
+                return obj;
+            }
+
+            obj = indirect.Value;
         }
 
         return obj;
@@ -469,8 +477,12 @@ internal static class StreamDecoder {
         return true;
     }
 
-    private static int ReadPositiveIntegerParameter(PdfDictionary dictionary, string name, int defaultValue) {
-        int value = ReadIntegerParameter(dictionary, name, defaultValue);
+    private static int ReadPositiveIntegerParameter(
+        PdfDictionary dictionary,
+        string name,
+        int defaultValue,
+        Dictionary<int, PdfIndirectObject>? objects) {
+        int value = ReadIntegerParameter(dictionary, name, defaultValue, objects);
         if (value <= 0) {
             throw new FormatException($"PDF decode parameter '{name}' must be positive.");
         }
@@ -478,12 +490,16 @@ internal static class StreamDecoder {
         return value;
     }
 
-    private static int ReadIntegerParameter(PdfDictionary dictionary, string name, int defaultValue) {
+    private static int ReadIntegerParameter(
+        PdfDictionary dictionary,
+        string name,
+        int defaultValue,
+        Dictionary<int, PdfIndirectObject>? objects) {
         if (!dictionary.Items.TryGetValue(name, out PdfObject? parameter)) {
             return defaultValue;
         }
 
-        if (parameter is not PdfNumber number ||
+        if (ResolveObject(parameter, objects) is not PdfNumber number ||
             double.IsNaN(number.Value) ||
             double.IsInfinity(number.Value) ||
             number.Value != Math.Truncate(number.Value) ||
