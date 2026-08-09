@@ -14,7 +14,7 @@ internal static partial class CsvParser
     /// </summary>
     internal sealed class CsvStreamDataReaderRowSource : ICsvDataReaderTextRowSource, ICsvDataReaderPositionSource
     {
-        private const int LargeDataReaderBufferSize = 512 * 1024;
+        private const int LargeDataReaderBufferSize = 128 * 1024;
         private readonly TextReader _reader;
         private readonly CsvLineReader _lineReader;
         private readonly CsvLoadOptions _options;

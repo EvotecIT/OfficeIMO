@@ -62,7 +62,7 @@ public sealed class CsvDataReaderApiTests {
 
     [Fact]
     public void OpenDataReader_HandlesQuotedMultilineEscapedAndLongFields() {
-        string longValue = new('x', 70_000);
+        string longValue = new('x', 200_000);
         string csv = "Id,Description,LongValue\n"
             + "1,\"line one\nline \"\"two\"\"\",\"" + longValue + "\"\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
