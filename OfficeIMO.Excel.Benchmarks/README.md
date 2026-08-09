@@ -73,6 +73,53 @@ direct typed reader and materially outperform the forced sequential fallback.
 `Parallel` remains an execution preference rather than a promise to discard a
 faster single-pass reader; diagnostics report the strategy actually selected.
 
+### Dated DataTable execution-mode write snapshot (2026-08-09)
+
+`ExcelDataTableExecutionBenchmarks` creates and saves the same 25,000-row XLSX
+package through the public `InsertDataTable` API in Automatic, Sequential, and
+Parallel mode. Setup reopens each package and compares every header and cell
+before timing. The timed work includes workbook creation, insertion, and save.
+
+This .NET 10 run used BenchmarkDotNet 0.15.8, workstation GC, the Windows High
+performance power plan, fixed `High` process priority, and separate jobs for
+both 16-logical-processor L3 domains on the AMD Ryzen 9 9950X3D2. Outliers were
+retained.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*ExcelDataTableExecutionBenchmarks*" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 8 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
+
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-datatable-execution-paired 40 0xFFFF High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj --no-build -- --compare-datatable-execution-paired 40 0xFFFF0000 High
+```
+
+| Mode | L3 domain 0 mean (99.9% CI) | L3 domain 1 mean (99.9% CI) | Managed allocation |
+| --- | ---: | ---: | ---: |
+| Automatic | 33.13 ms (31.32-34.94) | 29.92 ms (28.34-31.50) | 11.84 MB |
+| Sequential | 33.85 ms (31.85-35.85) | 30.74 ms (28.20-33.28) | 11.84 MB |
+| Parallel | 33.15 ms (31.26-35.04) | 30.38 ms (28.54-32.22) | 11.84 MB |
+
+All three modes shared rank 1 in both BenchmarkDotNet jobs. Automatic and
+Sequential use the same direct writer here, while the small changes in their
+relative means across CPU domains are useful evidence of the machine's temporal
+and domain sensitivity rather than a reason to declare a winner from one
+favorable job.
+
+The companion runner therefore measures Automatic and Parallel as alternating
+ABBA pairs in one pinned process. On domain 0 their medians were 38.802 ms and
+40.144 ms; the paired Parallel/Automatic ratio median was 1.0417 (P25 0.9625,
+P75 1.1445). On domain 1 their medians were 36.837 ms and 38.455 ms; the paired
+ratio median was 1.0188 (P25 0.9523, P75 1.1466). The interquartile ranges
+straddle 1 on both domains. That supports practical parity on this workload,
+but it is not a statistical-equivalence proof.
+
+Before this fast path, the same Parallel workload took 1,201.16 ms on domain 0
+and 946.88 ms on domain 1 while allocating 432.93 MB. The final path is about
+31-36 times faster and uses about 36.6 times less managed memory. A Parallel
+request now keeps the specialized package writer, eagerly snapshots values so
+later source mutations cannot leak into the workbook, and checks cancellation
+during snapshot creation. Package serialization itself remains a specialized
+single-pass operation rather than parallel work.
+
 ### Dated compact DataReader write snapshot (2026-08-09)
 
 This BenchmarkDotNet 0.15.8 run wrote the same prepared 25,000-row,

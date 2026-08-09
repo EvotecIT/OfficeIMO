@@ -74,7 +74,6 @@ namespace OfficeIMO.Excel {
             if (table == null) throw new ArgumentNullException(nameof(table));
 
             bool canRegisterDirectSave = !_excelDocument.IsMaterializingDeferredDataSetImport
-                && mode != ExcelExecutionMode.Parallel
                 && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, table.Columns.Count);
 
             int rowsCount = table.Rows.Count + (includeHeaders ? 1 : 0);
@@ -87,8 +86,8 @@ namespace OfficeIMO.Excel {
             string endRef = A1.CellReference(startRow + rowsCount - 1, startColumn + colsCount - 1);
             string range = startRef + ":" + endRef;
 
-            if (canRegisterDirectSave
-                && TryInsertDataTableAsDeferredDirectSave(
+            if (canRegisterDirectSave) {
+                if (TryInsertDataTableAsDeferredDirectSave(
                     table,
                     startRow,
                     startColumn,
@@ -98,8 +97,14 @@ namespace OfficeIMO.Excel {
                     tableName,
                     style,
                     includeAutoFilter,
+                    eagerValueSnapshot: mode == ExcelExecutionMode.Parallel,
                     ct)) {
-                return range;
+                    return range;
+                }
+
+                if (mode == ExcelExecutionMode.Parallel) {
+                    canRegisterDirectSave = false;
+                }
             }
 
             InsertDataTableCore(
@@ -121,7 +126,7 @@ namespace OfficeIMO.Excel {
             if (canRegisterDirectSave) {
                 DataTable directSaveTable = includeHeaders
                     ? table
-                    : CreateHeaderlessDirectSaveTable(table);
+                    : CreateHeaderlessDirectSaveTable(table, ct);
                 _excelDocument.RegisterDirectTabularSaveCandidate(
                     this,
                     directSaveTable,
@@ -138,20 +143,24 @@ namespace OfficeIMO.Excel {
             return range;
         }
 
-        private static DataTable CreateHeaderlessDirectSaveTable(DataTable source) {
+        private static DataTable CreateHeaderlessDirectSaveTable(DataTable source, CancellationToken ct = default) {
+            ct.ThrowIfCancellationRequested();
             var table = new DataTable(source.TableName) {
                 Locale = CultureInfo.InvariantCulture
             };
 
             for (int i = 0; i < source.Columns.Count; i++) {
+                ct.ThrowIfCancellationRequested();
                 table.Columns.Add("Column" + (i + 1).ToString(CultureInfo.InvariantCulture), source.Columns[i].DataType);
             }
 
             table.BeginLoadData();
             try {
                 foreach (DataRow sourceRow in source.Rows) {
+                    ct.ThrowIfCancellationRequested();
                     var row = table.NewRow();
                     for (int i = 0; i < source.Columns.Count; i++) {
+                        ct.ThrowIfCancellationRequested();
                         row[i] = sourceRow.IsNull(i) ? DBNull.Value : sourceRow[i];
                     }
 

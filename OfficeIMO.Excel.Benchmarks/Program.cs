@@ -27,6 +27,13 @@ bool profileSpreadCheetahDataReaderWrite = args.Length > 0 &&
     string.Equals(args[0], "--profile-datareader-write-spreadcheetah", StringComparison.OrdinalIgnoreCase);
 bool comparePairedDataReaderWrite = args.Length > 0 &&
     string.Equals(args[0], "--compare-datareader-write-paired", StringComparison.OrdinalIgnoreCase);
+bool comparePairedDataTableExecution = args.Length > 0 &&
+    string.Equals(args[0], "--compare-datatable-execution-paired", StringComparison.OrdinalIgnoreCase);
+
+if (comparePairedDataTableExecution) {
+    ExcelDataTableExecutionPairedRunner.Run(args);
+    return;
+}
 
 if (comparePairedDataReaderWrite) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
@@ -533,6 +540,7 @@ static void WriteUsage() {
     Console.WriteLine("  --profile-datareader-write-largexlsx [iterations] [affinity-mask]");
     Console.WriteLine("  --profile-datareader-write-spreadcheetah [iterations] [affinity-mask]");
     Console.WriteLine("  --compare-datareader-write-paired [iterations] [affinity-mask] [priority]");
+    Console.WriteLine("  --compare-datatable-execution-paired [iterations] [affinity-mask] [priority]");
     Console.WriteLine("  anti-cheat-suite [output-dir] [--row-set 100,2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--warmup N] [--iterations N]");
     Console.WriteLine("  comparison-suite [output-dir] [--row-set 2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--skip-dense-helloworld] [--warmup N] [--iterations N]");
     Console.WriteLine();

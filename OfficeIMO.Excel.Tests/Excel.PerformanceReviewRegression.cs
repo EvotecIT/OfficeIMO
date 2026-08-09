@@ -7,6 +7,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
@@ -6143,8 +6144,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Manual edit", text);
         }
 
-        [Fact]
-        public void PerformanceReview_InsertDataTable_UsesDirectPackageWhenWorkbookIsClean() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PerformanceReview_InsertDataTable_UsesDirectPackageWhenWorkbookIsClean(bool requestParallel) {
             using var memory = new MemoryStream();
             var table = new DataTable("Sales");
             table.Columns.Add("Name", typeof(string));
@@ -6155,7 +6158,9 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(table);
+                sheet.InsertDataTable(
+                    table,
+                    mode: requestParallel ? ExcelExecutionMode.Parallel : null);
 
                 document.Save(memory);
 
@@ -6289,8 +6294,10 @@ namespace OfficeIMO.Tests {
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
-        [Fact]
-        public void PerformanceReview_InsertDataTable_SourceMutationAfterInsertDoesNotChangeDirectCandidate() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PerformanceReview_InsertDataTable_SourceMutationAfterInsertDoesNotChangeSavedData(bool requestParallel) {
             using var memory = new MemoryStream();
             var table = new DataTable("Sales");
             table.Columns.Add("Name", typeof(string));
@@ -6299,7 +6306,9 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(table);
+                sheet.InsertDataTable(
+                    table,
+                    mode: requestParallel ? ExcelExecutionMode.Parallel : null);
                 table.Rows[0]["Name"] = "Changed";
                 table.Rows.Add("Late", 20);
 
@@ -6315,6 +6324,65 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.False(cells.ContainsKey("A3"));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertDataTableParallel_SnapshotsMutableObjectTextDuringInsert() {
+            using var memory = new MemoryStream();
+            var mutableValue = new StringBuilder("Alpha");
+            var table = new DataTable("Items");
+            table.Columns.Add("Value", typeof(object));
+            table.Rows.Add(mutableValue);
+
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.InsertDataTable(table, mode: ExcelExecutionMode.Parallel);
+                mutableValue.Clear().Append("Changed");
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertDataTableParallel_ReportsObjectConversionFailureDuringInsert() {
+            var table = new DataTable("Items");
+            table.Columns.Add("Value", typeof(object));
+            var value = new ThrowingToStringValue();
+            table.Rows.Add(value);
+
+            using var document = ExcelDocument.Create(new MemoryStream());
+            var sheet = document.AddWorksheet("Data");
+
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                sheet.InsertDataTable(table, mode: ExcelExecutionMode.Parallel));
+
+            Assert.Equal("Synthetic conversion failure.", exception.Message);
+            Assert.Equal(1, value.InvocationCount);
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertDataTableParallel_RejectsOversizedDeclaredStringDuringInsert() {
+            var table = new DataTable("Items");
+            table.Columns.Add("Value", typeof(string));
+            table.Rows.Add(new string('x', 32_768));
+
+            using var document = ExcelDocument.Create(new MemoryStream());
+            var sheet = document.AddWorksheet("Data");
+
+            var exception = Assert.Throws<ArgumentException>(() =>
+                sheet.InsertDataTable(table, mode: ExcelExecutionMode.Parallel));
+
+            Assert.Equal("value", exception.ParamName);
         }
 
         [Fact]
@@ -6368,8 +6436,10 @@ namespace OfficeIMO.Tests {
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
-        [Fact]
-        public void PerformanceReview_InsertDataTableAsTable_SourceMutationAfterInsertDoesNotChangeDirectCandidate() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PerformanceReview_InsertDataTableAsTable_SourceMutationAfterInsertDoesNotChangeSavedData(bool requestParallel) {
             using var memory = new MemoryStream();
             var table = new DataTable("Sales");
             table.Columns.Add("Name", typeof(string));
@@ -6378,7 +6448,12 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddWorksheet("Data");
-                Assert.Equal("A1:B2", sheet.InsertDataTableAsTable(table, tableName: "Sales Table"));
+                Assert.Equal(
+                    "A1:B2",
+                    sheet.InsertDataTableAsTable(
+                        table,
+                        tableName: "Sales Table",
+                        mode: requestParallel ? ExcelExecutionMode.Parallel : null));
                 table.Rows[0]["Name"] = "Changed";
                 table.Rows.Add("Late", 20);
 
@@ -6400,8 +6475,10 @@ namespace OfficeIMO.Tests {
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
-        [Fact]
-        public void PerformanceReview_InsertDataTableAsTable_UsesDirectPackageWhenWorkbookIsClean() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PerformanceReview_InsertDataTableAsTable_UsesDirectPackageWhenWorkbookIsClean(bool requestParallel) {
             using var memory = new MemoryStream();
             var table = new DataTable("Sales");
             table.Columns.Add("Name", typeof(string));
@@ -6412,7 +6489,13 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddWorksheet("Data");
-                Assert.Equal("A1:C3", sheet.InsertDataTableAsTable(table, tableName: "Sales Table", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9));
+                Assert.Equal(
+                    "A1:C3",
+                    sheet.InsertDataTableAsTable(
+                        table,
+                        tableName: "Sales Table",
+                        style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9,
+                        mode: requestParallel ? ExcelExecutionMode.Parallel : null));
 
                 document.Save(memory);
 
@@ -6432,6 +6515,29 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Sales_Table", tableDefinition.Name!.Value);
             Assert.Equal("TableStyleMedium9", tableDefinition.TableStyleInfo!.Name!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertDataTableAsTableHeaderlessParallel_HonorsPreCancellationWithoutAddingRowsOrTable() {
+            var table = new DataTable("Sales");
+            table.Columns.Add("Name", typeof(string));
+            table.Rows.Add("Alpha");
+
+            using var document = ExcelDocument.Create(new MemoryStream());
+            var sheet = document.AddWorksheet("Data");
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            Assert.Throws<OperationCanceledException>(() =>
+                sheet.InsertDataTableAsTable(
+                    table,
+                    includeHeaders: false,
+                    tableName: "Sales Table",
+                    mode: ExcelExecutionMode.Parallel,
+                    ct: cancellation.Token));
+
+            Assert.False(sheet.TryGetCellText(1, 1, out _));
+            Assert.Empty(document.GetTables());
         }
 
         [Fact]
@@ -7124,6 +7230,15 @@ namespace OfficeIMO.Tests {
             }
 
             return value;
+        }
+
+        private sealed class ThrowingToStringValue {
+            public int InvocationCount { get; private set; }
+
+            public override string ToString() {
+                InvocationCount++;
+                throw new InvalidOperationException("Synthetic conversion failure.");
+            }
         }
 
         private sealed class NonSeekableWriteStream : Stream {
