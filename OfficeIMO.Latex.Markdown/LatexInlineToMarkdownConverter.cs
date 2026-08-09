@@ -186,13 +186,13 @@ internal static class LatexInlineToMarkdownConverter {
         int start = opening.Length;
         if (string.Equals(syntax.Value, "minted", StringComparison.Ordinal)) {
             int argumentStart = start;
-            SkipHorizontalWhitespace(source, ref argumentStart);
+            SkipInterArgumentWhitespace(source, ref argumentStart);
             TrySkipDelimitedArgument(source, ref argumentStart, '[', ']');
-            SkipHorizontalWhitespace(source, ref argumentStart);
+            SkipInterArgumentWhitespace(source, ref argumentStart);
             if (TrySkipDelimitedArgument(source, ref argumentStart, '{', '}')) start = argumentStart;
         } else if (string.Equals(syntax.Value, "lstlisting", StringComparison.Ordinal)) {
             int argumentStart = start;
-            SkipHorizontalWhitespace(source, ref argumentStart);
+            SkipInterArgumentWhitespace(source, ref argumentStart);
             if (TrySkipDelimitedArgument(source, ref argumentStart, '[', ']')) start = argumentStart;
         }
         int length = source.EndsWith(closing, StringComparison.Ordinal)
@@ -201,8 +201,8 @@ internal static class LatexInlineToMarkdownConverter {
         return length > 0 ? source.Substring(start, length) : string.Empty;
     }
 
-    private static void SkipHorizontalWhitespace(string source, ref int cursor) {
-        while (cursor < source.Length && (source[cursor] == ' ' || source[cursor] == '\t')) cursor++;
+    private static void SkipInterArgumentWhitespace(string source, ref int cursor) {
+        while (cursor < source.Length && char.IsWhiteSpace(source[cursor])) cursor++;
     }
 
     private static bool TrySkipDelimitedArgument(string source, ref int cursor, char open, char close) {

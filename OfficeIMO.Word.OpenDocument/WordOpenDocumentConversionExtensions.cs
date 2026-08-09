@@ -22,8 +22,12 @@ public static class WordOpenDocumentConversionExtensions {
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, images = 0, unsupportedImages = 0, bookmarks = 0;
         int unsupportedFootnotes = 0, nestedListLevels = 0;
         IReadOnlyList<WordParagraphSnapshot> sourceParagraphs = EnumerateParagraphs(snapshot).ToList();
-        int paragraphFormatting = sourceParagraphs.Count(HasUnsupportedParagraphFormatting);
-        int runFormatting = sourceParagraphs.SelectMany(paragraph => paragraph.Runs).Count(HasUnsupportedRunFormatting);
+        IReadOnlyList<WordParagraphSnapshot> convertedHeaderFooterParagraphs = effective.IncludeHeadersAndFooters && snapshot.Sections.Count > 0
+            ? EnumerateDefaultHeaderFooterParagraphs(snapshot.Sections[0]).ToList()
+            : Array.Empty<WordParagraphSnapshot>();
+        IEnumerable<WordParagraphSnapshot> convertedParagraphs = sourceParagraphs.Concat(convertedHeaderFooterParagraphs);
+        int paragraphFormatting = convertedParagraphs.Count(HasUnsupportedParagraphFormatting);
+        int runFormatting = convertedParagraphs.SelectMany(paragraph => paragraph.Runs).Count(HasUnsupportedRunFormatting);
         int tableFormatting = snapshot.Sections.SelectMany(section => section.Elements).OfType<WordTableSnapshot>().Count(HasUnsupportedTableFormatting);
         int imageLayout = sourceParagraphs.SelectMany(paragraph => paragraph.Runs).Count(run => run.InlineImage != null &&
             (!string.IsNullOrWhiteSpace(run.InlineImage.Description) || !string.IsNullOrWhiteSpace(run.InlineImage.Title) ||
@@ -67,8 +71,10 @@ public static class WordOpenDocumentConversionExtensions {
         int headerFooterBlocks = snapshot.Sections.Sum(CountHeaderFooterBlocks);
         if (effective.IncludeHeadersAndFooters && snapshot.Sections.Count > 0) {
             WordSectionSnapshot first = snapshot.Sections[0];
-            CopyHeaderFooter(first.DefaultHeader, target.PageLayout.Header);
-            CopyHeaderFooter(first.DefaultFooter, target.PageLayout.Footer);
+            CopyHeaderFooter(first.DefaultHeader, target.PageLayout.Header, effective, ref hyperlinks, ref images,
+                ref unsupportedImages, ref bookmarks, ref unsupportedFootnotes);
+            CopyHeaderFooter(first.DefaultFooter, target.PageLayout.Footer, effective, ref hyperlinks, ref images,
+                ref unsupportedImages, ref bookmarks, ref unsupportedFootnotes);
             int firstDefaultTables = (first.DefaultHeader?.Tables.Count ?? 0) + (first.DefaultFooter?.Tables.Count ?? 0);
             if (firstDefaultTables > 0) report.Add("header-footer-tables", OdfConversionMappingStatus.Skipped, firstDefaultTables,
                 "Tables in the first section's default header and footer are not represented by the current ODT header/footer surface.");
@@ -99,9 +105,9 @@ public static class WordOpenDocumentConversionExtensions {
         if (snapshot.Sections.Count > 1) report.Add("sections", OdfConversionMappingStatus.Approximated, snapshot.Sections.Count,
             "Section content is retained in order, but section-specific layout is collapsed to one ODT page layout.");
         if (paragraphFormatting > 0) report.Add("paragraph-formatting", OdfConversionMappingStatus.Approximated, paragraphFormatting,
-            "Line spacing, borders, tab stops, bidirectional layout, and pagination controls outside the shared subset are omitted.");
+            "Patterned shading, line spacing, borders, tab stops, bidirectional layout, and pagination controls outside the shared subset are flattened or omitted.");
         if (runFormatting > 0) report.Add("run-formatting", OdfConversionMappingStatus.Approximated, runFormatting,
-            "Capitalization, vertical alignment, double strike, non-single underline variants, and other Word-only run details are simplified or omitted.");
+            "Patterned or overlapping shading, capitalization, vertical alignment, double strike, non-single underline variants, and other Word-only run details are simplified or omitted.");
         if (tableFormatting > 0) report.Add("table-formatting", OdfConversionMappingStatus.Approximated, tableFormatting,
             "Table text and merges are retained; widths, borders, shading, styles, and repeated-header behavior are not fully mapped.");
         if (imageLayout > 0) report.Add("image-layout", OdfConversionMappingStatus.Approximated, imageLayout,
@@ -332,7 +338,8 @@ public static class WordOpenDocumentConversionExtensions {
         if (source.FontSizePoints.HasValue) target.FontSize = OdfLength.Points(source.FontSizePoints.Value);
         if (!string.IsNullOrWhiteSpace(source.FontFamily)) target.FontFamily = source.FontFamily;
         if (OdfColor.TryParse(source.ColorHex, out OdfColor color)) target.Color = color;
-        if (TryMapWordHighlight(source.HighlightColor, out OdfColor highlight)) target.BackgroundColor = highlight;
+        if (OdfColor.TryParse(source.RunShadingFillColorHex, out OdfColor shading)) target.BackgroundColor = shading;
+        else if (TryMapWordHighlight(source.HighlightColor, out OdfColor highlight)) target.BackgroundColor = highlight;
     }
 
     private static void ApplyWordRunFormatting(WordRunSnapshot source, OdtHyperlink target) {
@@ -343,7 +350,8 @@ public static class WordOpenDocumentConversionExtensions {
         if (source.FontSizePoints.HasValue) target.FontSize = OdfLength.Points(source.FontSizePoints.Value);
         if (!string.IsNullOrWhiteSpace(source.FontFamily)) target.FontFamily = source.FontFamily;
         if (OdfColor.TryParse(source.ColorHex, out OdfColor color)) target.Color = color;
-        if (TryMapWordHighlight(source.HighlightColor, out OdfColor highlight)) target.BackgroundColor = highlight;
+        if (OdfColor.TryParse(source.RunShadingFillColorHex, out OdfColor shading)) target.BackgroundColor = shading;
+        else if (TryMapWordHighlight(source.HighlightColor, out OdfColor highlight)) target.BackgroundColor = highlight;
     }
 
     private static void ApplyWordParagraphFormatting(WordParagraphSnapshot source, OdtParagraph target) {
@@ -561,9 +569,14 @@ public static class WordOpenDocumentConversionExtensions {
         }
     }
 
-    private static void CopyHeaderFooter(WordHeaderFooterSnapshot? source, OdtHeaderFooter target) {
+    private static void CopyHeaderFooter(WordHeaderFooterSnapshot? source, OdtHeaderFooter target,
+        WordOpenDocumentConversionOptions options, ref int hyperlinks, ref int images, ref int unsupportedImages,
+        ref int bookmarks, ref int unsupportedFootnotes) {
         if (source == null) return;
-        foreach (WordParagraphSnapshot paragraph in source.Paragraphs) target.AddParagraph(paragraph.Text);
+        foreach (WordParagraphSnapshot paragraph in source.Paragraphs) {
+            CopyParagraph(paragraph, target.AddParagraph(), options, ref hyperlinks, ref images, ref unsupportedImages,
+                ref bookmarks, ref unsupportedFootnotes);
+        }
     }
 
     private static int GetHeadingLevel(WordParagraphSnapshot paragraph) {
@@ -601,16 +614,26 @@ public static class WordOpenDocumentConversionExtensions {
         }
     }
 
+    private static IEnumerable<WordParagraphSnapshot> EnumerateDefaultHeaderFooterParagraphs(WordSectionSnapshot section) =>
+        new[] { section.DefaultHeader, section.DefaultFooter }
+            .Where(item => item != null)
+            .SelectMany(item => item!.Paragraphs);
+
     private static bool HasUnsupportedParagraphFormatting(WordParagraphSnapshot paragraph) =>
         (paragraph.Alignment != null && !TryMapWordAlignment(paragraph.Alignment, out _)) ||
         paragraph.LineSpacingValue.HasValue || paragraph.LineSpacingRule != null ||
+        (paragraph.ShadingPattern.HasValue && paragraph.ShadingPattern.Value != WordShadingPattern.Nil &&
+            paragraph.ShadingPattern.Value != WordShadingPattern.Clear) ||
         paragraph.LeftBorder != null || paragraph.RightBorder != null || paragraph.TopBorder != null || paragraph.BottomBorder != null ||
         paragraph.IsRightToLeft || paragraph.KeepWithNext || paragraph.KeepLinesTogether || paragraph.AvoidWidowAndOrphan || paragraph.TabStops.Count > 0;
 
     private static bool HasUnsupportedRunFormatting(WordRunSnapshot run) =>
         !string.IsNullOrWhiteSpace(run.VerticalTextAlignment) || !string.IsNullOrWhiteSpace(run.CapsStyle) ||
         run.DoubleStrike || (run.UnderlineStyle.HasValue && run.UnderlineStyle.Value != WordUnderlineStyle.None &&
-            run.UnderlineStyle.Value != WordUnderlineStyle.Single);
+            run.UnderlineStyle.Value != WordUnderlineStyle.Single) ||
+        (run.RunShadingPattern.HasValue && run.RunShadingPattern.Value != WordShadingPattern.Nil &&
+            run.RunShadingPattern.Value != WordShadingPattern.Clear) ||
+        (!string.IsNullOrWhiteSpace(run.RunShadingFillColorHex) && !string.IsNullOrWhiteSpace(run.HighlightColor));
 
     private static bool HasUnsupportedTableFormatting(WordTableSnapshot table) => table.StyleName != null ||
         table.Description != null || table.RepeatHeaderRow || table.ColumnWidthPoints.Count > 0 ||

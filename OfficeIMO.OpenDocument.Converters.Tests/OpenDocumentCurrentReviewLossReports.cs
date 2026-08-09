@@ -82,6 +82,61 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
+    public void WordPatternedParagraphShadingIsFlattenedAndReported() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph("Patterned");
+        paragraph.ShadingFillColorHex = "D9EAF7";
+        paragraph.ShadingPattern = WordShadingPattern.Percent20;
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdtParagraph converted = Assert.Single(conversion.Value.Paragraphs);
+
+        Assert.Equal("#D9EAF7", converted.BackgroundColor?.ToString());
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "paragraph-formatting"
+            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+    }
+
+    [Fact]
+    public void WordRunShadingAndDefaultHeaderFormattingArePreserved() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph body = source.AddParagraph("Shaded");
+        body.RunShadingFillColorHex = "112233";
+        source.AddHeadersAndFooters();
+        WordParagraph header = source.Header!.Default!.AddParagraph("Styled header");
+        header.Bold = true;
+        header.FontSizePoints = 11.5;
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdtSpan bodySpan = Assert.Single(conversion.Value.Paragraphs.Single().Spans);
+        OdtSpan headerSpan = Assert.Single(conversion.Value.PageLayout.Header.Paragraphs.Single().Spans);
+
+        Assert.Equal("#112233", bodySpan.BackgroundColor?.ToString());
+        Assert.True(headerSpan.Bold);
+        Assert.Equal(11.5D, headerSpan.FontSize?.ToPoints());
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "run-formatting"
+            && mapping.Status != OdfConversionMappingStatus.Converted);
+    }
+
+    [Fact]
+    public void RichExcelCommentFormattingIsReportedAsApproximated() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.SetCommentRichText("A1", new[] {
+            new ExcelRichTextRun("Important") { Bold = true },
+            new ExcelRichTextRun(" note")
+        }, "Alice");
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdsAnnotation annotation = Assert.Single(conversion.Value.Sheets.Single().Cell(0, 0).Annotations);
+
+        Assert.Equal("Important note", annotation.Text);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "comments"
+            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+    }
+
+    [Fact]
     public void WordTableCellRunFormattingIsPreservedInsteadOfFlattened() {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];

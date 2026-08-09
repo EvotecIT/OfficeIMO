@@ -237,6 +237,21 @@ public sealed class LatexConversionRegressionTests {
     }
 
     [Fact]
+    public void MintedArgumentsAfterLineEndingsAreNotEmittedAsCode() {
+        const string source =
+            "\\documentclass{article}\r\n\\begin{document}\r\n" +
+            "\\begin{minted}\r\n[linenos]\r\n{csharp}\r\nConsole.WriteLine(1);\r\n\\end{minted}\r\n" +
+            "\\end{document}\r\n";
+
+        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        CodeBlock block = Assert.Single(result.Value.Blocks.OfType<CodeBlock>());
+
+        Assert.Contains("Console.WriteLine(1);", block.Content, StringComparison.Ordinal);
+        Assert.DoesNotContain("linenos", block.Content, StringComparison.Ordinal);
+        Assert.DoesNotContain("{csharp}", block.Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void InlineVerbPreservesCommentMarkersAsCode() {
         const string source =
             "\\documentclass{article}\n\\begin{document}\nBefore \\verb|a%b{c}| after.\n\\end{document}\n";

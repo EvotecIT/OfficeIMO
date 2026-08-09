@@ -166,6 +166,7 @@ namespace OfficeIMO.Word {
                 LineSpacingValue = paragraph.LineSpacing,
                 LineSpacingRule = NormalizeOpenXmlEnumValue(paragraph.LineSpacingRule),
                 ShadingFillColorHex = NormalizeColorHex(paragraph.ShadingFillColorHex),
+                ShadingPattern = paragraph.ShadingPattern,
                 LeftBorder = BuildParagraphBorderSnapshot(
                     NormalizeOpenXmlEnumValue(paragraph.Borders.LeftStyle),
                     NormalizeColorHex(paragraph.Borders.LeftColorHex),
@@ -214,6 +215,9 @@ namespace OfficeIMO.Word {
                     FontFamily = run.FontFamily,
                     ColorHex = NormalizeColorHex(run.ColorHex),
                     HighlightColor = NormalizeOpenXmlEnumValue(run.Highlight),
+                    RunShadingFillColorHex = NormalizeColorHex(run.RunShadingFillColorHex),
+                    RunShadingPattern = ((run.IsHyperLink ? run.Hyperlink?._runProperties : run._runProperties)
+                        ?.Shading?.Val?.Value).ToOfficeEnum(),
                     VerticalTextAlignment = NormalizeOpenXmlEnumValue(run.VerticalTextAlignment),
                     CapsStyle = run.CapsStyle == WordCapsStyle.None ? null : run.CapsStyle.ToString(),
                     IsHyperlink = hyperlink != null,

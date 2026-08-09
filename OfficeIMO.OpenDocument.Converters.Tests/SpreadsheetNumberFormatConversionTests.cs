@@ -378,4 +378,30 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         Assert.Throws<OdfConversionLossException>(() => localized.ToExcelDocumentResult(
             new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
     }
+
+    [Fact]
+    public void NonGregorianOdfDateComponentsAreRejectedAndReportedAsUnsupported() {
+        OdsDocument source = OdsDocument.Create();
+        OdsDataStyle style = source.AddDateStyle("BuddhistDate");
+        OdsCell cell = source.AddSheet("Data").Cell(0, 0);
+        cell.SetDate(new DateTime(2026, 8, 9));
+        cell.NumberFormatName = style.Name;
+        XDocument flat = source.ToFlatXml();
+        flat.Descendants(OdfNamespaces.Number + "year").Single()
+            .SetAttributeValue(OdfNamespaces.Number + "calendar", "buddhist");
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+        OdsDocument loaded = OdsDocument.LoadFlatXml(stream);
+
+        Assert.False(Assert.Single(loaded.DataStyles).TryGetExcelNumberFormatCode(out _));
+        OdfConversionResult<ExcelDocument> conversion = loaded.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "cell-format-details"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => loaded.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
+    }
 }

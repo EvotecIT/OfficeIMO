@@ -486,6 +486,36 @@ namespace OfficeIMO.Excel {
                 name = "_";
             }
 
+            bool LooksLikeA1(string value) {
+                var parsed = OfficeIMO.Excel.A1.ParseCellRef(value);
+                return parsed.Row > 0 && parsed.Col > 0;
+            }
+            bool LooksLikeR1C1(string value) {
+                if (value.Length < 3 || (value[0] != 'R' && value[0] != 'r')) return false;
+                int index = 1;
+                while (index < value.Length && char.IsDigit(value[index])) index++;
+                if (index == 1 || index >= value.Length || (value[index] != 'C' && value[index] != 'c')) return false;
+                index++;
+                int digitStart = index;
+                while (index < value.Length && char.IsDigit(value[index])) index++;
+                return index > digitStart && index == value.Length;
+            }
+
+            if (mode == ExcelDefinedNameValidationMode.Strict) {
+                if (name.Length > MaximumDefinedNameLength)
+                    throw new System.ArgumentException($"Defined name '{name}' exceeds maximum length of {MaximumDefinedNameLength} characters (actual {name.Length}).", nameof(name));
+                if (!char.IsLetter(name[0]) && name[0] != '_')
+                    throw new System.ArgumentException($"Defined name '{name}' must start with a letter or underscore.", nameof(name));
+                if (name.Any(ch => !char.IsLetterOrDigit(ch) && ch != '_' && ch != '.'))
+                    throw new System.ArgumentException($"Defined name '{name}' contains characters that Excel does not allow.", nameof(name));
+                if (string.Equals(name, "TRUE", System.StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, "FALSE", System.StringComparison.OrdinalIgnoreCase))
+                    throw new System.ArgumentException($"Defined name '{name}' cannot be TRUE or FALSE.", nameof(name));
+                if (LooksLikeA1(name) || LooksLikeR1C1(name))
+                    throw new System.ArgumentException($"Defined name '{name}' cannot be a cell address or R1C1 reference.", nameof(name));
+                return name;
+            }
+
             // Trim spaces and replace invalid chars
             var sb = new System.Text.StringBuilder(name.Length);
             foreach (char ch in name.Trim()) {
@@ -502,29 +532,11 @@ namespace OfficeIMO.Excel {
                 normalized = "_" + normalized;
             }
 
-            // Avoid names that look like A1 cell references or R1C1 format
-            bool LooksLikeA1(string s) {
-                var t = OfficeIMO.Excel.A1.ParseCellRef(s);
-                return t.Row > 0 && t.Col > 0;
-            }
-            bool LooksLikeR1C1(string s) {
-                // Very lenient check: R<digits>C<digits>
-                if (s.Length < 3) return false;
-                if (s[0] != 'R' && s[0] != 'r') return false;
-                int i = 1; while (i < s.Length && char.IsDigit(s[i])) i++;
-                if (i == 1 || i >= s.Length || (s[i] != 'C' && s[i] != 'c')) return false;
-                i++; if (i >= s.Length) return false;
-                int j = i; while (j < s.Length && char.IsDigit(s[j])) j++;
-                return j > i && j == s.Length;
-            }
-
             if (LooksLikeA1(normalized) || LooksLikeR1C1(normalized)) {
-                if (mode == ExcelDefinedNameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be a cell address or R1C1 reference.", nameof(name));
                 normalized = "_" + normalized;
             }
 
             if (normalized.Length > MaximumDefinedNameLength) {
-                if (mode == ExcelDefinedNameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' exceeds maximum length of {MaximumDefinedNameLength} characters (actual {normalized.Length}).", nameof(name));
                 normalized = normalized.Substring(0, MaximumDefinedNameLength);
             }
 

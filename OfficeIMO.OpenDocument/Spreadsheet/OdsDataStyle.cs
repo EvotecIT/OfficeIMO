@@ -115,7 +115,7 @@ public sealed class OdsDataStyle {
 
     private bool TryBuildDateTimeFormat(out string formatCode) {
         formatCode = string.Empty;
-        if (HasLocalizedTextComponents()) return false;
+        if (HasLocalizedTextComponents() || HasUnsupportedCalendarComponents()) return false;
         var builder = new System.Text.StringBuilder();
         bool hasHourContext = Element.Elements().Any(child => child.Name == OdfNamespaces.Number + "hours");
         bool hasSecondContext = Element.Elements().Any(child => child.Name == OdfNamespaces.Number + "seconds");
@@ -195,6 +195,12 @@ public sealed class OdsDataStyle {
                HasValue(Element, "script") ||
                HasValue(Element, "rfc-language-tag");
     }
+
+    private bool HasUnsupportedCalendarComponents() => Element.Elements().Any(child => {
+        string? calendar = (string?)child.Attribute(OdfNamespaces.Number + "calendar");
+        return !string.IsNullOrWhiteSpace(calendar) &&
+               !string.Equals(calendar, "gregorian", StringComparison.OrdinalIgnoreCase);
+    });
 
     private static bool HasValue(XElement element, string localName) =>
         !string.IsNullOrWhiteSpace((string?)element.Attribute(OdfNamespaces.Number + localName));

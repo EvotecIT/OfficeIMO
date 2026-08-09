@@ -23,7 +23,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         target.Metadata.Title = snapshot.Title;
         NamedRangeConversionPlan namedRangePlan = BuildNamedRangeConversionPlan(snapshot.NamedRanges);
 
-        int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, comments = 0, threadedComments = 0, merges = 0;
+        int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, comments = 0, richComments = 0, threadedComments = 0, merges = 0;
         int rows = 0, columns = 0, convertedValidations = 0, skippedValidations = 0, tables = 0, filters = 0, unsupportedStyles = 0, skippedStyles = 0;
         long materializedCells = 0, skippedCells = 0, skippedRows = 0, skippedColumns = 0, skippedMerges = 0;
         bool truncated = false;
@@ -93,6 +93,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 if (cell.Comment != null) {
                     converted.AddAnnotation(cell.Comment.Text, cell.Comment.Author);
                     comments++;
+                    if (cell.Comment.RichTextRuns.Any(HasRichTextFormatting)) richComments++;
                 }
                 cells++;
             }
@@ -292,7 +293,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (skippedStyles > 0) report.Add("cell-styles", OdfConversionMappingStatus.Skipped, skippedStyles,
             "Cell styles were omitted because IncludeBasicStyles is disabled.");
         if (unsupportedStyles > 0) report.Add("cell-format-details", OdfConversionMappingStatus.Unsupported, unsupportedStyles);
-        AddConverted(report, "comments", comments);
+        AddConverted(report, "comments", comments - richComments);
+        if (richComments > 0) report.Add("comments", OdfConversionMappingStatus.Approximated, richComments,
+            "Legacy Excel comment text and authors are retained, but rich-text run formatting is flattened in ODS annotations.");
         if (threadedComments > 0) report.Add("threaded-comments", OdfConversionMappingStatus.Approximated, threadedComments,
             "Each cell thread was flattened into one schema-valid ODS annotation transcript that retains comment bodies and available author, timestamp, identity, parent, and resolved-state metadata.");
         AddConverted(report, "validations", convertedValidations);
@@ -693,6 +696,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         TypeCode code = Type.GetTypeCode(value.GetType());
         return code >= TypeCode.SByte && code <= TypeCode.Decimal;
     }
+
+    private static bool HasRichTextFormatting(ExcelRichTextRun run) =>
+        run.Bold || run.Italic || run.Underline || run.Strikethrough ||
+        (run.UnderlineStyle.HasValue && run.UnderlineStyle.Value != ExcelUnderlineStyle.None) ||
+        !string.IsNullOrWhiteSpace(run.FontColor) || !string.IsNullOrWhiteSpace(run.FontName) ||
+        run.FontSize.HasValue || run.VerticalTextAlignment.HasValue || run.Outline || run.Shadow ||
+        run.Condense || run.Extend || run.FontFamily.HasValue || run.FontCharacterSet.HasValue;
 
     private static string ValueText(object? value) => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
     private static double ExcelWidthToPoints(double width) => Math.Max(0D, (width * 7D + 5D) * 72D / 96D);

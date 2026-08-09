@@ -17,6 +17,16 @@ namespace OfficeIMO.Tests {
                 "R1C1", ExcelDefinedNameValidationMode.Strict));
         }
 
+        [Theory]
+        [InlineData("Sales Total")]
+        [InlineData(" SalesTotal")]
+        [InlineData("1Sales")]
+        [InlineData("Sales-Total")]
+        public void DefinedNameStrictValidationRejectsAuthoredInputInsteadOfSanitizingIt(string name) {
+            Assert.Throws<ArgumentException>(() => ExcelDocument.NormalizeDefinedName(
+                name, ExcelDefinedNameValidationMode.Strict));
+        }
+
         [Fact]
         public void NamedRange_SingleCellReferenceDoesNotThrow() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
