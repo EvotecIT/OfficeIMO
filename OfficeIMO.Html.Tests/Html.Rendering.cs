@@ -14,6 +14,20 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlFitWithinBoundsHighRequestedScaleBeforeSurfaceValidation() {
+        OfficeImageExportResult result = HtmlConversionDocument
+            .Parse("<h1>Bounded</h1><p>High requested scale, small final surface.</p>")
+            .ToImage()
+            .WithScale(100D)
+            .FitWithin(360, 360)
+            .AsPng()
+            .Export();
+
+        Assert.True(result.Width <= 360);
+        Assert.True(result.Height <= 360);
+    }
+
+    [Fact]
     public async Task HtmlRenderAsync_UsesCallerResolverForPolicyApprovedExternalImages() {
         byte[] imageBytes = PdfPngTestImages.CreateRgbPng(10, 6);
         int calls = 0;

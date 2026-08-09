@@ -98,6 +98,7 @@ internal static class PdfImageExportEngine {
         PdfImageExportOptions effective = options.Clone();
         double requestedScale = options.Scale;
         effective.Scale = options.ResolveScale(drawing);
+        effective.Scale = effective.GetEffectiveScale(drawing.Width, drawing.Height);
         if (options.TargetDpi.HasValue && effective.Scale < requestedScale) {
             double effectiveDpi = effective.Scale * effective.LogicalUnitsPerInch;
             effective.RasterEncoding.DpiX = effectiveDpi;

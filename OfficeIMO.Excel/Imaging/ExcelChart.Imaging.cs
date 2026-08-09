@@ -117,9 +117,10 @@ namespace OfficeIMO.Excel {
                 background.StrokeWidth = 0D;
                 svgDrawing.AddShape(background, 0D, 0D);
                 svgDrawing.AddDrawing(drawing, 0D, 0D);
+                double scale = options.GetEffectiveScale(svgDrawing.Width, svgDrawing.Height);
                 byte[] svgBytes = OfficeDrawingSvgExporter.ToSvgBytes(
                     svgDrawing,
-                    options.Scale,
+                    scale,
                     OfficeSvgSizeUnit.Pixel,
                     imageCodec: null,
                     resourceIdPrefix: null,

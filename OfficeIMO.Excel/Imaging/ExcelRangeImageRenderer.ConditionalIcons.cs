@@ -10,9 +10,14 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void AppendSvgConditionalIcons(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options) {
+        private static void AppendSvgConditionalIcons(
+            StringBuilder builder,
+            ExcelRangeVisualSnapshot snapshot,
+            ExcelImageExportOptions options,
+            System.Threading.CancellationToken cancellationToken) {
             double scale = options.Scale;
             foreach (ExcelVisualConditionalIcon icon in snapshot.ConditionalIcons) {
+                cancellationToken.ThrowIfCancellationRequested();
                 AppendSvgConditionalIcon(builder, icon, scale);
             }
         }

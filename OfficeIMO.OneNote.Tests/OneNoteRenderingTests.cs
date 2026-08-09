@@ -86,6 +86,28 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
+    public void PageFitWithinAndAttachmentOptionsApplyToRasterAndSvg() {
+        OneNotePage page = CreateVisualPage();
+
+        OfficeImageExportResult png = page.ToImage()
+            .WithScale(2D)
+            .FitWithin(180, 180)
+            .IncludeAttachmentPlaceholders()
+            .AsPng()
+            .Export();
+        OfficeImageExportResult svg = page.ToImage()
+            .WithScale(2D)
+            .FitWithin(180, 180)
+            .IncludeAttachmentPlaceholders()
+            .AsSvg()
+            .Export();
+
+        Assert.Equal((png.Width, png.Height), (svg.Width, svg.Height));
+        Assert.True(png.Width <= 180);
+        Assert.True(png.Height <= 180);
+    }
+
+    [Fact]
     public void SectionAndNotebookBatchExportUseStablePageSelectionAndNames() {
         var section = new OneNoteSection { Name = "Visuals" };
         section.Pages.Add(CreateVisualPage("First"));

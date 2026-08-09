@@ -28,6 +28,18 @@ public class OfficeImageExportOptions {
     public double Scale { get; set; } = 1D;
 
     /// <summary>
+    /// Optional maximum output width in pixels (or CSS pixels for SVG). The requested scale is
+    /// reduced as needed while preserving aspect ratio; smaller outputs are never enlarged.
+    /// </summary>
+    public int? MaximumOutputWidth { get; set; }
+
+    /// <summary>
+    /// Optional maximum output height in pixels (or CSS pixels for SVG). The requested scale is
+    /// reduced as needed while preserving aspect ratio; smaller outputs are never enlarged.
+    /// </summary>
+    public int? MaximumOutputHeight { get; set; }
+
+    /// <summary>
     /// Background color used behind rendered document content.
     /// </summary>
     public OfficeColor BackgroundColor { get; set; } = OfficeColor.White;
@@ -129,6 +141,8 @@ public class OfficeImageExportOptions {
     protected internal T CopyImageExportOptionsTo<T>(T target) where T : OfficeImageExportOptions {
         if (target == null) throw new ArgumentNullException(nameof(target));
         target.Scale = Scale;
+        target.MaximumOutputWidth = MaximumOutputWidth;
+        target.MaximumOutputHeight = MaximumOutputHeight;
         target.BackgroundColor = BackgroundColor;
         target.RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions();
         target.MaximumRasterPixels = MaximumRasterPixels;
@@ -166,6 +180,12 @@ public class OfficeImageExportOptions {
         ValidateScale(Scale, nameof(Scale));
         if (MaximumRasterPixels < 1L) {
             throw new ArgumentOutOfRangeException(nameof(MaximumRasterPixels), "Maximum raster pixels must be positive.");
+        }
+        if (MaximumOutputWidth.HasValue && MaximumOutputWidth.Value < 1) {
+            throw new ArgumentOutOfRangeException(nameof(MaximumOutputWidth));
+        }
+        if (MaximumOutputHeight.HasValue && MaximumOutputHeight.Value < 1) {
+            throw new ArgumentOutOfRangeException(nameof(MaximumOutputHeight));
         }
         if (!Enum.IsDefined(typeof(OfficeRasterOverflowBehavior), RasterOverflowBehavior)) {
             throw new ArgumentOutOfRangeException(nameof(RasterOverflowBehavior));
@@ -205,5 +225,39 @@ public class OfficeImageExportOptions {
         if (value <= 0D || double.IsNaN(value) || double.IsInfinity(value) || value > ushort.MaxValue) {
             throw new ArgumentOutOfRangeException(name, "Raster DPI must be finite, positive, and encodable by every shared raster format.");
         }
+    }
+
+    /// <summary>
+    /// Resolves the requested scale after applying optional output dimension caps while preserving aspect ratio.
+    /// </summary>
+    public double GetEffectiveScale(double logicalWidth, double logicalHeight) {
+        if (logicalWidth <= 0D || double.IsNaN(logicalWidth) || double.IsInfinity(logicalWidth)) {
+            throw new ArgumentOutOfRangeException(nameof(logicalWidth));
+        }
+        if (logicalHeight <= 0D || double.IsNaN(logicalHeight) || double.IsInfinity(logicalHeight)) {
+            throw new ArgumentOutOfRangeException(nameof(logicalHeight));
+        }
+
+        double scale = Scale;
+        if (MaximumOutputWidth.HasValue) {
+            scale = Math.Min(scale, GetCeilingSafeMaximumScale(logicalWidth, MaximumOutputWidth.Value));
+        }
+        if (MaximumOutputHeight.HasValue) {
+            scale = Math.Min(scale, GetCeilingSafeMaximumScale(logicalHeight, MaximumOutputHeight.Value));
+        }
+        if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale)) {
+            throw new ArgumentOutOfRangeException(nameof(logicalWidth), "The requested output bounds cannot be represented by a finite positive scale.");
+        }
+        return scale;
+    }
+
+    private static double GetCeilingSafeMaximumScale(double logicalDimension, int maximumDimension) {
+        double scale = maximumDimension / logicalDimension;
+        while (scale > 0D && Math.Ceiling(logicalDimension * scale) > maximumDimension) {
+            long bits = BitConverter.DoubleToInt64Bits(scale);
+            if (bits <= 0L) return 0D;
+            scale = BitConverter.Int64BitsToDouble(bits - 1L);
+        }
+        return scale;
     }
 }

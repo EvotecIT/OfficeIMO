@@ -40,13 +40,20 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void AppendSvgDrawingLayers(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, OfficeTextMeasurer textMeasurer) {
+        private static void AppendSvgDrawingLayers(
+            StringBuilder builder,
+            ExcelRangeVisualSnapshot snapshot,
+            ExcelImageExportOptions options,
+            List<OfficeImageExportDiagnostic>? diagnostics,
+            OfficeTextMeasurer textMeasurer,
+            System.Threading.CancellationToken cancellationToken) {
             int imageIndex = 0;
             foreach (ExcelVisualDrawingLayer layer in snapshot.DrawingLayers) {
+                cancellationToken.ThrowIfCancellationRequested();
                 switch (layer.Kind) {
                     case ExcelVisualDrawingLayerKind.DrawingObject:
                         if (layer.DrawingObject != null) {
-                            AppendSvgDrawingObject(builder, layer.DrawingObject, options, diagnostics);
+                            AppendSvgDrawingObject(builder, layer.DrawingObject, options, diagnostics, cancellationToken);
                         }
 
                         break;
@@ -58,7 +65,7 @@ namespace OfficeIMO.Excel {
                         break;
                     case ExcelVisualDrawingLayerKind.Chart:
                         if (layer.Chart != null) {
-                            AppendSvgChart(builder, snapshot, layer.Chart, options, diagnostics);
+                            AppendSvgChart(builder, snapshot, layer.Chart, options, diagnostics, cancellationToken);
                         }
 
                         break;

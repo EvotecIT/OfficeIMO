@@ -68,6 +68,34 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData(OfficeImageExportFormat.Png)]
         [InlineData(OfficeImageExportFormat.Svg)]
+        public void ExcelChart_FitWithinAppliesToRasterAndSvg(OfficeImageExportFormat format) {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Summary");
+            sheet.CellValue(1, 1, "Category");
+            sheet.CellValue(1, 2, "Value");
+            sheet.CellValue(2, 1, "Open");
+            sheet.CellValue(2, 2, 12);
+            ExcelChart chart = sheet.AddChartFromRange(
+                "A1:B2",
+                row: 1,
+                column: 4,
+                widthPixels: 360,
+                heightPixels: 220,
+                title: "Bounded chart");
+
+            OfficeImageExportResult result = chart.ToImage()
+                .WithScale(2D)
+                .FitWithin(180, 100)
+                .As(format)
+                .Export();
+
+            Assert.True(result.Width <= 180);
+            Assert.True(result.Height <= 100);
+        }
+
+        [Theory]
+        [InlineData(OfficeImageExportFormat.Png)]
+        [InlineData(OfficeImageExportFormat.Svg)]
         public void ExcelChart_PreservesSmallAnchoredDimensions(OfficeImageExportFormat format) {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Summary");

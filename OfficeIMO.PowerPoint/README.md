@@ -597,11 +597,14 @@ byte[] jpeg = slide.ToJpeg(new PowerPointImageExportOptions {
 
 presentation.ToImages()
     .ForSlideRange(1, 3)
+    .IncludeCharts()
+    .IncludeTables()
+    .FitWithin(1600, 900)
     .AsWebp()
     .Save("slide-previews");
 ```
 
-PowerPoint owns slide semantics and scene construction; `OfficeIMO.Drawing` owns the common raster encoders. `SaveAsJpeg`, `SaveAsTiff`, and `SaveAsWebp` remain thin wrappers over the shared export builder.
+PowerPoint owns slide semantics and scene construction; `OfficeIMO.Drawing` owns sizing and the common raster encoders. The fluent builder can include or exclude backgrounds, pictures, auto shapes, SmartArt, text boxes, tables, charts, hidden shapes, and hidden slides. `SaveAsJpeg`, `SaveAsTiff`, and `SaveAsWebp` remain thin wrappers over the shared export builder.
 
 ## Adjacent packages
 

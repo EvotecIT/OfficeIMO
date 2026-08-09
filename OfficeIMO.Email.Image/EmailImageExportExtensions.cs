@@ -487,15 +487,7 @@ public static class EmailImageExportExtensions {
             diagnostics.Count + result.Diagnostics.Count);
         combined.AddRange(diagnostics);
         combined.AddRange(result.Diagnostics);
-        return options.EnsureAccepted(new OfficeImageExportResult(
-            result.Format,
-            result.Width,
-            result.Height,
-            result.Bytes,
-            result.Name,
-            result.Source,
-            combined,
-            result.SavedPath));
+        return options.EnsureAccepted(result.WithDiagnostics(combined));
     }
 
     private sealed class EmailRenderPreparation {

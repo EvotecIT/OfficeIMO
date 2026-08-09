@@ -31,6 +31,42 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Excludes slide content.</summary>
         public PowerPointSlideImageExportBuilder WithoutContent() => IncludeContent(false);
+
+        /// <summary>Includes or excludes pictures.</summary>
+        public PowerPointSlideImageExportBuilder IncludePictures(bool include = true) { Options.IncludePictures = include; return this; }
+
+        /// <summary>Includes or excludes auto shapes.</summary>
+        public PowerPointSlideImageExportBuilder IncludeAutoShapes(bool include = true) { Options.IncludeAutoShapes = include; return this; }
+
+        /// <summary>Includes or excludes SmartArt.</summary>
+        public PowerPointSlideImageExportBuilder IncludeSmartArt(bool include = true) { Options.IncludeSmartArt = include; return this; }
+
+        /// <summary>Includes or excludes text boxes.</summary>
+        public PowerPointSlideImageExportBuilder IncludeTextBoxes(bool include = true) { Options.IncludeTextBoxes = include; return this; }
+
+        /// <summary>Includes or excludes tables.</summary>
+        public PowerPointSlideImageExportBuilder IncludeTables(bool include = true) { Options.IncludeTables = include; return this; }
+
+        /// <summary>Includes or excludes charts.</summary>
+        public PowerPointSlideImageExportBuilder IncludeCharts(bool include = true) { Options.IncludeCharts = include; return this; }
+
+        /// <summary>Includes or excludes shapes marked hidden.</summary>
+        public PowerPointSlideImageExportBuilder IncludeHiddenShapes(bool include = true) { Options.IncludeHiddenShapes = include; return this; }
+
+        /// <summary>Sets the maximum nested group depth accepted during rendering.</summary>
+        public PowerPointSlideImageExportBuilder WithMaximumGroupDepth(int maximumDepth) {
+            Options.MaxGroupShapeDepth = maximumDepth;
+            return this;
+        }
+
+        /// <summary>Sets per-image and aggregate embedded-image read limits.</summary>
+        public PowerPointSlideImageExportBuilder WithEmbeddedImageLimits(int maximumImageBytes, long maximumTotalImageBytes) {
+            if (maximumImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumImageBytes));
+            if (maximumTotalImageBytes < 1L) throw new ArgumentOutOfRangeException(nameof(maximumTotalImageBytes));
+            Options.MaximumEmbeddedImageBytes = maximumImageBytes;
+            Options.MaximumTotalEmbeddedImageBytes = maximumTotalImageBytes;
+            return this;
+        }
     }
 
     /// <summary>
@@ -62,6 +98,42 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Excludes slide content.</summary>
         public PowerPointPresentationImageExportBuilder WithoutContent() => IncludeContent(false);
+
+        /// <summary>Includes or excludes pictures.</summary>
+        public PowerPointPresentationImageExportBuilder IncludePictures(bool include = true) { Options.IncludePictures = include; return this; }
+
+        /// <summary>Includes or excludes auto shapes.</summary>
+        public PowerPointPresentationImageExportBuilder IncludeAutoShapes(bool include = true) { Options.IncludeAutoShapes = include; return this; }
+
+        /// <summary>Includes or excludes SmartArt.</summary>
+        public PowerPointPresentationImageExportBuilder IncludeSmartArt(bool include = true) { Options.IncludeSmartArt = include; return this; }
+
+        /// <summary>Includes or excludes text boxes.</summary>
+        public PowerPointPresentationImageExportBuilder IncludeTextBoxes(bool include = true) { Options.IncludeTextBoxes = include; return this; }
+
+        /// <summary>Includes or excludes tables.</summary>
+        public PowerPointPresentationImageExportBuilder IncludeTables(bool include = true) { Options.IncludeTables = include; return this; }
+
+        /// <summary>Includes or excludes charts.</summary>
+        public PowerPointPresentationImageExportBuilder IncludeCharts(bool include = true) { Options.IncludeCharts = include; return this; }
+
+        /// <summary>Includes or excludes shapes marked hidden.</summary>
+        public PowerPointPresentationImageExportBuilder IncludeHiddenShapes(bool include = true) { Options.IncludeHiddenShapes = include; return this; }
+
+        /// <summary>Sets the maximum nested group depth accepted during rendering.</summary>
+        public PowerPointPresentationImageExportBuilder WithMaximumGroupDepth(int maximumDepth) {
+            Options.MaxGroupShapeDepth = maximumDepth;
+            return this;
+        }
+
+        /// <summary>Sets per-image and aggregate embedded-image read limits.</summary>
+        public PowerPointPresentationImageExportBuilder WithEmbeddedImageLimits(int maximumImageBytes, long maximumTotalImageBytes) {
+            if (maximumImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumImageBytes));
+            if (maximumTotalImageBytes < 1L) throw new ArgumentOutOfRangeException(nameof(maximumTotalImageBytes));
+            Options.MaximumEmbeddedImageBytes = maximumImageBytes;
+            Options.MaximumTotalEmbeddedImageBytes = maximumTotalImageBytes;
+            return this;
+        }
 
         /// <summary>Includes or excludes hidden slides.</summary>
         public PowerPointPresentationImageExportBuilder IncludeHiddenSlides(bool include = true) {

@@ -151,6 +151,7 @@ pdf.Pages[0]
 
 pdf.ToImages()
     .Pages("1-3,last")
+    .FitWithin(1600, 1200)
     .WithMaximumRasterPixels(20_000_000)
     .AsWebp()
     .Save("page-images");
@@ -163,7 +164,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("authored-page-images");
 ```
 
-PNG, JPEG, TIFF, SVG, and WebP use the same `OfficeImageExportResult` contract and Drawing-owned encoders. Allocation limits are resolved before a raster buffer is created. Unsupported or simplified PDF operators and resources remain visible as typed image diagnostics.
+PNG, JPEG, TIFF, SVG, and WebP use the same `OfficeImageExportResult` contract and Drawing-owned encoders. Pixel-fit limits apply consistently to vector and raster output, and allocation limits are resolved before a raster buffer is created. Unsupported or simplified PDF operators and resources remain visible as typed image diagnostics.
 
 Any adapter that returns `PdfDocumentConversionResult` can use the same paged-image bridge without adding another renderer:
 

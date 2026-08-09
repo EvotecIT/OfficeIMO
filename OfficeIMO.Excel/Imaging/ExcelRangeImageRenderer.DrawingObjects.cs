@@ -49,7 +49,13 @@ namespace OfficeIMO.Excel {
                 scene.Drawing.Height);
         }
 
-        private static void AppendSvgDrawingObject(StringBuilder builder, ExcelVisualDrawingObject drawingObject, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void AppendSvgDrawingObject(
+            StringBuilder builder,
+            ExcelVisualDrawingObject drawingObject,
+            ExcelImageExportOptions options,
+            List<OfficeImageExportDiagnostic>? diagnostics,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             AddRotatedTextApproximationDiagnostic(drawingObject, diagnostics);
             AddTextAutoFitUnsupportedDiagnostic(drawingObject, diagnostics);
             AddTextVerticalOrientationUnsupportedDiagnostic(drawingObject, diagnostics);
@@ -62,7 +68,13 @@ namespace OfficeIMO.Excel {
                 y - scene.OffsetY,
                 scene.Drawing.Width,
                 scene.Drawing.Height,
-                OfficeSvgFormatting.ExtractSvgInner(OfficeDrawingSvgExporter.ToSvg(scene.Drawing)));
+                OfficeSvgFormatting.ExtractSvgInner(OfficeDrawingSvgExporter.ToSvg(
+                    scene.Drawing,
+                    1D,
+                    OfficeSvgSizeUnit.Point,
+                    imageCodec: null,
+                    resourceIdPrefix: null,
+                    cancellationToken)));
         }
 
         private static DrawingObjectScene CreateOfficeDrawing(ExcelVisualDrawingObject drawingObject, double scale) {

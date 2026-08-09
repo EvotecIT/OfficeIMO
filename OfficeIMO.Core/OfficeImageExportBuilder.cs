@@ -50,6 +50,15 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
     /// <summary>Document-specific options being configured by this builder.</summary>
     protected TOptions Options { get; }
 
+    /// <summary>
+    /// Configures the complete document-specific option set for settings that do not have a dedicated fluent shortcut.
+    /// </summary>
+    public TBuilder ConfigureOptions(Action<TOptions> configure) {
+        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        configure(Options);
+        return This;
+    }
+
     /// <summary>Configures PNG output.</summary>
     public TBuilder AsPng() {
         _format = OfficeImageExportFormat.Png;
@@ -95,6 +104,36 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
         OfficeImageExportOptions.ValidateScale(scale);
         Options.Scale = scale;
         Options.TargetDpi = null;
+        return This;
+    }
+
+    /// <summary>Fits output within the specified pixel dimensions without changing aspect ratio or enlarging it.</summary>
+    public TBuilder FitWithin(int maximumWidth, int maximumHeight) {
+        if (maximumWidth < 1) throw new ArgumentOutOfRangeException(nameof(maximumWidth));
+        if (maximumHeight < 1) throw new ArgumentOutOfRangeException(nameof(maximumHeight));
+        Options.MaximumOutputWidth = maximumWidth;
+        Options.MaximumOutputHeight = maximumHeight;
+        return This;
+    }
+
+    /// <summary>Fits output within the specified pixel width without enlarging it.</summary>
+    public TBuilder FitWithinWidth(int maximumWidth) {
+        if (maximumWidth < 1) throw new ArgumentOutOfRangeException(nameof(maximumWidth));
+        Options.MaximumOutputWidth = maximumWidth;
+        return This;
+    }
+
+    /// <summary>Fits output within the specified pixel height without enlarging it.</summary>
+    public TBuilder FitWithinHeight(int maximumHeight) {
+        if (maximumHeight < 1) throw new ArgumentOutOfRangeException(nameof(maximumHeight));
+        Options.MaximumOutputHeight = maximumHeight;
+        return This;
+    }
+
+    /// <summary>Removes output dimension caps.</summary>
+    public TBuilder WithoutSizeLimit() {
+        Options.MaximumOutputWidth = null;
+        Options.MaximumOutputHeight = null;
         return This;
     }
 

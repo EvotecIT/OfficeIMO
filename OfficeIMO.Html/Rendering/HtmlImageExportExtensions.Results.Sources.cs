@@ -80,20 +80,24 @@ public static partial class HtmlImageExportExtensions {
         CancellationToken cancellationToken = default) {
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         HtmlRenderOptions resolved = Normalize(options, 0);
-        await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
-            HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, operationCancellationToken).ConfigureAwait(false);
-            OfficeImageExportAsyncConsumer accept =
-                OfficeImageExportBatchProcessor.CreateGuardedAsyncConsumer(
-                    resolved,
-                    consumer,
-                    operationCancellationToken);
-            foreach (HtmlRenderPage page in rendered.Pages) {
-                operationCancellationToken.ThrowIfCancellationRequested();
-                OfficeImageExportResult result = RenderPage(page, format, resolved, rendered.DiagnosticReport, operationCancellationToken);
-                await accept(result, operationCancellationToken).ConfigureAwait(false);
-            }
-            return true;
-        }).ConfigureAwait(false);
+        await OfficeImageExportBatchProcessor.RunAsync(
+            resolved,
+            async (accept, operationCancellationToken) => {
+                HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, operationCancellationToken).ConfigureAwait(false);
+                if (rendered.Pages.Count > resolved.MaximumOutputCount) {
+                    throw new OfficeImageExportBatchLimitException(
+                        nameof(OfficeImageExportOptions.MaximumOutputCount),
+                        rendered.Pages.Count,
+                        resolved.MaximumOutputCount);
+                }
+                foreach (HtmlRenderPage page in rendered.Pages) {
+                    operationCancellationToken.ThrowIfCancellationRequested();
+                    OfficeImageExportResult result = RenderPage(page, format, resolved, rendered.DiagnosticReport, operationCancellationToken);
+                    await accept(result, operationCancellationToken).ConfigureAwait(false);
+                }
+            },
+            consumer,
+            cancellationToken).ConfigureAwait(false);
     }
 
 }

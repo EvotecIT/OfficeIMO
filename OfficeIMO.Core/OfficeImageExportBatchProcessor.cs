@@ -8,6 +8,100 @@ namespace OfficeIMO.Drawing;
 /// <summary>Bounded, ordered batch processing shared by document image adapters.</summary>
 public static class OfficeImageExportBatchProcessor {
     /// <summary>
+    /// Executes a streaming batch under one render deadline and one aggregate budget tracker.
+    /// When <paramref name="expectedOutputCount"/> is known, the count budget is checked before
+    /// the producer starts so no partial output is emitted for a predictably oversized batch.
+    /// </summary>
+    public static void Run(
+        OfficeImageExportOptions options,
+        Action<OfficeImageExportConsumer, CancellationToken> producer,
+        OfficeImageExportConsumer consumer,
+        CancellationToken cancellationToken = default,
+        int? expectedOutputCount = null) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        if (producer == null) throw new ArgumentNullException(nameof(producer));
+        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        options.ValidateImageExportOptions();
+        ValidateExpectedOutputCount(options, expectedOutputCount);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
+            options.RenderTimeout,
+            cancellationToken);
+        try {
+            RunWithinExecutionScope(options, producer, consumer, execution, expectedOutputCount);
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
+        }
+    }
+
+    /// <summary>
+    /// Executes cancellable count discovery and a streaming batch under the same render deadline.
+    /// This internal boundary lets provider adapters preflight predictable result counts without
+    /// doing potentially expensive source traversal before the operation scope starts.
+    /// </summary>
+    internal static void RunWithPreflight(
+        OfficeImageExportOptions options,
+        Func<CancellationToken, int?> resolveExpectedOutputCount,
+        Action<OfficeImageExportConsumer, CancellationToken> producer,
+        OfficeImageExportConsumer consumer,
+        CancellationToken cancellationToken = default) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        if (resolveExpectedOutputCount == null) throw new ArgumentNullException(nameof(resolveExpectedOutputCount));
+        if (producer == null) throw new ArgumentNullException(nameof(producer));
+        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        options.ValidateImageExportOptions();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
+            options.RenderTimeout,
+            cancellationToken);
+        try {
+            execution.ThrowIfCancellationRequested();
+            int? expectedOutputCount = resolveExpectedOutputCount(execution.Token);
+            execution.ThrowIfCancellationRequested();
+            ValidateExpectedOutputCount(options, expectedOutputCount);
+            RunWithinExecutionScope(options, producer, consumer, execution, expectedOutputCount);
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
+        }
+    }
+
+    /// <summary>
+    /// Executes an asynchronous streaming batch under one render deadline and one aggregate budget tracker.
+    /// When <paramref name="expectedOutputCount"/> is known, the count budget is checked before
+    /// the producer starts so no partial output is emitted for a predictably oversized batch.
+    /// </summary>
+    public static async Task RunAsync(
+        OfficeImageExportOptions options,
+        Func<OfficeImageExportAsyncConsumer, CancellationToken, Task> producer,
+        OfficeImageExportAsyncConsumer consumer,
+        CancellationToken cancellationToken = default,
+        int? expectedOutputCount = null) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        if (producer == null) throw new ArgumentNullException(nameof(producer));
+        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        options.ValidateImageExportOptions();
+        ValidateExpectedOutputCount(options, expectedOutputCount);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
+            options.RenderTimeout,
+            cancellationToken);
+        try {
+            OfficeImageExportAsyncConsumer accept = CreateGuardedAsyncConsumerCore(
+                options,
+                consumer,
+                execution.Token,
+                expectedOutputCount);
+            await producer(accept, execution.Token).ConfigureAwait(false);
+            execution.ThrowIfCancellationRequested();
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
+        }
+    }
+
+    /// <summary>
     /// Wraps a consumer with cancellation, diagnostic policy, and aggregate batch-budget enforcement.
     /// </summary>
     public static OfficeImageExportConsumer CreateGuardedConsumer(
@@ -17,14 +111,7 @@ public static class OfficeImageExportBatchProcessor {
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         options.ValidateImageExportOptions();
-        var tracker = new OfficeImageExportBatchTracker(options);
-        return result => {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (result == null) throw new ArgumentNullException(nameof(result));
-            result.Require(options.Policy);
-            tracker.Add(result);
-            consumer(result);
-        };
+        return CreateGuardedConsumerCore(options, consumer, cancellationToken, expectedOutputCount: null);
     }
 
     /// <summary>
@@ -37,15 +124,7 @@ public static class OfficeImageExportBatchProcessor {
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         options.ValidateImageExportOptions();
-        var tracker = new OfficeImageExportBatchTracker(options);
-        return async (result, token) => {
-            cancellationToken.ThrowIfCancellationRequested();
-            token.ThrowIfCancellationRequested();
-            if (result == null) throw new ArgumentNullException(nameof(result));
-            result.Require(options.Policy);
-            tracker.Add(result);
-            await consumer(result, token).ConfigureAwait(false);
-        };
+        return CreateGuardedAsyncConsumerCore(options, consumer, cancellationToken, expectedOutputCount: null);
     }
 
     /// <summary>
@@ -63,28 +142,18 @@ public static class OfficeImageExportBatchProcessor {
         if (render == null) throw new ArgumentNullException(nameof(render));
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         if (maximumDegreeOfParallelism < 1) throw new ArgumentOutOfRangeException(nameof(maximumDegreeOfParallelism));
-        cancellationToken.ThrowIfCancellationRequested();
         if (options != null) {
-            options.ValidateImageExportOptions();
-            if (items.Count > options.MaximumOutputCount) {
-                throw new OfficeImageExportBatchLimitException(
-                    nameof(OfficeImageExportOptions.MaximumOutputCount),
-                    items.Count,
-                    options.MaximumOutputCount);
-            }
-        }
-        if (options != null) {
-            OfficeImageExportExecutionScope.Run(
+            Run(
                 options,
+                (accept, token) => ForEachOrderedCore(items, maximumDegreeOfParallelism, render, accept, token),
+                consumer,
                 cancellationToken,
-                token => {
-                    ForEachOrderedCore(items, maximumDegreeOfParallelism, render, consumer, token, options);
-                    return true;
-                });
+                items.Count);
             return;
         }
 
-        ForEachOrderedCore(items, maximumDegreeOfParallelism, render, consumer, cancellationToken, options: null);
+        cancellationToken.ThrowIfCancellationRequested();
+        ForEachOrderedCore(items, maximumDegreeOfParallelism, render, consumer, cancellationToken);
     }
 
     private static void ForEachOrderedCore<T>(
@@ -92,16 +161,11 @@ public static class OfficeImageExportBatchProcessor {
         int maximumDegreeOfParallelism,
         Func<T, int, CancellationToken, OfficeImageExportResult> render,
         OfficeImageExportConsumer consumer,
-        CancellationToken cancellationToken,
-        OfficeImageExportOptions? options) {
-        OfficeImageExportConsumer accept = options == null
-            ? consumer
-            : CreateGuardedConsumer(options, consumer, cancellationToken);
-
+        CancellationToken cancellationToken) {
         if (maximumDegreeOfParallelism == 1 || items.Count <= 1) {
             for (int index = 0; index < items.Count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                accept(render(items[index], index, cancellationToken));
+                consumer(render(items[index], index, cancellationToken));
             }
             return;
         }
@@ -121,8 +185,71 @@ public static class OfficeImageExportBatchProcessor {
             OfficeImageExportResult[] results = Task.WhenAll(tasks).GetAwaiter().GetResult();
             for (int localIndex = 0; localIndex < results.Length; localIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                accept(results[localIndex]);
+                consumer(results[localIndex]);
             }
         }
+    }
+
+    private static void ValidateExpectedOutputCount(
+        OfficeImageExportOptions options,
+        int? expectedOutputCount) {
+        if (!expectedOutputCount.HasValue) return;
+        if (expectedOutputCount.Value < 0) {
+            throw new ArgumentOutOfRangeException(nameof(expectedOutputCount));
+        }
+        if (expectedOutputCount.Value > options.MaximumOutputCount) {
+            throw new OfficeImageExportBatchLimitException(
+                nameof(OfficeImageExportOptions.MaximumOutputCount),
+                expectedOutputCount.Value,
+                options.MaximumOutputCount);
+        }
+    }
+
+    private static void RunWithinExecutionScope(
+        OfficeImageExportOptions options,
+        Action<OfficeImageExportConsumer, CancellationToken> producer,
+        OfficeImageExportConsumer consumer,
+        OfficeImageExportExecutionScope execution,
+        int? expectedOutputCount) {
+        OfficeImageExportConsumer accept = CreateGuardedConsumerCore(
+            options,
+            consumer,
+            execution.Token,
+            expectedOutputCount);
+        producer(accept, execution.Token);
+        execution.ThrowIfCancellationRequested();
+    }
+
+    private static OfficeImageExportConsumer CreateGuardedConsumerCore(
+        OfficeImageExportOptions options,
+        OfficeImageExportConsumer consumer,
+        CancellationToken cancellationToken,
+        int? expectedOutputCount) {
+        var tracker = new OfficeImageExportBatchTracker(options);
+        return result => {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (result == null) throw new ArgumentNullException(nameof(result));
+            result.Require(options.Policy);
+            int sequenceIndex = tracker.Count;
+            tracker.Add(result);
+            consumer(result.WithSequence(sequenceIndex, expectedOutputCount));
+        };
+    }
+
+    private static OfficeImageExportAsyncConsumer CreateGuardedAsyncConsumerCore(
+        OfficeImageExportOptions options,
+        OfficeImageExportAsyncConsumer consumer,
+        CancellationToken cancellationToken,
+        int? expectedOutputCount) {
+        var tracker = new OfficeImageExportBatchTracker(options);
+        return async (result, token) => {
+            cancellationToken.ThrowIfCancellationRequested();
+            token.ThrowIfCancellationRequested();
+            if (result == null) throw new ArgumentNullException(nameof(result));
+            result.Require(options.Policy);
+            int sequenceIndex = tracker.Count;
+            tracker.Add(result);
+            await consumer(result.WithSequence(sequenceIndex, expectedOutputCount), token).ConfigureAwait(false);
+        };
     }
 }

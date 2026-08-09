@@ -23,34 +23,58 @@ public sealed class OfficeImageExportResult {
         string? name = null,
         string? source = null,
         IReadOnlyList<OfficeImageExportDiagnostic>? diagnostics = null,
-        string? savedPath = null) {
+        string? savedPath = null)
+        : this(format, width, height, bytes, name, source, diagnostics, savedPath, validateAndClone: true) {
+    }
+
+    private OfficeImageExportResult(
+        OfficeImageExportFormat format,
+        int width,
+        int height,
+        byte[] bytes,
+        string? name,
+        string? source,
+        IReadOnlyList<OfficeImageExportDiagnostic>? diagnostics,
+        string? savedPath,
+        bool validateAndClone,
+        double? dpiX = null,
+        double? dpiY = null,
+        int? sequenceIndex = null,
+        int? sequenceCount = null) {
         if (!System.Enum.IsDefined(typeof(OfficeImageExportFormat), format)) {
             throw new System.ArgumentOutOfRangeException(nameof(format));
         }
         if (width < 1) throw new System.ArgumentOutOfRangeException(nameof(width), "Image width must be positive.");
         if (height < 1) throw new System.ArgumentOutOfRangeException(nameof(height), "Image height must be positive.");
         if (bytes == null) throw new System.ArgumentNullException(nameof(bytes));
-        if (!OfficeImageReader.TryIdentifyByContent(bytes, format.GetFileExtension(), out OfficeImageInfo identified) ||
-            identified.Format != ToImageFormat(format)) {
-            throw new System.ArgumentException(
-                "Encoded image bytes do not match the declared " + format + " export format.",
-                nameof(bytes));
-        }
-        if (identified.Width != width || identified.Height != height) {
-            throw new System.ArgumentException(
-                "Encoded image dimensions " + identified.Width + "x" + identified.Height +
-                " do not match the declared " + width + "x" + height + " export dimensions.",
-                nameof(bytes));
+        OfficeImageInfo identified;
+        if (validateAndClone) {
+            if (!OfficeImageReader.TryIdentifyByContent(bytes, format.GetFileExtension(), out identified) ||
+                identified.Format != ToImageFormat(format)) {
+                throw new System.ArgumentException(
+                    "Encoded image bytes do not match the declared " + format + " export format.",
+                    nameof(bytes));
+            }
+            if (identified.Width != width || identified.Height != height) {
+                throw new System.ArgumentException(
+                    "Encoded image dimensions " + identified.Width + "x" + identified.Height +
+                    " do not match the declared " + width + "x" + height + " export dimensions.",
+                    nameof(bytes));
+            }
+        } else {
+            identified = new OfficeImageInfo(ToImageFormat(format), width, height);
         }
         Format = format;
         Width = width;
         Height = height;
-        DpiX = identified.DpiX;
-        DpiY = identified.DpiY;
-        _bytes = (byte[])bytes.Clone();
+        DpiX = dpiX ?? identified.DpiX;
+        DpiY = dpiY ?? identified.DpiY;
+        _bytes = validateAndClone ? (byte[])bytes.Clone() : bytes;
         Name = name;
         Source = source;
         SavedPath = string.IsNullOrWhiteSpace(savedPath) ? null : Path.GetFullPath(savedPath);
+        SequenceIndex = sequenceIndex;
+        SequenceCount = sequenceCount;
         Diagnostics = diagnostics == null
             ? System.Array.Empty<OfficeImageExportDiagnostic>()
             : new List<OfficeImageExportDiagnostic>(diagnostics).AsReadOnly();
@@ -97,6 +121,12 @@ public sealed class OfficeImageExportResult {
 
     /// <summary>Normalized file path when this result was committed by a save operation.</summary>
     public string? SavedPath { get; }
+
+    /// <summary>Zero-based position in the batch that emitted this result, or null for a single export.</summary>
+    public int? SequenceIndex { get; }
+
+    /// <summary>Total number of results when known before emission, or null for open-ended streaming batches.</summary>
+    public int? SequenceCount { get; }
 
     /// <summary>Diagnostics emitted while exporting.</summary>
     public IReadOnlyList<OfficeImageExportDiagnostic> Diagnostics { get; }
@@ -160,6 +190,17 @@ public sealed class OfficeImageExportResult {
         return this;
     }
 
+    internal string WriteToFile(
+        string path,
+        OfficeImageExportFileConflictPolicy conflictPolicy) =>
+        OfficeImageExportPath.WriteAllBytes(path, Format, _bytes, conflictPolicy);
+
+    internal Task<string> WriteToFileAsync(
+        string path,
+        OfficeImageExportFileConflictPolicy conflictPolicy,
+        CancellationToken cancellationToken) =>
+        OfficeImageExportPath.WriteAllBytesAsync(path, Format, _bytes, conflictPolicy, cancellationToken);
+
     internal OfficeImageExportResult WithSavedPath(string path) => new OfficeImageExportResult(
         Format,
         Width,
@@ -168,7 +209,50 @@ public sealed class OfficeImageExportResult {
         Name,
         Source,
         Diagnostics,
-        path);
+        path,
+        validateAndClone: false,
+        dpiX: DpiX,
+        dpiY: DpiY,
+        sequenceIndex: SequenceIndex,
+        sequenceCount: SequenceCount);
+
+    internal OfficeImageExportResult WithSequence(int sequenceIndex, int? sequenceCount) {
+        if (sequenceIndex < 0) throw new System.ArgumentOutOfRangeException(nameof(sequenceIndex));
+        if (sequenceCount.HasValue && sequenceCount.Value < sequenceIndex + 1) {
+            throw new System.ArgumentOutOfRangeException(nameof(sequenceCount));
+        }
+        return new OfficeImageExportResult(
+            Format,
+            Width,
+            Height,
+            _bytes,
+            Name,
+            Source,
+            Diagnostics,
+            SavedPath,
+            validateAndClone: false,
+            dpiX: DpiX,
+            dpiY: DpiY,
+            sequenceIndex: sequenceIndex,
+            sequenceCount: sequenceCount);
+    }
+
+    /// <summary>Creates an immutable result copy with replacement diagnostics while preserving payload and batch metadata.</summary>
+    public OfficeImageExportResult WithDiagnostics(IReadOnlyList<OfficeImageExportDiagnostic> diagnostics) =>
+        new OfficeImageExportResult(
+            Format,
+            Width,
+            Height,
+            _bytes,
+            Name,
+            Source,
+            diagnostics ?? throw new System.ArgumentNullException(nameof(diagnostics)),
+            SavedPath,
+            validateAndClone: false,
+            dpiX: DpiX,
+            dpiY: DpiY,
+            sequenceIndex: SequenceIndex,
+            sequenceCount: SequenceCount);
 
     private static OfficeImageFormat ToImageFormat(OfficeImageExportFormat format) => format switch {
         OfficeImageExportFormat.Png => OfficeImageFormat.Png,

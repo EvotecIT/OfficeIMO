@@ -14,6 +14,33 @@ public sealed class HtmlEmailImageExportTests {
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+X8m0WQAAAABJRU5ErkJggg==");
 
     [Fact]
+    public void EmailFitWithinBoundsHighRequestedScaleBeforeHtmlSurfaceValidation() {
+        var email = new EmailDocument { Subject = "Bounded message" };
+        email.Body.Html = "<h1>Bounded</h1><p>High requested scale.</p>";
+
+        OfficeImageExportResult result = email.ToImage()
+            .WithScale(100D)
+            .FitWithin(360, 360)
+            .AsPng()
+            .Export();
+
+        Assert.True(result.Width <= 360);
+        Assert.True(result.Height <= 360);
+    }
+
+    [Fact]
+    public void EmailRtfBatchDiagnosticsPreserveSequenceMetadata() {
+        var email = new EmailDocument();
+        email.Body.Rtf = "{\\rtf1\\ansi Rendered RTF body}";
+
+        OfficeImageExportResult result = Assert.Single(email.ExportImages(OfficeImageExportFormat.Png));
+
+        Assert.Equal(0, result.SequenceIndex);
+        Assert.Equal(1, result.SequenceCount);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_IMAGE_RTF_BODY_PROJECTED");
+    }
+
+    [Fact]
     public void PlainTextEmailExportsThroughHtmlWithMessageChrome() {
         var email = new EmailDocument {
             Subject = "Quarterly update",

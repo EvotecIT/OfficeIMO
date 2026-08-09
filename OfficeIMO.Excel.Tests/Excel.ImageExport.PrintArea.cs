@@ -8,6 +8,24 @@ using X = DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Tests {
     public class ExcelImageExportPrintAreaTests {
         [Fact]
+        public void ExcelWorkbookRejectsPredictableOutputCountBeforeConsumerSideEffects() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            document.AddWorksheet("One").CellValue(1, 1, "one");
+            document.AddWorksheet("Two").CellValue(1, 1, "two");
+            int consumed = 0;
+
+            OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                document.ExportImages(
+                    OfficeImageExportFormat.Png,
+                    _ => consumed++,
+                    new ExcelWorkbookImageExportOptions { MaximumOutputCount = 1 }));
+
+            Assert.Equal(0, consumed);
+            Assert.Equal(2, exception.Actual);
+            Assert.Equal(1, exception.Maximum);
+        }
+
+        [Fact]
         public void ExcelWorksheet_ImageExportUsesPrintAreaWhenRequested() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -121,8 +139,16 @@ namespace OfficeIMO.Tests {
                 UsePrintArea = true,
                 ShowGridlines = false
             });
+            IReadOnlyList<OfficeImageExportResult> fluentResults = loadedSheet.ToImages()
+                .UsePrintArea()
+                .WithGridlines(false)
+                .AsPng()
+                .Export();
 
             Assert.Equal(2, results.Count);
+            Assert.Equal(results.Select(result => result.Source), fluentResults.Select(result => result.Source));
+            Assert.Equal(new int?[] { 0, 1 }, fluentResults.Select(result => result.SequenceIndex));
+            Assert.All(fluentResults, result => Assert.Equal(2, result.SequenceCount));
             Assert.Equal("Report!B2:B2", results[0].Source);
             Assert.Equal("Report!D2:D2", results[1].Source);
             Assert.All(results, result => {

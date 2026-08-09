@@ -53,8 +53,15 @@ namespace OfficeIMO.Word {
             if (format == OfficeImageExportFormat.Svg) {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
                 var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, "Word document");
-                byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale, OfficeSvgSizeUnit.Pixel, fallbackCodec);
-                return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(drawing, options), ScaledHeight(drawing, options), svg, "Page " + (options.PageIndex + 1), "Word document", diagnostics));
+                double scale = options.GetEffectiveScale(drawing.Width, drawing.Height);
+                byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(
+                    drawing,
+                    scale,
+                    OfficeSvgSizeUnit.Pixel,
+                    fallbackCodec,
+                    resourceIdPrefix: null,
+                    cancellationToken);
+                return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(drawing, scale), ScaledHeight(drawing, scale), svg, "Page " + (options.PageIndex + 1), "Word document", diagnostics));
             }
 
             if (format.IsRaster()) {
@@ -875,11 +882,11 @@ namespace OfficeIMO.Word {
             return false;
         }
 
-        private static int ScaledWidth(OfficeDrawing drawing, WordImageExportOptions options) =>
-            Math.Max(1, (int)Math.Ceiling(drawing.Width * options.Scale));
+        private static int ScaledWidth(OfficeDrawing drawing, double scale) =>
+            Math.Max(1, (int)Math.Ceiling(drawing.Width * scale));
 
-        private static int ScaledHeight(OfficeDrawing drawing, WordImageExportOptions options) =>
-            Math.Max(1, (int)Math.Ceiling(drawing.Height * options.Scale));
+        private static int ScaledHeight(OfficeDrawing drawing, double scale) =>
+            Math.Max(1, (int)Math.Ceiling(drawing.Height * scale));
 
         private static int UnscaledWidth(OfficeDrawing drawing) =>
             Math.Max(1, (int)Math.Ceiling(drawing.Width));

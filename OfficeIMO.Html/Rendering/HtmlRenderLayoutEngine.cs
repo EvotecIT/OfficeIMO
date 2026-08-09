@@ -638,8 +638,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void ValidateSurface(double width, double height) {
-        double pixelWidth = Math.Ceiling(width * _options.Scale);
-        double pixelHeight = Math.Ceiling(height * _options.Scale);
+        double scale = _options.GetEffectiveScale(width, height);
+        double pixelWidth = Math.Ceiling(width * scale);
+        double pixelHeight = Math.Ceiling(height * scale);
         if (double.IsNaN(pixelWidth) || double.IsInfinity(pixelWidth) ||
             double.IsNaN(pixelHeight) || double.IsInfinity(pixelHeight) ||
             pixelWidth > _options.MaxSurfaceWidth || pixelHeight > _options.MaxSurfaceHeight) {

@@ -8,6 +8,19 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfImageExportContractTests {
+    [Fact]
+    public void LoadedPdfPageRetainsTheOriginalThreeParameterExportOverload() {
+        System.Reflection.MethodInfo? method = typeof(PdfImageExportExtensions).GetMethod(
+            nameof(PdfImageExportExtensions.ExportImage),
+            new[] {
+                typeof(PdfReadPage),
+                typeof(OfficeImageExportFormat),
+                typeof(PdfImageExportOptions)
+            });
+
+        Assert.NotNull(method);
+    }
+
     [Theory]
     [InlineData(OfficeImageExportFormat.Png)]
     [InlineData(OfficeImageExportFormat.Jpeg)]
@@ -24,6 +37,24 @@ public sealed class PdfImageExportContractTests {
         Assert.True(result.Width > 0);
         Assert.True(result.Height > 0);
         Assert.NotEmpty(result.Bytes);
+    }
+
+    [Fact]
+    public void LoadedPdfPageSupportsDirectCancellationAndSharedFitWithinBounds() {
+        PdfReadPage page = LoadTwoPageDocument().Pages[0];
+        using var cancellation = new CancellationTokenSource();
+
+        OfficeImageExportResult result = page.ExportImage(
+            OfficeImageExportFormat.Svg,
+            new PdfImageExportOptions {
+                Scale = 4D,
+                MaximumOutputWidth = 160,
+                MaximumOutputHeight = 160
+            },
+            cancellation.Token);
+
+        Assert.True(result.Width <= 160);
+        Assert.True(result.Height <= 160);
     }
 
     [Fact]
