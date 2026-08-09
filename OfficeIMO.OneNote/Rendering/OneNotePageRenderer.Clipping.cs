@@ -31,6 +31,7 @@ public static partial class OneNotePageRenderer {
                 availableHeight,
                 forcePageBounds,
                 inheritedRightToLeft);
+            RestoreListNumbering(localContext.SnapshotListNumbering());
 
             double clipX = Math.Max(0D, x);
             double clipY = Math.Max(0D, y);

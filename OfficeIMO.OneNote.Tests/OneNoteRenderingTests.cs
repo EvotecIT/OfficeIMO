@@ -487,6 +487,29 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
+    public void ClippedOrderedParagraphAdvancesFollowingListNumbering() {
+        var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard };
+        var clipped = new OneNoteParagraph {
+            Layout = new OneNoteLayout { Y = -0.1D },
+            List = new OneNoteListInfo { Ordered = true, Level = 1, Restart = true, DisplayIndex = 1 }
+        };
+        clipped.Runs.Add(new OneNoteTextRun { Text = "Clipped" });
+        var following = new OneNoteParagraph {
+            List = new OneNoteListInfo { Ordered = true, Level = 1 }
+        };
+        following.Runs.Add(new OneNoteTextRun { Text = "Following" });
+        page.DirectContent.Add(clipped);
+        page.DirectContent.Add(following);
+
+        OfficeDrawing drawing = page.ToDrawing(new OneNotePageRenderingOptions { IncludeTitle = false });
+        OfficeDrawingRichText followingText = Assert.Single(
+            drawing.Elements.OfType<OfficeDrawingRichText>(),
+            item => item.Runs.Any(run => run.Text.Contains("Following", StringComparison.Ordinal)));
+
+        Assert.StartsWith("2. ", followingText.Runs[0].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ParagraphChildrenRenderAfterRunsAndExplicitFlowHeightIsReserved() {
         var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard };
         var outline = new OneNoteOutline { Layout = new OneNoteLayout { X = 0.25D, Y = 0.5D, Width = 4D } };

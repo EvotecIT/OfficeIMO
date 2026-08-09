@@ -90,6 +90,16 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_SizedSingleSelectDefaultsToFirstOption() {
+        const string html = "<select size='2'><option>First choice</option><option>Second choice</option></select>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Contains("First choice", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Second choice", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdf_FormControlSnapshotRemainsSearchableWithoutExposingPasswordValues() {
         const string html = """
             <h1>Approval</h1>

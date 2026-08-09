@@ -621,6 +621,15 @@ public static partial class HtmlRoundTripScorer {
             return;
         }
 
+        node.Attributes.TryGetValue("type", out string? rawControlType);
+        string effectiveControlType = HtmlFormControlSemantics.GetEffectiveType(
+            node.Name,
+            rawControlType,
+            node.Attributes.ContainsKey("multiple"));
+        if (!HtmlFormControlSemantics.IsStateAttributeApplicable(node.Name, effectiveControlType, attributeName)) {
+            return;
+        }
+
         if (string.Equals(attributeName, "type", StringComparison.OrdinalIgnoreCase)) {
             node.Attributes.TryGetValue(attributeName, out string? rawType);
             string defaultType = GetEffectiveFormControlType(node.Name, rawType);
@@ -652,6 +661,14 @@ public static partial class HtmlRoundTripScorer {
         }
 
         if (ImageSubmitterAttributes.Contains(attributeName) && !IsImageSubmitterControl(control)) {
+            return false;
+        }
+
+        string effectiveType = HtmlFormControlSemantics.GetEffectiveType(
+            control.TagName,
+            control.GetAttribute("type"),
+            control.HasAttribute("multiple"));
+        if (!HtmlFormControlSemantics.IsStateAttributeApplicable(control.TagName, effectiveType, attributeName)) {
             return false;
         }
 

@@ -397,10 +397,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         string source) {
         IElement[] options = element.QuerySelectorAll("option").ToArray();
-        bool multiple = element.HasAttribute("multiple") || ParsePositiveInteger(element.GetAttribute("size"), 1, 1, 100) > 1;
-        if (multiple) {
-            string[] values = options
-                .Where(option => option.HasAttribute("selected"))
+        bool multiple = element.HasAttribute("multiple");
+        bool listBox = multiple || ParsePositiveInteger(element.GetAttribute("size"), 1, 1, 100) > 1;
+        if (listBox) {
+            IEnumerable<IElement> selectedOptions = options.Where(option => option.HasAttribute("selected"));
+            if (!multiple) {
+                IElement? effective = selectedOptions.LastOrDefault() ?? options.FirstOrDefault();
+                selectedOptions = effective == null ? Array.Empty<IElement>() : new[] { effective };
+            }
+            string[] values = selectedOptions
                 .Select(option => NormalizeControlText(option.TextContent))
                 .Where(value => value.Length > 0)
                 .ToArray();

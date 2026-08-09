@@ -121,7 +121,24 @@ internal static class HtmlFormControlSemantics {
 
     internal static bool IsPlaceholderApplicable(string elementName, string effectiveType) =>
         NormalizeName(elementName) == "textarea"
-        || NormalizeName(elementName) == "input" && (IsTextInputType(effectiveType) || effectiveType == "number");
+        || NormalizeName(elementName) == "input" && IsTextInputType(effectiveType);
+
+    internal static bool IsStateAttributeApplicable(string elementName, string effectiveType, string attributeName) {
+        switch (NormalizeName(attributeName)) {
+            case "checked": return IsCheckedStateApplicable(elementName, effectiveType);
+            case "multiple": return IsMultipleStateApplicable(elementName, effectiveType);
+            case "required": return IsRequiredStateApplicable(elementName, effectiveType);
+            case "readonly": return IsReadOnlyStateApplicable(elementName, effectiveType);
+            case "pattern": return IsPatternApplicable(elementName, effectiveType);
+            case "minlength":
+            case "maxlength": return IsLengthApplicable(elementName, effectiveType);
+            case "min":
+            case "max":
+            case "step": return IsRangeApplicable(elementName, effectiveType);
+            case "placeholder": return IsPlaceholderApplicable(elementName, effectiveType);
+            default: return true;
+        }
+    }
 
     internal static IReadOnlyList<string> GetValues(IElement element) {
         string name = NormalizeName(element.LocalName);
@@ -166,8 +183,10 @@ internal static class HtmlFormControlSemantics {
         if (element.HasAttribute("form")) {
             string explicitOwner = (element.GetAttribute("form") ?? string.Empty).Trim();
             if (explicitOwner.Length == 0) return null;
-            return element.Owner?.QuerySelectorAll("form[id]")
-                .FirstOrDefault(form => string.Equals(form.GetAttribute("id"), explicitOwner, StringComparison.Ordinal));
+            IElement? candidate = element.Owner?.GetElementById(explicitOwner);
+            return candidate != null && string.Equals(candidate.LocalName, "form", StringComparison.OrdinalIgnoreCase)
+                ? candidate
+                : null;
         }
 
         for (IElement? ancestor = element.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {

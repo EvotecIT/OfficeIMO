@@ -70,6 +70,25 @@ public partial class Html {
     }
 
     [Fact]
+    public void SemanticDocument_ExplicitFormOwnerUsesFirstMatchingIdElement() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse("""
+            <div id="owner"></div><form id="owner"></form><input name="field" form="owner">
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks),
+            block => block.FormControl?.Name == "field").FormControl!;
+
+        Assert.Equal(string.Empty, control.FormOwnerId);
+    }
+
+    [Fact]
+    public void SemanticDocument_NumberInputExcludesInapplicablePlaceholder() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
+            .Parse("<input type='number' name='quantity' placeholder='Count'>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(string.Empty, control.Placeholder);
+    }
+
+    [Fact]
     public void SemanticDocument_PreservesOrderedListDirectionAndItemOrdinals() {
         HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument
             .Parse("<ol start='3' reversed><li>A</li><li value='10'>B</li><li>C</li></ol>")

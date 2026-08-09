@@ -1690,6 +1690,11 @@ public partial class Html {
         Assert.Equal(1D, requiredFormScore.Metrics["forms"], 3);
         Assert.InRange(requiredFormScore.Metrics["form-state"], 0D, 0.99D);
 
+        HtmlRoundTripScore inertNumberPlaceholderScore = HtmlRoundTripScorer.Compare(
+            "<main><form><input type=\"number\" name=\"quantity\" placeholder=\"Count\"></form></main>",
+            "<main><form><input type=\"number\" name=\"quantity\"></form></main>");
+        Assert.Equal(1D, inertNumberPlaceholderScore.Metrics["form-state"], 3);
+
         HtmlRoundTripScore imageSubmitterScore = HtmlRoundTripScorer.Compare(
             "<main><form><input type=\"image\" src=\"save-a.png\" alt=\"Save\"></form></main>",
             "<main><form><input type=\"image\" src=\"save-b.png\" alt=\"Save\"></form></main>");

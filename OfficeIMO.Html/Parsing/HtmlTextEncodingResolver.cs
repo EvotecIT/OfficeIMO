@@ -12,8 +12,8 @@ internal static class HtmlTextEncodingResolver {
         "(?:^|;)\\s*charset\\s*=\\s*['\\\"]?\\s*([^\\s;'\\\"]+)",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly Regex CssCharset = new(
-        "^@charset\\s+['\\\"]([^'\\\"]+)['\\\"];",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+        "^@charset \\\"([^\\\"]+)\\\";",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     static HtmlTextEncodingResolver() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);

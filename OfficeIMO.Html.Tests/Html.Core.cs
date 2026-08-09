@@ -188,6 +188,15 @@ public sealed class HtmlCoreTests {
         Assert.Contains("€", css, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HtmlStylesheetDecoderIgnoresNonCanonicalCharsetDeclaration() {
+        byte[] stylesheet = Encoding.UTF8.GetBytes("@charset 'windows-1252';.café{color:red}");
+
+        Assert.True(HtmlRenderStylesheetText.TryDecode(stylesheet, "text/css", out string css));
+        Assert.Contains("café", css, StringComparison.Ordinal);
+        Assert.DoesNotContain("cafÃ©", css, StringComparison.Ordinal);
+    }
+
     private static byte[] BuildWindows1252Html() {
         byte[] prefix = Encoding.ASCII.GetBytes("<meta charset='windows-1252'><p>caf");
         byte[] suffix = Encoding.ASCII.GetBytes("</p>");
