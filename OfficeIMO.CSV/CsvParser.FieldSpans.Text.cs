@@ -1104,13 +1104,39 @@ internal static partial class CsvParser
             scratch = ArrayPool<char>.Shared.Rent(fieldLength);
         }
 
-        var readIndex = firstEscapedQuote >= 0 ? firstEscapedQuote : 0;
+        if (firstEscapedQuote < 0)
+        {
+            var read = 0;
+            var written = 0;
+            while (read < field.Length)
+            {
+                var value = field[read++];
+                scratch[written++] = value;
+                if (value == '"' && read < field.Length && field[read] == '"')
+                {
+                    read++;
+                }
+            }
+
+            return scratch.AsSpan(0, written);
+        }
+
+        var readIndex = firstEscapedQuote;
         if (readIndex > 0)
         {
             field.Slice(0, readIndex).CopyTo(scratch.AsSpan());
         }
 
         var writeIndex = readIndex;
+        if (firstEscapedQuote >= 0 &&
+            readIndex + 1 < field.Length &&
+            field[readIndex] == '"' &&
+            field[readIndex + 1] == '"')
+        {
+            scratch[writeIndex++] = '"';
+            readIndex += 2;
+        }
+
         while (readIndex < field.Length)
         {
             var quoteOffset = field.Slice(readIndex).IndexOf('"');

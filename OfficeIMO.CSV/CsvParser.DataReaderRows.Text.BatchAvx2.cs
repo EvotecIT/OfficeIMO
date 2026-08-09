@@ -797,13 +797,7 @@ internal static partial class CsvParser
                     continue;
                 }
 
-                var firstEscapedQuote = value.IndexOf('"');
-                if (firstEscapedQuote < 0)
-                {
-                    throw new InvalidOperationException("Escaped CSV field metadata did not contain an escaped quote.");
-                }
-
-                var unescaped = UnescapeTextQuotedField(value, firstEscapedQuote, fieldLength, ref scratch);
+                var unescaped = UnescapeTextQuotedField(value, firstEscapedQuote: -1, fieldLength, ref scratch);
                 fieldVisitor.VisitField(recordIndex, fieldIndex, unescaped);
             }
         }

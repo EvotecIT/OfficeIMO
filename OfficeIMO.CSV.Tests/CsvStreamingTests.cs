@@ -876,16 +876,17 @@ public class CsvStreamingTests
     }
 
     [Fact]
-    public void ReadFieldSpansFromText_BatchedPathDoesNotTruncateRowsWiderThanItsFastPath()
+    public void ReadFieldSpansFromText_BatchedPathGrowsBeforeFallingBackForWiderRows()
     {
+        var mediumRow = string.Join(',', Enumerable.Range(0, 17).Select(index => $"medium-{index}"));
         var wideRow = string.Join(',', Enumerable.Range(0, 65).Select(index => $"wide-{index}"));
         var events = new List<string>();
 
         CsvDocument.ReadFieldSpansFromText(
-            $"left,right\n{wideRow}\nafter,value\n",
+            $"left,right\n{mediumRow}\n{mediumRow}\n{wideRow}\nafter,value\n",
             (recordIndex, fieldIndex, value) =>
             {
-                if (recordIndex != 1 || fieldIndex is 0 or 64)
+                if (recordIndex is 0 or 4 || fieldIndex is 0 or 16 or 64)
                 {
                     events.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}");
                 }
@@ -895,10 +896,15 @@ public class CsvStreamingTests
             new[] {
                 "0:0:left",
                 "0:1:right",
-                "1:0:wide-0",
-                "1:64:wide-64",
-                "2:0:after",
-                "2:1:value"
+                "1:0:medium-0",
+                "1:16:medium-16",
+                "2:0:medium-0",
+                "2:16:medium-16",
+                "3:0:wide-0",
+                "3:16:wide-16",
+                "3:64:wide-64",
+                "4:0:after",
+                "4:1:value"
             },
             events);
     }
@@ -917,6 +923,19 @@ public class CsvStreamingTests
             });
 
         Assert.Equal(new[] { "Alpha", " inside " }, fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpansFromText_BatchedPathUnescapesAdjacentAndEdgeQuotePairs()
+    {
+        var fields = new List<string>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "\"\"\"\"\"\",\"a\"\"b\"\"c\",\"\"\"start\",\"end\"\"\"\n",
+            (recordIndex, fieldIndex, value) => fields.Add(value.ToString()),
+            new CsvLoadOptions { HasHeaderRow = false });
+
+        Assert.Equal(new[] { "\"\"", "a\"b\"c", "\"start", "end\"" }, fields);
     }
 
     [Fact]

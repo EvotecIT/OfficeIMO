@@ -39,13 +39,10 @@ internal static partial class CsvParser
 
         var state = CreateTextFieldSpanReadState(text.AsSpan(), options, recordsToSkip);
         var projectedFieldVisitor = fieldVisitor as ICsvProjectedFieldSpanVisitor;
-        using var batch = new CsvTextDataReaderBatch(
+        var batch = CreateFieldSpanTextDataReaderBatch(
             text,
-            TextQuoteAwareFieldSpanCapacity,
-            options.Culture,
-            options.DateTimeFormats,
-            rejectExtraFields: true,
-            enforceColumnCountMismatchPolicy: false);
+            options,
+            sourceColumnCount: 16);
         try
         {
             SkipPendingTextDataReaderRecords(
@@ -82,14 +79,26 @@ internal static partial class CsvParser
                     projectedFieldVisitor,
                     ref state,
                     ref fieldVisitor,
-                    out _))
+                    out var emittedFieldCount))
                 {
                     break;
+                }
+
+                if (emittedFieldCount > batch.SourceColumnCount &&
+                    emittedFieldCount <= TextQuoteAwareFieldSpanCapacity)
+                {
+                    var replacement = CreateFieldSpanTextDataReaderBatch(
+                        text,
+                        options,
+                        GetTextDelimiterIndexCapacity(emittedFieldCount));
+                    batch.Dispose();
+                    batch = replacement;
                 }
             }
         }
         finally
         {
+            batch.Dispose();
             if (state.Scratch is not null)
             {
                 ArrayPool<char>.Shared.Return(state.Scratch);
@@ -98,5 +107,18 @@ internal static partial class CsvParser
 
         return true;
     }
+
+    private static CsvTextDataReaderBatch CreateFieldSpanTextDataReaderBatch(
+        string text,
+        CsvLoadOptions options,
+        int sourceColumnCount) =>
+        new(
+            text,
+            sourceColumnCount,
+            options.Culture,
+            options.DateTimeFormats,
+            preferredRowCapacity: 512,
+            rejectExtraFields: true,
+            enforceColumnCountMismatchPolicy: false);
 #endif
 }
