@@ -347,6 +347,23 @@ namespace OfficeIMO.Tests {
             Assert.Empty(sheet.Images);
         }
 
+        [Fact]
+        public void Test_ExcelImage_FromFile_RejectsRecognizableButTruncatedGif() {
+            string workbookPath = Path.Combine(_directoryWithFiles, "ExcelImage.TruncatedGif.xlsx");
+            string imagePath = Path.Combine(_directoryWithFiles, "truncated.gif");
+            File.WriteAllBytes(imagePath, new byte[] {
+                (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a',
+                1, 0, 1, 0, 0, 0, 0
+            });
+
+            using ExcelDocument document = ExcelDocument.Create(workbookPath);
+            ExcelSheet sheet = document.AddWorksheet("Images");
+
+            Assert.Throws<ArgumentException>(() =>
+                sheet.AddImageFromFile(2, 2, imagePath, widthPixels: 32, heightPixels: 32));
+            Assert.Empty(sheet.Images);
+        }
+
         [Theory]
         [InlineData("Sample.svg", "image/svg+xml")]
         [InlineData("sample.emf", "image/x-emf")]

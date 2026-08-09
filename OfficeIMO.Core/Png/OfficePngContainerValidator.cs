@@ -19,7 +19,13 @@ internal static class OfficePngContainerValidator {
             OfficeRasterGuards.EnsurePayloadWithinLimits(bytes.Length, "PNG payload exceeds size limits.");
             bool seenHeader = false;
             bool seenImageData = false;
+            bool imageDataEnded = false;
             bool seenAnimationControl = false;
+            bool seenPalette = false;
+            bool seenTransparency = false;
+            int bitDepth = 0;
+            int colorType = 0;
+            int paletteEntries = 0;
             int declaredFrameCount = 1;
             int offset = Signature.Length;
             while (offset + 12 <= bytes.Length) {
@@ -31,6 +37,10 @@ internal static class OfficePngContainerValidator {
                 }
 
                 string type = Encoding.ASCII.GetString(bytes, offset + 4, 4);
+                if (!IsValidChunkType(bytes, offset + 4)) {
+                    failureReason = "PNG bytes contain an invalid chunk type.";
+                    return false;
+                }
                 if (!seenHeader && (type != "IHDR" || length != 13)) {
                     failureReason = "PNG bytes must start with an IHDR chunk.";
                     return false;
@@ -50,7 +60,44 @@ internal static class OfficePngContainerValidator {
                             failureReason = "PNG bytes contain an invalid or repeated IHDR chunk.";
                             return false;
                         }
+                        int width = ReadBigEndianInt32(bytes, dataOffset);
+                        int height = ReadBigEndianInt32(bytes, dataOffset + 4);
+                        bitDepth = bytes[dataOffset + 8];
+                        colorType = bytes[dataOffset + 9];
+                        if (width <= 0 || height <= 0 ||
+                            !IsValidColorLayout(colorType, bitDepth) ||
+                            bytes[dataOffset + 10] != 0 ||
+                            bytes[dataOffset + 11] != 0 ||
+                            bytes[dataOffset + 12] > 1) {
+                            failureReason = "PNG IHDR fields are invalid or unsupported.";
+                            return false;
+                        }
                         seenHeader = true;
+                        break;
+                    case "PLTE":
+                        if (!seenHeader || seenImageData || seenPalette || seenTransparency ||
+                            length < 3 || length > 768 || length % 3 != 0 ||
+                            colorType == 0 || colorType == 4) {
+                            failureReason = "PNG bytes contain an invalid or misplaced PLTE chunk.";
+                            return false;
+                        }
+                        paletteEntries = length / 3;
+                        if (colorType == 3 && paletteEntries > 1 << bitDepth) {
+                            failureReason = "PNG palette has more entries than its bit depth permits.";
+                            return false;
+                        }
+                        seenPalette = true;
+                        break;
+                    case "tRNS":
+                        if (!seenHeader || seenImageData || seenTransparency ||
+                            (colorType == 0 && length != 2) ||
+                            (colorType == 2 && length != 6) ||
+                            (colorType == 3 && (!seenPalette || length == 0 || length > paletteEntries)) ||
+                            colorType == 4 || colorType == 6) {
+                            failureReason = "PNG bytes contain an invalid or misplaced tRNS chunk.";
+                            return false;
+                        }
+                        seenTransparency = true;
                         break;
                     case "acTL":
                         if (!seenHeader || seenImageData || seenAnimationControl || length != 8) {
@@ -66,8 +113,8 @@ internal static class OfficePngContainerValidator {
                         seenAnimationControl = true;
                         break;
                     case "IDAT":
-                        if (!seenHeader) {
-                            failureReason = "PNG image data appears before the header.";
+                        if (!seenHeader || imageDataEnded || (colorType == 3 && !seenPalette)) {
+                            failureReason = "PNG image data is misplaced or its required palette is missing.";
                             return false;
                         }
                         seenImageData = true;
@@ -84,6 +131,13 @@ internal static class OfficePngContainerValidator {
                         }
                         frameCount = declaredFrameCount;
                         return true;
+                    default:
+                        if (IsCriticalChunk(bytes[offset + 4])) {
+                            failureReason = "PNG bytes contain the unknown critical chunk '" + type + "'.";
+                            return false;
+                        }
+                        if (seenImageData) imageDataEnded = true;
+                        break;
                 }
 
                 offset = (int)chunkEnd;
@@ -96,6 +150,34 @@ internal static class OfficePngContainerValidator {
         failureReason = "PNG bytes do not contain a complete IEND chunk.";
         return false;
     }
+
+    private static bool IsValidColorLayout(int colorType, int bitDepth) {
+        switch (colorType) {
+            case 0:
+                return bitDepth == 1 || bitDepth == 2 || bitDepth == 4 || bitDepth == 8 || bitDepth == 16;
+            case 2:
+            case 4:
+            case 6:
+                return bitDepth == 8 || bitDepth == 16;
+            case 3:
+                return bitDepth == 1 || bitDepth == 2 || bitDepth == 4 || bitDepth == 8;
+            default:
+                return false;
+        }
+    }
+
+    private static bool IsValidChunkType(byte[] bytes, int offset) {
+        for (int index = 0; index < 4; index++) {
+            byte value = bytes[offset + index];
+            if (!((value >= (byte)'A' && value <= (byte)'Z') ||
+                  (value >= (byte)'a' && value <= (byte)'z'))) return false;
+        }
+        // The third chunk-type byte is reserved by PNG and must be uppercase.
+        return bytes[offset + 2] >= (byte)'A' && bytes[offset + 2] <= (byte)'Z';
+    }
+
+    private static bool IsCriticalChunk(byte firstTypeByte) =>
+        firstTypeByte >= (byte)'A' && firstTypeByte <= (byte)'Z';
 
     private static bool HasSignature(byte[] bytes) {
         for (int index = 0; index < Signature.Length; index++) {

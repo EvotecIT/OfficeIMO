@@ -327,18 +327,23 @@ namespace OfficeIMO.Visio {
         }
 
         private static string? ReadInheritedGradientAttribute(XElement definition, SvgRenderContext context, string attributeName, HashSet<string> visited) {
-            if (!TryReadGradientReferenceId(ReadHref(definition), out string? hrefId) ||
-                hrefId == null ||
-                !visited.Add(hrefId) ||
-                !context.TryGetDefinition(hrefId, out XElement? inherited) ||
-                inherited == null) {
-                return null;
-            }
+            if (!context.TryEnterAuxiliaryRecursion()) return null;
+            try {
+                if (!TryReadGradientReferenceId(ReadHref(definition), out string? hrefId) ||
+                    hrefId == null ||
+                    !visited.Add(hrefId) ||
+                    !context.TryGetDefinition(hrefId, out XElement? inherited) ||
+                    inherited == null) {
+                    return null;
+                }
 
-            string? value = inherited.Attribute(attributeName)?.Value;
-            return !string.IsNullOrWhiteSpace(value)
-                ? value
-                : ReadInheritedGradientAttribute(inherited, context, attributeName, visited);
+                string? value = inherited.Attribute(attributeName)?.Value;
+                return !string.IsNullOrWhiteSpace(value)
+                    ? value
+                    : ReadInheritedGradientAttribute(inherited, context, attributeName, visited);
+            } finally {
+                context.ExitAuxiliaryRecursion();
+            }
         }
 
         private static bool IsUserSpaceGradient(XElement definition, SvgRenderContext context) =>

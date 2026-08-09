@@ -138,8 +138,7 @@ namespace OfficeIMO.Visio {
             string name = element.Name.LocalName;
             if ((!string.IsNullOrEmpty(element.Name.NamespaceName) &&
                  !string.Equals(element.Name.NamespaceName, "http://www.w3.org/2000/svg", StringComparison.Ordinal)) ||
-                element.Attribute("filter") != null ||
-                element.Attribute("mask") != null) {
+                HasUnsupportedEffect(element, context)) {
                 context.ReportUnsupportedFeature();
             }
             if (string.Equals(name, "defs", StringComparison.OrdinalIgnoreCase) ||

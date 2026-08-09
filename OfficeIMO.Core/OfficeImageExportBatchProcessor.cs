@@ -286,6 +286,7 @@ public static class OfficeImageExportBatchProcessor {
         return async (result, token) => {
             using CancellationTokenSource? linked = CreateLinkedCancellationSource(cancellationToken, token);
             CancellationToken effectiveToken = linked?.Token ?? (token.CanBeCanceled ? token : cancellationToken);
+            OfficeImageExportResult sequenced;
             await gate.WaitAsync(effectiveToken).ConfigureAwait(false);
             try {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -294,10 +295,14 @@ public static class OfficeImageExportBatchProcessor {
                 result.Require(options.Policy);
                 int sequenceIndex = tracker.Count;
                 tracker.Add(result);
-                await consumer(result.WithSequence(sequenceIndex, expectedOutputCount), token).ConfigureAwait(false);
+                sequenced = result.WithSequence(sequenceIndex, expectedOutputCount);
             } finally {
                 gate.Release();
             }
+
+            // Admission and sequence assignment are serialized, but arbitrary consumer code
+            // must run outside the gate so a consumer can safely submit another result.
+            await consumer(sequenced, token).ConfigureAwait(false);
         };
     }
 

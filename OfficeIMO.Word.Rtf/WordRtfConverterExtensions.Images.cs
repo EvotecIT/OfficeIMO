@@ -99,7 +99,7 @@ public static partial class WordRtfConverterExtensions {
         out byte[] payload) {
         format = RtfImageFormat.Unknown;
         payload = Array.Empty<byte>();
-        if (OfficeImageReader.TryIdentifyByContent(bytes, fileName, out OfficeImageInfo info)) {
+        if (OfficeImageReader.TryValidateContent(bytes, fileName, out OfficeImageInfo info)) {
             switch (info.Format) {
                 case OfficeImageFormat.Png:
                     format = RtfImageFormat.Png;
@@ -155,7 +155,7 @@ public static partial class WordRtfConverterExtensions {
             _ => OfficeImageFormat.Unknown
         };
         if (expected == OfficeImageFormat.Unknown ||
-            !OfficeImageReader.TryIdentifyByContent(image.Data, OfficeImageInfo.GetDefaultExtension(expected), out OfficeImageInfo info) ||
+            !OfficeImageReader.TryValidateContent(image.Data, OfficeImageInfo.GetDefaultExtension(expected), out OfficeImageInfo info) ||
             info.Format != expected) {
             return false;
         }

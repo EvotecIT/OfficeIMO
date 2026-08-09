@@ -49,6 +49,24 @@ public static partial class OfficeImageReader {
         return TryIdentifyCore(stream, fileName, allowExtensionFallback: false, out info);
     }
 
+    /// <summary>
+    /// Validates a complete bounded image payload and returns its metadata. Unlike metadata
+    /// identification, this rejects incomplete GIF/JPEG containers and invalid PNG scanlines.
+    /// </summary>
+    public static bool TryValidateContent(Stream stream, string? fileName, out OfficeImageInfo info) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        long originalPosition = stream.CanSeek ? stream.Position : 0L;
+        try {
+            if (!TryReadBoundedPayload(stream, out byte[] data)) {
+                info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+                return false;
+            }
+            return TryValidateContent(data, fileName, out info);
+        } finally {
+            if (stream.CanSeek) stream.Position = originalPosition;
+        }
+    }
+
     private static bool TryIdentifyCore(
         Stream stream,
         string? fileName,
@@ -115,6 +133,24 @@ public static partial class OfficeImageReader {
     /// </summary>
     public static bool TryIdentifyByContent(byte[]? data, string? fileName, out OfficeImageInfo info) {
         return TryIdentifyCore(data, fileName, allowExtensionFallback: false, out info);
+    }
+
+    /// <summary>
+    /// Validates a complete bounded image payload and returns its metadata. Unlike metadata
+    /// identification, this rejects incomplete GIF/JPEG containers and invalid PNG scanlines.
+    /// </summary>
+    public static bool TryValidateContent(byte[]? data, string? fileName, out OfficeImageInfo info) {
+        if (!TryIdentifyCore(data, fileName, allowExtensionFallback: false, out info) || data == null) return false;
+        switch (info.Format) {
+            case OfficeImageFormat.Png:
+                return OfficePngReader.TryValidateDecodedPayload(data);
+            case OfficeImageFormat.Jpeg:
+                return data.Length >= 4 && data[data.Length - 2] == 0xFF && data[data.Length - 1] == 0xD9;
+            case OfficeImageFormat.Gif:
+                return data.Length >= 14 && data[data.Length - 1] == 0x3B && OfficeGifReader.TryDecode(data, out _);
+            default:
+                return true;
+        }
     }
 
     private static bool TryIdentifyCore(

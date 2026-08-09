@@ -128,7 +128,7 @@ namespace OfficeIMO.Visio {
             if (page == null) throw new ArgumentNullException(nameof(page));
             VisioSvgSaveOptions resolved = options?.Clone() ?? new VisioSvgSaveOptions();
             var canonical = new VisioImageExportOptions {
-                TargetDpi = resolved.PixelsPerInch,
+                Scale = resolved.PixelsPerInch / 96D,
                 BackgroundColor = resolved.BackgroundColor ?? OfficeColor.Transparent,
                 RenderText = resolved.RenderText,
                 Fonts = resolved.Fonts.Clone(),

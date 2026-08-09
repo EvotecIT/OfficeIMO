@@ -47,6 +47,15 @@ namespace OfficeIMO.Visio {
         }
 
         private static void AddClipElementContours(XElement element, SvgTransform parentTransform, List<IReadOnlyList<OfficePoint>> contours, SvgRenderContext context, bool objectBoundingBox) {
+            if (!context.TryEnterAuxiliaryRecursion()) return;
+            try {
+                AddClipElementContoursWithinBudget(element, parentTransform, contours, context, objectBoundingBox);
+            } finally {
+                context.ExitAuxiliaryRecursion();
+            }
+        }
+
+        private static void AddClipElementContoursWithinBudget(XElement element, SvgTransform parentTransform, List<IReadOnlyList<OfficePoint>> contours, SvgRenderContext context, bool objectBoundingBox) {
             string name = element.Name.LocalName;
             SvgTransform transform = parentTransform.Multiply(ReadTransform(element.Attribute("transform")?.Value));
             if (string.Equals(name, "rect", StringComparison.OrdinalIgnoreCase)) {

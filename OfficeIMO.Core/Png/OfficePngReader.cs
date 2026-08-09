@@ -34,6 +34,7 @@ public static class OfficePngReader {
             if (!TryReadPayload(bytes, out PngPayload payload)) {
                 return false;
             }
+            if (payload.InterlaceMethod != 0) return false;
 
             byte[] previous = new byte[payload.Stride];
             byte[] current = new byte[payload.Stride];
@@ -60,34 +61,80 @@ public static class OfficePngReader {
         }
     }
 
-    /// <summary>Validates that a PNG has a complete, bounded, decodable scanline payload without allocating an RGBA raster.</summary>
+    /// <summary>Validates that a PNG has a complete, bounded scanline payload without allocating an RGBA raster.</summary>
     internal static bool TryValidateDecodedPayload(byte[] bytes) {
         try {
             if (!TryReadPayload(bytes, out PngPayload payload)) return false;
-            byte[] previous = new byte[payload.Stride];
-            byte[] current = new byte[payload.Stride];
-            int sourceOffset = 0;
-            for (int y = 0; y < payload.Height; y++) {
-                int filter = payload.Scanlines[sourceOffset++];
-                Buffer.BlockCopy(payload.Scanlines, sourceOffset, current, 0, payload.Stride);
-                sourceOffset += payload.Stride;
-                Unfilter(current, previous, payload.BytesPerPixel, filter);
-                if (payload.ColorType == 3) {
-                    int paletteEntries = payload.Palette!.Length / 3;
-                    for (int x = 0; x < payload.Width; x++) {
-                        if (GetPackedSample(current, x, payload.BitDepth) >= paletteEntries) return false;
-                    }
-                }
-
-                byte[] temp = previous;
-                previous = current;
-                current = temp;
-                Array.Clear(current, 0, current.Length);
-            }
-            return sourceOffset == payload.Scanlines.Length;
+            if (payload.InterlaceMethod == 1) return ValidateAdam7Scanlines(payload);
+            return ValidateScanlines(payload, payload.Width, payload.Height, payload.Stride, 0, out int consumed) &&
+                   consumed == payload.Scanlines.Length;
         } catch {
             return false;
         }
+    }
+
+    private static bool ValidateAdam7Scanlines(PngPayload payload) {
+        int[] startX = { 0, 4, 0, 2, 0, 1, 0 };
+        int[] startY = { 0, 0, 4, 0, 2, 0, 1 };
+        int[] stepX = { 8, 8, 4, 4, 2, 2, 1 };
+        int[] stepY = { 8, 8, 8, 4, 4, 2, 2 };
+        int sourceOffset = 0;
+        int bitsPerPixel = GetBitsPerPixel(payload.ColorType, payload.BitDepth);
+        for (int pass = 0; pass < 7; pass++) {
+            int passWidth = GetAdam7PassLength(payload.Width, startX[pass], stepX[pass]);
+            int passHeight = GetAdam7PassLength(payload.Height, startY[pass], stepY[pass]);
+            if (passWidth == 0 || passHeight == 0) continue;
+            int stride = OfficeRasterGuards.EnsureByteCount(
+                (((long)passWidth * bitsPerPixel) + 7L) / 8L,
+                "PNG Adam7 scanline dimensions exceed size limits.");
+            if (!ValidateScanlines(payload, passWidth, passHeight, stride, sourceOffset, out int consumed)) return false;
+            sourceOffset = consumed;
+        }
+        return sourceOffset == payload.Scanlines.Length;
+    }
+
+    private static bool ValidateScanlines(PngPayload payload, int width, int height, int stride, int sourceOffset, out int consumed) {
+        consumed = sourceOffset;
+        if ((long)sourceOffset + ((long)stride + 1L) * height > payload.Scanlines.Length) return false;
+        byte[] previous = new byte[stride];
+        byte[] current = new byte[stride];
+        for (int y = 0; y < height; y++) {
+            int filter = payload.Scanlines[consumed++];
+            Buffer.BlockCopy(payload.Scanlines, consumed, current, 0, stride);
+            consumed += stride;
+            Unfilter(current, previous, payload.BytesPerPixel, filter);
+            if (payload.ColorType == 3) {
+                int paletteEntries = payload.Palette!.Length / 3;
+                for (int x = 0; x < width; x++) {
+                    if (GetPackedSample(current, x, payload.BitDepth) >= paletteEntries) return false;
+                }
+            }
+
+            byte[] temp = previous;
+            previous = current;
+            current = temp;
+            Array.Clear(current, 0, current.Length);
+        }
+        return true;
+    }
+
+    private static int GetAdam7PassLength(int total, int start, int step) =>
+        total <= start ? 0 : (total - start + step - 1) / step;
+
+    private static int GetExpectedAdam7ScanlineBytes(int width, int height, int bitsPerPixel) {
+        int[] startX = { 0, 4, 0, 2, 0, 1, 0 };
+        int[] startY = { 0, 0, 4, 0, 2, 0, 1 };
+        int[] stepX = { 8, 8, 4, 4, 2, 2, 1 };
+        int[] stepY = { 8, 8, 8, 4, 4, 2, 2 };
+        long expected = 0L;
+        for (int pass = 0; pass < 7; pass++) {
+            int passWidth = GetAdam7PassLength(width, startX[pass], stepX[pass]);
+            int passHeight = GetAdam7PassLength(height, startY[pass], stepY[pass]);
+            if (passWidth == 0 || passHeight == 0) continue;
+            long stride = (((long)passWidth * bitsPerPixel) + 7L) / 8L;
+            expected += (stride + 1L) * passHeight;
+        }
+        return OfficeRasterGuards.EnsureByteCount(expected, "PNG decompressed Adam7 data exceeds size limits.");
     }
 
     private static bool TryReadPayload(byte[]? bytes, out PngPayload payload) {
@@ -131,7 +178,7 @@ public static class OfficePngReader {
             offset += 12 + length;
         }
 
-        if (width <= 0 || height <= 0 || compressionMethod != 0 || filterMethod != 0 || interlaceMethod != 0 ||
+        if (width <= 0 || height <= 0 || compressionMethod != 0 || filterMethod != 0 || interlaceMethod > 1 ||
             !IsSupportedColorLayout(colorType, bitDepth, palette) ||
             !OfficeRasterGuards.TryEnsurePixelCount(width, height, out _)) {
             return false;
@@ -141,9 +188,9 @@ public static class OfficePngReader {
         int stride = OfficeRasterGuards.EnsureByteCount(
             (((long)width * bitsPerPixel) + 7L) / 8L,
             "PNG scanline dimensions exceed size limits.");
-        int expectedScanlineBytes = OfficeRasterGuards.EnsureByteCount(
-            (long)(stride + 1) * height,
-            "PNG decompressed data exceeds size limits.");
+        int expectedScanlineBytes = interlaceMethod == 0
+            ? OfficeRasterGuards.EnsureByteCount((long)(stride + 1) * height, "PNG decompressed data exceeds size limits.")
+            : GetExpectedAdam7ScanlineBytes(width, height, bitsPerPixel);
         byte[] compressed = idat.ToArray();
         if (compressed.Length < 6) return false;
         byte[] scanlines = OfficeZlibCodec.Decompress(compressed, expectedScanlineBytes, expectedScanlineBytes);
@@ -152,6 +199,7 @@ public static class OfficePngReader {
             height,
             bitDepth,
             colorType,
+            interlaceMethod,
             Math.Max(1, (bitsPerPixel + 7) / 8),
             stride,
             palette,
@@ -166,6 +214,7 @@ public static class OfficePngReader {
             int height,
             int bitDepth,
             int colorType,
+            int interlaceMethod,
             int bytesPerPixel,
             int stride,
             byte[]? palette,
@@ -175,6 +224,7 @@ public static class OfficePngReader {
             Height = height;
             BitDepth = bitDepth;
             ColorType = colorType;
+            InterlaceMethod = interlaceMethod;
             BytesPerPixel = bytesPerPixel;
             Stride = stride;
             Palette = palette;
@@ -186,6 +236,7 @@ public static class OfficePngReader {
         internal int Height { get; }
         internal int BitDepth { get; }
         internal int ColorType { get; }
+        internal int InterlaceMethod { get; }
         internal int BytesPerPixel { get; }
         internal int Stride { get; }
         internal byte[]? Palette { get; }

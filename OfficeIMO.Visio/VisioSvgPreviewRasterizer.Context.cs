@@ -14,6 +14,7 @@ namespace OfficeIMO.Visio {
             private readonly HashSet<string> _activeUseIds = new(StringComparer.Ordinal);
 
             private readonly Func<string, byte[]?>? _imageResolver;
+            private int _auxiliaryRecursionDepth;
             private int _renderDepth;
             private int _renderedElements;
 
@@ -62,6 +63,20 @@ namespace OfficeIMO.Visio {
 
             internal void ExitRenderElement() {
                 if (_renderDepth > 0) _renderDepth--;
+            }
+
+            internal bool TryEnterAuxiliaryRecursion() {
+                if (_auxiliaryRecursionDepth >= MaximumRenderDepth) {
+                    RenderBudgetExceeded = true;
+                    return false;
+                }
+
+                _auxiliaryRecursionDepth++;
+                return true;
+            }
+
+            internal void ExitAuxiliaryRecursion() {
+                if (_auxiliaryRecursionDepth > 0) _auxiliaryRecursionDepth--;
             }
 
             internal void ReportUnsupportedFeature() => UnsupportedFeatureCount++;

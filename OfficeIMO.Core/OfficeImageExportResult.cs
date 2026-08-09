@@ -49,15 +49,10 @@ public sealed class OfficeImageExportResult {
         if (bytes == null) throw new System.ArgumentNullException(nameof(bytes));
         OfficeImageInfo identified;
         if (validateAndClone) {
-            if (!OfficeImageReader.TryIdentifyByContent(bytes, format.GetFileExtension(), out identified) ||
+            if (!OfficeImageReader.TryValidateContent(bytes, format.GetFileExtension(), out identified) ||
                 identified.Format != ToImageFormat(format)) {
                 throw new System.ArgumentException(
                     "Encoded image bytes do not match the declared " + format + " export format.",
-                    nameof(bytes));
-            }
-            if (format == OfficeImageExportFormat.Png && !OfficePngReader.TryValidateDecodedPayload(bytes)) {
-                throw new System.ArgumentException(
-                    "Encoded PNG bytes are not a complete, decodable image.",
                     nameof(bytes));
             }
             if (identified.Width != width || identified.Height != height) {

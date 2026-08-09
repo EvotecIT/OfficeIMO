@@ -40,6 +40,45 @@ public class VisioImageExport {
     }
 
     [Fact]
+    public void EmbeddedSvgPreviewBoundsAuxiliaryRecursiveWalkers() {
+        const int depth = 512;
+        string nestedText = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><text x='1' y='5'>" +
+                            string.Concat(Enumerable.Repeat("<tspan>", depth)) + "x" +
+                            string.Concat(Enumerable.Repeat("</tspan>", depth)) + "</text></svg>";
+        string nestedClip = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><defs><clipPath id='c'>" +
+                            string.Concat(Enumerable.Repeat("<g>", depth)) + "<rect width='10' height='10'/>" +
+                            string.Concat(Enumerable.Repeat("</g>", depth)) +
+                            "</clipPath></defs><rect width='10' height='10' clip-path='url(#c)'/></svg>";
+        var gradient = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='10' height='10'><defs><linearGradient id='g0' x1='0'><stop offset='0' stop-color='red'/></linearGradient>");
+        for (int index = 1; index <= depth; index++) {
+            gradient.Append("<linearGradient id='g").Append(index).Append("' xlink:href='#g").Append(index - 1).Append("'");
+            if (index == depth) {
+                gradient.Append("><stop offset='0' stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>");
+            } else {
+                gradient.Append("/>");
+            }
+        }
+        gradient.Append("</defs><rect width='10' height='10' fill='url(#g").Append(depth).Append(")'/></svg>");
+
+        foreach ((string Name, string Svg) scenario in new[] {
+            ("text", nestedText),
+            ("clip", nestedClip),
+            ("gradient", gradient.ToString())
+        }) {
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+            bool rendered = VisioSvgPreviewRasterizer.TryRasterize(
+                Encoding.UTF8.GetBytes(scenario.Svg), null, null, null, null, null,
+                diagnostics, "recursive.svg", default, out OfficeRasterImage? image);
+
+            Assert.False(rendered, scenario.Name);
+            Assert.Null(image);
+            Assert.Contains(diagnostics, diagnostic =>
+                diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        }
+    }
+
+    [Fact]
     public void EmbeddedSvgPreviewReportsUnsupportedVisualEffects() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
                            "<rect width='10' height='10' fill='red' filter='url(#blur)'/>" +
@@ -65,12 +104,32 @@ public class VisioImageExport {
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }
 
+    [Theory]
+    [InlineData("", "style='mask:url(#mask)'")]
+    [InlineData("<style>.blur { filter: url(#blur); }</style>", "class='blur'")]
+    public void EmbeddedSvgPreviewReportsCssVisualEffects(string styleDefinition, string rectangleAttributes) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                     styleDefinition + "<rect width='10' height='10' fill='red' " + rectangleAttributes + "/></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "css-effect.svg", default, out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        Assert.Contains(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
     [Fact]
     public void RetainedSvgApiUsesCanonicalDimensionValidation() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
         VisioPage page = document.AddPage("Bounds").Size(2, 1);
         page.AddRectangle(1, 0.5, 1, 0.5, "Bounds");
+
+        string highResolutionSvg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 65536D });
+        Assert.Contains("<svg", highResolutionSvg, StringComparison.Ordinal);
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = double.MaxValue }));

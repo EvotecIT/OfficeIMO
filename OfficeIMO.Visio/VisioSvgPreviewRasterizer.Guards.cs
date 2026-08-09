@@ -1,9 +1,23 @@
+using System;
 using System.Collections.Generic;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
     internal static partial class VisioSvgPreviewRasterizer {
+        private static bool HasUnsupportedEffect(XElement element, SvgRenderContext context) {
+            Dictionary<string, string> style = context.StyleSheet.CreateStyle(element);
+            return HasActiveEffect(style, element, "filter") || HasActiveEffect(style, element, "mask");
+        }
+
+        private static bool HasActiveEffect(Dictionary<string, string> style, XElement element, string propertyName) {
+            string? value = style.TryGetValue(propertyName, out string? styledValue)
+                ? styledValue
+                : element.Attribute(propertyName)?.Value;
+            return !string.IsNullOrWhiteSpace(value) &&
+                   !string.Equals(value!.Trim(), "none", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static bool RenderElement(
             OfficeRasterCanvas canvas,
             XElement element,

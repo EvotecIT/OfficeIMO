@@ -579,7 +579,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static OfficeImageInfo RequireImageContent(byte[] bytes, string? fileName, string parameterName) {
-            if (!OfficeImageReader.TryIdentifyByContent(bytes, fileName, out OfficeImageInfo info)) {
+            if (!OfficeImageReader.TryValidateContent(bytes, fileName, out OfficeImageInfo info)) {
                 throw new ArgumentException("Image bytes do not contain a complete supported image.", parameterName);
             }
             return info;

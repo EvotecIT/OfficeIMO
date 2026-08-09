@@ -215,6 +215,25 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Rtf_Word_Bridge_Omits_Png_With_Corrupt_Compressed_Payload() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        int idatOffset = FindRtfTestPngChunk(png, "IDAT");
+        int length = ReadRtfTestBigEndianInt32(png, idatOffset);
+        png[idatOffset + 8 + length - 1] ^= 0x01;
+        WriteRtfTestPngChunkCrc(png, idatOffset, length);
+        RtfDocument rtf = RtfDocument.Create();
+        rtf.AddImage(RtfImageFormat.Png, png);
+
+        RtfConversionResult<WordDocument> conversion = rtf.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+
+        Assert.Empty(word.Images);
+        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "RtfWordImagesOmitted" &&
+            diagnostic.Action == RtfConversionAction.Omitted);
+    }
+
+    [Fact]
     public void Word_Rtf_Bridge_Normalizes_Bmp_To_Png() {
         byte[] bmp = CreateOnePixelBmp();
         using WordDocument word = WordDocument.Create();
@@ -262,6 +281,35 @@ public partial class WordRtfConverterTests {
         bytes[offset + 1] = (byte)(value >> 8);
         bytes[offset + 2] = (byte)(value >> 16);
         bytes[offset + 3] = (byte)(value >> 24);
+    }
+
+    private static int FindRtfTestPngChunk(byte[] bytes, string expectedType) {
+        int offset = 8;
+        while (offset + 12 <= bytes.Length) {
+            int length = ReadRtfTestBigEndianInt32(bytes, offset);
+            if (System.Text.Encoding.ASCII.GetString(bytes, offset + 4, 4) == expectedType) return offset;
+            offset += 12 + length;
+        }
+        throw new InvalidDataException("PNG chunk was not found.");
+    }
+
+    private static int ReadRtfTestBigEndianInt32(byte[] bytes, int offset) =>
+        (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+
+    private static void WriteRtfTestPngChunkCrc(byte[] bytes, int chunkOffset, int length) {
+        uint crc = 0xFFFFFFFFU;
+        for (int index = chunkOffset + 4; index < chunkOffset + 8 + length; index++) {
+            crc ^= bytes[index];
+            for (int bit = 0; bit < 8; bit++) {
+                crc = (crc & 1U) != 0 ? 0xEDB88320U ^ (crc >> 1) : crc >> 1;
+            }
+        }
+        crc ^= 0xFFFFFFFFU;
+        int offset = chunkOffset + 8 + length;
+        bytes[offset] = (byte)(crc >> 24);
+        bytes[offset + 1] = (byte)(crc >> 16);
+        bytes[offset + 2] = (byte)(crc >> 8);
+        bytes[offset + 3] = (byte)crc;
     }
 
     [Fact]
