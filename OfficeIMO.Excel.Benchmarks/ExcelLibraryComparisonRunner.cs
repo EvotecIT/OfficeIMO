@@ -65,7 +65,9 @@ internal static partial class ExcelLibraryComparisonRunner {
         IReadOnlyCollection<string>? scenarioFilters = null,
         int warmupIterations = DefaultWarmupIterations,
         int measuredIterations = DefaultMeasuredIterations,
-        IReadOnlyCollection<string>? libraryFilters = null) {
+        IReadOnlyCollection<string>? libraryFilters = null,
+        string? processorAffinity = null,
+        string? processPriority = null) {
         if (string.IsNullOrWhiteSpace(outputPath)) {
             throw new ArgumentException("Output path must not be empty.", nameof(outputPath));
         }
@@ -94,7 +96,9 @@ internal static partial class ExcelLibraryComparisonRunner {
                 warmupIterations,
                 measuredIterations,
                 "Dense HelloWorld grid comparison. Generates an A1:J(row count) workbook filled with HelloWorld and compares dense and streaming reads.",
-                helloWorldScenarios);
+                helloWorldScenarios,
+                processorAffinity,
+                processPriority);
 
             return WriteProfile(outputPath, helloWorldProfile);
         }
@@ -694,7 +698,9 @@ internal static partial class ExcelLibraryComparisonRunner {
             warmupIterations,
             measuredIterations,
             "Local opt-in comparison. Not intended for CI gating.",
-            scenarios);
+            scenarios,
+            processorAffinity,
+            processPriority);
 
         if (includeLegacyEpPlus) {
             profile.Scenarios.AddRange(RunLegacyEpPlusComparison(rowCount, scenarioFilter, warmupIterations, measuredIterations));
@@ -1064,7 +1070,9 @@ internal static partial class ExcelLibraryComparisonRunner {
         int warmupIterations,
         int measuredIterations,
         string notes,
-        List<ExcelLibraryComparisonScenario> scenarios) {
+        List<ExcelLibraryComparisonScenario> scenarios,
+        string? processorAffinity,
+        string? processPriority) {
         return new ExcelLibraryComparisonProfile {
             GeneratedAtUtc = DateTime.UtcNow,
             Framework = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
@@ -1073,6 +1081,8 @@ internal static partial class ExcelLibraryComparisonRunner {
             RowCount = rowCount,
             WarmupIterations = warmupIterations,
             MeasuredIterations = measuredIterations,
+            ProcessorAffinity = processorAffinity,
+            ProcessPriority = processPriority,
             Notes = notes,
             Scenarios = scenarios
         };
@@ -6034,6 +6044,8 @@ internal static partial class ExcelLibraryComparisonRunner {
         public int RowCount { get; init; }
         public int WarmupIterations { get; init; }
         public int MeasuredIterations { get; init; }
+        public string? ProcessorAffinity { get; init; }
+        public string? ProcessPriority { get; init; }
         public string Notes { get; init; } = string.Empty;
         public List<ExcelLibraryComparisonScenario> Scenarios { get; init; } = [];
     }

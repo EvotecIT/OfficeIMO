@@ -85,6 +85,51 @@ public sealed class ExcelAllSeverityBatch13SecurityTests {
     }
 
     [Fact]
+    public void DirectDataSetFastSaveRollsBackEmptyMemoryDestinationWhenLimitIsExceeded() {
+        var table = new DataTable("Data");
+        table.Columns.Add("Value", typeof(string));
+        table.Rows.Add(new string('x', 1024));
+        var dataSet = new DataSet("Export");
+        dataSet.Tables.Add(table);
+
+        using var backing = new MemoryStream();
+        using ExcelDocument document = ExcelDocument.Create(backing);
+        document.InsertDataSet(dataSet, autoFit: false);
+        using var destination = new MemoryStream();
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            document.Save(destination, new ExcelSaveOptions { MaxInMemoryPackageBytes = 64 }));
+
+        Assert.Contains("in-memory save limit", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(0, destination.Length);
+        Assert.Equal(0, destination.Position);
+    }
+
+    [Fact]
+    public void DirectDataSetFastSavePreservesPopulatedMemoryDestinationWhenLimitIsExceeded() {
+        var table = new DataTable("Data");
+        table.Columns.Add("Value", typeof(string));
+        table.Rows.Add(new string('x', 1024));
+        var dataSet = new DataSet("Export");
+        dataSet.Tables.Add(table);
+
+        using var backing = new MemoryStream();
+        using ExcelDocument document = ExcelDocument.Create(backing);
+        document.InsertDataSet(dataSet, autoFit: false);
+        byte[] original = [1, 2, 3, 4];
+        using var destination = new MemoryStream();
+        destination.Write(original, 0, original.Length);
+        destination.Position = 2;
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            document.Save(destination, new ExcelSaveOptions { MaxInMemoryPackageBytes = 64 }));
+
+        Assert.Contains("in-memory save limit", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(2, destination.Position);
+        Assert.Equal(original, destination.ToArray());
+    }
+
+    [Fact]
     public void RowsFromStopsUnboundedSourceEnumerationAtConfiguredLimit() {
         using var stream = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(stream);

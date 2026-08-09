@@ -261,6 +261,8 @@ if (IsCommand(args, "--compare-libraries", "compare-libraries", "compare")) {
     string[] libraryFilters = ParseOptionValues(args, "--library", "--libraries");
     int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? ExcelLibraryComparisonRunner.DefaultWarmupIterations;
     int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-iterations", "--samples") ?? ExcelLibraryComparisonRunner.DefaultMeasuredIterations;
+    string? processorAffinity = ApplyProcessAffinityOption(args);
+    string? processPriority = ApplyProcessPriorityOption(args);
     string? outputPathOverride = ParseOutputPath(args);
     string outputPath = ExcelLibraryComparisonRunner.WriteComparison(
         outputPathOverride ?? BuildDefaultOutputPath("officeimo.excel.library-comparison", rowCount),
@@ -269,7 +271,9 @@ if (IsCommand(args, "--compare-libraries", "compare-libraries", "compare")) {
         scenarioFilters,
         warmupIterations,
         measuredIterations,
-        libraryFilters);
+        libraryFilters,
+        processorAffinity,
+        processPriority);
     Console.WriteLine($"Excel library comparison written to '{outputPath}'.");
     return;
 }
@@ -480,7 +484,7 @@ static void WriteUsage() {
     Console.WriteLine("  write-profile [output] [--rows N]");
     Console.WriteLine("  read-profile [output] [--rows N] [--warmup N] [--iterations N] [--affinity mask]");
     Console.WriteLine("  chart-profile [output] [--rows N] [--warmup N] [--iterations N]");
-    Console.WriteLine("  compare [output] [--rows N] [--scenario name] [--library name] [--skip-legacy-epplus] [--warmup N] [--iterations N]");
+    Console.WriteLine("  compare [output] [--rows N] [--scenario name] [--library name] [--skip-legacy-epplus] [--warmup N] [--iterations N] [--affinity mask] [--priority High]");
     Console.WriteLine("  package-profile [output] [--rows N] [--scenario name] [--warmup N] [--iterations N]");
     Console.WriteLine("  --profile-datareader-write-officeimo [iterations] [affinity-mask]");
     Console.WriteLine("  --profile-datareader-write-largexlsx [iterations] [affinity-mask]");
@@ -670,6 +674,11 @@ static string? ApplyProcessAffinityOption(string[] args) {
     return value is null ? null : BenchmarkProcessorAffinity.Apply(value);
 }
 
+static string? ApplyProcessPriorityOption(string[] args) {
+    string? value = ParseOptionValue(args, "--priority");
+    return value is null ? null : BenchmarkProcessorAffinity.ApplyPriority(value);
+}
+
 static (string[] Arguments, IntPtr[] Masks) ExtractAffinityMasks(string[] arguments) {
     int optionIndex = Array.FindIndex(
         arguments,
@@ -748,7 +757,8 @@ static bool OptionConsumesValue(string option)
        || string.Equals(option, "--row-set", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--row-counts", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--affinity", StringComparison.OrdinalIgnoreCase)
-       || string.Equals(option, "--processor-affinity", StringComparison.OrdinalIgnoreCase);
+       || string.Equals(option, "--processor-affinity", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--priority", StringComparison.OrdinalIgnoreCase);
 
 static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenarioFilters) {
     if (scenarioFilters.Count == 0) {

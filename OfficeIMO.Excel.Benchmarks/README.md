@@ -163,6 +163,39 @@ claim. SpreadCheetah retains the managed-allocation lead, although OfficeIMO's
 pooled package writer reduced this workload from 6.50 MB to 6.18 MB and also
 serves typed, asynchronous, and parallel worksheet exports.
 
+### Dated PowerShell PSObject write snapshot (2026-08-09)
+
+This comparison writes 25,000 mixed ten-column rows to an in-memory XLSX
+package. OfficeIMO receives PSObject-like rows through the normal
+`InsertObjects` API, including property projection, type inference, and package
+serialization. LargeXlsx receives equivalent pre-created dictionary rows
+through its streaming API. This is therefore a representative PowerShell export
+comparison, not an identical input-contract microbenchmark. Setup validates each
+package before timing.
+
+The .NET 10 runner used workstation GC, 12 warmups, 60 measured iterations,
+rotated execution order, `High` process priority, and separate runs on both
+16-logical-processor L3 domains of the AMD Ryzen 9 9950X3D2. Allocation uses
+`GC.GetTotalAllocatedBytes(precise: true)`, so worker-thread allocations from
+parallel projection are included.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\psobject-domain0.json --rows 25000 --scenario write-powershell-psobject-mixed-direct --library OfficeIMO.Excel --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 60 --affinity 0xFFFF --priority High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj --no-build -- compare .\Ignore\Benchmarks\psobject-domain1.json --rows 25000 --scenario write-powershell-psobject-mixed-direct --library OfficeIMO.Excel --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 60 --affinity 0xFFFF0000 --priority High
+```
+
+| Library | Domain 0 average / median | Domain 1 average / median | Average managed allocation |
+| --- | ---: | ---: | ---: |
+| OfficeIMO.Excel | 27.07 / 26.74 ms | 22.33 / 19.86 ms | 12.91 MB |
+| LargeXlsx | 39.23 / 39.91 ms | 32.91 / 30.58 ms | 10.53 MB |
+
+OfficeIMO was faster by both average and median on both domains for this user
+job. LargeXlsx allocated about 2.4 MB less per export, so OfficeIMO does not
+claim the allocation lead. The prior OfficeIMO path measured approximately
+52-53 ms median on the same machine; direct bounded MemoryStream output,
+compact worksheet cells, and ordered parallel PSObject projection account for
+the improvement while preserving valid XLSX output and source-row order.
+
 ## Library comparison
 
 ```powershell

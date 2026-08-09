@@ -10,12 +10,17 @@ namespace OfficeIMO.Excel {
         private readonly long _maximumBytes;
         private readonly bool _leaveOpen;
         private readonly CancellationToken _cancellationToken;
+        private readonly Func<long, Exception>? _limitExceededExceptionFactory;
+        private readonly bool _restoreEmptyStreamOnFailure;
+        private bool _completed;
 
         internal ExcelBoundedSeekableStream(
             Stream inner,
             long maximumBytes,
             bool leaveOpen = false,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            Func<long, Exception>? limitExceededExceptionFactory = null,
+            bool restoreEmptyStreamOnFailure = false) {
             _inner = inner ?? throw new ArgumentNullException(nameof(inner));
             if (!inner.CanSeek || !inner.CanWrite) {
                 throw new ArgumentException("The staging stream must be seekable and writable.", nameof(inner));
@@ -24,6 +29,11 @@ namespace OfficeIMO.Excel {
             _maximumBytes = maximumBytes;
             _leaveOpen = leaveOpen;
             _cancellationToken = cancellationToken;
+            _limitExceededExceptionFactory = limitExceededExceptionFactory;
+            _restoreEmptyStreamOnFailure = restoreEmptyStreamOnFailure;
+            if (restoreEmptyStreamOnFailure && (inner.Length != 0 || inner.Position != 0)) {
+                throw new ArgumentException("Rollback to an empty stream requires an empty destination positioned at the beginning.", nameof(inner));
+            }
         }
 
         public override bool CanRead => _inner.CanRead;
@@ -82,7 +92,17 @@ namespace OfficeIMO.Excel {
             _inner.WriteByte(value);
         }
 
+        internal void Complete() => _completed = true;
+
         protected override void Dispose(bool disposing) {
+            if (disposing && _restoreEmptyStreamOnFailure && !_completed) {
+                try {
+                    _inner.Position = 0;
+                    _inner.SetLength(0);
+                } catch {
+                }
+            }
+
             if (disposing && !_leaveOpen) _inner.Dispose();
             base.Dispose(disposing);
         }
@@ -95,6 +115,10 @@ namespace OfficeIMO.Excel {
 
         private void EnsureWithinLimit(long value) {
             if (value < 0 || value > _maximumBytes) {
+                if (_limitExceededExceptionFactory != null) {
+                    throw _limitExceededExceptionFactory(_maximumBytes);
+                }
+
                 throw new IOException($"The staged Excel package exceeds the {_maximumBytes}-byte temporary package limit.");
             }
         }

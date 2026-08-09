@@ -3824,12 +3824,68 @@ namespace OfficeIMO.Tests {
 
             memory.Position = 0;
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
-            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Id", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
-            Assert.Equal("Server-000001", GetSpreadsheetCellText(spreadsheet, cells["B2"]));
-            Assert.Equal(CellValues.Boolean, cells["C2"].DataType!.Value);
-            Assert.Equal(1U, cells["D2"].StyleIndex!.Value);
-            Assert.Equal("123.456", cells["E2"].CellValue!.Text);
+            Cell[][] savedRows = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet
+                .Descendants<Row>()
+                .Select(row => row.Elements<Cell>().ToArray())
+                .ToArray();
+            Assert.Equal("Id", GetSpreadsheetCellText(spreadsheet, savedRows[0][0]));
+            Assert.Equal("Server-000001", GetSpreadsheetCellText(spreadsheet, savedRows[1][1]));
+            Assert.Equal(CellValues.Boolean, savedRows[1][2].DataType!.Value);
+            Assert.Equal(1U, savedRows[1][3].StyleIndex!.Value);
+            Assert.Equal("123.456", savedRows[1][4].CellValue!.Text);
+            Assert.All(savedRows.Skip(1).SelectMany(static row => row), cell => Assert.Null(cell.CellReference));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PerformanceReview_InsertObjects_PowerShellProjectionPolicyPreservesOrderAndMissingValues(bool requestParallel) {
+            var rows = new List<System.Management.Automation.PSObject> {
+                new(
+                    new System.Management.Automation.PSPropertyInfo("Id", 1),
+                    new System.Management.Automation.PSPropertyInfo("Name", "Server-000001"),
+                    new System.Management.Automation.PSPropertyInfo("Score", 1.25D))
+            };
+            for (int id = 2; id <= 64; id++) {
+                rows.Add(id % 3 == 0
+                    ? new System.Management.Automation.PSObject(
+                        new System.Management.Automation.PSPropertyInfo("Score", id + 0.25D),
+                        new System.Management.Automation.PSPropertyInfo("Id", id))
+                    : new System.Management.Automation.PSObject(
+                        new System.Management.Automation.PSPropertyInfo("Name", "Server-" + id.ToString("D6", CultureInfo.InvariantCulture)),
+                        new System.Management.Automation.PSPropertyInfo("Score", id + 0.25D),
+                        new System.Management.Automation.PSPropertyInfo("Id", id)));
+            }
+
+            using var memory = new MemoryStream();
+            ExcelExecutionMode? decidedMode = null;
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
+                document.Execution.OperationThresholds["InsertObjects.PowerShellProjection"] = requestParallel ? 1 : int.MaxValue;
+                document.Execution.OnDecision = (operation, _, mode) => {
+                    if (operation == "InsertObjects.PowerShellProjection") decidedMode = mode;
+                };
+                document.AddWorksheet("Data").InsertObjects(rows);
+                document.Save(memory);
+            }
+
+            Assert.Equal(requestParallel ? ExcelExecutionMode.Parallel : ExcelExecutionMode.Sequential, decidedMode);
+            memory.Position = 0;
+            using (var reader = ExcelDocumentReader.Open(memory)) {
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:C65");
+                Assert.Equal("Id", values[0, 0]);
+                Assert.Equal(64D, values[64, 0]);
+                Assert.Equal(string.Empty, values[3, 1]);
+                Assert.Equal(64.25D, values[64, 2]);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            Cell[][] savedRows = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet
+                .Descendants<Row>()
+                .Select(row => row.Elements<Cell>().ToArray())
+                .ToArray();
+            Assert.All(savedRows.Skip(1).SelectMany(static row => row), cell => Assert.Null(cell.CellReference));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -3853,10 +3909,14 @@ namespace OfficeIMO.Tests {
 
             memory.Position = 0;
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
-            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Metric36", GetSpreadsheetCellText(spreadsheet, cells["AN1"]));
-            Assert.Equal("36", cells["AN2"].CellValue!.Text);
-            Assert.Equal("72", cells["AN3"].CellValue!.Text);
+            Cell[][] savedRows = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet
+                .Descendants<Row>()
+                .Select(row => row.Elements<Cell>().ToArray())
+                .ToArray();
+            Assert.Equal("Metric36", GetSpreadsheetCellText(spreadsheet, savedRows[0][39]));
+            Assert.Equal("36", savedRows[1][39].CellValue!.Text);
+            Assert.Equal("72", savedRows[2][39].CellValue!.Text);
+            Assert.All(savedRows.Skip(1).SelectMany(static row => row), cell => Assert.Null(cell.CellReference));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
 
             static System.Management.Automation.PSObject CreateWidePowerShellObject(int id) {

@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Default threshold above which Automatic permits parallel compute when no faster specialized reader applies.</summary>
         public int ParallelThreshold { get; set; } = 10_000;
 
-        /// <summary>Per-operation thresholds (names: "CellValues", "InsertObjects", "AutoFitColumns", ...).</summary>
+        /// <summary>Per-operation thresholds (names: "CellValues", "InsertObjects", "InsertObjects.PowerShellProjection", "AutoFitColumns", ...).</summary>
         public Dictionary<string, int> OperationThresholds { get; } = new(StringComparer.Ordinal);
 
         /// <summary>Optional cap for parallel compute phase.</summary>
@@ -117,6 +117,7 @@ namespace OfficeIMO.Excel {
             // Set recommended defaults
             OperationThresholds["CellValues"] = 10_000;
             OperationThresholds["InsertObjects"] = 1_000;
+            OperationThresholds["InsertObjects.PowerShellProjection"] = 10_000;
             OperationThresholds["AutoFitColumns"] = 2_000;
             OperationThresholds["AutoFitRows"] = 2_000;
             OperationThresholds["ConditionalFormatting"] = 2_000;

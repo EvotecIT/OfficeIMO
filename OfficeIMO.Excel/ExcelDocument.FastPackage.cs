@@ -60,17 +60,18 @@ namespace OfficeIMO.Excel {
             }
 
             ct.ThrowIfCancellationRequested();
-            using FileStream? stagedPackage = CreateBoundedPackageStagingStream(destination, options);
-            Stream writeTarget = stagedPackage ?? destination;
+            using Stream? boundedOrStagedPackage = CreateBoundedPackageWriteStream(destination, options);
+            Stream writeTarget = boundedOrStagedPackage ?? destination;
             PrepareDestinationStreamForWrite(writeTarget);
             FastWorkbookPackageWriter.Write(writeTarget, model, ct);
 
             writeTarget.Flush();
-            if (stagedPackage != null) {
+            if (boundedOrStagedPackage is FileStream stagedPackage) {
                 CommitStagedPackageToStream(stagedPackage, destination, options);
             } else {
                 destination.Seek(0, SeekOrigin.Begin);
             }
+            (boundedOrStagedPackage as ExcelBoundedSeekableStream)?.Complete();
             if (updateDocumentState) {
                 _packageDirty = false;
                 _packagePropertiesDirty = false;
@@ -158,11 +159,11 @@ namespace OfficeIMO.Excel {
 
             ct.ThrowIfCancellationRequested();
             bool destinationBacksOpenPackage = ReferenceEquals(destination, _packageStream);
-            using FileStream? stagedPackage = CreateBoundedPackageStagingStream(
+            using Stream? boundedOrStagedPackage = CreateBoundedPackageWriteStream(
                 destination,
                 options,
                 forceStaging: !destination.CanSeek || destinationBacksOpenPackage);
-            Stream writeTarget = stagedPackage ?? destination;
+            Stream writeTarget = boundedOrStagedPackage ?? destination;
 
             PrepareDestinationStreamForWrite(writeTarget);
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.PrepareDestination");
@@ -171,15 +172,17 @@ namespace OfficeIMO.Excel {
 
             writeTarget.Flush();
             if (destinationBacksOpenPackage) {
+                FileStream stagedPackage = (FileStream)boundedOrStagedPackage!;
                 stagedPackage!.Position = 0;
                 byte[] packageBytes = ReadPackageBytes(stagedPackage, options);
                 ReloadFromBytes(packageBytes, simplePackageContentKnown: true, reusablePackageStream: destination);
                 destination.Seek(0, SeekOrigin.Begin);
-            } else if (stagedPackage != null) {
+            } else if (boundedOrStagedPackage is FileStream stagedPackage) {
                 CommitStagedPackageToStream(stagedPackage, destination, options);
             } else {
                 destination.Seek(0, SeekOrigin.Begin);
             }
+            (boundedOrStagedPackage as ExcelBoundedSeekableStream)?.Complete();
 
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.FlushAndSeek");
             if (updateDocumentState && !destinationBacksOpenPackage) {
