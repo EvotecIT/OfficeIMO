@@ -54,7 +54,8 @@ public sealed class OdsValidation {
     }
     /// <summary>Whether empty cells satisfy the rule.</summary>
     public bool AllowEmptyCell {
-        get => (string?)_element.Attribute(OdfNamespaces.Table + "allow-empty-cell") != "false";
+        get => OdfBoolean.ReadCompatible(
+            (string?)_element.Attribute(OdfNamespaces.Table + "allow-empty-cell"), fallback: true);
         set { _element.SetAttributeValue(OdfNamespaces.Table + "allow-empty-cell", value ? "true" : "false"); Dirty(); }
     }
 
@@ -130,8 +131,8 @@ public sealed class OdsValidation {
         return string.Join("\n", message.Elements(OdfNamespaces.Text + "p").Select(OdfTextCodec.Read));
     }
 
-    private bool ReadDisplay(XName name) =>
-        string.Equals((string?)_element.Element(name)?.Attribute(OdfNamespaces.Table + "display"), "true", StringComparison.OrdinalIgnoreCase);
+    private bool ReadDisplay(XName name) => OdfBoolean.ReadCompatible(
+        (string?)_element.Element(name)?.Attribute(OdfNamespaces.Table + "display"), fallback: false);
 
     private static string FormatMessageType(OdsValidationMessageType value) => value switch {
         OdsValidationMessageType.Stop => "stop",

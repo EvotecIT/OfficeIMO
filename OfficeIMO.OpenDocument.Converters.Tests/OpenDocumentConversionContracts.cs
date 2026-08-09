@@ -164,6 +164,29 @@ public sealed class OpenDocumentConversionContracts {
     }
 
     [Fact]
+    public void OdtToWordDecodesPercentEncodedBookmarkLinks() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph paragraph = source.AddParagraph();
+        paragraph.AddBookmark("Section_1");
+        paragraph.AddHyperlink("Jump", "#Section%5F1");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        WordParagraphSnapshot converted = Assert.Single(target.CreateInspectionSnapshot().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        using var packageStream = new MemoryStream(target.ToBytes());
+        using DocumentFormat.OpenXml.Packaging.WordprocessingDocument package =
+            DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(packageStream, false);
+        DocumentFormat.OpenXml.Wordprocessing.Hyperlink hyperlink = Assert.Single(
+            package.MainDocumentPart!.Document!.Descendants<DocumentFormat.OpenXml.Wordprocessing.Hyperlink>());
+
+        Assert.Equal("Section_1", converted.BookmarkName);
+        Assert.Equal("Section_1", hyperlink.Anchor!.Value);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "hyperlinks"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
     public void OdtInlineSyntaxPreservesImageOrderAndMapsBookmarksInWord() {
         byte[] png = Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");

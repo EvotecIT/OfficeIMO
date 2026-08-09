@@ -111,6 +111,22 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     }
 
     [Fact]
+    public void OdsNumericFalseAllowEmptyCellProjectsToExcelAllowBlankFalse() {
+        OdsDocument source = OdsDocument.Create();
+        OdsValidation validation = source.AddValidation(
+            "Required", "of:cell-content-is-whole-number() and cell-content()>=1", allowEmptyCell: true);
+        source.AddSheet("Data").Cell(0, 0).ValidationName = validation.Name;
+        XElement validationElement = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "content-validation").Single();
+        validationElement.SetAttributeValue(OdfNamespaces.Table + "allow-empty-cell", "0");
+
+        using ExcelDocument target = source.ToExcelDocumentResult().Value;
+        ExcelDataValidationInfo projected = Assert.Single(target.Sheets.Single().GetDataValidations());
+
+        Assert.False(projected.AllowBlank);
+    }
+
+    [Fact]
     public void LegacyExcelCommentsRoundTripThroughOdsAnnotations() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Data");

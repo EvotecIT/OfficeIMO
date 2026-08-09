@@ -409,8 +409,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                             if (!string.IsNullOrWhiteSpace(cellRun.HyperlinkHref)) {
                                 string href = cellRun.HyperlinkHref!;
                                 bool convertedHyperlink = false;
-                                if (href.StartsWith("#", StringComparison.Ordinal)) {
-                                    string fragment = href.Substring(1);
+                                if (OdfUriReference.TryDecodeFragment(href, out string fragment)) {
                                     string location = SpreadsheetAddressConverter.OpenAddressToExcel(fragment);
                                     if (location.Length == 0 && namedRangePlan.TryResolveName(fragment, out string outputName)) {
                                         location = outputName;
@@ -421,9 +420,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                     } else {
                                         unsupportedHyperlinks++;
                                     }
-                                } else {
+                                } else if (!href.StartsWith("#", StringComparison.Ordinal)) {
                                     sheet.SetHyperlink(excelRow, excelColumn, href, cellRun.Text, style: true);
                                     convertedHyperlink = true;
+                                } else {
+                                    unsupportedHyperlinks++;
                                 }
                                 if (cellRun.Value.Kind != OdsCellValueKind.Empty) _ = SetExcelValue(converted, cellRun.Value);
                                 if (!string.IsNullOrWhiteSpace(cellRun.Formula)) {

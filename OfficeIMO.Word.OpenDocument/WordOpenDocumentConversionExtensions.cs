@@ -278,9 +278,10 @@ public static class WordOpenDocumentConversionExtensions {
                 case OdtInlineNodeKind.Hyperlink:
                     OdtHyperlink link = node.Hyperlink!;
                     WordParagraph? hyperlinkRun = null;
-                    if (link.Href.StartsWith("#", StringComparison.Ordinal)) {
-                        hyperlinkRun = target.AddHyperLink(link.Text, link.Href.Substring(1), addStyle: true);
-                    } else if (Uri.TryCreate(link.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
+                    if (OdfUriReference.TryDecodeFragment(link.Href, out string fragment)) {
+                        hyperlinkRun = target.AddHyperLink(link.Text, fragment, addStyle: true);
+                    } else if (!link.Href.StartsWith("#", StringComparison.Ordinal)
+                        && Uri.TryCreate(link.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
                         hyperlinkRun = target.AddHyperLink(link.Text, uri, addStyle: true);
                     }
                     if (hyperlinkRun != null) {

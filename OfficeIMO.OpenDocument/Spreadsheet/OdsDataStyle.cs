@@ -32,11 +32,9 @@ public sealed class OdsDataStyle {
         (int?)Element.Descendants(OdfNamespaces.Number + "number").FirstOrDefault()
             ?.Attribute(OdfNamespaces.Number + "min-integer-digits") ?? 1);
     /// <summary>Whether the style requests grouped thousands.</summary>
-    public bool UsesGrouping => string.Equals(
+    public bool UsesGrouping => OdfBoolean.ReadCompatible(
         (string?)Element.Descendants(OdfNamespaces.Number + "number").FirstOrDefault()
-            ?.Attribute(OdfNamespaces.Number + "grouping"),
-        "true",
-        StringComparison.OrdinalIgnoreCase);
+            ?.Attribute(OdfNamespaces.Number + "grouping"), fallback: false);
     /// <summary>Visible currency symbol or code, when present.</summary>
     public string? CurrencySymbol => Element.Descendants(OdfNamespaces.Number + "currency-symbol")
         .Select(element => element.Value)
@@ -221,14 +219,7 @@ public sealed class OdsDataStyle {
             value = fallback;
             return true;
         }
-        if (string.Equals(lexical, "true", StringComparison.OrdinalIgnoreCase) || lexical == "1") {
-            value = true;
-            return true;
-        }
-        if (string.Equals(lexical, "false", StringComparison.OrdinalIgnoreCase) || lexical == "0") {
-            value = false;
-            return true;
-        }
+        if (OdfBoolean.TryParseCompatible(lexical, out value)) return true;
         value = fallback;
         return false;
     }

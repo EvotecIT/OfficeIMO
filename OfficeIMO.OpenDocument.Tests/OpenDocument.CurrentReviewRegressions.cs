@@ -9,6 +9,53 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentCurrentReviewRegressionTests {
+    [Theory]
+    [InlineData("#Sales%20Data", "Sales Data")]
+    [InlineData("#Section%5F1", "Section_1")]
+    public void UriFragmentReferencesAreDecodedByOneCanonicalParser(string href, string expected) {
+        Assert.True(OdfUriReference.TryDecodeFragment(href, out string fragment));
+        Assert.Equal(expected, fragment);
+        Assert.False(OdfUriReference.TryDecodeFragment("relative/path", out _));
+        Assert.False(OdfUriReference.TryDecodeFragment("#broken%2", out _));
+    }
+
+    [Fact]
+    public void SpreadsheetBooleanLexicalsSupportXmlSchemaNumericForms() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        sheet.Cell(0, 0).SetBoolean(true);
+        sheet.Cell(0, 1).SetBoolean(false);
+        OdsValidation validation = source.AddValidation("NumericBoolean", "cell-content()>0");
+        validation.SetHelpMessage("Help", "Enter a value", display: true);
+        validation.SetErrorMessage("Error", "Invalid value", display: false);
+
+        XDocument flat = source.ToFlatXml();
+        XElement[] booleanCells = flat.Descendants(OdfNamespaces.Table + "table-cell")
+            .Where(element => (string?)element.Attribute(OdfNamespaces.Office + "value-type") == "boolean")
+            .ToArray();
+        booleanCells[0].SetAttributeValue(OdfNamespaces.Office + "boolean-value", "1");
+        booleanCells[1].SetAttributeValue(OdfNamespaces.Office + "boolean-value", "0");
+        XElement validationElement = flat.Descendants(OdfNamespaces.Table + "content-validation").Single();
+        validationElement.SetAttributeValue(OdfNamespaces.Table + "allow-empty-cell", "0");
+        validationElement.Element(OdfNamespaces.Table + "help-message")!
+            .SetAttributeValue(OdfNamespaces.Table + "display", "1");
+        validationElement.Element(OdfNamespaces.Table + "error-message")!
+            .SetAttributeValue(OdfNamespaces.Table + "display", "0");
+
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+        OdsDocument reopened = OdsDocument.LoadFlatXml(stream);
+
+        Assert.True(reopened.GetSheet("Data")!.GetValue(0, 0).AsBoolean());
+        Assert.False(reopened.GetSheet("Data")!.GetValue(0, 1).AsBoolean());
+        OdsValidation reopenedValidation = Assert.Single(reopened.Validations);
+        Assert.False(reopenedValidation.AllowEmptyCell);
+        Assert.True(reopenedValidation.ShowHelpMessage);
+        Assert.False(reopenedValidation.ShowErrorMessage);
+        Assert.DoesNotContain(reopened.Validate().Diagnostics, diagnostic => diagnostic.Id == "ODS103");
+    }
+
     [Fact]
     public void TextAndPresentationTablesIncludeHeaderRowsInSourceOrder() {
         OdtDocument text = OdtDocument.Create();

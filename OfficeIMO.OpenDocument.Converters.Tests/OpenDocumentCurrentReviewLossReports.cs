@@ -586,6 +586,26 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
+    public void OdpPercentEncodedSlideLinkCreatesAnInternalPowerPointRelationship() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide("First").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2))
+            .AddParagraph().AddHyperlink("Next", "#slide%2D2");
+        source.AddSlide("Second");
+
+        using PowerPointPresentation target = source.ToPowerPointPresentationResult().Value;
+
+        byte[] package = target.ToBytes();
+        string slideXml = ReadFirstPackageEntry(package, name =>
+            name.StartsWith("ppt/slides/slide", StringComparison.Ordinal)
+            && name.EndsWith(".xml", StringComparison.Ordinal));
+        string relationships = ReadFirstPackageEntry(package, name =>
+            name.StartsWith("ppt/slides/_rels/slide", StringComparison.Ordinal)
+            && name.EndsWith(".xml.rels", StringComparison.Ordinal));
+        Assert.Contains("ppaction://hlinksldjump", slideXml, StringComparison.Ordinal);
+        Assert.DoesNotContain("TargetMode=\"External\"", relationships, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OdpSlideNameFragmentCreatesAnInternalPowerPointRelationship() {
         OdpPresentation source = OdpPresentation.Create();
         source.AddSlide("First").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2))
@@ -785,6 +805,24 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.NotNull(cell.Hyperlink);
         Assert.False(cell.Hyperlink!.IsExternal);
         Assert.Equal("'Target'!A1", cell.Hyperlink.Target);
+    }
+
+    [Fact]
+    public void OdsToExcelDecodesPercentEncodedInternalSheetLinks() {
+        OdsDocument source = OdsDocument.Create();
+        source.AddSheet("Sales Data").Cell(0, 0).SetString("Destination");
+        source.AddSheet("Links").Cell(0, 0).SetHyperlink("Go", "#$'Sales%20Data'.A1");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        ExcelCellSnapshot cell = Assert.Single(target.CreateInspectionSnapshot().Worksheets
+            .Single(sheet => sheet.Name == "Links").Cells);
+
+        Assert.NotNull(cell.Hyperlink);
+        Assert.False(cell.Hyperlink!.IsExternal);
+        Assert.Equal("'Sales Data'!A1", cell.Hyperlink.Target);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "hyperlinks"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported);
     }
 
     [Fact]

@@ -20,7 +20,7 @@ internal static partial class OdfValidator {
                 break;
             case "boolean":
                 lexical = (string?)cell.Attribute(OdfNamespaces.Office + "boolean-value");
-                valid = lexical == null || lexical == "true" || lexical == "false";
+                valid = lexical == null || OdfBoolean.TryParseXml(lexical, out _);
                 break;
             case "date":
                 lexical = (string?)cell.Attribute(OdfNamespaces.Office + "date-value");

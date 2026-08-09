@@ -357,20 +357,14 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         IReadOnlyList<OdpSlide> slides,
         out int zeroBasedIndex) {
         zeroBasedIndex = -1;
-        const string prefix = "#slide-";
-        if (href.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-            && int.TryParse(href.Substring(prefix.Length), System.Globalization.NumberStyles.None,
+        if (!OdfUriReference.TryDecodeFragment(href, out string fragment)) return false;
+        const string prefix = "slide-";
+        if (fragment.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(fragment.Substring(prefix.Length), System.Globalization.NumberStyles.None,
                 System.Globalization.CultureInfo.InvariantCulture, out int oneBased)
             && oneBased >= 1 && oneBased <= slides.Count) {
             zeroBasedIndex = oneBased - 1;
             return true;
-        }
-        if (!href.StartsWith("#", StringComparison.Ordinal) || href.Length == 1) return false;
-        string fragment = href.Substring(1);
-        try {
-            fragment = Uri.UnescapeDataString(fragment);
-        } catch (UriFormatException) {
-            return false;
         }
         for (int index = 0; index < slides.Count; index++) {
             if (!string.Equals(slides[index].Name, fragment, StringComparison.Ordinal)) continue;

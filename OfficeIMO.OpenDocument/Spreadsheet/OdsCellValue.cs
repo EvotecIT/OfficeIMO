@@ -40,7 +40,9 @@ public readonly struct OdsCellValue {
     /// <summary>Parses the value as a double.</summary>
     public double AsDouble() => double.Parse(LexicalValue, NumberStyles.Float, CultureInfo.InvariantCulture);
     /// <summary>Parses the value as a boolean.</summary>
-    public bool AsBoolean() => bool.Parse(LexicalValue);
+    public bool AsBoolean() => OdfBoolean.TryParseCompatible(LexicalValue, out bool value)
+        ? value
+        : throw new FormatException($"'{LexicalValue}' is not a valid ODF boolean value.");
     /// <summary>Parses the value as an ODF date or date-time.</summary>
     public DateTimeOffset AsDateTimeOffset() => DateTimeOffset.Parse(LexicalValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
     /// <summary>Parses the ODF duration used for time and duration cells.</summary>
