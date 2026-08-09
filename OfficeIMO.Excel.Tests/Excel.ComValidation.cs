@@ -14,6 +14,7 @@ namespace OfficeIMO.Tests {
     public partial class Excel {
         private static readonly TimeSpan ExcelComOpenTimeout = TimeSpan.FromMinutes(2);
         private static readonly TimeSpan ExcelComLockTimeout = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan ExcelComWorkerTimeout = ExcelComLockTimeout + ExcelComOpenTimeout;
         private const string ExcelComMutexName = @"Local\OfficeIMO.Excel.Tests.DesktopCom";
 
 #if NET5_0_OR_GREATER
@@ -53,8 +54,8 @@ namespace OfficeIMO.Tests {
             thread.IsBackground = true;
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
-            if (!thread.Join(ExcelComOpenTimeout)) {
-                failures.Enqueue($"Excel COM smoke test timed out after {ExcelComOpenTimeout.TotalSeconds:0} seconds. The worker continues to own or wait for the cross-process lock until it exits.");
+            if (!thread.Join(ExcelComWorkerTimeout)) {
+                failures.Enqueue($"Excel COM smoke test timed out after {ExcelComWorkerTimeout.TotalSeconds:0} seconds, including up to {ExcelComLockTimeout.TotalSeconds:0} seconds waiting for the cross-process lock. The worker continues to own the lock until it exits.");
             }
 
             Assert.True(failures.IsEmpty, failureMessage + Environment.NewLine + string.Join(Environment.NewLine, failures));

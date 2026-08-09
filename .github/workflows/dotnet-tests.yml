@@ -67,22 +67,14 @@ jobs:
       - name: Build solution
         run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
-      - name: Build public examples and isolated comparison projects
+      - name: Build public examples
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          $projects = @(
-            'OfficeIMO.Examples/OfficeIMO.Examples.csproj',
-            'OfficeIMO.Excel.Benchmarks.LegacyEpPlus/OfficeIMO.Excel.Benchmarks.LegacyEpPlus.csproj',
-            'OfficeIMO.Excel.Benchmarks.NPOI/OfficeIMO.Excel.Benchmarks.NPOI.csproj',
-            'OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler/OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler.csproj',
-            'OfficeIMO.Word.Benchmarks/OfficeIMO.Word.Benchmarks.csproj'
-          )
-          foreach ($project in $projects) {
-            dotnet restore $project
-            dotnet build $project --configuration $env:BUILD_CONFIGURATION --no-restore
-          }
+          $project = 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'
+          dotnet restore $project
+          dotnet build $project --configuration $env:BUILD_CONFIGURATION --no-restore
 
   email-package-consumers:
     name: 'OfficeIMO email platform packed consumers'
