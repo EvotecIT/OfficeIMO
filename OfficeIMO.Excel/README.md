@@ -698,6 +698,22 @@ document.ToImages()
 
 Excel layout, print-title, page-setup, and header/footer composition stays in `OfficeIMO.Excel`; final raster encoding is delegated once to `OfficeIMO.Drawing`.
 
+Charts use the same managed image contract and preserve their anchored dimensions:
+
+```csharp
+ExcelChart chart = sheet.ChartFromTable("RevenueTable")
+    .RevenueTrend("Revenue trend")
+    .Size(640, 320)
+    .At(row: 1, column: 5);
+
+chart.ToImage()
+    .WithBackground(OfficeColor.White)
+    .AsPng()
+    .Save("revenue-chart.png");
+
+chart.SaveAsSvg("revenue-chart.svg");
+```
+
 ## Adjacent packages
 
 | Package | Use it for |

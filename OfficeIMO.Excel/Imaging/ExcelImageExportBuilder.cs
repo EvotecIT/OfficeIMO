@@ -4,6 +4,17 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     /// <summary>
+    /// Fluent image-export builder for an Excel chart.
+    /// </summary>
+    public sealed class ExcelChartImageExportBuilder : OfficeImageExportBuilder<ExcelChartImageExportBuilder, ExcelImageExportOptions> {
+        internal ExcelChartImageExportBuilder(ExcelChart chart, ExcelImageExportOptions? options = null)
+            : base(
+                options?.Clone() ?? new ExcelImageExportOptions(),
+                (format, effective, cancellationToken) => chart.ExportImage(format, effective, cancellationToken)) {
+        }
+    }
+
+    /// <summary>
     /// Fluent image-export builder for an Excel range.
     /// </summary>
     public sealed class ExcelRangeImageExportBuilder : OfficeImageExportBuilder<ExcelRangeImageExportBuilder, ExcelImageExportOptions> {
@@ -214,6 +225,15 @@ namespace OfficeIMO.Excel {
         /// <summary>Starts a fluent image export using a cloned options snapshot.</summary>
         public ExcelRangeImageExportBuilder ToImage(ExcelImageExportOptions options) =>
             new ExcelRangeImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
+    }
+
+    public sealed partial class ExcelChart {
+        /// <summary>Starts a fluent image export for this chart.</summary>
+        public ExcelChartImageExportBuilder ToImage() => new ExcelChartImageExportBuilder(this);
+
+        /// <summary>Starts a fluent image export using a cloned options snapshot.</summary>
+        public ExcelChartImageExportBuilder ToImage(ExcelImageExportOptions options) =>
+            new ExcelChartImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
     }
 
     public partial class ExcelSheet {

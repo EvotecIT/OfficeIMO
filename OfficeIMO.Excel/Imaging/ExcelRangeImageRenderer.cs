@@ -335,7 +335,7 @@ namespace OfficeIMO.Excel {
                 OfficeSvgFormatting.ExtractSvgInner(chartSvg));
         }
 
-        private static bool TryCreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, double width, double height, List<OfficeImageExportDiagnostic>? diagnostics, string sheetName, out OfficeChartSnapshot? officeSnapshot) {
+        internal static bool TryCreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, double width, double height, List<OfficeImageExportDiagnostic>? diagnostics, string sheetName, out OfficeChartSnapshot? officeSnapshot) {
             officeSnapshot = null;
             if (!TryMapChartKind(snapshot.ChartType, out OfficeChartKind kind, out string? approximation)) {
                 diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
