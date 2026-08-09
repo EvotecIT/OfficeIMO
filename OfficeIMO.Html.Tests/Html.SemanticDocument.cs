@@ -162,6 +162,16 @@ public partial class Html {
     }
 
     [Fact]
+    public void SemanticDocument_ColorInputWithoutAValueReportsTheBlackDefault() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
+            .Parse("<input type='color'>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal("#000000", control.Value);
+        Assert.Equal(new[] { "#000000" }, control.Values);
+    }
+
+    [Fact]
     public void SemanticDocument_RadioGroupsExposeOnlyTheEffectiveCheckedControl() {
         HtmlSemanticBlock form = Assert.Single(HtmlConversionDocument.Parse("""
             <form><input type="radio" name="choice" value="first" checked>
@@ -257,6 +267,18 @@ public partial class Html {
     }
 
     [Fact]
+    public void SemanticDocument_NestedListsTraverseFlowContentWrappersWithoutDuplicatingDescendants() {
+        HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument.Parse("""
+            <ul><li>Parent<div><section><ol><li>Child<div><ul><li>Grandchild</li></ul></div></li></ol></section></div></li><li>Sibling</li></ul>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal("• Parent\n  1. Child\n    • Grandchild\n• Sibling", list.Text);
+        HtmlSemanticBlock nested = Assert.Single(list.Children[0].Children);
+        Assert.Equal(HtmlSemanticListKind.Ordered, nested.List!.Kind);
+        Assert.Single(nested.Children[0].Children);
+    }
+
+    [Fact]
     public void SemanticDocument_DefinitionListIncludesDivWrappedGroups() {
         HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument.Parse("""
             <dl><div><dt>Term</dt><dd>Description</dd></div><dt>Loose</dt><dd>Tail</dd></dl>
@@ -335,7 +357,7 @@ public partial class Html {
         HtmlConversionDocument source = HtmlConversionDocument.Parse("""
             <h1>Notes</h1>
             <p>Normal <strong>bold</strong> <a href="https://example.test">link</a></p>
-            <ul><li>Parent<ol><li>Child</li></ol></li></ul>
+            <ul><li>Parent<div><ol><li>Child</li></ol></div></li></ul>
             """);
 
         var result = source.ToOneNoteSectionResult();

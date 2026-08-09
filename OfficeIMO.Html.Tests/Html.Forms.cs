@@ -56,12 +56,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TypedInputsUseSanitizedCurrentValues() {
             const string html = """
-                <p><input type="number" value="twelve"><input type="color" value="red"><input type="date" value="not-a-date"></p>
+                <p><input type="number" value="twelve"><input type="color" value="red"><input type="color"><input type="date" value="not-a-date"></p>
                 """;
 
             using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
 
-            Assert.Equal(new[] { string.Empty, "#000000", string.Empty }, doc.StructuredDocumentTags.Select(control => control.Text));
+            Assert.Equal(new[] { string.Empty, "#000000", "#000000", string.Empty }, doc.StructuredDocumentTags.Select(control => control.Text));
             Assert.Null(Assert.Single(doc.DatePickers).Date);
         }
 

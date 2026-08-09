@@ -8,9 +8,6 @@ internal static class HtmlTextEncodingResolver {
     private const int HtmlPrescanLength = 1024;
     private const int CssSniffLength = 4096;
     private static readonly Encoding Utf8 = new UTF8Encoding(false);
-    private static readonly Regex ContentTypeCharset = new(
-        "(?:^|;)\\s*charset\\s*=\\s*['\\\"]?\\s*([^\\s;'\\\"]+)",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly Regex CssCharset = new(
         "^@charset \\\"([^\\\"]+)\\\";",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -73,7 +70,7 @@ internal static class HtmlTextEncodingResolver {
     }
 
     internal static Encoding ResolveDataUriEncoding(string metadata) {
-        string? charset = ReadCharset(ContentTypeCharset, metadata);
+        string? charset = ReadContentTypeCharset(metadata);
         return charset == null ? Utf8 : GetEncoding(charset);
     }
 
@@ -81,7 +78,7 @@ internal static class HtmlTextEncodingResolver {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         try {
             Encoding encoding = ResolveBomEncoding(bytes)
-                ?? ResolveCharsetEncoding(ContentTypeCharset, contentType)
+                ?? ResolveContentTypeCharsetEncoding(contentType)
                 ?? ResolveCharsetEncoding(CssCharset, GetAsciiPrefix(bytes))
                 ?? new UTF8Encoding(false, true);
             int preambleLength = GetPreambleLength(bytes, encoding);
@@ -338,6 +335,57 @@ internal static class HtmlTextEncodingResolver {
         string? charset = ReadCharset(pattern, source);
         return charset == null ? null : GetEncoding(charset);
     }
+
+    private static Encoding? ResolveContentTypeCharsetEncoding(string? source) {
+        string? charset = ReadContentTypeCharset(source);
+        return charset == null ? null : GetEncoding(charset);
+    }
+
+    private static string? ReadContentTypeCharset(string? source) {
+        if (string.IsNullOrWhiteSpace(source)) return null;
+        int position = 0;
+        while (position < source!.Length) {
+            if (source[position] == ';') position++;
+            while (position < source.Length && IsHttpWhitespace(source[position])) position++;
+            int nameStart = position;
+            while (position < source.Length && source[position] != ';' && source[position] != '=') position++;
+            if (position >= source.Length) return null;
+            if (source[position] == ';') continue;
+
+            int nameEnd = position;
+            while (nameEnd > nameStart && IsHttpWhitespace(source[nameEnd - 1])) nameEnd--;
+            bool isCharset = string.Equals(source.Substring(nameStart, nameEnd - nameStart), "charset",
+                StringComparison.OrdinalIgnoreCase);
+            position++;
+            while (position < source.Length && IsHttpWhitespace(source[position])) position++;
+
+            if (position < source.Length && source[position] == '"') {
+                position++;
+                var value = new StringBuilder();
+                while (position < source.Length) {
+                    char current = source[position++];
+                    if (current == '"') break;
+                    if (current == '\\' && position < source.Length) current = source[position++];
+                    value.Append(current);
+                }
+                if (isCharset && value.Length > 0) return value.ToString();
+                while (position < source.Length && source[position] != ';') position++;
+                continue;
+            }
+
+            int valueStart = position;
+            while (position < source.Length && source[position] != ';') position++;
+            int valueEnd = position;
+            while (valueEnd > valueStart && IsHttpWhitespace(source[valueEnd - 1])) valueEnd--;
+            if (isCharset && valueEnd > valueStart) {
+                return source.Substring(valueStart, valueEnd - valueStart);
+            }
+        }
+        return null;
+    }
+
+    private static bool IsHttpWhitespace(char value) =>
+        value == ' ' || value == '\t' || value == '\r' || value == '\n';
 
     private static string? ReadCharset(Regex pattern, string? source) {
         if (string.IsNullOrWhiteSpace(source)) return null;

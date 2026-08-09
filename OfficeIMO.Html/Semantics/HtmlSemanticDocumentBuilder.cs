@@ -146,7 +146,7 @@ internal static class HtmlSemanticDocumentBuilder {
         IReadOnlyList<HtmlSemanticResource> inlineResources = BuildInlineResources(element, styles, resources,
             skipNestedLists: true);
         var children = new List<HtmlSemanticBlock>();
-        foreach (IElement nestedList in element.Children.Where(child => Is(child, "ul") || Is(child, "ol") || Is(child, "dl"))) {
+        foreach (IElement nestedList in element.QuerySelectorAll("ul, ol, dl").Where(candidate => IsOwnedNestedList(candidate, element))) {
             children.Add(BuildBlock(document, nestedList, styles, resources, null));
         }
 
@@ -166,6 +166,14 @@ internal static class HtmlSemanticDocumentBuilder {
             style,
             HtmlSemanticSourceLocation.FromElement(element),
             element);
+    }
+
+    private static bool IsOwnedNestedList(IElement list, IElement item) {
+        for (IElement? ancestor = list.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
+            if (ReferenceEquals(ancestor, item)) return true;
+            if (Is(ancestor, "li") || Is(ancestor, "dt") || Is(ancestor, "dd")) return false;
+        }
+        return false;
     }
 
     private static HtmlSemanticTable BuildTable(

@@ -126,8 +126,14 @@ internal static class HtmlFormControlSemantics {
         || NormalizeIdentifier(elementName) == "input" && IsTextInputType(effectiveType);
 
     internal static bool IsStateAttributeApplicable(string elementName, string effectiveType, string attributeName) {
+        string name = NormalizeIdentifier(elementName);
         switch (NormalizeIdentifier(attributeName)) {
+            case "type": return name == "input" || name == "button";
+            case "name": return name == "input" || name == "select" || name == "textarea" || name == "button";
             case "checked": return IsCheckedStateApplicable(elementName, effectiveType);
+            case "selected": return name == "option";
+            case "disabled": return name == "input" || name == "select" || name == "textarea"
+                || name == "button" || name == "option";
             case "multiple": return IsMultipleStateApplicable(elementName, effectiveType);
             case "required": return IsRequiredStateApplicable(elementName, effectiveType);
             case "readonly": return IsReadOnlyStateApplicable(elementName, effectiveType);
@@ -138,7 +144,11 @@ internal static class HtmlFormControlSemantics {
             case "max":
             case "step": return IsRangeApplicable(elementName, effectiveType);
             case "placeholder": return IsPlaceholderApplicable(elementName, effectiveType);
-            case "value": return NormalizeIdentifier(elementName) != "input" || effectiveType != "file";
+            case "value": return name == "button" || name == "option"
+                || name == "input" && effectiveType != "file";
+            case "autocomplete": return name == "input" || name == "select" || name == "textarea";
+            case "data-fieldset-disabled": return name == "input" || name == "select"
+                || name == "textarea" || name == "button";
             default: return true;
         }
     }
@@ -177,6 +187,7 @@ internal static class HtmlFormControlSemantics {
         if (name == "input") {
             string effectiveType = GetEffectiveType(name, type);
             if (effectiveType == "checkbox" || effectiveType == "radio") return "on";
+            if (effectiveType == "color") return "#000000";
         }
         return string.Empty;
     }

@@ -197,6 +197,32 @@ public sealed class HtmlCoreTests {
         Assert.DoesNotContain("cafÃ©", css, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HtmlStylesheetDecoderParsesContentTypeParametersOutsideQuotedValues() {
+        byte[] utf8Stylesheet = Encoding.UTF8.GetBytes(".café{color:red}");
+        Assert.True(HtmlRenderStylesheetText.TryDecode(
+            utf8Stylesheet,
+            "text/css; title=\"x;charset=windows-1252\"",
+            out string utf8Css));
+        Assert.Contains("café", utf8Css, StringComparison.Ordinal);
+        Assert.DoesNotContain("cafÃ©", utf8Css, StringComparison.Ordinal);
+
+        Assert.True(HtmlRenderStylesheetText.TryDecode(
+            utf8Stylesheet,
+            "text/css; title=\"x\\\";charset=windows-1252\"",
+            out string escapedQuoteCss));
+        Assert.Contains("café", escapedQuoteCss, StringComparison.Ordinal);
+
+        byte[] prefix = Encoding.ASCII.GetBytes(".label::before{content:'");
+        byte[] suffix = Encoding.ASCII.GetBytes("';}");
+        byte[] windows1252Stylesheet = prefix.Concat(new byte[] { 0xE9 }).Concat(suffix).ToArray();
+        Assert.True(HtmlRenderStylesheetText.TryDecode(
+            windows1252Stylesheet,
+            "text/css; title=\"x;charset=utf-8\"; charset=\"windows-1252\"",
+            out string windows1252Css));
+        Assert.Contains("é", windows1252Css, StringComparison.Ordinal);
+    }
+
     private static byte[] BuildWindows1252Html() {
         byte[] prefix = Encoding.ASCII.GetBytes("<meta charset='windows-1252'><p>caf");
         byte[] suffix = Encoding.ASCII.GetBytes("</p>");
