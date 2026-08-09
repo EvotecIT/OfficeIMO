@@ -378,7 +378,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         dateStyle.SetAttributeValue(OdfNamespaces.Number + "language", "pl");
         dateStyle.SetAttributeValue(OdfNamespaces.Number + "country", "PL");
         XElement month = dateStyle.Element(OdfNamespaces.Number + "month")!;
-        month.SetAttributeValue(OdfNamespaces.Number + "textual", true);
+        month.SetAttributeValue(OdfNamespaces.Number + "textual", "1");
         using var stream = new MemoryStream();
         flat.Save(stream);
         stream.Position = 0;

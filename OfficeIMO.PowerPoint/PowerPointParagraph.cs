@@ -38,7 +38,8 @@ namespace OfficeIMO.PowerPoint {
                 if (endProps != null) {
                     Paragraph.Append(endProps);
                 }
-                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                PowerPointEmbeddedSound.RemoveIfUnused(
+                    _ownerPart as OpenXmlPart ?? _slidePart,
                     discardedSoundIds);
             }
         }

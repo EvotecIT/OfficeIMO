@@ -130,11 +130,8 @@ public sealed class OdsDataStyle {
             if (child.Name == OdfNamespaces.Number + "year") {
                 if (!TryAppend(builder, style == "long" ? "yyyy" : "yy")) return false;
             } else if (child.Name == OdfNamespaces.Number + "month") {
-                bool textual = string.Equals(
-                    (string?)child.Attribute(OdfNamespaces.Number + "textual"),
-                    "true",
-                    StringComparison.OrdinalIgnoreCase);
-                if (!TryAppend(builder, textual
+                if (!TryReadBoolean(child, "textual", false, out bool textual)
+                    || !TryAppend(builder, textual
                     ? (style == "long" ? "mmmm" : "mmm")
                     : (style == "long" ? "mm" : "m"))) return false;
             } else if (child.Name == OdfNamespaces.Number + "day") {
@@ -182,10 +179,8 @@ public sealed class OdsDataStyle {
     private bool HasLocalizedTextComponents() {
         bool hasTextualComponent = Element.Elements().Any(child =>
             child.Name == OdfNamespaces.Number + "day-of-week" ||
-            (child.Name == OdfNamespaces.Number + "month" && string.Equals(
-                (string?)child.Attribute(OdfNamespaces.Number + "textual"),
-                "true",
-                StringComparison.OrdinalIgnoreCase)));
+            (child.Name == OdfNamespaces.Number + "month" && OdfBoolean.ReadCompatible(
+                (string?)child.Attribute(OdfNamespaces.Number + "textual"), fallback: false)));
         if (!hasTextualComponent) return false;
 
         return HasValue(Element, "language") ||

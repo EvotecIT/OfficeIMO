@@ -276,15 +276,17 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         Assert.Equal("0.00 \"EUR\"", projected.ToExcelNumberFormatCode());
     }
 
-    [Fact]
-    public void SpreadsheetDateProjectionPreservesTextualMonthStyle() {
+    [Theory]
+    [InlineData("true")]
+    [InlineData("1")]
+    public void SpreadsheetDateProjectionPreservesTextualMonthStyle(string textual) {
         OdsDocument document = OdsDocument.Create();
         document.AddDateStyle("LongDate");
         XElement style = document.Package.GetXml("content.xml")
             .Descendants(OdfNamespaces.Number + "date-style")
             .Single(element => (string?)element.Attribute(OdfNamespaces.Style + "name") == "LongDate");
         style.Element(OdfNamespaces.Number + "month")!
-            .SetAttributeValue(OdfNamespaces.Number + "textual", "true");
+            .SetAttributeValue(OdfNamespaces.Number + "textual", textual);
 
         OdsDataStyle projected = document.DataStyles.Single(item => item.Name == "LongDate");
 
