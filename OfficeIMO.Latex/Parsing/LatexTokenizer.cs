@@ -115,20 +115,15 @@ public static class LatexTokenizer {
             return true;
         }
 
-        const string begin = "\\begin{";
-        if (start + begin.Length > source.Length ||
-            string.Compare(source, start, begin, 0, begin.Length, StringComparison.Ordinal) != 0) return false;
-        int nameStart = start + begin.Length;
-        int nameEnd = source.IndexOf('}', nameStart);
-        if (nameEnd < 0) return false;
-        string environmentName = source.Substring(nameStart, nameEnd - nameStart);
+        if (!LatexVerbatimSyntax.TryReadEnvironmentOpening(
+                source, start, out string environmentName, out int environmentContentStart)) return false;
         if (!options.VerbatimEnvironmentNames.Contains(environmentName)) return false;
 
-        string closing = "\\end{" + environmentName + "}";
-        int closeStart = source.IndexOf(closing, nameEnd + 1, StringComparison.Ordinal);
-        index = closeStart >= 0 ? closeStart + closing.Length : source.Length;
+        bool hasClosing = LatexVerbatimSyntax.TryFindEnvironmentClosing(
+            source, environmentContentStart, environmentName, out _, out int closingEnd);
+        index = hasClosing ? closingEnd : source.Length;
         value = environmentName;
-        isTerminated = closeStart >= 0;
+        isTerminated = hasClosing;
         return true;
     }
 

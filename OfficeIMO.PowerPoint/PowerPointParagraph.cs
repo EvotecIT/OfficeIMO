@@ -135,6 +135,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        /// Gets or sets the explicit right-to-left paragraph direction.
+        /// </summary>
+        public bool? RightToLeft {
+            get => Paragraph.ParagraphProperties?.RightToLeft?.Value;
+            set {
+                A.ParagraphProperties props = EnsureParagraphProperties();
+                props.RightToLeft = value;
+            }
+        }
+
+        /// <summary>
         /// Sets paragraph alignment and returns the paragraph for chaining.
         /// </summary>
         public PowerPointParagraph SetAlignment(PowerPointTextAlignment alignment) {

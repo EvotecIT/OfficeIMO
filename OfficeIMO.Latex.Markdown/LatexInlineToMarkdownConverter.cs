@@ -177,27 +177,30 @@ internal static class LatexInlineToMarkdownConverter {
             if (source.Length <= delimiter) return string.Empty;
             int contentStart = delimiter + 1;
             bool terminated = source.Length > contentStart && source[source.Length - 1] == source[delimiter];
-            int contentEnd = terminated ? source.Length - 1 : source.Length;
-            return contentEnd > contentStart ? source.Substring(contentStart, contentEnd - contentStart) : string.Empty;
+            int inlineContentEnd = terminated ? source.Length - 1 : source.Length;
+            return inlineContentEnd > contentStart ? source.Substring(contentStart, inlineContentEnd - contentStart) : string.Empty;
         }
-        string opening = "\\begin{" + syntax.Value + "}";
-        string closing = "\\end{" + syntax.Value + "}";
-        if (!source.StartsWith(opening, StringComparison.Ordinal)) return source;
-        int start = opening.Length;
+        if (!LatexVerbatimSyntax.TryReadEnvironmentOpening(
+                source, 0, out string environmentName, out int start)
+            || !string.Equals(environmentName, syntax.Value, StringComparison.Ordinal)) return source;
         if (string.Equals(syntax.Value, "minted", StringComparison.Ordinal)) {
             int argumentStart = start;
             SkipInterArgumentWhitespace(source, ref argumentStart);
             TrySkipDelimitedArgument(source, ref argumentStart, '[', ']');
             SkipInterArgumentWhitespace(source, ref argumentStart);
             if (TrySkipDelimitedArgument(source, ref argumentStart, '{', '}')) start = argumentStart;
-        } else if (string.Equals(syntax.Value, "lstlisting", StringComparison.Ordinal)) {
+        } else if (string.Equals(syntax.Value, "lstlisting", StringComparison.Ordinal)
+            || string.Equals(syntax.Value, "Verbatim", StringComparison.Ordinal)) {
             int argumentStart = start;
             SkipInterArgumentWhitespace(source, ref argumentStart);
             if (TrySkipDelimitedArgument(source, ref argumentStart, '[', ']')) start = argumentStart;
         }
-        int length = source.EndsWith(closing, StringComparison.Ordinal)
-            ? source.Length - start - closing.Length
-            : source.Length - start;
+        int contentEnd = LatexVerbatimSyntax.TryFindEnvironmentClosing(
+            source, start, environmentName, out int closingStart, out int closingEnd)
+            && closingEnd == source.Length
+                ? closingStart
+                : source.Length;
+        int length = contentEnd - start;
         return length > 0 ? source.Substring(start, length) : string.Empty;
     }
 

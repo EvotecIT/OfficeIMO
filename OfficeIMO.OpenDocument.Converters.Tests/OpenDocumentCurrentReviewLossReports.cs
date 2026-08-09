@@ -194,6 +194,92 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
+    public void OdtLogicalLayoutAndReferencedFontFacesProjectToWord() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph paragraph = source.AddParagraph();
+        paragraph.Alignment = OdtParagraphAlignment.Start;
+        paragraph.WritingMode = "rl-tb";
+        paragraph.LineHeight = OdfLength.Parse("200%");
+        OdtSpan span = paragraph.AddSpan("Logical layout");
+        span.FontFamily = "Liberation Sans";
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        WordParagraphSnapshot converted = Assert.Single(target.CreateInspectionSnapshot().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+
+        Assert.Equal("Start", converted.Alignment);
+        Assert.True(converted.IsRightToLeft);
+        Assert.Equal(480, converted.LineSpacingValue);
+        Assert.Equal("Auto", converted.LineSpacingRule);
+        Assert.Equal("Liberation Sans", Assert.Single(converted.Runs).FontFamily);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping =>
+            mapping.Feature is "writing-mode" or "relative-measurements"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void WordLogicalLayoutProjectsBackToOdt() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph("Logical layout");
+        paragraph.BiDi = true;
+        paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+        paragraph.LineSpacing = 360;
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdtParagraph converted = Assert.Single(conversion.Value.Paragraphs);
+
+        Assert.Equal("rl-tb", converted.WritingMode);
+        Assert.Equal("150%", converted.LineHeight?.ToString());
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "paragraph-formatting"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void UnsupportedOdtWritingModesAreReportedAndEnforced() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("Vertical").WritingMode = "tb-rl";
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "writing-mode"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            }));
+    }
+
+    [Fact]
+    public void OdpLogicalLayoutProjectsToPowerPointAndReportsVerticalModes() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpTextBox textBox = source.AddSlide("Layout").AddTextBox(
+            OdfRect.FromCentimeters(1, 1, 8, 2));
+        OdpParagraph horizontal = textBox.AddParagraph("Horizontal");
+        horizontal.WritingMode = "rl-tb";
+        horizontal.LineHeight = OdfLength.Parse("125%");
+        OdpParagraph vertical = textBox.AddParagraph("Vertical");
+        vertical.WritingMode = "tb-rl";
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        PowerPointTextBox converted = Assert.IsType<PowerPointTextBox>(target.Slides.Single().Shapes.Single());
+
+        Assert.True(converted.Paragraphs[0].RightToLeft);
+        Assert.Equal(1.25D, converted.Paragraphs[0].LineSpacingMultiplier);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "writing-mode"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+
+        OdpPresentation roundTrip = target.ToOpenDocumentResult().Value;
+        OdpParagraph reopened = Assert.IsType<OdpTextBox>(roundTrip.Slides.Single().Shapes.Single())
+            .Paragraphs[0];
+        Assert.Equal("rl-tb", reopened.WritingMode);
+        Assert.Equal("125%", reopened.LineHeight?.ToString());
+    }
+
+    [Fact]
     public void OdtFontSizesFinerThanHalfAPointAreOmittedAndReported() {
         OdtDocument source = OdtDocument.Create();
         OdtSpan span = source.AddParagraph().AddSpan("Quarter point");

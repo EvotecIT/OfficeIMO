@@ -68,7 +68,13 @@ public sealed class OdfStyle {
     }
     /// <summary>Explicit font family.</summary>
     public string? FontFamily {
-        get => (string?)TextProperties?.Attribute(OdfNamespaces.Fo + "font-family");
+        get {
+            string? family = NormalizeFontFamily(
+                (string?)TextProperties?.Attribute(OdfNamespaces.Fo + "font-family"));
+            if (family != null) return family;
+            string? fontName = (string?)TextProperties?.Attribute(OdfNamespaces.Style + "font-name");
+            return _document.Styles.ResolveFontFaceFamily(fontName, PartPath);
+        }
         set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"), OdfNamespaces.Fo + "font-family", value);
     }
     /// <summary>Explicit text color.</summary>
@@ -109,6 +115,16 @@ public sealed class OdfStyle {
     public string? TextAlign {
         get => (string?)ParagraphProperties?.Attribute(OdfNamespaces.Fo + "text-align");
         set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "text-align", value);
+    }
+    /// <summary>Explicit ODF paragraph writing-mode token.</summary>
+    public string? WritingMode {
+        get => (string?)ParagraphProperties?.Attribute(OdfNamespaces.Style + "writing-mode");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Style + "writing-mode", value);
+    }
+    /// <summary>Explicit paragraph line height, including absolute and percentage values.</summary>
+    public OdfLength? LineHeight {
+        get => ReadLength(ParagraphProperties, OdfNamespaces.Fo + "line-height");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "line-height", value?.ToString());
     }
     /// <summary>Explicit paragraph start margin.</summary>
     public OdfLength? MarginLeft {
@@ -211,5 +227,16 @@ public sealed class OdfStyle {
             ? (OdfColor?)null
             : OdfColor.Parse(value);
         return true;
+    }
+
+    internal static string? NormalizeFontFamily(string? value) {
+        string? normalized = value?.Trim();
+        if (normalized == null || normalized.Length == 0) return null;
+        if (normalized.Length >= 2 &&
+            ((normalized[0] == '\'' && normalized[normalized.Length - 1] == '\'')
+             || (normalized[0] == '"' && normalized[normalized.Length - 1] == '"'))) {
+            normalized = normalized.Substring(1, normalized.Length - 2).Trim();
+        }
+        return normalized.Length == 0 ? null : normalized;
     }
 }

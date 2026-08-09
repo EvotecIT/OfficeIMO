@@ -44,6 +44,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         ref int unsupportedRunInteractions) {
         foreach (PowerPointParagraph sourceParagraph in sourceParagraphs) {
             OdpParagraph targetParagraph = addParagraph();
+            ApplyPowerPointParagraphLayout(sourceParagraph, targetParagraph);
             IReadOnlyList<PowerPointTextRun> runs = sourceParagraph.Runs;
             if (runs.Count == 0) {
                 targetParagraph.Text = sourceParagraph.Text;
@@ -92,6 +93,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         for (int index = 0; index < paragraphCount; index++) {
             OdpParagraph sourceParagraph = sourceParagraphs[index];
             PowerPointParagraph targetParagraph = targetParagraphs[index];
+            unsupportedMeasurements += ApplyOdpParagraphLayout(sourceParagraph, targetParagraph);
             IReadOnlyList<OdpInlineNode> inlineNodes = sourceParagraph.InlineNodes;
             IReadOnlyList<PowerPointTextRun> existingRuns = targetParagraph.Runs;
             bool useExistingRun = existingRuns.Count > 0;

@@ -9,6 +9,40 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentCurrentReviewRegressionTests {
+    [Fact]
+    public void FontFacesAndParagraphLayoutResolveThroughStyleReferencesAndParents() {
+        OdtDocument document = OdtDocument.Create();
+        OdtParagraph paragraph = document.AddParagraph();
+        OdtSpan span = paragraph.AddSpan("Styled");
+        OdfStyle parent = document.Styles.CreateNamed("ParagraphParent", OdfStyleFamily.Paragraph);
+        parent.WritingMode = "rl-tb";
+        parent.LineHeight = OdfLength.Parse("175%");
+        document.Styles.CreateNamed("ParagraphChild", OdfStyleFamily.Paragraph, parent.Name);
+        paragraph.StyleName = "ParagraphChild";
+
+        OdfStyle textStyle = document.Styles.CreateNamed("ReferencedFont", OdfStyleFamily.Text);
+        span.StyleName = textStyle.Name;
+        XElement styleElement = document.Package.GetXml("styles.xml")
+            .Descendants(OdfNamespaces.Style + "style")
+            .Single(element => (string?)element.Attribute(OdfNamespaces.Style + "name") == textStyle.Name);
+        styleElement.Add(new XElement(OdfNamespaces.Style + "text-properties",
+            new XAttribute(OdfNamespaces.Style + "font-name", "BodyFace")));
+        document.Package.GetXml("styles.xml").Root!
+            .Element(OdfNamespaces.Office + "font-face-decls")!
+            .Add(new XElement(OdfNamespaces.Style + "font-face",
+                new XAttribute(OdfNamespaces.Style + "name", "BodyFace"),
+                new XAttribute(OdfNamespaces.Svg + "font-family", "'Liberation Sans'")));
+        document.Package.MarkXmlDirty("styles.xml");
+
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
+        OdtParagraph reopenedParagraph = reopened.Paragraphs.Single();
+
+        Assert.Equal("rl-tb", reopenedParagraph.WritingMode);
+        Assert.True(reopenedParagraph.IsRightToLeft);
+        Assert.Equal("175%", reopenedParagraph.LineHeight?.ToString());
+        Assert.Equal("Liberation Sans", Assert.Single(reopenedParagraph.Spans).FontFamily);
+    }
+
     [Theory]
     [InlineData("#Sales%20Data", "Sales Data")]
     [InlineData("#Section%5F1", "Section_1")]

@@ -99,6 +99,24 @@ public sealed class OdfStyleRepository {
             ? (true, color)
             : (false, null));
 
+    internal string? ResolveFontFaceFamily(string? fontName, string preferredPartPath) {
+        if (string.IsNullOrWhiteSpace(fontName)) return null;
+        foreach (string partPath in new[] { preferredPartPath, "styles.xml", "content.xml" }.Distinct(StringComparer.Ordinal)) {
+            if (!_document.Package.ContainsEntry(partPath)) continue;
+            XElement? declarations = _document.GetXml(partPath).Root?
+                .Element(OdfNamespaces.Office + "font-face-decls");
+            XElement? face = declarations?.Elements(OdfNamespaces.Style + "font-face")
+                .FirstOrDefault(element => string.Equals(
+                    (string?)element.Attribute(OdfNamespaces.Style + "name"),
+                    fontName,
+                    StringComparison.Ordinal));
+            string? family = OdfStyle.NormalizeFontFamily(
+                (string?)face?.Attribute(OdfNamespaces.Svg + "font-family"));
+            if (family != null) return family;
+        }
+        return null;
+    }
+
     private OdfColor? ResolveColorOverride(OdfStyle? style,
         Func<OdfStyle, (bool HasValue, OdfColor? Color)> read) {
         if (style == null) return null;

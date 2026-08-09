@@ -175,6 +175,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int notes = 0, transitions = 0, unsupportedTransitions = 0, unsupportedShapes = 0, unsupportedPictures = 0, transformedShapes = 0;
         int listParagraphs = 0, approximatedRuns = 0, unsupportedHyperlinks = 0, skippedBasicFormatting = 0, skippedNotes = 0, noteContainers = 0;
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
+        int unsupportedWritingModes = CountUnsupportedWritingModes(source);
         var pendingInternalLinks = new List<(PowerPointTextRun Run, int SlideIndex)>();
         foreach (OdpSlide sourceSlide in source.Slides) {
             PowerPointSlide targetSlide = target.AddSlide();
@@ -338,6 +339,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "Inline ODP elements outside plain text, spans, and hyperlinks were flattened to text.");
         if (approximatedTextDecorations > 0) report.Add("text-decorations", OdfConversionMappingStatus.Approximated,
             approximatedTextDecorations, "Non-solid ODF underline and line-through variants are simplified to solid PowerPoint decorations.");
+        AddUnsupported(report, "writing-mode", unsupportedWritingModes,
+            "Vertical and unsupported ODF writing modes cannot be represented by the PowerPoint paragraph model.");
         AddUnsupported(report, "hyperlinks", unsupportedHyperlinks,
             "Hyperlink targets that could not be resolved as slides or valid URI references were omitted.");
         if (skippedBasicFormatting > 0) report.Add("basic-formatting", OdfConversionMappingStatus.Skipped, skippedBasicFormatting,

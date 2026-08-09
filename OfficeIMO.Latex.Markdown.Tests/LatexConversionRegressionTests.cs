@@ -223,17 +223,20 @@ public sealed class LatexConversionRegressionTests {
             "\\documentclass{article}\n\\begin{document}\n" +
             "\\begin{minted}[linenos]{csharp}\nConsole.WriteLine(1);\n\\end{minted}\n" +
             "\\begin{lstlisting}[language=C]\nprintf(\"ok\");\n\\end{lstlisting}\n" +
+            "\\begin {Verbatim}[numbers=left]\nopaque();\n\\end {Verbatim}\n" +
             "\\end{document}\n";
 
         LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
         CodeBlock[] blocks = result.Value.Blocks.OfType<CodeBlock>().ToArray();
 
-        Assert.Equal(2, blocks.Length);
+        Assert.Equal(3, blocks.Length);
         Assert.Contains("Console.WriteLine(1);", blocks[0].Content, StringComparison.Ordinal);
         Assert.DoesNotContain("linenos", blocks[0].Content, StringComparison.Ordinal);
         Assert.DoesNotContain("{csharp}", blocks[0].Content, StringComparison.Ordinal);
         Assert.Contains("printf(\"ok\");", blocks[1].Content, StringComparison.Ordinal);
         Assert.DoesNotContain("language=C", blocks[1].Content, StringComparison.Ordinal);
+        Assert.Contains("opaque();", blocks[2].Content, StringComparison.Ordinal);
+        Assert.DoesNotContain("numbers=left", blocks[2].Content, StringComparison.Ordinal);
     }
 
     [Fact]

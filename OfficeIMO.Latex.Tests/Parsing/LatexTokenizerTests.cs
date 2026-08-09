@@ -36,6 +36,18 @@ public sealed class LatexTokenizerTests {
         Assert.All(tokens, static token => Assert.True(token.IsTerminated));
     }
 
+    [Theory]
+    [InlineData("\\begin {verbatim}\\section{Fake}\\end {verbatim}")]
+    [InlineData("\\begin% opening\n{verbatim}\\section{Fake}\\end% closing\n{verbatim}")]
+    public void Tokenizer_AllowsTexTriviaAroundOpaqueEnvironmentNames(string source) {
+        LatexToken token = Assert.Single(LatexTokenizer.Tokenize(source));
+
+        Assert.Equal(source, token.Text);
+        Assert.Equal(LatexTokenKind.Verbatim, token.Kind);
+        Assert.Equal("verbatim", token.Value);
+        Assert.True(token.IsTerminated);
+    }
+
     [Fact]
     public void UnterminatedInlineVerbStopsAtTheCurrentLine() {
         const string source = "\\verb|abc\n\\section{Next}|";

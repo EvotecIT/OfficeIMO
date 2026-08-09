@@ -134,6 +134,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, externalHyperlinks = 0, images = 0, bookmarks = 0;
         int approximatedRuns = 0, approximatedBookmarkRanges = 0, unsupportedMeasurements = 0;
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
+        int unsupportedWritingModes = CountUnsupportedWritingModes(source);
         int sourceImages = source.ContentBlocks.Where(block => block.Paragraph != null).Sum(block => block.Paragraph!.Images.Count) +
             source.ContentBlocks.Where(block => block.Table != null).Sum(block => block.Table!.Rows
                 .Sum(row => row.Cells.Sum(cell => cell.Paragraphs.Sum(paragraph => paragraph.Images.Count)))) +
@@ -219,6 +220,8 @@ public static partial class WordOpenDocumentConversionExtensions {
             "Inline elements outside the typed ODT text, span, hyperlink, image, and bookmark syntax were flattened to text.");
         if (approximatedTextDecorations > 0) report.Add("text-decorations", OdfConversionMappingStatus.Approximated,
             approximatedTextDecorations, "Non-solid ODF underline and line-through variants are simplified to solid Word decorations.");
+        if (unsupportedWritingModes > 0) report.Add("writing-mode", OdfConversionMappingStatus.Unsupported,
+            unsupportedWritingModes, "Vertical and page-relative ODF writing modes are not represented by the current Word paragraph surface.");
         if (approximatedBookmarkRanges > 0) report.Add("bookmark-ranges", OdfConversionMappingStatus.Approximated,
             approximatedBookmarkRanges, "ODT bookmark ranges were retained as collapsed Word bookmark targets at their start position.");
         if (sourceImages > images) report.Add("images", OdfConversionMappingStatus.Skipped, sourceImages - images,
@@ -356,45 +359,6 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (OdfColor.TryParse(source.ColorHex, out OdfColor color)) target.Color = color;
         if (OdfColor.TryParse(source.RunShadingFillColorHex, out OdfColor shading)) target.BackgroundColor = shading;
         else if (TryMapWordHighlight(source.HighlightColor, out OdfColor highlight)) target.BackgroundColor = highlight;
-    }
-
-    private static void ApplyWordParagraphFormatting(WordParagraphSnapshot source, OdtParagraph target) {
-        if (source.Alignment != null && TryMapWordAlignment(source.Alignment, out OdtParagraphAlignment alignment)) {
-            target.Alignment = alignment;
-        }
-        if (source.IndentStartPoints.HasValue) target.IndentStart = OdfLength.Points(source.IndentStartPoints.Value);
-        if (source.IndentEndPoints.HasValue) target.IndentEnd = OdfLength.Points(source.IndentEndPoints.Value);
-        if (source.IndentFirstLinePoints.HasValue) target.FirstLineIndent = OdfLength.Points(source.IndentFirstLinePoints.Value);
-        if (source.SpaceAbovePoints.HasValue) target.SpaceAbove = OdfLength.Points(source.SpaceAbovePoints.Value);
-        if (source.SpaceBelowPoints.HasValue) target.SpaceBelow = OdfLength.Points(source.SpaceBelowPoints.Value);
-        if (OdfColor.TryParse(source.ShadingFillColorHex, out OdfColor background)) target.BackgroundColor = background;
-    }
-
-    private static int ApplyOdtParagraphFormatting(OdtParagraph source, WordParagraph target) {
-        int unsupported = 0;
-        switch (source.Alignment) {
-            case OdtParagraphAlignment.Start: target.ParagraphAlignment = WordParagraphAlignment.Start; break;
-            case OdtParagraphAlignment.Center: target.ParagraphAlignment = WordParagraphAlignment.Center; break;
-            case OdtParagraphAlignment.End: target.ParagraphAlignment = WordParagraphAlignment.End; break;
-            case OdtParagraphAlignment.Justify: target.ParagraphAlignment = WordParagraphAlignment.Both; break;
-        }
-        if (source.IndentStart.HasValue) {
-            if (source.IndentStart.Value.TryToPoints(out double points)) target.IndentationBeforePoints = points; else unsupported++;
-        }
-        if (source.IndentEnd.HasValue) {
-            if (source.IndentEnd.Value.TryToPoints(out double points)) target.IndentationAfterPoints = points; else unsupported++;
-        }
-        if (source.FirstLineIndent.HasValue) {
-            if (source.FirstLineIndent.Value.TryToPoints(out double points)) target.IndentationFirstLinePoints = points; else unsupported++;
-        }
-        if (source.SpaceAbove.HasValue) {
-            if (source.SpaceAbove.Value.TryToPoints(out double points)) target.LineSpacingBeforePoints = points; else unsupported++;
-        }
-        if (source.SpaceBelow.HasValue) {
-            if (source.SpaceBelow.Value.TryToPoints(out double points)) target.LineSpacingAfterPoints = points; else unsupported++;
-        }
-        if (source.BackgroundColor.HasValue) target.ShadingFillColorHex = source.BackgroundColor.Value.ToString();
-        return unsupported;
     }
 
     private static int ApplyOdtHyperlinkFormatting(OdtHyperlink source, OdtParagraph paragraph, WordParagraph target) {
@@ -625,11 +589,16 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static bool HasUnsupportedParagraphFormatting(WordParagraphSnapshot paragraph) =>
         (paragraph.Alignment != null && !TryMapWordAlignment(paragraph.Alignment, out _)) ||
-        paragraph.LineSpacingValue.HasValue || paragraph.LineSpacingRule != null ||
+        HasUnsupportedWordLineHeight(paragraph) ||
         (paragraph.ShadingPattern.HasValue && paragraph.ShadingPattern.Value != WordShadingPattern.Nil &&
             paragraph.ShadingPattern.Value != WordShadingPattern.Clear) ||
         paragraph.LeftBorder != null || paragraph.RightBorder != null || paragraph.TopBorder != null || paragraph.BottomBorder != null ||
-        paragraph.IsRightToLeft || paragraph.KeepWithNext || paragraph.KeepLinesTogether || paragraph.AvoidWidowAndOrphan || paragraph.TabStops.Count > 0;
+        paragraph.KeepWithNext || paragraph.KeepLinesTogether || paragraph.AvoidWidowAndOrphan || paragraph.TabStops.Count > 0;
+
+    private static bool HasUnsupportedWordLineHeight(WordParagraphSnapshot paragraph) {
+        if (!paragraph.LineSpacingValue.HasValue && paragraph.LineSpacingRule == null) return false;
+        return !TryMapWordLineHeight(paragraph, out _);
+    }
 
     private static bool HasUnsupportedRunFormatting(WordRunSnapshot run) =>
         !string.IsNullOrWhiteSpace(run.VerticalTextAlignment) || !string.IsNullOrWhiteSpace(run.CapsStyle) ||

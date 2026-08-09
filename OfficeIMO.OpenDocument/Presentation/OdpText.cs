@@ -54,6 +54,13 @@ public sealed class OdpParagraph {
     public OdfLength? FontSize { get => Resolve(style => style.FontSize); set => EnsureStyle().FontSize = value; }
     /// <summary>Explicit or inherited font family.</summary>
     public string? FontFamily { get => ResolveReference(style => style.FontFamily); set => EnsureStyle().FontFamily = value; }
+    /// <summary>Effective ODF writing-mode token, such as <c>lr-tb</c> or <c>rl-tb</c>.</summary>
+    public string? WritingMode { get => ResolveReference(style => style.WritingMode); set => EnsureStyle().WritingMode = value; }
+    /// <summary>Whether the effective horizontal paragraph writing mode is right-to-left.</summary>
+    public bool IsRightToLeft => string.Equals(WritingMode, "rl", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(WritingMode, "rl-tb", StringComparison.OrdinalIgnoreCase);
+    /// <summary>Effective paragraph line height, including absolute and percentage values.</summary>
+    public OdfLength? LineHeight { get => Resolve(style => style.LineHeight); set => EnsureStyle().LineHeight = value; }
     /// <summary>Explicit or inherited text color.</summary>
     public OdfColor? Color { get => Resolve(style => style.Color); set => EnsureStyle().Color = value; }
     /// <summary>Explicit or inherited text background color.</summary>

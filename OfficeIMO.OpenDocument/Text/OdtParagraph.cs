@@ -163,6 +163,22 @@ public sealed class OdtParagraph {
         set => EnsureStyle().TextAlign = FormatAlignment(value);
     }
 
+    /// <summary>Effective ODF writing-mode token, such as <c>lr-tb</c> or <c>rl-tb</c>.</summary>
+    public string? WritingMode {
+        get => ResolveStyleValue(style => style.WritingMode);
+        set => EnsureStyle().WritingMode = value;
+    }
+
+    /// <summary>Whether the effective horizontal paragraph writing mode is right-to-left.</summary>
+    public bool IsRightToLeft => string.Equals(WritingMode, "rl", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(WritingMode, "rl-tb", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Effective paragraph line height, including absolute and percentage values.</summary>
+    public OdfLength? LineHeight {
+        get => ResolveStyleValue(style => style.LineHeight);
+        set => EnsureStyle().LineHeight = value;
+    }
+
     /// <summary>Explicit or inherited paragraph start indentation.</summary>
     public OdfLength? IndentStart {
         get => ResolveStyleValue(style => style.MarginLeft);
