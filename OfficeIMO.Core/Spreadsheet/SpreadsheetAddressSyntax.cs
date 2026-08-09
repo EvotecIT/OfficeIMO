@@ -294,6 +294,12 @@ public sealed class SpreadsheetRangeReference {
                 cursor = original;
                 return false;
             }
+            // Excel forbids ':' in worksheet names, so a quoted qualifier containing one is a
+            // 3-D sheet range (for example, 'First Sheet:Last Sheet'!A1), not one sheet name.
+            if (quoted!.IndexOf(':') >= 0) {
+                cursor = original;
+                return false;
+            }
             cursor++;
             sheetName = quoted;
             return true;

@@ -7,7 +7,7 @@ using OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.OpenDocument;
 
 /// <summary>Explicit conversions between OfficeIMO PowerPoint and native OpenDocument presentation models.</summary>
-public static class PowerPointOpenDocumentConversionExtensions {
+public static partial class PowerPointOpenDocumentConversionExtensions {
     /// <summary>Converts a PowerPoint presentation to an in-memory ODP document.</summary>
     public static OdpPresentation ToOpenDocument(this PowerPointPresentation source,
         PowerPointOpenDocumentConversionOptions? options = null) => source.ToOpenDocumentResult(options).Value;
@@ -39,25 +39,9 @@ public static class PowerPointOpenDocumentConversionExtensions {
                 if (shape is PowerPointTextBox textBox) {
                     OdpTextBox converted = targetSlide.AddTextBox(ToOdfRect(textBox), null, textBox.Name);
                     CopyShapeAppearance(textBox, converted, effective);
-                    foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
-                        OdpParagraph targetParagraph = converted.AddParagraph();
-                        IReadOnlyList<PowerPointTextRun> runs = paragraph.Runs;
-                        if (runs.Count == 0) targetParagraph.Text = paragraph.Text;
-                        else {
-                            foreach (PowerPointTextRun run in runs) {
-                                if (!effective.IncludeBasicFormatting && HasBasicFormatting(run)) skippedBasicFormatting++;
-                                if (run.Hyperlink != null) {
-                                    ApplyPowerPointRun(run, targetParagraph.AddHyperlink(run.Text, run.Hyperlink.ToString()), effective);
-                                    if (!string.IsNullOrWhiteSpace(run.HyperlinkTooltip)) unsupportedHyperlinkTooltips++;
-                                } else {
-                                    ApplyPowerPointRun(run, targetParagraph.AddRun(run.Text), effective);
-                                }
-                                textRuns++;
-                            }
-                        }
-                        if (paragraph.BulletCharacter != null || paragraph.IsNumbered) listParagraphs++;
-                        paragraphs++;
-                    }
+                    CopyPowerPointParagraphsToOdp(textBox.Paragraphs, () => converted.AddParagraph(), effective,
+                        ref paragraphs, ref textRuns, ref listParagraphs, ref skippedBasicFormatting,
+                        ref unsupportedHyperlinkTooltips);
                     textBoxes++;
                 } else if (shape is PowerPointPicture picture) {
                     if (!effective.IncludeImages) { unsupportedPictures++; continue; }
@@ -91,7 +75,9 @@ public static class PowerPointOpenDocumentConversionExtensions {
                         for (int column = 0; column < table.Columns; column++) {
                             PowerPointTableCell cell = table.GetCell(row, column);
                             if (cell.IsMergedCell) continue;
-                            converted.Cell(row, column).Text = cell.Text;
+                            CopyPowerPointTableCellToOdp(cell, converted.Cell(row, column), effective,
+                                ref paragraphs, ref textRuns, ref listParagraphs, ref skippedBasicFormatting,
+                                ref unsupportedHyperlinkTooltips);
                             if (cell.IsMergeAnchor) merges.Add((row, column, cell.Merge.rows, cell.Merge.columns));
                         }
                     }
@@ -209,56 +195,13 @@ public static class PowerPointOpenDocumentConversionExtensions {
                     IReadOnlyList<OdpParagraph> sourceParagraphs = textBox.Paragraphs;
                     listParagraphs += textBox.Lists.Sum(list => list.Items.Count);
                     PowerPointTextBox converted = targetSlide.AddTextBox(string.Empty, textBoxBounds);
-                    if (sourceParagraphs.Count > 0) converted.SetParagraphs(sourceParagraphs.Select(paragraph => paragraph.Text));
                     converted.Name = textBox.Name;
                     unsupportedMeasurements += CopyShapeAppearance(textBox, converted, effective);
-                    for (int index = 0; index < sourceParagraphs.Count && index < converted.Paragraphs.Count; index++) {
-                        OdpParagraph sourceParagraph = sourceParagraphs[index];
-                        PowerPointParagraph targetParagraph = converted.Paragraphs[index];
-                        IReadOnlyList<OdpInlineNode> inlineNodes = sourceParagraph.InlineNodes;
-                        IReadOnlyList<PowerPointTextRun> existing = targetParagraph.Runs;
-                        bool useExisting = existing.Count > 0;
-                        PowerPointTextRun AddInlineRun(string text) {
-                            PowerPointTextRun result = useExisting ? existing[0] : targetParagraph.AddRun(string.Empty);
-                            useExisting = false;
-                            result.Text = text;
-                            return result;
-                        }
-                        if (inlineNodes.Count == 0) {
-                            PowerPointTextRun run = useExisting ? existing[0] : targetParagraph.AddRun(string.Empty);
-                            unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, run, effective);
-                        } else {
-                            foreach (OdpInlineNode node in inlineNodes) {
-                                PowerPointTextRun targetRun = AddInlineRun(node.Text);
-                                if (node.Kind == OdpInlineNodeKind.Run) {
-                                    unsupportedMeasurements += ApplyOdpRun(node.Run!, sourceParagraph, targetRun, effective);
-                                    if (!effective.IncludeBasicFormatting && HasBasicFormatting(node.Run!)) skippedBasicFormatting++;
-                                } else if (node.Kind == OdpInlineNodeKind.Hyperlink) {
-                                    OdpHyperlink hyperlink = node.Hyperlink!;
-                                    unsupportedMeasurements += ApplyOdpHyperlink(hyperlink, sourceParagraph, targetRun, effective);
-                                    if (TryResolveSlideFragment(hyperlink.Href, source.Slides, out int targetSlideIndex)) {
-                                        pendingInternalLinks.Add((targetRun, targetSlideIndex));
-                                        hyperlinks++;
-                                    } else if (hyperlink.Href.StartsWith("#", StringComparison.Ordinal)) {
-                                        unsupportedHyperlinks++;
-                                    } else if (Uri.TryCreate(hyperlink.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
-                                        targetRun.SetHyperlink(uri);
-                                        hyperlinks++;
-                                        if (IsExternalOdfHref(hyperlink.Href)) externalHyperlinks++;
-                                    } else {
-                                        unsupportedHyperlinks++;
-                                    }
-                                    if (!effective.IncludeBasicFormatting && HasBasicFormatting(hyperlink)) skippedBasicFormatting++;
-                                } else {
-                                    unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, targetRun, effective);
-                                    if (node.Kind == OdpInlineNodeKind.Other) approximatedRuns++;
-                                }
-                                textRuns++;
-                            }
-                        }
-                        if (!effective.IncludeBasicFormatting && HasBasicFormatting(sourceParagraph)) skippedBasicFormatting++;
-                        paragraphs++;
-                    }
+                    CopyOdpParagraphsToPowerPoint(sourceParagraphs,
+                        paragraphTexts => converted.SetParagraphs(paragraphTexts), source.Slides,
+                        pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
+                        ref externalHyperlinks, ref unsupportedHyperlinks, ref approximatedRuns,
+                        ref skippedBasicFormatting, ref unsupportedMeasurements);
                     textBoxes++;
                 } else if (shape is OdpImage image) {
                     if (!effective.IncludeImages) {
@@ -309,7 +252,11 @@ public static class PowerPointOpenDocumentConversionExtensions {
                         for (int column = 0; column < cells.Count; column++) {
                             OdpTableCell cell = cells[column];
                             if (cell.IsCovered) continue;
-                            converted.GetCell(row, column).Text = cell.Text;
+                            CopyOdpParagraphsToPowerPoint(cell.Paragraphs,
+                                paragraphTexts => converted.GetCell(row, column).SetParagraphs(paragraphTexts), source.Slides,
+                                pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
+                                ref externalHyperlinks, ref unsupportedHyperlinks, ref approximatedRuns,
+                                ref skippedBasicFormatting, ref unsupportedMeasurements);
                             if (cell.RowSpan > 1 || cell.ColumnSpan > 1) merges.Add((row, column, cell.RowSpan, cell.ColumnSpan));
                         }
                     }

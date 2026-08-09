@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OfficeIMO.Excel;
@@ -304,6 +305,48 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Equal("Aptos", converted.FontName);
         Assert.Equal("123456", converted.Color);
         Assert.Equal("FFF200", converted.HighlightColor);
+    }
+
+    [Fact]
+    public void PowerPointAndOdpTableCellsRoundTripParagraphsRunsAndHyperlinks() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        PowerPointTableCell sourceCell = source.AddSlide()
+            .AddTablePoints(1, 1, 10, 10, 240, 80)
+            .GetCell(0, 0);
+        IReadOnlyList<PowerPointParagraph> sourceParagraphs = sourceCell.SetParagraphs(new[] { "Bold", "Second" });
+        sourceParagraphs[0].Runs[0].Bold = true;
+        PowerPointTextRun linkedRun = sourceParagraphs[0].AddRun(" link");
+        linkedRun.Italic = true;
+        linkedRun.SetHyperlink("https://example.com/table");
+        sourceParagraphs[1].Runs[0].Underline = true;
+
+        OdfConversionResult<OdpPresentation> toOdp = source.ToOpenDocumentResult(
+            new PowerPointOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            });
+        Assert.True(toOdp.Value.Validate().IsValid);
+        OdpTableCell odpCell = Assert.IsType<OdpTable>(Assert.Single(toOdp.Value.Slides[0].Shapes)).Cell(0, 0);
+        Assert.Equal(2, odpCell.Paragraphs.Count);
+        Assert.Equal(new[] { "Bold", " link" }, odpCell.Paragraphs[0].InlineNodes.Select(node => node.Text));
+        Assert.True(odpCell.Paragraphs[0].InlineNodes[0].Run!.Bold);
+        Assert.True(odpCell.Paragraphs[0].InlineNodes[1].Hyperlink!.Italic);
+        Assert.Equal("https://example.com/table", odpCell.Paragraphs[0].InlineNodes[1].Hyperlink!.Href);
+        Assert.True(Assert.Single(odpCell.Paragraphs[1].Runs).Underline);
+
+        OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(toOdp.Value.ToBytes()));
+        OdfConversionResult<PowerPointPresentation> toPowerPoint = reopened.ToPowerPointPresentationResult(
+            new PowerPointOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            });
+        using PowerPointPresentation roundTrip = toPowerPoint.Value;
+        Assert.Empty(roundTrip.ValidateDocument());
+        PowerPointTableCell roundTripCell = roundTrip.Slides[0].Tables.Single().GetCell(0, 0);
+        Assert.Equal(2, roundTripCell.Paragraphs.Count);
+        Assert.Equal(new[] { "Bold", " link" }, roundTripCell.Paragraphs[0].Runs.Select(run => run.Text));
+        Assert.True(roundTripCell.Paragraphs[0].Runs[0].Bold);
+        Assert.True(roundTripCell.Paragraphs[0].Runs[1].Italic);
+        Assert.Equal("https://example.com/table", roundTripCell.Paragraphs[0].Runs[1].Hyperlink?.ToString());
+        Assert.True(roundTripCell.Paragraphs[1].Runs[0].Underline);
     }
 
     [Fact]

@@ -101,6 +101,23 @@ public sealed class SpreadsheetFormulaSyntaxTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "FORMULA_UNSUPPORTED_RANGE_OPERATOR");
     }
 
+    [Fact]
+    public void QuotedExcelThreeDimensionalFormulaFailsClosed() {
+        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
+            .Parse("=SUM('First Sheet:Last Sheet'!A1)", SpreadsheetFormulaDialect.ExcelA1)
+            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
+
+        Assert.False(result.IsSuccessful);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "FORMULA_UNSUPPORTED_SYNTAX");
+    }
+
+    [Fact]
+    public void QuotedExcelThreeDimensionalAddressIsNotAcceptedAsOneSheetName() =>
+        Assert.False(SpreadsheetRangeReference.TryParse(
+            "'First Sheet:Last Sheet'!A1",
+            SpreadsheetAddressDialect.ExcelA1,
+            out _));
+
     [Theory]
     [InlineData("=#REF!A1")]
     [InlineData("=#REF!A1:C3")]
