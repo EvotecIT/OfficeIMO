@@ -21,6 +21,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         OdsDocument target = OdsDocument.Create();
         var report = new OdfConversionReport(source.SourceFormat.ToString().ToUpperInvariant(), "ODS");
         target.Metadata.Title = snapshot.Title;
+        NamedRangeConversionPlan namedRangePlan = BuildNamedRangeConversionPlan(snapshot.NamedRanges);
 
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, comments = 0, threadedComments = 0, merges = 0;
         int rows = 0, columns = 0, convertedValidations = 0, skippedValidations = 0, tables = 0, filters = 0, unsupportedStyles = 0, skippedStyles = 0;
@@ -65,7 +66,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 materializedCoordinates.Add((cell.Row, cell.Column));
                 OdsCell converted = sheet.Cell(cell.Row - 1L, cell.Column - 1L);
                 if (!string.IsNullOrWhiteSpace(cell.Formula)) {
-                    var translation = SpreadsheetAddressConverter.ExcelFormulaToOpenFormula(cell.Formula!);
+                    string rewrittenFormula = namedRangePlan.RewriteFormula(cell.Formula!, worksheet.Name);
+                    var translation = SpreadsheetAddressConverter.ExcelFormulaToOpenFormula(rewrittenFormula);
                     if (translation.IsSuccessful) {
                         converted.Formula = translation.Formula;
                         formulas++;
@@ -263,20 +265,12 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (worksheet.Protection != null) report.Add("worksheet-protection", OdfConversionMappingStatus.Unsupported, 1);
         }
 
-        int namedRanges = 0, builtInNames = 0, disambiguatedNames = 0;
-        var usedNamedRanges = new HashSet<string>(StringComparer.Ordinal);
-        foreach (ExcelNamedRangeSnapshot named in snapshot.NamedRanges) {
-            if (named.IsBuiltIn) { builtInNames++; continue; }
-            string address = SpreadsheetAddressConverter.ExcelRangeToOpenAddress(named.ReferenceA1, named.SheetName);
-            if (address.Length == 0) continue;
-            string outputName = named.Name;
-            if (!usedNamedRanges.Add(outputName)) {
-                outputName = CreateUniqueNamedRangeName(named.Name, named.SheetName, usedNamedRanges);
-                disambiguatedNames++;
-            }
-            target.AddNamedRange(outputName, address);
-            namedRanges++;
+        foreach (NamedRangeConversionEntry named in namedRangePlan.Entries) {
+            target.AddNamedRange(named.OutputName, named.Address);
         }
+        int namedRanges = namedRangePlan.Entries.Count;
+        int builtInNames = namedRangePlan.BuiltInCount;
+        int disambiguatedNames = namedRangePlan.DisambiguatedCount;
 
         AddConverted(report, "worksheets", snapshot.Worksheets.Count);
         AddConverted(report, "cells", cells);
@@ -287,7 +281,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         AddConverted(report, "hyperlinks", hyperlinks);
         AddConverted(report, "named-ranges", namedRanges);
         if (disambiguatedNames > 0) report.Add("sheet-local-named-ranges", OdfConversionMappingStatus.Approximated, disambiguatedNames,
-            "Duplicate sheet-local Excel names were made unique because ODS named ranges are workbook scoped.");
+            "Excel names that collide after ODS workbook-scope projection were made unique, and affected formulas were rewritten to the converted names.");
         if (formulas > 0) report.Add("formulas", OdfConversionMappingStatus.Approximated, formulas,
             "Formula syntax is parsed and translated to OpenFormula; cached values are retained.");
         if (formulaTranslationFailures > 0) report.Add("formulas", OdfConversionMappingStatus.Skipped, formulaTranslationFailures,
@@ -319,15 +313,6 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
             $"Configured limits omitted content or assignments, including {skippedCells} cells, {skippedRows} rows, {skippedColumns} columns, and {skippedMerges} merges.");
         return new OdfConversionResult<OdsDocument>(target, report).ApplyPolicy(effective.LossPolicy);
-    }
-
-    private static string CreateUniqueNamedRangeName(string name, string? sheetName, HashSet<string> usedNames) {
-        string suffix = new string((sheetName ?? "Sheet").Select(character => char.IsLetterOrDigit(character) ? character : '_').ToArray());
-        if (suffix.Length == 0) suffix = "Sheet";
-        string candidate = name + "__" + suffix;
-        int index = 2;
-        while (!usedNames.Add(candidate)) candidate = name + "__" + suffix + "_" + index++.ToString(CultureInfo.InvariantCulture);
-        return candidate;
     }
 
     /// <summary>Converts an ODS document to an in-memory Excel workbook.</summary>

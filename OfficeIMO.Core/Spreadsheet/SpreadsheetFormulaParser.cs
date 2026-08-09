@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace OfficeIMO.Spreadsheet;
 
@@ -445,8 +446,7 @@ internal static class SpreadsheetFormulaParser {
                 cursor - start));
             return true;
         }
-        if (cursor < text.Length && (IsIdentifierStart(text[cursor])
-            || (text[cursor] >= '0' && text[cursor] <= '9') || text[cursor] == '.')) {
+        if (cursor < text.Length && IsIdentifierPart(text[cursor])) {
             while (cursor < text.Length && !IsErrorBoundary(text[cursor])) cursor++;
             children.Add(Token(SpreadsheetFormulaTokenKind.Unsupported, text.Substring(start, cursor - start), start));
             diagnostics.Add(Error(
@@ -484,7 +484,7 @@ internal static class SpreadsheetFormulaParser {
         cursor++;
         while (cursor < text.Length) {
             char character = text[cursor];
-            if (!IsIdentifierStart(character) && !(character >= '0' && character <= '9') && character != '.') break;
+            if (!IsIdentifierPart(character)) break;
             cursor++;
         }
         return cursor;
@@ -548,9 +548,11 @@ internal static class SpreadsheetFormulaParser {
     }
 
     private static bool IsIdentifierStart(char character) =>
-        (character >= 'A' && character <= 'Z') ||
-        (character >= 'a' && character <= 'z') ||
-        character == '_';
+        char.IsLetter(character) || character == '_' || character == '\\';
+
+    private static bool IsIdentifierPart(char character) =>
+        IsIdentifierStart(character) || char.IsDigit(character) || character == '.' ||
+        CharUnicodeInfo.GetUnicodeCategory(character) is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark;
 
     private static SpreadsheetFormulaSyntaxNode Token(
         SpreadsheetFormulaTokenKind kind,

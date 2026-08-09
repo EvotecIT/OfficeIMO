@@ -26,7 +26,8 @@ internal static class SpreadsheetAddressConverter {
     internal static string OpenAddressToExcel(string address) =>
         SpreadsheetRangeReference.TryParse(address, SpreadsheetAddressDialect.OpenDocument,
             out SpreadsheetRangeReference? parsed)
-            ? parsed!.Format(SpreadsheetAddressDialect.ExcelA1)
+            && parsed!.TryFormat(SpreadsheetAddressDialect.ExcelA1, out string formatted)
+            ? formatted
             : string.Empty;
 
     internal static string ToA1(int row, int column) {

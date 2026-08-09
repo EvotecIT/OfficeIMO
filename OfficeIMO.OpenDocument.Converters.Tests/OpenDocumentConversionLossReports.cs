@@ -246,6 +246,9 @@ public sealed class OpenDocumentConversionLossReportTests {
         second.CellAt(1, 1).SetValue(2);
         first.SetNamedRange("LocalValue", "A1", save: false);
         second.SetNamedRange("LocalValue", "A1", save: false);
+        first.CellAt(1, 2).SetFormula("LocalValue");
+        first.CellAt(1, 3).SetFormula("'Second Sheet'!LocalValue");
+        second.CellAt(1, 2).SetFormula("LocalValue");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         OdsDocument target = conversion.Value;
@@ -254,6 +257,9 @@ public sealed class OpenDocumentConversionLossReportTests {
         Assert.Equal(2, target.NamedRanges.Select(named => named.Name).Distinct(StringComparer.Ordinal).Count());
         Assert.Contains(target.NamedRanges, named => named.CellRangeAddress.Contains("First Sheet"));
         Assert.Contains(target.NamedRanges, named => named.CellRangeAddress.Contains("Second Sheet"));
+        Assert.Equal("of:=LocalValue", target.GetSheet("First Sheet")!.GetFormula(0, 1));
+        Assert.Equal("of:=LocalValue__Second_Sheet", target.GetSheet("First Sheet")!.GetFormula(0, 2));
+        Assert.Equal("of:=LocalValue__Second_Sheet", target.GetSheet("Second Sheet")!.GetFormula(0, 1));
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "sheet-local-named-ranges" &&
             mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
     }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace OfficeIMO.Excel {
     internal sealed class ExcelFormulaFunctionCallSyntax {
@@ -106,6 +107,10 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
                 if (current == '"') { inString = true; cursor++; continue; }
+                if (structuredDepth > 0 && current == '\'') {
+                    cursor += cursor + 1 < formula.Length ? 2 : 1;
+                    continue;
+                }
                 if (current == '\'') { inQuotedQualifier = true; cursor++; continue; }
                 if (current == '[') { structuredDepth++; cursor++; continue; }
                 if (current == ']' && structuredDepth > 0) { structuredDepth--; cursor++; continue; }
@@ -174,6 +179,10 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
                 if (current == '"') { inString = true; continue; }
+                if (bracketDepth > 0 && current == '\'') {
+                    if (cursor + 1 < end) cursor++;
+                    continue;
+                }
                 if (current == '\'') { inQuotedQualifier = true; continue; }
                 if (current == '[') { bracketDepth++; continue; }
                 if (current == ']' && bracketDepth > 0) { bracketDepth--; continue; }
@@ -224,6 +233,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsNameStart(char value) => value == '_' || char.IsLetter(value);
-        private static bool IsNamePart(char value) => IsNameStart(value) || char.IsDigit(value) || value == '.';
+        private static bool IsNamePart(char value) =>
+            IsNameStart(value) || char.IsDigit(value) || value == '.' ||
+            CharUnicodeInfo.GetUnicodeCategory(value) is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark;
     }
 }

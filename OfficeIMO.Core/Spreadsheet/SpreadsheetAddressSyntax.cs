@@ -121,6 +121,16 @@ public sealed class SpreadsheetRangeReference {
 
     /// <summary>Formats this address using the requested grammar.</summary>
     public string Format(SpreadsheetAddressDialect dialect) {
+        if (!TryFormat(dialect, out string formatted)) {
+            throw new InvalidOperationException($"The address cannot be represented safely in {dialect} syntax.");
+        }
+        return formatted;
+    }
+
+    /// <summary>Attempts to format this address without changing relative-sheet or cross-sheet range semantics.</summary>
+    public bool TryFormat(SpreadsheetAddressDialect dialect, out string formatted) {
+        formatted = string.Empty;
+        if (UsesA1Syntax(dialect) && !CanRepresentInA1Syntax()) return false;
         var output = new StringBuilder();
         AppendEndpoint(output, Start, dialect, includeSheet: true);
         if (End != null) {
@@ -134,7 +144,8 @@ public sealed class SpreadsheetRangeReference {
                 : !sameSheet;
             AppendEndpoint(output, End, dialect, includeSheet);
         }
-        return output.ToString();
+        formatted = output.ToString();
+        return true;
     }
 
     /// <summary>Formats the first cell using the requested grammar.</summary>
@@ -418,6 +429,13 @@ public sealed class SpreadsheetRangeReference {
 
     private static bool UsesA1Syntax(SpreadsheetAddressDialect dialect) =>
         dialect == SpreadsheetAddressDialect.ExcelA1 || dialect == SpreadsheetAddressDialect.UnboundedA1;
+
+    private bool CanRepresentInA1Syntax() {
+        if (Start.SheetName != null && !Start.IsSheetAbsolute) return false;
+        if (End == null) return true;
+        if (End.SheetName != null && !End.IsSheetAbsolute) return false;
+        return string.Equals(Start.SheetName, End.SheetName, StringComparison.Ordinal);
+    }
 
     private static SpreadsheetCellReference InheritA1SheetQualifier(
         SpreadsheetAddressDialect dialect,

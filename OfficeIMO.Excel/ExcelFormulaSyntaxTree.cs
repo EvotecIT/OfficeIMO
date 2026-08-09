@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -236,8 +237,7 @@ namespace OfficeIMO.Excel {
                 if (node is ExcelFormulaNameSyntax name
                     && !lexicalBindings.Any(binding => binding.Shadows(name.Name, nodeIndex, node.Text.Length))) {
                     builder.Append(rewriter(name.Name) ?? "#REF!");
-                }
-                else builder.Append(node.Text);
+                } else builder.Append(node.Text);
                 nodeIndex += node.Text.Length;
             }
             return builder.ToString();
@@ -547,7 +547,8 @@ namespace OfficeIMO.Excel {
             value == '_' || value == '\\' || char.IsLetter(value);
 
         private static bool IsNamePart(char value) =>
-            IsNameStart(value) || char.IsDigit(value) || value == '.';
+            IsNameStart(value) || char.IsDigit(value) || value == '.' ||
+            CharUnicodeInfo.GetUnicodeCategory(value) is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark;
 
         private static void AddText(List<ExcelFormulaSyntaxNode> nodes, string formula, int start, int length) {
             if (length > 0) nodes.Add(new ExcelFormulaTextSyntax(formula.Substring(start, length)));

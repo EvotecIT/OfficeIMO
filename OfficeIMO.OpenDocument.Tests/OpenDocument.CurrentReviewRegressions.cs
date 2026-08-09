@@ -319,6 +319,25 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         Assert.False(unsupported.TryGetExcelNumberFormatCode(out _));
     }
 
+    [Theory]
+    [InlineData("scientific-number")]
+    [InlineData("fraction")]
+    public void ExcelFormatProjectionRejectsUnsupportedNumericComponents(string componentName) {
+        OdsDocument document = OdsDocument.Create();
+        document.AddNumberStyle("Unsupported", 0);
+        XDocument flat = document.ToFlatXml();
+        XElement style = flat.Descendants(OdfNamespaces.Number + "number-style").Single();
+        style.RemoveNodes();
+        style.Add(new XElement(OdfNamespaces.Number + componentName));
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        OdsDataStyle unsupported = Assert.Single(OdsDocument.LoadFlatXml(stream).DataStyles);
+
+        Assert.False(unsupported.TryGetExcelNumberFormatCode(out _));
+    }
+
     private static void WrapFirstRowAsHeader(XElement table) {
         XElement firstRow = table.Elements(OdfNamespaces.Table + "table-row").First();
         XElement secondRow = firstRow.ElementsAfterSelf(OdfNamespaces.Table + "table-row").First();

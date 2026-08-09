@@ -133,6 +133,19 @@ namespace OfficeIMO.Tests {
             Assert.False(ExcelFormulaExpressionParser.TryParseFunctionCall("=SUM('Q1) final!A1:A2)", out _));
         }
 
+        [Fact]
+        public void Test_FormulaExpressionParser_TreatsApostrophesInsideStructuredReferencesAsEscapes() {
+            Assert.True(ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(
+                "=SUM(Table1['#Data])", out ExcelFormulaFunctionCallSyntax? call));
+            Assert.Equal("Table1['#Data]", call!.Arguments);
+
+            Assert.True(ExcelFormulaExpressionParser.TryParseArithmetic(
+                "Table1['#Data]+1", out ExcelFormulaBinaryExpressionSyntax? expression));
+            Assert.Equal("Table1['#Data]", expression!.Left);
+            Assert.Equal("+", expression.Operator);
+            Assert.Equal("1", expression.Right);
+        }
+
         [Theory]
         [InlineData("'Profit-Loss'!A1+1", "'Profit-Loss'!A1", "+", "1")]
         [InlineData("'Owner''s <Data>'!A1>=0", "'Owner''s <Data>'!A1", ">=", "0")]

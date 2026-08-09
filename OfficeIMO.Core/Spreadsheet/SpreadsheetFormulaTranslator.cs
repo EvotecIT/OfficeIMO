@@ -110,7 +110,17 @@ internal static class SpreadsheetFormulaTranslator {
                     node.Text.Length));
                 return;
             }
-            output.Append(node.Reference.Format(SpreadsheetAddressDialect.ExcelA1));
+            if (!node.Reference.TryFormat(SpreadsheetAddressDialect.ExcelA1, out string formatted)) {
+                output.Append(node.Text);
+                diagnostics.Add(new SpreadsheetFormulaDiagnostic(
+                    "FORMULA_TRANSLATION_REFERENCE_SHEETS",
+                    SpreadsheetFormulaDiagnosticSeverity.Error,
+                    "The reference uses relative or different worksheet endpoints that Excel A1 syntax cannot preserve.",
+                    node.Position,
+                    node.Text.Length));
+                return;
+            }
+            output.Append(formatted);
         }
     }
 

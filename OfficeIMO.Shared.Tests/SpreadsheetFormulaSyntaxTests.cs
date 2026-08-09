@@ -107,6 +107,19 @@ public sealed class SpreadsheetFormulaSyntaxTests {
         Assert.Equal(expected, result.Formula);
     }
 
+    [Theory]
+    [InlineData("=Στοιχεία+A1", "of:=Στοιχεία+[.A1]")]
+    [InlineData("=Données2+A1", "of:=Données2+[.A1]")]
+    [InlineData("=Café+A1", "of:=Café+[.A1]")]
+    public void ExcelFormulaTranslationAcceptsUnicodeDefinedNames(string formula, string expected) {
+        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
+            .Parse(formula, SpreadsheetFormulaDialect.ExcelA1)
+            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
+
+        Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(expected, result.Formula);
+    }
+
     [Fact]
     public void UnknownExcelErrorLiteralFailsClosed() {
         SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
@@ -129,10 +142,23 @@ public sealed class SpreadsheetFormulaSyntaxTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "FORMULA_TRANSLATION_REFERENCE_BOUNDS");
     }
 
+    [Theory]
+    [InlineData("of:=SUM([$'Other'.A1:.B2])")]
+    [InlineData("of:=SUM([.A1:$'Other'.B2])")]
+    [InlineData("of:=SUM([$'First'.A1:$'Second'.B2])")]
+    public void OpenFormulaRangesWithDifferentSheetEndpointsFailClosed(string formula) {
+        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
+            .Parse(formula, SpreadsheetFormulaDialect.OpenFormula)
+            .TranslateTo(SpreadsheetFormulaDialect.ExcelA1);
+
+        Assert.False(result.IsSuccessful);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "FORMULA_TRANSLATION_REFERENCE_SHEETS");
+    }
+
     [Fact]
     public void OpenDocumentAddressParsesQuotedColonAndDerivesTypedBaseCell() {
         SpreadsheetRangeReference reference = SpreadsheetRangeReference.Parse(
-            "$'A:B'.$C$1:.$C$3",
+            "$'A:B'.$C$1:$'A:B'.$C$3",
             SpreadsheetAddressDialect.OpenDocument);
 
         Assert.Equal("A:B", reference.Start.SheetName);

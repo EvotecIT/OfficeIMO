@@ -81,7 +81,7 @@ public sealed class OdsDataStyle {
                 } else {
                     if (!TryAppendExcelLiteral(builder, text)) return false;
                 }
-            }
+            } else return false;
         }
         if (!wroteNumber && !TryAppend(builder, number)) return false;
         if (Kind == OdsDataStyleKind.Percentage && !wrotePercentageScaling && !TryAppend(builder, "%")) return false;
@@ -94,6 +94,11 @@ public sealed class OdsDataStyle {
     private bool TryBuildNumericComponent(out string number) {
         number = string.Empty;
         XElement? component = Element.Descendants(OdfNamespaces.Number + "number").FirstOrDefault();
+        if (component == null) return false;
+        if (component.HasElements || component.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration &&
+                attribute.Name != OdfNamespaces.Number + "min-integer-digits" &&
+                attribute.Name != OdfNamespaces.Number + "decimal-places" &&
+                attribute.Name != OdfNamespaces.Number + "grouping")) return false;
         if (!TryReadNonNegativeInteger(component, "min-integer-digits", 1, out int minimumIntegerDigits) ||
             !TryReadNonNegativeInteger(component, "decimal-places", 0, out int decimalPlaces)) return false;
         minimumIntegerDigits = Math.Max(1, minimumIntegerDigits);
