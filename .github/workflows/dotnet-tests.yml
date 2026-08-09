@@ -477,6 +477,8 @@ jobs:
             project: OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj
           - name: CSV
             project: OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj
+          - name: ChartForgeX
+            project: OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj
           - name: Confluence
             project: OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj
           - name: Drawing
@@ -870,6 +872,7 @@ jobs:
         run: |
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
             dotnet restore OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj
+            dotnet restore OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj
           fi
           if [[ "${{ matrix.partition }}" == markdown-* ]]; then
             dotnet restore OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj
@@ -919,6 +922,7 @@ jobs:
         run: |
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
             dotnet build OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            dotnet build OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
           fi
           if [[ "${{ matrix.partition }}" == markdown-* ]]; then
             dotnet build OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -1200,6 +1204,7 @@ jobs:
               run_reader_tests
               dotnet test OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_shared_tests "shared-contracts" 'FullyQualifiedName~OfficeIMO.Shared.Tests.'
+              dotnet test OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               dotnet test OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx

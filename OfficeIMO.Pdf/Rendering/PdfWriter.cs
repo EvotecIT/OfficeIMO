@@ -1405,6 +1405,8 @@ internal static partial class PdfWriter {
         OfficeTransform imageTransform = new OfficeImageProjection(
             new OfficeImagePlacement(img.X, img.Y, img.W, img.H),
             rotationDegrees: img.RotationAngle,
+            rotationCenterX: img.RotationCenterX,
+            rotationCenterY: img.RotationCenterY,
             flipHorizontal: img.HorizontalFlip,
             flipVertical: img.VerticalFlip)
             .CreateUnitSquareTransform();
