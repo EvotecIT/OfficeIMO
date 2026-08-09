@@ -272,7 +272,10 @@ public partial class Excel {
 
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
                 path,
-                new ExcelReadOptions { SheetName = "Data" });
+                new ExcelReadOptions {
+                    SheetName = "Data",
+                    InferSchema = true
+                });
             TypedSalesRow[] rows = reader.RowsAsParallel<TypedSalesRow>(
                 new ParallelRowMappingOptions {
                     MaxDegreeOfParallelism = 4,

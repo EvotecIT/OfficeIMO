@@ -73,6 +73,53 @@ direct typed reader and materially outperform the forced sequential fallback.
 `Parallel` remains an execution preference rather than a promise to discard a
 faster single-pass reader; diagnostics report the strategy actually selected.
 
+The public forward-only mapping benchmarks keep parser and projection behavior
+separate. `ExcelPublicParallelReadBenchmarks` measures cheap automatic property
+mapping, where scheduling may cost more than it saves. The
+`ExcelPublicParallelProjectionBenchmarks` crossover lane reads through the same
+native XLSX, XLSB, or XLS reader in both methods and performs the same validated,
+CPU-heavy row projection; only sequential versus ordered-parallel projection
+changes. Both lanes enable bounded schema inference, and the CPU-heavy lane
+fails setup unless at least two projection workers actually overlap:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*ExcelPublicParallelReadBenchmarks*" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 1 --unrollFactor 1 --warmupCount 5 --iterationCount 10 --launchCount 1 --outliers DontRemove
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*ExcelPublicParallelProjectionBenchmarks*" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 1 --unrollFactor 1 --warmupCount 5 --iterationCount 10 --launchCount 1 --outliers DontRemove
+```
+
+Parsing and decompression stay single-owner in both lanes. The parallel API is
+for independent projection work; these benchmarks must not be cited as evidence
+that the underlying workbook parser runs concurrently.
+
+### Dated ordered-parallel crossover snapshot (2026-08-09)
+
+The commands above were run on .NET 10 with workstation GC, `High` process
+priority, retained outliers, five warmups, ten fixed-work iterations, and each
+16-logical-processor L3 domain measured as a separate job. The cheap automatic
+mapping lane did not establish a general parallel win: XLSX shared rank 1 on
+both domains, XLSB ranged from a 4% lower parallel mean to an unstable 83%
+higher mean, and XLS ranged from an unresolved noisy result to a 10% lower
+parallel mean. Parallel mapping allocated 11% more for XLSX and 18% more for
+XLS/XLSB. Keep cheap mappings sequential unless a representative benchmark
+shows otherwise.
+
+With 4,096 deterministic mixing rounds in each row projection, ordered-parallel
+mapping produced the following means. Setup verified complete output and failed
+unless at least two projection workers overlapped.
+
+| Format | L3 domain 0 sequential / parallel | L3 domain 1 sequential / parallel | Parallel allocation cost |
+| --- | ---: | ---: | ---: |
+| XLSX | 806.11 / 605.86 ms | 794.71 / 568.93 ms | 1.04-1.05x |
+| XLSB | 278.05 / 66.49 ms | 277.80 / 89.79 ms | 7.30-7.33x |
+| XLS | 278.27 / 50.26 ms | 270.38 / 49.38 ms | 8.15-8.28x |
+
+This is a crossover result, not a claim that ordinary row mapping is CPU-heavy.
+The XLSX reader's decompression and XML work dominates more of the total time,
+so its 25-28% reduction is smaller than the 68-82% reductions for XLSB and XLS.
+The binary formats also make the snapshot and scheduling allocation tradeoff
+especially visible. Select parallel mapping for sufficiently expensive,
+independent projection work and measure the real consumer workload.
+
 ### Dated DataTable execution-mode write snapshot (2026-08-09)
 
 `ExcelDataTableExecutionBenchmarks` creates and saves the same 25,000-row XLSX

@@ -180,7 +180,6 @@ namespace OfficeIMO.Excel {
 
         private static bool CanUseLegacyFastPath(ExcelReadOptions options) =>
             string.IsNullOrWhiteSpace(options.A1Range)
-            && !options.InferSchema
             && options.CellValueConverter == null
             && options.UseCachedFormulaResult;
 

@@ -38,6 +38,70 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OpenDataReader_XlsFastPathInfersSchemaAndReplaysSampledRows() {
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
+                LegacyXlsTestWorkbookBuilder.CreatePhase2ValueWorkbookStream());
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(
+                compound,
+                new ExcelReadOptions {
+                    HasHeaderRow = false,
+                    InferSchema = true,
+                    SchemaSampleRows = 5,
+                    NumericAsDecimal = true
+                });
+
+            Assert.Equal(typeof(object), reader.GetFieldType(0));
+            Assert.Equal(typeof(decimal), reader.GetFieldType(1));
+            Assert.Equal(typeof(decimal), reader.GetFieldType(2));
+
+            Assert.True(reader.Read());
+            Assert.Equal("Inline", reader.GetString(0));
+            Assert.True(reader.IsDBNull(1));
+            Assert.True(reader.Read());
+            Assert.Equal(7, reader.GetInt32(0));
+            Assert.Equal(-3, reader.GetInt32(1));
+            Assert.Equal(123.45m, reader.GetDecimal(2));
+            Assert.True(reader.Read());
+            Assert.Equal(1, reader.GetInt32(0));
+            Assert.Equal(2, reader.GetInt32(1));
+            Assert.True(reader.Read());
+            Assert.True(reader.IsDBNull(0));
+            Assert.True(reader.IsDBNull(1));
+            Assert.True(reader.Read());
+            Assert.Equal("#DIV/0!", reader.GetString(0));
+            Assert.False(reader.Read());
+        }
+
+        [Fact]
+        public void OpenDataReader_XlsFastPathBoundsSchemaSampling() {
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
+                LegacyXlsTestWorkbookBuilder.CreatePhase2ValueWorkbookStream());
+
+            InvalidOperationException rowLimit = Assert.Throws<InvalidOperationException>(() =>
+                ExcelDocument.OpenDataReader(
+                    compound,
+                    new ExcelReadOptions {
+                        HasHeaderRow = false,
+                        InferSchema = true,
+                        SchemaSampleRows = 2,
+                        MaxDataReaderSchemaSampleRows = 1
+                    }));
+            Assert.Contains("Schema sample row count", rowLimit.Message, StringComparison.Ordinal);
+
+            InvalidOperationException cellLimit = Assert.Throws<InvalidOperationException>(() =>
+                ExcelDocument.OpenDataReader(
+                    compound,
+                    new ExcelReadOptions {
+                        HasHeaderRow = false,
+                        InferSchema = true,
+                        SchemaSampleRows = 2,
+                        MaxDataReaderBufferedCells = 3
+                    }));
+            Assert.Contains("buffer", cellLimit.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void OpenDataReader_XlsFastPathReadsAllCachedFormulaKinds() {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
                 LegacyXlsTestWorkbookBuilder.CreatePhase4FormulaWorkbookStream());
