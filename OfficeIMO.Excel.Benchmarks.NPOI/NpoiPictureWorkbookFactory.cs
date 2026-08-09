@@ -5,7 +5,7 @@ using OfficeIMO.Excel.LegacyXls.Model;
 
 internal static class NpoiPictureWorkbookFactory {
     private static readonly byte[] PngBytes = Convert.FromBase64String(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=");
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=");
 
     internal static int GetPictureCount(int rowCount) {
         return Math.Min(Math.Max(rowCount / 250, 1), 12);

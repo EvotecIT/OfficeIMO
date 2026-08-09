@@ -107,12 +107,12 @@ public static partial class OfficeImageReader {
         if (data.Length < 12 || data[0] != 0xFF || data[1] != 0xD8) return false;
         bool hasFrame = false;
         bool hasScan = false;
-        bool hasEntropyData = false;
+        bool currentScanHasEntropyData = false;
         bool inScan = false;
         int offset = 2;
         while (offset < data.Length) {
             if (inScan && data[offset] != 0xFF) {
-                hasEntropyData = true;
+                currentScanHasEntropyData = true;
                 offset++;
                 continue;
             }
@@ -123,15 +123,16 @@ public static partial class OfficeImageReader {
             byte marker = data[offset++];
             if (inScan) {
                 if (marker == 0x00) {
-                    hasEntropyData = true;
+                    currentScanHasEntropyData = true;
                     continue;
                 }
                 if (marker >= 0xD0 && marker <= 0xD7) continue;
+                if (!currentScanHasEntropyData) return false;
                 inScan = false;
             }
 
             if (marker == 0xD9) {
-                return hasFrame && hasScan && hasEntropyData && offset == data.Length;
+                return hasFrame && hasScan && offset == data.Length;
             }
             if (marker == 0x01) continue;
             if (marker == 0x00 || marker == 0xD8 || (marker >= 0xD0 && marker <= 0xD7) || offset + 2 > data.Length) {
@@ -150,6 +151,7 @@ public static partial class OfficeImageReader {
                 int componentCount = data[segmentStart];
                 if (componentCount == 0 || segmentDataLength != 4 + (componentCount * 2)) return false;
                 hasScan = true;
+                currentScanHasEntropyData = false;
                 inScan = true;
             }
 

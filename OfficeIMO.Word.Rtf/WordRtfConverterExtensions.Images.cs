@@ -26,7 +26,11 @@ public static partial class WordRtfConverterExtensions {
         return true;
     }
 
-    private static RtfImage? CreateRtfImage(WordParagraph source) {
+    private static RtfImage? CreateRtfImage(WordParagraph source) =>
+        CreateRtfImage(source, out _);
+
+    private static RtfImage? CreateRtfImage(WordParagraph source, out OfficeImageFormat sourceFormat) {
+        sourceFormat = OfficeImageFormat.Unknown;
         if (!source.IsImage || source.Image == null || source.Image.IsExternal) {
             return null;
         }
@@ -42,7 +46,12 @@ public static partial class WordRtfConverterExtensions {
             return null;
         }
 
-        if (!TryCreateRtfImagePayload(bytes, source.Image.FileName, out RtfImageFormat format, out byte[] payload)) {
+        if (!TryCreateRtfImagePayload(
+                bytes,
+                source.Image.FileName,
+                out RtfImageFormat format,
+                out byte[] payload,
+                out sourceFormat)) {
             return null;
         }
 
@@ -96,10 +105,13 @@ public static partial class WordRtfConverterExtensions {
         byte[] bytes,
         string? fileName,
         out RtfImageFormat format,
-        out byte[] payload) {
+        out byte[] payload,
+        out OfficeImageFormat sourceFormat) {
         format = RtfImageFormat.Unknown;
         payload = Array.Empty<byte>();
+        sourceFormat = OfficeImageFormat.Unknown;
         if (OfficeImageReader.TryValidateContent(bytes, fileName, out OfficeImageInfo info)) {
+            sourceFormat = info.Format;
             switch (info.Format) {
                 case OfficeImageFormat.Png:
                     format = RtfImageFormat.Png;

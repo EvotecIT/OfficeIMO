@@ -127,6 +127,22 @@ public class VisioImageExport {
     }
 
     [Fact]
+    public void EmbeddedSvgPreviewDoesNotReportEffectsFromUnmatchedCssSelectors() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                           "<style>.unused { filter: url(#blur); } [data-unused] { mask: url(#mask); }</style>" +
+                           "<rect width='10' height='10' fill='red'/></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "unused-css-effect.svg", default, out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        Assert.DoesNotContain(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
+    [Fact]
     public void RetainedSvgApiUsesCanonicalDimensionValidation() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);

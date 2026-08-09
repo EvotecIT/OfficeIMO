@@ -92,6 +92,61 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void CompleteContentValidationChecksEveryApngFrameAndJpegScan() {
+        byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] apng = CreateTwoFrameApng(staticPng);
+        Assert.True(OfficeImageReader.TryValidateContent(apng, "animated.png", out _));
+        Assert.True(OfficePngReader.TryGetFrameCount(apng, out int frameCount));
+        Assert.Equal(2, frameCount);
+
+        byte[] corruptApng = (byte[])apng.Clone();
+        int frameDataOffset = FindPngChunk(corruptApng, "fdAT");
+        int frameDataLength = ReadBigEndianInt32(corruptApng, frameDataOffset);
+        corruptApng[frameDataOffset + 8 + frameDataLength - 1] ^= 0x01;
+        WritePngChunkCrc(corruptApng, frameDataOffset, frameDataLength);
+        Assert.False(OfficeImageReader.TryValidateContent(corruptApng, "animated.png", out _));
+
+        byte[] jpegWithEmptyFinalScan = {
+            0xFF, 0xD8,
+            0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01, 0x01, 0x11, 0x00,
+            0xFF, 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F, 0x00,
+            0x01,
+            0xFF, 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F, 0x00,
+            0xFF, 0xD9
+        };
+        Assert.True(OfficeImageReader.TryIdentifyByContent(jpegWithEmptyFinalScan, "progressive.jpg", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(jpegWithEmptyFinalScan, "progressive.jpg", out _));
+    }
+
+    [Fact]
+    public void CompleteContentValidationRejectsInvalidApngSequenceCountAndFrameBounds() {
+        byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] apng = CreateTwoFrameApng(staticPng);
+
+        byte[] invalidSequence = (byte[])apng.Clone();
+        int frameDataOffset = FindPngChunk(invalidSequence, "fdAT");
+        WriteBigEndianInt32(invalidSequence, frameDataOffset + 8, 7);
+        WritePngChunkCrc(invalidSequence, frameDataOffset, ReadBigEndianInt32(invalidSequence, frameDataOffset));
+        Assert.False(OfficeImageReader.TryValidateContent(invalidSequence, "sequence.png", out _));
+
+        byte[] invalidCount = (byte[])apng.Clone();
+        int animationControlOffset = FindPngChunk(invalidCount, "acTL");
+        WriteBigEndianInt32(invalidCount, animationControlOffset + 8, 3);
+        WritePngChunkCrc(invalidCount, animationControlOffset, ReadBigEndianInt32(invalidCount, animationControlOffset));
+        Assert.False(OfficeImageReader.TryValidateContent(invalidCount, "count.png", out _));
+
+        byte[] invalidBounds = (byte[])apng.Clone();
+        int firstFrameControlOffset = FindPngChunk(invalidBounds, "fcTL");
+        int secondFrameControlOffset = FindPngChunk(
+            invalidBounds,
+            "fcTL",
+            firstFrameControlOffset + 12 + ReadBigEndianInt32(invalidBounds, firstFrameControlOffset));
+        WriteBigEndianInt32(invalidBounds, secondFrameControlOffset + 12, 2);
+        WritePngChunkCrc(invalidBounds, secondFrameControlOffset, ReadBigEndianInt32(invalidBounds, secondFrameControlOffset));
+        Assert.False(OfficeImageReader.TryValidateContent(invalidBounds, "bounds.png", out _));
+    }
+
+    [Fact]
     public async Task GuardedAsyncConsumerSerializesConcurrentAdmissionAndSequenceAssignment() {
         const int maximum = 300;
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
@@ -148,6 +203,27 @@ public partial class DrawingTests {
             name: "outer"), cancellation.Token);
 
         Assert.Equal(new[] { 0, 1 }, observed);
+    }
+
+    [Fact]
+    public async Task GuardedAsyncConsumerRejectsForkedReentryWithoutConcurrentAdmission() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        var observed = new ConcurrentQueue<int>();
+        OfficeImageExportAsyncConsumer? accept = null;
+        accept = OfficeImageExportBatchProcessor.CreateGuardedAsyncConsumer(
+            new OfficeImageExportOptions { MaximumOutputCount = 3 },
+            async (result, token) => {
+                observed.Enqueue(result.SequenceIndex!.Value);
+                if (result.Name == "outer") {
+                    await Task.WhenAll(
+                        Task.Run(() => accept!(CreateResult("fork-1", png), token), token),
+                        Task.Run(() => accept!(CreateResult("fork-2", png), token), token));
+                }
+            });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            accept(CreateResult("outer", png), default));
+        Assert.Equal(new[] { 0 }, observed);
     }
 
     [Fact]
@@ -210,8 +286,7 @@ public partial class DrawingTests {
         Assert.Equal(0L, stream.Position);
     }
 
-    private static int FindPngChunk(byte[] bytes, string expectedType) {
-        int offset = 8;
+    private static int FindPngChunk(byte[] bytes, string expectedType, int offset = 8) {
         while (offset + 12 <= bytes.Length) {
             int length = ReadBigEndianInt32(bytes, offset);
             string type = System.Text.Encoding.ASCII.GetString(bytes, offset + 4, 4);
@@ -219,6 +294,44 @@ public partial class DrawingTests {
             offset += 12 + length;
         }
         throw new InvalidDataException("PNG chunk was not found.");
+    }
+
+    private static OfficeImageExportResult CreateResult(string name, byte[] png) =>
+        new(OfficeImageExportFormat.Png, 1, 1, png, name: name);
+
+    private static byte[] CreateTwoFrameApng(byte[] png) {
+        int idatOffset = FindPngChunk(png, "IDAT");
+        int idatLength = ReadBigEndianInt32(png, idatOffset);
+        int idatEnd = idatOffset + 12 + idatLength;
+        byte[] animationControl = new byte[8];
+        WriteBigEndianInt32(animationControl, 0, 2);
+        byte[] firstFrameControl = CreateFrameControl(sequence: 0);
+        byte[] secondFrameControl = CreateFrameControl(sequence: 1);
+        byte[] secondFrameData = new byte[idatLength + 4];
+        WriteBigEndianInt32(secondFrameData, 0, 2);
+        Buffer.BlockCopy(png, idatOffset + 8, secondFrameData, 4, idatLength);
+        byte[] prefix = CreatePngChunk("acTL", animationControl)
+            .Concat(CreatePngChunk("fcTL", firstFrameControl))
+            .ToArray();
+        byte[] suffix = CreatePngChunk("fcTL", secondFrameControl)
+            .Concat(CreatePngChunk("fdAT", secondFrameData))
+            .ToArray();
+        byte[] result = new byte[png.Length + prefix.Length + suffix.Length];
+        Buffer.BlockCopy(png, 0, result, 0, idatOffset);
+        Buffer.BlockCopy(prefix, 0, result, idatOffset, prefix.Length);
+        Buffer.BlockCopy(png, idatOffset, result, idatOffset + prefix.Length, idatEnd - idatOffset);
+        Buffer.BlockCopy(suffix, 0, result, idatEnd + prefix.Length, suffix.Length);
+        Buffer.BlockCopy(png, idatEnd, result, idatEnd + prefix.Length + suffix.Length, png.Length - idatEnd);
+        return result;
+    }
+
+    private static byte[] CreateFrameControl(int sequence) {
+        byte[] data = new byte[26];
+        WriteBigEndianInt32(data, 0, sequence);
+        WriteBigEndianInt32(data, 4, 1);
+        WriteBigEndianInt32(data, 8, 1);
+        data[21] = 1;
+        return data;
     }
 
     private static void WritePngChunkCrc(byte[] bytes, int chunkOffset, int length) {

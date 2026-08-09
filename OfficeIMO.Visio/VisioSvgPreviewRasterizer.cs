@@ -74,7 +74,7 @@ namespace OfficeIMO.Visio {
                 diagnosticSource,
                 cancellationToken);
             SvgRenderContext context = SvgRenderContext.Create(root, new SvgPaintBounds(viewLeft, viewTop, viewWidth, viewHeight), imageResolver);
-            if (context.StyleSheet.HasUnsupportedVisualEffectDeclarations) {
+            if (context.StyleSheet.HasAppliedUnsupportedVisualEffect) {
                 context.ReportUnsupportedFeature();
             }
             double rootOpacity = SvgPaint.ReadOwnOpacity(root, context);

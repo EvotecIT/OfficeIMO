@@ -246,7 +246,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task HtmlToWord_PictureSourceSet_UsesFirstAllowedImageCandidate() {
             var requested = new List<Uri>();
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
                 requested.Add(request.RequestUri!);
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
@@ -282,7 +282,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task HtmlToWord_PictureSource_UsesDataOriginalBeforeImageFallback() {
             var requested = new List<Uri>();
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
                 requested.Add(request.RequestUri!);
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
@@ -318,7 +318,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task HtmlToWord_ImageSourceSet_UsesResponsiveCandidateBeforeSourceFallback() {
             var requested = new List<Uri>();
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
                 requested.Add(request.RequestUri!);
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
@@ -397,7 +397,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task HtmlToWord_ImageSelection_DedupesResponsiveCandidatesBeforeApplyingLimit() {
             var requested = new List<Uri>();
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
                 requested.Add(request.RequestUri!);
                 if (request.RequestUri!.AbsolutePath == "/good.png") {
@@ -431,7 +431,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task HtmlToWord_ImageSelection_DedupesLazyAndResponsiveCandidatesBeforeProbing() {
             var requested = new List<Uri>();
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
                 requested.Add(request.RequestUri!);
                 if (request.RequestUri!.AbsolutePath == "/good.png") {
@@ -465,7 +465,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task HtmlToWord_ImageSelection_AppliesPolicyBeforeResponsiveCandidateLimit() {
             var requested = new List<Uri>();
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
                 requested.Add(request.RequestUri!);
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
@@ -516,7 +516,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task HtmlToWord_ImageSelection_DoesNotCountAbsentPictureAttributesTowardScanLimit() {
             var requested = new List<Uri>();
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
                 requested.Add(request.RequestUri!);
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
@@ -536,7 +536,7 @@ namespace OfficeIMO.Tests {
             string html = """
 <picture>
   <source data-lazy-src="https://cdn.example.test/good.png">
-  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=" alt="Logo" />
+  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=" alt="Logo" />
 </picture>
 """;
 
@@ -552,7 +552,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task HtmlToWord_ImageSelection_DoesNotLetOverLimitSrcSetSuppressSourceFallback() {
             var requested = new List<Uri>();
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
                 requested.Add(request.RequestUri!);
                 if (request.RequestUri!.AbsolutePath == "/fallback.png") {
@@ -591,7 +591,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task HtmlToWord_ImageSelection_AllowsTrustedCallersToProbeAllRemoteCandidates() {
             var requested = new List<Uri>();
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
                 requested.Add(request.RequestUri!);
                 if (request.RequestUri!.AbsolutePath == "/two.png") {
@@ -648,7 +648,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task HtmlToWord_RemoteImageOverRemainingTotalMaxBytes_SkipsBeforeReadingBody() {
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
                 var response = new HttpResponseMessage(HttpStatusCode.OK) {
                     Content = new ThrowIfReadContent(128)
@@ -713,7 +713,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_InvalidDataImage_DoesNotConsumeTotalBudget() {
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             string html = $"<img src=\"data:image/png;base64,not-valid-base64\" alt=\"Broken\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
             var options = new HtmlToWordOptions {
                 MaxTotalImageBytes = 70
@@ -729,7 +729,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task HtmlToWord_InvalidRemoteImage_DoesNotConsumeTotalBudget() {
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
                 var response = new HttpResponseMessage(HttpStatusCode.OK) {
                     Content = new ByteArrayContent(Encoding.ASCII.GetBytes("not an image"))
@@ -754,7 +754,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_InvalidLocalImage_DoesNotConsumeTotalBudget() {
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".png");
             File.WriteAllText(path, "not an image");
             try {
@@ -776,7 +776,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_InvalidSvgDataImage_DoesNotConsumeTotalBudget() {
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             var invalidSvgData = Convert.ToBase64String(Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"><path></svg>"));
             string html = $"<img src=\"data:image/svg+xml;base64,{invalidSvgData}\" alt=\"Broken svg\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
             var options = new HtmlToWordOptions {
@@ -793,7 +793,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_InvalidLocalSvgImage_DoesNotConsumeTotalBudget() {
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".svg");
             File.WriteAllText(path, "<svg xmlns=\"http://www.w3.org/2000/svg\"><path></svg>");
             try {
@@ -815,7 +815,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task HtmlToWord_InvalidRemoteSvgImage_DoesNotConsumeTotalBudget() {
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
                 var response = new HttpResponseMessage(HttpStatusCode.OK) {
                     Content = new ByteArrayContent(Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"><path></svg>"))
@@ -842,7 +842,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_InvalidInlineSvg_DoesNotConsumeTotalBudget() {
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             string html = $"<svg xmlns=\"http://www.w3.org/2000/svg\"><path></svg><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
             var options = new HtmlToWordOptions {
                 MaxTotalImageBytes = 100
@@ -1511,7 +1511,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task HtmlToWord_RemoteImageCache_ReservesRepeatedFloatedImageParts() {
             var requested = new List<Uri>();
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             byte[] bytes = Convert.FromBase64String(validPng);
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
                 requested.Add(request.RequestUri!);
@@ -1547,7 +1547,7 @@ namespace OfficeIMO.Tests {
         public async Task HtmlToWord_RemoteImageCache_DoesNotRetainRejectedCandidateBytes() {
             var requested = new List<Uri>();
             byte[] invalidBytes = Encoding.UTF8.GetBytes("not an image");
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
                 requested.Add(request.RequestUri!);
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
@@ -1583,7 +1583,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task HtmlToWord_RemoteImageCache_UsesCaseSensitiveUrlKeys() {
             var requested = new List<Uri>();
-            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
             byte[] bytes = Convert.FromBase64String(validPng);
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
                 requested.Add(request.RequestUri!);

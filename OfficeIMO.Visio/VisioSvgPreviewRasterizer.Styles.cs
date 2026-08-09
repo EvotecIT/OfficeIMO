@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 
@@ -8,25 +9,28 @@ namespace OfficeIMO.Visio {
         private sealed class SvgStyleSheet {
             private readonly List<SvgStyleRule> _rules;
 
-            private SvgStyleSheet(List<SvgStyleRule> rules, bool hasUnsupportedVisualEffectDeclarations) {
+            private SvgStyleSheet(List<SvgStyleRule> rules, bool hasAppliedUnsupportedVisualEffect) {
                 _rules = rules;
-                HasUnsupportedVisualEffectDeclarations = hasUnsupportedVisualEffectDeclarations;
+                HasAppliedUnsupportedVisualEffect = hasAppliedUnsupportedVisualEffect;
             }
 
-            internal bool HasUnsupportedVisualEffectDeclarations { get; }
+            internal bool HasAppliedUnsupportedVisualEffect { get; }
 
             internal static SvgStyleSheet Parse(XElement root) {
                 List<SvgStyleRule> rules = new();
-                bool hasUnsupportedVisualEffectDeclarations = false;
+                List<string> visualEffectSelectors = new();
                 foreach (XElement styleElement in root.Descendants()) {
                     if (!string.Equals(styleElement.Name.LocalName, "style", StringComparison.OrdinalIgnoreCase)) {
                         continue;
                     }
 
-                    ReadRules(styleElement.Value, rules, ref hasUnsupportedVisualEffectDeclarations);
+                    ReadRules(styleElement.Value, rules, visualEffectSelectors);
                 }
 
-                return new SvgStyleSheet(rules, hasUnsupportedVisualEffectDeclarations);
+                bool hasAppliedUnsupportedVisualEffect = root
+                    .DescendantsAndSelf()
+                    .Any(element => visualEffectSelectors.Any(selector => SvgCssSelectorMatcher.MayMatch(element, selector)));
+                return new SvgStyleSheet(rules, hasAppliedUnsupportedVisualEffect);
             }
 
             internal Dictionary<string, string> CreateStyle(XElement element) {
@@ -51,7 +55,7 @@ namespace OfficeIMO.Visio {
             internal static bool TryGetInlineValue(XElement element, string name, out string? value) =>
                 ParseDeclarations(element.Attribute("style")?.Value).TryGetValue(name, out value);
 
-            private static void ReadRules(string? css, List<SvgStyleRule> rules, ref bool hasUnsupportedVisualEffectDeclarations) {
+            private static void ReadRules(string? css, List<SvgStyleRule> rules, List<string> visualEffectSelectors) {
                 if (string.IsNullOrWhiteSpace(css)) {
                     return;
                 }
@@ -72,10 +76,13 @@ namespace OfficeIMO.Visio {
                     string selectorList = normalized.Substring(index, open - index);
                     Dictionary<string, string> declarations = ParseDeclarations(normalized.Substring(open + 1, close - open - 1));
                     if (declarations.Count > 0) {
-                        hasUnsupportedVisualEffectDeclarations |= HasActiveVisualEffectDeclaration(declarations, "filter") ||
-                                                                  HasActiveVisualEffectDeclaration(declarations, "mask");
                         string[] selectors = selectorList.Split(',');
                         for (int i = 0; i < selectors.Length; i++) {
+                            if ((HasActiveVisualEffectDeclaration(declarations, "filter") ||
+                                 HasActiveVisualEffectDeclaration(declarations, "mask")) &&
+                                !string.IsNullOrWhiteSpace(selectors[i])) {
+                                visualEffectSelectors.Add(selectors[i].Trim());
+                            }
                             if (TryCreateRule(selectors[i], declarations, rules.Count, out SvgStyleRule? rule) && rule != null) {
                                 rules.Add(rule);
                             }

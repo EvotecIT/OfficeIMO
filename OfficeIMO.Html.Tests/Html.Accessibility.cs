@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_AccessibilityFixture_SavesAsValidOpenXmlDocument() {
-            const string pixelPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==";
+            const string pixelPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
             var options = new HtmlToWordOptions {
                 EnableAccessibilityDiagnostics = true
             };

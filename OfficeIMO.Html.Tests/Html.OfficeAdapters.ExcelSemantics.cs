@@ -78,7 +78,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
 
     [Fact]
     public void ExcelHtml_TwoCellImageFallsBackBeforeEnumeratingAnOversizedAnchor() {
-        const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEAQH/69DjmQAAAABJRU5ErkJggg==";
+        const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg==";
         string html = "<section class='officeimo-sheet' data-officeimo-sheet='Images'><table><tr><td>A</td></tr></table>"
             + "<section class='officeimo-images'><ul><li data-officeimo-anchor='twoCell' data-officeimo-row='1' data-officeimo-column='1' "
             + "data-officeimo-to-row='1048576' data-officeimo-to-column='16384'><span class='officeimo-feature-label'>Huge</span>"

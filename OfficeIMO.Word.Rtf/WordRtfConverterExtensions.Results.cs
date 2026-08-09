@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.Rtf.Writing;
 
 namespace OfficeIMO.Word.Rtf;
@@ -196,6 +197,7 @@ public static partial class WordRtfConverterExtensions {
     private static void AddWordToRtfDiagnostics(WordDocument document, RtfConversionReport report) {
         List<WordElement> elements = EnumerateWordElements(document.Elements)
             .Concat(EnumerateHeaderFooterElements(document))
+            .Concat(EnumerateNoteElements(document))
             .ToList();
         int equationCount = elements
             .Count(element => element is WordEquation);
@@ -226,12 +228,11 @@ public static partial class WordRtfConverterExtensions {
         int omittedImageCount = 0;
         int normalizedImageCount = 0;
         foreach (WordParagraph paragraph in elements.OfType<WordParagraph>().Where(item => item.IsImage)) {
-            RtfImage? converted = CreateRtfImage(paragraph);
+            RtfImage? converted = CreateRtfImage(paragraph, out OfficeImageFormat sourceFormat);
             if (converted == null) {
                 omittedImageCount++;
             } else if (converted.Format == RtfImageFormat.Png &&
-                       paragraph.Image != null &&
-                       !string.Equals(Path.GetExtension(paragraph.Image.FileName), ".png", StringComparison.OrdinalIgnoreCase)) {
+                       sourceFormat != OfficeImageFormat.Png) {
                 normalizedImageCount++;
             }
         }
@@ -289,6 +290,20 @@ public static partial class WordRtfConverterExtensions {
                 if (story == null || !visited.Add(story)) continue;
                 foreach (WordElement element in EnumerateWordElements(story.Elements)) yield return element;
             }
+        }
+    }
+
+    private static IEnumerable<WordElement> EnumerateNoteElements(WordDocument document) {
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        foreach (WordFootNote note in document.FootNotes) {
+            string key = "F:" + (note.ReferenceId?.ToString() ?? "unknown");
+            if (!visited.Add(key) || note.Paragraphs == null) continue;
+            foreach (WordElement element in EnumerateWordElements(note.Paragraphs)) yield return element;
+        }
+        foreach (WordEndNote note in document.EndNotes) {
+            string key = "E:" + (note.ReferenceId?.ToString() ?? "unknown");
+            if (!visited.Add(key) || note.Paragraphs == null) continue;
+            foreach (WordElement element in EnumerateWordElements(note.Paragraphs)) yield return element;
         }
     }
 

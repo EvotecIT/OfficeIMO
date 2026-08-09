@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests;
 
 public partial class Html {
     private const string SecurityPixel =
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
 
     [Fact]
     public async System.Threading.Tasks.Task HtmlToWord_SharedAncestorStylesAreParsedOncePerElement() {

@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests;
 
 public partial class HtmlWordGapClosure {
     private const string ValidPng =
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
 
     [Theory]
     [InlineData("ltr", 150, 300)]

@@ -65,12 +65,57 @@ public static class OfficePngReader {
     internal static bool TryValidateDecodedPayload(byte[] bytes) {
         try {
             if (!TryReadPayload(bytes, out PngPayload payload)) return false;
-            if (payload.InterlaceMethod == 1) return ValidateAdam7Scanlines(payload);
-            return ValidateScanlines(payload, payload.Width, payload.Height, payload.Stride, 0, out int consumed) &&
-                   consumed == payload.Scanlines.Length;
+            if (!ValidatePayloadScanlines(payload)) return false;
+            return OfficePngAnimationValidator.TryValidateAdditionalFrames(bytes);
         } catch {
             return false;
         }
+    }
+
+    internal static bool TryValidateCompressedPayload(
+        byte[] compressed,
+        int width,
+        int height,
+        int bitDepth,
+        int colorType,
+        int interlaceMethod,
+        byte[]? palette) {
+        try {
+            if (compressed == null || compressed.Length < 6 ||
+                !IsSupportedColorLayout(colorType, bitDepth, palette) ||
+                !OfficeRasterGuards.TryEnsurePixelCount(width, height, out _)) {
+                return false;
+            }
+
+            int bitsPerPixel = GetBitsPerPixel(colorType, bitDepth);
+            int stride = OfficeRasterGuards.EnsureByteCount(
+                (((long)width * bitsPerPixel) + 7L) / 8L,
+                "PNG scanline dimensions exceed size limits.");
+            int expectedScanlineBytes = interlaceMethod == 0
+                ? OfficeRasterGuards.EnsureByteCount((long)(stride + 1) * height, "PNG decompressed data exceeds size limits.")
+                : GetExpectedAdam7ScanlineBytes(width, height, bitsPerPixel);
+            byte[] scanlines = OfficeZlibCodec.Decompress(compressed, expectedScanlineBytes, expectedScanlineBytes);
+            var payload = new PngPayload(
+                width,
+                height,
+                bitDepth,
+                colorType,
+                interlaceMethod,
+                Math.Max(1, (bitsPerPixel + 7) / 8),
+                stride,
+                palette,
+                transparency: null,
+                scanlines);
+            return ValidatePayloadScanlines(payload);
+        } catch {
+            return false;
+        }
+    }
+
+    private static bool ValidatePayloadScanlines(PngPayload payload) {
+        if (payload.InterlaceMethod == 1) return ValidateAdam7Scanlines(payload);
+        return ValidateScanlines(payload, payload.Width, payload.Height, payload.Stride, 0, out int consumed) &&
+               consumed == payload.Scanlines.Length;
     }
 
     private static bool ValidateAdam7Scanlines(PngPayload payload) {

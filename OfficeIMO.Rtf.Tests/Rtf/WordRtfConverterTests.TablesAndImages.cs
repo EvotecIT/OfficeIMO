@@ -271,6 +271,45 @@ public partial class WordRtfConverterTests {
             diagnostic.Action == RtfConversionAction.Substituted);
     }
 
+    [Fact]
+    public void Word_Rtf_Image_Diagnostics_Use_Content_Not_Display_File_Extension() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] bmp = CreateOnePixelBmp();
+        using WordDocument word = WordDocument.Create();
+        using (var stream = new MemoryStream(png, writable: false)) {
+            word.AddParagraph().AddImage(stream, "png-content.jpg", 16, 16);
+        }
+        using (var stream = new MemoryStream(bmp, writable: false)) {
+            word.AddParagraph().AddImage(stream, "bmp-content.png", 16, 16);
+        }
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        RtfConversionDiagnostic diagnostic = Assert.Single(
+            conversion.Report.Diagnostics,
+            item => item.Code == "WordRtfImagesNormalized");
+        Assert.Equal(1, diagnostic.Count);
+    }
+
+    [Fact]
+    public void Word_Rtf_Image_Diagnostics_Include_Footnote_And_Endnote_Stories() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph footnoteReference = word.AddParagraph("Footnote anchor").AddFootNote("Footnote body");
+        WordParagraph endnoteReference = word.AddParagraph("Endnote anchor").AddEndNote("Endnote body");
+        footnoteReference.FootNote!.Paragraphs![1].AddImage(
+            new Uri("https://example.test/footnote.png"), 16, 16);
+        endnoteReference.EndNote!.Paragraphs![1].AddImage(
+            new Uri("https://example.test/endnote.png"), 16, 16);
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        RtfConversionDiagnostic diagnostic = Assert.Single(
+            conversion.Report.Diagnostics,
+            item => item.Code == "WordRtfImagesOmitted");
+        Assert.Equal(2, diagnostic.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+    }
+
     private static byte[] CreateOnePixelDib() {
         byte[] dib = new byte[44];
         WriteLittleEndianInt32(dib, 0, 40);

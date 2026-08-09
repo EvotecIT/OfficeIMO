@@ -236,7 +236,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WorksheetImages_MetadataAndSizing() {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetImages.Metadata.xlsx");
-            var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+            var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorksheet("Images");
