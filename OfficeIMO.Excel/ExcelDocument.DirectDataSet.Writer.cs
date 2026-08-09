@@ -18,6 +18,31 @@ namespace OfficeIMO.Excel {
             private const int CachedCellReferencePrefixColumnLimit = 64;
             private static readonly UTF8Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
             private static readonly DateTime ExcelMinimumSupportedDateTimeOffset = DateTime.FromOADate(2);
+#if NET7_0_OR_GREATER
+            private static readonly DateTime NineteenHundredFastDateSerialMinimum = new DateTime(1900, 3, 1);
+            private static readonly DateTime NineteenFourFastDateSerialMinimum = new DateTime(1904, 1, 1);
+            private static readonly string[] FiveDigitDayMinuteFractionSuffixes = CreateFiveDigitDayMinuteFractionSuffixes();
+            private static readonly ulong[] DecimalPowers = [
+                1UL,
+                10UL,
+                100UL,
+                1_000UL,
+                10_000UL,
+                100_000UL,
+                1_000_000UL,
+                10_000_000UL,
+                100_000_000UL,
+                1_000_000_000UL,
+                10_000_000_000UL,
+                100_000_000_000UL,
+                1_000_000_000_000UL,
+                10_000_000_000_000UL,
+                100_000_000_000_000UL,
+                1_000_000_000_000_000UL,
+                10_000_000_000_000_000UL,
+                100_000_000_000_000_000UL
+            ];
+#endif
             private static readonly string[] RawNonNegativeIntegerCellCache = CreateRawNonNegativeIntegerCellCache();
             private static readonly string?[] SharedStringCellCache = new string?[CachedSharedStringCellLimit];
             private static readonly string[][] CellReferencePrefixCache = CreateCellReferencePrefixCache();

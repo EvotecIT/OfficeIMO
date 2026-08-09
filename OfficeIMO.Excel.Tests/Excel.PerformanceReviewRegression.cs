@@ -6849,6 +6849,8 @@ namespace OfficeIMO.Tests {
 
             internal int GetValueCalls { get; private set; }
 
+            internal int IsDBNullCalls { get; private set; }
+
             public object this[int i] => _inner[i];
 
             public object this[string name] => _inner[name];
@@ -6919,7 +6921,10 @@ namespace OfficeIMO.Tests {
                 return _inner.GetValues(values);
             }
 
-            public bool IsDBNull(int i) => _inner.IsDBNull(i);
+            public bool IsDBNull(int i) {
+                IsDBNullCalls++;
+                return _inner.IsDBNull(i);
+            }
 
             public bool NextResult() => _inner.NextResult();
 

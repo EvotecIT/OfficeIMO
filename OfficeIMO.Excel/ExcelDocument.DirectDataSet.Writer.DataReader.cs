@@ -67,6 +67,12 @@ namespace OfficeIMO.Excel {
                 bool canCancel = ct.CanBeCanceled;
                 bool useBulkRead = ExcelSheet.CanUseBulkDataReaderValues(reader);
                 object?[] values = new object?[columnCount];
+                CompactDataReaderRowWriter? typedRowWriter = !sheet.IncludeCellReferences
+                    && columnWritePlan.ValueStyleColumns == null
+                    ? GetCompactDataReaderRowWriter(
+                        columnWritePlan.CellValueKinds,
+                        GetDataReaderNullableColumns(reader, columnCount))
+                    : null;
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -75,8 +81,18 @@ namespace OfficeIMO.Excel {
                         throw new InvalidOperationException("Data reader export exceeds the maximum worksheet row count.");
                     }
 
-                    ExcelSheet.FillDataReaderValues(reader, values, columnCount, ref useBulkRead);
-                    if (sheet.IncludeCellReferences) {
+                    if (typedRowWriter != null) {
+                        typedRowWriter(
+                            writer,
+                            reader,
+                            columnWritePlan.StyleAttributes,
+                            dateTimeOffsetWriteStrategy,
+                            dateSystem);
+                    } else {
+                        ExcelSheet.FillDataReaderValues(reader, values, columnCount, ref useBulkRead);
+                    }
+
+                    if (typedRowWriter == null && sheet.IncludeCellReferences) {
                         WriteReferencedDataReaderRow(
                             writer,
                             values,
@@ -86,7 +102,7 @@ namespace OfficeIMO.Excel {
                             sheet.UseCellValueNumberFormats,
                             dateTimeOffsetWriteStrategy,
                             dateSystem);
-                    } else {
+                    } else if (typedRowWriter == null) {
                         WriteCompactDataReaderRow(
                             writer,
                             values,

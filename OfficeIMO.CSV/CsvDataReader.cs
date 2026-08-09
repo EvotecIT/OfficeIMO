@@ -50,7 +50,10 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
             return false;
         }
 
-        if (!textRows.TryTakeParallelBatch(preferredBatchSize, out ICsvDataReaderTextRowSource? batchRows))
+        if (!textRows.TryTakeParallelBatch(
+                preferredBatchSize,
+                cancellationToken,
+                out ICsvDataReaderTextRowSource? batchRows))
         {
             return false;
         }
@@ -88,7 +91,10 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
             return false;
         }
 
-        if (!textRows.TryTakeParallelBatch(preferredBatchSize, out ICsvDataReaderTextRowSource? batchRows))
+        if (!textRows.TryTakeParallelBatch(
+                preferredBatchSize,
+                cancellationToken,
+                out ICsvDataReaderTextRowSource? batchRows))
         {
             return false;
         }

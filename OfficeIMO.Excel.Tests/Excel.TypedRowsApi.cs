@@ -218,6 +218,33 @@ public partial class Excel {
         Assert.Equal(automatic[automatic.Length - 1].Amount, factoryRows[factoryRows.Length - 1].Amount);
     }
 
+    [Fact]
+    public void RowsAsParallel_FactoryActuallyRunsConcurrentlyAndPreservesOrder() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "OrderId");
+        for (int index = 0; index < 8; index++) {
+            sheet.CellValue(index + 2, 1, index);
+        }
+
+        using var firstWorkers = new Barrier(2);
+        int calls = 0;
+        int[] rows = sheet.RowsAsParallel(
+            "A1:A9",
+            factory: record => {
+                if (Interlocked.Increment(ref calls) <= 2) {
+                    Assert.True(firstWorkers.SignalAndWait(TimeSpan.FromSeconds(10)));
+                }
+                return record.GetInt32(0);
+            },
+            parallelOptions: new ParallelRowMappingOptions {
+                MaxDegreeOfParallelism = 2,
+                BatchSize = 1
+            }).ToArray();
+
+        Assert.Equal(Enumerable.Range(0, 8), rows);
+    }
+
     [Theory]
     [InlineData(".xlsx")]
     [InlineData(".xlsm")]

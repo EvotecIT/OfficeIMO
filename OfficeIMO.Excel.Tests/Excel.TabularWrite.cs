@@ -153,6 +153,164 @@ namespace OfficeIMO.Tests {
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
         }
 
+        [Theory]
+        [InlineData(ExcelDateSystem.NineteenHundred)]
+        [InlineData(ExcelDateSystem.NineteenFour)]
+        public void WriteRows_DateSerialFastPathPreservesOaDateRoundTrip(ExcelDateSystem dateSystem) {
+            DateTime[] expected = [
+                new DateTime(1900, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                new DateTime(1900, 3, 1, 23, 59, 59, 999, DateTimeKind.Unspecified),
+                new DateTime(1904, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                new DateTime(2026, 8, 9, 8, 17, 42, 123, DateTimeKind.Unspecified).AddTicks(4567),
+                new DateTime(9999, 12, 31, 23, 59, 59, 999, DateTimeKind.Unspecified)
+            ];
+            using var output = new MemoryStream();
+
+            ExcelDocument.WriteRows(
+                output,
+                expected,
+                ["When"],
+                static (writer, value) => writer.Write(value),
+                new ExcelTabularWriteOptions {
+                    DateSystem = dateSystem,
+                    IncludeCellReferences = false,
+                    UseSharedStrings = false
+                });
+
+            using var spreadsheet = SpreadsheetDocument.Open(output, false);
+            Cell[] cells = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet
+                .Descendants<Cell>()
+                .Skip(1)
+                .ToArray();
+            Assert.Equal(expected.Length, cells.Length);
+            for (int index = 0; index < expected.Length; index++) {
+                double serial = double.Parse(cells[index].CellValue!.Text, CultureInfo.InvariantCulture);
+                DateTime expectedRoundTrip = ExcelDateSystemConverter.FromSerial(
+                    ExcelDateSystemConverter.ToSerial(expected[index], dateSystem),
+                    dateSystem);
+                Assert.Equal(expectedRoundTrip, ExcelDateSystemConverter.FromSerial(serial, dateSystem));
+            }
+
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+        }
+
+        [Fact]
+        public void WriteDataReader_CompiledSchemaLanePreservesMixedColumnsAndNulls() {
+            var table = new DataTable("MixedReaderData");
+            table.Columns.Add("When", typeof(DateTime));
+            table.Columns.Add("Active", typeof(bool));
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Score", typeof(double));
+            table.Columns.Add("Id", typeof(int));
+            table.Columns.Add("Amount", typeof(decimal));
+            table.Columns.Add("Large", typeof(long));
+            table.Rows.Add(new DateTime(2026, 8, 9, 8, 30, 0), true, "First", 1.25, 7, 12.50m, 9_000_000_000L);
+            table.Rows.Add(new DateTime(2026, 8, 10, 9, 45, 0), false, DBNull.Value, 2.5, 8, 15.75m, 9_000_000_001L);
+            using var reader = table.CreateDataReader();
+            using var output = new MemoryStream();
+
+            ExcelDocument.WriteDataReader(
+                output,
+                reader,
+                new ExcelTabularWriteOptions {
+                    IncludeCellReferences = false,
+                    UseSharedStrings = false
+                });
+
+            using var workbookReader = ExcelDocumentReader.Open(output);
+            object?[,] values = workbookReader.GetSheet("Data").ReadRange("A1:G3");
+            Assert.Equal(new DateTime(2026, 8, 9, 8, 30, 0), values[1, 0]);
+            Assert.Equal(true, values[1, 1]);
+            Assert.Equal("First", values[1, 2]);
+            Assert.Equal(1.25, values[1, 3]);
+            Assert.Equal(7d, values[1, 4]);
+            Assert.Equal(12.5, values[1, 5]);
+            Assert.Equal(9_000_000_000d, values[1, 6]);
+            Assert.Equal(string.Empty, values[2, 2]);
+        }
+
+        [Fact]
+        public void WriteDataReader_CompiledSchemaLaneSupportsProviderBackedReaders() {
+            var sourceTable = new DataTable("ProviderSource");
+            sourceTable.Columns.Add("Id", typeof(int));
+            sourceTable.Columns.Add("Name", typeof(string));
+            sourceTable.Columns.Add("When", typeof(DateTime));
+            sourceTable.Columns.Add("Active", typeof(bool));
+            sourceTable.Rows.Add(7, "First", new DateTime(2026, 8, 9, 8, 30, 0), true);
+            sourceTable.Rows.Add(8, DBNull.Value, new DateTime(2026, 8, 10, 9, 45, 0), false);
+
+            using var sourcePackage = new MemoryStream();
+            using (var sourceReader = sourceTable.CreateDataReader()) {
+                ExcelDocument.WriteDataReader(
+                    sourcePackage,
+                    sourceReader,
+                    new ExcelTabularWriteOptions {
+                        IncludeCellReferences = false,
+                        UseSharedStrings = false
+                    });
+            }
+            sourcePackage.Position = 0;
+
+            using ExcelWorkbookDataReader providerReader = ExcelDocument.OpenDataReader(
+                sourcePackage,
+                new ExcelReadOptions {
+                    SheetName = "Data",
+                    InferSchema = true
+                });
+            Assert.All(
+                Enumerable.Range(0, providerReader.FieldCount),
+                ordinal => Assert.NotEqual(typeof(object), providerReader.GetFieldType(ordinal)));
+            using var countingReader = new CountingDataReader(providerReader);
+            using var output = new MemoryStream();
+            ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
+                output,
+                countingReader,
+                new ExcelTabularWriteOptions {
+                    IncludeCellReferences = false,
+                    UseSharedStrings = false
+                });
+
+            Assert.Equal(2, result.RowCount);
+            Assert.Equal(0, countingReader.GetValuesCalls);
+            Assert.Equal(0, countingReader.GetValueCalls);
+            using var workbookReader = ExcelDocumentReader.Open(output);
+            object?[,] values = workbookReader.GetSheet("Data").ReadRange("A1:D3");
+            Assert.Equal(7d, values[1, 0]);
+            Assert.Equal("First", values[1, 1]);
+            Assert.Equal(new DateTime(2026, 8, 9, 8, 30, 0), values[1, 2]);
+            Assert.Equal(true, values[1, 3]);
+            Assert.Equal(string.Empty, values[2, 1]);
+            Assert.Equal(false, values[2, 3]);
+        }
+
+        [Fact]
+        public void WriteDataReader_CompiledSchemaLaneUsesNonNullableProviderMetadata() {
+            var table = new DataTable("NonNullableReaderData");
+            table.Columns.Add("Id", typeof(int)).AllowDBNull = false;
+            table.Columns.Add("Name", typeof(string)).AllowDBNull = false;
+            table.Rows.Add(7, "First");
+            table.Rows.Add(8, "Second");
+            using var countingReader = new CountingDataReader(table.CreateDataReader());
+            using var output = new MemoryStream();
+
+            ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
+                output,
+                countingReader,
+                new ExcelTabularWriteOptions {
+                    IncludeCellReferences = false,
+                    UseSharedStrings = false
+                });
+
+            Assert.Equal(2, result.RowCount);
+            Assert.Equal(0, countingReader.GetValuesCalls);
+            Assert.Equal(0, countingReader.GetValueCalls);
+            Assert.Equal(0, countingReader.IsDBNullCalls);
+            using var workbookReader = ExcelDocumentReader.Open(output);
+            object?[,] values = workbookReader.GetSheet("Data").ReadRange("A1:B3");
+            Assert.Equal(7d, values[1, 0]);
+            Assert.Equal("Second", values[2, 1]);
+        }
+
         [Fact]
         public void WriteDataReader_HeaderlessEmptyReaderWritesValidEmptySheet() {
             var table = new DataTable("Empty");

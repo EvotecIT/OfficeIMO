@@ -4,6 +4,7 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 #if NET8_0_OR_GREATER
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -32,7 +33,8 @@ internal static partial class CsvParser
         ReadOnlySpan<char> text,
         CsvLoadOptions options,
         ref CsvTextFieldSpanReadState state,
-        CsvTextDataReaderBatch batch)
+        CsvTextDataReaderBatch batch,
+        CancellationToken cancellationToken = default)
     {
         if (state.RecordsToSkip != 0 ||
             !state.UseAvx2UnquotedFastPath ||
@@ -42,6 +44,7 @@ internal static partial class CsvParser
         }
 
         ThrowIfCancellationRequested(options);
+        cancellationToken.ThrowIfCancellationRequested();
         batch.Reset();
 
         var initialPosition = state.Position;
@@ -238,9 +241,10 @@ internal static partial class CsvParser
             }
 
             position += 32;
-            if ((position & 4095) == 0)
+            if (((position - initialPosition) & 4095) == 0)
             {
                 ThrowIfCancellationRequested(options);
+                cancellationToken.ThrowIfCancellationRequested();
             }
         }
 

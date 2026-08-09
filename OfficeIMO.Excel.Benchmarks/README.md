@@ -73,6 +73,42 @@ direct typed reader and materially outperform the forced sequential fallback.
 `Parallel` remains an execution preference rather than a promise to discard a
 faster single-pass reader; diagnostics report the strategy actually selected.
 
+### Dated compact DataReader write snapshot (2026-08-09)
+
+This BenchmarkDotNet 0.15.8 run wrote the same prepared 25,000-row,
+eight-column `DataTableReader` to a forward-only XLSX package through each
+library's public compact writer. Before measurement, the fixture reopens every
+package and compares every header and cell. OfficeIMO 3.2.0 was compared with
+SpreadCheetah 1.28.0, Sylvan.Data.Excel 0.5.7, and LargeXlsx 2.0.1 on .NET 10
+with workstation GC and the Windows High performance power plan.
+
+The two 16-logical-processor L3 domains on the AMD Ryzen 9 9950X3D2 were
+measured as separate jobs. Twelve warmups let tiered compilation settle, and
+all methods used the same eight invocations per sample, twenty measured
+iterations, and one launch. Every benchmark process also used the same `High`
+priority class to reduce interference from unrelated services; affinity and
+priority are both recorded in the BenchmarkDotNet evidence.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*ExcelDataReaderWriteBenchmarks*" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 8 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1
+```
+
+| Library | L3 domain 0 mean (99.9% CI) | L3 domain 1 mean (99.9% CI) | Managed allocation |
+| --- | ---: | ---: | ---: |
+| OfficeIMO.Excel | 18.91 ms (18.36-19.46) | 16.44 ms (15.48-17.40) | 6.50 MB |
+| SpreadCheetah | 19.46 ms (18.95-19.97) | 17.23 ms (16.42-18.04) | 5.62 MB |
+| Sylvan.Data.Excel | 26.66 ms (26.09-27.23) | 24.38 ms (23.58-25.18) | 7.52 MB |
+| LargeXlsx | 23.07 ms (22.53-23.62) | 17.98 ms (17.68-18.29) | 5.67 MB |
+
+OfficeIMO recorded the lowest mean on both domains. The 99.9% confidence
+intervals for OfficeIMO and SpreadCheetah still overlap on both domains, so this
+run does not prove that either library is faster or equivalent. OfficeIMO's
+intervals are wholly below Sylvan's and LargeXlsx's on both domains. SpreadCheetah
+retains the managed-allocation lead. The honest result is therefore a fastest
+observed mean and unresolved near-parity with SpreadCheetah, not a universal
+fastest, equivalent, or lowest-allocation claim. The domain-to-domain movement
+is also why a single favorable affinity result must not be published alone.
+
 ## Library comparison
 
 ```powershell
@@ -126,8 +162,9 @@ observation before measurement.
 | MiniExcel | 561.6 ms | 435.3 ms | 666,371 KB |
 
 OfficeIMO has the lowest mean on CPU 0. MiniExcel has the lowest mean on CPU
-16, but its 99.9% confidence interval overlaps OfficeIMO's, so that domain is
-reported as equal. OfficeIMO has the lowest managed allocation on both domains
+16, but their 99.9% confidence intervals overlap, so this run does not resolve
+a difference on that domain; overlap is not proof of equivalence. OfficeIMO
+has the lowest managed allocation on both domains
 by a wide margin. Several methods were bimodal or changed performance phase;
 the full distributions matter more than selecting one favorable cluster.
 

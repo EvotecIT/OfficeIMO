@@ -3,6 +3,7 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace OfficeIMO.CSV;
 
@@ -69,9 +70,11 @@ internal static partial class CsvParser
 
         internal bool TryTakeParallelBatch(
             int preferredBatchSize,
+            CancellationToken cancellationToken,
             out ICsvDataReaderTextRowSource? rows)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
+            cancellationToken.ThrowIfCancellationRequested();
             rows = null;
             if (_batch is null || _batch.HasStarted)
             {
@@ -92,14 +95,19 @@ internal static partial class CsvParser
                     requestedRowCapacity);
             }
 
-            SkipPendingTextDataReaderRecords(_text.AsSpan(), _options, ref _state);
+            SkipPendingTextDataReaderRecords(_text.AsSpan(), _options, cancellationToken, ref _state);
 
             if (_state.Position >= _text.Length)
             {
                 return true;
             }
 
-            if (!TryFillTextDataReaderBatchAvx2(_text.AsSpan(), _options, ref _state, _batch))
+            if (!TryFillTextDataReaderBatchAvx2(
+                    _text.AsSpan(),
+                    _options,
+                    ref _state,
+                    _batch,
+                    cancellationToken))
             {
                 return false;
             }
@@ -391,6 +399,7 @@ internal static partial class CsvParser
     private static void SkipPendingTextDataReaderRecords(
         ReadOnlySpan<char> text,
         CsvLoadOptions options,
+        CancellationToken cancellationToken,
         ref CsvTextFieldSpanReadState state)
     {
         if (state.RecordsToSkip == 0)
@@ -406,6 +415,7 @@ internal static partial class CsvParser
         while (state.RecordsToSkip > 0 && state.Position < text.Length)
         {
             ThrowIfCancellationRequested(options);
+            cancellationToken.ThrowIfCancellationRequested();
             int recordStart = state.Position;
             if (TrySkipTextEmptyRecord(text, trim, allowEmpty, ref state.Position))
             {

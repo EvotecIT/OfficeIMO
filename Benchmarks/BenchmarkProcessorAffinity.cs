@@ -32,6 +32,18 @@ internal static class BenchmarkProcessorAffinity {
         return Format(mask);
     }
 
+    /// <summary>Applies a non-realtime priority class to the current benchmark process.</summary>
+    internal static string ApplyPriority(string value) {
+        if (!Enum.TryParse(value, ignoreCase: true, out ProcessPriorityClass priority) ||
+            priority == ProcessPriorityClass.RealTime) {
+            throw new ArgumentException("Priority must be Idle, BelowNormal, Normal, AboveNormal, or High.", nameof(value));
+        }
+
+        using Process process = Process.GetCurrentProcess();
+        process.PriorityClass = priority;
+        return process.PriorityClass.ToString();
+    }
+
     /// <summary>Formats a mask in the canonical hexadecimal form stored with benchmark evidence.</summary>
     internal static string Format(IntPtr mask) => IntPtr.Size == 8
         ? $"0x{unchecked((ulong)mask.ToInt64()):X}"

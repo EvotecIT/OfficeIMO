@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
 using System.IO;
 using System.Linq;
@@ -76,6 +77,23 @@ public class CsvMappingTests
                     BatchSize = 1
                 }).ToArray());
         Assert.Contains("cannot be converted to Int32", exception.Message);
+    }
+
+    [Fact]
+    public void TextBatchParserObservesTheMappingCancellationTokenIndependentlyOfLoadOptions()
+    {
+        var source = new CsvParser.CsvTextDataReaderRowSource(
+            "Id\n1\n2\n",
+            new CsvLoadOptions(),
+            recordsToSkip: 1,
+            sourceColumnCount: 1);
+        using (source)
+        using (var cancellation = new CancellationTokenSource())
+        {
+            cancellation.Cancel();
+            Assert.Throws<OperationCanceledException>(() =>
+                source.TryTakeParallelBatch(2, cancellation.Token, out _));
+        }
     }
 
     [Theory]
@@ -166,7 +184,10 @@ public class CsvMappingTests
             recordsToSkip: 0,
             sourceColumnCount: 1);
 
-        Assert.True(source.TryTakeParallelBatch(1, out ICsvDataReaderTextRowSource? rows));
+        Assert.True(source.TryTakeParallelBatch(
+            1,
+            CancellationToken.None,
+            out ICsvDataReaderTextRowSource? rows));
         using (rows)
         {
             Assert.NotNull(rows);
@@ -294,15 +315,20 @@ public class CsvMappingTests
     }
 
     [Fact]
-    public void Parallel_Factory_Fallback_Preserves_The_Native_Record_On_The_Calling_Thread()
+    public void Parallel_Factory_Fallback_Uses_Independent_Ordered_Snapshots()
     {
-        using DbDataReader reader = CsvDocument.Parse("Id\n1\n2\n").CreateDataReader();
-        int callingThread = Environment.CurrentManagedThreadId;
+        using DbDataReader reader = CsvDocument.Parse("Id\n1\n2\n3\n4\n").CreateDataReader();
+        using var firstWorkers = new Barrier(2);
+        int calls = 0;
 
         int[] rows = reader.RowsAsParallel(
             record => {
-                Assert.Same(reader, record);
-                Assert.Equal(callingThread, Environment.CurrentManagedThreadId);
+                Assert.NotSame(reader, record);
+                Assert.Equal("Id", record.GetName(0));
+                Assert.Equal(typeof(string), record.GetFieldType(0));
+                if (Interlocked.Increment(ref calls) <= 2) {
+                    Assert.True(firstWorkers.SignalAndWait(TimeSpan.FromSeconds(10)));
+                }
                 return record.GetInt32(0);
             },
             new ParallelRowMappingOptions {
@@ -310,7 +336,31 @@ public class CsvMappingTests
                 BatchSize = 1
             }).ToArray();
 
-        Assert.Equal(new[] { 1, 2 }, rows);
+        Assert.Equal(new[] { 1, 2, 3, 4 }, rows);
+    }
+
+    [Fact]
+    public void Parallel_Factory_Uses_The_Native_Sequential_Record_For_Unsafe_Object_Schemas()
+    {
+        var table = new DataTable();
+        table.Columns.Add("Payload", typeof(object));
+        using var payload = new MemoryStream(new byte[] { 1, 2, 3 });
+        table.Rows.Add(payload);
+        using DbDataReader reader = table.CreateDataReader();
+        int callingThread = Environment.CurrentManagedThreadId;
+
+        object[] rows = reader.RowsAsParallel(
+            record => {
+                Assert.Same(reader, record);
+                Assert.Equal(callingThread, Environment.CurrentManagedThreadId);
+                return record.GetValue(0);
+            },
+            new ParallelRowMappingOptions {
+                MaxDegreeOfParallelism = 2,
+                BatchSize = 1
+            }).ToArray();
+
+        Assert.Same(payload, Assert.Single(rows));
     }
 
     [Fact]

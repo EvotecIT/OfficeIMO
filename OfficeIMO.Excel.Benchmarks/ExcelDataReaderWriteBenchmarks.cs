@@ -4,6 +4,7 @@ using System.Data;
 using System.Globalization;
 using BenchmarkDotNet.Attributes;
 using ExcelDataReader;
+using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.Excel.Benchmarks;
 
@@ -20,6 +21,11 @@ public class ExcelDataReaderWriteBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
+        string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
+        if (!string.IsNullOrEmpty(priority)) {
+            BenchmarkProcessorAffinity.ApplyPriority(priority);
+        }
+
         var rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(RowCount);
         _table = ExcelLibraryComparisonRunner.CreateSalesDataTable(rows, "Data");
 

@@ -153,8 +153,11 @@ namespace OfficeIMO.Excel {
                 cancellationToken,
                 effectiveOptions.CancellationToken);
             try {
-                return _excelDocument.CreateDataReader(
-                    effectiveOptions.ForSheet(Name, a1Range, linked.Token));
+                ExcelReadOptions readerOptions = effectiveOptions.ForSheet(Name, a1Range, linked.Token);
+                // Parallel workers require stable scalar schema tokens so mutable/provider-owned
+                // object values never cross the single-owner worksheet reader boundary.
+                readerOptions.InferSchema = true;
+                return _excelDocument.CreateDataReader(readerOptions);
             } catch {
                 linked.Dispose();
                 throw;

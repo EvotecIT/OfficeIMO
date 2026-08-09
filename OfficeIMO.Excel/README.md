@@ -199,7 +199,8 @@ using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
     "sales.xlsx",
     new ExcelReadOptions {
         SheetName = "Data",
-        A1Range = "A1:D50001"
+        A1Range = "A1:D50001",
+        InferSchema = true
     });
 
 SalesRow[] rows = reader.RowsAsParallel<SalesRow>(
@@ -225,9 +226,12 @@ SalesRow[] rows = document["Data"].RowsAsParallel<SalesRow>(
 
 Both public surfaces preserve source order and bound in-flight work. The
 forward-only form applies to every format supported by `OpenDataReader`; the
-`ExcelSheet` form projects an already loaded editable workbook. A degree of one
-uses the sequential mapping contract. Parsing and decompression are not claimed
-to run in parallel, and small or cheap rows can still be faster sequentially.
+`ExcelSheet` form projects an already loaded editable workbook and enables the
+bounded schema inference required for safe snapshots. Set `InferSchema = true`
+on a directly opened reader as shown above. A degree of one, or a schema with
+provider-owned object/mutable fields, uses the sequential mapping contract.
+Parsing and decompression are not claimed to run in parallel, and small or cheap
+rows can still be faster sequentially.
 
 ### Append to an existing table
 

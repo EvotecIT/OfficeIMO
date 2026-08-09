@@ -5551,14 +5551,14 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static DataTable CreateSalesDataTable() {
         var table = new DataTable("Data") { Locale = CultureInfo.InvariantCulture };
-        table.Columns.Add("Id", typeof(int));
-        table.Columns.Add("Region", typeof(string));
-        table.Columns.Add("Owner", typeof(string));
-        table.Columns.Add("CreatedOn", typeof(DateTime));
-        table.Columns.Add("Amount", typeof(double));
-        table.Columns.Add("Units", typeof(int));
-        table.Columns.Add("Active", typeof(bool));
-        table.Columns.Add("Notes", typeof(string));
+        table.Columns.Add("Id", typeof(int)).AllowDBNull = false;
+        table.Columns.Add("Region", typeof(string)).AllowDBNull = false;
+        table.Columns.Add("Owner", typeof(string)).AllowDBNull = false;
+        table.Columns.Add("CreatedOn", typeof(DateTime)).AllowDBNull = false;
+        table.Columns.Add("Amount", typeof(double)).AllowDBNull = false;
+        table.Columns.Add("Units", typeof(int)).AllowDBNull = false;
+        table.Columns.Add("Active", typeof(bool)).AllowDBNull = false;
+        table.Columns.Add("Notes", typeof(string)).AllowDBNull = false;
         return table;
     }
 
