@@ -180,7 +180,16 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void Load_ExposesHeadingBookmarkLinksAsLogicalElements() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(pdf => pdf.Content(content => content
+                .H1("Jump to details", linkDestinationName: "Details", linkContents: "Heading jump metadata")
+                .Element(element => element.H2(
+                    "Nested jump to details",
+                    PdfAlign.Left,
+                    linkContents: "Nested heading jump metadata",
+                    linkDestinationName: "Details"))
+                .Spacer(18)
+                .Bookmark("Details")
+                .H2("Details")), new PdfOptions {
                 PageWidth = 360,
                 PageHeight = 240,
                 MarginLeft = 36,
@@ -188,10 +197,6 @@ public partial class PdfLogicalDocumentTests {
                 MarginTop = 36,
                 MarginBottom = 36
             })
-            .H1("Jump to details", linkDestinationName: "Details", linkContents: "Heading jump metadata")
-            .Spacer(18)
-            .Bookmark("Details")
-            .H2("Details")
             .ToBytes();
 
         PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
@@ -200,7 +205,9 @@ public partial class PdfLogicalDocumentTests {
 
         Assert.Contains(logical.Headings, heading => heading.Text == "Jump to details");
         Assert.Contains(logical.NamedDestinations, destination => destination.Name == "Details");
-        PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByDestinationName("Details"));
+        PdfLogicalLinkAnnotation[] links = logical.GetLinksByDestinationName("Details").ToArray();
+        Assert.Equal(2, links.Length);
+        PdfLogicalLinkAnnotation link = links[0];
         Assert.False(link.IsUriLink);
         Assert.True(link.IsNamedDestinationLink);
         Assert.Null(link.Uri);
@@ -208,6 +215,7 @@ public partial class PdfLogicalDocumentTests {
         Assert.Equal("Heading jump metadata", link.Contents);
         Assert.True(link.Width > 0);
         Assert.True(link.Height > 0);
+        Assert.Equal("Nested heading jump metadata", links[1].Contents);
     }
 
     [Fact]

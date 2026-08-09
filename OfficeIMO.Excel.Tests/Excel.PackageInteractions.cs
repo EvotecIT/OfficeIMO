@@ -413,6 +413,33 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, customXml.Count);
         }
 
+        [Fact]
+        public void Test_PivotInteractionMetadata_RejectsOversizedAggregateWithoutCorruptingExistingPart() {
+            string filePath = Path.Combine(_directoryWithFiles, "PackageInteractions.OversizedAggregate.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorksheet("Data").CellValue(1, 1, "Value");
+                document.AddWorkbookSlicerCache(new ExcelSlicerCacheOptions {
+                    Xml = "<customSlicer name=\"Region\"><payload>" + new string('s', 600_000) + "</payload></customSlicer>"
+                });
+
+                InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                    document.AddWorkbookTimelineCache(new ExcelTimelineCacheOptions {
+                        Xml = "<customTimeline name=\"OrderDate\"><payload>" + new string('t', 600_000) + "</payload></customTimeline>"
+                    }));
+
+                Assert.Contains("exceeds the supported character limit", exception.Message, StringComparison.Ordinal);
+                Assert.Equal("Region", Assert.Single(document.GetWorkbookSlicerCaches()).Name);
+                Assert.Empty(document.GetWorkbookTimelineCaches());
+                document.Save();
+            }
+
+            using ExcelDocument inspected = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            Assert.Equal("Region", Assert.Single(inspected.GetWorkbookSlicerCaches()).Name);
+            Assert.Empty(inspected.GetWorkbookTimelineCaches());
+            Assert.Equal(1, inspected.CreateInspectionSnapshot().SlicerBindingMetadataPartCount);
+        }
+
         private static void WriteExtendedPart(ExtendedPart part, string xml) {
             using var stream = part.GetStream(FileMode.Create, FileAccess.Write);
             byte[] bytes = Encoding.UTF8.GetBytes(xml);

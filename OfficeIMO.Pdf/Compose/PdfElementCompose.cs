@@ -15,7 +15,8 @@ public sealed class PdfElementCompose {
     /// <param name="style">Optional heading style.</param>
     /// <param name="linkUri">Optional absolute URI or catalog-base-relative URI for a heading link annotation.</param>
     /// <param name="linkContents">Optional link annotation contents metadata.</param>
-    public PdfElementCompose H1(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.H1(text, style: style, linkUri: linkUri, linkContents: linkContents); return this; }
+    /// <param name="linkDestinationName">Optional named destination targeted by the heading link annotation.</param>
+    public PdfElementCompose H1(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H1(text, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
     /// <summary>Adds an H1 heading with explicit alignment and color.</summary>
     /// <param name="text">Heading text.</param>
     /// <param name="align">Heading alignment.</param>
@@ -23,13 +24,15 @@ public sealed class PdfElementCompose {
     /// <param name="linkUri">Optional absolute URI or catalog-base-relative URI for a heading link annotation.</param>
     /// <param name="style">Optional heading style.</param>
     /// <param name="linkContents">Optional link annotation contents metadata.</param>
-    public PdfElementCompose H1(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null) { _doc.H1(text, align, color, linkUri, style, linkContents); return this; }
+    /// <param name="linkDestinationName">Optional named destination targeted by the heading link annotation.</param>
+    public PdfElementCompose H1(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H1(text, align, color, linkUri, style, linkContents, linkDestinationName); return this; }
     /// <summary>Adds an H2 heading.</summary>
     /// <param name="text">Heading text.</param>
     /// <param name="style">Optional heading style.</param>
     /// <param name="linkUri">Optional absolute URI or catalog-base-relative URI for a heading link annotation.</param>
     /// <param name="linkContents">Optional link annotation contents metadata.</param>
-    public PdfElementCompose H2(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.H2(text, style: style, linkUri: linkUri, linkContents: linkContents); return this; }
+    /// <param name="linkDestinationName">Optional named destination targeted by the heading link annotation.</param>
+    public PdfElementCompose H2(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H2(text, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
     /// <summary>Adds an H2 heading with explicit alignment and color.</summary>
     /// <param name="text">Heading text.</param>
     /// <param name="align">Heading alignment.</param>
@@ -37,13 +40,15 @@ public sealed class PdfElementCompose {
     /// <param name="linkUri">Optional absolute URI or catalog-base-relative URI for a heading link annotation.</param>
     /// <param name="style">Optional heading style.</param>
     /// <param name="linkContents">Optional link annotation contents metadata.</param>
-    public PdfElementCompose H2(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null) { _doc.H2(text, align, color, linkUri, style, linkContents); return this; }
+    /// <param name="linkDestinationName">Optional named destination targeted by the heading link annotation.</param>
+    public PdfElementCompose H2(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H2(text, align, color, linkUri, style, linkContents, linkDestinationName); return this; }
     /// <summary>Adds an H3 heading.</summary>
     /// <param name="text">Heading text.</param>
     /// <param name="style">Optional heading style.</param>
     /// <param name="linkUri">Optional absolute URI or catalog-base-relative URI for a heading link annotation.</param>
     /// <param name="linkContents">Optional link annotation contents metadata.</param>
-    public PdfElementCompose H3(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.H3(text, style: style, linkUri: linkUri, linkContents: linkContents); return this; }
+    /// <param name="linkDestinationName">Optional named destination targeted by the heading link annotation.</param>
+    public PdfElementCompose H3(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H3(text, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
     /// <summary>Adds an H3 heading with explicit alignment and color.</summary>
     /// <param name="text">Heading text.</param>
     /// <param name="align">Heading alignment.</param>
@@ -51,7 +56,8 @@ public sealed class PdfElementCompose {
     /// <param name="linkUri">Optional absolute URI or catalog-base-relative URI for a heading link annotation.</param>
     /// <param name="style">Optional heading style.</param>
     /// <param name="linkContents">Optional link annotation contents metadata.</param>
-    public PdfElementCompose H3(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null) { _doc.H3(text, align, color, linkUri, style, linkContents); return this; }
+    /// <param name="linkDestinationName">Optional named destination targeted by the heading link annotation.</param>
+    public PdfElementCompose H3(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H3(text, align, color, linkUri, style, linkContents, linkDestinationName); return this; }
     /// <summary>Adds a paragraph built from styled text runs.</summary>
     /// <param name="build">Paragraph content builder.</param>
     /// <param name="align">Paragraph alignment.</param>

@@ -43,17 +43,17 @@ public sealed class PdfItemCompose {
     /// <summary>Adds invisible vertical space to the current flow.</summary>
     public PdfItemCompose Spacer(double height) { _doc.Spacer(height); return this; }
     /// <summary>Adds an H1 heading.</summary>
-    public PdfItemCompose H1(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.H1(text, style: style, linkUri: linkUri, linkContents: linkContents); return this; }
+    public PdfItemCompose H1(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H1(text, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
     /// <summary>Adds an H1 heading with explicit alignment and color.</summary>
-    public PdfItemCompose H1(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null) { _doc.H1(text, align, color, linkUri, style, linkContents); return this; }
+    public PdfItemCompose H1(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H1(text, align, color, linkUri, style, linkContents, linkDestinationName); return this; }
     /// <summary>Adds an H2 heading.</summary>
-    public PdfItemCompose H2(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.H2(text, style: style, linkUri: linkUri, linkContents: linkContents); return this; }
+    public PdfItemCompose H2(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H2(text, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
     /// <summary>Adds an H2 heading with explicit alignment and color.</summary>
-    public PdfItemCompose H2(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null) { _doc.H2(text, align, color, linkUri, style, linkContents); return this; }
+    public PdfItemCompose H2(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H2(text, align, color, linkUri, style, linkContents, linkDestinationName); return this; }
     /// <summary>Adds an H3 heading.</summary>
-    public PdfItemCompose H3(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.H3(text, style: style, linkUri: linkUri, linkContents: linkContents); return this; }
+    public PdfItemCompose H3(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H3(text, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
     /// <summary>Adds an H3 heading with explicit alignment and color.</summary>
-    public PdfItemCompose H3(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null) { _doc.H3(text, align, color, linkUri, style, linkContents); return this; }
+    public PdfItemCompose H3(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H3(text, align, color, linkUri, style, linkContents, linkDestinationName); return this; }
     /// <summary>Adds a paragraph built from styled text runs.</summary>
     /// <param name="build">Paragraph content builder.</param>
     /// <param name="align">Paragraph alignment.</param>

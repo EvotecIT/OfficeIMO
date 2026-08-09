@@ -124,9 +124,15 @@ namespace OfficeIMO.Excel {
             }
 
             root.Add(storedBinding);
+            string mergedXml = new XDocument(root).ToString(SaveOptions.DisableFormatting);
+            if (mergedXml.Length > MaximumPivotInteractionPartCharacters) {
+                throw new InvalidDataException(
+                    "Pivot interaction metadata exceeds the supported character limit.");
+            }
+
             CustomXmlPart? canonicalPart = existingParts.OfType<CustomXmlPart>().FirstOrDefault();
             canonicalPart ??= WorkbookPartRoot.AddCustomXmlPart(CustomXmlPartType.CustomXml);
-            WriteMetadataPart(canonicalPart, new XDocument(root).ToString(SaveOptions.DisableFormatting));
+            WriteMetadataPart(canonicalPart, mergedXml);
             foreach (OpenXmlPart obsoletePart in existingParts.Where(part => !ReferenceEquals(part, canonicalPart))) {
                 WorkbookPartRoot.DeletePart(obsoletePart);
             }

@@ -504,17 +504,23 @@ public partial class Excel {
         Assert.Contains("incompatible horizontal and vertical", Assert.IsType<string>(arguments[1]), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void SaveAsPdf_ExcelWorkbook_ReportsLossyComboSeriesApproximations() {
+    [Theory]
+    [InlineData(ExcelChartType.ColumnClustered, ExcelChartType.Scatter)]
+    [InlineData(ExcelChartType.ColumnClustered, ExcelChartType.Bubble)]
+    [InlineData(ExcelChartType.Scatter, ExcelChartType.ColumnClustered)]
+    [InlineData(ExcelChartType.Scatter, ExcelChartType.Line)]
+    public void SaveAsPdf_ExcelWorkbook_RejectsMixedCategoryAndScatterAxisModels(
+        ExcelChartType baseType,
+        ExcelChartType seriesType) {
         var snapshot = new ExcelChartSnapshot(
-            "ApproximatedCombo",
-            "Column Bubble Combo",
-            ExcelChartType.ColumnClustered,
+            "IncompatibleAxisModelCombo",
+            "Category Scatter Combo",
+            baseType,
             new ExcelChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new ExcelChartSeries("Sales", new[] { 12D, 18D, 24D }, ExcelChartType.ColumnClustered),
-                    new ExcelChartSeries("Bubble", new[] { 10D, 16D, 22D }, ExcelChartType.Bubble)
+                    new ExcelChartSeries("Base", new[] { 12D, 18D, 24D }, baseType),
+                    new ExcelChartSeries("Mixed", new[] { 10D, 16D, 22D }, seriesType)
                 }),
             rowIndex: 1,
             columnIndex: 5,
@@ -527,10 +533,8 @@ public partial class Excel {
             BindingFlags.NonPublic | BindingFlags.Static)!;
         object?[] arguments = { snapshot, null, null };
 
-        Assert.True((bool)method.Invoke(null, arguments)!);
-        List<string> warnings = Assert.IsType<List<string>>(arguments[2]);
-        string warning = Assert.Single(warnings);
-        Assert.Contains("without bubble-size encoding", warning, StringComparison.Ordinal);
+        Assert.False((bool)method.Invoke(null, arguments)!);
+        Assert.Contains("incompatible category and scatter axis models", Assert.IsType<string>(arguments[1]), StringComparison.Ordinal);
     }
 
     [Fact]

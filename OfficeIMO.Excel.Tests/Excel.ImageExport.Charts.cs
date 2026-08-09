@@ -712,6 +712,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportReportsUnsupportedMixedCategoryAndScatterAxes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("ComboScatter");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Sales");
+            sheet.CellValue(1, 3, "Trend");
+            sheet.CellValue(1, 4, "Trend X");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(2, 2, 10);
+            sheet.CellValue(3, 2, 20);
+            sheet.CellValue(2, 3, 30);
+            sheet.CellValue(3, 3, 40);
+            sheet.CellValue(2, 4, 100);
+            sheet.CellValue(3, 4, 200);
+            sheet.AddChartFromRange("A1:C3", row: 1, column: 6, widthPixels: 260, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Combo Scatter");
+            ConvertSecondBarSeriesToScatter(document);
+
+            OfficeImageExportResult result = sheet.Range("A1:J10").ExportImage(
+                OfficeImageExportFormat.Png,
+                new ExcelImageExportOptions { ShowGridlines = false });
+
+            Assert.Contains(result.Diagnostics, diagnostic =>
+                diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartKindUnsupported
+                && diagnostic.Message.Contains("incompatible category and scatter axis models", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportReadsNumericCategoryReferences() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

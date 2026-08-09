@@ -354,6 +354,25 @@ namespace OfficeIMO.Excel {
                     sheetName + "!" + snapshot.Name));
             }
 
+            foreach (ExcelChartSeries series in snapshot.Data.Series.Where(series =>
+                series.ChartType.HasValue && series.ChartType.Value != snapshot.ChartType)) {
+                if (TryMapCompatibleComboSeriesRenderKind(
+                        snapshot.ChartType,
+                        series.ChartType!.Value,
+                        out _,
+                        out _,
+                        out string? unsupportedReason)) {
+                    continue;
+                }
+
+                diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.ChartKindUnsupported,
+                    "Excel combo-chart series '" + series.Name + "' cannot be rendered: " + unsupportedReason,
+                    sheetName + "!" + snapshot.Name));
+                return false;
+            }
+
             if (snapshot.Data.Series.Any(series => series.ChartType.HasValue &&
                 series.ChartType.Value != snapshot.ChartType &&
                 (!TryMapSeriesRenderKind(series.ChartType.Value, out _, out string? seriesApproximation) || seriesApproximation != null))) {
@@ -433,8 +452,16 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            if (IsScatterAxisChartKind(baseKind) != IsScatterAxisChartKind(seriesKind)) {
+                unsupportedReason = "combo-chart types '" + baseType + "' and '" + seriesType + "' use incompatible category and scatter axis models.";
+                return false;
+            }
+
             return true;
         }
+
+        private static bool IsScatterAxisChartKind(OfficeChartKind kind) =>
+            kind == OfficeChartKind.Scatter;
 
         private static bool IsBarChartKind(OfficeChartKind kind) =>
             kind == OfficeChartKind.BarClustered ||
