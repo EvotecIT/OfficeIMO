@@ -142,7 +142,17 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            return HtmlTextEncodingResolver.DecodeCss(File.ReadAllBytes(path));
+            try {
+                return HtmlTextEncodingResolver.DecodeCss(File.ReadAllBytes(path));
+            } catch (DecoderFallbackException exception) {
+                AddDiagnostic(
+                    _options,
+                    "StylesheetEncodingFailed",
+                    "Stylesheet resource used an unsupported encoding or invalid byte sequence and was skipped.",
+                    path,
+                    exception);
+                return string.Empty;
+            }
         }
 
         private bool TryApplyStylesheetUriPolicy(Uri uri, string source) {

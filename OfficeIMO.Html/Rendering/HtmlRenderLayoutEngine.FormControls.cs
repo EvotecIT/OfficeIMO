@@ -401,8 +401,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (multiple) {
             string[] values = options
                 .Where(option => option.HasAttribute("selected"))
-                .DefaultIfEmpty(options.FirstOrDefault()!)
-                .Where(option => option != null)
                 .Select(option => NormalizeControlText(option.TextContent))
                 .Where(value => value.Length > 0)
                 .ToArray();
@@ -410,7 +408,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
-        IElement? selected = options.FirstOrDefault(option => option.HasAttribute("selected")) ?? options.FirstOrDefault();
+        IElement? selected = options.LastOrDefault(option => option.HasAttribute("selected")) ?? options.FirstOrDefault();
         string value = selected == null ? string.Empty : NormalizeControlText(selected.TextContent);
         AddSingleLineControlText(visuals, value, x, y, Math.Max(1D, width - 16D), height, style, false, OfficeTextAlignment.Left, source);
 

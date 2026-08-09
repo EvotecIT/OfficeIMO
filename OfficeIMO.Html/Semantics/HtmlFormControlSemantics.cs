@@ -158,29 +158,33 @@ internal static class HtmlFormControlSemantics {
     }
 
     internal static string ResolveFormOwnerId(IElement element) {
-        string explicitOwner = (element.GetAttribute("form") ?? string.Empty).Trim();
-        if (explicitOwner.Length > 0) {
+        IElement? owner = ResolveFormOwner(element);
+        return (owner?.GetAttribute("id") ?? string.Empty).Trim();
+    }
+
+    internal static IElement? ResolveFormOwner(IElement element) {
+        if (element.HasAttribute("form")) {
+            string explicitOwner = (element.GetAttribute("form") ?? string.Empty).Trim();
+            if (explicitOwner.Length == 0) return null;
             return element.Owner?.QuerySelectorAll("form[id]")
-                .Any(form => string.Equals(form.GetAttribute("id"), explicitOwner, StringComparison.Ordinal)) == true
-                ? explicitOwner
-                : string.Empty;
+                .FirstOrDefault(form => string.Equals(form.GetAttribute("id"), explicitOwner, StringComparison.Ordinal));
         }
 
         for (IElement? ancestor = element.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
             if (string.Equals(ancestor.LocalName, "form", StringComparison.OrdinalIgnoreCase)) {
-                return (ancestor.GetAttribute("id") ?? string.Empty).Trim();
+                return ancestor;
             }
         }
-        return string.Empty;
+        return null;
     }
 
     private static IReadOnlyList<string> GetSelectValues(IElement select) {
         bool multiple = select.HasAttribute("multiple");
         IElement[] options = select.QuerySelectorAll("option").ToArray();
-        IEnumerable<IElement> selected = options.Where(option => option.HasAttribute("selected"));
-        if (!selected.Any() && !multiple && options.Length > 0) selected = new[] { options[0] };
-        if (!multiple) selected = selected.Take(1);
-        return selected.Select(GetOptionValue).ToArray();
+        IElement[] selected = options.Where(option => option.HasAttribute("selected")).ToArray();
+        if (multiple) return selected.Select(GetOptionValue).ToArray();
+        IElement? effective = selected.LastOrDefault() ?? options.FirstOrDefault();
+        return effective == null ? Array.Empty<string>() : new[] { GetOptionValue(effective) };
     }
 
     private static string GetOptionValue(IElement option) =>

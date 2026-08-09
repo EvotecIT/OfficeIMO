@@ -147,6 +147,17 @@ public sealed class HtmlCoreTests {
         Assert.Equal("é", dataUri.DecodeText());
     }
 
+    [Theory]
+    [InlineData("iso-8859-1")]
+    [InlineData("us-ascii")]
+    public void HtmlDataUri_DecodeTextUsesWebEncodingAliases(string charset) {
+        Assert.True(HtmlDataUri.TryParse(
+            $"data:text/plain;charset={charset};base64,gA==",
+            out HtmlDataUri dataUri));
+
+        Assert.Equal("€", dataUri.DecodeText());
+    }
+
     [Fact]
     public void HtmlStylesheetDecoderHonorsContentTypeAndCssCharset() {
         byte[] body = Encoding.ASCII.GetBytes(".label::before{content:'");
@@ -163,6 +174,18 @@ public sealed class HtmlCoreTests {
 
         Assert.Contains("é", contentTypeCss, StringComparison.Ordinal);
         Assert.Contains("é", declaredCss, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("text/css; charset=us-ascii", null)]
+    [InlineData("text/css", "@charset \"iso-8859-1\";")]
+    public void HtmlStylesheetDecoderUsesWebEncodingAliases(string contentType, string? declaration) {
+        byte[] prefix = Encoding.ASCII.GetBytes((declaration ?? string.Empty) + ".label::before{content:'");
+        byte[] suffix = Encoding.ASCII.GetBytes("';}");
+        byte[] stylesheet = prefix.Concat(new byte[] { 0x80 }).Concat(suffix).ToArray();
+
+        Assert.True(HtmlRenderStylesheetText.TryDecode(stylesheet, contentType, out string css));
+        Assert.Contains("€", css, StringComparison.Ordinal);
     }
 
     private static byte[] BuildWindows1252Html() {

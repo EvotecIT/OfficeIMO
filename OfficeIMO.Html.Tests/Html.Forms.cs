@@ -100,6 +100,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_SingleSelectUsesEffectiveLastSelectedOption() {
+            const string html = "<select><option selected>First</option><option selected>Second</option></select>";
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            var dropDown = Assert.Single(doc.DropDownLists);
+            Assert.Equal("Second", dropDown.SelectedValue);
+        }
+
+        [Fact]
         public void HtmlToWord_Select_PreservesDistinctOptionValueAndDisplayText() {
             const string html = "<p>Status <select data-tag=\"status\"><option value=\"internal-id\" selected>Visible label</option><option value=\"other-id\">Other label</option></select></p>";
 
@@ -234,6 +244,17 @@ namespace OfficeIMO.Tests {
             var dropDown = Assert.Single(doc.DropDownLists);
             Assert.Equal(new[] { "internal", "external" }, dropDown.Items.ToArray());
             Assert.Equal("internal", dropDown.SelectedValue);
+        }
+
+        [Fact]
+        public void HtmlToWord_ExplicitlyEmptyFormOwnerDoesNotUseAncestorForm() {
+            const string html = "<form id='f'><input type='radio' name='status' value='owned' checked><input type='radio' name='status' form='' value='unowned' checked></form>";
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            Assert.Equal(2, doc.DropDownLists.Count);
+            Assert.Contains(doc.DropDownLists, dropDown => dropDown.Items.SequenceEqual(new[] { "owned" }));
+            Assert.Contains(doc.DropDownLists, dropDown => dropDown.Items.SequenceEqual(new[] { "unowned" }));
         }
 
         [Fact]

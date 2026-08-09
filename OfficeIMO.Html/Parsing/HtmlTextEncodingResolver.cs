@@ -346,12 +346,13 @@ internal static class HtmlTextEncodingResolver {
     }
 
     private static Encoding GetEncoding(string charset) {
-        string label = charset.Trim().Trim('\'', '"').ToLowerInvariant();
-        if (label == "utf-8" || label == "utf8") return new UTF8Encoding(false, true);
-        if (label == "utf-16" || label == "utf-16le") return new UnicodeEncoding(false, false, true);
-        if (label == "utf-16be") return new UnicodeEncoding(true, false, true);
-        if (label == "us-ascii" || label == "ascii") return Encoding.ASCII;
-        return Encoding.GetEncoding(label, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+        string label = charset.Trim().Trim('\'', '"');
+        Encoding? encoding = ResolveHtmlLabel(label);
+        if (encoding == null) throw new ArgumentException($"Unsupported character encoding label '{label}'.", nameof(charset));
+        return Encoding.GetEncoding(
+            encoding.CodePage,
+            EncoderFallback.ExceptionFallback,
+            DecoderFallback.ExceptionFallback);
     }
 
     private static string GetAsciiPrefix(byte[] bytes) =>

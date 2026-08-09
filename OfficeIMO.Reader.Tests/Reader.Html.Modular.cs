@@ -186,6 +186,16 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderHtml_SingleSelectUsesEffectiveLastSelectedOption() {
+        const string html = "<select name='status'><option selected>First</option><option selected>Second</option></select>";
+
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "select-effective.html");
+
+        OfficeDocumentFormField form = Assert.Single(result.Forms);
+        Assert.Equal("Second", form.Value);
+    }
+
+    [Fact]
     public void DocumentReaderHtml_RichProjection_PreservesCheckedStateForCheckboxesAndRadios() {
         const string html = "<form>"
             + "<input type=\"checkbox\" name=\"unchecked\" value=\"yes\">"

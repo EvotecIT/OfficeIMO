@@ -610,6 +610,35 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
+    public void TableMeasurementDoesNotAdvanceOrderedListNumbering() {
+        var page = new OneNotePage { PageSize = OneNotePageSize.Letter };
+        var table = new OneNoteTable { Layout = new OneNoteLayout { X = 0.5D, Y = 0.5D, Width = 4D } };
+        table.ColumnWidths.Add(4D);
+        var row = new OneNoteTableRow();
+        var cell = new OneNoteTableCell();
+        var first = new OneNoteParagraph {
+            List = new OneNoteListInfo { Ordered = true, Level = 1, Restart = true, DisplayIndex = 1 }
+        };
+        first.Runs.Add(new OneNoteTextRun { Text = "First" });
+        var second = new OneNoteParagraph {
+            List = new OneNoteListInfo { Ordered = true, Level = 1 }
+        };
+        second.Runs.Add(new OneNoteTextRun { Text = "Second" });
+        cell.Content.Add(first);
+        cell.Content.Add(second);
+        row.Cells.Add(cell);
+        table.Rows.Add(row);
+        page.DirectContent.Add(table);
+
+        OfficeDrawingRichText[] paragraphs = page.ToDrawing(new OneNotePageRenderingOptions { IncludeTitle = false })
+            .Elements.OfType<OfficeDrawingRichText>().ToArray();
+
+        Assert.Equal(2, paragraphs.Length);
+        Assert.StartsWith("1. ", paragraphs[0].Runs[0].Text, StringComparison.Ordinal);
+        Assert.StartsWith("2. ", paragraphs[1].Runs[0].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TableCellChildrenHonorPositionAndWidthLayouts() {
         var page = new OneNotePage { PageSize = OneNotePageSize.Letter };
         var table = new OneNoteTable { Layout = new OneNoteLayout { X = 0.5D, Y = 0.5D, Width = 4D }, BordersVisible = true };

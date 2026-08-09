@@ -102,7 +102,7 @@ public static partial class OneNotePageRenderer {
         }
 
         private double RenderParagraph(OneNoteParagraph paragraph, double x, double y, double width, bool rightToLeft) {
-            string prefix = CreateParagraphPrefix(paragraph);
+            string prefix = CreateParagraphPrefix(paragraph, advanceListState: true);
             double textHeight;
             if (paragraph.Runs.Count == 0 && prefix.Length == 0) {
                 textHeight = DefaultParagraphHeight;
@@ -320,7 +320,7 @@ public static partial class OneNotePageRenderer {
         }
 
         private double MeasureParagraphHeight(OneNoteParagraph paragraph, double width) {
-            string prefix = CreateParagraphPrefix(paragraph);
+            string prefix = CreateParagraphPrefix(paragraph, advanceListState: false);
             double textHeight;
             if (paragraph.Runs.Count == 0 && prefix.Length == 0) {
                 textHeight = DefaultParagraphHeight;
@@ -788,10 +788,10 @@ public static partial class OneNotePageRenderer {
             return new OfficeTextParagraphIndent(paragraph.List.Level * 18D, paragraph.List.Level * 18D);
         }
 
-        private string CreateParagraphPrefix(OneNoteParagraph paragraph) {
+        private string CreateParagraphPrefix(OneNoteParagraph paragraph, bool advanceListState) {
             var builder = new System.Text.StringBuilder();
             if (paragraph.List != null) {
-                builder.Append(paragraph.List.Ordered ? ResolveListIndex(paragraph.List).ToString() + ". " : "• ");
+                builder.Append(paragraph.List.Ordered ? ResolveListIndex(paragraph.List, advanceListState).ToString() + ". " : "• ");
             }
             foreach (OneNoteTag tag in paragraph.Tags) {
                 if (tag.IsCheckable || tag.IsTask) builder.Append(tag.IsCompleted ? "☑ " : "☐ ");
@@ -800,7 +800,7 @@ public static partial class OneNotePageRenderer {
             return builder.ToString();
         }
 
-        private int ResolveListIndex(OneNoteListInfo list) {
+        private int ResolveListIndex(OneNoteListInfo list, bool advanceListState) {
             string key = list.Level.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 + "|" + (list.Format ?? 0U).ToString(System.Globalization.CultureInfo.InvariantCulture)
                 + "|" + (list.FontFamily ?? string.Empty);
@@ -812,7 +812,7 @@ public static partial class OneNotePageRenderer {
             } else {
                 index = 1;
             }
-            _listIndices[key] = index;
+            if (advanceListState) _listIndices[key] = index;
             return index;
         }
 

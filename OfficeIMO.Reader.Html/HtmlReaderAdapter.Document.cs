@@ -304,7 +304,11 @@ internal static partial class HtmlReaderAdapter {
         } else if (!hasValue && string.Equals(node.Name, "select", StringComparison.OrdinalIgnoreCase)) {
             HtmlLogicalNode[] options = EnumerateHtmlOptions(node).ToArray();
             HtmlLogicalNode[] selected = options.Where(option => option.Attributes.ContainsKey("selected")).ToArray();
-            if (selected.Length == 0 && options.Length > 0) selected = new[] { options[0] };
+            bool multiple = node.Attributes.ContainsKey("multiple");
+            if (!multiple) {
+                HtmlLogicalNode? effective = selected.LastOrDefault() ?? options.FirstOrDefault();
+                selected = effective == null ? Array.Empty<HtmlLogicalNode>() : new[] { effective };
+            }
             value = string.Join("\n", selected.Select(option =>
                 option.Attributes.TryGetValue("value", out string? optionValue) && !string.IsNullOrWhiteSpace(optionValue)
                     ? optionValue

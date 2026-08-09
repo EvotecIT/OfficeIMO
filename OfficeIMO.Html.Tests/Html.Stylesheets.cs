@@ -458,6 +458,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_FileStylesheet_InvalidEncodingEmitsDiagnosticAndIsSkipped() {
+            var path = Path.GetTempFileName();
+            File.WriteAllBytes(path, new byte[] { 0xC3, 0x28 });
+            string html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>Local CSS</p>";
+            try {
+                var options = new HtmlToWordOptions { AllowDocumentStylesheetLinks = true };
+
+                HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+
+                Assert.Equal("Local CSS", conversion.Value.Paragraphs[0].Text);
+                var diagnostic = Assert.Single(conversion.Report.Diagnostics, item => item.Code == "StylesheetEncodingFailed");
+                Assert.Equal(path, diagnostic.Source);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void HtmlToWord_FileStylesheet_MaxTotalCssBytes_StopsBeforeParsingSecondStylesheet() {
             var path = Path.GetTempFileName();
             File.WriteAllText(path, "p { color:#abcdef; }");

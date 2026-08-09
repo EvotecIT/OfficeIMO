@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using OfficeIMO.Html;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -139,7 +140,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            int selectedIndex = optionsList.FindIndex(option => option.Selected);
+            int selectedIndex = optionsList.FindLastIndex(option => option.Selected);
             if (selectedIndex < 0) selectedIndex = 0;
             var importedItems = optionsList
                 .Select(option => (option.Value, option.DisplayText))
@@ -250,37 +251,12 @@ namespace OfficeIMO.Word.Html {
             }
 
             var root = GetRootElement(element);
-            var formOwner = ResolveRadioFormOwner(element, root);
+            var formOwner = HtmlFormControlSemantics.ResolveFormOwner(element);
             return root.QuerySelectorAll("input")
                 .Where(IsRadioInput)
                 .Where(input => string.Equals(input.GetAttribute("name"), name, StringComparison.Ordinal))
-                .Where(input => ReferenceEquals(ResolveRadioFormOwner(input, root), formOwner))
+                .Where(input => ReferenceEquals(HtmlFormControlSemantics.ResolveFormOwner(input), formOwner))
                 .ToList();
-        }
-
-        private static IElement? ResolveRadioFormOwner(IElement element, IElement root) {
-            var explicitFormOwner = element.GetAttribute("form");
-            if (!string.IsNullOrWhiteSpace(explicitFormOwner)) {
-                var explicitOwner = FindElementById(root, explicitFormOwner!);
-                return explicitOwner != null && string.Equals(explicitOwner.TagName, "form", StringComparison.OrdinalIgnoreCase)
-                    ? explicitOwner
-                    : null;
-            }
-
-            return FindAncestorForm(element);
-        }
-
-        private static IElement? FindAncestorForm(IElement element) {
-            var current = element.ParentElement;
-            while (current != null) {
-                if (string.Equals(current.TagName, "form", StringComparison.OrdinalIgnoreCase)) {
-                    return current;
-                }
-
-                current = current.ParentElement;
-            }
-
-            return null;
         }
 
         private static string GetRadioOptionText(IElement element) {
