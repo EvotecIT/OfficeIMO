@@ -210,7 +210,19 @@ public static class PdfImageExportExtensions {
         this PdfReadPage page,
         OfficeImageExportFormat format,
         PdfImageExportOptions? options = null) =>
-        PdfImageExportEngine.Export(page, format, options?.Clone() ?? new PdfImageExportOptions());
+        page.ExportImage(format, options, CancellationToken.None);
+
+    /// <summary>Exports one loaded PDF page and observes cancellation throughout supported render stages.</summary>
+    public static OfficeImageExportResult ExportImage(
+        this PdfReadPage page,
+        OfficeImageExportFormat format,
+        PdfImageExportOptions? options,
+        CancellationToken cancellationToken) =>
+        PdfImageExportEngine.Export(
+            page,
+            format,
+            options?.Clone() ?? new PdfImageExportOptions(),
+            cancellationToken: cancellationToken);
 
     /// <summary>Exports selected loaded PDF pages using the shared five-format result contract.</summary>
     public static IReadOnlyList<OfficeImageExportResult> ExportImages(

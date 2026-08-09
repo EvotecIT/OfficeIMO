@@ -45,6 +45,9 @@ public sealed class OneNotePageImageExportBuilder : OfficeImageExportBuilder<One
     /// <summary>Includes or excludes structured math typesetting.</summary>
     public OneNotePageImageExportBuilder IncludeMath(bool include = true) { Options.IncludeMath = include; return this; }
 
+    /// <summary>Includes or excludes placeholders for file attachments.</summary>
+    public OneNotePageImageExportBuilder IncludeAttachmentPlaceholders(bool include = true) { Options.IncludeAttachmentPlaceholders = include; return this; }
+
 }
 
 /// <summary>Fluent batch image export for a OneNote section or notebook.</summary>
@@ -85,6 +88,15 @@ public sealed class OneNotePageImageBatchExportBuilder : OfficeImageExportBatchB
 
     /// <summary>Includes or excludes structured math typesetting.</summary>
     public OneNotePageImageBatchExportBuilder IncludeMath(bool include = true) { Options.IncludeMath = include; return this; }
+
+    /// <summary>Includes or excludes page titles.</summary>
+    public OneNotePageImageBatchExportBuilder IncludeTitle(bool include = true) { Options.IncludeTitle = include; return this; }
+
+    /// <summary>Includes or excludes embedded images and printout backgrounds.</summary>
+    public OneNotePageImageBatchExportBuilder IncludeImages(bool include = true) { Options.IncludeImages = include; return this; }
+
+    /// <summary>Includes or excludes placeholders for file attachments.</summary>
+    public OneNotePageImageBatchExportBuilder IncludeAttachmentPlaceholders(bool include = true) { Options.IncludeAttachmentPlaceholders = include; return this; }
 
 }
 

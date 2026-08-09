@@ -31,9 +31,14 @@ namespace OfficeIMO.Excel {
                 options.Scale);
         }
 
-        private static void AppendSvgCommentIndicators(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options) {
+        private static void AppendSvgCommentIndicators(
+            StringBuilder builder,
+            ExcelRangeVisualSnapshot snapshot,
+            ExcelImageExportOptions options,
+            System.Threading.CancellationToken cancellationToken) {
             double scale = options.Scale;
             foreach (ExcelVisualCommentIndicator indicator in snapshot.CommentIndicators) {
+                cancellationToken.ThrowIfCancellationRequested();
                 double size = ResolveCommentIndicatorSize(indicator, scale);
                 double right = (indicator.X + indicator.Width) * scale;
                 double top = indicator.Y * scale;

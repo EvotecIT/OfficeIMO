@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using System.Globalization;
+using System.Threading;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using X = DocumentFormat.OpenXml.Spreadsheet;
@@ -187,7 +188,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void WorkbookDirectStreamingEnforcesOneAggregateBudgetAcrossSheets() {
+        public void WorkbookDirectStreamingRejectsPredictableCountBeforeConsumerSideEffects() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             document.AddWorksheet("One").CellValue(1, 1, "One");
@@ -204,8 +205,30 @@ namespace OfficeIMO.Tests {
                         _ => consumed++,
                         options));
 
-            Assert.Equal(1, consumed);
+            Assert.Equal(0, consumed);
             Assert.Equal(nameof(OfficeImageExportOptions.MaximumOutputCount), exception.LimitName);
+        }
+
+        [Fact]
+        public void WorkbookDirectStreamingHonorsPreCanceledTokenBeforeSheetPreflight() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            document.AddWorksheet("One").CellValue(1, 1, "One");
+            var options = new ExcelWorkbookImageExportOptions {
+                SheetNames = new[] { "Missing" }
+            };
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            int consumed = 0;
+
+            Assert.Throws<OperationCanceledException>(() =>
+                document.ExportImages(
+                    OfficeImageExportFormat.Png,
+                    _ => consumed++,
+                    options,
+                    cancellation.Token));
+
+            Assert.Equal(0, consumed);
         }
 
         [Fact]

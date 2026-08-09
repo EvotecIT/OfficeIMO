@@ -410,12 +410,13 @@ byte[] webp = document.ToWebp(new WordImageExportOptions { PageIndex = 0, Scale 
 
 document.ToImage()
     .Page(0)
+    .FitWithin(1600, 1200)
     .AsJpeg()
     .WithRasterEncoding(raster => raster.Jpeg.Quality = 90)
     .Save("page-1.jpg");
 ```
 
-The document package owns Word pagination and diagnostics; `OfficeIMO.Drawing` owns pixels and encoding. `SaveAsJpeg`, `SaveAsTiff`, and `SaveAsWebp` are thin convenience wrappers over the same builder.
+The document package owns Word pagination and diagnostics; `OfficeIMO.Drawing` owns sizing, pixels, and encoding. The same fit limit applies to SVG and raster output. `SaveAsJpeg`, `SaveAsTiff`, and `SaveAsWebp` are thin convenience wrappers over the same builder.
 
 ## Adjacent packages
 

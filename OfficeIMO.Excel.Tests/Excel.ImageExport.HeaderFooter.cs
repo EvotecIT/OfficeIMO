@@ -31,6 +31,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_PageSlicedSvgFitIncludesFinalHeaderFooterBands() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.SetHeaderFooter(headerCenter: "Confidential", footerRight: "Draft");
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(
+                OfficeImageExportFormat.Svg,
+                new ExcelWorksheetImageExportOptions {
+                    Range = "A1:AZ4",
+                    SplitByManualPageBreaks = true,
+                    ShowGridlines = false,
+                    MaximumOutputWidth = 120,
+                    MaximumOutputHeight = 120
+                });
+
+            Assert.Equal(2, results.Count);
+            Assert.All(results, result => {
+                Assert.True(result.Width <= 120);
+                Assert.True(result.Height <= 120);
+            });
+            string svg = Encoding.UTF8.GetString(results[1].Bytes);
+            Assert.Contains(">Confidential<", svg);
+            Assert.Contains(">Draft<", svg);
+        }
+
+        [Fact]
         public void ExcelWorksheet_SvgHeaderFooterDoesNotSerializeClippedTextOrOversizedFontNames() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Report");

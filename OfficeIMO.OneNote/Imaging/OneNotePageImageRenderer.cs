@@ -34,15 +34,18 @@ internal static class OneNotePageImageRenderer {
         if (format == OfficeImageExportFormat.Svg) {
             var diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
             var fallbackCodec = new OfficeRasterImageFallbackCodec(effective.ImageCodec, diagnostics, source ?? "OneNote page");
+            double scale = effective.GetEffectiveScale(snapshot.Drawing.Width, snapshot.Drawing.Height);
             byte[] bytes = OfficeDrawingSvgExporter.ToSvgBytes(
                 snapshot.Drawing,
-                effective.Scale,
+                scale,
                 OfficeSvgSizeUnit.Pixel,
-                fallbackCodec);
+                fallbackCodec,
+                resourceIdPrefix: null,
+                cancellationToken);
             return effective.EnsureAccepted(new OfficeImageExportResult(
                 format,
-                Scaled(snapshot.Drawing.Width, effective.Scale),
-                Scaled(snapshot.Drawing.Height, effective.Scale),
+                Scaled(snapshot.Drawing.Width, scale),
+                Scaled(snapshot.Drawing.Height, scale),
                 bytes,
                 name ?? page.Title,
                 source ?? "OneNote page",

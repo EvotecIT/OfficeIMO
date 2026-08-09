@@ -38,6 +38,10 @@ public sealed class OfficeImageExportLimitException : InvalidOperationException 
         RequestedPixels = requestedPixels;
         MaximumPixels = maximumPixels;
         MaximumDimension = maximumDimension;
+        Format = format;
+        EffectiveDpiX = effectiveDpiX;
+        EffectiveDpiY = effectiveDpiY;
+        MinimumDpi = minimumDpi;
     }
 
     /// <summary>Caller-requested scale.</summary>
@@ -51,6 +55,18 @@ public sealed class OfficeImageExportLimitException : InvalidOperationException 
 
     /// <summary>Effective per-dimension ceiling.</summary>
     public int MaximumDimension { get; }
+
+    /// <summary>Encoder format whose density floor was exceeded, when applicable.</summary>
+    public OfficeImageExportFormat? Format { get; }
+
+    /// <summary>Derived horizontal density that could not be represented, when applicable.</summary>
+    public double? EffectiveDpiX { get; }
+
+    /// <summary>Derived vertical density that could not be represented, when applicable.</summary>
+    public double? EffectiveDpiY { get; }
+
+    /// <summary>Minimum density supported by the selected encoder, when applicable.</summary>
+    public double? MinimumDpi { get; }
 
     private static string CreateMessage(
         double requestedScale,

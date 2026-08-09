@@ -61,7 +61,7 @@ namespace OfficeIMO.Visio {
             VisioSvgSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeImageExportResult result = CreateResult(document, options);
+            OfficeImageExportResult result = CreateResult(document, options, cancellationToken);
             return await result.SaveAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
@@ -74,7 +74,7 @@ namespace OfficeIMO.Visio {
             VisioSvgSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeImageExportResult result = CreateResult(page, options);
+            OfficeImageExportResult result = CreateResult(page, options, cancellationToken);
             return await result.SaveAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
@@ -87,7 +87,7 @@ namespace OfficeIMO.Visio {
             VisioSvgSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeImageExportResult result = CreateResult(document, options);
+            OfficeImageExportResult result = CreateResult(document, options, cancellationToken);
             return await result.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
         }
 
@@ -100,13 +100,17 @@ namespace OfficeIMO.Visio {
             VisioSvgSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeImageExportResult result = CreateResult(page, options);
+            OfficeImageExportResult result = CreateResult(page, options, cancellationToken);
             return await result.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
         }
 
-        private static OfficeImageExportResult CreateResult(VisioDocument document, VisioSvgSaveOptions? options) {
+        private static OfficeImageExportResult CreateResult(
+            VisioDocument document,
+            VisioSvgSaveOptions? options,
+            CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            VisioSvgSaveOptions resolved = options ?? new VisioSvgSaveOptions();
+            cancellationToken.ThrowIfCancellationRequested();
+            VisioSvgSaveOptions resolved = options?.Clone() ?? new VisioSvgSaveOptions();
             if (document.Pages.Count == 0) {
                 throw new InvalidOperationException("The document does not contain any pages to export.");
             }
@@ -115,12 +119,17 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentOutOfRangeException(nameof(options), "PageIndex is outside the document page collection.");
             }
 
-            return CreateResult(document.Pages[resolved.PageIndex], resolved);
+            return CreateResult(document.Pages[resolved.PageIndex], resolved, cancellationToken);
         }
 
-        private static OfficeImageExportResult CreateResult(VisioPage page, VisioSvgSaveOptions? options) {
+        private static OfficeImageExportResult CreateResult(
+            VisioPage page,
+            VisioSvgSaveOptions? options,
+            CancellationToken cancellationToken = default) {
             if (page == null) throw new ArgumentNullException(nameof(page));
-            VisioSvgSaveOptions resolved = options ?? new VisioSvgSaveOptions();
+            cancellationToken.ThrowIfCancellationRequested();
+            VisioSvgSaveOptions resolved = options?.Clone() ?? new VisioSvgSaveOptions();
+            resolved.CancellationToken = cancellationToken;
             var diagnostics = new List<OfficeImageExportDiagnostic>();
             VisioImageExportFontDiagnostics.Append(page, resolved.Fonts, diagnostics, "Visio page");
             resolved.ImageDiagnostics = diagnostics;
