@@ -408,7 +408,7 @@ namespace OfficeIMO.Tests {
                 var decision = Assert.Single(decisions);
                 Assert.Equal("ReadRangeAsDataTable", decision.Operation);
                 Assert.Equal(4, decision.Items);
-                Assert.Equal(ExcelExecutionMode.Parallel, decision.Mode);
+                Assert.Equal(ExcelExecutionMode.Sequential, decision.Mode);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -442,7 +442,7 @@ namespace OfficeIMO.Tests {
                 var decision = Assert.Single(decisions);
                 Assert.Equal("ReadObjectsAs", decision.Operation);
                 Assert.Equal(4, decision.Items);
-                Assert.Equal(ExcelExecutionMode.Parallel, decision.Mode);
+                Assert.Equal(ExcelExecutionMode.Sequential, decision.Mode);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

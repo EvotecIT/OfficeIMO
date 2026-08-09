@@ -80,6 +80,194 @@ The suite compares OfficeIMO.CSV object writing, OfficeIMO.CSV projected-row wri
 
 Read lanes intentionally touch each field value and return a contract-appropriate checksum. Raw and DataTable lanes checksum field count and text length; typed lanes checksum every projected property and are preflighted against the generated source rows. DataTable lanes materialize the table and then traverse the cells, direct DbDataReader lanes traverse the public reader contract without first materializing a DataTable, and DbDataReader-to-DataTable lanes keep the ADO.NET table-loading path visible. This keeps the comparison honest: a lane cannot win by only counting rows or skipping the field payload.
 
+## Sep feature-parity lanes
+
+Sep's published comparisons separate raw row scans, decoded-column access,
+typed object materialization, trimming, unescaping, and ordered parallel
+enumeration. OfficeIMO keeps those contracts separate too:
+
+- `CsvBenchmarks` covers validated plain, quoted, escaped, and multiline reads
+  and writes. Sep is configured with `Unescape = true` and `Escape = true`
+  where decoded values or valid CSV output are required.
+- `CsvTrimUnescapeBenchmarks` compares outer ASCII-space trimming plus quote
+  unescaping through decoded-string APIs in OfficeIMO, Sep, and CsvHelper.
+  `SepStrings` materializes every decoded field so it can be compared with
+  OfficeIMO's public `DbDataReader` and CsvHelper's parser without hiding a
+  contract difference.
+- `CsvTrimUnescapeSpanBenchmarks` separately compares OfficeIMO's internal
+  transient-visitor engine with Sep's span reader. It is an engine diagnostic,
+  not a public-API ranking. Span and string methods intentionally live in
+  different benchmark types, so BenchmarkDotNet never publishes a misleading
+  rank or ratio between zero-copy and materializing APIs. Both setups verify
+  the full decoded field count, character count, and deterministic checksum
+  before timing.
+- `CsvTypedSequentialBenchmarks` compares equivalent explicit typed
+  materialization through OfficeIMO's `DbDataReader` getters and Sep's
+  sequential typed lambda.
+- `CsvAutomaticMappingBenchmarks` compares OfficeIMO's public `RowsAs<T>()`
+  convenience mapper with its own explicit typed-reader loop. It is not a
+  competitor ranking.
+- `CsvParallelScalingBenchmarks` compares OfficeIMO's public ordered
+  `ReadTextRowsAsParallel<T>` transient-record API with Sep's public ordered
+  `ParallelEnumerate`. Both resolve headers once, parse typed fields from
+  transient spans, create the same objects, and retain source order. It owns
+  the sustained 100,000-row workload.
+- `CsvParallelCrossoverBenchmarks` measures the same contract at 25,000 rows.
+  Keeping it separate allows enough fixed invocations per iteration without
+  multiplying the sustained workload.
+- `CsvParallelOfficeTuningBenchmarks` varies only OfficeIMO's public batch size
+  and worker limit. It intentionally has no competitor ratio because those are
+  OfficeIMO implementation choices, not different semantic contracts.
+
+All typed lanes resolve the same headers, materialize the same objects in
+source order, and pass a property-by-property preflight.
+
+Run the focused lanes during development:
+
+```powershell
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*CsvTrimUnescapeBenchmarks*" --job short
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*CsvTrimUnescapeSpanBenchmarks*" --job short
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvTypedSequentialBenchmarks*" --job short
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvAutomaticMappingBenchmarks*" --job short
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvParallelCrossoverBenchmarks*" --job short
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvParallelScalingBenchmarks*" --job short
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvParallelOfficeTuningBenchmarks*" --job short
+```
+
+Parallel materialization is not presented as a universal parser ranking. It
+uses more memory and thread-pool work, so the two row counts are retained to
+show whether the overhead pays for itself on the machine running the suite.
+
+For processors with multiple cache or performance domains, pass explicit
+machine-specific affinity masks as separate BenchmarkDotNet jobs:
+
+```powershell
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvTypedSequentialBenchmarks*" --affinityMasks "0x1,0x10000" --invocationCount 5 --unrollFactor 1 --warmupCount 5 --iterationCount 15 --launchCount 1
+```
+
+Masks must be derived from the current machine's CPU-set/cache topology and
+recorded with the result; the sample values are not portable. Run parallel
+lanes again with one whole cache domain and with all intended processors.
+Record the active power plan, runtime, GC mode, logical processor count, and
+whether a hypervisor is present. Treat rankings that change across cache
+domains or fall inside the chosen statistical tolerance as inconclusive.
+The comparison axis is the benchmark method within each CPU domain, so the
+methods own the baseline and affinity jobs intentionally do not. Supply one
+fixed `--invocationCount` with `--unrollFactor 1` across every affinity job;
+this avoids asymmetric pilot counts without incorrectly mixing a method
+baseline with a second job baseline. Use `--apples` only for a separate run
+whose comparison axis is the jobs themselves and which has exactly one job
+baseline.
+
+The final fixed-work parallel commands on the dated machine were:
+
+```powershell
+# 25,000 rows; 25 invocations keep each measurement iteration long enough.
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvParallelCrossoverBenchmarks*" --affinityMasks "0xFFFF,0xFFFF0000" --invocationCount 25 --unrollFactor 1 --warmupCount 5 --iterationCount 10 --launchCount 3
+
+# 100,000 rows; fewer invocations preserve the same fixed work per method/job.
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvParallelScalingBenchmarks*" --affinityMasks "0xFFFF,0xFFFF0000" --invocationCount 5 --unrollFactor 1 --warmupCount 5 --iterationCount 10 --launchCount 3
+
+# Loaded-host diagnostic; alternates OfficeIMO/Sep as ABBA then BAAB and records wall and process CPU time.
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --compare-typed-parallel-paired 60 0xFFFF adaptive 16 16 100000 High
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --compare-typed-parallel-paired 60 0xFFFF0000 adaptive 16 16 100000 High
+```
+
+## Dated Sep feature snapshot (2026-08-08)
+
+The current focused runs used .NET 10, BenchmarkDotNet 0.15.8, workstation GC, the
+Windows High performance power plan, and an AMD Ryzen 9 9950X3D2 with 32
+logical processors, two measured 16-logical-processor L3 domains, and a
+hypervisor present. The earlier sequential/trim/span results below used one
+launch, five warmups, fifteen measured iterations, semantic preflight
+validation, and a fixed invocation count. The final ordered-parallel results
+used three independent launches, five warmups, ten measured iterations, and
+fixed invocation counts chosen per row count. CPU 0 and CPU 16 are the first
+logical processor in each L3 domain. Both processors showed phase changes or
+multimodal results in some methods, so overlapping confidence intervals are
+reported as equality.
+
+The final candidate assemblies were SHA-256
+`10614E89447791035A6EFCDBCB8D23BF60EF4AD60F1F56ABEB38B1AE4760EBB7`
+for `OfficeIMO.CSV.Benchmarks.dll` and
+`C29F7E11878A2AD92073B2925CD6F8FE23048705BF7C554AD156826FB64C341C`
+for `OfficeIMO.CSV.dll`. These hashes bind the numbers to the measured local
+candidate even though the worktree did not have a commit for the changes.
+
+The existing hash-pinned Mark Pflug 65K decoded-string lane was also run as
+100 rotating paired samples after ten warmups:
+
+| Affinity | OfficeIMO median | Sep median | Sylvan median | OfficeIMO / Sep paired median | OfficeIMO / Sylvan paired median |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| CPU 0 | 17.627 ms | 20.347 ms | 20.743 ms | 0.861 (P25 0.800, P75 1.070) | 0.826 (P25 0.774, P75 1.053) |
+| CPU 16 | 15.823 ms | 17.202 ms | 17.478 ms | 0.933 (P25 0.874, P75 0.974) | 0.976 (P25 0.869, P75 1.028) |
+
+OfficeIMO has the best median in this full decoded-string lane, but the paired
+intervals overlap parity on some domain/library combinations. This is a
+workload result, not a universal parser ranking.
+
+Outer-trim plus quote-unescape, 50,000 rows, decoded string contract:
+
+| Affinity | OfficeIMO DataReader | Sep strings | CsvHelper strings | OfficeIMO allocation |
+| --- | ---: | ---: | ---: | ---: |
+| CPU 0 | 5.154 ms | 6.557 ms | 13.028 ms | 9.54 MB |
+| CPU 16 | 7.395 ms | 8.470 ms | 12.348 ms | 9.54 MB |
+
+OfficeIMO's allocation is effectively equal to Sep's 9.53 MB. OfficeIMO leads
+on CPU 0; the broad, overlapping confidence intervals on CPU 16 make that
+domain statistically equal rather than a defensible win.
+
+The separately ranked transient-span contract produced:
+
+| Affinity | OfficeIMO spans | Sep spans | OfficeIMO allocation | Sep allocation |
+| --- | ---: | ---: | ---: | ---: |
+| CPU 0 | 5.354 ms | 5.959 ms | 416 B | 728 B |
+| CPU 16 | 6.327 ms | 5.548 ms | 416 B | 728 B |
+
+Both span lanes are effectively allocation-free for this workload. The mean
+winner changes by CPU domain and the confidence intervals overlap broadly, so
+the timing result is equality. OfficeIMO allocates 312 B less per operation.
+
+Equivalent explicit typed materialization produced:
+
+| Rows | Affinity | OfficeIMO typed getters | Sep sequential | OfficeIMO allocation | Sep allocation |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 25,000 | CPU 0 | 15.64 ms | 18.18 ms | 10.02 MB | 9.80 MB |
+| 25,000 | CPU 16 | 15.52 ms | 18.23 ms | 10.02 MB | 9.80 MB |
+| 100,000 | CPU 0 | 44.75 ms | 52.92 ms | 40.06 MB | 39.27 MB |
+| 100,000 | CPU 16 | 48.83 ms | 49.14 ms | 40.06 MB | 39.27 MB |
+
+OfficeIMO leads three rows by mean; the 100,000-row CPU-16 result is equal and
+strongly affected by OfficeIMO's bimodal distribution. A separate rotating
+30-sample run on each domain put OfficeIMO at 0.8495 and 0.8449 of Sep's time,
+which supports the improvement without replacing the isolated-process result.
+
+Equivalent public ordered-parallel typed materialization, DOP 16:
+
+| Rows | L3 domain | OfficeIMO mean (99.9% CI) | Sep mean (99.9% CI) | OfficeIMO allocation | Sep allocation | Result |
+| ---: | --- | ---: | ---: | ---: | ---: | --- |
+| 25,000 | `0xFFFF` | 5.523 ms (5.270-5.776) | 5.776 ms (5.413-6.138) | 9.81 MB | 9.89 MB | equal; OfficeIMO mean 4.4% lower |
+| 25,000 | `0xFFFF0000` | 5.883 ms (5.300-6.467) | 5.197 ms (4.897-5.497) | 9.81 MB | 9.89 MB | equal; Sep mean 11.7% lower |
+| 100,000 | `0xFFFF` | 24.44 ms (22.69-26.19) | 26.10 ms (24.02-28.18) | 39.29 MB | 39.38 MB | equal; OfficeIMO mean 6.4% lower |
+| 100,000 | `0xFFFF0000` | 23.48 ms (21.63-25.34) | 25.19 ms (22.84-27.54) | 39.29 MB | 39.37 MB | equal; OfficeIMO mean 6.8% lower |
+
+OfficeIMO now exposes the missing ordered-parallel capability and is equal to
+Sep at both measured sizes on this fixture. OfficeIMO has the lower 100,000-row
+mean on both domains, while the 25,000-row mean winner changes by domain. Its
+pooled result buffers also put managed allocation slightly below Sep in all
+four rows while clearing reference-containing buffers and honoring ordering,
+cancellation, exception, and disposal contracts.
+
+This host was also under sustained unrelated CPU load. A fresh 60-sample
+symmetric ABBA/BAAB diagnostic reported OfficeIMO/Sep wall-time medians of
+1.311 and 1.236 for the two domains, with very broad interquartile ranges of
+0.810-1.716 and 0.831-1.502. Process-CPU ratios were 0.849 and 1.000, again
+disagreeing with wall time. This confirms that scheduling pressure can change
+the apparent winner on this machine. The isolated, fixed-work BenchmarkDotNet
+table is the primary comparison, but its multimodal warnings and this paired
+diagnostic must accompany any performance claim. Neither result is a universal
+parser ranking.
+
 For a SQL-shaped DataTable materialization pass:
 
 ```powershell

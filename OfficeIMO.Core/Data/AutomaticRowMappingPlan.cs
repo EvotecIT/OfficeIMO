@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
@@ -18,14 +19,24 @@ namespace OfficeIMO.Data;
 internal sealed class AutomaticRowMappingPlan<
     [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T> where T : new() {
     private readonly MappingBinding[] _bindings;
+    private readonly Func<DbDataReader, T>? _fastReaderMap;
+    private static CacheEntry? _cachedPlan;
 
-    private AutomaticRowMappingPlan(MappingBinding[] bindings) {
+    private AutomaticRowMappingPlan(
+        MappingBinding[] bindings,
+        Func<DbDataReader, T>? fastReaderMap) {
         _bindings = bindings;
+        _fastReaderMap = fastReaderMap;
     }
 
     internal static AutomaticRowMappingPlan<T> Create(
         IReadOnlyList<string> headers,
         bool requireAllColumnsMapped = false) {
+        CacheEntry? cached = System.Threading.Volatile.Read(ref _cachedPlan);
+        if (cached is not null && cached.Matches(headers, requireAllColumnsMapped)) {
+            return cached.Plan;
+        }
+
         AutomaticPropertySetter?[] mapped = new AutomaticPropertySetter?[headers.Count];
         var assigned = new HashSet<AutomaticPropertySetter>();
         MapPass(headers, mapped, assigned, AutomaticMappingCache.Exact, static value => value, "with that exact name");
@@ -55,7 +66,11 @@ internal sealed class AutomaticRowMappingPlan<
         if (bindings.Length == 0) {
             throw new DataMappingException($"No columns match writable properties on {typeof(T).Name}.");
         }
-        return new AutomaticRowMappingPlan<T>(bindings);
+        var plan = new AutomaticRowMappingPlan<T>(bindings, CreateFastReaderMap(bindings));
+        System.Threading.Volatile.Write(
+            ref _cachedPlan,
+            new CacheEntry(headers.ToArray(), requireAllColumnsMapped, plan));
+        return plan;
     }
 
     internal T MapRow(
@@ -67,6 +82,100 @@ internal sealed class AutomaticRowMappingPlan<
         T instance = new T();
         foreach (MappingBinding binding in _bindings) {
             instance = binding.Apply(instance, getValue(binding.ColumnIndex), culture, dateTimeFormats, typeConverter, errorValuePolicy);
+        }
+        return instance;
+    }
+
+    internal T MapValues(
+        object?[] values,
+        CultureInfo culture,
+        IReadOnlyList<string>? dateTimeFormats,
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null,
+        DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include) {
+        T instance = new T();
+        foreach (MappingBinding binding in _bindings) {
+            instance = binding.Apply(
+                instance,
+                values[binding.ColumnIndex],
+                culture,
+                dateTimeFormats,
+                typeConverter,
+                errorValuePolicy);
+        }
+        return instance;
+    }
+
+    internal object?[] CaptureReaderValues(DbDataReader reader) {
+        var values = new object?[reader.FieldCount];
+        for (int index = 0; index < values.Length; index++) {
+            values[index] = DBNull.Value;
+        }
+        foreach (MappingBinding binding in _bindings) {
+            values[binding.ColumnIndex] = binding.Property.ReadReaderValue(reader, binding.ColumnIndex);
+        }
+        return values;
+    }
+
+    private bool HasNullReaderValue(DbDataReader reader) {
+        foreach (MappingBinding binding in _bindings) {
+            if (reader.IsDBNull(binding.ColumnIndex)) return true;
+        }
+        return false;
+    }
+
+    internal T MapReaderRow(
+        DbDataReader reader,
+        CultureInfo culture,
+        IReadOnlyList<string>? dateTimeFormats,
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null,
+        DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include) {
+        if (typeConverter is null &&
+            _fastReaderMap is not null &&
+            reader is IDataReaderFastMappingValues &&
+            !HasNullReaderValue(reader)) {
+            try {
+                return _fastReaderMap(reader);
+            } catch (TypedReaderValueException) {
+            }
+        }
+
+        T instance = new T();
+        foreach (MappingBinding binding in _bindings) {
+            instance = binding.ApplyReader(
+                instance,
+                reader,
+                culture,
+                dateTimeFormats,
+                typeConverter,
+                errorValuePolicy);
+        }
+        return instance;
+    }
+
+    internal Func<DbDataReader, T>? GetFastReaderMap(
+        DbDataReader reader,
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter) =>
+        typeConverter is null &&
+        _fastReaderMap is not null &&
+        reader is IDataReaderFastMappingValues { HasOnlyNonNullFastValues: true }
+            ? _fastReaderMap
+            : null;
+
+    internal T MapReaderRowSlow(
+        DbDataReader reader,
+        CultureInfo culture,
+        IReadOnlyList<string>? dateTimeFormats,
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
+        DataMappingErrorValuePolicy errorValuePolicy) {
+        T instance = new T();
+        foreach (MappingBinding binding in _bindings) {
+            instance = binding.ApplyReader(
+                instance,
+                reader,
+                culture,
+                dateTimeFormats,
+                typeConverter,
+                errorValuePolicy);
         }
         return instance;
     }
@@ -116,6 +225,8 @@ internal sealed class AutomaticRowMappingPlan<
 
         internal int ColumnIndex { get; }
 
+        internal AutomaticPropertySetter Property => _property;
+
         internal T Apply(
             T instance,
             object? rawValue,
@@ -129,20 +240,96 @@ internal sealed class AutomaticRowMappingPlan<
             }
             return _property.Assign(instance, converted);
         }
+
+        internal T ApplyReader(
+            T instance,
+            DbDataReader reader,
+            CultureInfo culture,
+            IReadOnlyList<string>? dateTimeFormats,
+            Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
+            DataMappingErrorValuePolicy errorValuePolicy) {
+            return _property.ApplyReader(
+                instance,
+                reader,
+                ColumnIndex,
+                culture,
+                dateTimeFormats,
+                typeConverter,
+                errorValuePolicy);
+        }
     }
 
     private sealed class AutomaticPropertySetter {
-        internal AutomaticPropertySetter(PropertyInfo property, Func<T, object?, T> assign) {
+        private readonly Func<T, object?, T> _assign;
+        private readonly Func<T, DbDataReader, int, T>? _assignReader;
+        private readonly Func<DbDataReader, int, object?>? _readReaderValue;
+
+        internal AutomaticPropertySetter(
+            PropertyInfo property,
+            Func<T, object?, T> assign,
+            Func<T, DbDataReader, int, T>? assignReader,
+            Func<DbDataReader, int, object?>? readReaderValue) {
             Property = property;
             Name = property.Name;
             ValueType = property.PropertyType;
-            Assign = assign;
+            _assign = assign;
+            _assignReader = assignReader;
+            _readReaderValue = readReaderValue;
         }
 
         internal PropertyInfo Property { get; }
         internal string Name { get; }
         internal Type ValueType { get; }
-        internal Func<T, object?, T> Assign { get; }
+
+        internal T Assign(T instance, object? value) => _assign(instance, value);
+
+        internal object? ReadReaderValue(DbDataReader reader, int ordinal) {
+            if (reader.IsDBNull(ordinal)) return null;
+            if (_readReaderValue is not null) {
+                try {
+                    return _readReaderValue(reader, ordinal);
+                } catch (InvalidCastException) {
+                } catch (FormatException) {
+                } catch (OverflowException) {
+                }
+            }
+            object value = reader.GetValue(ordinal);
+            return ReferenceEquals(value, DBNull.Value) ? null : value;
+        }
+
+        internal T ApplyReader(
+            T instance,
+            DbDataReader reader,
+            int ordinal,
+            CultureInfo culture,
+            IReadOnlyList<string>? dateTimeFormats,
+            Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
+            DataMappingErrorValuePolicy errorValuePolicy) {
+            if (typeConverter is null &&
+                reader is IDataReaderFastMappingValues &&
+                !reader.IsDBNull(ordinal) &&
+                _assignReader is not null) {
+                try {
+                    return _assignReader(instance, reader, ordinal);
+                } catch (TypedReaderValueException) {
+                }
+            }
+
+            object? rawValue = reader.GetValue(ordinal);
+            if (!DataValueConverter.TryConvert(
+                ReferenceEquals(rawValue, DBNull.Value) ? null : rawValue,
+                ValueType,
+                culture,
+                dateTimeFormats,
+                typeConverter,
+                errorValuePolicy,
+                out object? converted,
+                out string? error)) {
+                throw new DataMappingException(
+                    $"Column value cannot be assigned to {typeof(T).Name}.{Name}: {error}");
+            }
+            return _assign(instance, converted);
+        }
     }
 
     private static class AutomaticMappingCache {
@@ -156,7 +343,11 @@ internal sealed class AutomaticRowMappingPlan<
             AutomaticPropertySetter[] properties = typeof(T)
                 .GetProperties(BindingFlags.Instance | BindingFlags.Public)
                 .Where(static property => property.SetMethod?.IsPublic == true && property.GetIndexParameters().Length == 0)
-                .Select(static property => new AutomaticPropertySetter(property, CreateAssignment(property)))
+                .Select(static property => new AutomaticPropertySetter(
+                    property,
+                    CreateAssignment(property),
+                    CreateReaderAssignment(property),
+                    CreateReaderValueAccessor(property)))
                 .ToArray();
             Exact = CreateLookup(properties, static property => property.Name, StringComparer.Ordinal);
             Insensitive = CreateLookup(properties, static property => property.Name, StringComparer.OrdinalIgnoreCase);
@@ -238,4 +429,168 @@ internal sealed class AutomaticRowMappingPlan<
             property.SetValue(boxed, value, index: null);
             return (T)boxed;
         };
+
+    private static Func<T, DbDataReader, int, T>? CreateReaderAssignment(PropertyInfo property) {
+#if NET8_0_OR_GREATER
+        if (!RuntimeFeature.IsDynamicCodeSupported) return null;
+#endif
+        MethodInfo? getter = GetTypedGetter(property.PropertyType);
+        if (getter is null) return null;
+
+        try {
+            ParameterExpression target = Expression.Parameter(typeof(T), "target");
+            ParameterExpression reader = Expression.Parameter(typeof(DbDataReader), "reader");
+            ParameterExpression ordinal = Expression.Parameter(typeof(int), "ordinal");
+            ParameterExpression value = Expression.Variable(property.PropertyType, "value");
+            NewExpression fallbackException = Expression.New(typeof(TypedReaderValueException));
+            BinaryExpression readValue = Expression.Assign(
+                value,
+                Expression.Call(reader, getter, ordinal));
+            TryExpression guardedRead = Expression.TryCatch(
+                readValue,
+                Expression.Catch(
+                    typeof(InvalidCastException),
+                    Expression.Throw(fallbackException, property.PropertyType)),
+                Expression.Catch(
+                    typeof(FormatException),
+                    Expression.Throw(fallbackException, property.PropertyType)),
+                Expression.Catch(
+                    typeof(OverflowException),
+                    Expression.Throw(fallbackException, property.PropertyType)));
+            BinaryExpression assignment = Expression.Assign(
+                Expression.Property(target, property),
+                value);
+            BlockExpression body = Expression.Block(
+                new[] { value },
+                guardedRead,
+                assignment,
+                target);
+            return Expression.Lambda<Func<T, DbDataReader, int, T>>(body, target, reader, ordinal).Compile();
+        } catch {
+            return null;
+        }
+    }
+
+    private static Func<DbDataReader, int, object?>? CreateReaderValueAccessor(PropertyInfo property) {
+#if NET8_0_OR_GREATER
+        if (!RuntimeFeature.IsDynamicCodeSupported) return null;
+#endif
+        MethodInfo? getter = GetTypedGetter(property.PropertyType);
+        if (getter is null) return null;
+        try {
+            ParameterExpression reader = Expression.Parameter(typeof(DbDataReader), "reader");
+            ParameterExpression ordinal = Expression.Parameter(typeof(int), "ordinal");
+            UnaryExpression value = Expression.Convert(
+                Expression.Call(reader, getter, ordinal),
+                typeof(object));
+            return Expression.Lambda<Func<DbDataReader, int, object?>>(value, reader, ordinal).Compile();
+        } catch {
+            return null;
+        }
+    }
+
+    private static Func<DbDataReader, T>? CreateFastReaderMap(MappingBinding[] bindings) {
+#if NET8_0_OR_GREATER
+        if (!RuntimeFeature.IsDynamicCodeSupported) return null;
+#endif
+        var getters = new MethodInfo[bindings.Length];
+        for (int index = 0; index < bindings.Length; index++) {
+            MethodInfo? getter = GetTypedGetter(bindings[index].Property.ValueType);
+            if (getter is null) return null;
+            getters[index] = getter;
+        }
+
+        try {
+            ParameterExpression reader = Expression.Parameter(typeof(DbDataReader), "reader");
+            ParameterExpression instance = Expression.Variable(typeof(T), "instance");
+            var values = new ParameterExpression[bindings.Length];
+            var body = new List<Expression>((bindings.Length * 2) + 2);
+
+            for (int index = 0; index < bindings.Length; index++) {
+                MappingBinding binding = bindings[index];
+                ParameterExpression value = Expression.Variable(binding.Property.ValueType, $"value{index}");
+                values[index] = value;
+                BinaryExpression readValue = Expression.Assign(
+                    value,
+                    Expression.Call(reader, getters[index], Expression.Constant(binding.ColumnIndex)));
+                NewExpression fallbackException = Expression.New(typeof(TypedReaderValueException));
+                body.Add(Expression.TryCatch(
+                    readValue,
+                    Expression.Catch(
+                        typeof(InvalidCastException),
+                        Expression.Throw(fallbackException, binding.Property.ValueType)),
+                    Expression.Catch(
+                        typeof(FormatException),
+                        Expression.Throw(fallbackException, binding.Property.ValueType)),
+                    Expression.Catch(
+                        typeof(OverflowException),
+                        Expression.Throw(fallbackException, binding.Property.ValueType))));
+            }
+
+            body.Add(Expression.Assign(instance, Expression.New(typeof(T))));
+            for (int index = 0; index < bindings.Length; index++) {
+                body.Add(Expression.Assign(
+                    Expression.Property(instance, bindings[index].Property.Property),
+                    values[index]));
+            }
+            body.Add(instance);
+
+            var variables = new ParameterExpression[values.Length + 1];
+            variables[0] = instance;
+            Array.Copy(values, 0, variables, 1, values.Length);
+            return Expression.Lambda<Func<DbDataReader, T>>(
+                Expression.Block(variables, body),
+                reader).Compile();
+        } catch {
+            return null;
+        }
+    }
+
+    internal sealed class TypedReaderValueException : Exception {
+    }
+
+    private static MethodInfo? GetTypedGetter(Type type) {
+        string? getterName = type == typeof(string) ? nameof(DbDataReader.GetString)
+            : type == typeof(bool) ? nameof(DbDataReader.GetBoolean)
+            : type == typeof(byte) ? nameof(DbDataReader.GetByte)
+            : type == typeof(char) ? nameof(DbDataReader.GetChar)
+            : type == typeof(DateTime) ? nameof(DbDataReader.GetDateTime)
+            : type == typeof(decimal) ? nameof(DbDataReader.GetDecimal)
+            : type == typeof(double) ? nameof(DbDataReader.GetDouble)
+            : type == typeof(float) ? nameof(DbDataReader.GetFloat)
+            : type == typeof(Guid) ? nameof(DbDataReader.GetGuid)
+            : type == typeof(short) ? nameof(DbDataReader.GetInt16)
+            : type == typeof(int) ? nameof(DbDataReader.GetInt32)
+            : type == typeof(long) ? nameof(DbDataReader.GetInt64)
+            : null;
+        return getterName is null
+            ? null
+            : typeof(DbDataReader).GetMethod(getterName, new[] { typeof(int) });
+    }
+
+    private sealed class CacheEntry {
+        internal CacheEntry(
+            string[] headers,
+            bool requireAllColumnsMapped,
+            AutomaticRowMappingPlan<T> plan) {
+            Headers = headers;
+            RequireAllColumnsMapped = requireAllColumnsMapped;
+            Plan = plan;
+        }
+
+        private string[] Headers { get; }
+        private bool RequireAllColumnsMapped { get; }
+        internal AutomaticRowMappingPlan<T> Plan { get; }
+
+        internal bool Matches(IReadOnlyList<string> headers, bool requireAllColumnsMapped) {
+            if (RequireAllColumnsMapped != requireAllColumnsMapped || Headers.Length != headers.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < Headers.Length; index++) {
+                if (!string.Equals(Headers[index], headers[index], StringComparison.Ordinal)) return false;
+            }
+            return true;
+        }
+    }
 }

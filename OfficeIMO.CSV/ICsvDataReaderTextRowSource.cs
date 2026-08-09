@@ -14,7 +14,14 @@ internal interface ICsvDataReaderTextRowSource : IDisposable
 
     string GetString(int ordinal);
 
+    bool IsMissing(int ordinal);
+
     bool IsNull(int ordinal, string? nullValue);
 
     int CopyStringValues(object[] values, int count, string? nullValue);
+}
+
+internal interface ICsvDataReaderParallelBatchInfo
+{
+    int RowCount { get; }
 }

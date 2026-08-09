@@ -224,6 +224,8 @@ internal static partial class CsvParser
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string GetString(int ordinal) => _visitor.GetString(ordinal);
 
+        public bool IsMissing(int ordinal) => _visitor.IsMissing(ordinal);
+
         public bool IsNull(int ordinal, string? nullValue) =>
             nullValue is not null
             && !_visitor.IsMissing(ordinal)

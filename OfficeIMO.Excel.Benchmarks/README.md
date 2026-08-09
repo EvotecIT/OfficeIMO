@@ -28,6 +28,51 @@ dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- read-profile --rows 2500
 ```
 
+On Windows, use a machine-specific affinity mask to keep sequential and
+parallel read-policy comparisons inside the intended CPU/cache domain. Repeat
+with every domain and with all intended processors; the JSON records the mask,
+logical processor count, and GC mode.
+
+```powershell
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- read-profile .\Ignore\Benchmarks\excel-read-ccd0.json --rows 25000 --warmup 5 --iterations 10 --affinity 0xFFFF
+```
+
+Affinity masks are topology-specific. Do not copy the example to another
+machine without deriving its CPU sets and cache domains first.
+
+### Dated read-policy snapshot (2026-08-08)
+
+This 25,000-row, eight-column local .NET 8 profile used workstation GC, three
+warmups, seven measured samples, and the Windows High performance power plan on
+an AMD Ryzen 9 9950X3D2. It measured both 16-logical-processor L3 domains
+separately (`0xFFFF` and `0xFFFF0000`). Values are medians in milliseconds.
+
+The final candidate assemblies were SHA-256
+`78D36A3BBAB93B013F17768F6D1302260532F9FD6058A32D9F766A72B6B76C61`
+for `OfficeIMO.Excel.Benchmarks.dll` and
+`5A88E63D531FC7725DAD42EC23E2B04CF2F8218FDA030EA948E1544AA6C8C919`
+for `OfficeIMO.Excel.dll`.
+
+| API | Affinity | Automatic | Sequential | Forced parallel |
+| --- | --- | ---: | ---: | ---: |
+| `ReadObjects` dictionaries | L3 domain 0 | 39.70 | 42.61 | 40.33 |
+| `ReadObjects` dictionaries | L3 domain 1 | 40.05 | 40.29 | 40.57 |
+| `ReadObjectsAs<T>` | L3 domain 0 | 28.69 | 45.29 | 35.57 |
+| `ReadObjectsAs<T>` | L3 domain 1 | 25.06 | 43.84 | 33.09 |
+| `ReadRange` | L3 domain 0 | 27.16 | 25.35 | 25.42 |
+| `ReadRange` | L3 domain 1 | 25.48 | 25.25 | 25.00 |
+| `ReadRangeAsDataTable` | L3 domain 0 | 51.47 | 53.93 | 50.80 |
+| `ReadRangeAsDataTable` | L3 domain 1 | 51.22 | 53.72 | 51.43 |
+| `ReadRangeStream` | L3 domain 0 | 25.61 | 25.84 | 25.20 |
+| `ReadRangeStream` | L3 domain 1 | 24.83 | 24.00 | 24.66 |
+
+Explicit parallel reads no longer bypass the specialized XML and UTF-8
+readers. The dense range, DataTable, and stream modes are effectively equal at
+this size, while the typed-object automatic and parallel routes retain the
+direct typed reader and materially outperform the forced sequential fallback.
+`Parallel` remains an execution preference rather than a promise to discard a
+faster single-pass reader; diagnostics report the strategy actually selected.
+
 ## Library comparison
 
 ```powershell
@@ -51,6 +96,40 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIM
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-markpflug65k-xlsb-officeimo 100
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-markpflug65k-xlsb-sylvan 100
 ```
+
+For one fixed-work run across both measured CPU domains, add affinity jobs and
+use the same invocation count for every method and job:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*MarkPflug65KXlsxBenchmarks*" --affinityMasks "0x1,0x10000" --invocationCount 1 --unrollFactor 1 --warmupCount 5 --iterationCount 15 --launchCount 1
+```
+
+These suites compare library methods within each CPU job, so method baselines
+and absolute per-job results are the appropriate shape. Do not combine those
+method baselines with an `--apples` job-baseline comparison.
+
+### Dated 65K XLSX snapshot (2026-08-07)
+
+The fixed-work command above was run locally on .NET 10 with workstation GC,
+the Windows High performance power plan, and an AMD Ryzen 9 9950X3D2. CPU 0
+and CPU 16 are the first logical processor in each measured L3 domain. Every
+method read the same hash-pinned workbook and passed the row, cell, and payload
+observation before measurement.
+
+| Library | CPU 0 mean | CPU 16 mean | Managed allocation |
+| --- | ---: | ---: | ---: |
+| OfficeIMO.Excel | 450.1 ms | 481.4 ms | 366.88 KB |
+| Sylvan.Data.Excel | 586.2 ms | 484.5 ms | 649 KB |
+| ExcelDataReader | 478.6 ms | 457.3 ms | 207,509 KB |
+| ClosedXML | 1,288.1 ms | 1,251.5 ms | 725,535-725,691 KB |
+| EPPlus | 1,174.5 ms | 888.2 ms | 864,333-864,334 KB |
+| MiniExcel | 561.6 ms | 435.3 ms | 666,371 KB |
+
+OfficeIMO has the lowest mean on CPU 0. MiniExcel has the lowest mean on CPU
+16, but its 99.9% confidence interval overlaps OfficeIMO's, so that domain is
+reported as equal. OfficeIMO has the lowest managed allocation on both domains
+by a wide margin. Several methods were bimodal or changed performance phase;
+the full distributions matter more than selecting one favorable cluster.
 
 The four `--profile-markpflug65k-*` commands are lightweight profiling loops,
 not publication-grade benchmark runs. Before timing begins, they authenticate

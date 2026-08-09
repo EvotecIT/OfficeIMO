@@ -21,8 +21,10 @@ namespace OfficeIMO.Excel {
     }
 
     /// <summary>
-    /// Controls how heavy operations in OfficeIMO.Excel run (sequential vs parallel) based on workload size.
-    /// Configure global and per‑operation thresholds and optionally observe decisions.
+    /// Controls how eligible compute work in OfficeIMO.Excel runs (sequential vs parallel) based on workload size.
+    /// Specialized single-pass readers remain eligible in every mode because bypassing a faster reader does not
+    /// make an operation meaningfully more parallel. Configure global and per-operation thresholds and optionally
+    /// observe the execution strategy that was actually selected.
     /// </summary>
     public sealed class ExcelExecutionPolicy {
         /// <summary>
@@ -30,7 +32,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelExecutionMode Mode { get; set; } = ExcelExecutionMode.Automatic;
 
-        /// <summary>Default threshold above which Automatic switches to Parallel.</summary>
+        /// <summary>Default threshold above which Automatic permits parallel compute when no faster specialized reader applies.</summary>
         public int ParallelThreshold { get; set; } = 10_000;
 
         /// <summary>Per-operation thresholds (names: "CellValues", "InsertObjects", "AutoFitColumns", ...).</summary>
@@ -90,6 +92,9 @@ namespace OfficeIMO.Excel {
         internal void ReportInfo(string message)
             => OnInfo?.Invoke(message);
 
+        internal void ReportDecision(string operationName, int itemCount, ExcelExecutionMode mode)
+            => OnDecision?.Invoke(operationName, itemCount, mode);
+
         internal bool AreDiagnosticsRequested
             => DiagnosticsRequested || OnInfo != null || OnTiming != null || OnDecision != null;
 
@@ -101,7 +106,7 @@ namespace OfficeIMO.Excel {
         internal ExcelExecutionMode Decide(string operationName, int itemCount) {
             var thr = OperationThresholds.TryGetValue(operationName, out var v) ? v : ParallelThreshold;
             var decided = itemCount > thr ? ExcelExecutionMode.Parallel : ExcelExecutionMode.Sequential;
-            OnDecision?.Invoke(operationName, itemCount, decided);
+            ReportDecision(operationName, itemCount, decided);
             return decided;
         }
 

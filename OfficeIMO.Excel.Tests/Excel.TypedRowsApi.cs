@@ -185,6 +185,153 @@ public partial class Excel {
         Assert.Equal(usedRangeRow, specifiedRangeRow);
     }
 
+    [Fact]
+    public void RowsAsParallel_PreservesOrderAcrossAutomaticExplicitAndFactoryMappings() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "OrderId");
+        sheet.CellValue(1, 2, "Amount");
+        const int rowCount = 1_025;
+        for (int index = 0; index < rowCount; index++) {
+            sheet.CellValue(index + 2, 1, index);
+            sheet.CellValue(index + 2, 2, index + 0.25m);
+        }
+
+        var parallel = new ParallelRowMappingOptions {
+            MaxDegreeOfParallelism = 4,
+            BatchSize = 127
+        };
+        const string range = "A1:B1026";
+
+        TypedSalesRow[] automatic = sheet.RowsAsParallel<TypedSalesRow>(range, parallel).ToArray();
+        TypedSalesRow[] explicitRows = sheet.RowsAsParallel<TypedSalesRow>(range, map => map
+            .FromColumn<int>("OrderId", static (row, value) => { row.OrderId = value; return row; })
+            .FromColumn<decimal>("Amount", static (row, value) => { row.Amount = value; return row; }), parallel).ToArray();
+        PositionalSalesRow[] factoryRows = sheet.RowsAsParallel(range, factory: row =>
+            new PositionalSalesRow(row.GetInt32(0), row.GetDecimal(1)), parallelOptions: parallel).ToArray();
+
+        Assert.Equal(Enumerable.Range(0, rowCount), automatic.Select(static row => row.OrderId));
+        Assert.Equal(Enumerable.Range(0, rowCount), explicitRows.Select(static row => row.OrderId));
+        Assert.Equal(Enumerable.Range(0, rowCount), factoryRows.Select(static row => row.OrderId));
+        Assert.Equal(rowCount - 1 + 0.25m, automatic[automatic.Length - 1].Amount);
+        Assert.Equal(automatic[automatic.Length - 1].Amount, explicitRows[explicitRows.Length - 1].Amount);
+        Assert.Equal(automatic[automatic.Length - 1].Amount, factoryRows[factoryRows.Length - 1].Amount);
+    }
+
+    [Theory]
+    [InlineData(".xlsx")]
+    [InlineData(".xlsm")]
+    [InlineData(".xltx")]
+    [InlineData(".xltm")]
+    [InlineData(".xlam")]
+    [InlineData(".xlsb")]
+    [InlineData(".xls")]
+    public void OpenDataReader_RowsAsParallelPreservesOrderAcrossSupportedPathFormats(string extension) {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO-ParallelFormat-{Guid.NewGuid():N}{extension}");
+        const int rowCount = 257;
+        try {
+            using (ExcelDocument document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "OrderId");
+                sheet.CellValue(1, 2, "Amount");
+                for (int index = 0; index < rowCount; index++) {
+                    sheet.CellValue(index + 2, 1, index);
+                    sheet.CellValue(index + 2, 2, index + 0.25m);
+                }
+                document.Save();
+            }
+
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+                path,
+                new ExcelReadOptions { SheetName = "Data" });
+            TypedSalesRow[] rows = reader.RowsAsParallel<TypedSalesRow>(
+                new ParallelRowMappingOptions {
+                    MaxDegreeOfParallelism = 4,
+                    BatchSize = 31
+                }).ToArray();
+
+            Assert.Equal(Enumerable.Range(0, rowCount), rows.Select(static row => row.OrderId));
+            Assert.Equal(rowCount - 1 + 0.25m, rows[rowCount - 1].Amount);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void RowsAsParallel_ObservesCancellationBeforeReading() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "OrderId");
+        sheet.CellValue(2, 1, 42);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => sheet.RowsAsParallel<TypedSalesRow>(
+            new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2 },
+            cancellationToken: cancellation.Token).ToArray());
+    }
+
+    [Fact]
+    public void Reader_ForcedParallelFastPath_PreservesTypedMappingContractsAboveItsActivationBoundary() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO-ParallelFastContracts-{Guid.NewGuid():N}.xlsx");
+        const int dataRows = 4_097;
+        DateTime date = new(2026, 8, 8, 12, 30, 0, DateTimeKind.Unspecified);
+        try {
+            using (ExcelDocument document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Order Number");
+                sheet.CellValue(1, 2, " Amount ");
+                sheet.CellValue(1, 3, "When");
+                sheet.CellValue(1, 4, "Unexpected");
+                for (int index = 0; index < dataRows; index++) {
+                    int row = index + 2;
+                    sheet.CellValue(row, 1, index + 1);
+                    if (index != 0) sheet.CellValue(row, 2, index + 0.25m);
+                    sheet.CellValue(row, 3, date.AddDays(index));
+                    sheet.CellValue(row, 4, index == 0 ? "customer-secret-value" : index);
+                }
+                document.Save();
+            }
+
+            var options = new ExcelReadOptions {
+                NormalizeHeaders = true,
+                TreatDatesUsingNumberFormat = true
+            };
+            options.Execution.MaxDegreeOfParallelism = 4;
+            using (ExcelDocumentReader reader = ExcelDocumentReader.Open(path, options)) {
+                LargeParallelMappedRow[] rows = reader.GetSheet("Data")
+                    .ReadObjects<LargeParallelMappedRow>(
+                        $"A1:D{dataRows + 1}",
+                        ExcelExecutionMode.Parallel)
+                    .ToArray();
+
+                Assert.Equal(dataRows, rows.Length);
+                Assert.Equal(1, rows[0].OrderId);
+                Assert.Equal(0m, rows[0].Amount);
+                Assert.Equal(date.ToOADate(), rows[0].When, precision: 8);
+                Assert.Equal(dataRows, rows[dataRows - 1].OrderId);
+                Assert.Equal(dataRows - 1 + 0.25m, rows[dataRows - 1].Amount);
+            }
+
+            using (ExcelDocumentReader strictReader = ExcelDocumentReader.Open(
+                       path,
+                       new ExcelReadOptions { StrictTypedMapping = true })) {
+                InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => strictReader
+                    .GetSheet("Data")
+                    .ReadObjects<LargeParallelMappedRow>(
+                        $"A1:D{dataRows + 1}",
+                        ExcelExecutionMode.Parallel)
+                    .ToArray());
+                Assert.Contains("Unexpected", exception.Message, StringComparison.Ordinal);
+            }
+
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     private sealed class TypedSalesRow {
         public int OrderId { get; set; }
         public decimal Amount { get; set; }
@@ -194,6 +341,15 @@ public partial class Excel {
         [ExcelColumn("Order Number")]
         public int OrderId { get; set; }
         public decimal Amount { get; set; }
+    }
+
+    private sealed class LargeParallelMappedRow {
+        [ExcelColumn("Order Number")]
+        public int OrderId { get; set; }
+
+        public decimal Amount { get; set; }
+
+        public double When { get; set; }
     }
 
 #if NET6_0_OR_GREATER

@@ -47,6 +47,7 @@ new CsvDocument()
 - Provides schema inference and schema validation with required columns, typed columns, defaults, and custom rules.
 - Maps rows to typed objects with explicit no-reflection mapping.
 - Provides forward-only `DbDataReader` access for large files without presenting a streaming document as an editable model.
+- Provides ordered, bounded parallel projection for data readers and a span-backed transient-record path for decoded text on .NET 8 and later.
 - Includes validated cross-library benchmark lanes with operating-system and run-mode provenance.
 
 ## Performance without giving up the document model
@@ -209,6 +210,69 @@ public sealed record PersonRecord(int Id, string Name);
 The factory receives the current `IDataRecord`; its typed getters use the CSV
 reader's configured culture and schema conversions. The same overload is
 available on `DbDataReader` and does not require `T : new()`.
+
+### Ordered parallel mapping
+
+Use `RowsAsParallel<T>()` when row conversion is substantial enough to repay
+worker scheduling. One producer reads the forward-only source, workers receive
+independent bounded batches, and results retain source order.
+`MaxDegreeOfParallelism` bounds concurrent batches. Leave `BatchSize` unset for
+the source's tuned bounded default; set it only when an application needs an
+explicit throughput-versus-working-set tradeoff:
+
+```csharp
+using OfficeIMO.Data;
+using System.Data.Common;
+
+using DbDataReader reader = CsvDocument.OpenDataReader("people.csv");
+Person[] people = reader.RowsAsParallel<Person>(
+    new ParallelRowMappingOptions {
+        MaxDegreeOfParallelism = 8
+    },
+    cancellationToken).ToArray();
+```
+
+The automatic, explicit `RowMapper<T>`, and `Func<IDataRecord, T>` projection
+shapes all have parallel overloads. Automatic and explicit mapping snapshot
+ordinary readers on the calling thread and map those bounded snapshots on
+workers. A factory runs concurrently only when the reader can supply
+independent batch readers; otherwise it stays on the calling thread so
+provider-specific `IDataRecord` conversions and metadata are preserved. A
+degree of one always uses the corresponding sequential mapping contract.
+Concurrent factories must not mutate unprotected shared state or retain the
+transient `IDataRecord`.
+
+On .NET 8 and later, decoded text can use the lower-overhead transient-record
+API. The builder resolves headers once; its returned factory receives
+span-backed fields directly from bounded parser batches:
+
+```csharp
+Person[] people = CsvDocument.ReadTextRowsAsParallel<Person>(
+    csvText,
+    header => {
+        int id = header.GetOrdinal("Id");
+        int name = header.GetOrdinal("Name");
+        int age = header.GetOrdinal("Age");
+        return row => new Person {
+            Id = row.GetInt32(id),
+            Name = row.GetString(name),
+            Age = row.GetInt32(age)
+        };
+    },
+    parallelOptions: new ParallelRowMappingOptions {
+        MaxDegreeOfParallelism = 8
+    },
+    cancellationToken: cancellationToken).ToArray();
+```
+
+`CsvRecord`, and every span returned by it, is valid only during that factory
+call. Do not retain either one. Use `CsvRecord.IsMissing(ordinal)` when a short
+source row omitted a field and `CsvRecord.IsNull(ordinal)` when a present field
+matches `CsvLoadOptions.NullValue`; an omitted field is deliberately not also
+reported as null. The path falls back to correct sequential record access when
+selected CSV options or a record shape cannot use the span-batch parser.
+Parallel execution uses more working memory and thread-pool work; small or
+cheap rows may be faster through the ordinary sequential API.
 
 On .NET 8 and later, explicit `DateOnly` and `TimeOnly` targets are supported by
 `RowsAs<T>`, `GetFieldValue<T>`, and `CsvColumnBuilder.AsDateOnly()` /

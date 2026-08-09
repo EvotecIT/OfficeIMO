@@ -1135,6 +1135,29 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void ReadFieldSpansFromText_TrimmedQuotedPaddingStaysOnSpanParser()
+    {
+        var events = new List<string>();
+        var visitor = new MaterializationTrackingVisitor(events);
+
+        CsvDocument.ReadFieldSpansFromText(
+            "  Alpha  ,  \"  inside  \"  ,\"quote \"\"one\"\"\"\n",
+            ref visitor,
+            new CsvLoadOptions {
+                HasHeaderRow = false,
+                TrimWhitespace = true
+            });
+
+        Assert.Equal(
+            new[] {
+                "span:0:0:Alpha",
+                "span:0:1:  inside  ",
+                "span:0:2:quote \"one\""
+            },
+            events);
+    }
+
+    [Fact]
     public void ReadFieldSpansFromText_ReadsEmptyFieldAfterQuotedField()
     {
         var fields = new List<string>();
@@ -1331,6 +1354,26 @@ public class CsvStreamingTests
         {
             _events.Add($"escaped:{recordIndex}:{fieldIndex}:{escapedValue.ToString()}:{unescapedLength}");
             return true;
+        }
+    }
+
+    private readonly struct MaterializationTrackingVisitor : ICsvFieldSpanVisitor
+    {
+        private readonly List<string> _events;
+
+        public MaterializationTrackingVisitor(List<string> events)
+        {
+            _events = events;
+        }
+
+        public void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value)
+        {
+            _events.Add($"span:{recordIndex}:{fieldIndex}:{value.ToString()}");
+        }
+
+        public void VisitFieldValue(int recordIndex, int fieldIndex, string value)
+        {
+            _events.Add($"string:{recordIndex}:{fieldIndex}:{value}");
         }
     }
 

@@ -2,6 +2,7 @@ using OfficeIMO.Excel.Benchmarks;
 using OfficeIMO.Benchmarks;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Exporters.Json;
+using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using System.Globalization;
 using System.Text.Json;
@@ -26,9 +27,8 @@ if (comparePairedXlsb || comparePairedXls) {
     if (iterations <= 0) {
         throw new ArgumentOutOfRangeException(nameof(iterations));
     }
-    ApplyProcessAffinity(args, argumentIndex: 2);
+    string affinity = ApplyProcessAffinity(args, argumentIndex: 2);
     const int warmupIterations = 10;
-    string affinity = args.Length > 2 ? args[2] : "unchanged";
 
     Func<ExcelReadObservation> runOfficeIMO;
     Func<ExcelReadObservation> runSylvan;
@@ -162,12 +162,14 @@ if (IsCommand(args, "--profile-read", "profile-read", "read-profile")) {
     int rowCount = ParseRowCount(args, startIndex: hasOutputPath ? 2 : 1);
     int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? ExcelReadProfileRunner.DefaultWarmupIterations;
     int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-iterations", "--samples") ?? ExcelReadProfileRunner.DefaultMeasuredIterations;
+    string? processorAffinity = ApplyProcessAffinityOption(args);
     string? outputPathOverride = ParseOutputPath(args);
     string outputPath = ExcelReadProfileRunner.WriteProfile(
         outputPathOverride ?? BuildDefaultOutputPath("officeimo.excel.read-profile", rowCount),
         rowCount,
         warmupIterations,
-        measuredIterations);
+        measuredIterations,
+        processorAffinity);
     Console.WriteLine($"Excel read profile written to '{outputPath}'.");
     return;
 }
@@ -401,8 +403,18 @@ if (IsCommand(args, "--comparison-suite", "comparison-suite", "--competitive-sui
     return;
 }
 
-var benchmarkConfig = DefaultConfig.Instance.AddExporter(JsonExporter.Full);
-BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, benchmarkConfig);
+var (benchmarkArgs, affinityMasks) = ExtractAffinityMasks(args);
+var benchmarkConfig = ManualConfig
+    .Create(DefaultConfig.Instance)
+    .AddExporter(JsonExporter.Full);
+for (int index = 0; index < affinityMasks.Length; index++) {
+    IntPtr affinity = affinityMasks[index];
+    Job job = Job.Default
+        .WithAffinity(affinity)
+        .WithId($"Affinity-{BenchmarkProcessorAffinity.Format(affinity)}");
+    benchmarkConfig.AddJob(job);
+}
+BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(benchmarkArgs, benchmarkConfig);
 
 static void WriteUsage() {
     Console.WriteLine("OfficeIMO.Excel benchmark helpers");
@@ -410,7 +422,7 @@ static void WriteUsage() {
     Console.WriteLine("Commands:");
     Console.WriteLine("  snapshot [output] [--rows N] [--website-data path]");
     Console.WriteLine("  write-profile [output] [--rows N]");
-    Console.WriteLine("  read-profile [output] [--rows N] [--warmup N] [--iterations N]");
+    Console.WriteLine("  read-profile [output] [--rows N] [--warmup N] [--iterations N] [--affinity mask]");
     Console.WriteLine("  chart-profile [output] [--rows N] [--warmup N] [--iterations N]");
     Console.WriteLine("  compare [output] [--rows N] [--scenario name] [--library name] [--skip-legacy-epplus] [--warmup N] [--iterations N]");
     Console.WriteLine("  package-profile [output] [--rows N] [--scenario name] [--warmup N] [--iterations N]");
@@ -590,6 +602,38 @@ static int? ParsePositiveOption(string[] args, params string[] optionNames) {
     return null;
 }
 
+static string? ApplyProcessAffinityOption(string[] args) {
+    string? value = ParseOptionValue(args, "--affinity", "--processor-affinity");
+    return value is null ? null : BenchmarkProcessorAffinity.Apply(value);
+}
+
+static (string[] Arguments, IntPtr[] Masks) ExtractAffinityMasks(string[] arguments) {
+    int optionIndex = Array.FindIndex(
+        arguments,
+        static argument => string.Equals(argument, "--affinityMasks", StringComparison.OrdinalIgnoreCase));
+    if (optionIndex < 0) {
+        return (arguments, Array.Empty<IntPtr>());
+    }
+    if (optionIndex + 1 >= arguments.Length) {
+        throw new ArgumentException("--affinityMasks requires a comma-separated list of positive processor-affinity masks.");
+    }
+
+    IntPtr[] masks = BenchmarkProcessorAffinity.ParseList(arguments[optionIndex + 1]);
+    var forwarded = new string[arguments.Length - 2];
+    if (optionIndex > 0) {
+        Array.Copy(arguments, 0, forwarded, 0, optionIndex);
+    }
+    if (optionIndex + 2 < arguments.Length) {
+        Array.Copy(
+            arguments,
+            optionIndex + 2,
+            forwarded,
+            optionIndex,
+            arguments.Length - optionIndex - 2);
+    }
+    return (forwarded, masks);
+}
+
 static bool HasSwitch(string[] args, string optionName)
     => args.Any(arg => string.Equals(arg, optionName, StringComparison.OrdinalIgnoreCase));
 
@@ -617,7 +661,9 @@ static bool OptionConsumesValue(string option)
        || string.Equals(option, "--rows", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--row-count", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--row-set", StringComparison.OrdinalIgnoreCase)
-       || string.Equals(option, "--row-counts", StringComparison.OrdinalIgnoreCase);
+       || string.Equals(option, "--row-counts", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--affinity", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--processor-affinity", StringComparison.OrdinalIgnoreCase);
 
 static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenarioFilters) {
     if (scenarioFilters.Count == 0) {
@@ -728,20 +774,10 @@ static double MeasureMilliseconds(
     return System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
 }
 
-static void ApplyProcessAffinity(string[] arguments, int argumentIndex) {
-    if (arguments.Length <= argumentIndex
-        || !long.TryParse(arguments[argumentIndex], out long affinityMask)) {
-        return;
-    }
-    if (!OperatingSystem.IsWindows()) {
-        throw new PlatformNotSupportedException("Processor-affinity comparison is available only on Windows.");
-    }
-    if (affinityMask <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(affinityMask));
-    }
-
-    System.Diagnostics.Process.GetCurrentProcess().ProcessorAffinity = checked((nint)affinityMask);
-}
+static string ApplyProcessAffinity(string[] arguments, int argumentIndex)
+    => arguments.Length <= argumentIndex
+        ? "unchanged"
+        : BenchmarkProcessorAffinity.Apply(arguments[argumentIndex]);
 
 static double Median(double[] samples) {
     Array.Sort(samples);

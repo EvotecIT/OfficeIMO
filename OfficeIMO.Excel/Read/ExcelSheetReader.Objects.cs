@@ -10,7 +10,10 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
+using System.Data;
+using System.Data.Common;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Data;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -43,54 +46,75 @@ namespace OfficeIMO.Excel {
             var requested = mode ?? policy.Mode;
             var decided = requested;
             int workload = rows * cols;
+            bool decisionReported = false;
+            void ReportActual(OfficeIMO.Excel.ExcelExecutionMode actual) {
+                if (decisionReported) return;
+                policy.ReportDecision("ReadObjectsAs", workload, actual);
+                decisionReported = true;
+            }
             if (decided == OfficeIMO.Excel.ExcelExecutionMode.Automatic) {
-                if (CanUseAutomaticXmlReadFastPath(policy)) {
-                    if (_opt.CellValueConverter == null
-                        && _opt.TypeConverter == null
-                        && ShouldAttemptUtf8Range(r1, r2)
-                        && RangeReachesDeclaredWorksheetEnd(r2)) {
-                        return ReadObjectsStreamUtf8OrXmlAdaptive<T>(a1Range, r1, c1, r2, c2, cols, ct).ToList();
-                    }
+                if (_opt.CellValueConverter == null
+                    && _opt.TypeConverter == null
+                    && ShouldAttemptUtf8Range(r1, r2)
+                    && RangeReachesDeclaredWorksheetEnd(r2)) {
+                    var utf8Rows = ReadObjectsStreamUtf8OrXmlAdaptive<T>(a1Range, r1, c1, r2, c2, cols, ct).ToList();
+                    ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+                    return utf8Rows;
+                }
 
-                    if (ShouldUseOrderedBufferedXmlStream(rows, c1, c2)
-                        && TryReadObjectsStreamOrderedXmlFast<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var orderedRows)) {
-                        return orderedRows;
-                    }
+                if (ShouldUseOrderedBufferedXmlStream(rows, c1, c2)
+                    && TryReadObjectsStreamOrderedXmlFast<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var orderedRows)) {
+                    ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+                    return orderedRows;
+                }
 
-                    if (TryReadObjectsFromXmlMaterialized<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var automaticStreamResult)) {
-                        return automaticStreamResult;
-                    }
+                if (TryReadObjectsFromXmlMaterialized<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var automaticStreamResult)) {
+                    ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+                    return automaticStreamResult;
+                }
 
-                    if (TryReadObjectsSequentialSinglePass<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var automaticSinglePassResult)) {
-                        return automaticSinglePassResult;
-                    }
+                if (TryReadObjectsSequentialSinglePass<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var automaticSinglePassResult)) {
+                    ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+                    return automaticSinglePassResult;
                 }
 
                 decided = policy.Decide("ReadObjectsAs", workload);
+                decisionReported = true;
             }
 
             if (decided != OfficeIMO.Excel.ExcelExecutionMode.Parallel
                 && TryReadObjectsFromXmlMaterialized<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var streamResult)) {
+                ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
                 return streamResult;
             }
 
             if (decided != OfficeIMO.Excel.ExcelExecutionMode.Parallel
                 && TryReadObjectsSequentialSinglePass<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var singlePassResult)) {
+                ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
                 return singlePassResult;
             }
 
             if (decided != OfficeIMO.Excel.ExcelExecutionMode.Parallel) {
                 if (TryReadObjectsFromFastRange<T>(a1Range, r1, c1, rows, cols, ct, out var rangeResult)) {
+                    ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
                     return rangeResult;
                 }
 
                 if (TryReadObjectsSequentialSinglePass<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var fastResult)) {
+                    ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
                     return fastResult;
                 }
 
+                ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
                 return ReadObjectsSequential<T>(a1Range, r1, c1, r2, c2, rows, cols, ct);
             }
 
+            if (TryReadObjectsParallelFast<T>(a1Range, ct, out List<T> parallelFastResult)) {
+                ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Parallel);
+                return parallelFastResult;
+            }
+
+            ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Parallel);
             var rawCells = SnapshotAndConvertRangeCells(r1, c1, r2, c2, "ReadObjectsAs", decided, ct, workload);
 
             // Build property map from normalized, disambiguated headers so repeated
@@ -167,6 +191,81 @@ namespace OfficeIMO.Excel {
             }
 
             return result;
+        }
+
+        private bool TryReadObjectsParallelFast<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            string a1Range,
+            CancellationToken ct,
+            out List<T> result) where T : new() {
+            result = [];
+            if (_opt.CellValueConverter != null || _opt.TypeConverter != null) return false;
+            var (firstRow, _, lastRow, _) = A1.ParseRange(a1Range);
+            if (lastRow - firstRow + 1 <= BufferedRangeStreamRowLimit) return false;
+            int chunkRows = Math.Min(2048, _opt.MaxDataReaderChunkRows);
+            if (chunkRows <= 0) return false;
+
+            IDataReader? dataReader = null;
+            try {
+                dataReader = ReadRangeAsDataReader(
+                    a1Range,
+                    headersInFirstRow: true,
+                    chunkRows,
+                    schemaSampleRows: 0,
+                    OfficeIMO.Excel.ExcelExecutionMode.Sequential,
+                    ct);
+                if (dataReader is not DbDataReader dbDataReader) return false;
+
+                string[] headers = new string[dbDataReader.FieldCount];
+                for (int ordinal = 0; ordinal < headers.Length; ordinal++) {
+                    headers[ordinal] = dbDataReader.GetName(ordinal);
+                }
+                TypedPropertyBinding<T>?[] bindings = GetTypedHeaderBindings<T>(headers, a1Range).Bindings;
+
+                result = dbDataReader.RowsAsParallelValues(
+                    values => MapBufferedExcelValues(values, bindings),
+                    new ParallelRowMappingOptions {
+                        MaxDegreeOfParallelism = _opt.Execution.MaxDegreeOfParallelism,
+                        BatchSize = 2048
+                    },
+                    ct).ToList();
+                return true;
+            } catch (NotSupportedException) {
+                result = [];
+                return false;
+            } finally {
+                dataReader?.Dispose();
+            }
+        }
+
+        private T MapBufferedExcelValues<T>(
+            object?[] values,
+            TypedPropertyBinding<T>?[] bindings) where T : new() {
+            var target = new T();
+            int count = Math.Min(values.Length, bindings.Length);
+            for (int ordinal = 0; ordinal < count; ordinal++) {
+                TypedPropertyBinding<T>? binding = bindings[ordinal];
+                if (binding == null) continue;
+
+                object? value = values[ordinal];
+                if (value == null || value == DBNull.Value) {
+                    if (binding.IsNullable) binding.SetValue(target, null);
+                    continue;
+                }
+
+                if (_opt.TreatDatesUsingNumberFormat &&
+                    value is DateTime dateValue &&
+                    IsNumericBindingDestination(binding.BindingKind)) {
+                    value = dateValue.ToOADate();
+                }
+
+                object? converted = TryChangeType(value, binding, _opt.Culture);
+                if (converted is not null || binding.IsNullable) {
+                    binding.SetValue(target, converted);
+                }
+            }
+
+            return target;
         }
 
         private bool TryReadObjectsFromXmlMaterialized<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(

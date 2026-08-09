@@ -36,8 +36,11 @@ public sealed partial class CsvDocument
         }
 
         var utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        long inputBytes = utf8.GetByteCount(text);
-        if (inputBytes > options.MaxInputBytes)
+        // A UTF-16 code unit expands to at most three UTF-8 bytes (a surrogate pair
+        // expands to four bytes total). Avoid scanning ordinary bounded inputs merely
+        // to prove that they fit comfortably below the configured byte limit.
+        if (text.Length > options.MaxInputBytes / 3 &&
+            utf8.GetByteCount(text) > options.MaxInputBytes)
         {
             throw new InvalidDataException(
                 $"CSV data exceeds the configured maximum size ({options.MaxInputBytes} bytes).");
@@ -50,6 +53,13 @@ public sealed partial class CsvDocument
             throw new ArgumentOutOfRangeException(nameof(readerOptions),
                 "Schema sample size must be greater than zero.");
         }
+
+#if NET8_0_OR_GREATER
+        if (TryCreateHeaderlessTextDataReader(text, options, readerOptions, out CsvDataReader? textDataReader))
+        {
+            return textDataReader!;
+        }
+#endif
 
         CsvDocument document = LoadInternal(
             () => new StringReader(text), options, utf8, text);
@@ -376,6 +386,51 @@ public sealed partial class CsvDocument
         (!readerOptions.InferSchema || readerOptions.Schema is not null);
 
 #if NET8_0_OR_GREATER
+    private static bool TryCreateHeaderlessTextDataReader(
+        string text,
+        CsvLoadOptions options,
+        CsvDataReaderOptions readerOptions,
+        out CsvDataReader? dataReader)
+    {
+        if (options.HasHeaderRow ||
+            options.Header is not null ||
+            options.DetectDelimiter ||
+            readerOptions.Schema is not null ||
+            readerOptions.InferSchema ||
+            !CsvParser.CanReadDataReaderRowsFromText(text, options))
+        {
+            dataReader = null;
+            return false;
+        }
+
+        var recordsToSkip = GetInitialRecordsToSkip(options);
+        if (!CsvParser.TryGetFirstTextDataReaderRecordFieldCount(
+            text,
+            options,
+            recordsToSkip,
+            out var sourceColumnCount))
+        {
+            dataReader = CreateEmptyDataReader(readerOptions, options);
+            return true;
+        }
+
+        var header = GenerateDefaultHeader(sourceColumnCount);
+        var columns = CreateDataReaderColumns(header, readerOptions);
+        var rows = new CsvParser.CsvTextDataReaderRowSource(
+            text,
+            options,
+            recordsToSkip,
+            sourceColumnCount);
+        dataReader = new CsvDataReader(
+            columns,
+            rows,
+            sourceColumnCount,
+            options,
+            options.Culture,
+            options.DateTimeFormats);
+        return true;
+    }
+
     private static bool CanUseStreamSpanDataReader(
         CsvLoadOptions options,
         CsvDataReaderOptions readerOptions) =>
