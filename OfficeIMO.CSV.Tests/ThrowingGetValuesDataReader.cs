@@ -14,6 +14,8 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
     private int _rowIndex = -1;
     private bool _closed;
 
+    public int GetValueCallCount { get; private set; }
+
     public ThrowingGetValuesDataReader(
         string[] headers,
         object?[][] rows,
@@ -39,9 +41,9 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
 
     public override int RecordsAffected => -1;
 
-    public override bool GetBoolean(int ordinal) => (bool)GetValue(ordinal);
+    public override bool GetBoolean(int ordinal) => GetRequiredValue<bool>(ordinal);
 
-    public override byte GetByte(int ordinal) => (byte)GetValue(ordinal);
+    public override byte GetByte(int ordinal) => GetRequiredValue<byte>(ordinal);
 
     public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) => throw new NotSupportedException();
 
@@ -51,11 +53,11 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
 
     public override string GetDataTypeName(int ordinal) => GetFieldType(ordinal).Name;
 
-    public override DateTime GetDateTime(int ordinal) => (DateTime)GetValue(ordinal);
+    public override DateTime GetDateTime(int ordinal) => GetRequiredValue<DateTime>(ordinal);
 
-    public override decimal GetDecimal(int ordinal) => (decimal)GetValue(ordinal);
+    public override decimal GetDecimal(int ordinal) => GetRequiredValue<decimal>(ordinal);
 
-    public override double GetDouble(int ordinal) => (double)GetValue(ordinal);
+    public override double GetDouble(int ordinal) => GetRequiredValue<double>(ordinal);
 
     public override IEnumerator GetEnumerator()
     {
@@ -67,15 +69,15 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
 
     public override Type GetFieldType(int ordinal) => _fieldTypes[ordinal];
 
-    public override float GetFloat(int ordinal) => (float)GetValue(ordinal);
+    public override float GetFloat(int ordinal) => GetRequiredValue<float>(ordinal);
 
-    public override Guid GetGuid(int ordinal) => (Guid)GetValue(ordinal);
+    public override Guid GetGuid(int ordinal) => GetRequiredValue<Guid>(ordinal);
 
-    public override short GetInt16(int ordinal) => (short)GetValue(ordinal);
+    public override short GetInt16(int ordinal) => GetRequiredValue<short>(ordinal);
 
-    public override int GetInt32(int ordinal) => (int)GetValue(ordinal);
+    public override int GetInt32(int ordinal) => GetRequiredValue<int>(ordinal);
 
-    public override long GetInt64(int ordinal) => (long)GetValue(ordinal);
+    public override long GetInt64(int ordinal) => GetRequiredValue<long>(ordinal);
 
     public override string GetName(int ordinal) => _headers[ordinal];
 
@@ -92,17 +94,22 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
         throw new IndexOutOfRangeException(name);
     }
 
-    public override string GetString(int ordinal) => (string)GetValue(ordinal);
+    public override string GetString(int ordinal) => GetRequiredValue<string>(ordinal);
 
     public override object GetValue(int ordinal)
     {
+        GetValueCallCount++;
         var value = CurrentRow[ordinal];
         return value ?? DBNull.Value;
     }
 
     public override int GetValues(object[] values) => throw new NotSupportedException("GetValues should not be required for CSV data reader export.");
 
-    public override bool IsDBNull(int ordinal) => ReferenceEquals(GetValue(ordinal), DBNull.Value);
+    public override bool IsDBNull(int ordinal)
+    {
+        var value = CurrentRow[ordinal];
+        return value is null || ReferenceEquals(value, DBNull.Value);
+    }
 
     public override bool NextResult() => false;
 
@@ -142,6 +149,17 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
 
             return _rows[_rowIndex];
         }
+    }
+
+    private T GetRequiredValue<T>(int ordinal)
+    {
+        var value = CurrentRow[ordinal];
+        if (value is null || ReferenceEquals(value, DBNull.Value))
+        {
+            throw new InvalidCastException("The requested field contains a database null.");
+        }
+
+        return (T)value;
     }
 
     private static Type[] CreateFieldTypes(string[] headers, object?[][] rows)

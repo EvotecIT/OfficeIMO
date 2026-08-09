@@ -1,3 +1,5 @@
+using System.Data;
+using System.Globalization;
 using OfficeIMO.CSV;
 using OfficeIMO.Data;
 
@@ -42,7 +44,24 @@ if (explicitlyStreamed.Name != "Alice" || explicitlyStreamed.Score != 42 ||
     throw new InvalidOperationException("The explicit forward-only typed-row mapper lost a value.");
 }
 
-Console.WriteLine("PASS | CSV parse, schema inspection, automatic mapping, and explicit AOT mapping");
+var exportedRows = new DataTable();
+exportedRows.Columns.Add("Name", typeof(string));
+exportedRows.Columns.Add("Score", typeof(decimal));
+exportedRows.Columns.Add("Created", typeof(DateTime));
+exportedRows.Columns.Add("Enabled", typeof(bool));
+exportedRows.Rows.Add("Alice", 42.5m, new DateTime(2026, 8, 6, 14, 35, 12, DateTimeKind.Utc), true);
+using (var exportedReader = exportedRows.CreateDataReader())
+using (var exportedText = new StringWriter(CultureInfo.InvariantCulture)) {
+    CsvDocument.WriteDataReader(
+        exportedText,
+        exportedReader,
+        new CsvSaveOptions { NewLine = "\n", DateTimeFormat = "yyyy-MM-dd HH:mm:ss" });
+    if (exportedText.ToString() != "Name,Score,Created,Enabled\nAlice,42.5,2026-08-06 14:35:12,True\n") {
+        throw new InvalidOperationException("The AOT-safe typed DataReader writer lost a value.");
+    }
+}
+
+Console.WriteLine("PASS | CSV parse, schema inspection, mapping, and typed DataReader writing");
 
 internal sealed class CsvSmokeRow {
     public string Name { get; set; } = string.Empty;

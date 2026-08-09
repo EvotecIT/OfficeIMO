@@ -300,45 +300,23 @@ an opponent or universal baseline. Results are interpreted per workload and
 platform; `Build/Run-LibraryComparisonBenchmarks.ps1` keeps Windows, Linux, and
 macOS evidence separate.
 
-`CsvDbatoolsLibraryParityBenchmarks` mirrors the published dbatools.library CSV benchmark layout from [dataplat/dbatools.library `benchmarks/CsvBenchmarks`](https://github.com/dataplat/dbatools.library/tree/main/benchmarks/CsvBenchmarks), specifically `CsvReaderBenchmarks.Benchmarks.cs` and `QuickTest.cs`: small, medium, large, wide, quoted, modern medium/large, all-values, and quick-test-style single-column/all-column read lanes. It keeps OfficeIMO in the same file-path reader shape beside Dataplat.Dbatools.Csv, LumenWorks, Sep, Sylvan, and CsvHelper so the raw parser comparison is apples-to-apples. Each parity lane validates the expected row count and deterministic field-length checksum for its input file, so a lane cannot win by silently under-reading or skipping field materialization. The broader `CsvBenchmarks` and `CsvWideBenchmarks` lanes still touch every field and return checksums for stricter payload validation.
+`CsvDbatoolsLibraryParityBenchmarks` mirrors the published dbatools.library CSV benchmark layout from [dataplat/dbatools.library `benchmarks/CsvBenchmarks`](https://github.com/dataplat/dbatools.library/tree/main/benchmarks/CsvBenchmarks), specifically `CsvReaderBenchmarks.Benchmarks.cs` and `QuickTest.cs`: small, medium, large, wide, quoted, modern medium/large, all-values, and quick-test-style single-column/all-column read lanes. OfficeIMO uses its public `DbDataReader` string contract in this class; its zero-copy field-span API is measured separately. Each implementation opens the same file, materializes the requested strings, and validates the expected row count and deterministic field-length checksum, so a lane cannot win by silently under-reading or skipping the payload. The broader `CsvBenchmarks` and `CsvWideBenchmarks` lanes still touch every field and return checksums for stricter payload validation.
 
-Parity check: the class includes all 20 upstream `CsvReaderBenchmarks` methods by benchmark description plus all 10 QuickTest read lanes, then adds matching OfficeIMO lanes beside them. The extra `OfficeIMO-DataReader-QuickTest-GetValues` lane keeps the SQL/bulk-copy-shaped `DbDataReader.GetValues` path visible at the same 100k-row QuickTest size. Dataplat remains the BenchmarkDotNet baseline in this parity class to preserve the upstream comparison frame. `TypeConverterBenchmarks` is intentionally out of scope here because it measures dbatools vector conversion rather than CSV parser throughput, not CSV reader throughput.
+Parity check: the class includes all 20 upstream `CsvReaderBenchmarks` methods by benchmark description plus all 10 QuickTest read lanes, then adds matching OfficeIMO lanes beside them. The extra `OfficeIMO-DataReader-QuickTest-GetValues` lane keeps the SQL/bulk-copy-shaped `DbDataReader.GetValues` path visible at the same 100k-row QuickTest size. BenchmarkDotNet groups results by workload category and uses the matching Dataplat method as that category's baseline; it does not rank a small single-column read against a large or all-column read. `TypeConverterBenchmarks` is intentionally out of scope because it measures dbatools vector conversion rather than CSV reader throughput.
 
 The generated table above and the dated sections below record earlier focused
 investigations and their reproduction commands. Do not combine their numbers
 into a current ranking.
 
-## Dated dbatools.library parity snapshot (2026-07-09)
+Run the two QuickTest contracts independently when comparing current code:
 
-Archived local short-job run using the 14 QuickTest-shaped parity lanes with row-count and field-length checksum validation enabled. Treat these as direction-finding numbers; rerun before making release claims or performance gates.
+```powershell
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvDbatoolsLibraryParityBenchmarks*" --anyCategories QuickTestSingleColumn QuickTestAllColumns --job short --warmupCount 3 --iterationCount 9
+```
 
-QuickTest single-column/all-column read lanes:
-
-| Method | Single column mean | All columns mean | Allocated |
-| --- | ---: | ---: | ---: |
-| OfficeIMO span reader | 4.57 ms | 4.70 ms | 770 KB / 770 KB |
-| OfficeIMO streaming DataReader | 19.68 ms | 21.33 ms | 40.6 MB |
-| SEP | 7.14 ms | 15.59 ms | 3.1 MB / 39.4 MB |
-| Sylvan | 8.23 ms | 16.34 ms | 3.1 MB / 39.6 MB |
-| CsvHelper | 30.15 ms | 45.63 ms | 3.1 MB / 39.6 MB |
-| Dataplat.Dbatools.Csv | 26.13 ms | 29.38 ms | 39.9 MB |
-| LumenWorks | 118.19 ms | 33.17 ms | 1.58 GB / 39.7 MB |
-
-All-values read lane:
-
-| Method | Mean | Allocated |
-| --- | ---: | ---: |
-| OfficeIMO span reader | 4.60 ms | 770 KB |
-| OfficeIMO streaming DataReader | 22.64 ms | 41.3 MB |
-| Dataplat.Dbatools.Csv DataReader | 26.70 ms | 39.9 MB |
-| LumenWorks | 32.53 ms | 39.7 MB |
-
-Additional guardrail: `OfficeIMO-DataReader-QuickTest-GetValues` reads the same
-100k-row QuickTest file through `DbDataReader.GetValues`; this archived
-short run measured 23.10 ms and 40.6 MB. Keep this lane visible when optimizing
-the SQL/bulk-copy-shaped reader path.
-
-The span-reader result is the fastest raw parser shape. The streaming DataReader result is the SQL/bulk-copy-shaped path; it now reads reusable parser string rows directly and is faster than Dataplat's DataReader in these short runs, with Dataplat still holding a small allocation edge.
+Do not combine these results with `CsvTrimUnescapeSpanBenchmarks` or another
+field-span suite. Those APIs intentionally borrow transient spans and answer a
+different performance question.
 
 ## Dated typed DataReader snapshot (2026-07-09)
 

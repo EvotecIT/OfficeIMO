@@ -3,6 +3,7 @@
 using System.Globalization;
 using System.Text;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Configs;
 using CsvHelper.Configuration;
 using nietras.SeparatedValues;
 using CsvHelperReader = CsvHelper.CsvReader;
@@ -16,6 +17,7 @@ namespace OfficeIMO.CSV.Benchmarks;
 
 [MemoryDiagnoser]
 [RankColumn]
+[GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 public class CsvDbatoolsLibraryParityBenchmarks
 {
     private const int FirstColumnIndex = 0;
@@ -67,7 +69,7 @@ public class CsvDbatoolsLibraryParityBenchmarks
 
     [Benchmark(Description = "OfficeIMO-Small")]
     [BenchmarkCategory("Small")]
-    public int OfficeIMO_Small() => OfficeIMO_ReadFirstColumn(_smallCsvPath);
+    public int OfficeIMO_Small() => OfficeIMO_DataReaderReadFirstColumn(_smallCsvPath);
 
     [Benchmark(Baseline = true, Description = "Dataplat-Small")]
     [BenchmarkCategory("Small")]
@@ -79,9 +81,9 @@ public class CsvDbatoolsLibraryParityBenchmarks
 
     [Benchmark(Description = "OfficeIMO-Medium")]
     [BenchmarkCategory("Medium")]
-    public int OfficeIMO_Medium() => OfficeIMO_ReadFirstColumn(_mediumCsvPath);
+    public int OfficeIMO_Medium() => OfficeIMO_DataReaderReadFirstColumn(_mediumCsvPath);
 
-    [Benchmark(Description = "Dataplat-Medium")]
+    [Benchmark(Baseline = true, Description = "Dataplat-Medium")]
     [BenchmarkCategory("Medium")]
     public int Dataplat_Medium() => Dataplat_ReadFirstColumn(_mediumCsvPath);
 
@@ -91,9 +93,9 @@ public class CsvDbatoolsLibraryParityBenchmarks
 
     [Benchmark(Description = "OfficeIMO-Large")]
     [BenchmarkCategory("Large")]
-    public int OfficeIMO_Large() => OfficeIMO_ReadFirstColumn(_largeCsvPath);
+    public int OfficeIMO_Large() => OfficeIMO_DataReaderReadFirstColumn(_largeCsvPath);
 
-    [Benchmark(Description = "Dataplat-Large")]
+    [Benchmark(Baseline = true, Description = "Dataplat-Large")]
     [BenchmarkCategory("Large")]
     public int Dataplat_Large() => Dataplat_ReadFirstColumn(_largeCsvPath);
 
@@ -103,9 +105,9 @@ public class CsvDbatoolsLibraryParityBenchmarks
 
     [Benchmark(Description = "OfficeIMO-Wide")]
     [BenchmarkCategory("Wide")]
-    public int OfficeIMO_Wide() => OfficeIMO_ReadFirstColumn(_wideCsvPath);
+    public int OfficeIMO_Wide() => OfficeIMO_DataReaderReadFirstColumn(_wideCsvPath);
 
-    [Benchmark(Description = "Dataplat-Wide")]
+    [Benchmark(Baseline = true, Description = "Dataplat-Wide")]
     [BenchmarkCategory("Wide")]
     public int Dataplat_Wide() => Dataplat_ReadFirstColumn(_wideCsvPath);
 
@@ -115,9 +117,9 @@ public class CsvDbatoolsLibraryParityBenchmarks
 
     [Benchmark(Description = "OfficeIMO-Quoted")]
     [BenchmarkCategory("Quoted")]
-    public int OfficeIMO_Quoted() => OfficeIMO_ReadFirstColumn(_quotedCsvPath);
+    public int OfficeIMO_Quoted() => OfficeIMO_DataReaderReadFirstColumn(_quotedCsvPath);
 
-    [Benchmark(Description = "Dataplat-Quoted")]
+    [Benchmark(Baseline = true, Description = "Dataplat-Quoted")]
     [BenchmarkCategory("Quoted")]
     public int Dataplat_Quoted() => Dataplat_ReadFirstColumn(_quotedCsvPath);
 
@@ -127,7 +129,7 @@ public class CsvDbatoolsLibraryParityBenchmarks
 
     [Benchmark(Description = "OfficeIMO-Medium-Modern")]
     [BenchmarkCategory("Modern")]
-    public int OfficeIMO_Medium_Modern() => OfficeIMO_ReadFirstColumn(_mediumCsvPath);
+    public int OfficeIMO_Medium_Modern() => OfficeIMO_DataReaderReadFirstColumn(_mediumCsvPath);
 
     [Benchmark(Description = "Sep-Medium")]
     [BenchmarkCategory("Modern")]
@@ -141,13 +143,13 @@ public class CsvDbatoolsLibraryParityBenchmarks
     [BenchmarkCategory("Modern")]
     public int CsvHelper_Medium() => CsvHelper_ReadFirstColumn(_mediumCsvPath);
 
-    [Benchmark(Description = "Dataplat-Medium-Modern")]
+    [Benchmark(Baseline = true, Description = "Dataplat-Medium-Modern")]
     [BenchmarkCategory("Modern")]
     public int Dataplat_Medium_Modern() => Dataplat_ReadFirstColumn(_mediumCsvPath);
 
     [Benchmark(Description = "OfficeIMO-Large-Modern")]
     [BenchmarkCategory("ModernLarge")]
-    public int OfficeIMO_Large_Modern() => OfficeIMO_ReadFirstColumn(_largeCsvPath);
+    public int OfficeIMO_Large_Modern() => OfficeIMO_DataReaderReadFirstColumn(_largeCsvPath);
 
     [Benchmark(Description = "Sep-Large")]
     [BenchmarkCategory("ModernLarge")]
@@ -161,19 +163,19 @@ public class CsvDbatoolsLibraryParityBenchmarks
     [BenchmarkCategory("ModernLarge")]
     public int CsvHelper_Large() => CsvHelper_ReadFirstColumn(_largeCsvPath);
 
-    [Benchmark(Description = "Dataplat-Large-Modern")]
+    [Benchmark(Baseline = true, Description = "Dataplat-Large-Modern")]
     [BenchmarkCategory("ModernLarge")]
     public int Dataplat_Large_Modern() => Dataplat_ReadFirstColumn(_largeCsvPath);
 
     [Benchmark(Description = "OfficeIMO-AllValues")]
     [BenchmarkCategory("AllValues")]
-    public int OfficeIMO_AllValues() => OfficeIMO_ReadAllValues(_mediumCsvPath);
+    public int OfficeIMO_AllValues() => OfficeIMO_DataReaderReadAllValuesByOrdinal(_mediumCsvPath);
 
     [Benchmark(Description = "OfficeIMO-DataReader-AllValues")]
     [BenchmarkCategory("AllValues")]
     public int OfficeIMO_DataReader_AllValues() => OfficeIMO_DataReaderReadAllValues(_mediumCsvPath);
 
-    [Benchmark(Description = "Dataplat-AllValues")]
+    [Benchmark(Baseline = true, Description = "Dataplat-AllValues")]
     [BenchmarkCategory("AllValues")]
     public int Dataplat_AllValues()
     {
@@ -213,88 +215,64 @@ public class CsvDbatoolsLibraryParityBenchmarks
     }
 
     [Benchmark(Description = "OfficeIMO-QuickTest-SingleColumn")]
-    [BenchmarkCategory("QuickTest")]
-    public int OfficeIMO_QuickTest_SingleColumn() => OfficeIMO_ReadFirstColumn(_quickTestCsvPath);
+    [BenchmarkCategory("QuickTestSingleColumn")]
+    public int OfficeIMO_QuickTest_SingleColumn() => OfficeIMO_DataReaderReadFirstColumn(_quickTestCsvPath);
 
     [Benchmark(Description = "OfficeIMO-QuickTest-AllColumns")]
-    [BenchmarkCategory("QuickTest")]
-    public int OfficeIMO_QuickTest_AllColumns() => OfficeIMO_ReadAllValues(_quickTestCsvPath);
+    [BenchmarkCategory("QuickTestAllColumns")]
+    public int OfficeIMO_QuickTest_AllColumns() => OfficeIMO_DataReaderReadAllValuesByOrdinal(_quickTestCsvPath);
 
     [Benchmark(Description = "OfficeIMO-DataReader-QuickTest-SingleColumn")]
-    [BenchmarkCategory("QuickTest")]
+    [BenchmarkCategory("QuickTestSingleColumn")]
     public int OfficeIMO_DataReader_QuickTest_SingleColumn() => OfficeIMO_DataReaderReadFirstColumn(_quickTestCsvPath);
 
     [Benchmark(Description = "OfficeIMO-DataReader-QuickTest-AllColumns")]
-    [BenchmarkCategory("QuickTest")]
+    [BenchmarkCategory("QuickTestAllColumns")]
     public int OfficeIMO_DataReader_QuickTest_AllColumns() => OfficeIMO_DataReaderReadAllValuesByOrdinal(_quickTestCsvPath);
 
     [Benchmark(Description = "OfficeIMO-DataReader-QuickTest-GetValues")]
-    [BenchmarkCategory("QuickTest")]
+    [BenchmarkCategory("QuickTestAllColumns")]
     public int OfficeIMO_DataReader_QuickTest_GetValues() => OfficeIMO_DataReaderReadAllValues(_quickTestCsvPath);
 
     [Benchmark(Description = "Sep-QuickTest-SingleColumn")]
-    [BenchmarkCategory("QuickTest")]
+    [BenchmarkCategory("QuickTestSingleColumn")]
     public int Sep_QuickTest_SingleColumn() => Sep_ReadFirstColumn(_quickTestCsvPath);
 
     [Benchmark(Description = "Sep-QuickTest-AllColumns")]
-    [BenchmarkCategory("QuickTest")]
+    [BenchmarkCategory("QuickTestAllColumns")]
     public int Sep_QuickTest_AllColumns() => Sep_ReadAllValues(_quickTestCsvPath);
 
     [Benchmark(Description = "Sylvan-QuickTest-SingleColumn")]
-    [BenchmarkCategory("QuickTest")]
+    [BenchmarkCategory("QuickTestSingleColumn")]
     public int Sylvan_QuickTest_SingleColumn() => Sylvan_ReadFirstColumn(_quickTestCsvPath);
 
     [Benchmark(Description = "Sylvan-QuickTest-AllColumns")]
-    [BenchmarkCategory("QuickTest")]
+    [BenchmarkCategory("QuickTestAllColumns")]
     public int Sylvan_QuickTest_AllColumns() => Sylvan_ReadAllValues(_quickTestCsvPath);
 
     [Benchmark(Description = "CsvHelper-QuickTest-SingleColumn")]
-    [BenchmarkCategory("QuickTest")]
+    [BenchmarkCategory("QuickTestSingleColumn")]
     public int CsvHelper_QuickTest_SingleColumn() => CsvHelper_ReadFirstColumn(_quickTestCsvPath);
 
     [Benchmark(Description = "CsvHelper-QuickTest-AllColumns")]
-    [BenchmarkCategory("QuickTest")]
+    [BenchmarkCategory("QuickTestAllColumns")]
     public int CsvHelper_QuickTest_AllColumns() => CsvHelper_ReadAllValues(_quickTestCsvPath);
 
-    [Benchmark(Description = "Dataplat-QuickTest-SingleColumn")]
-    [BenchmarkCategory("QuickTest")]
+    [Benchmark(Baseline = true, Description = "Dataplat-QuickTest-SingleColumn")]
+    [BenchmarkCategory("QuickTestSingleColumn")]
     public int Dataplat_QuickTest_SingleColumn() => Dataplat_ReadFirstColumn(_quickTestCsvPath);
 
-    [Benchmark(Description = "Dataplat-QuickTest-AllColumns")]
-    [BenchmarkCategory("QuickTest")]
+    [Benchmark(Baseline = true, Description = "Dataplat-QuickTest-AllColumns")]
+    [BenchmarkCategory("QuickTestAllColumns")]
     public int Dataplat_QuickTest_AllColumns() => Dataplat_ReadAllValues(_quickTestCsvPath);
 
     [Benchmark(Description = "LumenWorks-QuickTest-SingleColumn")]
-    [BenchmarkCategory("QuickTest")]
+    [BenchmarkCategory("QuickTestSingleColumn")]
     public int LumenWorks_QuickTest_SingleColumn() => LumenWorks_ReadFirstColumn(_quickTestCsvPath);
 
     [Benchmark(Description = "LumenWorks-QuickTest-AllColumns")]
-    [BenchmarkCategory("QuickTest")]
+    [BenchmarkCategory("QuickTestAllColumns")]
     public int LumenWorks_QuickTest_AllColumns() => LumenWorks_ReadAllValues(_quickTestCsvPath);
-
-    private static int OfficeIMO_ReadFirstColumn(string path)
-    {
-        var visitor = new OfficeImoFirstColumnVisitor();
-        CsvDocument.ReadFieldSpans(path, ref visitor, new CsvLoadOptions { SkipInitialRecords = 1, DetectDelimiter = false });
-        if (visitor.FirstColumnLength < 0)
-        {
-            throw new InvalidOperationException("Unexpected negative field length.");
-        }
-
-        return ValidateReadResult(path, visitor.RowCount, visitor.FirstColumnLength, CsvReadValidationMode.FirstColumn);
-    }
-
-    private static int OfficeIMO_ReadAllValues(string path)
-    {
-        var visitor = new OfficeImoAllValuesVisitor();
-        CsvDocument.ReadFieldSpans(path, ref visitor, new CsvLoadOptions { SkipInitialRecords = 1, DetectDelimiter = false });
-        if (visitor.FieldLength < 0)
-        {
-            throw new InvalidOperationException("Unexpected negative field length.");
-        }
-
-        return ValidateReadResult(path, visitor.RowCount, visitor.FieldLength, CsvReadValidationMode.AllValues);
-    }
 
     private static int OfficeIMO_DataReaderReadFirstColumn(string path)
     {
@@ -652,56 +630,6 @@ public class CsvDbatoolsLibraryParityBenchmarks
         }
 
         fieldLength += Convert.ToString(value, CultureInfo.InvariantCulture)?.Length ?? 0;
-    }
-
-    private struct OfficeImoFirstColumnVisitor : ICsvProjectedFieldSpanVisitor
-    {
-        public int RowCount { get; private set; }
-
-        public long FirstColumnLength { get; private set; }
-
-        public bool ShouldVisitField(int recordIndex, int fieldIndex) => fieldIndex == FirstColumnIndex;
-
-        public void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value)
-        {
-            RowCount++;
-            FirstColumnLength += value.Length;
-        }
-
-        public bool TryVisitEscapedField(int recordIndex, int fieldIndex, ReadOnlySpan<char> escapedValue, int unescapedLength)
-        {
-            RowCount++;
-            FirstColumnLength += unescapedLength;
-            return true;
-        }
-    }
-
-    private struct OfficeImoAllValuesVisitor : ICsvFieldSpanVisitor
-    {
-        public int RowCount { get; private set; }
-
-        public long FieldLength { get; private set; }
-
-        public void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value)
-        {
-            if (fieldIndex == FirstColumnIndex)
-            {
-                RowCount++;
-            }
-
-            FieldLength += value.Length;
-        }
-
-        public bool TryVisitEscapedField(int recordIndex, int fieldIndex, ReadOnlySpan<char> escapedValue, int unescapedLength)
-        {
-            if (fieldIndex == FirstColumnIndex)
-            {
-                RowCount++;
-            }
-
-            FieldLength += unescapedLength;
-            return true;
-        }
     }
 
     private readonly record struct CsvExpectedMetrics(int RowCount, long FirstColumnLength, long AllValuesLength);
