@@ -105,8 +105,11 @@ public static class LatexTokenizer {
             if (delimiterIndex >= source.Length || char.IsWhiteSpace(source[delimiterIndex]) ||
                 IsControlWordCharacter(source[delimiterIndex])) return false;
             char delimiter = source[delimiterIndex];
-            int close = source.IndexOf(delimiter, delimiterIndex + 1);
-            index = close >= 0 ? close + 1 : source.Length;
+            int contentStart = delimiterIndex + 1;
+            int lineEnd = contentStart;
+            while (lineEnd < source.Length && source[lineEnd] != '\r' && source[lineEnd] != '\n') lineEnd++;
+            int close = source.IndexOf(delimiter, contentStart, lineEnd - contentStart);
+            index = close >= 0 ? close + 1 : lineEnd;
             value = "verb";
             isTerminated = close >= 0;
             return true;

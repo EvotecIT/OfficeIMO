@@ -117,6 +117,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
+        [InlineData("=SUM('Q1) final'!A1:A2)", "'Q1) final'!A1:A2")]
+        [InlineData("=SUM('Owner''s (Q1)'!A1:A2)", "'Owner''s (Q1)'!A1:A2")]
+        public void Test_FormulaExpressionParser_IgnoresParenthesesInsideQuotedSheetQualifiers(
+            string formula,
+            string expectedArguments) {
+            Assert.True(ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(
+                formula, out ExcelFormulaFunctionCallSyntax? call));
+            Assert.Equal("SUM", call!.Name);
+            Assert.Equal(expectedArguments, call.Arguments);
+        }
+
+        [Fact]
+        public void Test_FormulaExpressionParser_RejectsUnterminatedQualifierInsideFunction() {
+            Assert.False(ExcelFormulaExpressionParser.TryParseFunctionCall("=SUM('Q1) final!A1:A2)", out _));
+        }
+
+        [Theory]
         [InlineData("'Profit-Loss'!A1+1", "'Profit-Loss'!A1", "+", "1")]
         [InlineData("'Owner''s <Data>'!A1>=0", "'Owner''s <Data>'!A1", ">=", "0")]
         public void Test_FormulaExpressionParser_IgnoresOperatorsInsideQuotedSheetQualifiers(

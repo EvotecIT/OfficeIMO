@@ -203,6 +203,25 @@ public sealed class LatexConversionRegressionTests {
     }
 
     [Fact]
+    public void VerbatimEnvironmentArgumentsAreNotEmittedAsCode() {
+        const string source =
+            "\\documentclass{article}\n\\begin{document}\n" +
+            "\\begin{minted}[linenos]{csharp}\nConsole.WriteLine(1);\n\\end{minted}\n" +
+            "\\begin{lstlisting}[language=C]\nprintf(\"ok\");\n\\end{lstlisting}\n" +
+            "\\end{document}\n";
+
+        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        CodeBlock[] blocks = result.Value.Blocks.OfType<CodeBlock>().ToArray();
+
+        Assert.Equal(2, blocks.Length);
+        Assert.Contains("Console.WriteLine(1);", blocks[0].Content, StringComparison.Ordinal);
+        Assert.DoesNotContain("linenos", blocks[0].Content, StringComparison.Ordinal);
+        Assert.DoesNotContain("{csharp}", blocks[0].Content, StringComparison.Ordinal);
+        Assert.Contains("printf(\"ok\");", blocks[1].Content, StringComparison.Ordinal);
+        Assert.DoesNotContain("language=C", blocks[1].Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void InlineVerbPreservesCommentMarkersAsCode() {
         const string source =
             "\\documentclass{article}\n\\begin{document}\nBefore \\verb|a%b{c}| after.\n\\end{document}\n";
@@ -242,6 +261,20 @@ public sealed class LatexConversionRegressionTests {
         LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
 
         Assert.Contains("`abc`", result.Value.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD111");
+    }
+
+    [Fact]
+    public void UnterminatedInlineVerbDoesNotConsumeFollowingLines() {
+        const string source =
+            "\\documentclass{article}\n\\begin{document}\nBefore \\verb|abc\n\\section{Next}\nAfter\n\\end{document}\n";
+
+        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        string markdown = result.Value.ToMarkdown();
+
+        Assert.Contains("`abc`", markdown, StringComparison.Ordinal);
+        Assert.Contains("# Next", markdown, StringComparison.Ordinal);
+        Assert.Contains("After", markdown, StringComparison.Ordinal);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD111");
     }
 }

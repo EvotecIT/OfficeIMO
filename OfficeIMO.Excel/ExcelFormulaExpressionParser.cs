@@ -80,6 +80,7 @@ namespace OfficeIMO.Excel {
             int depth = 1;
             int structuredDepth = 0;
             bool inString = false;
+            bool inQuotedQualifier = false;
             while (cursor < formula.Length) {
                 char current = formula[cursor];
                 if (inString) {
@@ -93,7 +94,19 @@ namespace OfficeIMO.Excel {
                     cursor++;
                     continue;
                 }
+                if (inQuotedQualifier) {
+                    if (current == '\'') {
+                        if (cursor + 1 < formula.Length && formula[cursor + 1] == '\'') {
+                            cursor += 2;
+                            continue;
+                        }
+                        inQuotedQualifier = false;
+                    }
+                    cursor++;
+                    continue;
+                }
                 if (current == '"') { inString = true; cursor++; continue; }
+                if (current == '\'') { inQuotedQualifier = true; cursor++; continue; }
                 if (current == '[') { structuredDepth++; cursor++; continue; }
                 if (current == ']' && structuredDepth > 0) { structuredDepth--; cursor++; continue; }
                 if (structuredDepth == 0 && current == '(') { depth++; cursor++; continue; }
@@ -103,7 +116,7 @@ namespace OfficeIMO.Excel {
                 }
                 cursor++;
             }
-            if (inString || structuredDepth != 0 || depth != 0) return false;
+            if (inString || inQuotedQualifier || structuredDepth != 0 || depth != 0) return false;
             int close = cursor++;
             SkipWhitespace(formula, ref cursor);
             if (cursor != formula.Length) return false;

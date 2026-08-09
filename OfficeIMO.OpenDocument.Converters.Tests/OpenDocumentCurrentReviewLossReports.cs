@@ -41,6 +41,44 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
+    public void PowerPointHyperlinkTooltipLossIsExplicit() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointTextRun run = source.AddSlide().AddTextBoxPoints("Documentation", 10, 10, 200, 40)
+            .Paragraphs[0].Runs[0];
+        run.SetHyperlink("https://example.test/docs", "Open the documentation");
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+
+        OdpTextBox converted = Assert.IsType<OdpTextBox>(Assert.Single(conversion.Value.Slides.Single().Shapes));
+        Assert.Equal("https://example.test/docs", converted.Paragraphs.Single()
+            .InlineNodes.Single().Hyperlink!.Href);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "hyperlink-tooltips"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+    }
+
+    [Fact]
+    public void WordDecorationVariantsAreSimplifiedAndReported() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph("Decorated");
+        paragraph.Underline = WordUnderlineStyle.Double;
+        paragraph.DoubleStrike = true;
+
+        WordRunSnapshot authored = Assert.Single(source.CreateInspectionSnapshot().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>().Single().Runs);
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdtSpan converted = Assert.Single(conversion.Value.Paragraphs.Single().Spans);
+
+        Assert.Equal(WordUnderlineStyle.Double, authored.UnderlineStyle);
+        Assert.True(authored.DoubleStrike);
+        Assert.True(converted.Underline);
+        Assert.True(converted.StrikeThrough);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "run-formatting"
+            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+    }
+
+    [Fact]
     public void OdpToPowerPoint_Reports_Formatting_And_Notes_Disabled_By_Options() {
         OdpPresentation source = OdpPresentation.Create();
         OdpSlide slide = source.AddSlide("Styled");
@@ -123,6 +161,45 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "relative-measurements"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+    }
+
+    [Fact]
+    public void ExcelValidationRangeClippedByRowLimitIsAppliedPartiallyAndReported() {
+        using ExcelDocument source = ExcelDocument.Create();
+        source.AddWorksheet("Data").ValidationWholeNumber(
+            "A1:A100", ExcelDataValidationOperator.Between, 1, 10);
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult(
+            new ExcelOpenDocumentConversionOptions { MaximumRows = 10 });
+        OdsSheet sheet = conversion.Value.Sheets.Single();
+
+        Assert.NotNull(sheet.Cell(9, 0).ValidationName);
+        Assert.Null(sheet.Cell(10, 0).ValidationName);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "validations"
+            && mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 1);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "validations"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "expansion-limits"
+            && mapping.Status == OdfConversionMappingStatus.Skipped);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+    }
+
+    [Fact]
+    public void RejectedValidationCoordinateCannotBypassMaterializationBudgetInLaterRule() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.ValidationWholeNumber("A1:B1", ExcelDataValidationOperator.Between, 1, 10);
+        sheet.ValidationList("B1:C1", new[] { "One", "Two" });
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult(
+            new ExcelOpenDocumentConversionOptions { MaximumExpandedCells = 1 });
+        OdsSheet converted = conversion.Value.Sheets.Single();
+
+        Assert.NotNull(converted.Cell(0, 0).ValidationName);
+        Assert.Null(converted.Cell(0, 1).ValidationName);
+        Assert.Null(converted.Cell(0, 2).ValidationName);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "expansion-limits"
+            && mapping.Status == OdfConversionMappingStatus.Skipped);
     }
 
     [Fact]

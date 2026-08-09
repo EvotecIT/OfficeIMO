@@ -115,7 +115,9 @@ namespace OfficeIMO.Word {
         public bool Bold { get; internal set; }
         public bool Italic { get; internal set; }
         public bool Underline { get; internal set; }
+        public WordUnderlineStyle? UnderlineStyle { get; internal set; }
         public bool Strike { get; internal set; }
+        public bool DoubleStrike { get; internal set; }
         public int? FontSize { get; internal set; }
         public string? FontFamily { get; internal set; }
         public string? ColorHex { get; internal set; }

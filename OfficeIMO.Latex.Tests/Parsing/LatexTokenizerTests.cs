@@ -35,4 +35,18 @@ public sealed class LatexTokenizerTests {
         Assert.All(tokens, static token => Assert.Equal(LatexTokenKind.Verbatim, token.Kind));
         Assert.All(tokens, static token => Assert.True(token.IsTerminated));
     }
+
+    [Fact]
+    public void UnterminatedInlineVerbStopsAtTheCurrentLine() {
+        const string source = "\\verb|abc\n\\section{Next}|";
+
+        IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(source);
+
+        Assert.Equal(source, string.Concat(tokens.Select(static token => token.Text)));
+        LatexToken verb = tokens[0];
+        Assert.Equal(LatexTokenKind.Verbatim, verb.Kind);
+        Assert.Equal("\\verb|abc", verb.Text);
+        Assert.False(verb.IsTerminated);
+        Assert.Contains(tokens, token => token.Kind == LatexTokenKind.Command && token.Value == "section");
+    }
 }

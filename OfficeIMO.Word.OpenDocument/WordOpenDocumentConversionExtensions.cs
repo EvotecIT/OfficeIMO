@@ -100,7 +100,7 @@ public static class WordOpenDocumentConversionExtensions {
         if (paragraphFormatting > 0) report.Add("paragraph-formatting", OdfConversionMappingStatus.Approximated, paragraphFormatting,
             "Line spacing, borders, tab stops, bidirectional layout, and pagination controls outside the shared subset are omitted.");
         if (runFormatting > 0) report.Add("run-formatting", OdfConversionMappingStatus.Approximated, runFormatting,
-            "Capitalization, vertical alignment, and other Word-only run details are omitted.");
+            "Capitalization, vertical alignment, double strike, non-single underline variants, and other Word-only run details are simplified or omitted.");
         if (tableFormatting > 0) report.Add("table-formatting", OdfConversionMappingStatus.Approximated, tableFormatting,
             "Table text and merges are retained; widths, borders, shading, styles, and repeated-header behavior are not fully mapped.");
         if (imageLayout > 0) report.Add("image-layout", OdfConversionMappingStatus.Approximated, imageLayout,
@@ -587,7 +587,9 @@ public static class WordOpenDocumentConversionExtensions {
         paragraph.IsRightToLeft || paragraph.KeepWithNext || paragraph.KeepLinesTogether || paragraph.AvoidWidowAndOrphan || paragraph.TabStops.Count > 0;
 
     private static bool HasUnsupportedRunFormatting(WordRunSnapshot run) =>
-        !string.IsNullOrWhiteSpace(run.VerticalTextAlignment) || !string.IsNullOrWhiteSpace(run.CapsStyle);
+        !string.IsNullOrWhiteSpace(run.VerticalTextAlignment) || !string.IsNullOrWhiteSpace(run.CapsStyle) ||
+        run.DoubleStrike || (run.UnderlineStyle.HasValue && run.UnderlineStyle.Value != WordUnderlineStyle.None &&
+            run.UnderlineStyle.Value != WordUnderlineStyle.Single);
 
     private static bool HasUnsupportedTableFormatting(WordTableSnapshot table) => table.StyleName != null ||
         table.Description != null || table.RepeatHeaderRow || table.ColumnWidthPoints.Count > 0 ||

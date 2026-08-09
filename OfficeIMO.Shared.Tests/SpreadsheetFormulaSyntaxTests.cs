@@ -12,6 +12,9 @@ public sealed class SpreadsheetFormulaSyntaxTests {
     [InlineData("=IF(A1=\"B2\",1,0)", "of:=IF([.A1]=\"B2\";1;0)")]
     [InlineData("=SUM((A1,B1))", "of:=SUM(([.A1]~[.B1]))")]
     [InlineData("=SUM(A1 B1)", "of:=SUM([.A1]![.B1])")]
+    [InlineData("=MyRange A1", "of:=MyRange![.A1]")]
+    [InlineData("=A1 OtherRange", "of:=[.A1]!OtherRange")]
+    [InlineData("=FirstRange SecondRange", "of:=FirstRange!SecondRange")]
     public void ExcelFormulaTranslationUsesStructuralContext(string excel, string expected) {
         SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
             .Parse(excel, SpreadsheetFormulaDialect.ExcelA1)
@@ -19,6 +22,16 @@ public sealed class SpreadsheetFormulaSyntaxTests {
 
         Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
         Assert.Equal(expected, result.Formula);
+    }
+
+    [Fact]
+    public void WhitespaceBeforeAFunctionCallRemainsTriviaInsteadOfBecomingAnIntersection() {
+        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
+            .Parse("=A1+SUM (B1)", SpreadsheetFormulaDialect.ExcelA1)
+            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
+
+        Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal("of:=[.A1]+SUM ([.B1])", result.Formula);
     }
 
     [Theory]

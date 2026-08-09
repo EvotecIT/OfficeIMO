@@ -326,8 +326,7 @@ internal static class SpreadsheetFormulaParser {
         SpreadsheetFormulaTokenKind kind = SpreadsheetFormulaTokenKind.Whitespace;
         if (dialect == SpreadsheetFormulaDialect.ExcelA1 && IsReferenceLikeLast(children)) {
             int next = cursor;
-            if (next < text.Length && SpreadsheetRangeReference.TryReadExcelAt(
-                    text, next, out SpreadsheetRangeReference? _, out int _)) {
+            if (IsReferenceLikeAt(text, next)) {
                 kind = SpreadsheetFormulaTokenKind.IntersectionOperator;
             }
         }
@@ -533,7 +532,19 @@ internal static class SpreadsheetFormulaParser {
         foreach (SpreadsheetFormulaSyntaxNode child in children) last = child;
         if (last == null) return false;
         return last.TokenKind == SpreadsheetFormulaTokenKind.Reference ||
+               last.TokenKind == SpreadsheetFormulaTokenKind.Identifier ||
                last.Kind == SpreadsheetFormulaSyntaxKind.ParenthesizedExpression;
+    }
+
+    private static bool IsReferenceLikeAt(string text, int cursor) {
+        if (cursor >= text.Length) return false;
+        if (SpreadsheetRangeReference.TryReadExcelAt(
+                text, cursor, out SpreadsheetRangeReference? _, out int _)) return true;
+        if (!IsIdentifierStart(text[cursor])) return false;
+        int identifierEnd = ScanIdentifier(text, cursor);
+        int next = identifierEnd;
+        while (next < text.Length && char.IsWhiteSpace(text[next])) next++;
+        return next >= text.Length || text[next] != '(';
     }
 
     private static bool IsIdentifierStart(char character) =>

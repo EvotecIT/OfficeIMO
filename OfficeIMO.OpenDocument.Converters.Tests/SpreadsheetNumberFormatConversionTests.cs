@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -269,5 +270,23 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         ExcelCellSnapshot converted = Assert.Single(target.CreateInspectionSnapshot().Worksheets.Single().Cells);
 
         Assert.Equal("\"EUR\" #,##0.0", converted.Style!.NumberFormatCode);
+    }
+
+    [Fact]
+    public void OdfMinimumIntegerDigitsBecomeExcelZeroPlaceholders() {
+        OdsDocument source = OdsDocument.Create();
+        source.AddNumberStyle("Padded", decimalPlaces: 2, useGrouping: false);
+        XDocument flat = source.ToFlatXml();
+        XElement number = flat.Descendants(OdfNamespaces.Number + "number").Single();
+        number.SetAttributeValue(OdfNamespaces.Number + "min-integer-digits", 4);
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+        OdsDocument loaded = OdsDocument.LoadFlatXml(stream);
+
+        OdsDataStyle style = Assert.Single(loaded.DataStyles);
+
+        Assert.Equal(4, style.MinimumIntegerDigits);
+        Assert.Equal("0000.00", style.ToExcelNumberFormatCode());
     }
 }

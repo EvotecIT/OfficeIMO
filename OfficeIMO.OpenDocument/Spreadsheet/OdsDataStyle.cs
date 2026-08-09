@@ -24,6 +24,10 @@ public sealed class OdsDataStyle {
     /// <summary>Configured decimal places, or zero when the style has no decimal number component.</summary>
     public int DecimalPlaces => (int?)Element.Descendants(OdfNamespaces.Number + "number").FirstOrDefault()
         ?.Attribute(OdfNamespaces.Number + "decimal-places") ?? 0;
+    /// <summary>Minimum integer digits requested by the number component.</summary>
+    public int MinimumIntegerDigits => Math.Max(1,
+        (int?)Element.Descendants(OdfNamespaces.Number + "number").FirstOrDefault()
+            ?.Attribute(OdfNamespaces.Number + "min-integer-digits") ?? 1);
     /// <summary>Whether the style requests grouped thousands.</summary>
     public bool UsesGrouping => string.Equals(
         (string?)Element.Descendants(OdfNamespaces.Number + "number").FirstOrDefault()
@@ -73,7 +77,7 @@ public sealed class OdsDataStyle {
     internal XElement Element { get; }
 
     private string BuildNumericComponent() {
-        string number = (UsesGrouping ? "#,##" : string.Empty) + "0";
+        string number = (UsesGrouping ? "#,##" : string.Empty) + new string('0', MinimumIntegerDigits);
         if (DecimalPlaces > 0) number += "." + new string('0', DecimalPlaces);
         return number;
     }

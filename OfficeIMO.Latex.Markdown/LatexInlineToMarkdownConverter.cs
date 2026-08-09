@@ -184,10 +184,43 @@ internal static class LatexInlineToMarkdownConverter {
         string closing = "\\end{" + syntax.Value + "}";
         if (!source.StartsWith(opening, StringComparison.Ordinal)) return source;
         int start = opening.Length;
+        if (string.Equals(syntax.Value, "minted", StringComparison.Ordinal)) {
+            int argumentStart = start;
+            SkipHorizontalWhitespace(source, ref argumentStart);
+            TrySkipDelimitedArgument(source, ref argumentStart, '[', ']');
+            SkipHorizontalWhitespace(source, ref argumentStart);
+            if (TrySkipDelimitedArgument(source, ref argumentStart, '{', '}')) start = argumentStart;
+        } else if (string.Equals(syntax.Value, "lstlisting", StringComparison.Ordinal)) {
+            int argumentStart = start;
+            SkipHorizontalWhitespace(source, ref argumentStart);
+            if (TrySkipDelimitedArgument(source, ref argumentStart, '[', ']')) start = argumentStart;
+        }
         int length = source.EndsWith(closing, StringComparison.Ordinal)
             ? source.Length - start - closing.Length
             : source.Length - start;
         return length > 0 ? source.Substring(start, length) : string.Empty;
+    }
+
+    private static void SkipHorizontalWhitespace(string source, ref int cursor) {
+        while (cursor < source.Length && (source[cursor] == ' ' || source[cursor] == '\t')) cursor++;
+    }
+
+    private static bool TrySkipDelimitedArgument(string source, ref int cursor, char open, char close) {
+        if (cursor >= source.Length || source[cursor] != open) return false;
+        int depth = 0;
+        for (int index = cursor; index < source.Length; index++) {
+            char current = source[index];
+            if (current == '\\' && index + 1 < source.Length) {
+                index++;
+                continue;
+            }
+            if (current == open) depth++;
+            else if (current == close && --depth == 0) {
+                cursor = index + 1;
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void AddPlain(InlineSequence target, string value) {

@@ -151,13 +151,14 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 string validationName = "validation_" + worksheetOrdinal.ToString(CultureInfo.InvariantCulture)
                     + "_" + validationOrdinal.ToString(CultureInfo.InvariantCulture);
                 bool assigned = false;
+                bool validationIncomplete = false;
                 bool validationLimitReached = false;
                 foreach (string a1Range in validation.A1Ranges) {
                     if (validationLimitReached) break;
                     if (!SpreadsheetRangeReference.TryParse(a1Range, SpreadsheetAddressDialect.ExcelA1, out SpreadsheetRangeReference? parsed)
                         || !parsed!.Start.IsCell || parsed.Start.SheetName != null
                         || (parsed.End != null && (!parsed.End.IsCell || parsed.End.SheetName != null))) {
-                        skippedValidations++;
+                        validationIncomplete = true;
                         continue;
                     }
                     SpreadsheetCellReference end = parsed.End ?? parsed.Start;
@@ -167,21 +168,27 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     int lastColumn = end.Column!.Value;
                     if (firstRow > lastRow || firstColumn > lastColumn
                         || firstRow > effective.MaximumRows || firstColumn > effective.MaximumColumns) {
-                        skippedValidations++;
+                        validationIncomplete = true;
+                        truncated = true;
                         continue;
+                    }
+                    if (lastRow > effective.MaximumRows || lastColumn > effective.MaximumColumns) {
+                        validationIncomplete = true;
+                        truncated = true;
                     }
                     lastRow = Math.Min(lastRow, effective.MaximumRows);
                     lastColumn = Math.Min(lastColumn, effective.MaximumColumns);
                     for (long row = firstRow; row <= lastRow; row++) {
                         for (int column = firstColumn; column <= lastColumn; column++) {
                             var coordinate = (checked((int)row), column);
-                            if (materializedCoordinates.Add(coordinate)) {
+                            if (!materializedCoordinates.Contains(coordinate)) {
                                 if (materializedCells >= effective.MaximumExpandedCells) {
                                     truncated = true;
-                                    skippedValidations++;
+                                    validationIncomplete = true;
                                     validationLimitReached = true;
                                     break;
                                 }
+                                materializedCoordinates.Add(coordinate);
                                 materializedCells++;
                             }
                             sheet.Cell(row - 1L, column - 1L).ValidationName = validationName;
@@ -203,7 +210,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                             validation.ShowErrorMessage);
                     }
                     convertedValidations++;
-                } else {
+                }
+                if (!assigned || validationIncomplete) {
                     skippedValidations++;
                 }
             }
@@ -278,7 +286,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             "Each cell thread was flattened into one schema-valid ODS annotation transcript that retains comment bodies and available author, timestamp, identity, parent, and resolved-state metadata.");
         AddConverted(report, "validations", convertedValidations);
         if (skippedValidations > 0) report.Add("validations", OdfConversionMappingStatus.Unsupported, skippedValidations,
-            "Only explicit lists and scalar whole-number, decimal, and text-length validation rules have an exact interoperable ODF mapping.");
+            "Unsupported validation rules and ranges, plus assignments clipped by configured conversion limits, were not mapped completely.");
         AddUnsupported(report, "structured-tables", tables, "Table cells remain; Excel table semantics and styles are not translated.");
         AddUnsupported(report, "filters", filters, "Filter state is not translated.");
         AddUnsupported(report, "built-in-names", builtInNames, "Excel print-area and print-title names are not translated.");
@@ -293,7 +301,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         AddUnsupported(report, "connections", snapshot.ConnectionPartCount, null);
         AddUnsupported(report, "query-tables", snapshot.QueryTablePartCount, null);
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
-            $"Configured limits omitted {skippedCells} cells, {skippedRows} rows, {skippedColumns} columns, and {skippedMerges} merges.");
+            $"Configured limits omitted content or assignments, including {skippedCells} cells, {skippedRows} rows, {skippedColumns} columns, and {skippedMerges} merges.");
         return new OdfConversionResult<OdsDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }
 
