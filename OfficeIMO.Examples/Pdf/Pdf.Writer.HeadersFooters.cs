@@ -22,8 +22,7 @@ namespace OfficeIMO.Examples.Pdf {
                 ShowPageNumbers = true
             };
 
-            PdfDocument.Create(options)
-                .Meta(title: "OfficeIMO.Pdf Headers and Footers", author: "OfficeIMO")
+            PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Header and Footer Baseline", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
                 .Paragraph(p => p.Text("Page one protects header placement, footer placement, and page number rendering on the first page."))
                 .PanelParagraph(
@@ -37,7 +36,8 @@ namespace OfficeIMO.Examples.Pdf {
                 .PageBreak()
                 .H2("Continuation Page", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
                 .Paragraph(p => p.Text("Page two proves the raster harness compares more than the first page and guards the {page}/{pages} footer tokens."))
-                .Paragraph(p => p.Text("Right-aligned continuation note."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))
+                .Paragraph(p => p.Text("Right-aligned continuation note."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))), options)
+                .Meta(title: "OfficeIMO.Pdf Headers and Footers", author: "OfficeIMO")
                 .Save(path);
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });
         }

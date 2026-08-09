@@ -7,29 +7,25 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_ShowcaseStatement(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.Showcase.Statement.pdf");
 
-            PdfDocument.Create(new PdfOptions {
-                    DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 10.5,
-                    DefaultTextColor = PdfColor.FromRgb(24, 31, 42),
-                    HeaderFont = PdfStandardFont.Helvetica,
-                    HeaderFontSize = 8,
-                    HeaderFormat = "OfficeIMO.Pdf showcase - business statement",
-                    HeaderAlign = PdfAlign.Left,
-                    HeaderOffsetY = 18,
-                    ShowHeader = true,
-                    FooterFont = PdfStandardFont.Helvetica,
-                    FooterFontSize = 9,
-                    FooterFormat = "{page} / {pages}",
-                    FooterAlign = PdfAlign.Center,
-                    ShowPageNumbers = true,
-                    CreateOutlineFromHeadings = true
-                })
-                .Meta(
-                    title: "OfficeIMO.Pdf Showcase Statement",
-                    author: "OfficeIMO",
-                    subject: "Generic business document built from primitive PDF blocks",
-                    keywords: "OfficeIMO,Pdf,statement,tables,rows")
-                .Compose(document => {
+            var options = new PdfOptions {
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 10.5,
+                DefaultTextColor = PdfColor.FromRgb(24, 31, 42),
+                HeaderFont = PdfStandardFont.Helvetica,
+                HeaderFontSize = 8,
+                HeaderFormat = "OfficeIMO.Pdf showcase - business statement",
+                HeaderAlign = PdfAlign.Left,
+                HeaderOffsetY = 18,
+                ShowHeader = true,
+                FooterFont = PdfStandardFont.Helvetica,
+                FooterFontSize = 9,
+                FooterFormat = "{page} / {pages}",
+                FooterAlign = PdfAlign.Center,
+                ShowPageNumbers = true,
+                CreateOutlineFromHeadings = true
+            };
+
+            PdfDocument.Create(document => {
                     document.Page(page => {
                         page.Margin(54, 54, 54, 58);
                         page.Content(content => {
@@ -74,7 +70,12 @@ namespace OfficeIMO.Examples.Pdf {
                             });
                         });
                     });
-                })
+                }, options)
+                .Meta(
+                    title: "OfficeIMO.Pdf Showcase Statement",
+                    author: "OfficeIMO",
+                    subject: "Generic business document built from primitive PDF blocks",
+                    keywords: "OfficeIMO,Pdf,statement,tables,rows")
                 .Save(path);
 
             if (open) {

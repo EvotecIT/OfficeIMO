@@ -189,6 +189,10 @@ namespace OfficeIMO.Excel {
             var caches = new List<ExcelPivotInteractionCacheInfo>();
             foreach (IdPartPair pair in WorkbookPartRoot.Parts) {
                 OpenXmlPart part = pair.OpenXmlPart;
+                if (IsCombinedPivotInteractionMetadataPart(part)) {
+                    AddCombinedPivotInteractionCaches(caches, part, pair.RelationshipId, kind);
+                    continue;
+                }
                 if (!IsCurrentPivotInteractionMetadataPart(part, kind)
                     && !IsLegacyOfficeImoPivotInteractionMetadataPart(part, kind)) {
                     continue;
@@ -207,7 +211,7 @@ namespace OfficeIMO.Excel {
                             .FirstOrDefault(attribute => attribute.Name.LocalName == "pivotTableName")?.Value
                         ?? root.Descendants().FirstOrDefault(element => element.Name.LocalName == "pivotTable")?.Attribute("name")?.Value;
                     caches.Add(new ExcelPivotInteractionCacheInfo(kind, name, sourceName, pivotTableName, pair.RelationshipId));
-                } catch (System.Xml.XmlException) {
+                } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
                     caches.Add(new ExcelPivotInteractionCacheInfo(kind, string.Empty, null, null, pair.RelationshipId));
                 }
             }
@@ -216,6 +220,72 @@ namespace OfficeIMO.Excel {
                 .OrderBy(cache => cache.Name, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(cache => cache.RelationshipId, StringComparer.Ordinal)
                 .ToList();
+        }
+
+        private static void AddCombinedPivotInteractionCaches(
+            List<ExcelPivotInteractionCacheInfo> caches,
+            OpenXmlPart part,
+            string relationshipId,
+            ExcelPivotInteractionCacheKind kind) {
+            try {
+                XDocument xml = XDocument.Parse(ReadPivotInteractionPartText(part));
+                string expectedName = kind == ExcelPivotInteractionCacheKind.Slicer
+                    ? "pivotSlicerBinding"
+                    : "pivotTimelineBinding";
+                foreach (XElement binding in xml.Descendants().Where(element =>
+                    string.Equals(element.Name.LocalName, expectedName, StringComparison.Ordinal))) {
+                    XElement metadata = string.Equals((string?)binding.Attribute("customPayload"), "true", StringComparison.OrdinalIgnoreCase)
+                        ? binding.Elements().FirstOrDefault() ?? binding
+                        : binding;
+                    caches.Add(new ExcelPivotInteractionCacheInfo(
+                        kind,
+                        (string?)metadata.Attribute("name") ?? string.Empty,
+                        (string?)metadata.Attribute("sourceName"),
+                        (string?)metadata.Attribute("pivotTableName"),
+                        relationshipId));
+                }
+            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
+                caches.Add(new ExcelPivotInteractionCacheInfo(kind, string.Empty, null, null, relationshipId));
+            }
+        }
+
+        private static bool IsCombinedPivotInteractionMetadataPart(OpenXmlPart part) {
+            if (string.Equals(part.ContentType, WorkbookPivotInteractionContentType, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(part.RelationshipType, WorkbookPivotInteractionRelationshipType, StringComparison.Ordinal)) {
+                return true;
+            }
+
+            if (part is not CustomXmlPart) {
+                return false;
+            }
+
+            try {
+                XDocument xml = XDocument.Parse(ReadPivotInteractionPartText(part));
+                return xml.Root != null
+                    && string.Equals(xml.Root.Name.LocalName, "pivotInteractionBindings", StringComparison.Ordinal)
+                    && string.Equals(xml.Root.Name.NamespaceName, WorkbookPivotInteractionNamespace, StringComparison.Ordinal);
+            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
+                return false;
+            }
+        }
+
+        private static bool CombinedPivotInteractionMetadataContains(
+            OpenXmlPart part,
+            ExcelPivotInteractionCacheKind kind) {
+            if (!IsCombinedPivotInteractionMetadataPart(part)) {
+                return false;
+            }
+
+            try {
+                XDocument xml = XDocument.Parse(ReadPivotInteractionPartText(part));
+                string expectedName = kind == ExcelPivotInteractionCacheKind.Slicer
+                    ? "pivotSlicerBinding"
+                    : "pivotTimelineBinding";
+                return xml.Descendants().Any(element =>
+                    string.Equals(element.Name.LocalName, expectedName, StringComparison.Ordinal));
+            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
+                return false;
+            }
         }
 
         private static bool IsCurrentPivotInteractionMetadataPart(OpenXmlPart part, ExcelPivotInteractionCacheKind kind) {
@@ -260,7 +330,7 @@ namespace OfficeIMO.Excel {
                     && string.Equals(root.Name.LocalName, expectedRootName, StringComparison.Ordinal)
                     && (!string.IsNullOrWhiteSpace(pivotTableName)
                         || !string.IsNullOrWhiteSpace(sourceName) && !root.Elements().Any());
-            } catch (System.Xml.XmlException) {
+            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
                 return false;
             }
         }

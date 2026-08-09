@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Optional pivot table name the slicer is intended to filter.</summary>
         public string? PivotTableName { get; set; }
 
-        /// <summary>Optional caller-supplied XML. When set, OfficeIMO writes it as-is.</summary>
+        /// <summary>Optional caller-supplied XML preserved as a subtree in the OfficeIMO pivot-interaction metadata envelope.</summary>
         public string? Xml { get; set; }
 
         internal string ToXml() {
@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Optional pivot table name the timeline is intended to filter.</summary>
         public string? PivotTableName { get; set; }
 
-        /// <summary>Optional caller-supplied XML. When set, OfficeIMO writes it as-is.</summary>
+        /// <summary>Optional caller-supplied XML preserved as a subtree in the OfficeIMO pivot-interaction metadata envelope.</summary>
         public string? Xml { get; set; }
 
         internal string ToXml() {

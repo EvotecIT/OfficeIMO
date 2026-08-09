@@ -179,16 +179,17 @@ internal static class ReaderBenchmarkCorpus {
     }
 
     private static byte[] BuildPdf() {
-        PdfDocument document = PdfDocument.Create();
-        for (int page = 1; page <= 16; page++) {
-            if (page > 1) document.PageBreak();
-            document.H1("Reader benchmark page " + page);
-            for (int paragraph = 1; paragraph <= 8; paragraph++) {
-                int currentParagraph = paragraph;
-                document.Paragraph(value => value.Text(
-                    "Representative PDF paragraph " + currentParagraph + " with extraction, geometry, and diagnostic content."));
+        PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => {
+            for (int page = 1; page <= 16; page++) {
+                if (page > 1) content.PageBreak();
+                content.H1("Reader benchmark page " + page);
+                for (int paragraph = 1; paragraph <= 8; paragraph++) {
+                    int currentParagraph = paragraph;
+                    content.Paragraph(value => value.Text(
+                        "Representative PDF paragraph " + currentParagraph + " with extraction, geometry, and diagnostic content."));
+                }
             }
-        }
+        }));
         return document.ToBytes();
     }
 

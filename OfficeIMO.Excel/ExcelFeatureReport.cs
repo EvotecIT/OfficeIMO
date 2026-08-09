@@ -449,12 +449,15 @@ namespace OfficeIMO.Excel {
                     if (!HasRenderablePdfChartData(snapshot)) {
                         pdfUnreadableChartCount++;
                         pdfUnreadableChartDetails.Add($"{sheet.Name}: {GetChartDisplayName(snapshot)} does not contain renderable chart categories and series.");
-                    } else if (HasMixedPdfChartTypes(snapshot)) {
-                        pdfUnsupportedChartCount++;
-                        pdfUnsupportedChartDetails.Add($"{sheet.Name}: mixed per-series chart types ({GetChartDisplayName(snapshot)})");
                     } else if (!IsPdfSupportedChartType(snapshot.ChartType)) {
                         pdfUnsupportedChartCount++;
                         pdfUnsupportedChartDetails.Add($"{sheet.Name}: {snapshot.ChartType} ({GetChartDisplayName(snapshot)})");
+                    } else {
+                        List<string> unsupportedComboDetails = GetPdfUnsupportedComboChartDetails(snapshot, sheetName);
+                        if (unsupportedComboDetails.Count > 0) {
+                            pdfUnsupportedChartCount++;
+                            pdfUnsupportedChartDetails.AddRange(unsupportedComboDetails);
+                        }
                     }
                 }
                 var modernCharts = excelSheet.ModernCharts.ToList();
@@ -628,7 +631,9 @@ namespace OfficeIMO.Excel {
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
+            var customXmlDetails = DescribeParts(allParts, part =>
+                part.Uri.OriginalString.IndexOf("/customXml/", StringComparison.OrdinalIgnoreCase) >= 0
+                && !IsCombinedPivotInteractionMetadataPart(part));
             var embeddedPackageDetails = DescribePartsByUri(allParts, "/embeddings/");
             var signatureDetails = DescribePartsByUriOrContentType(allParts, "signature")
                 .Concat(DescribePartsByUriOrContentType(allParts, "xmlsignatures"))

@@ -137,12 +137,12 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Validates signature structure, byte ranges, and preservation markers for this PDF.
     /// </summary>
-    public PdfSignatureValidationReport ValidateSignatures(PdfReadOptions? options = null) {
+    internal PdfSignatureValidationReport ValidateSignatures(PdfReadOptions? options = null) {
         return PdfSignatureValidator.Validate(GetBytesForOperation(), options ?? ReadOptions);
     }
 
     /// <summary>Validates signature structure and delegates CMS, trust, timestamp, and revocation policy to an optional provider.</summary>
-    public PdfSignatureValidationReport ValidateSignatures(
+    internal PdfSignatureValidationReport ValidateSignatures(
         IPdfSignatureCryptographyProvider cryptographyProvider,
         PdfReadOptions? options = null) {
         Guard.NotNull(cryptographyProvider, nameof(cryptographyProvider));
@@ -197,42 +197,42 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Builds an optimization opportunity report for this document without modifying it.
     /// </summary>
-    public PdfOptimizationReport AnalyzeOptimization(PdfReadOptions? options = null) {
+    internal PdfOptimizationReport AnalyzeOptimization(PdfReadOptions? options = null) {
         return PdfDiagnostics.BuildOptimizationReport(Diagnostics(options));
     }
 
     /// <summary>Applies dependency-free lossless optimization and returns the candidate with action and preservation reports.</summary>
-    public PdfOptimizationActionResult Optimize(PdfOptimizationOptions? options = null) =>
+    internal PdfOptimizationActionResult Optimize(PdfOptimizationOptions? options = null) =>
         PdfOptimizer.Optimize(GetBytesForOperation(), options, ReadOptions);
 
     /// <summary>Applies a named deterministic lossless optimization profile.</summary>
-    public PdfOptimizationActionResult Optimize(PdfOptimizationProfile profile) =>
+    internal PdfOptimizationActionResult Optimize(PdfOptimizationProfile profile) =>
         PdfOptimizer.Optimize(GetBytesForOperation(), profile, ReadOptions);
 
     /// <summary>
     /// Plans rectangle-based redaction impact without modifying the PDF.
     /// </summary>
-    public PdfRedactionPlan PlanRedactions(IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
+    internal PdfRedactionPlan PlanRedactions(IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
         return PdfRedactionPlanner.Plan(GetBytesForOperation(), areas, layoutOptions, options ?? ReadOptions);
     }
 
     /// <summary>Derives a reviewable redaction plan from literal text, regex, logical kinds, and form-field names.</summary>
-    public PdfRedactionPlan SearchRedactions(PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) => PdfRedactionPlanner.Search(GetBytesForOperation(), search, layoutOptions, options ?? ReadOptions);
+    internal PdfRedactionPlan SearchRedactions(PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) => PdfRedactionPlanner.Search(GetBytesForOperation(), search, layoutOptions, options ?? ReadOptions);
 
     /// <summary>
     /// Creates a new PDF with matching text objects and annotations removed from the supplied redaction areas.
     /// </summary>
-    public PdfDocument ApplyRedactions(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
+    internal PdfDocument ApplyRedactions(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
         return ApplyMutation(input => PdfRedactionApplier.Apply(input, areas, applyOptions, layoutOptions, options ?? ReadOptions), options);
     }
 
     /// <summary>Applies a reviewed redaction plan, including exact field removal for field-derived areas.</summary>
-    public PdfDocument ApplyRedactions(PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) => ApplyMutation(input => PdfRedactionApplier.Apply(input, plan, applyOptions, layoutOptions, options ?? ReadOptions), options);
+    internal PdfDocument ApplyRedactions(PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) => ApplyMutation(input => PdfRedactionApplier.Apply(input, plan, applyOptions, layoutOptions, options ?? ReadOptions), options);
 
     /// <summary>
     /// Attempts to apply rectangle-based redactions, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryApplyRedactions(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> TryApplyRedactions(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
         Guard.NotNull(areas, nameof(areas));
         return TryMutationOperation(
             "Apply redactions",
@@ -485,12 +485,12 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Appends an external-signature placeholder as an incremental revision for a later CMS, CAdES, or timestamp signature.
     /// </summary>
-    public PdfExternalSignaturePreparation PrepareExternalSignature(PdfExternalSignatureOptions? signatureOptions = null) {
+    internal PdfExternalSignaturePreparation PrepareExternalSignature(PdfExternalSignatureOptions? signatureOptions = null) {
         return PdfIncrementalUpdater.PrepareExternalSignature(GetBytesForOperation(), signatureOptions, ReadOptions);
     }
 
     /// <summary>Completes a persisted external-signature placeholder with detached CMS or timestamp bytes.</summary>
-    public PdfDocument CompleteExternalSignature(byte[] signatureContents) {
+    internal PdfDocument CompleteExternalSignature(byte[] signatureContents) {
         Guard.NotNull(signatureContents, nameof(signatureContents));
         return ApplyMutation(
             input => PdfIncrementalUpdater.ApplyExternalSignature(input, signatureContents, ReadOptions),
@@ -498,7 +498,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Prepares, externally signs, and applies a PDF signature without placing key-storage logic in OfficeIMO.Pdf.</summary>
-    public PdfExternalSignatureCompletion SignExternal(
+    internal PdfExternalSignatureCompletion SignExternal(
         IPdfExternalSigner signer,
         PdfExternalSignatureOptions? signatureOptions = null) {
         Guard.NotNull(signer, nameof(signer));
@@ -508,7 +508,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to append an external-signature placeholder revision, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfExternalSignaturePreparation> TryPrepareExternalSignature(PdfExternalSignatureOptions? signatureOptions = null, PdfReadOptions? options = null) {
+    internal PdfOperationResult<PdfExternalSignaturePreparation> TryPrepareExternalSignature(PdfExternalSignatureOptions? signatureOptions = null, PdfReadOptions? options = null) {
         return TryMutationOperation(
             "Prepare external signature",
             PdfPreflightCapability.PrepareExternalSignatureRevision,

@@ -4,7 +4,7 @@ using System;
 using System.Linq;
 
 /// <summary>Row builder with percentage-based columns.</summary>
-public class PdfRowCompose {
+public sealed class PdfRowCompose {
     private const double WidthTolerance = 0.0001;
     private readonly PdfDocument _doc;
     private readonly RowBlock _row = new RowBlock();

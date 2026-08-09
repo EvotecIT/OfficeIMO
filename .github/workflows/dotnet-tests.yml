@@ -67,6 +67,15 @@ jobs:
       - name: Build solution
         run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
+      - name: Build public examples
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $project = 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'
+          dotnet restore $project
+          dotnet build $project --configuration $env:BUILD_CONFIGURATION --no-restore
+
   email-package-consumers:
     name: 'OfficeIMO email platform packed consumers'
     runs-on: windows-latest

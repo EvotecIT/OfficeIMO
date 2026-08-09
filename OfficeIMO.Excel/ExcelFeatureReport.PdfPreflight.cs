@@ -290,14 +290,39 @@ namespace OfficeIMO.Excel {
             return snapshot.Data.Categories.Count > 0 && snapshot.Data.Series.Count > 0;
         }
 
-        private static bool HasMixedPdfChartTypes(ExcelChartSnapshot snapshot) {
-            foreach (ExcelChartSeries series in snapshot.Data.Series) {
-                if (series.ChartType.HasValue && series.ChartType.Value != snapshot.ChartType) {
-                    return true;
-                }
+        private static List<string> GetPdfUnsupportedComboChartDetails(ExcelChartSnapshot snapshot, string sheetName) {
+            var details = new List<string>();
+            bool hasMixedSeries = snapshot.Data.Series.Any(series =>
+                series.ChartType.HasValue && series.ChartType.Value != snapshot.ChartType);
+            if (!hasMixedSeries) {
+                return details;
             }
 
-            return false;
+            if (!ExcelRangeImageRenderer.TryMapSeriesRenderKind(snapshot.ChartType, out _, out _)) {
+                details.Add($"{sheetName}: combo-chart base type {snapshot.ChartType} is not Cartesian ({GetChartDisplayName(snapshot)})");
+                return details;
+            }
+
+            foreach (ExcelChartSeries series in snapshot.Data.Series) {
+                ExcelChartType effectiveType = series.ChartType ?? snapshot.ChartType;
+                if (effectiveType == snapshot.ChartType) {
+                    continue;
+                }
+
+                if (ExcelRangeImageRenderer.TryMapCompatibleComboSeriesRenderKind(
+                        snapshot.ChartType,
+                        effectiveType,
+                        out _,
+                        out _,
+                        out string? unsupportedReason)) {
+                    continue;
+                }
+
+                details.Add(
+                    $"{sheetName}: combo-chart series '{series.Name}' uses unsupported type {effectiveType}: {unsupportedReason} ({GetChartDisplayName(snapshot)})");
+            }
+
+            return details;
         }
 
         private static string GetSafeChartDisplayName(ExcelChart chart) {

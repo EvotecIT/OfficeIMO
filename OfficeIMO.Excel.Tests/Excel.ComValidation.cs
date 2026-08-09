@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -12,6 +13,9 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         private static readonly TimeSpan ExcelComOpenTimeout = TimeSpan.FromMinutes(2);
+        private static readonly TimeSpan ExcelComLockTimeout = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan ExcelComWorkerTimeout = ExcelComLockTimeout + ExcelComOpenTimeout;
+        private const string ExcelComMutexName = @"Local\OfficeIMO.Excel.Tests.DesktopCom";
 
 #if NET5_0_OR_GREATER
         [SupportedOSPlatformGuard("windows")]
@@ -39,22 +43,48 @@ namespace OfficeIMO.Tests {
                 return;
             }
 
-            List<string> failures = new();
-            var thread = new Thread(() => OpenWorkbooksViaExcelCom(paths.ToList(), failures));
+            var failures = new ConcurrentQueue<string>();
+            var thread = new Thread(() => {
+                try {
+                    RunWithExcelComLock(() => OpenWorkbooksViaExcelCom(paths.ToList(), failures));
+                } catch (Exception ex) {
+                    failures.Enqueue(DescribeExcelComFailure(ex));
+                }
+            });
             thread.IsBackground = true;
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
-            if (!thread.Join(ExcelComOpenTimeout)) {
-                failures.Add($"Excel COM smoke test timed out after {ExcelComOpenTimeout.TotalSeconds:0} seconds.");
+            if (!thread.Join(ExcelComWorkerTimeout)) {
+                failures.Enqueue($"Excel COM smoke test timed out after {ExcelComWorkerTimeout.TotalSeconds:0} seconds, including up to {ExcelComLockTimeout.TotalSeconds:0} seconds waiting for the cross-process lock. The worker continues to own the lock until it exits.");
             }
 
-            Assert.True(failures.Count == 0, failureMessage + Environment.NewLine + string.Join(Environment.NewLine, failures));
+            Assert.True(failures.IsEmpty, failureMessage + Environment.NewLine + string.Join(Environment.NewLine, failures));
+        }
+
+        private static void RunWithExcelComLock(Action action) {
+            using var mutex = new Mutex(initiallyOwned: false, ExcelComMutexName);
+            bool acquired = false;
+            try {
+                try {
+                    acquired = mutex.WaitOne(ExcelComLockTimeout);
+                } catch (AbandonedMutexException) {
+                    acquired = true;
+                }
+
+                Assert.True(acquired,
+                    $"Timed out after {ExcelComLockTimeout.TotalSeconds:0} seconds waiting for another OfficeIMO Excel COM validation process.");
+                action();
+            } finally {
+                if (acquired) {
+                    mutex.ReleaseMutex();
+                }
+            }
         }
 
 #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
 #endif
-        private static void OpenWorkbooksViaExcelCom(IReadOnlyList<string> paths, List<string> failures) {
+        private static void OpenWorkbooksViaExcelCom(IReadOnlyList<string> paths, ConcurrentQueue<string> failures) {
             object? excel = null;
             object? workbooks = null;
 
@@ -74,12 +104,12 @@ namespace OfficeIMO.Tests {
                         workbook = workbooks!.GetType().InvokeMember("Open", BindingFlags.InvokeMethod, null, workbooks,
                             new object[] { path, 0, true });
                     } catch (Exception ex) when (ex is COMException or InvalidOperationException or MissingMethodException or TargetInvocationException) {
-                        failures.Add($"{Path.GetFileName(path)}: {DescribeExcelComFailure(ex)}");
+                        failures.Enqueue($"{Path.GetFileName(path)}: {DescribeExcelComFailure(ex)}");
                     } finally {
                         try {
                             workbook?.GetType().InvokeMember("Close", BindingFlags.InvokeMethod, null, workbook, new object[] { false });
                         } catch (Exception ex) when (ex is COMException or MissingMethodException or TargetInvocationException) {
-                            failures.Add($"{Path.GetFileName(path)} close: {DescribeExcelComFailure(ex)}");
+                            failures.Enqueue($"{Path.GetFileName(path)} close: {DescribeExcelComFailure(ex)}");
                         }
 
                         if (workbook != null && Marshal.IsComObject(workbook)) {
@@ -88,12 +118,12 @@ namespace OfficeIMO.Tests {
                     }
                 }
             } catch (Exception ex) when (ex is COMException or InvalidOperationException or MissingMethodException or TargetInvocationException) {
-                failures.Add(DescribeExcelComFailure(ex));
+                failures.Enqueue(DescribeExcelComFailure(ex));
             } finally {
                 try {
                     excel?.GetType().InvokeMember("Quit", BindingFlags.InvokeMethod, null, excel, null);
                 } catch (Exception ex) when (ex is COMException or MissingMethodException or TargetInvocationException) {
-                    failures.Add("Excel quit: " + DescribeExcelComFailure(ex));
+                    failures.Enqueue("Excel quit: " + DescribeExcelComFailure(ex));
                 }
 
                 if (workbooks != null && Marshal.IsComObject(workbooks)) {
@@ -118,7 +148,7 @@ namespace OfficeIMO.Tests {
                 return;
             }
 
-            string directory = Path.Combine(_directoryWithFiles, "DesktopExcelSmoke");
+            string directory = Path.Combine(_directoryWithFiles, "DesktopExcelSmoke", GetCurrentTargetFrameworkLabel());
             Directory.CreateDirectory(directory);
 
             var files = new[] {

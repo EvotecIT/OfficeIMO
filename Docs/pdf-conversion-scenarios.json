@@ -632,12 +632,14 @@
         "conditional-formatting",
         "worksheet-image",
         "chart-snapshot",
+        "combo-chart-secondary-axis",
         "print-area",
         "header-footer",
         "fit-to-page"
       ],
       "expectedSimplifications": [
-        "dashboard proof validates first-party worksheet rendering rather than pixel-perfect Excel application output"
+        "dashboard proof validates first-party worksheet rendering rather than pixel-perfect Excel application output",
+        "mixed column and line series preserve their chart roles and primary or secondary axis assignment through the shared drawing renderer"
       ],
       "expectedWarnings": [],
       "visualReviewFiles": [

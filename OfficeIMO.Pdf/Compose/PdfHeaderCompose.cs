@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Header builder (alignment, text, page number tokens).</summary>
-public class PdfHeaderCompose {
+public sealed class PdfHeaderCompose {
     private readonly PdfOptions _opts;
     internal PdfHeaderCompose(PdfOptions opts) { _opts = opts; }
     /// <summary>Sets header alignment to the left.</summary>

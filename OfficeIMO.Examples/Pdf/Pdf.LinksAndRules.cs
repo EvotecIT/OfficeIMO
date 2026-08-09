@@ -39,22 +39,7 @@ namespace OfficeIMO.Examples.Pdf {
                 SpacingAfter = 12
             };
 
-            PdfDocument.Create(new PdfOptions {
-                    DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 10,
-                    DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
-                    HeaderFont = PdfStandardFont.Helvetica,
-                    HeaderFontSize = 8,
-                    HeaderFormat = "OfficeIMO.Pdf links and rules",
-                    HeaderAlign = PdfAlign.Left,
-                    ShowHeader = true,
-                    FooterFont = PdfStandardFont.Helvetica,
-                    FooterFontSize = 8,
-                    FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                    FooterAlign = PdfAlign.Right,
-                    ShowPageNumbers = true
-                })
-                .Meta(title: "OfficeIMO.Pdf Links and Rules", author: "OfficeIMO")
+            PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Links & Rules Demo", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85), linkUri: "https://github.com/EvotecIT/OfficeIMO")
                 .Paragraph(p => p
                     .Text("Visit ")
@@ -75,8 +60,22 @@ namespace OfficeIMO.Examples.Pdf {
                         BorderWidth = 0.5,
                         PaddingX = 9,
                         PaddingY = 7
-                    }
-                )
+                    })), new PdfOptions {
+                    DefaultFont = PdfStandardFont.Helvetica,
+                    DefaultFontSize = 10,
+                    DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                    HeaderFont = PdfStandardFont.Helvetica,
+                    HeaderFontSize = 8,
+                    HeaderFormat = "OfficeIMO.Pdf links and rules",
+                    HeaderAlign = PdfAlign.Left,
+                    ShowHeader = true,
+                    FooterFont = PdfStandardFont.Helvetica,
+                    FooterFontSize = 8,
+                    FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
+                    FooterAlign = PdfAlign.Right,
+                    ShowPageNumbers = true
+                })
+                .Meta(title: "OfficeIMO.Pdf Links and Rules", author: "OfficeIMO")
                 .Save(path);
 
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });

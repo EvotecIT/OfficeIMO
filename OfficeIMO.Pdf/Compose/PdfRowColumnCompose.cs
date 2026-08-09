@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Column content builder used within <see cref="PdfRowCompose"/>.</summary>
-public class PdfRowColumnCompose {
+public sealed class PdfRowColumnCompose {
     private readonly RowColumn _col;
     internal PdfRowColumnCompose(RowColumn col) { _col = col; }
     /// <summary>Adds one or more flow blocks to this row column.</summary>

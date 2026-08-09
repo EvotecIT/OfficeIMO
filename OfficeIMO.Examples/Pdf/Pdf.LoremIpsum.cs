@@ -16,13 +16,13 @@ namespace OfficeIMO.Examples.Pdf {
             string longText = string.Concat(lipsum, lipsum, lipsum, lipsum, lipsum);
 
             // 1) Plain paragraph
-            PdfDocument.Create()
+            PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Lorem Ipsum — Plain Paragraph", PdfAlign.Center)
-                .Paragraph(p => p.Text(longText))
+                .Paragraph(p => p.Text(longText))))
                 .Save(path1);
 
             // 2) Inside panel
-            PdfDocument.Create()
+            PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Lorem Ipsum — Panel Paragraph", PdfAlign.Center)
                 .PanelParagraph(p => p.Text(longText), new PanelStyle {
                     Background = new PdfColor(0.96, 0.96, 0.98),
@@ -32,11 +32,11 @@ namespace OfficeIMO.Examples.Pdf {
                     PaddingY = 6,
                     MaxWidth = 380,
                     Align = PdfAlign.Center
-                })
+                })))
                 .Save(path2);
 
             // 3) Two columns via Compose Row
-            PdfDocument.Create().Compose(d => {
+            PdfDocument.Create(d => {
                 d.Page(p => {
                     p.Size(PageSizes.Letter);
                     p.Margin(36);

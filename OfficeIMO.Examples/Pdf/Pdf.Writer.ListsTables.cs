@@ -45,7 +45,21 @@ namespace OfficeIMO.Examples.Pdf {
                 AutoFitColumns = false
             };
 
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(pdf => pdf.Content(content => content
+                .H1("Lists and Tables", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+                .Paragraph(p => p.Text("A compact report sample for list rhythm, numeric alignment, footer rows, and wrapped table notes."))
+                .Bullets(new[] {
+                    "Report-friendly list spacing",
+                    "Right-aligned quantities and amounts",
+                    "Footer row that remains visually distinct"
+                }, PdfAlign.Left, PdfColor.FromRgb(55, 65, 81))
+                .Numbered(new[] {
+                    "Collect line items.",
+                    "Render the table with stable column widths.",
+                    "Review the generated PDF through the raster gate."
+                }, PdfAlign.Left, PdfColor.FromRgb(55, 65, 81))
+                .Table(rows, PdfAlign.Left, style)
+                .Paragraph(p => p.Text("End of lists and tables sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))), new PdfOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10,
                     DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -61,20 +75,6 @@ namespace OfficeIMO.Examples.Pdf {
                     ShowPageNumbers = true
                 })
                 .Meta(title: "OfficeIMO.Pdf Lists and Tables", author: "OfficeIMO")
-                .H1("Lists and Tables", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
-                .Paragraph(p => p.Text("A compact report sample for list rhythm, numeric alignment, footer rows, and wrapped table notes."))
-                .Bullets(new[] {
-                    "Report-friendly list spacing",
-                    "Right-aligned quantities and amounts",
-                    "Footer row that remains visually distinct"
-                }, PdfAlign.Left, PdfColor.FromRgb(55, 65, 81))
-                .Numbered(new[] {
-                    "Collect line items.",
-                    "Render the table with stable column widths.",
-                    "Review the generated PDF through the raster gate."
-                }, PdfAlign.Left, PdfColor.FromRgb(55, 65, 81))
-                .Table(rows, PdfAlign.Left, style)
-                .Paragraph(p => p.Text("End of lists and tables sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))
                 .Save(path);
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });
         }

@@ -354,6 +354,25 @@ namespace OfficeIMO.Excel {
                     sheetName + "!" + snapshot.Name));
             }
 
+            foreach (ExcelChartSeries series in snapshot.Data.Series.Where(series =>
+                series.ChartType.HasValue && series.ChartType.Value != snapshot.ChartType)) {
+                if (TryMapCompatibleComboSeriesRenderKind(
+                        snapshot.ChartType,
+                        series.ChartType!.Value,
+                        out _,
+                        out _,
+                        out string? unsupportedReason)) {
+                    continue;
+                }
+
+                diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.ChartKindUnsupported,
+                    "Excel combo-chart series '" + series.Name + "' cannot be rendered: " + unsupportedReason,
+                    sheetName + "!" + snapshot.Name));
+                return false;
+            }
+
             if (snapshot.Data.Series.Any(series => series.ChartType.HasValue &&
                 series.ChartType.Value != snapshot.ChartType &&
                 (!TryMapSeriesRenderKind(series.ChartType.Value, out _, out string? seriesApproximation) || seriesApproximation != null))) {
@@ -388,7 +407,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool TryMapSeriesRenderKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
+        internal static bool TryMapSeriesRenderKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
             if (!TryMapChartKind(type, out kind, out approximation)) {
                 return false;
             }
@@ -407,6 +426,47 @@ namespace OfficeIMO.Excel {
                 kind == OfficeChartKind.AreaStacked100 ||
                 kind == OfficeChartKind.Scatter;
         }
+
+        internal static bool TryMapCompatibleComboSeriesRenderKind(
+            ExcelChartType baseType,
+            ExcelChartType seriesType,
+            out OfficeChartKind seriesKind,
+            out string? approximation,
+            out string? unsupportedReason) {
+            seriesKind = default;
+            approximation = null;
+            unsupportedReason = null;
+
+            if (!TryMapSeriesRenderKind(baseType, out OfficeChartKind baseKind, out _)) {
+                unsupportedReason = "combo-chart base type '" + baseType + "' is not supported by the shared Cartesian chart renderer.";
+                return false;
+            }
+
+            if (!TryMapSeriesRenderKind(seriesType, out seriesKind, out approximation)) {
+                unsupportedReason = "combo-chart series type '" + seriesType + "' is not supported by the shared Cartesian chart renderer.";
+                return false;
+            }
+
+            if (IsBarChartKind(baseKind) != IsBarChartKind(seriesKind)) {
+                unsupportedReason = "combo-chart types '" + baseType + "' and '" + seriesType + "' use incompatible horizontal and vertical category-axis orientations.";
+                return false;
+            }
+
+            if (IsScatterAxisChartKind(baseKind) != IsScatterAxisChartKind(seriesKind)) {
+                unsupportedReason = "combo-chart types '" + baseType + "' and '" + seriesType + "' use incompatible category and scatter axis models.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsScatterAxisChartKind(OfficeChartKind kind) =>
+            kind == OfficeChartKind.Scatter;
+
+        private static bool IsBarChartKind(OfficeChartKind kind) =>
+            kind == OfficeChartKind.BarClustered ||
+            kind == OfficeChartKind.BarStacked ||
+            kind == OfficeChartKind.BarStacked100;
 
         private static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
             approximation = null;
@@ -726,7 +786,7 @@ namespace OfficeIMO.Excel {
             return fontStyle;
         }
 
-        private static OfficeColor? ResolveArgb(string? argb) {
+        internal static OfficeColor? ResolveArgb(string? argb) {
             if (string.IsNullOrWhiteSpace(argb)) {
                 return null;
             }
@@ -740,7 +800,7 @@ namespace OfficeIMO.Excel {
             return OfficeColor.TryParseHex(value, out OfficeColor rgbColor) ? rgbColor : null;
         }
 
-        private static IReadOnlyList<OfficeColor?>? ResolvePointColors(IReadOnlyList<string?>? colors) {
+        internal static IReadOnlyList<OfficeColor?>? ResolvePointColors(IReadOnlyList<string?>? colors) {
             if (colors == null) {
                 return null;
             }

@@ -28,7 +28,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(preflight.CanRewrite);
         Assert.Equal("https://evotec.xyz/docs/", clone.CatalogUriBase);
         Assert.NotNull(typeof(PdfOptions).GetMethod("SetCatalogUriBase", new[] { typeof(string) }));
-        Assert.NotNull(typeof(PdfDocument).GetMethod("CatalogUriBase", new[] { typeof(string) }));
+        Assert.Null(typeof(PdfDocument).GetMethod("CatalogUriBase", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance));
 
         byte[] extracted = PdfPageExtractor.ExtractPages(bytes, 1);
         string extractedRaw = Encoding.ASCII.GetString(extracted);

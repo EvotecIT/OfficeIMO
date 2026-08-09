@@ -406,7 +406,7 @@ public partial class Excel {
     }
 
     [Fact]
-    public void SaveAsPdf_ExcelWorkbook_WarnsAndSkipsMixedSeriesChartTypes() {
+    public void SaveAsPdf_ExcelWorkbook_RendersMixedSeriesChartTypesAndSecondaryAxis() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfMixedSeriesChart.xlsx");
 
         byte[] bytes;
@@ -427,17 +427,114 @@ public partial class Excel {
                 });
 
             sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
+            ExcelChart chart = Assert.Single(sheet.Charts);
+            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            MethodInfo createSnapshot = typeof(ExcelPdfConverterExtensions).GetMethod("CreateOfficeChartSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
+            var sharedSnapshot = Assert.IsType<OfficeChartSnapshot>(createSnapshot.Invoke(null, new object[] { snapshot, options }));
+            Assert.Equal(OfficeChartKind.ColumnClustered, sharedSnapshot.ChartKind);
+            Assert.Equal(OfficeChartKind.Line, sharedSnapshot.Data.Series[1].RenderKind);
+            Assert.Equal(OfficeChartAxisGroup.Secondary, sharedSnapshot.Data.Series[1].AxisGroup);
+
             document.Save();
 
             result = document.ToPdfDocumentResult(options);
             bytes = result.ToBytes();
         }
 
-        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "WorksheetChart");
-        Assert.Contains("mixed per-series chart types", warning.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Warnings, item => item.Code == "WorksheetChart");
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
-        Assert.DoesNotContain("Sales vs Trend", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("Sales vs Trend", text, StringComparison.Ordinal);
+        Assert.Contains("Sales", text, StringComparison.Ordinal);
+        Assert.Contains("Trend", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_RejectsNonCartesianComboChart() {
+        var snapshot = new ExcelChartSnapshot(
+            "UnsupportedCombo",
+            "Unsupported Pie Line Combo",
+            ExcelChartType.Pie,
+            new ExcelChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new ExcelChartSeries("Share", new[] { 12D, 18D, 24D }, ExcelChartType.Pie),
+                    new ExcelChartSeries("Trend", new[] { 10D, 16D, 22D }, ExcelChartType.Line)
+                }),
+            rowIndex: 1,
+            columnIndex: 5,
+            offsetXPixels: 0,
+            offsetYPixels: 0,
+            widthPixels: 360,
+            heightPixels: 220);
+        MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod(
+            "IsSupportedChartSnapshot",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = { snapshot, null, null };
+
+        Assert.False((bool)method.Invoke(null, arguments)!);
+        Assert.Contains("base type 'Pie'", Assert.IsType<string>(arguments[1]), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_RejectsComboChartsWithIncompatibleAxisOrientations() {
+        var snapshot = new ExcelChartSnapshot(
+            "IncompatibleCombo",
+            "Column Bar Combo",
+            ExcelChartType.ColumnClustered,
+            new ExcelChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new ExcelChartSeries("Vertical", new[] { 12D, 18D, 24D }, ExcelChartType.ColumnClustered),
+                    new ExcelChartSeries("Horizontal", new[] { 10D, 16D, 22D }, ExcelChartType.BarClustered)
+                }),
+            rowIndex: 1,
+            columnIndex: 5,
+            offsetXPixels: 0,
+            offsetYPixels: 0,
+            widthPixels: 360,
+            heightPixels: 220);
+        MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod(
+            "IsSupportedChartSnapshot",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = { snapshot, null, null };
+
+        Assert.False((bool)method.Invoke(null, arguments)!);
+        Assert.Contains("incompatible horizontal and vertical", Assert.IsType<string>(arguments[1]), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(ExcelChartType.ColumnClustered, ExcelChartType.Scatter)]
+    [InlineData(ExcelChartType.ColumnClustered, ExcelChartType.Bubble)]
+    [InlineData(ExcelChartType.Scatter, ExcelChartType.ColumnClustered)]
+    [InlineData(ExcelChartType.Scatter, ExcelChartType.Line)]
+    public void SaveAsPdf_ExcelWorkbook_RejectsMixedCategoryAndScatterAxisModels(
+        ExcelChartType baseType,
+        ExcelChartType seriesType) {
+        var snapshot = new ExcelChartSnapshot(
+            "IncompatibleAxisModelCombo",
+            "Category Scatter Combo",
+            baseType,
+            new ExcelChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new ExcelChartSeries("Base", new[] { 12D, 18D, 24D }, baseType),
+                    new ExcelChartSeries("Mixed", new[] { 10D, 16D, 22D }, seriesType)
+                }),
+            rowIndex: 1,
+            columnIndex: 5,
+            offsetXPixels: 0,
+            offsetYPixels: 0,
+            widthPixels: 360,
+            heightPixels: 220);
+        MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod(
+            "IsSupportedChartSnapshot",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = { snapshot, null, null };
+
+        Assert.False((bool)method.Invoke(null, arguments)!);
+        Assert.Contains("incompatible category and scatter axis models", Assert.IsType<string>(arguments[1]), StringComparison.Ordinal);
     }
 
     [Fact]

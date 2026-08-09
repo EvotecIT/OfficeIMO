@@ -1,0 +1,54 @@
+name: Verify comparison projects (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: |
+    8.0.418
+    10.0.103
+  BUILD_CONFIGURATION: Release
+
+jobs:
+  build:
+    name: Build isolated comparisons
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-comparison-nuget-${{ hashFiles('OfficeIMO.*.Benchmarks*/**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-comparison-nuget-
+
+      - name: Restore and build comparison projects
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $projects = @(
+            'OfficeIMO.Excel.Benchmarks.LegacyEpPlus/OfficeIMO.Excel.Benchmarks.LegacyEpPlus.csproj',
+            'OfficeIMO.Excel.Benchmarks.NPOI/OfficeIMO.Excel.Benchmarks.NPOI.csproj',
+            'OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler/OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler.csproj',
+            'OfficeIMO.Word.Benchmarks/OfficeIMO.Word.Benchmarks.csproj'
+          )
+          foreach ($project in $projects) {
+            dotnet restore $project
+            dotnet build $project --configuration $env:BUILD_CONFIGURATION --no-restore
+          }

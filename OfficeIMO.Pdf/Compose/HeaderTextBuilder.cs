@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Builder for header text segments and page tokens.</summary>
-public class HeaderTextBuilder {
+public sealed class HeaderTextBuilder {
     private readonly System.Collections.Generic.List<FooterSegment> _segments;
     internal HeaderTextBuilder(System.Collections.Generic.List<FooterSegment> segments) { _segments = segments; }
 

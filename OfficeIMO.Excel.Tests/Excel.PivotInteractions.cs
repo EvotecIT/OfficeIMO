@@ -74,12 +74,11 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                var metadataParts = spreadsheet.WorkbookPart!.Parts
-                    .Select(pair => pair.OpenXmlPart)
-                    .Where(part => part.ContentType.IndexOf("Cache-metadata", StringComparison.OrdinalIgnoreCase) >= 0)
-                    .ToList();
-                Assert.Equal(2, metadataParts.Count);
-                Assert.All(metadataParts, part => Assert.StartsWith("application/vnd.officeimo.excel.", part.ContentType));
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                CustomXmlPart metadataPart = Assert.Single(workbookPart.CustomXmlParts,
+                    part => ReadPivotInteractionMetadataText(part) != null);
+                Assert.Equal("application/xml", metadataPart.ContentType);
+                Assert.EndsWith("/customXml", metadataPart.RelationshipType, StringComparison.Ordinal);
                 Assert.DoesNotContain(spreadsheet.WorkbookPart.Parts, pair =>
                     pair.OpenXmlPart.RelationshipType.StartsWith("http://schemas.microsoft.com/office/", StringComparison.OrdinalIgnoreCase));
             }

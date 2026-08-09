@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Page-level configuration (size, margins, default styles) and content/footers.
 /// </summary>
-public class PdfPageCompose {
+public sealed class PdfPageCompose {
     private readonly PdfDocument _doc;
     private readonly PdfOptions _options;
     internal PdfOptions Options => _options;
