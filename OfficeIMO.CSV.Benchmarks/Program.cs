@@ -25,6 +25,10 @@ bool profileTrimOfficeIMO = args.Length > 0 &&
     string.Equals(args[0], "--profile-trim-unescape-strings-officeimo", StringComparison.OrdinalIgnoreCase);
 bool profileTrimSep = args.Length > 0 &&
     string.Equals(args[0], "--profile-trim-unescape-strings-sep", StringComparison.OrdinalIgnoreCase);
+bool profileTrimSpanOfficeIMO = args.Length > 0 &&
+    string.Equals(args[0], "--profile-trim-unescape-spans-officeimo", StringComparison.OrdinalIgnoreCase);
+bool profileTrimSpanSep = args.Length > 0 &&
+    string.Equals(args[0], "--profile-trim-unescape-spans-sep", StringComparison.OrdinalIgnoreCase);
 bool profileTypedOfficeRowsAs = args.Length > 0 &&
     string.Equals(args[0], "--profile-typed-officeimo-rowsas", StringComparison.OrdinalIgnoreCase);
 bool profileTypedOfficeManual = args.Length > 0 &&
@@ -401,6 +405,38 @@ if (profileTypedOfficeRowsAs || profileTypedOfficeManual || profileTypedOfficePa
     Console.WriteLine(
         $"Profiled {implementation} typed materialization {iterations} times in {stopwatch.Elapsed.TotalMilliseconds:F2} ms " +
         $"({stopwatch.Elapsed.TotalMilliseconds / iterations:F3} ms/iteration): {rows.Length} rows.");
+    return;
+}
+
+if (profileTrimSpanOfficeIMO || profileTrimSpanSep) {
+    int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
+        ? parsedIterations
+        : 100;
+    if (iterations <= 0) {
+        throw new ArgumentOutOfRangeException(nameof(iterations));
+    }
+    ApplyProcessAffinity(args, argumentIndex: 2);
+
+    var benchmark = new CsvTrimUnescapeSpanBenchmarks { RowCount = 50_000 };
+    benchmark.Setup();
+    Func<CsvReadObservation> run = profileTrimSpanOfficeIMO
+        ? benchmark.OfficeIMOFieldSpans
+        : benchmark.SepSpans;
+    string implementation = profileTrimSpanOfficeIMO ? "OfficeIMO" : "Sep";
+    for (int index = 0; index < 3; index++) {
+        run();
+    }
+
+    CsvReadObservation observation = default;
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    for (int index = 0; index < iterations; index++) {
+        observation = run();
+    }
+    stopwatch.Stop();
+
+    Console.WriteLine(
+        $"Profiled {implementation} trim/unescape spans {iterations} times in {stopwatch.Elapsed.TotalMilliseconds:F2} ms " +
+        $"({stopwatch.Elapsed.TotalMilliseconds / iterations:F3} ms/iteration): {observation}.");
     return;
 }
 

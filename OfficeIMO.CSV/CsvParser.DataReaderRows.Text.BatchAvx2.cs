@@ -548,6 +548,8 @@ internal static partial class CsvParser
         private readonly int[] _fieldCounts;
         private readonly int _rowCapacity;
         private readonly int _fieldCapacity;
+        private readonly bool _rejectExtraFields;
+        private readonly bool _enforceColumnCountMismatchPolicy;
         private int _currentRow = -1;
         private int _currentFieldOffset;
         private bool _strictColumnCount;
@@ -558,7 +560,9 @@ internal static partial class CsvParser
             int sourceColumnCount,
             CultureInfo culture,
             IReadOnlyList<string>? dateTimeFormats,
-            int preferredRowCapacity = DefaultTextDataReaderBatchRowCapacity)
+            int preferredRowCapacity = DefaultTextDataReaderBatchRowCapacity,
+            bool rejectExtraFields = false,
+            bool enforceColumnCountMismatchPolicy = true)
         {
             _text = text;
             _sourceColumnCount = sourceColumnCount;
@@ -568,6 +572,8 @@ internal static partial class CsvParser
                 1,
                 Math.Min(MaximumTextDataReaderBatchRowCapacity, preferredRowCapacity));
             _fieldCapacity = checked(_rowCapacity * sourceColumnCount);
+            _rejectExtraFields = rejectExtraFields;
+            _enforceColumnCountMismatchPolicy = enforceColumnCountMismatchPolicy;
             _starts = ArrayPool<int>.Shared.Rent(_fieldCapacity);
             _lengths = ArrayPool<uint>.Shared.Rent(_fieldCapacity);
             _fieldCounts = ArrayPool<int>.Shared.Rent(_rowCapacity);
@@ -625,7 +631,7 @@ internal static partial class CsvParser
         {
             if ((uint)fieldIndex >= (uint)_sourceColumnCount)
             {
-                return true;
+                return !_rejectExtraFields;
             }
             if ((uint)length > ushort.MaxValue || (uint)escapedSourceLength > ushort.MaxValue)
             {
@@ -646,7 +652,8 @@ internal static partial class CsvParser
             int fieldCount,
             CsvColumnCountMismatchPolicy mismatchPolicy)
         {
-            _strictColumnCount |= mismatchPolicy == CsvColumnCountMismatchPolicy.Strict;
+            _strictColumnCount |= _enforceColumnCountMismatchPolicy &&
+                mismatchPolicy == CsvColumnCountMismatchPolicy.Strict;
             _fieldCounts[RowCount] = fieldCount;
             RowCount++;
         }
@@ -756,6 +763,49 @@ internal static partial class CsvParser
             materialized = MaterializeString(index, length);
             materializedValues[index] = materialized;
             return materialized;
+        }
+
+        internal void VisitCurrentRow<TVisitor>(
+            int recordIndex,
+            ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
+            ref TVisitor fieldVisitor,
+            ref char[]? scratch)
+            where TVisitor : struct, ICsvFieldSpanVisitor
+        {
+            var fieldCount = CurrentFieldCount;
+            for (var fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++)
+            {
+                if (!CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
+                {
+                    continue;
+                }
+
+                var index = GetCurrentFieldIndex(fieldIndex);
+                var lengths = _lengths[index];
+                var fieldLength = GetLength(lengths);
+                var escapedSourceLength = GetEscapedSourceLength(lengths);
+                var valueLength = escapedSourceLength == 0 ? fieldLength : escapedSourceLength;
+                var value = _text.AsSpan(_starts[index], valueLength);
+                if (escapedSourceLength == 0)
+                {
+                    fieldVisitor.VisitField(recordIndex, fieldIndex, value);
+                    continue;
+                }
+
+                if (fieldVisitor.TryVisitEscapedField(recordIndex, fieldIndex, value, fieldLength))
+                {
+                    continue;
+                }
+
+                var firstEscapedQuote = value.IndexOf('"');
+                if (firstEscapedQuote < 0)
+                {
+                    throw new InvalidOperationException("Escaped CSV field metadata did not contain an escaped quote.");
+                }
+
+                var unescaped = UnescapeTextQuotedField(value, firstEscapedQuote, fieldLength, ref scratch);
+                fieldVisitor.VisitField(recordIndex, fieldIndex, unescaped);
+            }
         }
 
         bool ICsvDataReaderTextRowSource.IsMissing(int ordinal) => IsMissing(ordinal);
