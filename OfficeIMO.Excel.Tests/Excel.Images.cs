@@ -364,6 +364,25 @@ namespace OfficeIMO.Tests {
             Assert.Empty(sheet.Images);
         }
 
+        [Fact]
+        public void Test_ExcelImage_FromFile_RejectsJpegWithoutScanData() {
+            string workbookPath = Path.Combine(_directoryWithFiles, "ExcelImage.MarkerOnlyJpeg.xlsx");
+            string imagePath = Path.Combine(_directoryWithFiles, "marker-only.jpg");
+            File.WriteAllBytes(imagePath, new byte[] {
+                0xFF, 0xD8,
+                0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01, 0x01, 0x11, 0x00,
+                0xFF, 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F, 0x00,
+                0xFF, 0xD9
+            });
+
+            using ExcelDocument document = ExcelDocument.Create(workbookPath);
+            ExcelSheet sheet = document.AddWorksheet("Images");
+
+            Assert.Throws<ArgumentException>(() =>
+                sheet.AddImageFromFile(2, 2, imagePath, widthPixels: 32, heightPixels: 32));
+            Assert.Empty(sheet.Images);
+        }
+
         [Theory]
         [InlineData("Sample.svg", "image/svg+xml")]
         [InlineData("sample.emf", "image/x-emf")]

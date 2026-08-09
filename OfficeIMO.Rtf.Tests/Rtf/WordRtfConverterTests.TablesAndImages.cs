@@ -234,6 +234,26 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Rtf_Word_Bridge_Omits_Jpeg_Without_Scan_Data() {
+        byte[] markerOnlyJpeg = {
+            0xFF, 0xD8,
+            0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01, 0x01, 0x11, 0x00,
+            0xFF, 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F, 0x00,
+            0xFF, 0xD9
+        };
+        RtfDocument rtf = RtfDocument.Create();
+        rtf.AddImage(RtfImageFormat.Jpeg, markerOnlyJpeg);
+
+        RtfConversionResult<WordDocument> conversion = rtf.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+
+        Assert.Empty(word.Images);
+        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "RtfWordImagesOmitted" &&
+            diagnostic.Action == RtfConversionAction.Omitted);
+    }
+
+    [Fact]
     public void Word_Rtf_Bridge_Normalizes_Bmp_To_Png() {
         byte[] bmp = CreateOnePixelBmp();
         using WordDocument word = WordDocument.Create();

@@ -74,6 +74,9 @@ namespace OfficeIMO.Visio {
                 diagnosticSource,
                 cancellationToken);
             SvgRenderContext context = SvgRenderContext.Create(root, new SvgPaintBounds(viewLeft, viewTop, viewWidth, viewHeight), imageResolver);
+            if (context.StyleSheet.HasUnsupportedVisualEffectDeclarations) {
+                context.ReportUnsupportedFeature();
+            }
             double rootOpacity = SvgPaint.ReadOwnOpacity(root, context);
             if (rootOpacity <= 0D) {
                 return false;
@@ -138,7 +141,7 @@ namespace OfficeIMO.Visio {
             string name = element.Name.LocalName;
             if ((!string.IsNullOrEmpty(element.Name.NamespaceName) &&
                  !string.Equals(element.Name.NamespaceName, "http://www.w3.org/2000/svg", StringComparison.Ordinal)) ||
-                HasUnsupportedEffect(element, context)) {
+                HasUnsupportedEffect(element)) {
                 context.ReportUnsupportedFeature();
             }
             if (string.Equals(name, "defs", StringComparison.OrdinalIgnoreCase) ||

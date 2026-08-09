@@ -107,6 +107,11 @@ public class VisioImageExport {
     [Theory]
     [InlineData("", "style='mask:url(#mask)'")]
     [InlineData("<style>.blur { filter: url(#blur); }</style>", "class='blur'")]
+    [InlineData("<style>svg rect { filter: url(#blur); }</style>", "")]
+    [InlineData("<style>svg > rect { mask: url(#mask); }</style>", "")]
+    [InlineData("<style>* { filter: url(#blur); }</style>", "")]
+    [InlineData("<style>[data-effect] { mask: url(#mask); }</style>", "data-effect='true'")]
+    [InlineData("<style>rect:last-child { filter: url(#blur); }</style>", "")]
     public void EmbeddedSvgPreviewReportsCssVisualEffects(string styleDefinition, string rectangleAttributes) {
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
                      styleDefinition + "<rect width='10' height='10' fill='red' " + rectangleAttributes + "/></svg>";

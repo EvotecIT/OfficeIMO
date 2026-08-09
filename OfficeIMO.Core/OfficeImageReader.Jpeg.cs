@@ -102,4 +102,59 @@ public static partial class OfficeImageReader {
 
     private static bool IsStartOfFrame(byte marker) =>
         marker is 0xC0 or 0xC1 or 0xC2 or 0xC3 or 0xC5 or 0xC6 or 0xC7 or 0xC9 or 0xCA or 0xCB or 0xCD or 0xCE or 0xCF;
+
+    private static bool HasCompleteJpegPayload(byte[] data) {
+        if (data.Length < 12 || data[0] != 0xFF || data[1] != 0xD8) return false;
+        bool hasFrame = false;
+        bool hasScan = false;
+        bool hasEntropyData = false;
+        bool inScan = false;
+        int offset = 2;
+        while (offset < data.Length) {
+            if (inScan && data[offset] != 0xFF) {
+                hasEntropyData = true;
+                offset++;
+                continue;
+            }
+            if (data[offset] != 0xFF) return false;
+            while (offset < data.Length && data[offset] == 0xFF) offset++;
+            if (offset >= data.Length) return false;
+
+            byte marker = data[offset++];
+            if (inScan) {
+                if (marker == 0x00) {
+                    hasEntropyData = true;
+                    continue;
+                }
+                if (marker >= 0xD0 && marker <= 0xD7) continue;
+                inScan = false;
+            }
+
+            if (marker == 0xD9) {
+                return hasFrame && hasScan && hasEntropyData && offset == data.Length;
+            }
+            if (marker == 0x01) continue;
+            if (marker == 0x00 || marker == 0xD8 || (marker >= 0xD0 && marker <= 0xD7) || offset + 2 > data.Length) {
+                return false;
+            }
+
+            int segmentLength = ReadUInt16BigEndian(data, offset);
+            if (segmentLength < 2 || offset + segmentLength > data.Length) return false;
+            int segmentStart = offset + 2;
+            int segmentDataLength = segmentLength - 2;
+            if (IsStartOfFrame(marker)) {
+                if (!TryReadJpegFrameHeader(data, segmentStart, segmentDataLength, out _, out _)) return false;
+                hasFrame = true;
+            } else if (marker == 0xDA) {
+                if (!hasFrame || segmentDataLength < 6) return false;
+                int componentCount = data[segmentStart];
+                if (componentCount == 0 || segmentDataLength != 4 + (componentCount * 2)) return false;
+                hasScan = true;
+                inScan = true;
+            }
+
+            offset += segmentLength;
+        }
+        return false;
+    }
 }

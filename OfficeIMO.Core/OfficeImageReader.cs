@@ -145,7 +145,7 @@ public static partial class OfficeImageReader {
             case OfficeImageFormat.Png:
                 return OfficePngReader.TryValidateDecodedPayload(data);
             case OfficeImageFormat.Jpeg:
-                return data.Length >= 4 && data[data.Length - 2] == 0xFF && data[data.Length - 1] == 0xD9;
+                return HasCompleteJpegPayload(data);
             case OfficeImageFormat.Gif:
                 return data.Length >= 14 && data[data.Length - 1] == 0x3B && OfficeGifReader.TryDecode(data, out _);
             default:

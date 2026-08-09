@@ -283,26 +283,25 @@ public static class OfficeImageExportBatchProcessor {
         int? expectedOutputCount) {
         var tracker = new OfficeImageExportBatchTracker(options);
         var gate = new SemaphoreSlim(1, 1);
+        var consumerDepth = new AsyncLocal<int>();
         return async (result, token) => {
             using CancellationTokenSource? linked = CreateLinkedCancellationSource(cancellationToken, token);
             CancellationToken effectiveToken = linked?.Token ?? (token.CanBeCanceled ? token : cancellationToken);
-            OfficeImageExportResult sequenced;
-            await gate.WaitAsync(effectiveToken).ConfigureAwait(false);
+            bool ownsGate = consumerDepth.Value == 0;
+            if (ownsGate) await gate.WaitAsync(effectiveToken).ConfigureAwait(false);
             try {
+                consumerDepth.Value++;
                 cancellationToken.ThrowIfCancellationRequested();
                 token.ThrowIfCancellationRequested();
                 if (result == null) throw new ArgumentNullException(nameof(result));
                 result.Require(options.Policy);
                 int sequenceIndex = tracker.Count;
                 tracker.Add(result);
-                sequenced = result.WithSequence(sequenceIndex, expectedOutputCount);
+                await consumer(result.WithSequence(sequenceIndex, expectedOutputCount), token).ConfigureAwait(false);
             } finally {
-                gate.Release();
+                consumerDepth.Value--;
+                if (ownsGate) gate.Release();
             }
-
-            // Admission and sequence assignment are serialized, but arbitrary consumer code
-            // must run outside the gate so a consumer can safely submit another result.
-            await consumer(sequenced, token).ConfigureAwait(false);
         };
     }
 

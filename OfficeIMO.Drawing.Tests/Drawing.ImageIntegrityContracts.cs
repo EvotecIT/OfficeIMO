@@ -69,8 +69,14 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void CompleteContentValidationRejectsTruncatedGifAndCorruptPngPayload() {
+    public void CompleteContentValidationRejectsTruncatedGifCorruptPngAndMarkerOnlyJpeg() {
         byte[] truncatedGif = { (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a', 1, 0, 1, 0, 0, 0, 0 };
+        byte[] markerOnlyJpeg = {
+            0xFF, 0xD8,
+            0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01, 0x01, 0x11, 0x00,
+            0xFF, 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F, 0x00,
+            0xFF, 0xD9
+        };
         byte[] corruptPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         int idatOffset = FindPngChunk(corruptPng, "IDAT");
         int length = ReadBigEndianInt32(corruptPng, idatOffset);
@@ -81,13 +87,15 @@ public partial class DrawingTests {
         Assert.False(OfficeImageReader.TryValidateContent(truncatedGif, "truncated.gif", out _));
         Assert.True(OfficeImageReader.TryIdentifyByContent(corruptPng, "corrupt.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(corruptPng, "corrupt.png", out _));
+        Assert.True(OfficeImageReader.TryIdentifyByContent(markerOnlyJpeg, "marker-only.jpg", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(markerOnlyJpeg, "marker-only.jpg", out _));
     }
 
     [Fact]
     public async Task GuardedAsyncConsumerSerializesConcurrentAdmissionAndSequenceAssignment() {
         const int maximum = 300;
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
-        var results = new ConcurrentQueue<OfficeImageExportResult>();
+        var results = new List<OfficeImageExportResult>();
         var options = new OfficeImageExportOptions { MaximumOutputCount = maximum };
 
         await Assert.ThrowsAsync<OfficeImageExportBatchLimitException>(() =>
@@ -103,12 +111,12 @@ public partial class DrawingTests {
                             name: index.ToString()),
                         token))),
                 (result, _) => {
-                    results.Enqueue(result);
+                    results.Add(result);
                     return Task.CompletedTask;
                 }));
 
         Assert.Equal(maximum, results.Count);
-        Assert.Equal(Enumerable.Range(0, maximum), results.Select(result => result.SequenceIndex!.Value).OrderBy(index => index));
+        Assert.Equal(Enumerable.Range(0, maximum), results.Select(result => result.SequenceIndex!.Value));
     }
 
     [Fact]
