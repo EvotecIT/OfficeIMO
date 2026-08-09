@@ -751,9 +751,18 @@ public partial class PdfDocumentVisualQualityTests {
 
         PdfReadDocument readback = PdfReadDocument.Open(bytes);
         string raw = Encoding.ASCII.GetString(bytes);
+        using PdfPigDocument parsed = PdfPigDocument.Open(new MemoryStream(bytes));
+        var scaledLetters = parsed.GetPage(1).Letters
+            .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+            .ToList();
 
         Assert.Single(readback.Pages);
         Assert.Contains("ScaledDrawing", readback.ExtractText(), StringComparison.Ordinal);
+        Assert.NotEmpty(scaledLetters);
+        Assert.All(scaledLetters, letter => {
+            Assert.InRange(letter.StartBaseLine.X, 0D, 180D);
+            Assert.InRange(letter.StartBaseLine.Y, 0D, 120D);
+        });
         Assert.Contains("/Group << /S /Transparency /I true /K false >>", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Image", raw, StringComparison.Ordinal);
     }

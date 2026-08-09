@@ -145,12 +145,13 @@ public static class OfficeVisualPlacementExtensions {
         string? linkContents = null) {
         if (content == null) throw new ArgumentNullException(nameof(content));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
+        PdfDrawingStyle effectiveStyle = ResolvePdfDrawingStyle(style, conversion.AlternativeText);
         content.Item(item => item.Drawing(
             conversion.Drawing,
             align,
             spacingBefore,
             spacingAfter,
-            style,
+            effectiveStyle,
             linkUri,
             linkContents));
         return content;
@@ -184,7 +185,14 @@ public static class OfficeVisualPlacementExtensions {
         string? linkContents = null) {
         if (item == null) throw new ArgumentNullException(nameof(item));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
-        return item.Drawing(conversion.Drawing, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
+        return item.Drawing(
+            conversion.Drawing,
+            align,
+            spacingBefore,
+            spacingAfter,
+            ResolvePdfDrawingStyle(style, conversion.AlternativeText),
+            linkUri,
+            linkContents);
     }
 
     /// <summary>Renders and adds a ChartForgeX artifact to an existing PDF document.</summary>
@@ -215,12 +223,13 @@ public static class OfficeVisualPlacementExtensions {
         string? linkContents = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
+        PdfDrawingStyle effectiveStyle = ResolvePdfDrawingStyle(style, conversion.AlternativeText);
         return document.Compose(compose => compose.Content(item => item.Drawing(
             conversion.Drawing,
             align,
             spacingBefore,
             spacingAfter,
-            style,
+            effectiveStyle,
             linkUri,
             linkContents)));
     }
@@ -229,6 +238,15 @@ public static class OfficeVisualPlacementExtensions {
 
     private static string ResolveTitle(OfficeVisualConversionResult conversion) =>
         string.IsNullOrWhiteSpace(conversion.Title) ? conversion.Id : conversion.Title;
+
+    private static PdfDrawingStyle ResolvePdfDrawingStyle(PdfDrawingStyle? style, string alternativeText) {
+        PdfDrawingStyle effective = style?.Clone() ?? new PdfDrawingStyle();
+        if (!effective.Decorative && string.IsNullOrWhiteSpace(effective.AlternativeText)) {
+            effective.AlternativeText = alternativeText;
+        }
+
+        return effective;
+    }
 
     private static string ResolveFileName(string id, string extension) {
         string name = string.IsNullOrWhiteSpace(id) ? "chartforgex-visual" : id;

@@ -345,6 +345,8 @@ internal static partial class PdfWriter {
         public bool IsDecorativeArtifact => IsBackgroundDecoration || IsInlineDecoration;
         public double Opacity { get; set; } = 1D;
         public double RotationAngle { get; set; }
+        public double? RotationCenterX { get; set; }
+        public double? RotationCenterY { get; set; }
         public bool HorizontalFlip { get; set; }
         public bool VerticalFlip { get; set; }
         public string? GraphicsStateName { get; set; }

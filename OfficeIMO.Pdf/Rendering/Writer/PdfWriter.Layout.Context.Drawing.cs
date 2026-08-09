@@ -188,15 +188,14 @@ internal static partial class PdfWriter {
                     DrawDrawingTextAt(text, originX + text.X, originTopY - text.Y);
                 } else if (drawing.Elements[i] is OfficeDrawingImage image) {
                     DrawDrawingImageAt(image, originX, originTopY);
+                } else if (drawing.Elements[i] is OfficeDrawingGroup group) {
+                    DrawDrawingGroupAt(group, originX, originTopY);
                 } else if (drawing.Elements[i] is OfficeDrawingEffectGroup effectGroup) {
                     if (effectGroup.BlendMode != OfficeBlendMode.Normal || effectGroup.SoftMask != null) {
                         throw new NotSupportedException("OfficeIMO.Pdf does not yet support drawing effect groups with a blend mode or soft mask.");
                     }
 
-                    OfficeTransform pageTransform = OfficeTransform
-                        .Translate(-originX, -originTopY)
-                        .Then(effectGroup.Transform)
-                        .Then(OfficeTransform.Translate(originX, originTopY));
+                    OfficeTransform pageTransform = ToTopLeftPageTransform(effectGroup.Transform, originX, originTopY);
                     RenderEffectGroup(
                         pageTransform,
                         effectGroup.Opacity,
@@ -207,6 +206,38 @@ internal static partial class PdfWriter {
                         drawing.Elements[i].GetType().Name + ".");
                 }
             }
+        }
+
+        private void DrawDrawingGroupAt(OfficeDrawingGroup group, double originX, double originTopY) {
+            void DrawGroupContent() {
+                double clipX = originX + group.X;
+                double clipBottomY = originTopY - group.Y - group.ClipPath.Height;
+                new ContentStreamBuilder(sb).SaveState();
+                AppendClipPath(sb, group.ClipPath, clipX, clipBottomY, group.ClipPath.Height);
+                DrawDrawingElements(
+                    group.InnerDrawing,
+                    clipX + group.ContentOffsetX,
+                    originTopY - group.Y - group.ContentOffsetY);
+                new ContentStreamBuilder(sb).RestoreState();
+            }
+
+            if (group.FrameTransform.HasValue && group.FrameTransform.Value.HasTransform) {
+                OfficeTransform pageTransform = ToTopLeftPageTransform(
+                    group.FrameTransform.Value.CreateDestinationTransform(),
+                    originX,
+                    originTopY);
+                RenderEffectGroup(pageTransform, 1D, DrawGroupContent);
+            } else {
+                DrawGroupContent();
+            }
+        }
+
+        private OfficeTransform ToTopLeftPageTransform(OfficeTransform localTransform, double originX, double originTopY) {
+            double pageTopY = currentOpts.PageHeight - originTopY;
+            return OfficeTransform
+                .Translate(-originX, -pageTopY)
+                .Then(localTransform)
+                .Then(OfficeTransform.Translate(originX, pageTopY));
         }
 
         private void DrawDrawingImageAt(OfficeDrawingImage image, double originX, double originTopY) {
@@ -245,6 +276,8 @@ internal static partial class PdfWriter {
             pageImage.GraphicsStateName = EnsureGraphicsState(image.Opacity, image.Opacity);
             pageImage.HorizontalFlip = projection.FlipHorizontal;
             pageImage.VerticalFlip = projection.FlipVertical;
+            pageImage.RotationCenterX = originX + projection.RotationCenterX;
+            pageImage.RotationCenterY = originTopY - projection.RotationCenterY;
             pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
             currentPage!.Images.Add(pageImage);
             pageImage.InlineDrawToken = "\n%OIMO_INLINE_IMAGE_" + currentPage.Images.Count.ToString("D6", CultureInfo.InvariantCulture) + "\n";
@@ -279,7 +312,8 @@ internal static partial class PdfWriter {
                     fontFamily: text.Font.FamilyName)
             };
             var block = new RichParagraphBlock(runs, MapDrawingTextAlignment(text.Alignment), color);
-            var wrap = WrapRichRunsCore(runs, text.Width, size, baseFont, leading, null, DefaultParagraphTabStopWidth, currentOpts);
+            double wrapWidth = text.WrapText ? text.Width : 1_000_000_000D;
+            var wrap = WrapRichRunsCore(runs, wrapWidth, size, baseFont, leading, null, DefaultParagraphTabStopWidth, currentOpts);
             if (wrap.Lines.Count == 0) {
                 return;
             }

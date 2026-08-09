@@ -1,8 +1,11 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Text;
 using global::ChartForgeX.Primitives;
 using global::ChartForgeX.VisualArtifacts;
 using OfficeIMO.ChartForgeX;
+using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
@@ -138,6 +141,47 @@ public sealed class OfficeVisualIntegrationTests {
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
+    }
+
+    [Fact]
+    public void PdfPlacementCarriesGeneratedAlternativeTextWithoutMutatingCallerStyle() {
+        OfficeVisualConversionResult visual = CreateArtifact().ToOfficeVisual(new OfficeVisualConversionOptions {
+            WidthPoints = 300D
+        });
+        var style = new PdfDrawingStyle { SpacingBefore = 6D };
+
+        byte[] pdf = PdfDocument.Create(
+                _ => { },
+                new PdfOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
+            .AddVisualArtifact(visual, style: style)
+            .ToBytes();
+        string content = Encoding.ASCII.GetString(pdf);
+
+        Assert.Null(style.AlternativeText);
+        Assert.Contains(
+            "/Figure << /Alt <517561727465726C792073657276696365206865616C7468206163726F73732041504920616E6420776F726B65722074696572732E>",
+            content,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SymbolUseGroupsRemainVectorAndCanBeWrittenToPdf() {
+        const string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"80\" viewBox=\"0 0 120 80\"><defs><symbol id=\"badge\" viewBox=\"0 0 40 30\"><rect width=\"40\" height=\"30\" rx=\"4\" fill=\"#2563eb\"/><text x=\"20\" y=\"19\" text-anchor=\"middle\" fill=\"white\">OK</text></symbol></defs><use href=\"#badge\" x=\"20\" y=\"15\" width=\"80\" height=\"50\"/></svg>";
+        var source = new OfficeVisualSource(svg) {
+            AlternativeText = "Reusable status badge"
+        };
+
+        OfficeVisualConversionResult visual = source.ToOfficeVisual(new OfficeVisualConversionOptions {
+            SvgPolicy = OfficeVisualSvgPolicy.RequireVector
+        });
+
+        Assert.Contains(
+            visual.Drawing.Elements,
+            element => element is OfficeDrawingGroup || element is OfficeDrawingEffectGroup);
+        byte[] pdf = PdfDocument.Create(_ => { }, new PdfOptions { CompressContentStreams = false })
+            .AddVisualArtifact(visual)
+            .ToBytes();
+        Assert.Equal("%PDF", Encoding.ASCII.GetString(pdf, 0, 4));
     }
 
     [Fact]
