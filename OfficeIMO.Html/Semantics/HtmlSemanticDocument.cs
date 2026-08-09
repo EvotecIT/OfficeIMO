@@ -95,12 +95,14 @@ public sealed class HtmlSemanticBlock {
         HtmlSemanticBlockKind kind,
         string text,
         int level,
-        bool ordered,
         IReadOnlyList<HtmlSemanticRun> runs,
         IReadOnlyList<HtmlSemanticBlock> children,
+        HtmlSemanticList? list,
+        HtmlSemanticListItem? listItem,
         HtmlSemanticTable? table,
         HtmlSemanticResource? resource,
         IReadOnlyList<HtmlSemanticResource> inlineResources,
+        HtmlSemanticForm? form,
         HtmlSemanticFormControl? formControl,
         HtmlComputedStyle? style,
         HtmlSemanticSourceLocation? sourceLocation,
@@ -108,12 +110,14 @@ public sealed class HtmlSemanticBlock {
         Kind = kind;
         Text = text;
         Level = level;
-        Ordered = ordered;
         Runs = runs;
         Children = children;
+        List = list;
+        ListItem = listItem;
         Table = table;
         Resource = resource;
         InlineResources = inlineResources;
+        Form = form;
         FormControl = formControl;
         Style = style;
         SourceLocation = sourceLocation;
@@ -129,14 +133,20 @@ public sealed class HtmlSemanticBlock {
     /// <summary>Heading level or nested list depth; zero when not applicable.</summary>
     public int Level { get; }
 
-    /// <summary>Whether a list is ordered.</summary>
-    public bool Ordered { get; }
+    /// <summary>Whether this block is an ordered list.</summary>
+    public bool Ordered => List?.Kind == HtmlSemanticListKind.Ordered;
 
     /// <summary>Rich editable text runs.</summary>
     public IReadOnlyList<HtmlSemanticRun> Runs { get; }
 
     /// <summary>Nested list items or retained child blocks.</summary>
     public IReadOnlyList<HtmlSemanticBlock> Children { get; }
+
+    /// <summary>Typed list state when <see cref="Kind"/> is <see cref="HtmlSemanticBlockKind.List"/>.</summary>
+    public HtmlSemanticList? List { get; }
+
+    /// <summary>Typed list-item state when <see cref="Kind"/> is <see cref="HtmlSemanticBlockKind.ListItem"/>.</summary>
+    public HtmlSemanticListItem? ListItem { get; }
 
     /// <summary>Typed table data when <see cref="Kind"/> is <see cref="HtmlSemanticBlockKind.Table"/>.</summary>
     public HtmlSemanticTable? Table { get; }
@@ -146,6 +156,9 @@ public sealed class HtmlSemanticBlock {
 
     /// <summary>Resources embedded inside this block, retained independently from its text runs.</summary>
     public IReadOnlyList<HtmlSemanticResource> InlineResources { get; }
+
+    /// <summary>Typed form-container state when this block represents a form element.</summary>
+    public HtmlSemanticForm? Form { get; }
 
     /// <summary>Typed form state when the block represents a form control.</summary>
     public HtmlSemanticFormControl? FormControl { get; }
@@ -289,26 +302,4 @@ public sealed class HtmlSemanticResource {
     public double? HeightPixels { get; }
     /// <summary>Source provenance.</summary>
     public HtmlSemanticSourceLocation? SourceLocation { get; }
-}
-
-/// <summary>Typed HTML form-control state.</summary>
-public sealed class HtmlSemanticFormControl {
-    internal HtmlSemanticFormControl(string type, string name, string value, bool isChecked, bool isDisabled) {
-        Type = type;
-        Name = name;
-        Value = value;
-        IsChecked = isChecked;
-        IsDisabled = isDisabled;
-    }
-
-    /// <summary>Normalized control type.</summary>
-    public string Type { get; }
-    /// <summary>Control name.</summary>
-    public string Name { get; }
-    /// <summary>Current value.</summary>
-    public string Value { get; }
-    /// <summary>Checked or selected state.</summary>
-    public bool IsChecked { get; }
-    /// <summary>Disabled state.</summary>
-    public bool IsDisabled { get; }
 }

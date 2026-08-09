@@ -122,14 +122,31 @@ public static class HtmlCapabilityGalleryManifestJsonWriter {
         AppendCommaAndLine(builder, comma);
     }
 
-    private static void AppendRoundTripScore(StringBuilder builder, HtmlRoundTripScore roundTripScore, bool comma) {
+    private static void AppendRoundTripScore(StringBuilder builder, HtmlRoundTripScore? roundTripScore, bool comma) {
+        if (roundTripScore == null) {
+            AppendNullProperty(builder, 1, "roundTripScore", comma);
+            return;
+        }
         AppendIndent(builder, 1).AppendLine("\"roundTripScore\": {");
         if (roundTripScore != null) {
+            AppendNumberProperty(builder, 2, "schemaVersion", roundTripScore.SchemaVersion, comma: true);
             AppendNumberProperty(builder, 2, "score", roundTripScore.Score, comma: true);
             AppendNumberProperty(builder, 2, "sourceNodeCount", roundTripScore.SourceNodeCount, comma: true);
             AppendNumberProperty(builder, 2, "targetNodeCount", roundTripScore.TargetNodeCount, comma: true);
             AppendNumberProperty(builder, 2, "matchedFeatureCount", roundTripScore.MatchedFeatureCount, comma: true);
             AppendNumberProperty(builder, 2, "comparedFeatureCount", roundTripScore.ComparedFeatureCount, comma: true);
+            AppendBooleanProperty(builder, 2, "artifactReloadVerified", roundTripScore.ArtifactReloadVerified, comma: true);
+            AppendNullableStringProperty(builder, 2, "artifactKind", roundTripScore.ArtifactKind, comma: true);
+            AppendIndent(builder, 2).AppendLine("\"dimensions\": {");
+            IReadOnlyList<KeyValuePair<string, double>> dimensions = roundTripScore.Dimensions
+                .OrderBy(dimension => dimension.Key, StringComparer.Ordinal)
+                .ToList();
+            for (int i = 0; i < dimensions.Count; i++) {
+                KeyValuePair<string, double> dimension = dimensions[i];
+                AppendNumberProperty(builder, 3, dimension.Key, dimension.Value, comma: i < dimensions.Count - 1);
+            }
+            AppendIndent(builder, 2).AppendLine();
+            AppendIndent(builder, 2).AppendLine("},");
             AppendIndent(builder, 2).AppendLine("\"metrics\": {");
             IReadOnlyList<KeyValuePair<string, double>> metrics = roundTripScore.Metrics
                 .OrderBy(metric => metric.Key, StringComparer.Ordinal)
@@ -148,7 +165,11 @@ public static class HtmlCapabilityGalleryManifestJsonWriter {
         AppendCommaAndLine(builder, comma);
     }
 
-    private static void AppendResources(StringBuilder builder, HtmlResourceManifest resourceManifest, bool comma) {
+    private static void AppendResources(StringBuilder builder, HtmlResourceManifest? resourceManifest, bool comma) {
+        if (resourceManifest == null) {
+            AppendNullProperty(builder, 1, "resources", comma);
+            return;
+        }
         AppendIndent(builder, 1).AppendLine("\"resources\": {");
         if (resourceManifest != null) {
             AppendNumberProperty(builder, 2, "allowedCount", resourceManifest.AllowedCount, comma: true);
@@ -248,6 +269,14 @@ public static class HtmlCapabilityGalleryManifestJsonWriter {
             builder.Append('"').Append(Escape(value)).Append('"');
         }
 
+        AppendCommaAndLine(builder, comma);
+    }
+
+    private static void AppendNullProperty(StringBuilder builder, int indent, string name, bool comma = false) {
+        AppendIndent(builder, indent)
+            .Append('"')
+            .Append(Escape(name))
+            .Append("\": null");
         AppendCommaAndLine(builder, comma);
     }
 

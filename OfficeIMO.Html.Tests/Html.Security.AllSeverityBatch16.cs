@@ -89,7 +89,9 @@ public sealed class HtmlAllSeverityBatch16SecurityTests {
 
     [Fact]
     public void WordToHtmlRejectsDeepOmmlBeforeRecursiveProjection() {
-        const int depth = 5_000;
+        // Stay below the Open XML SDK's own recursive parent-context limit while remaining
+        // well above the converter contract exercised below.
+        const int depth = 256;
         using WordDocument document = WordDocument.Create();
         var equation = new M.OfficeMath();
         OpenXmlCompositeElement parent = equation;

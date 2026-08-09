@@ -72,6 +72,7 @@ internal static class HtmlGenericDocumentProjector {
         List<HtmlGenericSectionProjection> result) {
         var blocks = new List<IElement>();
         string title = Normalize(document.Title);
+        bool hasCapturedHeading = false;
         foreach (IElement child in source) {
             if (IsPrimaryHeading(child) && blocks.Count > 0) {
                 result.Add(new HtmlGenericSectionProjection(
@@ -79,17 +80,19 @@ internal static class HtmlGenericDocumentProjector {
                     blocks.ToArray()));
                 blocks.Clear();
                 title = Normalize(child.TextContent);
+                hasCapturedHeading = true;
                 continue;
             }
 
             if (IsPrimaryHeading(child) && title.Length == 0) {
                 title = Normalize(child.TextContent);
+                hasCapturedHeading = true;
                 continue;
             }
             blocks.Add(child);
         }
 
-        if (blocks.Count > 0) {
+        if (blocks.Count > 0 || hasCapturedHeading) {
             result.Add(new HtmlGenericSectionProjection(
                 title.Length > 0 ? title : "Imported " + (result.Count + 1).ToString(CultureInfo.InvariantCulture),
                 blocks.ToArray()));

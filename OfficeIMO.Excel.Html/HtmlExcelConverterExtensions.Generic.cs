@@ -116,18 +116,13 @@ public static partial class HtmlExcelConverterExtensions {
                 continue;
             }
             if (!IsSupportedExcelImage(dataUri, result, resource.Source)) continue;
-            if (!budget.IsImageWithinLimit(dataUri, out string imageLimit)) {
-                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                    "An embedded generic worksheet image was omitted because the shared image limit was reached.",
-                    lossKind: OfficeConversionLossKind.Omission, source: resource.Source, detail: imageLimit);
-                continue;
-            }
-            if (!budget.TryReserveImageWithShape(dataUri, out imageLimit)) {
+            if (!budget.TryReserveImageWithShape(dataUri, out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                     "An embedded generic worksheet image was omitted because the shared image or drawing limit was reached.",
                     lossKind: OfficeConversionLossKind.Omission, source: resource.Source, detail: imageLimit);
                 continue;
             }
+            using HtmlImportBudgetReservation imageReservationScope = imageReservation;
             if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
                     "An embedded generic worksheet image could not be decoded.",
@@ -141,6 +136,7 @@ public static partial class HtmlExcelConverterExtensions {
                 name: null,
                 altText: string.IsNullOrWhiteSpace(resource.AlternateText) ? null : resource.AlternateText);
             result.Images++;
+            imageReservation.Commit();
             row = Math.Min(A1.MaxRows + 1, row + Math.Max(2, (height + 19) / 20 + 1));
         }
     }

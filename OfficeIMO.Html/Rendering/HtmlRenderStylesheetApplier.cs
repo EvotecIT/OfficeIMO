@@ -40,7 +40,7 @@ internal static class HtmlRenderStylesheetApplier {
                 continue;
             }
 
-            if (!HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, out string css)) {
+            if (!HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, resource.ContentType, out string css)) {
                 diagnostics.Add(
                     ComponentName,
                     HtmlRenderDiagnosticCodes.StylesheetEncodingUnsupported,
@@ -140,7 +140,7 @@ internal static class HtmlRenderStylesheetApplier {
                 && Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out Uri? importedUri)) {
                 if (activeStylesheets.Contains(importedUri.AbsoluteUri)) {
                     ReportCycle(diagnostics, reportedCycles, importedUri.AbsoluteUri);
-                } else if (HtmlRenderStylesheetText.TryDecode(importedResource.EncodedBytes, out string importedCss)) {
+                } else if (HtmlRenderStylesheetText.TryDecode(importedResource.EncodedBytes, importedResource.ContentType, out string importedCss)) {
                     if (resources.WasStylesheetBudgeted(reference.Source, reference.ResolvedSource)
                         || TryReserveCss(cssBudget, importedCss, reference.Source, diagnostics)) {
                         replacement = ExpandImports(importedCss, importedUri, resources, options, limits, diagnostics, activeStylesheets, reportedCycles, cssBudget);

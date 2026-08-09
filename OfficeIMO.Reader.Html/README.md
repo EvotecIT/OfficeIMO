@@ -34,6 +34,19 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 
 `ReaderHtmlOptions.ConversionOptions` exposes the same trust, URL, and complexity policy used by other `OfficeIMO.Html` adapters. `CreateUntrustedHtmlProfile` applies its character cap both before shared parsing and during Markdown projection, so the reader does not maintain a second limit decision.
 
+Stream and file input detects byte-order marks and HTML `meta charset` declarations. Set `ReaderHtmlOptions.InputEncoding` when the transport or application already knows the encoding:
+
+```csharp
+using System.Text;
+
+ReaderHtmlOptions htmlOptions = ReaderHtmlOptions.CreatePortableProfile();
+htmlOptions.InputEncoding = Encoding.GetEncoding("iso-8859-1");
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddHtmlHandler(htmlOptions)
+    .Build();
+```
+
 ## Examples
 
 ### Convert HTML to Markdown chunks
@@ -101,6 +114,7 @@ foreach (OfficeDocumentLink link in document.Links) {
 - Markdown-shaped `ReaderChunk` output.
 - Table extraction with `ReaderTable.ColumnProfiles`.
 - Heading-aware chunk metadata when `ReaderHtmlOptions.ChunkByHeadings` is enabled.
+- BOM/meta-charset detection with an explicit `ReaderHtmlOptions.InputEncoding` override.
 - HTML-to-Markdown profile, transform, converter, and visual round-trip option pass-through.
 - A schema-v5 rich result containing semantic headings, quotes, code, footnotes, list markers, figures, tables, links, form controls, media visuals, metadata, and bounded data-URI image assets.
 - ARIA heading levels and accessible link/image names in rich blocks, links, assets, visuals, JSON, and `officeimo.html.*` capability identifiers.

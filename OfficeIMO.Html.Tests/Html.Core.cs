@@ -1,9 +1,213 @@
 using OfficeIMO.Html;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlCoreTests {
+    [Fact]
+    public void HtmlConversionDocument_LoadDetectsMetaCharsetFromByteInput() {
+        byte[] prefix = Encoding.ASCII.GetBytes("<meta charset='windows-1252'><p>caf");
+        byte[] suffix = Encoding.ASCII.GetBytes("</p>");
+        using var stream = new MemoryStream(prefix.Concat(new byte[] { 0xE9 }).Concat(suffix).ToArray());
+
+        HtmlSemanticBlock paragraph = Assert.Single(HtmlConversionDocument.Load(stream)
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal("café", paragraph.Text);
+    }
+
+    [Fact]
+    public void HtmlConversionDocument_LoadDetectsMetaCharsetFromNonSeekableInput() {
+        byte[] html = BuildWindows1252Html();
+        using var stream = new NonSeekableInputStream(html);
+
+        HtmlSemanticBlock paragraph = Assert.Single(HtmlConversionDocument.Load(stream)
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal("café", paragraph.Text);
+    }
+
+    [Fact]
+    public async Task HtmlConversionDocument_LoadAsyncDetectsMetaCharsetFromNonSeekableInput() {
+        byte[] html = BuildWindows1252Html();
+        using var stream = new NonSeekableInputStream(html);
+
+        HtmlSemanticBlock paragraph = Assert.Single((await HtmlConversionDocument.LoadAsync(stream))
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal("café", paragraph.Text);
+    }
+
+    [Fact]
+    public void HtmlConversionDocument_LoadIgnoresUnsupportedMetaCharset() {
+        byte[] html = Encoding.UTF8.GetBytes("<meta charset='not-a-real-encoding'><p>café</p>");
+        using var stream = new MemoryStream(html);
+
+        HtmlSemanticBlock paragraph = Assert.Single(HtmlConversionDocument.Load(stream)
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal("café", paragraph.Text);
+    }
+
+    [Fact]
+    public void HtmlConversionDocument_PrescanIgnoresCommentsAndUsesFirstRealDeclaration() {
+        byte[] html = Encoding.UTF8.GetBytes(
+            "<!-- <meta charset='windows-1252'> --><meta charset='utf-8'><p>€</p>");
+        using var stream = new MemoryStream(html);
+
+        HtmlSemanticBlock paragraph = Assert.Single(HtmlConversionDocument.Load(stream)
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal("€", paragraph.Text);
+    }
+
+    [Fact]
+    public void HtmlConversionDocument_PrescanUsesHtmlEncodingLabelAliases() {
+        byte[] prefix = Encoding.ASCII.GetBytes("<meta charset='iso-8859-1'><p>");
+        byte[] html = prefix.Concat(new byte[] { 0x80 }).Concat(Encoding.ASCII.GetBytes("</p>")).ToArray();
+        using var stream = new MemoryStream(html);
+
+        HtmlSemanticBlock paragraph = Assert.Single(HtmlConversionDocument.Load(stream)
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal("€", paragraph.Text);
+    }
+
+    [Fact]
+    public void HtmlConversionDocument_MetaDeclaredUtf16FallsBackToUtf8WithoutBom() {
+        byte[] html = Encoding.UTF8.GetBytes("<meta charset='utf-16'><p>€</p>");
+        using var stream = new MemoryStream(html);
+
+        HtmlSemanticBlock paragraph = Assert.Single(HtmlConversionDocument.Load(stream)
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal("€", paragraph.Text);
+    }
+
+    [Fact]
+    public void HtmlConversionDocument_PrescanDetectsBomlessUtf16XmlSignature() {
+        byte[] html = new UnicodeEncoding(false, false, true)
+            .GetBytes("<?xml version='1.0'?><p>café</p>");
+        using var stream = new MemoryStream(html);
+
+        HtmlSemanticBlock paragraph = Assert.Single(HtmlConversionDocument.Load(stream)
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal("café", paragraph.Text);
+    }
+
+    [Fact]
+    public void HtmlConversionDocument_InvalidCharsetAttributeRejectsLegacyContentFallbackOnSameMeta() {
+        byte[] prefix = Encoding.ASCII.GetBytes(
+            "<meta charset='invalid' http-equiv='content-type' content='text/html;charset=windows-1251'>"
+            + "<meta charset='windows-1252'><p>caf");
+        byte[] html = prefix.Concat(new byte[] { 0xE9 }).Concat(Encoding.ASCII.GetBytes("</p>")).ToArray();
+        using var stream = new MemoryStream(html);
+
+        HtmlSemanticBlock paragraph = Assert.Single(HtmlConversionDocument.Load(stream)
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal("café", paragraph.Text);
+    }
+
+    [Fact]
+    public async Task HtmlConversionDocument_LoadAsyncUsesCancellableReadsForSeekablePrescan() {
+        using var stream = new AsyncOnlySeekableStream(Encoding.UTF8.GetBytes("<p>Body</p>"));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            HtmlConversionDocument.LoadAsync(stream, cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
+    public void HtmlConversionDocument_ExplicitEncodingOverridesConflictingBom() {
+        byte[] prefix = new byte[] { 0xEF, 0xBB, 0xBF }
+            .Concat(Encoding.ASCII.GetBytes("<p>caf"))
+            .ToArray();
+        byte[] html = prefix.Concat(new byte[] { 0xE9 }).Concat(Encoding.ASCII.GetBytes("</p>")).ToArray();
+        using var stream = new MemoryStream(html);
+
+        HtmlConversionDocument conversion = HtmlConversionDocument.Load(
+            stream,
+            encoding: Encoding.GetEncoding("iso-8859-1"));
+
+        Assert.Contains(conversion.SemanticDocument.Sections.SelectMany(section => section.Blocks),
+            block => block.Text == "café");
+    }
+
+    [Fact]
+    public void HtmlDataUri_DecodeTextHonorsDeclaredCharset() {
+        Assert.True(HtmlDataUri.TryParse(
+            "data:text/plain;charset=iso-8859-1;base64,6Q==",
+            out HtmlDataUri dataUri));
+
+        Assert.Equal("é", dataUri.DecodeText());
+    }
+
+    [Fact]
+    public void HtmlStylesheetDecoderHonorsContentTypeAndCssCharset() {
+        byte[] body = Encoding.ASCII.GetBytes(".label::before{content:'");
+        byte[] suffix = Encoding.ASCII.GetBytes("';}");
+        byte[] contentTypeBytes = body.Concat(new byte[] { 0xE9 }).Concat(suffix).ToArray();
+        Assert.True(HtmlRenderStylesheetText.TryDecode(
+            contentTypeBytes,
+            "text/css; charset=windows-1252",
+            out string contentTypeCss));
+
+        byte[] declaration = Encoding.ASCII.GetBytes("@charset \"windows-1252\";.label::before{content:'");
+        byte[] declarationBytes = declaration.Concat(new byte[] { 0xE9 }).Concat(suffix).ToArray();
+        Assert.True(HtmlRenderStylesheetText.TryDecode(declarationBytes, "text/css", out string declaredCss));
+
+        Assert.Contains("é", contentTypeCss, StringComparison.Ordinal);
+        Assert.Contains("é", declaredCss, StringComparison.Ordinal);
+    }
+
+    private static byte[] BuildWindows1252Html() {
+        byte[] prefix = Encoding.ASCII.GetBytes("<meta charset='windows-1252'><p>caf");
+        byte[] suffix = Encoding.ASCII.GetBytes("</p>");
+        return prefix.Concat(new byte[] { 0xE9 }).Concat(suffix).ToArray();
+    }
+
+    private sealed class NonSeekableInputStream : Stream {
+        private readonly MemoryStream _inner;
+
+        internal NonSeekableInputStream(byte[] bytes) {
+            _inner = new MemoryStream(bytes, writable: false);
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            _inner.ReadAsync(buffer, offset, count, cancellationToken);
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) _inner.Dispose();
+            base.Dispose(disposing);
+        }
+    }
+
+    private sealed class AsyncOnlySeekableStream : MemoryStream {
+        internal AsyncOnlySeekableStream(byte[] bytes) : base(bytes, writable: false) { }
+
+        public override int Read(byte[] buffer, int offset, int count) =>
+            throw new InvalidOperationException("The async load path must not use synchronous prefix reads.");
+    }
+
     [Fact]
     public void HtmlDocumentParser_ResolvesBaseElementAgainstFallbackBaseUri() {
         var document = HtmlDocumentParser.ParseDocument("""<base href="images/"><p>Body</p>""");

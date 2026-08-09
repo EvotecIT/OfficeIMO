@@ -60,6 +60,7 @@ public static partial class OneNotePageRenderer {
             }
         }
 
+        context.ResetListNumbering();
         foreach (OneNoteElement element in page.DirectContent) {
             if (element is OneNoteImage image && image.IsBackground == true) continue;
             double x = element.Layout?.X.HasValue == true ? element.Layout.X.Value * PointsPerHalfInch : marginLeft;
@@ -128,6 +129,7 @@ public static partial class OneNotePageRenderer {
             double x = outline.Layout?.X.HasValue == true ? outline.Layout.X.Value * PointsPerHalfInch : marginLeft;
             double y = outline.Layout?.Y.HasValue == true ? outline.Layout.Y.Value * PointsPerHalfInch : flow + pendingSpace;
             double width = ResolveEstimatedWidth(outline, bodyWidth, options);
+            estimator.ResetListNumbering();
             (double childRight, double childBottom) = estimator.MeasureElementsBounds(outline.Children, width);
             double height = outline.Layout?.Height.HasValue == true
                 ? outline.Layout.Height.Value * PointsPerHalfInch
@@ -139,6 +141,7 @@ public static partial class OneNotePageRenderer {
                 pendingSpace = 6D;
             }
         }
+        estimator.ResetListNumbering();
         foreach (OneNoteElement element in page.DirectContent) {
             if (element is OneNoteImage background && background.IsBackground == true) continue;
             double x = element.Layout?.X.HasValue == true ? element.Layout.X.Value * PointsPerHalfInch : marginLeft;

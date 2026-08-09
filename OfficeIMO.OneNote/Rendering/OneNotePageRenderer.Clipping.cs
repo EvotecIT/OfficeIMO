@@ -12,6 +12,7 @@ public static partial class OneNotePageRenderer {
             double availableHeight,
             bool forcePageBounds,
             bool? inheritedRightToLeft) {
+            Dictionary<string, int> listIndices = SnapshotListNumbering();
             double renderWidth = Math.Max(1D, availableWidth);
             double contentWidth = Math.Max(renderWidth, MeasureElementWidthExtent(element, renderWidth));
             double contentHeight = Math.Max(1D, MeasureElementHeight(element, renderWidth));
@@ -21,6 +22,7 @@ public static partial class OneNotePageRenderer {
             double localHeight = Math.Max(contentHeight, _drawing.Height - y);
             var localDrawing = new OfficeDrawing(localWidth, localHeight);
             var localContext = new RenderContext(localDrawing, _options, _diagnostics, _pageRightToLeft, _imageCache);
+            localContext.RestoreListNumbering(listIndices);
             double used = localContext.RenderElement(
                 element,
                 0D,

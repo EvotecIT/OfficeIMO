@@ -4,8 +4,6 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Html;
 
 public sealed partial class HtmlConversionDocument {
-    private static readonly Encoding Utf8WithoutBom = new UTF8Encoding(false);
-
     /// <summary>Loads and parses an HTML file.</summary>
     public static HtmlConversionDocument Load(string path, HtmlConversionDocumentOptions? options = null, Encoding? encoding = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
@@ -17,7 +15,7 @@ public sealed partial class HtmlConversionDocument {
     public static HtmlConversionDocument Load(Stream stream, HtmlConversionDocumentOptions? options = null, Encoding? encoding = null) {
         HtmlConversionDocumentOptions resolved = (options ?? new HtmlConversionDocumentOptions()).Clone();
         resolved.Validate();
-        return Parse(ReadText(stream, encoding ?? Utf8WithoutBom, resolved.Limits), resolved);
+        return Parse(ReadText(stream, encoding, resolved.Limits), resolved);
     }
 
     /// <summary>Asynchronously loads and parses an HTML file.</summary>
@@ -39,18 +37,20 @@ public sealed partial class HtmlConversionDocument {
         CancellationToken cancellationToken = default) {
         HtmlConversionDocumentOptions resolved = (options ?? new HtmlConversionDocumentOptions()).Clone();
         resolved.Validate();
-        string html = await ReadTextAsync(stream, encoding ?? Utf8WithoutBom, resolved.Limits, cancellationToken).ConfigureAwait(false);
+        string html = await ReadTextAsync(stream, encoding, resolved.Limits, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         return Parse(html, resolved);
     }
 
-    private static string ReadText(Stream stream, Encoding encoding, HtmlConversionLimits limits) {
+    private static string ReadText(Stream stream, Encoding? encoding, HtmlConversionLimits limits) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         long position = stream.CanSeek ? stream.Position : 0;
         try {
             if (stream.CanSeek) stream.Position = 0;
-            using var reader = new StreamReader(stream, encoding, true, 1024, true);
+            Stream input = HtmlTextEncodingResolver.PrepareHtmlStream(stream, encoding, out Encoding resolvedEncoding);
+            if (stream.CanSeek) stream.Position = 0;
+            using var reader = new StreamReader(input, resolvedEncoding, encoding == null, 1024, true);
             var builder = new StringBuilder();
             var buffer = new char[4096];
             int read;
@@ -65,13 +65,17 @@ public sealed partial class HtmlConversionDocument {
         }
     }
 
-    private static async Task<string> ReadTextAsync(Stream stream, Encoding encoding, HtmlConversionLimits limits, CancellationToken cancellationToken) {
+    private static async Task<string> ReadTextAsync(Stream stream, Encoding? encoding, HtmlConversionLimits limits, CancellationToken cancellationToken) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         long position = stream.CanSeek ? stream.Position : 0;
         try {
             if (stream.CanSeek) stream.Position = 0;
-            using var reader = new StreamReader(stream, encoding, true, 1024, true);
+            (Stream input, Encoding resolvedEncoding) = await HtmlTextEncodingResolver
+                .PrepareHtmlStreamAsync(stream, encoding, cancellationToken)
+                .ConfigureAwait(false);
+            if (stream.CanSeek) stream.Position = 0;
+            using var reader = new StreamReader(input, resolvedEncoding, encoding == null, 1024, true);
             var builder = new StringBuilder();
             var buffer = new char[4096];
             while (true) {

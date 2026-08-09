@@ -17,7 +17,8 @@ internal static partial class HtmlReaderAdapter {
         ReaderInputLimits.EnforceFileSize(htmlPath, effective.MaxInputBytes);
         SourceMetadata source = BuildSourceMetadataFromPath(htmlPath, effective.ComputeHashes);
         using var stream = new FileStream(htmlPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        string html = ReadAllText(stream, cancellationToken);
+        ReaderHtmlOptions effectiveHtmlOptions = ReaderHtmlOptionsCloner.CloneOrDefault(htmlOptions);
+        string html = ReadAllText(stream, effectiveHtmlOptions.InputEncoding, cancellationToken);
         return BuildHtmlDocumentResult(html, source, effective, htmlOptions, cancellationToken);
     }
 
@@ -31,7 +32,8 @@ internal static partial class HtmlReaderAdapter {
         Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(htmlStream, effective.MaxInputBytes, cancellationToken, out bool ownsParseStream);
         try {
             UpdateSourceMetadataFromSeekableStream(source, parseStream, effective.ComputeHashes);
-            string html = ReadAllText(parseStream, cancellationToken);
+            ReaderHtmlOptions effectiveHtmlOptions = ReaderHtmlOptionsCloner.CloneOrDefault(htmlOptions);
+            string html = ReadAllText(parseStream, effectiveHtmlOptions.InputEncoding, cancellationToken);
             return BuildHtmlDocumentResult(html, source, effective, htmlOptions, cancellationToken);
         } finally {
             if (ownsParseStream) parseStream.Dispose();

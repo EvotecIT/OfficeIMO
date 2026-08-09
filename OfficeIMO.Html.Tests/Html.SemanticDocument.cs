@@ -1,10 +1,88 @@
 using OfficeIMO.Html;
+using OfficeIMO.OneNote;
 using OfficeIMO.OneNote.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public partial class Html {
+    [Fact]
+    public void SemanticDocument_PreservesHeadingOnlySectionTitles() {
+        HtmlSemanticSection section = Assert.Single(
+            HtmlConversionDocument.Parse("<h1>Only title</h1>").SemanticDocument.Sections);
+
+        Assert.Equal("Only title", section.Title);
+        Assert.Empty(section.Blocks);
+    }
+
+    [Fact]
+    public void SemanticDocument_NormalizesFormControlStateUsingHtmlRules() {
+        HtmlSemanticBlock form = Assert.Single(HtmlConversionDocument.Parse("""
+            <form id="settings" action="/save" method="post" enctype="multipart/form-data" novalidate>
+              <input name="text" required checked multiple min="1" step="2" pattern="[A-Z]+" minlength="2" maxlength="8" placeholder="Code">
+              <input name="check" type="checkbox" checked readonly pattern="ignored" minlength="4" placeholder="ignored">
+              <button name="save" required readonly checked multiple formaction="/draft" formmethod="get" formenctype="text/plain" formtarget="preview" formnovalidate>Save</button>
+              <select name="choice"><option>One</option><option selected>Two</option></select>
+              <select name="many" multiple><option selected>A</option><option selected value="b">B</option></select>
+              <fieldset disabled><legend><input name="legend"></legend><input name="disabled"></fieldset>
+            </form>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks));
+        Dictionary<string, HtmlSemanticFormControl> controls = form.Children
+            .Select(block => block.FormControl!)
+            .ToDictionary(control => control.Name, StringComparer.Ordinal);
+
+        Assert.Equal("/save", form.Form!.Action);
+        Assert.Equal("post", form.Form.Method);
+        Assert.Equal("multipart/form-data", form.Form.EncodingType);
+        Assert.True(form.Form.NoValidate);
+        Assert.Equal("text", controls["text"].Type);
+        Assert.True(controls["text"].IsRequired);
+        Assert.Equal("[A-Z]+", controls["text"].Pattern);
+        Assert.Equal(2, controls["text"].MinimumLength);
+        Assert.Equal(8, controls["text"].MaximumLength);
+        Assert.Equal("Code", controls["text"].Placeholder);
+        Assert.False(controls["text"].IsChecked);
+        Assert.False(controls["text"].IsMultiple);
+        Assert.Equal(string.Empty, controls["text"].Minimum);
+        Assert.Equal(string.Empty, controls["text"].Step);
+        Assert.Equal("on", controls["check"].Value);
+        Assert.True(controls["check"].IsChecked);
+        Assert.False(controls["check"].IsReadOnly);
+        Assert.Equal(string.Empty, controls["check"].Pattern);
+        Assert.Null(controls["check"].MinimumLength);
+        Assert.Equal(string.Empty, controls["check"].Placeholder);
+        Assert.Equal("submit", controls["save"].Type);
+        Assert.False(controls["save"].IsRequired);
+        Assert.False(controls["save"].IsReadOnly);
+        Assert.False(controls["save"].IsChecked);
+        Assert.False(controls["save"].IsMultiple);
+        Assert.Equal("/draft", controls["save"].FormAction);
+        Assert.Equal("get", controls["save"].FormMethod);
+        Assert.Equal("text/plain", controls["save"].FormEncodingType);
+        Assert.Equal("preview", controls["save"].FormTarget);
+        Assert.True(controls["save"].FormNoValidate);
+        Assert.Equal(new[] { "Two" }, controls["choice"].Values);
+        Assert.Equal(new[] { "A", "b" }, controls["many"].Values);
+        Assert.True(controls["many"].IsMultiple);
+        Assert.False(controls["legend"].IsDisabled);
+        Assert.True(controls["disabled"].IsDisabled);
+        Assert.All(controls.Values, control => Assert.Equal("settings", control.FormOwnerId));
+    }
+
+    [Fact]
+    public void SemanticDocument_PreservesOrderedListDirectionAndItemOrdinals() {
+        HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument
+            .Parse("<ol start='3' reversed><li>A</li><li value='10'>B</li><li>C</li></ol>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal(HtmlSemanticListKind.Ordered, list.List!.Kind);
+        Assert.Equal(3, list.List.Start);
+        Assert.True(list.List.IsReversed);
+        Assert.Equal(new int?[] { 3, 10, 9 }, list.Children.Select(item => item.ListItem!.Ordinal));
+        Assert.Equal(new int?[] { null, 10, null }, list.Children.Select(item => item.ListItem!.ExplicitOrdinal));
+        Assert.Equal("3. A\n10. B\n9. C", list.Text);
+    }
+
     [Fact]
     public void SemanticDocument_InterpretsRichStructureStylesResourcesAndSourceLocationsOnce() {
         const string html = """
@@ -70,6 +148,84 @@ public partial class Html {
         Assert.Contains(paragraphs.SelectMany(paragraph => paragraph.Runs), run => run.Text == "link" && run.Hyperlink == "https://example.test");
         Assert.Contains(paragraphs, paragraph => paragraph.List?.Level == 0);
         Assert.Contains(paragraphs, paragraph => paragraph.List?.Level == 1);
+    }
+
+    [Fact]
+    public void OneNoteGenericImportPreservesEffectiveOrderedListOrdinals() {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            "<ol start='3' reversed><li>A</li><li value='10'>B</li><li>C</li></ol>");
+
+        var page = Assert.Single(source.ToOneNoteSectionResult().RequireValue().Pages);
+        var paragraphs = Assert.Single(page.Outlines).Children
+            .OfType<OfficeIMO.OneNote.OneNoteParagraph>()
+            .ToArray();
+
+        Assert.Equal(new int?[] { 3, 10, 9 }, paragraphs.Select(paragraph => paragraph.List?.DisplayIndex));
+        Assert.All(paragraphs, paragraph => Assert.True(paragraph.List?.Ordered));
+        Assert.All(paragraphs, paragraph => Assert.True(paragraph.List?.Restart));
+    }
+
+    [Fact]
+    public void OneNoteGenericImportUsesNativeContinuationForOrdinaryOrderedLists() {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            "<ol><li>A</li><li>B</li></ol>");
+
+        OfficeIMO.OneNote.OneNoteSection section = source.ToOneNoteSectionResult().RequireValue();
+        var paragraphs = Assert.Single(Assert.Single(section.Pages).Outlines).Children
+            .OfType<OfficeIMO.OneNote.OneNoteParagraph>()
+            .ToArray();
+        Assert.Equal(new int?[] { 1, null }, paragraphs.Select(paragraph => paragraph.List?.DisplayIndex));
+        Assert.Equal(new bool?[] { true, false }, paragraphs.Select(paragraph => paragraph.List?.Restart));
+
+        byte[] bytes = OfficeIMO.OneNote.OneNoteSectionWriter.Write(section);
+        OfficeIMO.OneNote.OneNoteSection reloaded = OfficeIMO.OneNote.OneNoteSectionReader.Read(new MemoryStream(bytes));
+        var reloadedParagraphs = Assert.Single(Assert.Single(reloaded.Pages).Outlines).Children
+            .OfType<OfficeIMO.OneNote.OneNoteParagraph>()
+            .ToArray();
+        Assert.Equal(new int?[] { 1, null }, reloadedParagraphs.Select(paragraph => paragraph.List?.DisplayIndex));
+        Assert.Equal(new bool?[] { true, false }, reloadedParagraphs.Select(paragraph => paragraph.List?.Restart));
+    }
+
+    [Fact]
+    public void OneNoteGenericImportRestartsSeparateListsAndRendersEffectiveOrdinals() {
+        OfficeIMO.OneNote.OneNotePage page = Assert.Single(HtmlConversionDocument
+            .Parse("<ol><li>A</li><li>B</li></ol><p>Break</p><ol><li>C</li></ol>")
+            .ToOneNoteSectionResult()
+            .RequireValue()
+            .Pages);
+        OfficeIMO.OneNote.OneNoteParagraph[] listParagraphs = Assert.Single(page.Outlines).Children
+            .OfType<OfficeIMO.OneNote.OneNoteParagraph>()
+            .Where(paragraph => paragraph.List?.Ordered == true)
+            .ToArray();
+
+        Assert.Equal(new int?[] { 1, null, 1 }, listParagraphs.Select(paragraph => paragraph.List?.DisplayIndex));
+        Assert.Equal(new bool?[] { true, false, true }, listParagraphs.Select(paragraph => paragraph.List?.Restart));
+
+        string[] rendered = page
+            .ToDrawing(new OfficeIMO.OneNote.OneNotePageRenderingOptions { IncludeTitle = false })
+            .Elements
+            .OfType<OfficeIMO.Drawing.OfficeDrawingRichText>()
+            .Select(item => string.Concat(item.Runs.Select(run => run.Text)))
+            .Where(text => text.EndsWith("A", StringComparison.Ordinal)
+                || text.EndsWith("B", StringComparison.Ordinal)
+                || text.EndsWith("C", StringComparison.Ordinal))
+            .ToArray();
+        Assert.Equal(new[] { "1. A", "2. B", "1. C" }, rendered);
+    }
+
+    [Fact]
+    public void OneNoteGenericImportClampsNonpositiveListOrdinalsWithDiagnostic() {
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument
+            .Parse("<ol start='0'><li>A</li></ol>")
+            .ToOneNoteSectionResult();
+        OfficeIMO.OneNote.OneNoteParagraph paragraph = Assert.Single(
+            Assert.Single(Assert.Single(result.Value.Pages).Outlines).Children
+                .OfType<OfficeIMO.OneNote.OneNoteParagraph>());
+
+        Assert.Equal(1, paragraph.List?.DisplayIndex);
+        Assert.True(paragraph.List?.Restart);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
     }
 
     [Fact]

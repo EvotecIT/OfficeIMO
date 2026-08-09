@@ -70,10 +70,8 @@ public sealed class HtmlDataUri {
         }
     }
 
-    /// <summary>Decodes the payload as UTF-8 text.</summary>
-    public string DecodeText() => IsBase64
-        ? Encoding.UTF8.GetString(DecodeBytes())
-        : Uri.UnescapeDataString(Data);
+    /// <summary>Decodes the payload using its declared charset, or UTF-8 when no charset is declared.</summary>
+    public string DecodeText() => HtmlTextEncodingResolver.ResolveDataUriEncoding(Metadata).GetString(DecodeBytes());
 
     /// <summary>Calculates decoded byte count without allocating the decoded payload.</summary>
     public long EstimateDecodedByteCount() {

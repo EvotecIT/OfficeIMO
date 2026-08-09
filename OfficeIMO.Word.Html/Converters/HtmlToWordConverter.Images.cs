@@ -1410,8 +1410,8 @@ namespace OfficeIMO.Word.Html {
         private bool ProcessSvgElement(AngleSharp.Dom.IElement svg, WordDocument doc, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
             double? width = null;
             double? height = null;
-            if (double.TryParse(svg.GetAttribute("width")?.Replace("px", string.Empty), out var w)) width = w;
-            if (double.TryParse(svg.GetAttribute("height")?.Replace("px", string.Empty), out var h)) height = h;
+            if (double.TryParse(svg.GetAttribute("width")?.Replace("px", string.Empty), NumberStyles.Float, CultureInfo.InvariantCulture, out var w)) width = w;
+            if (double.TryParse(svg.GetAttribute("height")?.Replace("px", string.Empty), NumberStyles.Float, CultureInfo.InvariantCulture, out var h)) height = h;
 
             var paragraph = currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : section.AddParagraph());
             long reservedBytes = 0;

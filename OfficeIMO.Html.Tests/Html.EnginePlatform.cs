@@ -240,6 +240,8 @@ public partial class Html {
         Assert.Contains("Preserved: headings => roundtrip HTML contains h1", manifestMarkdown);
         Assert.Contains("Blocked: blocked resources => resource manifest reports rejected data URI image", manifestMarkdown);
         Assert.Contains("Round Trip Score", manifestMarkdown);
+        Assert.Contains("Schema version: 2", manifestMarkdown);
+        Assert.Contains("Dimensions:", manifestMarkdown);
         Assert.Contains("ImageResourceRejectedByPolicy", manifestMarkdown);
         Assert.Contains("[ContentSimplification]", manifestMarkdown);
         Assert.Equal("officeimo.html.capability-gallery", manifestJsonRoot.GetProperty("schemaId").GetString());
@@ -248,10 +250,25 @@ public partial class Html {
         Assert.Equal("Document", manifestJsonRoot.GetProperty("profile").GetProperty("id").GetString());
         Assert.Equal(3, manifestJsonRoot.GetProperty("expectations").GetArrayLength());
         Assert.Equal("source", manifestJsonRoot.GetProperty("artifacts")[0].GetProperty("id").GetString());
-        Assert.True(manifestJsonRoot.GetProperty("roundTripScore").GetProperty("score").GetDouble() >= 0D);
+        JsonElement manifestScore = manifestJsonRoot.GetProperty("roundTripScore");
+        Assert.Equal(HtmlRoundTripScore.CurrentSchemaVersion, manifestScore.GetProperty("schemaVersion").GetInt32());
+        Assert.True(manifestScore.GetProperty("score").GetDouble() >= 0D);
+        Assert.Equal(score.ArtifactReloadVerified, manifestScore.GetProperty("artifactReloadVerified").GetBoolean());
+        Assert.True(manifestScore.TryGetProperty("artifactKind", out _));
+        Assert.Equal(score.Dimensions.Count, manifestScore.GetProperty("dimensions").EnumerateObject().Count());
         Assert.True(manifestJsonRoot.GetProperty("resources").GetProperty("blockedCount").GetInt32() > 0);
         Assert.Contains("ImageResourceRejectedByPolicy", manifestJson);
         Assert.Contains("\"origin\": \"resource\"", manifestJson);
+
+        var manifestWithoutOptionalEvidence = new HtmlCapabilityGalleryManifest(
+            galleryResult,
+            HtmlConversionProfile.Document,
+            roundTripScore: null,
+            resourceManifest: null);
+        using JsonDocument optionalJsonDocument = JsonDocument.Parse(
+            HtmlCapabilityGalleryManifestJsonWriter.ToJson(manifestWithoutOptionalEvidence));
+        Assert.Equal(JsonValueKind.Null, optionalJsonDocument.RootElement.GetProperty("roundTripScore").ValueKind);
+        Assert.Equal(JsonValueKind.Null, optionalJsonDocument.RootElement.GetProperty("resources").ValueKind);
 
         HtmlToWordOptions untrusted = HtmlToWordOptions.CreateUntrustedHtmlProfile();
         HtmlToWordOptions trusted = HtmlToWordOptions.CreateTrustedDocumentProfile();

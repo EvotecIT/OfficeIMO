@@ -438,29 +438,11 @@ public static partial class HtmlRoundTripScorer {
     }
 
     private static void PropagateFieldsetDisabledState(AngleSharp.Html.Dom.IHtmlDocument document) {
-        foreach (var fieldset in document.QuerySelectorAll("fieldset[disabled]")) {
-            AngleSharp.Dom.IElement? firstLegend = fieldset.Children.FirstOrDefault(child => string.Equals(child.TagName, "legend", StringComparison.OrdinalIgnoreCase));
-            foreach (var control in fieldset.QuerySelectorAll("input,select,textarea,button")) {
-                if (firstLegend != null && IsDescendantOf(control, firstLegend)) {
-                    continue;
-                }
-
+        foreach (var control in document.QuerySelectorAll("input,select,textarea,button")) {
+            if (!control.HasAttribute("disabled") && HtmlFormControlSemantics.IsEffectivelyDisabled(control)) {
                 control.SetAttribute("data-fieldset-disabled", "true");
             }
         }
-    }
-
-    private static bool IsDescendantOf(AngleSharp.Dom.IElement element, AngleSharp.Dom.IElement ancestor) {
-        AngleSharp.Dom.IElement? current = element;
-        while (current != null) {
-            if (ReferenceEquals(current, ancestor)) {
-                return true;
-            }
-
-            current = current.ParentElement;
-        }
-
-        return false;
     }
 
     private static string ResolveFormOwnerSignature(AngleSharp.Html.Dom.IHtmlDocument document, AngleSharp.Dom.IElement control) {
@@ -863,16 +845,10 @@ public static partial class HtmlRoundTripScorer {
     }
 
     private static string GetEffectiveFormControlType(string name, string? type) {
-        string normalized = (type ?? string.Empty).Trim().ToLowerInvariant();
-        if (string.Equals(name, "input", StringComparison.OrdinalIgnoreCase)) {
-            return IsValidInputType(normalized) ? normalized : "text";
-        }
-
-        if (string.Equals(name, "button", StringComparison.OrdinalIgnoreCase)) {
-            return IsValidButtonType(normalized) ? normalized : "submit";
-        }
-
-        return string.Empty;
+        string normalizedName = (name ?? string.Empty).Trim().ToLowerInvariant();
+        return normalizedName == "input" || normalizedName == "button"
+            ? HtmlFormControlSemantics.GetEffectiveType(normalizedName, type)
+            : string.Empty;
     }
 
     private static bool HasFormWithId(AngleSharp.Html.Dom.IHtmlDocument document, string id) {
@@ -886,92 +862,19 @@ public static partial class HtmlRoundTripScorer {
     }
 
     private static bool IsValidFormControlType(string name, string? type) {
-        string normalized = (type ?? string.Empty).Trim().ToLowerInvariant();
-        if (string.Equals(name, "input", StringComparison.OrdinalIgnoreCase)) {
-            return IsValidInputType(normalized);
-        }
-
-        if (string.Equals(name, "button", StringComparison.OrdinalIgnoreCase)) {
-            return IsValidButtonType(normalized);
-        }
-
-        return false;
-    }
-
-    private static bool IsValidInputType(string type) {
-        switch (type) {
-            case "button":
-            case "checkbox":
-            case "color":
-            case "date":
-            case "datetime-local":
-            case "email":
-            case "file":
-            case "hidden":
-            case "image":
-            case "month":
-            case "number":
-            case "password":
-            case "radio":
-            case "range":
-            case "reset":
-            case "search":
-            case "submit":
-            case "tel":
-            case "text":
-            case "time":
-            case "url":
-            case "week":
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    private static bool IsValidButtonType(string type) {
-        return string.Equals(type, "submit", StringComparison.Ordinal)
-            || string.Equals(type, "reset", StringComparison.Ordinal)
-            || string.Equals(type, "button", StringComparison.Ordinal);
+        return HtmlFormControlSemantics.IsValidType(name, type);
     }
 
     private static string GetEffectiveFormMethod(string? method) {
-        string normalized = (method ?? string.Empty).Trim().ToLowerInvariant();
-        switch (normalized) {
-            case "get":
-            case "post":
-            case "dialog":
-                return normalized;
-            default:
-                return "get";
-        }
+        return HtmlFormControlSemantics.GetEffectiveFormMethod(method);
     }
 
     private static string GetEffectiveFormEncoding(string? enctype) {
-        string normalized = (enctype ?? string.Empty).Trim().ToLowerInvariant();
-        switch (normalized) {
-            case "application/x-www-form-urlencoded":
-            case "multipart/form-data":
-            case "text/plain":
-                return normalized;
-            default:
-                return "application/x-www-form-urlencoded";
-        }
+        return HtmlFormControlSemantics.GetEffectiveFormEncoding(enctype);
     }
 
     private static string GetDefaultFormControlValue(string name, string? type, string textContent) {
-        if (string.Equals(name, "option", StringComparison.OrdinalIgnoreCase)) {
-            return NormalizeText(textContent);
-        }
-
-        if (string.Equals(name, "input", StringComparison.OrdinalIgnoreCase)) {
-            string effectiveType = GetEffectiveFormControlType(name, type);
-            if (string.Equals(effectiveType, "checkbox", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(effectiveType, "radio", StringComparison.OrdinalIgnoreCase)) {
-                return "on";
-            }
-        }
-
-        return string.Empty;
+        return HtmlFormControlSemantics.GetDefaultValue(name, type, textContent);
     }
 
     private static string NormalizeTokenList(string? value) {

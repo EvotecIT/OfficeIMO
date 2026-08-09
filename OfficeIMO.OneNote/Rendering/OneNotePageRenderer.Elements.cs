@@ -27,6 +27,7 @@ public static partial class OneNotePageRenderer {
         private readonly IDictionary<OneNoteImage, ImageRenderData> _imageCache;
         private readonly OfficeTextMeasurer _measurer;
         private readonly bool _pageRightToLeft;
+        private readonly Dictionary<string, int> _listIndices = new(StringComparer.Ordinal);
 
         internal RenderContext(
             OfficeDrawing drawing,
@@ -43,8 +44,19 @@ public static partial class OneNotePageRenderer {
         }
 
         internal double RenderOutline(OneNoteOutline outline, double x, double y, double width, bool? inheritedRightToLeft = null) {
+            ResetListNumbering();
             bool rightToLeft = outline.Layout?.RightToLeft ?? inheritedRightToLeft ?? _pageRightToLeft;
             return Math.Max(DefaultParagraphHeight, RenderChildren(outline.Children, x, y, width, 0D, rightToLeft));
+        }
+
+        internal void ResetListNumbering() => _listIndices.Clear();
+
+        internal Dictionary<string, int> SnapshotListNumbering() =>
+            new Dictionary<string, int>(_listIndices, StringComparer.Ordinal);
+
+        internal void RestoreListNumbering(Dictionary<string, int> indices) {
+            _listIndices.Clear();
+            foreach (KeyValuePair<string, int> item in indices) _listIndices.Add(item.Key, item.Value);
         }
 
         internal double RenderElement(
@@ -776,16 +788,32 @@ public static partial class OneNotePageRenderer {
             return new OfficeTextParagraphIndent(paragraph.List.Level * 18D, paragraph.List.Level * 18D);
         }
 
-        private static string CreateParagraphPrefix(OneNoteParagraph paragraph) {
+        private string CreateParagraphPrefix(OneNoteParagraph paragraph) {
             var builder = new System.Text.StringBuilder();
             if (paragraph.List != null) {
-                builder.Append(paragraph.List.Ordered ? Math.Max(1, paragraph.List.DisplayIndex ?? 1).ToString() + ". " : "• ");
+                builder.Append(paragraph.List.Ordered ? ResolveListIndex(paragraph.List).ToString() + ". " : "• ");
             }
             foreach (OneNoteTag tag in paragraph.Tags) {
                 if (tag.IsCheckable || tag.IsTask) builder.Append(tag.IsCompleted ? "☑ " : "☐ ");
                 else if (!string.IsNullOrWhiteSpace(tag.Label)) builder.Append('[').Append(tag.Label).Append("] ");
             }
             return builder.ToString();
+        }
+
+        private int ResolveListIndex(OneNoteListInfo list) {
+            string key = list.Level.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + "|" + (list.Format ?? 0U).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + "|" + (list.FontFamily ?? string.Empty);
+            int index;
+            if (list.Restart || list.DisplayIndex.HasValue) {
+                index = Math.Max(1, list.DisplayIndex ?? 1);
+            } else if (_listIndices.TryGetValue(key, out int previous)) {
+                index = previous == int.MaxValue ? int.MaxValue : previous + 1;
+            } else {
+                index = 1;
+            }
+            _listIndices[key] = index;
+            return index;
         }
 
         private static OfficeColor ResolveColor(uint? argb) {

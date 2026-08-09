@@ -198,6 +198,52 @@ public class HtmlRichGenericImports {
     }
 
     [Fact]
+    public void PowerPointHtml_GenericImportPreservesEffectiveOrderedListOrdinals() {
+        HtmlToPowerPointResult result = HtmlConversionDocument
+            .Parse("<ol start='3' reversed><li>A</li><li value='10'>B</li><li>C</li></ol>")
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.Value;
+        PowerPointTextBox list = Assert.Single(Assert.Single(presentation.Slides).TextBoxes,
+            textBox => textBox.Paragraphs.Any(paragraph => paragraph.IsNumbered));
+
+        Assert.Equal(new int?[] { 3, 10, 9 }, list.Paragraphs.Select(paragraph => paragraph.NumberingStartAt));
+        Assert.All(list.Paragraphs, paragraph => Assert.True(paragraph.IsNumbered));
+    }
+
+    [Fact]
+    public void PowerPointHtml_GenericImportUsesNativeContinuationForOrdinaryOrderedLists() {
+        HtmlToPowerPointResult result = HtmlConversionDocument
+            .Parse("<ol start='3'><li>A</li><li>B</li><li>C</li></ol>")
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.Value;
+        PowerPointTextBox list = Assert.Single(Assert.Single(presentation.Slides).TextBoxes,
+            textBox => textBox.Paragraphs.Any(paragraph => paragraph.IsNumbered));
+
+        Assert.Equal(new int?[] { 3, null, null }, list.Paragraphs.Select(paragraph => paragraph.NumberingStartAt));
+    }
+
+    [Fact]
+    public void PowerPointHtml_GenericImportClampsUnrepresentableListOrdinalsToValidDrawingMl() {
+        HtmlToPowerPointResult result = HtmlConversionDocument
+            .Parse("<ol reversed start='1'><li>A</li><li>B</li></ol>")
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.Value;
+        PowerPointTextBox list = Assert.Single(Assert.Single(presentation.Slides).TextBoxes,
+            textBox => textBox.Paragraphs.Any(paragraph => paragraph.IsNumbered));
+
+        Assert.Equal(new int?[] { 1, 1 }, list.Paragraphs.Select(paragraph => paragraph.NumberingStartAt));
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
+
+        using var stream = new MemoryStream();
+        presentation.Save(stream);
+        stream.Position = 0;
+        using var package = DocumentFormat.OpenXml.Packaging.PresentationDocument.Open(stream, false);
+        var errors = new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(package).ToList();
+        Assert.True(errors.Count == 0, OpenXmlValidationFormatting.FormatValidationErrors(errors));
+    }
+
+    [Fact]
     public void PowerPointHtml_GenericTableImportPreservesRichRunsLinksAndCellStyles() {
         const string html = """
             <section><h1>Data</h1>

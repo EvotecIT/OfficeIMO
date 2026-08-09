@@ -35,9 +35,19 @@ public static class HtmlCapabilityGalleryManifestWriter {
         if (manifest.RoundTripScore != null) {
             builder.AppendLine();
             builder.AppendLine("## Round Trip Score");
+            builder.AppendLine("- Schema version: " + manifest.RoundTripScore.SchemaVersion);
             builder.AppendLine("- Score: " + manifest.RoundTripScore.Score.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture));
-            foreach (var metric in manifest.RoundTripScore.Metrics) {
-                builder.AppendLine("- " + metric.Key + ": " + metric.Value.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture));
+            builder.AppendLine("- Artifact reload verified: " + manifest.RoundTripScore.ArtifactReloadVerified);
+            if (!string.IsNullOrWhiteSpace(manifest.RoundTripScore.ArtifactKind)) {
+                builder.AppendLine("- Artifact kind: " + manifest.RoundTripScore.ArtifactKind);
+            }
+            builder.AppendLine("- Dimensions:");
+            foreach (var dimension in manifest.RoundTripScore.Dimensions.OrderBy(item => item.Key, StringComparer.Ordinal)) {
+                builder.AppendLine("  - " + dimension.Key + ": " + dimension.Value.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture));
+            }
+            builder.AppendLine("- Metrics:");
+            foreach (var metric in manifest.RoundTripScore.Metrics.OrderBy(item => item.Key, StringComparer.Ordinal)) {
+                builder.AppendLine("  - " + metric.Key + ": " + metric.Value.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture));
             }
         }
 

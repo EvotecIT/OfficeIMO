@@ -86,6 +86,31 @@ namespace OfficeIMO.Tests {
             Assert.Equal("ABCDEF", run.ColorHex);
         }
 
+        [Fact]
+        public async Task HtmlToWord_RemoteStylesheet_HonorsContentTypeCharset() {
+            byte[] prefix = Encoding.ASCII.GetBytes(".caf");
+            byte[] suffix = Encoding.ASCII.GetBytes(" { color:#123456; }");
+            byte[] stylesheet = prefix.Concat(new byte[] { 0xE9 }).Concat(suffix).ToArray();
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
+                var content = new ByteArrayContent(stylesheet);
+                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/css") {
+                    CharSet = "windows-1252"
+                };
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
+            }));
+            var options = new HtmlToWordOptions {
+                AllowDocumentStylesheetLinks = true,
+                HttpClient = httpClient
+            };
+
+            HtmlToWordResult conversion = await OfficeIMO.Html.HtmlConversionDocument
+                .Parse("<link rel='stylesheet' href='https://styles.example.test/site.css'><p class='café'>Legacy CSS</p>")
+                .ToWordDocumentResultAsync(options);
+            using WordDocument document = conversion.Value;
+
+            Assert.Equal("123456", document.Paragraphs[0].GetRuns().First().ColorHex);
+        }
+
         [Theory]
         [InlineData("body")]
         [InlineData("header")]

@@ -124,7 +124,9 @@ namespace OfficeIMO.Word.Html {
                 memory.Write(buffer, 0, read);
             }
 
-            return Encoding.UTF8.GetString(memory.ToArray());
+            return HtmlTextEncodingResolver.DecodeCss(
+                memory.ToArray(),
+                content.Headers.ContentType?.ToString());
         }
 
         private string ReadCssFileWithLimit(string path) {
@@ -140,7 +142,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            return File.ReadAllText(path);
+            return HtmlTextEncodingResolver.DecodeCss(File.ReadAllBytes(path));
         }
 
         private bool TryApplyStylesheetUriPolicy(Uri uri, string source) {
