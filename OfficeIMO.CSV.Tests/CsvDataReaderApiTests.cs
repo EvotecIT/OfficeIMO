@@ -1,5 +1,6 @@
 using System;
 using System.Data.Common;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -73,6 +74,36 @@ public sealed class CsvDataReaderApiTests {
         Assert.Equal("line one\nline \"two\"", reader.GetString(1));
         Assert.Equal(longValue, reader.GetString(2));
         Assert.False(reader.Read());
+    }
+
+    [Fact]
+    public void OpenDataReader_DoesNotLeakCrLfAcrossLargeUnquotedBufferBoundaries() {
+        var csv = new StringBuilder(5_000_000);
+        csv.Append("Id,DisplayName,Score,CreatedUtc\r\n");
+        for (int id = 1; id <= 100_000; id++) {
+            csv.Append(id)
+                .Append(",Row ")
+                .Append(id)
+                .Append(',')
+                .Append((id * 1.25m).ToString("F2", CultureInfo.InvariantCulture))
+                .Append(",08/09/2026 09:31:27\r\n");
+        }
+
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.BufferBoundary.{Guid.NewGuid():N}.csv");
+        try {
+            File.WriteAllText(path, csv.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            using DbDataReader reader = CsvDocument.OpenDataReader(path);
+
+            int expectedId = 0;
+            while (reader.Read()) {
+                expectedId++;
+                Assert.Equal(expectedId.ToString(), reader.GetString(0));
+            }
+
+            Assert.Equal(100_000, expectedId);
+        } finally {
+            File.Delete(path);
+        }
     }
 
 #if NET8_0_OR_GREATER
