@@ -103,6 +103,23 @@ public sealed class LatexMacroSafetyRegressionTests {
     }
 
     [Fact]
+    public void InputBudgetAppliesOnlyToTheAuthoredInvocation() {
+        LatexDocument document = LatexDocument.Parse(
+            "\\newcommand{\\x}{hello}",
+            new LatexParseOptions { MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions }).Document;
+
+        LatexMacroExpansionResult result = LatexSimpleMacroExpander.Expand(
+            "\\x",
+            document.MacroDefinitions,
+            maximumDepth: 16,
+            maximumOutputLength: 32,
+            maximumInputLength: 2);
+
+        Assert.Equal("hello", result.Value);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
     public void OriginalFourParameterExpandSignatureRemainsAvailableForCompiledCallers() {
         Assert.Contains(typeof(LatexSimpleMacroExpander).GetMethods(), method => {
             if (method.Name != nameof(LatexSimpleMacroExpander.Expand)) return false;

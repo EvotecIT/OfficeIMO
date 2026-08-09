@@ -329,7 +329,7 @@ public static class WordOpenDocumentConversionExtensions {
         target.Italic = source.Italic ? true : (bool?)null;
         target.Underline = source.Underline ? true : (bool?)null;
         target.StrikeThrough = source.Strike ? true : (bool?)null;
-        if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value);
+        if (source.FontSizePoints.HasValue) target.FontSize = OdfLength.Points(source.FontSizePoints.Value);
         if (!string.IsNullOrWhiteSpace(source.FontFamily)) target.FontFamily = source.FontFamily;
         if (OdfColor.TryParse(source.ColorHex, out OdfColor color)) target.Color = color;
         if (TryMapWordHighlight(source.HighlightColor, out OdfColor highlight)) target.BackgroundColor = highlight;
@@ -340,7 +340,7 @@ public static class WordOpenDocumentConversionExtensions {
         target.Italic = source.Italic ? true : (bool?)null;
         target.Underline = source.Underline ? true : (bool?)null;
         target.StrikeThrough = source.Strike ? true : (bool?)null;
-        if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value);
+        if (source.FontSizePoints.HasValue) target.FontSize = OdfLength.Points(source.FontSizePoints.Value);
         if (!string.IsNullOrWhiteSpace(source.FontFamily)) target.FontFamily = source.FontFamily;
         if (OdfColor.TryParse(source.ColorHex, out OdfColor color)) target.Color = color;
         if (TryMapWordHighlight(source.HighlightColor, out OdfColor highlight)) target.BackgroundColor = highlight;
@@ -430,7 +430,10 @@ public static class WordOpenDocumentConversionExtensions {
     private static int ApplyOdtFontSize(OdfLength? fontSize, WordParagraph target) {
         if (!fontSize.HasValue) return 0;
         if (!fontSize.Value.TryToPoints(out double points)) return 1;
-        target.FontSize = checked((int)Math.Round(points));
+        double halfPoints = points * 2D;
+        double roundedHalfPoints = Math.Round(halfPoints, MidpointRounding.AwayFromZero);
+        if (Math.Abs(halfPoints - roundedHalfPoints) > 0.000000001D) return 1;
+        target.FontSizePoints = roundedHalfPoints / 2D;
         return 0;
     }
 

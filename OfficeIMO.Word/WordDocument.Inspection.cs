@@ -210,6 +210,7 @@ namespace OfficeIMO.Word {
                     Strike = run.Strike || run.DoubleStrike,
                     DoubleStrike = run.DoubleStrike,
                     FontSize = run.FontSize,
+                    FontSizePoints = run.FontSizePoints,
                     FontFamily = run.FontFamily,
                     ColorHex = NormalizeColorHex(run.ColorHex),
                     HighlightColor = NormalizeOpenXmlEnumValue(run.Highlight),

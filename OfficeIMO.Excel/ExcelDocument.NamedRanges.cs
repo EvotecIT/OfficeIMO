@@ -2,6 +2,9 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        /// <summary>Maximum length supported by an Excel workbook defined name.</summary>
+        public const int MaximumDefinedNameLength = 255;
+
         private static string EscapeSheetName(string name) {
             return (name ?? string.Empty).Replace("'", "''");
         }
@@ -44,7 +47,7 @@ namespace OfficeIMO.Excel {
             var definedNames = workbook.DefinedNames ??= new DefinedNames();
 
             // Validate or sanitize the defined name
-            name = EnsureValidDefinedName(name, validationMode);
+            name = NormalizeDefinedName(name, validationMode);
 
             if (scope == null) {
                 string reference = NormalizeRange(range, validationMode); // may already contain a sheet prefix
@@ -474,8 +477,10 @@ namespace OfficeIMO.Excel {
         /// - Cannot look like a cell reference (e.g., A1, AA10) or an R1C1 reference
         /// - Cannot be TRUE or FALSE (case-insensitive)
         /// </summary>
-        private static string EnsureValidDefinedName(string name, ExcelDefinedNameValidationMode mode) {
-            const int MaxLen = 255;
+        /// <param name="name">Authored workbook defined name.</param>
+        /// <param name="mode">Whether invalid names are sanitized or rejected.</param>
+        /// <returns>The exact defined name that can be emitted to the workbook.</returns>
+        public static string NormalizeDefinedName(string name, ExcelDefinedNameValidationMode mode = ExcelDefinedNameValidationMode.Sanitize) {
             if (string.IsNullOrWhiteSpace(name)) {
                 if (mode == ExcelDefinedNameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be null or whitespace.", nameof(name));
                 name = "_";
@@ -518,9 +523,9 @@ namespace OfficeIMO.Excel {
                 normalized = "_" + normalized;
             }
 
-            if (normalized.Length > MaxLen) {
-                if (mode == ExcelDefinedNameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' exceeds maximum length of {MaxLen} characters (actual {normalized.Length}).", nameof(name));
-                normalized = normalized.Substring(0, MaxLen);
+            if (normalized.Length > MaximumDefinedNameLength) {
+                if (mode == ExcelDefinedNameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' exceeds maximum length of {MaximumDefinedNameLength} characters (actual {normalized.Length}).", nameof(name));
+                normalized = normalized.Substring(0, MaximumDefinedNameLength);
             }
 
             return normalized;

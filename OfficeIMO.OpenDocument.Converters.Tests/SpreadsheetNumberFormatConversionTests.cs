@@ -1,13 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.OpenDocument;
 using OfficeIMO.OpenDocument;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Xml.Linq;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Converters.Tests;
@@ -328,6 +328,35 @@ public sealed class SpreadsheetNumberFormatConversionTests {
             && mapping.Status == OdfConversionMappingStatus.Unsupported
             && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
+    }
+
+    [Fact]
+    public void LocalizedTextualOdfDatesAreRejectedAndReportedAsUnsupported() {
+        OdsDocument source = OdsDocument.Create();
+        OdsDataStyle style = source.AddDateStyle("Localized");
+        OdsCell cell = source.AddSheet("Data").Cell(0, 0);
+        cell.SetDate(new DateTime(2026, 8, 9));
+        cell.NumberFormatName = style.Name;
+        XDocument flat = source.ToFlatXml();
+        XElement dateStyle = flat.Descendants(OdfNamespaces.Number + "date-style").Single();
+        dateStyle.SetAttributeValue(OdfNamespaces.Number + "language", "pl");
+        dateStyle.SetAttributeValue(OdfNamespaces.Number + "country", "PL");
+        XElement month = dateStyle.Element(OdfNamespaces.Number + "month")!;
+        month.SetAttributeValue(OdfNamespaces.Number + "textual", true);
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+        OdsDocument localized = OdsDocument.LoadFlatXml(stream);
+
+        OdfConversionResult<ExcelDocument> conversion = localized.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "cell-format-details"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => localized.ToExcelDocumentResult(
             new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
     }
 }

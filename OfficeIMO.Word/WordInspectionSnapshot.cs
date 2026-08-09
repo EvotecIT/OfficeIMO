@@ -119,6 +119,8 @@ namespace OfficeIMO.Word {
         public bool Strike { get; internal set; }
         public bool DoubleStrike { get; internal set; }
         public int? FontSize { get; internal set; }
+        /// <summary>Run font size in points with Word's native half-point precision.</summary>
+        public double? FontSizePoints { get; internal set; }
         public string? FontFamily { get; internal set; }
         public string? ColorHex { get; internal set; }
         public string? HighlightColor { get; internal set; }

@@ -1,4 +1,5 @@
 using OfficeIMO.Excel;
+using OfficeIMO.OpenDocument;
 
 namespace OfficeIMO.Excel.OpenDocument;
 
@@ -128,5 +129,57 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int index = 2;
         while (!usedNames.Add(candidate)) candidate = name + "__" + suffix + "_" + index++.ToString(CultureInfo.InvariantCulture);
         return candidate;
+    }
+
+    private sealed class OdsNamedRangeConversionPlan {
+        private readonly IReadOnlyDictionary<string, string> _outputNames;
+
+        internal OdsNamedRangeConversionPlan(
+            IReadOnlyList<NamedRangeConversionEntry> entries,
+            IReadOnlyDictionary<string, string> outputNames,
+            int renamedCount) {
+            Entries = entries;
+            _outputNames = outputNames;
+            RenamedCount = renamedCount;
+        }
+
+        internal IReadOnlyList<NamedRangeConversionEntry> Entries { get; }
+        internal int RenamedCount { get; }
+
+        internal string RewriteFormula(string formula) => ExcelFormulaSyntaxTree.Parse(formula)
+            .RewriteNames(name => _outputNames.TryGetValue(name, out string? outputName) ? outputName : name);
+
+        internal bool TryResolveName(string sourceName, out string outputName) =>
+            _outputNames.TryGetValue(sourceName, out outputName!);
+    }
+
+    private static OdsNamedRangeConversionPlan BuildOdsNamedRangeConversionPlan(
+        IReadOnlyList<OdsNamedRange> namedRanges) {
+        var entries = new List<NamedRangeConversionEntry>();
+        var outputNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        var usedOutputNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int renamedCount = 0;
+
+        foreach (OdsNamedRange named in namedRanges) {
+            string address = SpreadsheetAddressConverter.OpenAddressToExcel(named.CellRangeAddress);
+            if (address.Length == 0) continue;
+
+            string outputName = ExcelDocument.NormalizeDefinedName(named.Name);
+            if (!usedOutputNames.Add(outputName)) outputName = CreateUniqueExcelDefinedName(outputName, usedOutputNames);
+            if (!string.Equals(outputName, named.Name, StringComparison.Ordinal)) renamedCount++;
+            entries.Add(new NamedRangeConversionEntry(outputName, address));
+            outputNames[named.Name] = outputName;
+        }
+
+        return new OdsNamedRangeConversionPlan(entries, outputNames, renamedCount);
+    }
+
+    private static string CreateUniqueExcelDefinedName(string normalizedName, HashSet<string> usedNames) {
+        for (int index = 2; ; index++) {
+            string suffix = "_" + index.ToString(CultureInfo.InvariantCulture);
+            int prefixLength = Math.Min(normalizedName.Length, ExcelDocument.MaximumDefinedNameLength - suffix.Length);
+            string candidate = normalizedName.Substring(0, prefixLength) + suffix;
+            if (usedNames.Add(candidate)) return candidate;
+        }
     }
 }

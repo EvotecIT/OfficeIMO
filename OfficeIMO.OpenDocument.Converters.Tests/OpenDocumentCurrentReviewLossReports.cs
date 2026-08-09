@@ -119,6 +119,44 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
+    public void OdtAndWordPreserveNativeHalfPointFontSizes() {
+        OdtDocument source = OdtDocument.Create();
+        OdtSpan span = source.AddParagraph().AddSpan("Half point");
+        span.FontSize = OdfLength.Points(10.5D);
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        WordParagraph run = Assert.Single(target.Paragraphs.Single().GetRuns());
+
+        Assert.Equal(10.5D, run.FontSizePoints);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "relative-measurements" && mapping.Status == OdfConversionMappingStatus.Unsupported);
+
+        OdtDocument roundTrip = target.ToOpenDocumentResult().Value;
+        OdfLength roundTripSize = Assert.Single(roundTrip.Paragraphs.Single().Spans).FontSize!.Value;
+        Assert.True(roundTripSize.TryToPoints(out double points));
+        Assert.Equal(10.5D, points);
+    }
+
+    [Fact]
+    public void OdtFontSizesFinerThanHalfAPointAreOmittedAndReported() {
+        OdtDocument source = OdtDocument.Create();
+        OdtSpan span = source.AddParagraph().AddSpan("Quarter point");
+        span.FontSize = OdfLength.Points(10.25D);
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        WordParagraph run = Assert.Single(target.Paragraphs.Single().GetRuns());
+
+        Assert.Null(run.FontSizePoints);
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "relative-measurements"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+    }
+
+    [Fact]
     public void PowerPointShapeClickHyperlinksAreReportedBeforeLossPolicyIsApplied() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
         try {
@@ -683,6 +721,36 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.Equal("MyRange", cell.Hyperlink.Target);
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "hyperlinks"
             && mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void OdsToExcelRewritesReferencesToSanitizedNamedRanges() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet targetSheet = source.AddSheet("Target");
+        targetSheet.Cell(0, 0).SetNumber(1D);
+        targetSheet.Cell(1, 0).SetNumber(2D);
+        source.AddNamedRange("R1C1", "$'Target'.A1");
+        source.AddNamedRange("_R1C1", "$'Target'.A2");
+        OdsSheet links = source.AddSheet("Links");
+        links.Cell(0, 0).Formula = "of:=R1C1+_R1C1";
+        links.Cell(0, 1).SetHyperlink("Go", "#R1C1");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        ExcelWorkbookSnapshot snapshot = target.CreateInspectionSnapshot();
+        ExcelWorksheetSnapshot convertedLinks = snapshot.Worksheets.Single(sheet => sheet.Name == "Links");
+
+        Assert.Contains(snapshot.NamedRanges, named => named.Name == "_R1C1");
+        Assert.Contains(snapshot.NamedRanges, named => named.Name == "_R1C1_2");
+        Assert.Equal("_R1C1+_R1C1_2", convertedLinks.Cells.Single(cell => cell.Column == 1).Formula);
+        Assert.Equal("_R1C1", convertedLinks.Cells.Single(cell => cell.Column == 2).Hyperlink!.Target);
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "named-range-names"
+            && mapping.Status == OdfConversionMappingStatus.Approximated
+            && mapping.Count == 2);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "hyperlinks" && mapping.Status == OdfConversionMappingStatus.Unsupported);
+        conversion.Report.RequireNoSkippedOrUnsupported();
     }
 
     [Fact]

@@ -336,9 +336,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var sourceValidations = source.Validations
             .GroupBy(validation => validation.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-        var sourceNamedRangeNames = new HashSet<string>(
-            source.NamedRanges.Select(static namedRange => namedRange.Name),
-            StringComparer.Ordinal);
+        OdsNamedRangeConversionPlan namedRangePlan = BuildOdsNamedRangeConversionPlan(source.NamedRanges);
 
         long expandedCells = 0;
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, externalHyperlinks = 0, comments = 0, combinedComments = 0, metadataTranscriptComments = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
@@ -399,7 +397,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                             if (!string.IsNullOrWhiteSpace(cellRun.Formula)) {
                                 var translation = SpreadsheetAddressConverter.OpenFormulaToExcel(cellRun.Formula!);
                                 if (translation.IsSuccessful) {
-                                    converted.SetFormula(translation.Formula);
+                                    converted.SetFormula(namedRangePlan.RewriteFormula(translation.Formula));
                                     formulas++;
                                 } else {
                                     formulaTranslationFailures++;
@@ -411,7 +409,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                 if (href.StartsWith("#", StringComparison.Ordinal)) {
                                     string fragment = href.Substring(1);
                                     string location = SpreadsheetAddressConverter.OpenAddressToExcel(fragment);
-                                    if (location.Length == 0 && sourceNamedRangeNames.Contains(fragment)) location = fragment;
+                                    if (location.Length == 0 && namedRangePlan.TryResolveName(fragment, out string outputName)) {
+                                        location = outputName;
+                                    }
                                     if (location.Length > 0) {
                                         sheet.SetInternalLink(excelRow, excelColumn, location, cellRun.Text, style: true);
                                         convertedHyperlink = true;
@@ -425,7 +425,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                 if (cellRun.Value.Kind != OdsCellValueKind.Empty) _ = SetExcelValue(converted, cellRun.Value);
                                 if (!string.IsNullOrWhiteSpace(cellRun.Formula)) {
                                     var translation = SpreadsheetAddressConverter.OpenFormulaToExcel(cellRun.Formula!);
-                                    if (translation.IsSuccessful) converted.SetFormula(translation.Formula);
+                                    if (translation.IsSuccessful) {
+                                        converted.SetFormula(namedRangePlan.RewriteFormula(translation.Formula));
+                                    }
                                 }
                                 if (convertedHyperlink) {
                                     hyperlinks++;
@@ -502,13 +504,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         }
         if (activeTarget != null) target.SetActiveWorksheet(activeTarget);
 
-        int namedRanges = 0;
-        foreach (OdsNamedRange named in source.NamedRanges) {
-            string reference = SpreadsheetAddressConverter.OpenAddressToExcel(named.CellRangeAddress);
-            if (reference.Length == 0) continue;
-            target.SetNamedRange(named.Name, reference, save: false);
-            namedRanges++;
+        foreach (NamedRangeConversionEntry named in namedRangePlan.Entries) {
+            target.SetNamedRange(named.OutputName, named.Address, save: false,
+                validationMode: ExcelDefinedNameValidationMode.Strict);
         }
+        int namedRanges = namedRangePlan.Entries.Count;
 
         AddConverted(report, "worksheets", worksheetCount);
         AddConverted(report, "cells", cells);
@@ -526,6 +526,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             metadataTranscriptComments,
             "ODS annotation timestamps and stable names were retained in the Excel legacy comment transcript because legacy comments have no equivalent metadata fields.");
         AddConverted(report, "named-ranges", namedRanges);
+        if (namedRangePlan.RenamedCount > 0) report.Add("named-range-names",
+            OdfConversionMappingStatus.Approximated, namedRangePlan.RenamedCount,
+            "ODF names that are not legal Excel defined names were sanitized, and formulas and internal hyperlinks were rewritten to the emitted names.");
         if (formulas > 0) report.Add("formulas", OdfConversionMappingStatus.Approximated, formulas,
             "OpenFormula syntax is parsed and translated to Excel A1 syntax; cached ODS values remain independently represented.");
         if (formulaTranslationFailures > 0) report.Add("formulas", OdfConversionMappingStatus.Skipped, formulaTranslationFailures,
@@ -546,7 +549,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         AddUnsupported(report, "relative-measurements", unsupportedMeasurements,
             "Relative or unsupported ODF row, column, or text measurements could not be projected to fixed Excel sizes and were omitted.");
         AddUnsupported(report, "cell-format-details", unsupportedDataStyleFormats,
-            $"ODF data styles that exceed Excel's {OdsDataStyle.MaximumExcelNumberFormatCodeLength}-character custom number-format limit were omitted.");
+            $"ODF data styles with locale-sensitive or unsupported components, or that exceed Excel's {OdsDataStyle.MaximumExcelNumberFormatCodeLength}-character custom number-format limit, were omitted.");
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
             "Content outside the configured row, column, or expanded-cell limits was not materialized.");
         AddUnmappedOdfFindings(source.InspectFeatures(), report, formulas, convertedValidations,

@@ -1,14 +1,22 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel;
 using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
-using OfficeIMO.Excel;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public class ExcelNamedRangesAndLinksTests {
+        [Fact]
+        public void DefinedNameNormalizationReturnsTheNameThatWillBeEmitted() {
+            Assert.Equal("_R1C1", ExcelDocument.NormalizeDefinedName("R1C1"));
+            Assert.Equal("Sales_Total", ExcelDocument.NormalizeDefinedName("Sales Total"));
+            Assert.Throws<ArgumentException>(() => ExcelDocument.NormalizeDefinedName(
+                "R1C1", ExcelDefinedNameValidationMode.Strict));
+        }
+
         [Fact]
         public void NamedRange_SingleCellReferenceDoesNotThrow() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");

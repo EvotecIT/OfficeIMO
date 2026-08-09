@@ -319,6 +319,28 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         Assert.False(unsupported.TryGetExcelNumberFormatCode(out _));
     }
 
+    [Fact]
+    public void ExcelFormatProjectionRejectsLocalizedTextualDateComponents() {
+        OdsDocument document = OdsDocument.Create();
+        document.AddDateStyle("Localized");
+        XDocument flat = document.ToFlatXml();
+        XElement style = flat.Descendants(OdfNamespaces.Number + "date-style").Single();
+        style.SetAttributeValue(OdfNamespaces.Number + "language", "pl");
+        style.SetAttributeValue(OdfNamespaces.Number + "country", "PL");
+        style.RemoveNodes();
+        style.Add(new XElement(OdfNamespaces.Number + "month",
+            new XAttribute(OdfNamespaces.Number + "style", "long"),
+            new XAttribute(OdfNamespaces.Number + "textual", true)));
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        OdsDataStyle localized = Assert.Single(OdsDocument.LoadFlatXml(stream).DataStyles);
+
+        Assert.False(localized.TryGetExcelNumberFormatCode(out _));
+        Assert.Throws<InvalidOperationException>(() => localized.ToExcelNumberFormatCode());
+    }
+
     [Theory]
     [InlineData("short")]
     [InlineData("long")]

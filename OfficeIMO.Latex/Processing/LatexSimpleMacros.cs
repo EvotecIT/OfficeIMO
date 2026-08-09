@@ -98,6 +98,9 @@ public static class LatexSimpleMacroExpander {
         if (maximumOutputLength < 1) throw new ArgumentOutOfRangeException(nameof(maximumOutputLength));
         if (maximumInputLength < 1) throw new ArgumentOutOfRangeException(nameof(maximumInputLength));
         if (maximumTokenCount < 1) throw new ArgumentOutOfRangeException(nameof(maximumTokenCount));
+        if (value.Length > maximumInputLength) {
+            throw new ArgumentException("Simple macro expansion input exceeds maximumInputLength.", nameof(value));
+        }
         var map = new Dictionary<string, LatexMacroDefinition>(StringComparer.Ordinal);
         foreach (LatexMacroDefinition definition in definitions.Where(static definition => definition.IsSafe)) {
             if (string.Equals(definition.Command.Name, "providecommand", StringComparison.Ordinal) && map.ContainsKey(definition.Name)) continue;
@@ -122,9 +125,12 @@ public static class LatexSimpleMacroExpander {
         TokenBudget tokenBudget) {
         if (depth > maximumDepth) throw new InvalidDataException("Simple macro expansion exceeds maximumDepth.");
         if (value.Length == 0) return string.Empty;
+        if (depth > 0 && value.Length > maximumOutputLength) {
+            throw new InvalidDataException("Simple macro expansion exceeds maximumOutputLength.");
+        }
         var output = new StringBuilder(value.Length);
         IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(value, new LatexParseOptions {
-            MaximumInputLength = maximumInputLength,
+            MaximumInputLength = depth == 0 ? maximumInputLength : maximumOutputLength,
             MaximumTokenCount = tokenBudget.GetTokenizerLimit()
         });
         tokenBudget.Consume(tokens.Count);

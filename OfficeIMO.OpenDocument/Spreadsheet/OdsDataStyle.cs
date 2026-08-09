@@ -47,7 +47,7 @@ public sealed class OdsDataStyle {
     public string ToExcelNumberFormatCode() {
         if (TryGetExcelNumberFormatCode(out string formatCode)) return formatCode;
         throw new InvalidOperationException(
-            $"The ODF data style cannot be represented within Excel's {MaximumExcelNumberFormatCodeLength}-character custom number-format limit.");
+            $"The ODF data style uses components that are not safely representable in Excel or exceeds Excel's {MaximumExcelNumberFormatCodeLength}-character custom number-format limit.");
     }
 
     /// <summary>Attempts to project the represented common ODF style to a bounded Excel number-format code.</summary>
@@ -113,6 +113,7 @@ public sealed class OdsDataStyle {
 
     private bool TryBuildDateTimeFormat(out string formatCode) {
         formatCode = string.Empty;
+        if (HasLocalizedTextComponents()) return false;
         var builder = new System.Text.StringBuilder();
         bool hasHourContext = Element.Elements().Any(child => child.Name == OdfNamespaces.Number + "hours");
         bool hasSecondContext = Element.Elements().Any(child => child.Name == OdfNamespaces.Number + "seconds");
@@ -177,6 +178,24 @@ public sealed class OdsDataStyle {
             : builder.ToString();
         return true;
     }
+
+    private bool HasLocalizedTextComponents() {
+        bool hasTextualComponent = Element.Elements().Any(child =>
+            child.Name == OdfNamespaces.Number + "day-of-week" ||
+            (child.Name == OdfNamespaces.Number + "month" && string.Equals(
+                (string?)child.Attribute(OdfNamespaces.Number + "textual"),
+                "true",
+                StringComparison.OrdinalIgnoreCase)));
+        if (!hasTextualComponent) return false;
+
+        return HasValue(Element, "language") ||
+               HasValue(Element, "country") ||
+               HasValue(Element, "script") ||
+               HasValue(Element, "rfc-language-tag");
+    }
+
+    private static bool HasValue(XElement element, string localName) =>
+        !string.IsNullOrWhiteSpace((string?)element.Attribute(OdfNamespaces.Number + localName));
 
     private static bool TryReadNonNegativeInteger(XElement? element, string localName, int fallback, out int value) {
         string? lexical = (string?)element?.Attribute(OdfNamespaces.Number + localName);
