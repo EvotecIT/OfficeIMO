@@ -950,7 +950,7 @@ public class PdfDocumentCanvasTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("20 140 m 120 140 l 70 60 l h W n", raw, StringComparison.Ordinal);
+        Assert.Contains("20 140 m 120 140 l 70 60 l h W* n", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("20 60 100 80 re W", raw, StringComparison.Ordinal);
     }
 

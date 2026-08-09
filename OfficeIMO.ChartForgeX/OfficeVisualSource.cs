@@ -31,6 +31,9 @@ public sealed class OfficeVisualSource {
     /// <summary>Gets or sets the accessible description used by Office placements.</summary>
     public string AlternativeText { get => _alternativeText; set => _alternativeText = value ?? throw new ArgumentNullException(nameof(value)); }
 
+    /// <summary>Gets or sets whether the visual is decorative and should be omitted from accessibility structure.</summary>
+    public bool IsDecorative { get; set; }
+
     /// <summary>Returns an independent copy of the SVG payload.</summary>
     public byte[] GetSvgBytes() => (byte[])_svgBytes.Clone();
 }

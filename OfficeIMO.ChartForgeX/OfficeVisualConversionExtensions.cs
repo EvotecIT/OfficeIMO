@@ -78,6 +78,8 @@ public static class OfficeVisualConversionExtensions {
             widthPoints,
             heightPoints,
             ResolveAlternativeText(artifact),
+            artifact.Accessibility.IsDecorative,
+            options.SvgPolicy,
             ConvertRegions(artifact, sourceWidth, sourceHeight, widthPoints, heightPoints),
             report);
     }
@@ -133,6 +135,8 @@ public static class OfficeVisualConversionExtensions {
             widthPoints,
             heightPoints,
             ResolveAlternativeText(source),
+            source.IsDecorative,
+            options.SvgPolicy,
             Array.Empty<OfficeVisualRegion>(),
             report);
     }
@@ -178,6 +182,7 @@ public static class OfficeVisualConversionExtensions {
     }
 
     private static string ResolveAlternativeText(OfficeVisualSource source) {
+        if (source.IsDecorative) return string.Empty;
         if (!string.IsNullOrWhiteSpace(source.AlternativeText)) return source.AlternativeText;
         if (!string.IsNullOrWhiteSpace(source.Title)) return source.Title;
         return source.Id;

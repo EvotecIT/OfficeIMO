@@ -2,7 +2,7 @@
 
 `OfficeIMO.ChartForgeX` is the optional bridge for placing any ChartForgeX `VisualArtifact` in Word, Excel, PowerPoint, PDF, or another `OfficeDrawing` consumer. Existing OfficeIMO packages do not acquire a ChartForgeX dependency.
 
-Package publication is intentionally deferred while the ChartForgeX 1.5 and OfficeIMO integration APIs stabilize. Until the coordinated packages are published, build this repository with the adjacent ChartForgeX source checkout or use a project reference; do not expect `dotnet add package OfficeIMO.ChartForgeX` to resolve from NuGet yet.
+For source builds, reference `OfficeIMO.ChartForgeX.csproj` from the consuming project and make the ChartForgeX source projects available through the repository's project-reference configuration. The bridge remains optional: applications that do not reference it keep the standard OfficeIMO dependency graph.
 
 Every CFX surface that emits SVG can use the same bridge, even when it does not expose a typed artifact envelope. Wrap the generated markup in `OfficeVisualSource`; this is also the stable exchange contract across processes and isolated PowerShell module load contexts:
 
