@@ -41,6 +41,7 @@ public sealed class OdsDataStyle {
         string number = BuildNumericComponent();
         var builder = new System.Text.StringBuilder();
         bool wroteNumber = false;
+        bool wrotePercentageScaling = false;
         foreach (XElement child in Element.Elements()) {
             if (child.Name == OdfNamespaces.Number + "number") {
                 builder.Append(number);
@@ -49,13 +50,23 @@ public sealed class OdsDataStyle {
                 builder.Append(EscapeExcelLiteral(child.Value));
             } else if (child.Name == OdfNamespaces.Number + "text") {
                 string text = child.Value;
-                builder.Append(Kind == OdsDataStyleKind.Percentage && text == "%"
-                    ? "%"
-                    : EscapeExcelLiteral(text));
+                if (Kind == OdsDataStyleKind.Percentage && !wrotePercentageScaling) {
+                    int percent = text.IndexOf('%');
+                    if (percent >= 0) {
+                        builder.Append(EscapeExcelLiteral(text.Substring(0, percent)));
+                        builder.Append('%');
+                        builder.Append(EscapeExcelLiteral(text.Substring(percent + 1)));
+                        wrotePercentageScaling = true;
+                    } else {
+                        builder.Append(EscapeExcelLiteral(text));
+                    }
+                } else {
+                    builder.Append(EscapeExcelLiteral(text));
+                }
             }
         }
         if (!wroteNumber) builder.Append(number);
-        if (Kind == OdsDataStyleKind.Percentage && builder.ToString().IndexOf('%') < 0) builder.Append('%');
+        if (Kind == OdsDataStyleKind.Percentage && !wrotePercentageScaling) builder.Append('%');
         return builder.ToString();
     }
 

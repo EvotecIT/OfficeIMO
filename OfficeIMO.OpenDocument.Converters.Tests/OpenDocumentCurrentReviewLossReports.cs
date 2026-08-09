@@ -64,6 +64,86 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
+    public void OdpParagraphTextDecorationsFlowToPlainTextRunsAndHyperlinks() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpParagraph paragraph = source.AddSlide("Styled")
+            .AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2)).AddParagraph();
+        paragraph.Underline = true;
+        paragraph.StrikeThrough = true;
+        paragraph.BackgroundColor = OdfColor.Parse("#AABBCC");
+        paragraph.AddText("Plain");
+        paragraph.AddHyperlink("Link", "#slide-2");
+        source.AddSlide("Target");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        PowerPointTextRun[] runs = target.Slides[0].TextBoxes.Single().Paragraphs.Single().Runs
+            .Where(run => run.Text.Length > 0).ToArray();
+
+        Assert.Equal(2, runs.Length);
+        Assert.All(runs, run => Assert.True(run.Underline));
+        Assert.All(runs, run => Assert.True(run.Strikethrough));
+        Assert.All(runs, run => Assert.Equal("AABBCC", run.HighlightColor));
+    }
+
+    [Fact]
+    public void OdtRelativeParagraphMeasurementsAreOmittedAndReportedInsteadOfThrowing() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph paragraph = source.AddParagraph("Body");
+        paragraph.IndentStart = OdfLength.Parse("10%");
+        paragraph.FontSize = OdfLength.Parse("120%");
+        paragraph.Underline = true;
+        paragraph.StrikeThrough = true;
+        paragraph.TextBackgroundColor = OdfColor.Parse("#FFFF00");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+
+        WordParagraph run = Assert.Single(target.Paragraphs.Single().GetRuns());
+        Assert.Contains("Body", run.Text, StringComparison.Ordinal);
+        Assert.Equal(WordUnderlineStyle.Single, run.Underline);
+        Assert.True(run.Strike);
+        Assert.Equal(WordHighlightColor.Yellow, run.Highlight);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "relative-measurements"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+    }
+
+    [Fact]
+    public void OdsRelativeTextMeasurementsAreOmittedAndReportedInsteadOfThrowing() {
+        OdsDocument source = OdsDocument.Create();
+        OdsCell cell = source.AddSheet("Data").Cell(0, 0);
+        cell.SetString("Body");
+        cell.FontSize = OdfLength.Parse("120%");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+
+        Assert.Equal("Body", target.CreateInspectionSnapshot().Worksheets.Single().Cells.Single().Value);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "relative-measurements"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+    }
+
+    [Fact]
+    public void OdpRelativeShapeGeometryIsOmittedAndReportedInsteadOfThrowing() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpTextBox textBox = source.AddSlide("Relative").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2), "Body");
+        textBox.Bounds = new OdfRect(OdfLength.Parse("10%"), OdfLength.Centimeters(1),
+            OdfLength.Centimeters(8), OdfLength.Centimeters(2));
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+
+        Assert.Empty(target.Slides.Single().TextBoxes);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "relative-measurements"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shapes"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+    }
+
+    [Fact]
     public void WordToOdtReportsFlattenedNestedListLevels() {
         using WordDocument source = WordDocument.Create();
         WordList list = source.AddListNumbered();

@@ -101,6 +101,18 @@ public sealed class OdtParagraph {
         set => EnsureStyle().Italic = value;
     }
 
+    /// <summary>Explicit or inherited underline state.</summary>
+    public bool? Underline {
+        get => ResolveStyleValue(style => style.Underline);
+        set => EnsureStyle().Underline = value;
+    }
+
+    /// <summary>Explicit or inherited strike-through state.</summary>
+    public bool? StrikeThrough {
+        get => ResolveStyleValue(style => style.StrikeThrough);
+        set => EnsureStyle().StrikeThrough = value;
+    }
+
     /// <summary>Explicit or inherited font size.</summary>
     public OdfLength? FontSize {
         get => ResolveStyleValue(style => style.FontSize);
@@ -111,6 +123,12 @@ public sealed class OdtParagraph {
     public OdfColor? Color {
         get => ResolveStyleValue(style => style.Color);
         set => EnsureStyle().Color = value;
+    }
+
+    /// <summary>Explicit or inherited text background color.</summary>
+    public OdfColor? TextBackgroundColor {
+        get => ResolveStyleValue(style => style.TextBackgroundColor);
+        set => EnsureStyle().TextBackgroundColor = value;
     }
 
     /// <summary>Explicit or inherited font family.</summary>

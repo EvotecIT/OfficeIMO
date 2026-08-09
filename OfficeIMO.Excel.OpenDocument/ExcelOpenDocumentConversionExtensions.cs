@@ -129,7 +129,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 .OrderBy(item => item.Key.Row).ThenBy(item => item.Key.Column)) {
                 OdsCell cell = sheet.Cell(entry.Key.Row - 1L, entry.Key.Column - 1L);
                 ExcelThreadedCommentSnapshot first = entry.Value[0];
-                string text = FormatThreadedCommentTranscript(entry.Value);
+                string text = FormatThreadedCommentTranscript(entry.Value, includeMetadataForSingleRoot: cell.Annotation != null);
                 if (cell.Annotation != null) {
                     cell.Annotation.Text = cell.Annotation.Text + "\n\nThreaded discussion:\n" + text;
                 } else {
@@ -330,7 +330,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
         long expandedCells = 0;
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, externalHyperlinks = 0, comments = 0, combinedComments = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
-        int invalidValues = 0, validations = 0, convertedValidations = 0, unsupportedValidationAssignments = 0, unsupportedHyperlinks = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
+        int invalidValues = 0, validations = 0, convertedValidations = 0, unsupportedValidationAssignments = 0, unsupportedHyperlinks = 0, unsupportedMeasurements = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
         int forcedVisibleWorksheets = 0;
         bool truncated = false;
         ExcelSheet? activeTarget = null;
@@ -351,7 +351,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     if (!columnRun.Hidden && !columnRun.Width.HasValue) continue;
                     int excelColumn = checked((int)column + 1);
                     if (columnRun.Hidden) sheet.SetColumnHidden(excelColumn, true);
-                    if (columnRun.Width.HasValue) sheet.SetColumnWidth(excelColumn, PointsToExcelWidth(columnRun.Width.Value.ToPoints()));
+                    if (columnRun.Width.HasValue) {
+                        if (columnRun.Width.Value.TryToPoints(out double points)) sheet.SetColumnWidth(excelColumn, PointsToExcelWidth(points));
+                        else unsupportedMeasurements++;
+                    }
                     columnLayouts++;
                 }
                 if (columnEnd > effective.MaximumColumns) truncated = true;
@@ -364,7 +367,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 for (long row = rowRun.StartRow; row < lastRowExclusive; row++) {
                     int excelRow = checked((int)row + 1);
                     if (rowRun.Hidden) { sheet.SetRowHidden(excelRow, true); rowLayouts++; }
-                    if (rowRun.Height.HasValue) { sheet.SetRowHeight(excelRow, rowRun.Height.Value.ToPoints()); rowLayouts++; }
+                    if (rowRun.Height.HasValue) {
+                        if (rowRun.Height.Value.TryToPoints(out double points)) sheet.SetRowHeight(excelRow, points);
+                        else unsupportedMeasurements++;
+                        rowLayouts++;
+                    }
 
                     foreach (OdsCellRun cellRun in rowRun.CellRuns) {
                         long cellColumnEnd = SaturatingAdd(cellRun.StartColumn, cellRun.RepeatCount);
@@ -414,7 +421,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                 }
                             }
                             if (effective.IncludeBasicStyles && cellRun.StyleName != null) {
-                                ApplyOdsStyle(converted, cellRun, dataStyles);
+                                unsupportedMeasurements += ApplyOdsStyle(converted, cellRun, dataStyles);
                                 styles++;
                             } else if (cellRun.StyleName != null) {
                                 skippedStyles++;
@@ -516,6 +523,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             unsupportedValidationAssignments,
             "Only explicit lists and scalar whole-number, decimal, and text-length ODF validation conditions have an exact Excel mapping.");
         AddUnsupported(report, "invalid-values", invalidValues, "Invalid typed lexemes were transferred as display text.");
+        AddUnsupported(report, "relative-measurements", unsupportedMeasurements,
+            "Relative or unsupported ODF row, column, or text measurements could not be projected to fixed Excel sizes and were omitted.");
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
             "Content outside the configured row, column, or expanded-cell limits was not materialized.");
         AddUnmappedOdfFindings(source.InspectFeatures(), report, formulas, convertedValidations,
@@ -535,8 +544,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return header.Count == 0 ? annotation.Text : "[" + string.Join(" — ", header) + "]\n" + annotation.Text;
     }
 
-    private static string FormatThreadedCommentTranscript(IReadOnlyList<ExcelThreadedCommentSnapshot> comments) {
-        if (comments.Count == 1 && string.IsNullOrWhiteSpace(comments[0].ParentId) && !comments[0].Done) {
+    private static string FormatThreadedCommentTranscript(
+        IReadOnlyList<ExcelThreadedCommentSnapshot> comments,
+        bool includeMetadataForSingleRoot = false) {
+        if (!includeMetadataForSingleRoot && comments.Count == 1
+            && string.IsNullOrWhiteSpace(comments[0].ParentId) && !comments[0].Done) {
             return comments[0].Text;
         }
         var builder = new StringBuilder();
@@ -628,16 +640,21 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             style.TextRotation.HasValue || style.HorizontalAlignment != null || style.VerticalAlignment != null) unsupported++;
     }
 
-    private static void ApplyOdsStyle(ExcelCell target, OdsCellRun style, IReadOnlyDictionary<string, OdsDataStyle> dataStyles) {
+    private static int ApplyOdsStyle(ExcelCell target, OdsCellRun style, IReadOnlyDictionary<string, OdsDataStyle> dataStyles) {
+        int unsupported = 0;
         if (style.Bold == true) target.SetBold();
         if (style.Italic == true) target.SetItalic();
-        if (style.FontSize.HasValue) target.SetFontSize(style.FontSize.Value.ToPoints());
+        if (style.FontSize.HasValue) {
+            if (style.FontSize.Value.TryToPoints(out double points)) target.SetFontSize(points);
+            else unsupported++;
+        }
         if (!string.IsNullOrWhiteSpace(style.FontFamily)) target.SetFontName(style.FontFamily!);
         if (style.Color.HasValue) target.SetFontColor(style.Color.Value.ToString().TrimStart('#'));
         if (style.BackgroundColor.HasValue) target.SetFillColor(style.BackgroundColor.Value.ToString().TrimStart('#'));
         if (style.NumberFormatName != null && dataStyles.TryGetValue(style.NumberFormatName, out OdsDataStyle? dataStyle)) {
             target.SetNumberFormat(dataStyle.ToExcelNumberFormatCode());
         }
+        return unsupported;
     }
 
     private static bool IsNumeric(object value) {

@@ -164,6 +164,29 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     }
 
     [Fact]
+    public void ThreadedRootMergedWithLegacyCommentRetainsItsMetadataTranscript() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.SetComment("A1", "Legacy note", "Legacy Author");
+        DateTime timestamp = new DateTime(2026, 8, 9, 9, 15, 0, DateTimeKind.Utc);
+        ExcelThreadedCommentResult root = sheet.AddThreadedComment(new ExcelThreadedCommentOptions {
+            Address = "A1",
+            Text = "Modern discussion",
+            Author = "Thread Author",
+            Date = timestamp
+        });
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdsAnnotation annotation = Assert.Single(conversion.Value.GetSheet("Data")!.Cell(0, 0).Annotations);
+
+        Assert.Contains("Legacy note", annotation.Text, StringComparison.Ordinal);
+        Assert.Contains("Comment by Thread Author", annotation.Text, StringComparison.Ordinal);
+        Assert.Contains("2026-08-09 09:15:00Z", annotation.Text, StringComparison.Ordinal);
+        Assert.Contains("Id: " + root.Id, annotation.Text, StringComparison.Ordinal);
+        Assert.Contains("Modern discussion", annotation.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Conversion_Loss_Policy_Distinguishes_Approximation_From_Skipped_Or_Unsupported_Content() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Data");

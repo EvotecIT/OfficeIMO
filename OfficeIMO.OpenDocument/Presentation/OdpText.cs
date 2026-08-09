@@ -42,12 +42,18 @@ public sealed class OdpParagraph {
     public bool? Bold { get => Resolve(style => style.Bold); set => EnsureStyle().Bold = value; }
     /// <summary>Explicit or inherited italic state.</summary>
     public bool? Italic { get => Resolve(style => style.Italic); set => EnsureStyle().Italic = value; }
+    /// <summary>Explicit or inherited underline state.</summary>
+    public bool? Underline { get => Resolve(style => style.Underline); set => EnsureStyle().Underline = value; }
+    /// <summary>Explicit or inherited strike-through state.</summary>
+    public bool? StrikeThrough { get => Resolve(style => style.StrikeThrough); set => EnsureStyle().StrikeThrough = value; }
     /// <summary>Explicit or inherited font size.</summary>
     public OdfLength? FontSize { get => Resolve(style => style.FontSize); set => EnsureStyle().FontSize = value; }
     /// <summary>Explicit or inherited font family.</summary>
     public string? FontFamily { get => ResolveReference(style => style.FontFamily); set => EnsureStyle().FontFamily = value; }
     /// <summary>Explicit or inherited text color.</summary>
     public OdfColor? Color { get => Resolve(style => style.Color); set => EnsureStyle().Color = value; }
+    /// <summary>Explicit or inherited text background color.</summary>
+    public OdfColor? BackgroundColor { get => Resolve(style => style.TextBackgroundColor); set => EnsureStyle().TextBackgroundColor = value; }
     /// <summary>Appends plain text while encoding ODF whitespace semantics.</summary>
     public OdpParagraph AddText(string text) { OdfTextCodec.Append(_element, text); Dirty(); return this; }
     /// <summary>Adds an inline text run.</summary>

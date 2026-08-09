@@ -169,7 +169,12 @@ public static class PowerPointOpenDocumentConversionExtensions {
         PowerPointPresentation target = PowerPointPresentation.Create();
         var report = new OdfConversionReport("ODP", "PPTX");
         target.BuiltinDocumentProperties.Title = source.Metadata.Title;
-        target.SlideSize.SetSizePoints(source.PageWidth.ToPoints(), source.PageHeight.ToPoints());
+        int unsupportedMeasurements = 0;
+        if (source.PageWidth.TryToPoints(out double pageWidth) && source.PageHeight.TryToPoints(out double pageHeight)) {
+            target.SlideSize.SetSizePoints(pageWidth, pageHeight);
+        } else {
+            unsupportedMeasurements++;
+        }
 
         int textBoxes = 0, paragraphs = 0, textRuns = 0, hyperlinks = 0, externalHyperlinks = 0, pictures = 0, tables = 0, basicShapes = 0;
         int notes = 0, transitions = 0, unsupportedTransitions = 0, unsupportedShapes = 0, unsupportedPictures = 0, transformedShapes = 0;
@@ -189,12 +194,17 @@ public static class PowerPointOpenDocumentConversionExtensions {
 
             foreach (OdpShape shape in sourceSlide.Shapes) {
                 if (shape is OdpTextBox textBox) {
+                    if (!TryToPowerPointBox(textBox.Bounds, out PowerPointLayoutBox textBoxBounds)) {
+                        unsupportedMeasurements++;
+                        unsupportedShapes++;
+                        continue;
+                    }
                     IReadOnlyList<OdpParagraph> sourceParagraphs = textBox.Paragraphs;
                     listParagraphs += textBox.Lists.Sum(list => list.Items.Count);
-                    PowerPointTextBox converted = targetSlide.AddTextBox(string.Empty, ToPowerPointBox(textBox.Bounds));
+                    PowerPointTextBox converted = targetSlide.AddTextBox(string.Empty, textBoxBounds);
                     if (sourceParagraphs.Count > 0) converted.SetParagraphs(sourceParagraphs.Select(paragraph => paragraph.Text));
                     converted.Name = textBox.Name;
-                    CopyShapeAppearance(textBox, converted, effective);
+                    unsupportedMeasurements += CopyShapeAppearance(textBox, converted, effective);
                     for (int index = 0; index < sourceParagraphs.Count && index < converted.Paragraphs.Count; index++) {
                         OdpParagraph sourceParagraph = sourceParagraphs[index];
                         PowerPointParagraph targetParagraph = converted.Paragraphs[index];
@@ -209,16 +219,16 @@ public static class PowerPointOpenDocumentConversionExtensions {
                         }
                         if (inlineNodes.Count == 0) {
                             PowerPointTextRun run = useExisting ? existing[0] : targetParagraph.AddRun(string.Empty);
-                            ApplyOdpParagraphFormatting(sourceParagraph, run, effective);
+                            unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, run, effective);
                         } else {
                             foreach (OdpInlineNode node in inlineNodes) {
                                 PowerPointTextRun targetRun = AddInlineRun(node.Text);
                                 if (node.Kind == OdpInlineNodeKind.Run) {
-                                    ApplyOdpRun(node.Run!, targetRun, effective);
+                                    unsupportedMeasurements += ApplyOdpRun(node.Run!, sourceParagraph, targetRun, effective);
                                     if (!effective.IncludeBasicFormatting && HasBasicFormatting(node.Run!)) skippedBasicFormatting++;
                                 } else if (node.Kind == OdpInlineNodeKind.Hyperlink) {
                                     OdpHyperlink hyperlink = node.Hyperlink!;
-                                    ApplyOdpHyperlink(hyperlink, sourceParagraph, targetRun, effective);
+                                    unsupportedMeasurements += ApplyOdpHyperlink(hyperlink, sourceParagraph, targetRun, effective);
                                     if (TryResolveSlideFragment(hyperlink.Href, source.Slides, out int targetSlideIndex)) {
                                         pendingInternalLinks.Add((targetRun, targetSlideIndex));
                                         hyperlinks++;
@@ -233,12 +243,13 @@ public static class PowerPointOpenDocumentConversionExtensions {
                                     }
                                     if (!effective.IncludeBasicFormatting && HasBasicFormatting(hyperlink)) skippedBasicFormatting++;
                                 } else {
-                                    ApplyOdpParagraphFormatting(sourceParagraph, targetRun, effective);
+                                    unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, targetRun, effective);
                                     if (node.Kind == OdpInlineNodeKind.Other) approximatedRuns++;
                                 }
                                 textRuns++;
                             }
                         }
+                        if (!effective.IncludeBasicFormatting && HasBasicFormatting(sourceParagraph)) skippedBasicFormatting++;
                         paragraphs++;
                     }
                     textBoxes++;
@@ -253,17 +264,27 @@ public static class PowerPointOpenDocumentConversionExtensions {
                             unsupportedPictures++;
                             continue;
                         }
+                        if (!TryToPowerPointBox(image.Bounds, out PowerPointLayoutBox imageBounds)) {
+                            unsupportedMeasurements++;
+                            unsupportedPictures++;
+                            continue;
+                        }
                         using var stream = new MemoryStream(imageBytes, writable: false);
-                        PowerPointPicture converted = targetSlide.AddPicture(stream, imageType, ToPowerPointBox(image.Bounds));
+                        PowerPointPicture converted = targetSlide.AddPicture(stream, imageType, imageBounds);
                         converted.Name = image.Name;
-                        CopyShapeAppearance(image, converted, effective);
-                        if (image.Crop.HasValue) ApplyOdpCrop(image, converted);
+                        unsupportedMeasurements += CopyShapeAppearance(image, converted, effective);
+                        unsupportedMeasurements += ApplyOdpCrop(image, converted);
                         pictures++;
                     } catch (Exception exception) when (exception is NotSupportedException || exception is InvalidDataException ||
                         exception is ArgumentException) {
                         unsupportedPictures++;
                     }
                 } else if (shape is OdpTable table) {
+                    if (!TryToPowerPointBox(table.Bounds, out PowerPointLayoutBox tableBounds)) {
+                        unsupportedMeasurements++;
+                        unsupportedShapes++;
+                        continue;
+                    }
                     int rowCount = Math.Max(1, table.Rows.Count);
                     if (rowCount > effective.MaxTableRows) {
                         throw new InvalidDataException($"ODP table rows ({rowCount}) exceed the configured conversion limit ({effective.MaxTableRows}).");
@@ -272,9 +293,9 @@ public static class PowerPointOpenDocumentConversionExtensions {
                     if (columnCount > effective.MaxTableColumns) {
                         throw new InvalidDataException($"ODP table columns ({columnCount}) exceed the configured conversion limit ({effective.MaxTableColumns}).");
                     }
-                    PowerPointTable converted = targetSlide.AddTable(rowCount, columnCount, ToPowerPointBox(table.Bounds));
+                    PowerPointTable converted = targetSlide.AddTable(rowCount, columnCount, tableBounds);
                     converted.Name = table.Name;
-                    CopyShapeAppearance(table, converted, effective);
+                    unsupportedMeasurements += CopyShapeAppearance(table, converted, effective);
                     var merges = new List<(int Row, int Column, int RowSpan, int ColumnSpan)>();
                     for (int row = 0; row < table.Rows.Count; row++) {
                         IReadOnlyList<OdpTableCell> cells = table.Rows[row].Cells;
@@ -289,18 +310,32 @@ public static class PowerPointOpenDocumentConversionExtensions {
                         merge.Row + merge.RowSpan - 1, merge.Column + merge.ColumnSpan - 1);
                     tables++;
                 } else if (shape is OdpRectangle rectangle) {
-                    PowerPointAutoShape converted = targetSlide.AddRectanglePoints(rectangle.Bounds.X.ToPoints(), rectangle.Bounds.Y.ToPoints(),
-                        rectangle.Bounds.Width.ToPoints(), rectangle.Bounds.Height.ToPoints(), rectangle.Name);
-                    CopyShapeAppearance(rectangle, converted, effective);
+                    if (!TryGetRectPoints(rectangle.Bounds, out double x, out double y, out double width, out double height)) {
+                        unsupportedMeasurements++;
+                        unsupportedShapes++;
+                        continue;
+                    }
+                    PowerPointAutoShape converted = targetSlide.AddRectanglePoints(x, y, width, height, rectangle.Name);
+                    unsupportedMeasurements += CopyShapeAppearance(rectangle, converted, effective);
                     basicShapes++;
                 } else if (shape is OdpEllipse ellipse) {
-                    PowerPointAutoShape converted = targetSlide.AddEllipsePoints(ellipse.Bounds.X.ToPoints(), ellipse.Bounds.Y.ToPoints(),
-                        ellipse.Bounds.Width.ToPoints(), ellipse.Bounds.Height.ToPoints(), ellipse.Name);
-                    CopyShapeAppearance(ellipse, converted, effective);
+                    if (!TryGetRectPoints(ellipse.Bounds, out double x, out double y, out double width, out double height)) {
+                        unsupportedMeasurements++;
+                        unsupportedShapes++;
+                        continue;
+                    }
+                    PowerPointAutoShape converted = targetSlide.AddEllipsePoints(x, y, width, height, ellipse.Name);
+                    unsupportedMeasurements += CopyShapeAppearance(ellipse, converted, effective);
                     basicShapes++;
                 } else if (shape is OdpLine line) {
-                    PowerPointAutoShape converted = targetSlide.AddLinePoints(line.X1.ToPoints(), line.Y1.ToPoints(), line.X2.ToPoints(), line.Y2.ToPoints(), line.Name);
-                    CopyShapeAppearance(line, converted, effective);
+                    if (!line.X1.TryToPoints(out double x1) || !line.Y1.TryToPoints(out double y1)
+                        || !line.X2.TryToPoints(out double x2) || !line.Y2.TryToPoints(out double y2)) {
+                        unsupportedMeasurements++;
+                        unsupportedShapes++;
+                        continue;
+                    }
+                    PowerPointAutoShape converted = targetSlide.AddLinePoints(x1, y1, x2, y2, line.Name);
+                    unsupportedMeasurements += CopyShapeAppearance(line, converted, effective);
                     basicShapes++;
                 } else {
                     unsupportedShapes++;
@@ -347,6 +382,8 @@ public static class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or using an unsupported PowerPoint image format were skipped.");
         AddUnsupported(report, "shapes", unsupportedShapes, "Groups and unsupported ODF drawing elements are not translated.");
         AddUnsupported(report, "shape-transforms", transformedShapes, "Raw ODF transform expressions are not translated.");
+        AddUnsupported(report, "relative-measurements", unsupportedMeasurements,
+            "Relative or unsupported ODF text measurements could not be projected to fixed PowerPoint point sizes and were omitted.");
         if (source.MasterPages.Count > 0 || source.Layouts.Count > 0) report.Add("masters-layouts", OdfConversionMappingStatus.Approximated,
             source.MasterPages.Count + source.Layouts.Count, "Content is placed on PowerPoint's default master and layout.");
         AddUnmappedOdfFindings(source.InspectFeatures(), report, externalHyperlinks, noteContainers,
@@ -426,42 +463,60 @@ public static class PowerPointOpenDocumentConversionExtensions {
         return effective;
     }
 
-    private static void ApplyOdpRun(OdpRun source, PowerPointTextRun target, PowerPointOpenDocumentConversionOptions options) {
+    private static int ApplyOdpRun(OdpRun source, OdpParagraph paragraph, PowerPointTextRun target,
+        PowerPointOpenDocumentConversionOptions options) {
         target.Text = source.Text;
-        if (!options.IncludeBasicFormatting) return;
-        target.Bold = source.Bold == true;
-        target.Italic = source.Italic == true;
-        target.Underline = source.Underline == true;
-        target.Strikethrough = source.StrikeThrough == true;
-        if (source.FontSize.HasValue) target.FontSize = checked((int)Math.Round(source.FontSize.Value.ToPoints()));
-        target.FontName = source.FontFamily;
-        if (source.Color.HasValue) target.Color = source.Color.Value.ToString().TrimStart('#');
-        if (source.BackgroundColor.HasValue) target.HighlightColor = source.BackgroundColor.Value.ToString().TrimStart('#');
-    }
-
-    private static void ApplyOdpHyperlink(OdpHyperlink source, OdpParagraph paragraph,
-        PowerPointTextRun target, PowerPointOpenDocumentConversionOptions options) {
-        if (!options.IncludeBasicFormatting) return;
+        if (!options.IncludeBasicFormatting) return 0;
         target.Bold = source.Bold ?? paragraph.Bold ?? false;
         target.Italic = source.Italic ?? paragraph.Italic ?? false;
-        target.Underline = source.Underline == true;
-        target.Strikethrough = source.StrikeThrough == true;
+        target.Underline = source.Underline ?? paragraph.Underline ?? false;
+        target.Strikethrough = source.StrikeThrough ?? paragraph.StrikeThrough ?? false;
         OdfLength? fontSize = source.FontSize ?? paragraph.FontSize;
-        if (fontSize.HasValue) target.FontSize = checked((int)Math.Round(fontSize.Value.ToPoints()));
+        int unsupported = ApplyOdpFontSize(fontSize, target);
         target.FontName = source.FontFamily ?? paragraph.FontFamily;
         OdfColor? color = source.Color ?? paragraph.Color;
         if (color.HasValue) target.Color = color.Value.ToString().TrimStart('#');
-        if (source.BackgroundColor.HasValue) target.HighlightColor = source.BackgroundColor.Value.ToString().TrimStart('#');
+        OdfColor? background = source.BackgroundColor ?? paragraph.BackgroundColor;
+        if (background.HasValue) target.HighlightColor = background.Value.ToString().TrimStart('#');
+        return unsupported;
     }
 
-    private static void ApplyOdpParagraphFormatting(OdpParagraph source, PowerPointTextRun target,
+    private static int ApplyOdpHyperlink(OdpHyperlink source, OdpParagraph paragraph,
+        PowerPointTextRun target, PowerPointOpenDocumentConversionOptions options) {
+        if (!options.IncludeBasicFormatting) return 0;
+        target.Bold = source.Bold ?? paragraph.Bold ?? false;
+        target.Italic = source.Italic ?? paragraph.Italic ?? false;
+        target.Underline = source.Underline ?? paragraph.Underline ?? false;
+        target.Strikethrough = source.StrikeThrough ?? paragraph.StrikeThrough ?? false;
+        OdfLength? fontSize = source.FontSize ?? paragraph.FontSize;
+        int unsupported = ApplyOdpFontSize(fontSize, target);
+        target.FontName = source.FontFamily ?? paragraph.FontFamily;
+        OdfColor? color = source.Color ?? paragraph.Color;
+        if (color.HasValue) target.Color = color.Value.ToString().TrimStart('#');
+        OdfColor? background = source.BackgroundColor ?? paragraph.BackgroundColor;
+        if (background.HasValue) target.HighlightColor = background.Value.ToString().TrimStart('#');
+        return unsupported;
+    }
+
+    private static int ApplyOdpParagraphFormatting(OdpParagraph source, PowerPointTextRun target,
         PowerPointOpenDocumentConversionOptions options) {
-        if (!options.IncludeBasicFormatting) return;
+        if (!options.IncludeBasicFormatting) return 0;
         target.Bold = source.Bold == true;
         target.Italic = source.Italic == true;
-        if (source.FontSize.HasValue) target.FontSize = checked((int)Math.Round(source.FontSize.Value.ToPoints()));
+        target.Underline = source.Underline == true;
+        target.Strikethrough = source.StrikeThrough == true;
+        int unsupported = ApplyOdpFontSize(source.FontSize, target);
         target.FontName = source.FontFamily;
         if (source.Color.HasValue) target.Color = source.Color.Value.ToString().TrimStart('#');
+        if (source.BackgroundColor.HasValue) target.HighlightColor = source.BackgroundColor.Value.ToString().TrimStart('#');
+        return unsupported;
+    }
+
+    private static int ApplyOdpFontSize(OdfLength? fontSize, PowerPointTextRun target) {
+        if (!fontSize.HasValue) return 0;
+        if (!fontSize.Value.TryToPoints(out double points)) return 1;
+        target.FontSize = checked((int)Math.Round(points));
+        return 0;
     }
 
     private static void ApplyPowerPointRun(PowerPointTextRun source, OdpRun target,
@@ -499,6 +554,10 @@ public static class PowerPointOpenDocumentConversionExtensions {
         run.Bold.HasValue || run.Italic.HasValue || run.Underline.HasValue || run.StrikeThrough.HasValue ||
         run.FontSize.HasValue || !string.IsNullOrWhiteSpace(run.FontFamily) || run.Color.HasValue || run.BackgroundColor.HasValue;
 
+    private static bool HasBasicFormatting(OdpParagraph paragraph) =>
+        paragraph.Bold.HasValue || paragraph.Italic.HasValue || paragraph.Underline.HasValue || paragraph.StrikeThrough.HasValue ||
+        paragraph.FontSize.HasValue || !string.IsNullOrWhiteSpace(paragraph.FontFamily) || paragraph.Color.HasValue || paragraph.BackgroundColor.HasValue;
+
     private static bool HasBasicFormatting(OdpHyperlink run) =>
         run.Bold.HasValue || run.Italic.HasValue || run.Underline.HasValue || run.StrikeThrough.HasValue ||
         run.FontSize.HasValue || !string.IsNullOrWhiteSpace(run.FontFamily) || run.Color.HasValue || run.BackgroundColor.HasValue;
@@ -517,12 +576,16 @@ public static class PowerPointOpenDocumentConversionExtensions {
         if (source.OutlineWidthPoints.HasValue) target.StrokeWidth = OdfLength.Points(source.OutlineWidthPoints.Value);
     }
 
-    private static void CopyShapeAppearance(OdpShape source, PowerPointShape target, PowerPointOpenDocumentConversionOptions options) {
+    private static int CopyShapeAppearance(OdpShape source, PowerPointShape target, PowerPointOpenDocumentConversionOptions options) {
         target.Hidden = source.Hidden;
-        if (!options.IncludeBasicFormatting) return;
+        if (!options.IncludeBasicFormatting) return 0;
         if (source.FillColor.HasValue) target.FillColor = source.FillColor.Value.ToString().TrimStart('#');
         if (source.StrokeColor.HasValue) target.OutlineColor = source.StrokeColor.Value.ToString().TrimStart('#');
-        if (source.StrokeWidth.HasValue) target.OutlineWidthPoints = source.StrokeWidth.Value.ToPoints();
+        if (source.StrokeWidth.HasValue) {
+            if (source.StrokeWidth.Value.TryToPoints(out double points)) target.OutlineWidthPoints = points;
+            else return 1;
+        }
+        return 0;
     }
 
     private static void MapBackground(PowerPointSlide source, OdpSlide target, ref int converted, ref int unsupported) {
@@ -559,16 +622,38 @@ public static class PowerPointOpenDocumentConversionExtensions {
         OdfLength.Points(shape.LeftPoints), OdfLength.Points(shape.TopPoints),
         OdfLength.Points(Math.Max(0.01D, shape.WidthPoints)), OdfLength.Points(Math.Max(0.01D, shape.HeightPoints)));
 
-    private static PowerPointLayoutBox ToPowerPointBox(OdfRect bounds) => PowerPointLayoutBox.FromPoints(
-        bounds.X.ToPoints(), bounds.Y.ToPoints(), Math.Max(0.01D, bounds.Width.ToPoints()), Math.Max(0.01D, bounds.Height.ToPoints()));
+    private static bool TryToPowerPointBox(OdfRect bounds, out PowerPointLayoutBox box) {
+        if (!TryGetRectPoints(bounds, out double x, out double y, out double width, out double height)) {
+            box = default;
+            return false;
+        }
+        box = PowerPointLayoutBox.FromPoints(x, y, width, height);
+        return true;
+    }
 
-    private static void ApplyOdpCrop(OdpImage source, PowerPointPicture target) {
-        if (!source.Crop.HasValue) return;
+    private static bool TryGetRectPoints(OdfRect bounds, out double x, out double y, out double width, out double height) {
+        bool xValid = bounds.X.TryToPoints(out x);
+        bool yValid = bounds.Y.TryToPoints(out y);
+        bool widthValid = bounds.Width.TryToPoints(out width);
+        bool heightValid = bounds.Height.TryToPoints(out height);
+        bool valid = xValid && yValid && widthValid && heightValid;
+        if (!valid) return false;
+        width = Math.Max(0.01D, width);
+        height = Math.Max(0.01D, height);
+        return true;
+    }
+
+    private static int ApplyOdpCrop(OdpImage source, PowerPointPicture target) {
+        if (!source.Crop.HasValue) return 0;
         OdfInsets crop = source.Crop.Value;
-        double width = Math.Max(0.01D, source.Bounds.Width.ToPoints());
-        double height = Math.Max(0.01D, source.Bounds.Height.ToPoints());
-        target.Crop(ClampPercent(crop.Left.ToPoints() / width * 100D), ClampPercent(crop.Top.ToPoints() / height * 100D),
-            ClampPercent(crop.Right.ToPoints() / width * 100D), ClampPercent(crop.Bottom.ToPoints() / height * 100D));
+        if (!source.Bounds.Width.TryToPoints(out double width) || !source.Bounds.Height.TryToPoints(out double height)
+            || !crop.Left.TryToPoints(out double left) || !crop.Top.TryToPoints(out double top)
+            || !crop.Right.TryToPoints(out double right) || !crop.Bottom.TryToPoints(out double bottom)) return 1;
+        width = Math.Max(0.01D, width);
+        height = Math.Max(0.01D, height);
+        target.Crop(ClampPercent(left / width * 100D), ClampPercent(top / height * 100D),
+            ClampPercent(right / width * 100D), ClampPercent(bottom / height * 100D));
+        return 0;
     }
 
     private static double ClampPercent(double value) => Math.Max(0D, Math.Min(100D, value));

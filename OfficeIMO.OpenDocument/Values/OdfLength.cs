@@ -24,12 +24,9 @@ public readonly struct OdfLength : IEquatable<OdfLength> {
     /// <summary>Converts this absolute ODF length to points.</summary>
     public double ToPoints() {
         string lexical = ToString();
-        int split = 0;
-        while (split < lexical.Length && (char.IsDigit(lexical[split]) || lexical[split] == '-' || lexical[split] == '+' || lexical[split] == '.')) split++;
-        if (split == 0 || !double.TryParse(lexical.Substring(0, split), NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
+        if (!TryReadNumberAndUnit(lexical, out double value, out string unit)) {
             throw new FormatException($"ODF length '{lexical}' is not an absolute numeric length.");
         }
-        string unit = lexical.Substring(split).ToLowerInvariant();
         switch (unit) {
             case "pt": return value;
             case "in": return value * 72D;
@@ -38,6 +35,27 @@ public readonly struct OdfLength : IEquatable<OdfLength> {
             case "pc": return value * 12D;
             default: throw new NotSupportedException($"ODF length unit '{unit}' cannot be converted to points.");
         }
+    }
+
+    /// <summary>Attempts to convert an absolute ODF length to points without throwing for relative or unsupported units.</summary>
+    public bool TryToPoints(out double points) {
+        if (!TryReadNumberAndUnit(ToString(), out double value, out string unit)) {
+            points = 0D;
+            return false;
+        }
+        double factor;
+        switch (unit) {
+            case "pt": factor = 1D; break;
+            case "in": factor = 72D; break;
+            case "cm": factor = 72D / 2.54D; break;
+            case "mm": factor = 72D / 25.4D; break;
+            case "pc": factor = 12D; break;
+            default: points = 0D; return false;
+        }
+        points = value * factor;
+        if (!double.IsNaN(points) && !double.IsInfinity(points)) return true;
+        points = 0D;
+        return false;
     }
 
     /// <summary>Converts this absolute ODF length to centimeters.</summary>
@@ -51,4 +69,17 @@ public readonly struct OdfLength : IEquatable<OdfLength> {
     public override bool Equals(object? obj) => obj is OdfLength other && Equals(other);
     /// <inheritdoc />
     public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(ToString());
+
+    private static bool TryReadNumberAndUnit(string lexical, out double value, out string unit) {
+        int split = 0;
+        while (split < lexical.Length && (char.IsDigit(lexical[split]) || lexical[split] == '-' || lexical[split] == '+' || lexical[split] == '.')) split++;
+        value = 0D;
+        if (split == 0 || !double.TryParse(lexical.Substring(0, split), NumberStyles.Float,
+                CultureInfo.InvariantCulture, out value) || double.IsNaN(value) || double.IsInfinity(value)) {
+            unit = string.Empty;
+            return false;
+        }
+        unit = lexical.Substring(split).ToLowerInvariant();
+        return true;
+    }
 }
