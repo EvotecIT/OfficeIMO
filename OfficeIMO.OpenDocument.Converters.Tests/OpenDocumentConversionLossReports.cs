@@ -174,7 +174,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         OdsDocument target = conversion.Value;
 
-        Assert.Equal("of:=SUM([$'Other'.A1];[$'Other Sheet'.B2:.C3])",
+        Assert.Equal("of:=SUM([$'Other'.A1];[$'Other Sheet'.B2:$'Other Sheet'.C3])",
             target.GetSheet("Data")!.Cell(0, 0).Formula);
         OdfConversionResult<ExcelDocument> reverse = target.ToExcelDocumentResult();
         using ExcelDocument roundTrip = reverse.Value;

@@ -38,16 +38,34 @@ public sealed class OdsDataStyle {
     /// <summary>Projects the represented common ODF style to an Excel number-format code.</summary>
     public string ToExcelNumberFormatCode() {
         if (Kind == OdsDataStyleKind.Date || Kind == OdsDataStyleKind.Time) return BuildDateTimeFormat();
-        string number = (UsesGrouping ? "#,##" : string.Empty) + "0";
-        if (DecimalPlaces > 0) number += "." + new string('0', DecimalPlaces);
-        if (Kind == OdsDataStyleKind.Percentage) return number + "%";
-        if (Kind == OdsDataStyleKind.Currency && !string.IsNullOrWhiteSpace(CurrencySymbol)) {
-            return EscapeExcelLiteral(CurrencySymbol!) + number;
+        string number = BuildNumericComponent();
+        var builder = new System.Text.StringBuilder();
+        bool wroteNumber = false;
+        foreach (XElement child in Element.Elements()) {
+            if (child.Name == OdfNamespaces.Number + "number") {
+                builder.Append(number);
+                wroteNumber = true;
+            } else if (child.Name == OdfNamespaces.Number + "currency-symbol") {
+                builder.Append(EscapeExcelLiteral(child.Value));
+            } else if (child.Name == OdfNamespaces.Number + "text") {
+                string text = child.Value;
+                builder.Append(Kind == OdsDataStyleKind.Percentage && text == "%"
+                    ? "%"
+                    : EscapeExcelLiteral(text));
+            }
         }
-        return number;
+        if (!wroteNumber) builder.Append(number);
+        if (Kind == OdsDataStyleKind.Percentage && builder.ToString().IndexOf('%') < 0) builder.Append('%');
+        return builder.ToString();
     }
 
     internal XElement Element { get; }
+
+    private string BuildNumericComponent() {
+        string number = (UsesGrouping ? "#,##" : string.Empty) + "0";
+        if (DecimalPlaces > 0) number += "." + new string('0', DecimalPlaces);
+        return number;
+    }
 
     private string BuildDateTimeFormat() {
         var builder = new System.Text.StringBuilder();

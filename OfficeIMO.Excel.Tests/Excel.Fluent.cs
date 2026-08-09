@@ -83,6 +83,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FluentRangeRejectsAQualifierThatWouldRetargetAnotherSheet() {
+            using ExcelDocument document = ExcelDocument.Create();
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => document.AsFluent()
+                .Sheet("Data", sheet => sheet.Range("'Other'!A1:B2", _ => { })));
+
+            Assert.Contains("must not qualify", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void CanChangeColumnWidthAndHiddenState() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 

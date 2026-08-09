@@ -132,7 +132,7 @@ internal static class SpreadsheetFormulaParser {
 
             if (TryReadSeparator(text, dialect, ref cursor, containerKind, children, diagnostics)) continue;
             if (TryReadNumber(text, ref cursor, children)) continue;
-            if (TryReadError(text, ref cursor, children)) continue;
+            if (TryReadError(text, dialect, ref cursor, children, diagnostics)) continue;
             if (TryReadIdentifier(text, ref cursor, children)) continue;
             if (TryReadOperator(text, dialect, ref cursor, children, diagnostics)) continue;
 
@@ -402,8 +402,10 @@ internal static class SpreadsheetFormulaParser {
 
     private static bool TryReadError(
         string text,
+        SpreadsheetFormulaDialect dialect,
         ref int cursor,
-        ICollection<SpreadsheetFormulaSyntaxNode> children) {
+        ICollection<SpreadsheetFormulaSyntaxNode> children,
+        ICollection<SpreadsheetFormulaDiagnostic> diagnostics) {
         if (text[cursor] != '#') return false;
         if (cursor + 1 >= text.Length || !IsIdentifierStart(text[cursor + 1])) return false;
         int start = cursor++;
@@ -412,6 +414,19 @@ internal static class SpreadsheetFormulaParser {
             if (char.IsWhiteSpace(character) || character == ',' || character == ';' || character == ')' || character == '}') break;
             cursor++;
             if (character == '!' || character == '?') break;
+        }
+        if (dialect == SpreadsheetFormulaDialect.ExcelA1
+            && string.Equals(text.Substring(start, cursor - start), "#REF!", StringComparison.OrdinalIgnoreCase)
+            && cursor < text.Length
+            && SpreadsheetRangeReference.TryReadExcelAt(text, cursor, out _, out int consumed)) {
+            cursor += consumed;
+            children.Add(Token(SpreadsheetFormulaTokenKind.Unsupported, text.Substring(start, cursor - start), start));
+            diagnostics.Add(Error(
+                "FORMULA_DELETED_REFERENCE",
+                "Excel deleted references with an attached address cannot be represented safely in OpenFormula.",
+                start,
+                cursor - start));
+            return true;
         }
         children.Add(Token(SpreadsheetFormulaTokenKind.ErrorLiteral, text.Substring(start, cursor - start), start));
         return true;

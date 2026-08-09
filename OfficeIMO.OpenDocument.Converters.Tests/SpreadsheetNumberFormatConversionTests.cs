@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.OpenDocument;
 using OfficeIMO.OpenDocument;
@@ -9,6 +12,39 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class SpreadsheetNumberFormatConversionTests {
+    [Fact]
+    public void WholeNumberValidationWithNonIntegerLexicalOperandIsReportedUnsupported() {
+        byte[] package;
+        using (ExcelDocument authored = ExcelDocument.Create()) {
+            authored.AddWorksheet("Data").ValidationWholeNumber(
+                "A1",
+                ExcelDataValidationOperator.GreaterThan,
+                1,
+                allowBlank: true);
+            package = authored.ToBytes();
+        }
+        using (var stream = new MemoryStream(package)) {
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(stream, true)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart
+                    ?? throw new InvalidDataException("The regression workbook has no workbook part.");
+                WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();
+                Worksheet worksheet = worksheetPart.Worksheet
+                    ?? throw new InvalidDataException("The regression workbook has no worksheet XML.");
+                DataValidation validation = worksheet.Descendants<DataValidation>().Single();
+                validation.Formula1 = new Formula1("1E3");
+                worksheet.Save();
+            }
+            package = stream.ToArray();
+        }
+        using ExcelDocument source = ExcelDocument.Load(new MemoryStream(package));
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+
+        Assert.Empty(conversion.Value.Validations);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "validations"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
     [Fact]
     public void ScalarAndListValidationsRoundTripThroughTypedOdfConditions() {
         using ExcelDocument source = ExcelDocument.Create();
@@ -191,6 +227,6 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         using ExcelDocument target = source.ToExcelDocumentResult().Value;
         ExcelCellSnapshot converted = Assert.Single(target.CreateInspectionSnapshot().Worksheets.Single().Cells);
 
-        Assert.Equal("\"EUR\"#,##0.0", converted.Style!.NumberFormatCode);
+        Assert.Equal("\"EUR\" #,##0.0", converted.Style!.NumberFormatCode);
     }
 }

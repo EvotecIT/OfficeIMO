@@ -75,7 +75,7 @@ internal static partial class OpenDocumentReaderAdapter {
     }
 
     private static (int FirstRow, int FirstColumn, int LastRow, int LastColumn) ParseA1Range(string value) {
-        if (!SpreadsheetRangeReference.TryParse(value, SpreadsheetAddressDialect.ExcelA1, out SpreadsheetRangeReference? reference)
+        if (!SpreadsheetRangeReference.TryParse(value, SpreadsheetAddressDialect.UnboundedA1, out SpreadsheetRangeReference? reference)
             || !reference!.Start.IsCell
             || reference.Start.SheetName != null
             || (reference.End != null && (!reference.End.IsCell || reference.End.SheetName != null))

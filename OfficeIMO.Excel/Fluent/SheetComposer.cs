@@ -108,6 +108,9 @@ namespace OfficeIMO.Excel.Fluent {
             if (!SpreadsheetRangeReference.TryParse(a1Range, SpreadsheetAddressDialect.ExcelA1,
                     out SpreadsheetRangeReference? syntax)
                 || !syntax!.Start.IsCell || !(syntax.End ?? syntax.Start).IsCell) return this;
+            if (syntax.Start.SheetName != null || syntax.End?.SheetName != null) {
+                throw new ArgumentException("Column sizing range must not qualify a different worksheet.", nameof(a1Range));
+            }
             SpreadsheetCellReference end = syntax.End ?? syntax.Start;
             int fromCol = syntax.Start.Column!.Value;
             int fromRow = checked((int)syntax.Start.Row!.Value);

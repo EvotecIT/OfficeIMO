@@ -176,6 +176,37 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
     }
 
     [Fact]
+    public void SpreadsheetCurrencyProjectionPreservesSuffixSymbolOrder() {
+        OdsDocument document = OdsDocument.Create();
+        document.AddCurrencyStyle("SuffixCurrency", "EUR", 2);
+        XElement style = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Number + "currency-style")
+            .Single(element => (string?)element.Attribute(OdfNamespaces.Style + "name") == "SuffixCurrency");
+        XElement number = style.Element(OdfNamespaces.Number + "number")!;
+        XElement symbol = style.Element(OdfNamespaces.Number + "currency-symbol")!;
+        XElement separator = style.Element(OdfNamespaces.Number + "text")!;
+        number.Remove();
+        symbol.Remove();
+        separator.Remove();
+        style.Add(number, separator, symbol);
+
+        OdsDataStyle projected = document.DataStyles.Single(item => item.Name == "SuffixCurrency");
+
+        Assert.Equal("0.00 \"EUR\"", projected.ToExcelNumberFormatCode());
+    }
+
+    [Fact]
+    public void SpreadsheetValidationMessagesRoundTripOdfWhitespaceElements() {
+        OdsDocument document = OdsDocument.Create();
+        OdsValidation validation = document.AddValidation("Message", "cell-content()>0");
+        validation.SetHelpMessage("Input", "Enter  value\tbefore\nafter");
+
+        OdsValidation reopened = OdsDocument.Load(new MemoryStream(document.ToBytes())).Validations.Single();
+
+        Assert.Equal("Enter  value\tbefore\nafter", reopened.HelpText);
+    }
+
+    [Fact]
     public void SpreadsheetMergeValidationIncludesHeaderRows() {
         OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");

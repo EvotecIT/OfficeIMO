@@ -13,7 +13,7 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static async Task<byte[]> SpreadCheetahWriteDataReaderPlainBytesAsync(DataTable table) {
         using var stream = new MemoryStream();
-        await using var spreadsheet = await Spreadsheet.CreateNewAsync(stream).ConfigureAwait(false);
+        await using var spreadsheet = await global::SpreadCheetah.Spreadsheet.CreateNewAsync(stream).ConfigureAwait(false);
         await spreadsheet.StartWorksheetAsync("Data").ConfigureAwait(false);
 
         using var reader = table.CreateDataReader();

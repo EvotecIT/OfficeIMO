@@ -24,9 +24,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         else return false;
 
         if (!TryMapValidationOperator(validation.Operator, out OdsValidationComparison comparison)
-            || !IsInvariantValidationNumber(validation.Formula1)
+            || !IsInvariantValidationNumber(validation.Formula1, valueKind)
             || ((comparison == OdsValidationComparison.Between || comparison == OdsValidationComparison.NotBetween)
-                && !IsInvariantValidationNumber(validation.Formula2))) return false;
+                && !IsInvariantValidationNumber(validation.Formula2, valueKind))) return false;
         condition = OdsValidationConditionSyntax.Create(valueKind, comparison, validation.Formula1!, validation.Formula2);
         return true;
     }
@@ -53,10 +53,14 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return OdsValidationMessageType.Stop;
     }
 
-    private static bool IsInvariantValidationNumber(string? value) =>
-        !string.IsNullOrWhiteSpace(value)
-        && double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
-        && !double.IsNaN(number) && !double.IsInfinity(number);
+    private static bool IsInvariantValidationNumber(string? value, OdsValidationValueKind valueKind) {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        if (valueKind == OdsValidationValueKind.WholeNumber || valueKind == OdsValidationValueKind.TextLength) {
+            return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _);
+        }
+        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+            && !double.IsNaN(number) && !double.IsInfinity(number);
+    }
 
     private static bool TryParseExcelValidationList(string? formula, out IReadOnlyList<string>? values) {
         values = null;

@@ -116,14 +116,18 @@ public sealed class OdsValidation {
         message.SetAttributeValue(OdfNamespaces.Table + "title", title);
         message.SetAttributeValue(OdfNamespaces.Table + "message-type", messageType);
         message.RemoveNodes();
-        if (text != null) message.Add(new XElement(OdfNamespaces.Text + "p", text));
+        if (text != null) {
+            var paragraph = new XElement(OdfNamespaces.Text + "p");
+            OdfTextCodec.Append(paragraph, text);
+            message.Add(paragraph);
+        }
         Dirty();
     }
 
     private string? ReadMessageText(XName name) {
         XElement? message = _element.Element(name);
         if (message == null) return null;
-        return string.Join("\n", message.Elements(OdfNamespaces.Text + "p").Select(paragraph => paragraph.Value));
+        return string.Join("\n", message.Elements(OdfNamespaces.Text + "p").Select(OdfTextCodec.Read));
     }
 
     private bool ReadDisplay(XName name) =>

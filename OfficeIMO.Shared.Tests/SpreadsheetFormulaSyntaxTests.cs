@@ -69,6 +69,18 @@ public sealed class SpreadsheetFormulaSyntaxTests {
     }
 
     [Theory]
+    [InlineData("=#REF!A1")]
+    [InlineData("=#REF!A1:C3")]
+    public void ExcelDeletedReferencesWithAttachedAddressesFailClosed(string formula) {
+        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
+            .Parse(formula, SpreadsheetFormulaDialect.ExcelA1)
+            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
+
+        Assert.False(result.IsSuccessful);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "FORMULA_DELETED_REFERENCE");
+    }
+
+    [Theory]
     [InlineData("of:=[.A1048577]")]
     [InlineData("of:=[.XFE1]")]
     public void OpenFormulaReferencesOutsideExcelBoundsFailClosed(string formula) {
@@ -89,6 +101,31 @@ public sealed class SpreadsheetFormulaSyntaxTests {
         Assert.Equal("A:B", reference.Start.SheetName);
         Assert.Equal("$'A:B'.$C$1", reference.FormatBaseCell(SpreadsheetAddressDialect.OpenDocument));
         Assert.Equal("'A:B'!$C$1:$C$3", reference.Format(SpreadsheetAddressDialect.ExcelA1));
+    }
+
+    [Fact]
+    public void ExcelQualifiedRangeInheritsAndRepeatsItsSheetInOpenDocumentSyntax() {
+        SpreadsheetRangeReference reference = SpreadsheetRangeReference.Parse(
+            "'Other'!A1:B2",
+            SpreadsheetAddressDialect.ExcelA1);
+
+        Assert.Equal("Other", reference.Start.SheetName);
+        Assert.Equal("Other", reference.End!.SheetName);
+        Assert.Equal("$'Other'.A1:$'Other'.B2", reference.Format(SpreadsheetAddressDialect.OpenDocument));
+    }
+
+    [Fact]
+    public void UnboundedA1AcceptsCoordinatesOutsideExcelsGridWithoutChangingExcelRules() {
+        Assert.True(SpreadsheetRangeReference.TryParse(
+            "XFE1048577:XFF1048578",
+            SpreadsheetAddressDialect.UnboundedA1,
+            out SpreadsheetRangeReference? unbounded));
+        Assert.Equal(16385, unbounded!.Start.Column);
+        Assert.Equal(1048578L, unbounded.End!.Row);
+        Assert.False(SpreadsheetRangeReference.TryParse(
+            "XFE1048577:XFF1048578",
+            SpreadsheetAddressDialect.ExcelA1,
+            out _));
     }
 
     [Fact]

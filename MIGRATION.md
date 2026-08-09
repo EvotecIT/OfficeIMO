@@ -67,6 +67,18 @@ RtfReadResult result = RtfDocument.Load(
 
 Do not use the compatibility profile for uploads or other untrusted inputs. Lossless byte output from character-only reads now fails when the source cannot be represented exactly; use byte, stream, or file input when exact original bytes are required.
 
+## OfficeIMO 3.2: bounded LaTeX byte input by default
+
+LaTeX file and stream loading now rejects encoded input larger than 64 MiB before decoding, independently of the existing decoded-character limit. Applications that intentionally load larger trusted documents must raise or disable the byte limit explicitly:
+
+```csharp
+LatexParseResult result = LatexDocument.Load(
+    "trusted-large-document.tex",
+    new LatexParseOptions { MaximumInputBytes = null });
+```
+
+Keep the default for uploads and other untrusted input. Set `MaximumInputBytes` to a larger finite value when the application has a known document-size ceiling; use `null` only for a trusted source with a separate resource policy.
+
 ## OfficeIMO 3.2: neutral conversion model
 
 Direct format conversion no longer uses Reader as its intermediate ownership

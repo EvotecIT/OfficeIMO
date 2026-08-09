@@ -141,6 +141,8 @@ public sealed class OpenDocumentValidationContractTests {
     [Theory]
     [InlineData("cell-content()>0 trailing")]
     [InlineData("of:cell-content-is-in-list(A;B)")]
+    [InlineData("of:cell-content-is-in-list(\"A\";)")]
+    [InlineData("of:cell-content-is-in-list(\"A\";   )")]
     [InlineData("of:cell-content-is-between(1)")]
     public void ValidationConditionSyntax_RejectsUnsupportedOrMalformedExpressions(string text) {
         Assert.False(OdsValidationConditionSyntax.TryParse(text, out _));

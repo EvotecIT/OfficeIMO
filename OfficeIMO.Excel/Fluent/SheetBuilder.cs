@@ -294,6 +294,9 @@ namespace OfficeIMO.Excel.Fluent {
             if (!syntax.Start.IsCell || !(syntax.End ?? syntax.Start).IsCell) {
                 throw new ArgumentException("Range must contain cell endpoints.", nameof(reference));
             }
+            if (syntax.Start.SheetName != null || syntax.End?.SheetName != null) {
+                throw new ArgumentException("Range must not qualify a different worksheet.", nameof(reference));
+            }
             SpreadsheetCellReference end = syntax.End ?? syntax.Start;
             int fromRow = checked((int)syntax.Start.Row!.Value);
             int fromCol = syntax.Start.Column!.Value;

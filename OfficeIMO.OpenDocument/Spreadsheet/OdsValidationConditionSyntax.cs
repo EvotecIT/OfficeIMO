@@ -253,6 +253,9 @@ public sealed class OdsValidationConditionSyntax {
             if (cursor == value.Length) break;
             if (value[cursor] != ';') { values = null; return false; }
             cursor++;
+            int next = cursor;
+            while (next < value.Length && char.IsWhiteSpace(value[next])) next++;
+            if (next >= value.Length) { values = null; return false; }
         }
         values = result.Count == 0 ? null : new ReadOnlyCollection<string>(result);
         return values != null;

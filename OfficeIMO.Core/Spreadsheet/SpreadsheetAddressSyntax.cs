@@ -7,10 +7,16 @@ namespace OfficeIMO.Spreadsheet;
 /// <summary>Identifies the address grammar used by a spreadsheet reference.</summary>
 public enum SpreadsheetAddressDialect {
     /// <summary>Excel A1 notation, for example <c>'Data'!$A$1:$B$2</c>.</summary>
-    ExcelA1,
+    ExcelA1 = 0,
 
-    /// <summary>OpenDocument address notation, for example <c>$'Data'.$A$1:.$B$2</c>.</summary>
-    OpenDocument
+    /// <summary>OpenDocument address notation, for example <c>$'Data'.$A$1:$'Data'.$B$2</c>.</summary>
+    OpenDocument = 1,
+
+    /// <summary>
+    /// A1 notation without Excel's fixed row and column limits. This is intended for bounded
+    /// selections over spreadsheet formats whose grids can extend beyond Excel's worksheet size.
+    /// </summary>
+    UnboundedA1 = 2
 }
 
 /// <summary>One parsed spreadsheet cell, whole-row, or whole-column reference endpoint.</summary>
@@ -104,6 +110,7 @@ public sealed class SpreadsheetRangeReference {
         if (cursor < value.Length && value[cursor] == ':') {
             cursor++;
             if (!TryReadEndpoint(value, ref cursor, dialect, allowPartial: true, allowImplicitCurrentSheet: true, out end)) return false;
+            end = InheritA1SheetQualifier(dialect, start!, end!);
         }
         if (cursor != value.Length) return false;
         if (end == null && !start!.IsCell) return false;
@@ -120,7 +127,12 @@ public sealed class SpreadsheetRangeReference {
             output.Append(':');
             bool sameSheet = string.Equals(Start.SheetName, End.SheetName, StringComparison.Ordinal)
                 && Start.IsSheetAbsolute == End.IsSheetAbsolute;
-            AppendEndpoint(output, End, dialect, includeSheet: !sameSheet);
+            // OpenDocument's leading dot always means the current sheet; it does not inherit the
+            // first range endpoint. Repeat an authored qualifier to preserve same-sheet ranges.
+            bool includeSheet = dialect == SpreadsheetAddressDialect.OpenDocument && End.SheetName != null
+                ? true
+                : !sameSheet;
+            AppendEndpoint(output, End, dialect, includeSheet);
         }
         return output.ToString();
     }
@@ -154,6 +166,7 @@ public sealed class SpreadsheetRangeReference {
             cursor++;
             if (!TryReadEndpoint(text, ref cursor, SpreadsheetAddressDialect.ExcelA1, allowPartial: true,
                     allowImplicitCurrentSheet: false, out second)) return false;
+            second = InheritA1SheetQualifier(SpreadsheetAddressDialect.ExcelA1, first!, second!);
         }
         if (second == null && !first!.IsCell) return false;
         if (second != null && (first!.Column.HasValue != second.Column.HasValue || first.Row.HasValue != second.Row.HasValue)) return false;
@@ -181,7 +194,7 @@ public sealed class SpreadsheetRangeReference {
         string? sheetName = null;
         bool sheetAbsolute = false;
 
-        if (dialect == SpreadsheetAddressDialect.ExcelA1) {
+        if (UsesA1Syntax(dialect)) {
             int qualifierCursor = cursor;
             if (TryReadExcelSheetQualifier(text, ref qualifierCursor, out string? parsedSheet)) {
                 sheetName = parsedSheet;
@@ -348,7 +361,7 @@ public sealed class SpreadsheetRangeReference {
         SpreadsheetCellReference endpoint,
         SpreadsheetAddressDialect dialect,
         bool includeSheet) {
-        if (dialect == SpreadsheetAddressDialect.ExcelA1) {
+        if (UsesA1Syntax(dialect)) {
             if (includeSheet && endpoint.SheetName != null) {
                 output.Append('\'').Append(endpoint.SheetName.Replace("'", "''")).Append("'!");
             }
@@ -399,4 +412,21 @@ public sealed class SpreadsheetRangeReference {
 
     private static bool IsIdentifierCharacter(char character) =>
         IsAsciiLetter(character) || (character >= '0' && character <= '9') || character == '_';
+
+    private static bool UsesA1Syntax(SpreadsheetAddressDialect dialect) =>
+        dialect == SpreadsheetAddressDialect.ExcelA1 || dialect == SpreadsheetAddressDialect.UnboundedA1;
+
+    private static SpreadsheetCellReference InheritA1SheetQualifier(
+        SpreadsheetAddressDialect dialect,
+        SpreadsheetCellReference first,
+        SpreadsheetCellReference second) {
+        if (!UsesA1Syntax(dialect) || first.SheetName == null || second.SheetName != null) return second;
+        return new SpreadsheetCellReference(
+            first.SheetName,
+            first.IsSheetAbsolute,
+            second.Column,
+            second.IsColumnAbsolute,
+            second.Row,
+            second.IsRowAbsolute);
+    }
 }

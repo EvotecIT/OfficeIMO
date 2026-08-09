@@ -105,7 +105,7 @@ public class OpenDocumentSchemaArtifactTests {
             Assert.True(validation.IsValid, string.Join(Environment.NewLine, validation.Diagnostics.Select(item => item.Id + ": " + item.Message)));
             if (document is OdtDocument text) {
                 Assert.Contains(text.ContentBlocks, block => block.Paragraph?.Text.IndexOf("Schema proof", StringComparison.Ordinal) >= 0);
-                OdtParagraph rich = text.Paragraphs.Single(paragraph => paragraph.Text.Contains("Native ODT", StringComparison.Ordinal));
+                OdtParagraph rich = text.Paragraphs.Single(paragraph => paragraph.Text.IndexOf("Native ODT", StringComparison.Ordinal) >= 0);
                 Assert.Contains(rich.InlineNodes, node => node.Kind == OdtInlineNodeKind.Span && node.Span!.Underline == true);
                 Assert.Contains(rich.InlineNodes, node => node.Kind == OdtInlineNodeKind.Hyperlink &&
                     Uri.Compare(new Uri(node.Hyperlink!.Href), new Uri("https://example.com"),
@@ -119,7 +119,7 @@ public class OpenDocumentSchemaArtifactTests {
                 Assert.Contains(spreadsheet.Validations, item => item.ParsedCondition?.ValueKind == OdsValidationValueKind.WholeNumber);
             } else if (document is OdpPresentation presentation) {
                 OdpParagraph rich = presentation.Slides.SelectMany(slide => slide.Shapes).OfType<OdpTextBox>()
-                    .SelectMany(box => box.Paragraphs).Single(paragraph => paragraph.Text.Contains("Native ODP", StringComparison.Ordinal));
+                    .SelectMany(box => box.Paragraphs).Single(paragraph => paragraph.Text.IndexOf("Native ODP", StringComparison.Ordinal) >= 0);
                 Assert.Contains(rich.InlineNodes, node => node.Kind == OdpInlineNodeKind.Run && node.Run!.StrikeThrough == true);
                 Assert.Contains(rich.InlineNodes, node => node.Kind == OdpInlineNodeKind.Hyperlink &&
                     Uri.Compare(new Uri(node.Hyperlink!.Href), new Uri("https://example.com"),
