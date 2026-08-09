@@ -36,16 +36,38 @@ public sealed class OdpParagraph {
     public string? StyleName { get => (string?)_element.Attribute(OdfNamespaces.Text + "style-name"); set { _element.SetAttributeValue(OdfNamespaces.Text + "style-name", value); Dirty(); } }
     /// <summary>Inline text runs.</summary>
     public IReadOnlyList<OdpRun> Runs => _element.Descendants(OdfNamespaces.Text + "span").Select(element => new OdpRun(_presentation, element)).ToList();
+    /// <summary>Direct inline nodes in document order.</summary>
+    public IReadOnlyList<OdpInlineNode> InlineNodes => OdpInlineNode.Read(_presentation, _element);
     /// <summary>Explicit or inherited bold state.</summary>
     public bool? Bold { get => Resolve(style => style.Bold); set => EnsureStyle().Bold = value; }
+    /// <summary>Explicit or inherited italic state.</summary>
+    public bool? Italic { get => Resolve(style => style.Italic); set => EnsureStyle().Italic = value; }
     /// <summary>Explicit or inherited font size.</summary>
     public OdfLength? FontSize { get => Resolve(style => style.FontSize); set => EnsureStyle().FontSize = value; }
+    /// <summary>Explicit or inherited font family.</summary>
+    public string? FontFamily { get => ResolveReference(style => style.FontFamily); set => EnsureStyle().FontFamily = value; }
+    /// <summary>Explicit or inherited text color.</summary>
+    public OdfColor? Color { get => Resolve(style => style.Color); set => EnsureStyle().Color = value; }
+    /// <summary>Appends plain text while encoding ODF whitespace semantics.</summary>
+    public OdpParagraph AddText(string text) { OdfTextCodec.Append(_element, text); Dirty(); return this; }
     /// <summary>Adds an inline text run.</summary>
     public OdpRun AddRun(string? text = null) { var span = new XElement(OdfNamespaces.Text + "span"); OdfTextCodec.Append(span, text); _element.Add(span); Dirty(); return new OdpRun(_presentation, span); }
+    /// <summary>Adds a hyperlink without resolving or fetching its target.</summary>
+    public OdpHyperlink AddHyperlink(string text, string href) {
+        if (string.IsNullOrWhiteSpace(href)) throw new ArgumentException("Hyperlink target cannot be empty.", nameof(href));
+        var element = new XElement(OdfNamespaces.Text + "a",
+            new XAttribute(OdfNamespaces.XLink + "type", "simple"),
+            new XAttribute(OdfNamespaces.XLink + "href", href));
+        OdfTextCodec.Append(element, text); _element.Add(element); Dirty(); return new OdpHyperlink(_presentation, element);
+    }
     private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(_element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Paragraph, "ofPr");
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct {
         OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Paragraph, StyleName); if (style == null) return null;
         foreach (OdfStyle candidate in _presentation.Styles.Resolve(style)) { T? value = selector(candidate); if (value.HasValue) return value; } return null;
+    }
+    private string? ResolveReference(Func<OdfStyle, string?> selector) {
+        OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Paragraph, StyleName); if (style == null) return null;
+        foreach (OdfStyle candidate in _presentation.Styles.Resolve(style)) { string? value = selector(candidate); if (value != null) return value; } return null;
     }
     private void Dirty() => _presentation.MarkPartDirty("content.xml");
 }
@@ -62,12 +84,18 @@ public sealed class OdpRun {
     public bool? Bold { get => Resolve(style => style.Bold); set => EnsureStyle().Bold = value; }
     /// <summary>Explicit or inherited italic state.</summary>
     public bool? Italic { get => Resolve(style => style.Italic); set => EnsureStyle().Italic = value; }
+    /// <summary>Explicit or inherited underline state.</summary>
+    public bool? Underline { get => Resolve(style => style.Underline); set => EnsureStyle().Underline = value; }
+    /// <summary>Explicit or inherited strike-through state.</summary>
+    public bool? StrikeThrough { get => Resolve(style => style.StrikeThrough); set => EnsureStyle().StrikeThrough = value; }
     /// <summary>Explicit or inherited font size.</summary>
     public OdfLength? FontSize { get => Resolve(style => style.FontSize); set => EnsureStyle().FontSize = value; }
     /// <summary>Explicit or inherited font family.</summary>
     public string? FontFamily { get => ResolveReference(style => style.FontFamily); set => EnsureStyle().FontFamily = value; }
     /// <summary>Explicit or inherited text color.</summary>
     public OdfColor? Color { get => Resolve(style => style.Color); set => EnsureStyle().Color = value; }
+    /// <summary>Explicit or inherited text background color.</summary>
+    public OdfColor? BackgroundColor { get => Resolve(style => style.TextBackgroundColor); set => EnsureStyle().TextBackgroundColor = value; }
     private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(_element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofRun");
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct {
         OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Text, StyleName); if (style == null) return null;

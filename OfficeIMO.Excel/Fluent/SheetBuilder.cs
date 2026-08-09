@@ -5,6 +5,7 @@ using System.Data;
 using System.Reflection;
 using System.Text;
 using OfficeIMO.Data;
+using OfficeIMO.Spreadsheet;
 using OfficeColor = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Excel.Fluent {
@@ -289,12 +290,15 @@ namespace OfficeIMO.Excel.Fluent {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             if (string.IsNullOrWhiteSpace(reference)) throw new ArgumentNullException(nameof(reference));
 
-            var parts = reference.Split(':');
-            var start = parts[0];
-            var end = parts.Length > 1 ? parts[1] : parts[0];
-
-            var (fromRow, fromCol) = ParseCellReference(start);
-            var (toRow, toCol) = ParseCellReference(end);
+            SpreadsheetRangeReference syntax = SpreadsheetRangeReference.Parse(reference, SpreadsheetAddressDialect.ExcelA1);
+            if (!syntax.Start.IsCell || !(syntax.End ?? syntax.Start).IsCell) {
+                throw new ArgumentException("Range must contain cell endpoints.", nameof(reference));
+            }
+            SpreadsheetCellReference end = syntax.End ?? syntax.Start;
+            int fromRow = checked((int)syntax.Start.Row!.Value);
+            int fromCol = syntax.Start.Column!.Value;
+            int toRow = checked((int)end.Row!.Value);
+            int toCol = end.Column!.Value;
 
             var builder = new RangeBuilder(Sheet, fromRow, fromCol, toRow, toCol);
             action(builder);
@@ -757,18 +761,9 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         private static (int Row, int Column) ParseCellReference(string reference) {
-            int i = 0;
-            int col = 0;
-            while (i < reference.Length && char.IsLetter(reference[i])) {
-                col = col * 26 + (char.ToUpperInvariant(reference[i]) - 'A' + 1);
-                i++;
-            }
-            if (col == 0 || i >= reference.Length) throw new ArgumentException("Invalid cell reference", nameof(reference));
-            var rowPart = reference.Substring(i);
-            if (!int.TryParse(rowPart, out int row) || row <= 0) {
-                throw new ArgumentException("Invalid cell reference", nameof(reference));
-            }
-            return (row, col);
+            SpreadsheetRangeReference syntax = SpreadsheetRangeReference.Parse(reference, SpreadsheetAddressDialect.ExcelA1);
+            if (syntax.End != null || !syntax.Start.IsCell) throw new ArgumentException("Invalid cell reference", nameof(reference));
+            return (checked((int)syntax.Start.Row!.Value), syntax.Start.Column!.Value);
         }
 
         private sealed class RowsFromSimpleTypePlan {

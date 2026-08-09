@@ -559,7 +559,7 @@ public partial class RtfDocumentRichFeatureTests {
         paragraph.AddText(" after");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.Read(rtf, RtfReadOptions.CreateCompatibilityProfile());
 
         Assert.Contains(@"{\object\objemb\objw100\objh200\objscalex75\objscaley80{\*\objclass Package}{\*\objname Attachment}{\*\objdata 010203ff}{\result \b Display\b0 }}", rtf, StringComparison.Ordinal);
         RtfParagraph readParagraph = Assert.Single(read.Document.Paragraphs);

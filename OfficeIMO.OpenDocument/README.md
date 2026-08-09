@@ -38,6 +38,15 @@ sheet.Cell(1, 1).SetDecimal(42.5m);
 
 OdsCell total = sheet.Cell(2, 1);
 total.Formula = "of:=SUM([.B2:.B2])";
+OdsValidation positive = workbook.AddValidation(
+    "PositiveAmount",
+    OdsValidationConditionSyntax.Create(
+        OdsValidationValueKind.DecimalNumber,
+        OdsValidationComparison.GreaterThan,
+        "0"));
+positive.SetHelpMessage("Amount", "Enter a value greater than zero.");
+positive.SetErrorMessage("Invalid amount", "The amount must be positive.");
+sheet.Cell(1, 1).ValidationName = positive.Name;
 OdsRecalculationReport calculation = workbook.Recalculate();
 if (calculation.FailedCells > 0) {
     Console.WriteLine(calculation.Diagnostics[0].Message);
@@ -87,9 +96,9 @@ New documents use ODF 1.4. Set `OdfCompatibilityProfile.Odf13` when the output n
 | Area | Current support |
 | --- | --- |
 | Package | Bounded ZIP/XML loading, direct reading of seekable package streams, manifest updates, deterministic output, metadata, atomic path saves, flat XML projection with loss reporting, unknown-entry preservation |
-| ODT | Paragraphs, headings, runs, whitespace controls, styles, lists, tables and spans, links, bookmarks, sections, page layout, headers/footers, page breaks, images, paragraph insertion/deletion tracking |
-| ODS | Sparse repeated rows/cells, typed values, OpenFormula text and cached values, bounded formula evaluation/recalculation, styles and data formats, merges, row/column sizing and visibility, sheet order, named ranges, links, validation, print ranges |
-| ODP | Slide order and visibility, page size, masters/layouts, text and lists, rectangles, ellipses, lines, groups, transforms, images and crop, tables, speaker notes, backgrounds, transitions, basic shape animations |
+| ODT | Paragraphs, headings, ordered inline text/span/link/image/bookmark syntax, whitespace controls, common text and paragraph styles, lists, tables, sections, page layout, headers/footers, page breaks, images, paragraph insertion/deletion tracking |
+| ODS | Sparse repeated rows/cells, typed values, OpenFormula text and cached values, bounded formula evaluation/recalculation, styles and data formats, merges, row/column sizing and visibility, sheet order, typed named ranges, annotations, typed scalar/list validations and messages, links, print ranges |
+| ODP | Slide order and visibility, page size, masters/layouts, ordered inline text/run/link syntax, common run styles, lists, rectangles, ellipses, lines, groups, transforms, images and crop, tables, speaker notes, backgrounds, transitions, basic shape animations |
 | Inspection | Annotations, tracked changes, extension namespaces, scripts, event listeners, external links, embedded objects, formulas, validations, transitions, animations, encryption, and signatures |
 
 Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawing features are preserved when their owning part is not replaced. The library never executes scripts, macros, event listeners, embedded objects, or external links. Formula evaluation is a bounded, side-effect-free parser for the documented local subset; it does not execute active content or fetch data.
@@ -99,6 +108,8 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 ## Explicit boundaries
 
 - Formula evaluation covers arithmetic, comparisons, concatenation, cell/range references, and common aggregate/math functions. External data, volatile functions, matrix formulas, and the complete OpenFormula language are not included.
+- Typed validation syntax covers explicit lists and scalar whole-number, decimal, and text-length comparisons. Other valid ODF conditions remain preserved text and are reported by conversions that cannot map them exactly.
+- Ordered ODT/ODP inline syntax types direct text, spans/runs, hyperlinks, images, and bookmark markers. Nested inline markup remains preserved in the package and is surfaced as an untyped node so conversion loss is explicit.
 - Tracked-change editing covers paragraph insertions and deletions. Arbitrary inline merges and conflict resolution remain preservation-oriented.
 - Animation editing covers basic shape-attribute effects and fade-in timing. Advanced timing trees are preserved when untouched.
 - Encrypted packages are detected and rejected before editing.

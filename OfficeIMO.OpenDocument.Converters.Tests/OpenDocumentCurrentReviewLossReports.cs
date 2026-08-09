@@ -20,6 +20,50 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
 
     [Fact]
+    public void PowerPointToOdp_Reports_Formatting_And_Notes_Disabled_By_Options() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointSlide slide = source.AddSlide();
+        PowerPointTextBox text = slide.AddTextBoxPoints("Styled", 10, 10, 200, 40);
+        text.Paragraphs[0].Runs[0].Bold = true;
+        text.FillColor = "112233";
+        slide.Notes.Text = "Private note";
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult(
+            new PowerPointOpenDocumentConversionOptions {
+                IncludeBasicFormatting = false,
+                IncludeSpeakerNotes = false
+            });
+
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "basic-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count >= 2);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "speaker-notes" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void OdpToPowerPoint_Reports_Formatting_And_Notes_Disabled_By_Options() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpSlide slide = source.AddSlide("Styled");
+        OdpTextBox text = slide.AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2));
+        text.FillColor = OdfColor.Parse("#112233");
+        text.AddParagraph().AddRun("Styled").Bold = true;
+        slide.GetOrCreateSpeakerNotes().AddParagraph("Private note");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult(
+            new PowerPointOpenDocumentConversionOptions {
+                IncludeBasicFormatting = false,
+                IncludeSpeakerNotes = false
+            });
+        using PowerPointPresentation target = conversion.Value;
+        OdfConversionReport report = conversion.Report;
+
+        Assert.Contains(report.Mappings, mapping => mapping.Feature == "basic-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count >= 2);
+        Assert.Contains(report.Mappings, mapping => mapping.Feature == "speaker-notes" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 1);
+    }
+
+    [Fact]
     public void WordToOdtReportsFlattenedNestedListLevels() {
         using WordDocument source = WordDocument.Create();
         WordList list = source.AddListNumbered();
@@ -34,20 +78,169 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
-    public void OdtToWordReportsHeaderAndFooterImagesAsSkipped() {
+    public void OdtToWordPreservesHeaderInlineFormattingAndImages() {
         OdtDocument source = OdtDocument.Create();
-        source.PageLayout.Header.AddParagraph("Logo").AddImage(TinyPng, "header.png",
-            OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+        OdtParagraph header = source.PageLayout.Header.AddParagraph();
+        header.AddSpan("Styled").Bold = true;
+        header.AddImage(TinyPng, "header.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        WordParagraph paragraph = Assert.Single(target.Header!.Default!.Paragraphs, item => item.Text.Contains("Styled", StringComparison.Ordinal));
+        WordParagraph[] runs = paragraph.GetRuns().ToArray();
+
+        Assert.Contains(runs, run => run.Text == "Styled" && run.Bold);
+        Assert.Contains(runs, run => run.IsImage);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped);
+    }
+
+    [Fact]
+    public void OdsConvertedAnnotationsAndNamedRangesPassStrictSkippedOrUnsupportedPolicy() {
+        OdsDocument source = OdsDocument.Create();
+        source.AddSheet("Data").Cell(0, 0).AddAnnotation("Review", "Alice");
+        source.AddNamedRange("Input", "$'Data'.$A$1");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            });
+        using ExcelDocument target = conversion.Value;
+
+        Assert.False(conversion.Report.HasSkippedOrUnsupported, Describe(conversion.Report));
+        conversion.Report.RequireNoSkippedOrUnsupported();
+        Assert.Single(target.Sheets.Single().GetComments());
+        Assert.Contains(target.CreateInspectionSnapshot().NamedRanges, name => name.Name == "Input");
+    }
+
+    [Fact]
+    public void OdpConvertedLinksNotesAndMasterPassStrictSkippedOrUnsupportedPolicy() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpMasterPage master = source.AddMasterPage("Brand");
+        OdpSlide slide = source.AddSlide("Source");
+        slide.MasterPageName = master.Name;
+        slide.AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2))
+            .AddParagraph().AddHyperlink("Web", "https://example.test/");
+        slide.GetOrCreateSpeakerNotes().AddParagraph("Presenter note");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult(
+            new PowerPointOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            });
+        using PowerPointPresentation target = conversion.Value;
+
+        Assert.False(conversion.Report.HasSkippedOrUnsupported, Describe(conversion.Report));
+        conversion.Report.RequireNoSkippedOrUnsupported();
+        Assert.Equal("Presenter note", target.Slides.Single().GetSpeakerNotesText());
+        Assert.Equal("https://example.test/", target.Slides.Single().TextBoxes.Single()
+            .Paragraphs.Single().Runs.Single().Hyperlink!.ToString());
+    }
+
+    [Fact]
+    public void OdpInternalSlideLinkCreatesAnInternalPowerPointRelationship() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide("First").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2))
+            .AddParagraph().AddHyperlink("Next", "#slide-2");
+        source.AddSlide("Second");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+
+        Assert.Equal("#slide-2", target.Slides[0].TextBoxes.Single().Paragraphs.Single()
+            .Runs.Single().Hyperlink!.ToString());
+        byte[] package = target.ToBytes();
+        string slideXml = ReadFirstPackageEntry(package, name =>
+            name.StartsWith("ppt/slides/slide", StringComparison.Ordinal)
+            && name.EndsWith(".xml", StringComparison.Ordinal));
+        string relationships = ReadFirstPackageEntry(package, name =>
+            name.StartsWith("ppt/slides/_rels/slide", StringComparison.Ordinal)
+            && name.EndsWith(".xml.rels", StringComparison.Ordinal));
+        Assert.Contains("ppaction://hlinksldjump", slideXml, StringComparison.Ordinal);
+        Assert.DoesNotContain("TargetMode=\"External\"", relationships, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OdtInternalLinkDoesNotMaskUnsupportedExternalImage() {
+        OdtDocument template = OdtDocument.Create();
+        OdtParagraph paragraph = template.AddParagraph();
+        paragraph.AddHyperlink("Internal", "#target");
+        paragraph.AddImage(TinyPng, "pixel.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+        byte[] package = RewriteXmlEntry(template.ToBytes(), "content.xml", document =>
+            document.Descendants().Single(element => element.Name.LocalName == "image")
+                .SetAttributeValue(XName.Get("href", "http://www.w3.org/1999/xlink"), "https://example.test/external.png"));
+        OdtDocument source = OdtDocument.Load(new MemoryStream(package));
 
         OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
 
-        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
-            mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 1);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-external-links" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
     }
 
     [Fact]
-    public void OdpToPowerPointReportsFlattenedListsAndMixedRuns() {
+    public void OdsInternalLinkDoesNotMaskUnsupportedExternalDrawingResource() {
+        OdsDocument template = OdsDocument.Create();
+        OdsCell cell = template.AddSheet("Links").Cell(0, 0);
+        cell.SetString("Internal");
+        cell.SetHyperlink("Internal", "#$'Links'.A1");
+        byte[] package = RewriteXmlEntry(template.ToBytes(), "content.xml", document => {
+            XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+            XNamespace xlink = "http://www.w3.org/1999/xlink";
+            document.Descendants().First(element => element.Name.LocalName == "table-cell").Add(
+                new XElement(draw + "frame",
+                    new XElement(draw + "image", new XAttribute(xlink + "href", "https://example.test/external.png"))));
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-external-links" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+    }
+
+    [Fact]
+    public void OdpInternalLinkDoesNotMaskUnsupportedExternalImage() {
+        OdpPresentation template = OdpPresentation.Create();
+        template.AddSlide("First").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2))
+            .AddParagraph().AddHyperlink("Next", "#slide-2");
+        OdpSlide second = template.AddSlide("Second");
+        second.AddImage(TinyPng, "pixel.png", OdfRect.FromCentimeters(1, 1, 2, 2));
+        byte[] package = RewriteXmlEntry(template.ToBytes(), "content.xml", document =>
+            document.Descendants().Single(element => element.Name.LocalName == "image")
+                .SetAttributeValue(XName.Get("href", "http://www.w3.org/1999/xlink"), "https://example.test/external.png"));
+        OdpPresentation source = OdpPresentation.Load(new MemoryStream(package));
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-external-links" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+    }
+
+    [Fact]
+    public void UnreadableAuxiliaryOdfXmlIsPropagatedIntoStrictConversionReport() {
+        OdsDocument template = OdsDocument.Create();
+        template.AddSheet("Data").Cell(0, 0).SetString("Visible");
+        byte[] package = OdfTestPackageRewriter.Rewrite(template.ToBytes(), new[] {
+            new OdfTestPackageEntry("settings.xml", Encoding.UTF8.GetBytes("<broken"))
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "source-inspection"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+    }
+
+    [Fact]
+    public void OdpToPowerPointReportsFlattenedListsButPreservesMixedRuns() {
         OdpPresentation source = OdpPresentation.Create();
         OdpTextBox textBox = source.AddSlide("Text").AddTextBox(
             OdfRect.FromCentimeters(1, 1, 8, 4), null, "Content");
@@ -60,9 +253,10 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-lists" &&
             mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
-        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "inline-formatting" &&
-            mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
-        Assert.Contains("Plain Bold", target.Slides.Single().TextBoxes.Single().Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "inline-formatting");
+        var runs = target.Slides.Single().TextBoxes.Single().Paragraphs[0].Runs;
+        Assert.Equal(new[] { "Plain ", "Bold" }, runs.Select(run => run.Text));
+        Assert.True(runs[1].Bold);
     }
 
     [Fact]
@@ -133,8 +327,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         OdsDocument target = source.ToOpenDocument();
 
-        Assert.Equal("of:=sum([.a1];[$'Data'.a1])", target.GetSheet("Data")!.GetFormula(0, 1));
-        Assert.Equal("of:=SUM(A1_total;[.a1])", target.GetSheet("Data")!.GetFormula(0, 2));
+        Assert.Equal("of:=sum([.A1];[$'Data'.A1])", target.GetSheet("Data")!.GetFormula(0, 1));
+        Assert.Equal("of:=SUM(A1_total;[.A1])", target.GetSheet("Data")!.GetFormula(0, 2));
     }
 
     [Fact]
@@ -243,4 +437,19 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             return bytes;
         });
     }
+
+    private static string ReadFirstPackageEntry(byte[] packageBytes, Func<string, bool> predicate) {
+        using var stream = new MemoryStream(packageBytes, writable: false);
+        using var package = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Read);
+        System.IO.Compression.ZipArchiveEntry entry = package.Entries
+            .OrderBy(item => item.FullName, StringComparer.Ordinal)
+            .FirstOrDefault(item => predicate(item.FullName))
+            ?? throw new InvalidDataException("Matching package entry was not found.");
+        using Stream input = entry.Open();
+        using var reader = new StreamReader(input, Encoding.UTF8);
+        return reader.ReadToEnd();
+    }
+
+    private static string Describe(OdfConversionReport report) => string.Join("; ", report.Mappings.Select(mapping =>
+        mapping.Feature + "=" + mapping.Status + "(" + mapping.Count + "):" + mapping.Message));
 }

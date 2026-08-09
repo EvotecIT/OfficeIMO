@@ -876,43 +876,12 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            bool overflow = false;
-            RewriteFormulaReferencesOutsideStrings(formulaText, segment => {
-                ReplaceFormulaRanges(segment, match => {
-                    if (CanRewriteFormulaRangeQualifier(match, Name, rewriteUnqualifiedReferences)
-                        && int.TryParse(match.Groups["startRow"].Value, out int first)
-                        && int.TryParse(match.Groups["endRow"].Value, out int last)
-                        && Math.Max(first, last) >= firstRow
-                        && (long)Math.Max(first, last) + count > A1.MaxRows) {
-                        overflow = true;
-                    }
-                    return match.Value;
-                });
-                ReplaceFormulaRowRanges(segment, match => {
-                    if (CanRewriteFormulaRangeQualifier(match, Name, rewriteUnqualifiedReferences)
-                        && int.TryParse(match.Groups["startRow"].Value, out int first)
-                        && int.TryParse(match.Groups["endRow"].Value, out int last)
-                        && Math.Max(first, last) >= firstRow
-                        && (long)Math.Max(first, last) + count > A1.MaxRows) {
-                        overflow = true;
-                    }
-                    return match.Value;
-                });
-                ReplaceFormulaReferences(segment, match => {
-                    if (CanRewriteFormulaReference(
-                            match,
-                            Name,
-                            allowAbsoluteRows: true,
-                            allowOtherSheets: false,
-                            out int row,
-                            rewriteUnqualifiedReferences)
-                        && row >= firstRow
-                        && (long)row + count > A1.MaxRows) {
-                        overflow = true;
-                    }
-                    return match.Value;
-                });
-                return segment;
+            bool overflow = ExcelFormulaReferenceRewriter.FindReferences(formulaText).Any(match => {
+                if (IsFormulaFunctionReferenceToken(formulaText, match)
+                    || !CanRewriteFormulaReference(match.Reference, Name, rewriteUnqualifiedReferences)
+                    || match.Reference.Kind == ExcelReferenceKind.WholeColumn) return false;
+                int last = Math.Max(match.Reference.Start.Row, match.Reference.End.Row);
+                return last >= firstRow && (long)last + count > A1.MaxRows;
             });
 
             if (overflow) {

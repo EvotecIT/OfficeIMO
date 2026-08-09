@@ -8,8 +8,11 @@ public sealed partial class LatexDocument {
     private static readonly Encoding Utf8WithoutBom = new UTF8Encoding(false);
 
     /// <summary>Loads and parses a LaTeX document from a caller-owned stream.</summary>
-    public static LatexParseResult Load(Stream stream, LatexParseOptions? options = null, Encoding? encoding = null) =>
-        Parse((encoding ?? Utf8WithoutBom).GetString(OfficeStreamReader.ReadAllBytes(stream)), options);
+    public static LatexParseResult Load(Stream stream, LatexParseOptions? options = null, Encoding? encoding = null) {
+        options ??= new LatexParseOptions();
+        byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, options.MaximumInputBytes);
+        return Parse(Decode(bytes, encoding ?? Utf8WithoutBom, options), options);
+    }
 
     /// <summary>Asynchronously loads and parses a LaTeX file.</summary>
     public static async Task<LatexParseResult> LoadAsync(
@@ -28,8 +31,38 @@ public sealed partial class LatexDocument {
         LatexParseOptions? options = null,
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
-        byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
-        return Parse((encoding ?? Utf8WithoutBom).GetString(bytes), options);
+        options ??= new LatexParseOptions();
+        byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(
+            stream,
+            cancellationToken,
+            options.MaximumInputBytes).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        string source = Decode(bytes, encoding ?? Utf8WithoutBom, options);
+        return Parse(source, options, cancellationToken);
+    }
+
+    private static string Decode(byte[] bytes, Encoding encoding, LatexParseOptions options) {
+        byte[] preamble = encoding.GetPreamble();
+        int offset = StartsWith(bytes, preamble)
+            ? preamble.Length
+            : encoding.CodePage == Encoding.UTF8.CodePage && StartsWith(bytes, new byte[] { 0xEF, 0xBB, 0xBF })
+                ? 3
+                : 0;
+        int count = bytes.Length - offset;
+        int characterCount = encoding.GetCharCount(bytes, offset, count);
+        if (options.MaximumInputLength.HasValue && characterCount > options.MaximumInputLength.Value) {
+            throw new InvalidDataException(
+                $"Decoded LaTeX source exceeds MaximumInputLength ({options.MaximumInputLength.Value} characters).");
+        }
+        return encoding.GetString(bytes, offset, count);
+    }
+
+    private static bool StartsWith(byte[] source, byte[] prefix) {
+        if (prefix.Length == 0 || prefix.Length > source.Length) return false;
+        for (int index = 0; index < prefix.Length; index++) {
+            if (source[index] != prefix[index]) return false;
+        }
+        return true;
     }
 
     /// <summary>Encodes the current document text.</summary>

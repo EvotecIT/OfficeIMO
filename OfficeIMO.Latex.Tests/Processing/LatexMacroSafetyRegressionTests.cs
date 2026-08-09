@@ -53,4 +53,66 @@ public sealed class LatexMacroSafetyRegressionTests {
 
         Assert.False(definition.IsSafe);
     }
+
+    [Fact]
+    public void MacroArgumentsUseTokenStructureSoCommentBracesCannotCloseTheGroup() {
+        LatexDocument document = LatexDocument.Parse(
+            "\\newcommand{\\foo}[1]{#1}",
+            new LatexParseOptions { MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions }).Document;
+
+        LatexMacroExpansionResult result = document.ExpandSimpleMacros("\\foo{a% }\nb}");
+
+        Assert.Equal("a% }\nb", result.Value);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
+    public void MacroNamesInsideCommentsAndVerbatimRemainOpaque() {
+        LatexDocument document = LatexDocument.Parse(
+            "\\newcommand{\\foo}[1]{<#1>}",
+            new LatexParseOptions { MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions }).Document;
+
+        LatexMacroExpansionResult result = document.ExpandSimpleMacros("% \\foo{comment}\n\\verb|\\foo{verbatim}| \\foo{live}");
+
+        Assert.Equal("% \\foo{comment}\n\\verb|\\foo{verbatim}| <live>", result.Value);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
+    public void ContractingMacroUsesIndependentInputAndOutputBudgets() {
+        LatexDocument document = LatexDocument.Parse(
+            "\\newcommand{\\shorten}[1]{x}",
+            new LatexParseOptions { MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions }).Document;
+        string invocation = "\\shorten{" + new string('a', 80) + "}";
+
+        LatexMacroExpansionResult result = LatexSimpleMacroExpander.Expand(
+            invocation,
+            document.MacroDefinitions,
+            maximumDepth: 16,
+            maximumOutputLength: 4,
+            maximumInputLength: 128);
+
+        Assert.Equal("x", result.Value);
+        Assert.Empty(result.Diagnostics);
+        Assert.Throws<ArgumentException>(() => LatexSimpleMacroExpander.Expand(
+            invocation,
+            document.MacroDefinitions,
+            maximumDepth: 16,
+            maximumOutputLength: 4,
+            maximumInputLength: 32));
+    }
+
+    [Fact]
+    public void OriginalFourParameterExpandSignatureRemainsAvailableForCompiledCallers() {
+        Assert.Contains(typeof(LatexSimpleMacroExpander).GetMethods(), method => {
+            if (method.Name != nameof(LatexSimpleMacroExpander.Expand)) return false;
+            Type[] parameterTypes = method.GetParameters().Select(parameter => parameter.ParameterType).ToArray();
+            return parameterTypes.SequenceEqual(new[] {
+                typeof(string),
+                typeof(IReadOnlyList<LatexMacroDefinition>),
+                typeof(int),
+                typeof(int)
+            });
+        });
+    }
 }

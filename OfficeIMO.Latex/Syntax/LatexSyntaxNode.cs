@@ -25,7 +25,9 @@ public enum LatexSyntaxKind {
     /// <summary>Whitespace or line ending.</summary>
     Trivia,
     /// <summary>Ordinary token or recoverable unmatched delimiter.</summary>
-    Text
+    Text,
+    /// <summary>Opaque inline verbatim command or verbatim-like environment.</summary>
+    Verbatim
 }
 
 /// <summary>Immutable node in the lossless LaTeX syntax tree.</summary>

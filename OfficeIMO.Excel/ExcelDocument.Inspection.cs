@@ -536,6 +536,13 @@ namespace OfficeIMO.Excel {
                     AllowBlank = dataValidation.AllowBlank?.Value == true,
                     Formula1 = dataValidation.GetFirstChild<Formula1>()?.Text,
                     Formula2 = dataValidation.GetFirstChild<Formula2>()?.Text,
+                    ShowInputMessage = dataValidation.ShowInputMessage?.Value == true,
+                    PromptTitle = dataValidation.PromptTitle?.Value,
+                    Prompt = dataValidation.Prompt?.Value,
+                    ShowErrorMessage = dataValidation.ShowErrorMessage?.Value == true,
+                    ErrorTitle = dataValidation.ErrorTitle?.Value,
+                    Error = dataValidation.Error?.Value,
+                    ErrorStyle = GetOpenXmlAttributeValue(dataValidation, "errorStyle"),
                 };
 
                 var sequenceOfReferences = dataValidation.SequenceOfReferences?.InnerText;

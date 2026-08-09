@@ -1,4 +1,5 @@
 using OfficeIMO.OpenDocument;
+using OfficeIMO.Spreadsheet;
 
 namespace OfficeIMO.Reader.OpenDocument;
 
@@ -74,28 +75,22 @@ internal static partial class OpenDocumentReaderAdapter {
     }
 
     private static (int FirstRow, int FirstColumn, int LastRow, int LastColumn) ParseA1Range(string value) {
-        string[] parts = value.Split(':');
-        if (parts.Length is < 1 or > 2) throw new FormatException("The ODS range must use A1 or A1:B2 notation.");
-        (int row, int column) first = ParseA1Cell(parts[0]);
-        (int row, int column) last = parts.Length == 1 ? first : ParseA1Cell(parts[1]);
-        if (last.row < first.row || last.column < first.column) {
+        if (!SpreadsheetRangeReference.TryParse(value, SpreadsheetAddressDialect.ExcelA1, out SpreadsheetRangeReference? reference)
+            || !reference!.Start.IsCell
+            || reference.Start.SheetName != null
+            || (reference.End != null && (!reference.End.IsCell || reference.End.SheetName != null))
+            || reference.Start.Row > int.MaxValue
+            || reference.End?.Row > int.MaxValue) {
+            throw new FormatException("The ODS range must use unqualified A1 or A1:B2 cell notation.");
+        }
+        SpreadsheetCellReference last = reference.End ?? reference.Start;
+        int firstRow = checked((int)reference.Start.Row!.Value);
+        int firstColumn = reference.Start.Column!.Value;
+        int lastRow = checked((int)last.Row!.Value);
+        int lastColumn = last.Column!.Value;
+        if (lastRow < firstRow || lastColumn < firstColumn) {
             throw new FormatException("The ODS range end must not precede its start.");
         }
-        return (first.row, first.column, last.row, last.column);
-    }
-
-    private static (int Row, int Column) ParseA1Cell(string value) {
-        string cell = value.Trim().Replace("$", string.Empty);
-        int index = 0;
-        int column = 0;
-        while (index < cell.Length && char.IsLetter(cell[index])) {
-            column = checked(column * 26 + char.ToUpperInvariant(cell[index]) - 'A' + 1);
-            index++;
-        }
-        if (column == 0 || index == cell.Length || !int.TryParse(
-                cell.Substring(index), NumberStyles.None, CultureInfo.InvariantCulture, out int row) || row < 1) {
-            throw new FormatException("The ODS range contains an invalid A1 cell reference.");
-        }
-        return (row, column);
+        return (firstRow, firstColumn, lastRow, lastColumn);
     }
 }

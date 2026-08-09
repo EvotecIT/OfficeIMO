@@ -828,6 +828,45 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void RtfDocumentToMarkdown_Reports_Run_And_Paragraph_Formatting_That_Cannot_Be_Represented() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph();
+        paragraph.Alignment = RtfTextAlignment.Justify;
+        paragraph.SpaceAfterTwips = 240;
+        paragraph.KeepWithNext = true;
+        RtfRun run = paragraph.AddText("Premium text");
+        run.FontSize = 18;
+        run.ForegroundColorIndex = 1;
+        run.Shadow = true;
+        run.CharacterSpacingTwips = 20;
+
+        RtfConversionResult<string> result = document.ToMarkdownResult();
+
+        Assert.Contains("Premium text", result.Value, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTFMD021" &&
+            diagnostic.Action == RtfConversionAction.Flattened);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTFMD022" &&
+            diagnostic.Action == RtfConversionAction.Flattened);
+        Assert.True(result.HasLoss);
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownReportsIncludedHiddenTextAsVisibilityFlattening() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph().AddText("Hidden").SetHidden();
+
+        RtfConversionResult<string> result = document.ToMarkdownResult(new RtfToMarkdownOptions {
+            IncludeHiddenText = true
+        });
+
+        Assert.Contains("Hidden", result.Value, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTFMD021" &&
+            diagnostic.Action == RtfConversionAction.Flattened &&
+            diagnostic.Feature != null && diagnostic.Feature.Contains("hidden-visibility", StringComparison.Ordinal));
+        Assert.True(result.HasLoss);
+    }
+
+    [Fact]
     public void RtfDocumentToMarkdownUsesParseStableInlineOmissionMarker() {
         RtfDocument document = RtfDocument.Create();
         RtfParagraph paragraph = document.AddParagraph("Before ");

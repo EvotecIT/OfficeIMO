@@ -7,6 +7,23 @@ namespace OfficeIMO.OpenDocument.Tests;
 
 public class OpenDocumentOdsTests {
     [Fact]
+    public void CellAnnotationsPreserveTextAuthorDateAndIdentity() {
+        OdsDocument document = OdsDocument.Create();
+        OdsCell cell = document.AddSheet("Data").Cell(3, 2);
+        DateTimeOffset timestamp = new DateTimeOffset(2026, 8, 9, 10, 30, 0, TimeSpan.FromHours(2));
+
+        cell.AddAnnotation("Review  this\tvalue\nbefore release", "Alice", timestamp, "note-17");
+
+        Assert.Equal(new OdsUsedRange(3, 2, 3, 2), document.Sheets.Single().UsedRange);
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(document.ToBytes()));
+        OdsAnnotation annotation = Assert.Single(reopened.Sheets.Single().Cell(3, 2).Annotations);
+        Assert.Equal("note-17", annotation.Name);
+        Assert.Equal("Alice", annotation.Creator);
+        Assert.Equal(timestamp, annotation.Date);
+        Assert.Equal("Review  this\tvalue\nbefore release", annotation.Text);
+    }
+
+    [Fact]
     public void MergeRejectsMaterializationBeyondTheConfiguredBoundWithoutMutation() {
         OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");

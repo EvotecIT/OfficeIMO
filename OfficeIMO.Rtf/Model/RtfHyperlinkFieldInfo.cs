@@ -21,126 +21,72 @@ public sealed class RtfHyperlinkFieldInfo {
     public string? ImageMap { get; set; }
 
     /// <summary>Creates a copy of this hyperlink field metadata.</summary>
-    public RtfHyperlinkFieldInfo Clone() {
-        return new RtfHyperlinkFieldInfo {
-            Target = Target,
-            SubAddress = SubAddress,
-            ScreenTip = ScreenTip,
-            TargetFrame = TargetFrame,
-            ImageMap = ImageMap
-        };
+    public RtfHyperlinkFieldInfo Clone() => new RtfHyperlinkFieldInfo {
+        Target = Target,
+        SubAddress = SubAddress,
+        ScreenTip = ScreenTip,
+        TargetFrame = TargetFrame,
+        ImageMap = ImageMap
+    };
+
+    /// <summary>Creates a canonical HYPERLINK field instruction with lossless quote escaping.</summary>
+    public string ToInstruction() {
+        var instruction = new System.Text.StringBuilder("HYPERLINK");
+        AppendArgument(instruction, null, Target?.ToString());
+        AppendArgument(instruction, "l", SubAddress);
+        AppendArgument(instruction, "m", ImageMap);
+        AppendArgument(instruction, "o", ScreenTip);
+        AppendArgument(instruction, "t", TargetFrame);
+        return instruction.ToString();
     }
 
-    internal static RtfHyperlinkFieldInfo? Parse(string instruction) {
-        const string hyperlinkKeyword = "HYPERLINK";
-        if (!StartsWithHyperlinkKeyword(instruction, hyperlinkKeyword)) {
-            return null;
-        }
+    internal static RtfHyperlinkFieldInfo? Parse(string instruction) => Parse(RtfFieldCodeSyntax.Parse(instruction));
 
-        int index = hyperlinkKeyword.Length;
+    internal static RtfHyperlinkFieldInfo? Parse(RtfFieldCodeSyntax syntax) {
+        if (!string.Equals(syntax.Keyword, "HYPERLINK", StringComparison.OrdinalIgnoreCase)) return null;
         var info = new RtfHyperlinkFieldInfo();
-        while (index < instruction.Length) {
-            SkipWhiteSpace(instruction, ref index);
-            if (index >= instruction.Length) {
-                break;
-            }
-
-            if (instruction[index] == '\\') {
-                ReadSwitch(instruction, ref index, info);
+        string? pendingSwitch = null;
+        bool targetAssigned = false;
+        foreach (RtfFieldCodeToken token in syntax.Tokens) {
+            if (token.Kind is RtfFieldCodeTokenKind.Whitespace or RtfFieldCodeTokenKind.Keyword) continue;
+            if (token.Kind == RtfFieldCodeTokenKind.Switch) {
+                pendingSwitch = ConsumesArgument(token.Value) ? token.Value : null;
                 continue;
             }
-
-            string target = ReadToken(instruction, ref index);
-            if (target.Length > 0 && Uri.TryCreate(target, UriKind.RelativeOrAbsolute, out Uri? uri)) {
+            if (pendingSwitch != null) {
+                ApplySwitch(info, pendingSwitch, token.Value);
+                pendingSwitch = null;
+                continue;
+            }
+            if (!targetAssigned && Uri.TryCreate(token.Value, UriKind.RelativeOrAbsolute, out Uri? uri)) {
                 info.Target = uri;
+                targetAssigned = true;
             }
         }
-
         return info;
     }
 
-    private static bool StartsWithHyperlinkKeyword(string instruction, string keyword) {
-        if (!instruction.StartsWith(keyword, StringComparison.OrdinalIgnoreCase)) {
-            return false;
-        }
+    private static bool ConsumesArgument(string name) =>
+        string.Equals(name, "l", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(name, "m", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(name, "o", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(name, "t", StringComparison.OrdinalIgnoreCase);
 
-        return instruction.Length == keyword.Length || char.IsWhiteSpace(instruction[keyword.Length]);
-    }
-
-    private static void ReadSwitch(string instruction, ref int index, RtfHyperlinkFieldInfo info) {
-        index++;
-        int switchStart = index;
-        while (index < instruction.Length && !char.IsWhiteSpace(instruction[index])) {
-            index++;
-        }
-
-        string switchName = instruction.Substring(switchStart, index - switchStart);
-        if (!SwitchConsumesArgument(switchName)) {
-            return;
-        }
-
-        SkipWhiteSpace(instruction, ref index);
-        if (index >= instruction.Length || instruction[index] == '\\') {
-            return;
-        }
-
-        string value = ReadToken(instruction, ref index);
-        switch (switchName.ToLowerInvariant()) {
-            case "l":
-                info.SubAddress = value;
-                break;
-            case "m":
-                info.ImageMap = value;
-                break;
-            case "o":
-                info.ScreenTip = value;
-                break;
-            case "t":
-                info.TargetFrame = value;
-                break;
+    private static void ApplySwitch(RtfHyperlinkFieldInfo info, string name, string value) {
+        switch (name.ToLowerInvariant()) {
+            case "l": info.SubAddress = value; break;
+            case "m": info.ImageMap = value; break;
+            case "o": info.ScreenTip = value; break;
+            case "t": info.TargetFrame = value; break;
         }
     }
 
-    private static bool SwitchConsumesArgument(string switchName) {
-        return string.Equals(switchName, "l", StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(switchName, "m", StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(switchName, "o", StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(switchName, "t", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static void SkipWhiteSpace(string text, ref int index) {
-        while (index < text.Length && char.IsWhiteSpace(text[index])) {
-            index++;
-        }
-    }
-
-    private static string ReadToken(string text, ref int index) {
-        return index < text.Length && text[index] == '"'
-            ? ReadQuotedToken(text, ref index)
-            : ReadUnquotedToken(text, ref index);
-    }
-
-    private static string ReadQuotedToken(string text, ref int index) {
-        index++;
-        var builder = new System.Text.StringBuilder();
-        while (index < text.Length) {
-            char value = text[index++];
-            if (value == '"') {
-                break;
-            }
-
-            builder.Append(value);
-        }
-
-        return builder.ToString();
-    }
-
-    private static string ReadUnquotedToken(string text, ref int index) {
-        int start = index;
-        while (index < text.Length && !char.IsWhiteSpace(text[index])) {
-            index++;
-        }
-
-        return text.Substring(start, index - start);
+    private static void AppendArgument(System.Text.StringBuilder instruction, string? fieldSwitch, string? value) {
+        if (string.IsNullOrEmpty(value)) return;
+        instruction.Append(' ');
+        if (fieldSwitch != null) instruction.Append('\\').Append(fieldSwitch).Append(' ');
+        instruction.Append('"')
+            .Append(value!.Replace("\\", "\\\\").Replace("\"", "\\\""))
+            .Append('"');
     }
 }

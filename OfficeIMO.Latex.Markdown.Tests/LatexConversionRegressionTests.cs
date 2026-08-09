@@ -1,6 +1,37 @@
 namespace OfficeIMO.Latex.Markdown.Tests;
 
 public sealed class LatexConversionRegressionTests {
+    [Theory]
+    [InlineData("article", "\\section{One}\n\\subsection{Two}", 1, 2)]
+    [InlineData("report", "\\chapter{One}\n\\section{Two}", 1, 2)]
+    [InlineData("book", "\\chapter{One}\n\\section{Two}", 1, 2)]
+    public void Heading_Hierarchy_Is_Normalized_For_The_Document_Class(
+        string documentClass,
+        string headings,
+        int firstLevel,
+        int secondLevel) {
+        string source = "\\documentclass{" + documentClass + "}\n\\begin{document}\n" + headings + "\n\\end{document}\n";
+
+        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        HeadingBlock[] converted = result.Value.Blocks.OfType<HeadingBlock>().ToArray();
+
+        Assert.Equal(new[] { firstLevel, secondLevel }, converted.Select(heading => heading.Level));
+        Assert.Equal(2, result.Report.Diagnostics.Count(diagnostic => diagnostic.Feature == "heading-numbering"));
+    }
+
+    [Fact]
+    public void Starred_Heading_State_Is_Exposed_And_Reported_As_Simplified() {
+        const string source = "\\documentclass{article}\n\\begin{document}\n\\section*{Unnumbered}\n\\end{document}\n";
+
+        LatexDocument document = LatexDocument.Parse(source).Document;
+        LatexToMarkdownResult result = document.ToMarkdownDocumentResult();
+
+        Assert.True(Assert.Single(document.Headings).IsStarred);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD212" &&
+            diagnostic.Message.Contains("unnumbered", StringComparison.Ordinal));
+        Assert.Equal(1, Assert.Single(result.Value.Blocks.OfType<HeadingBlock>()).Level);
+    }
+
     [Fact]
     public void CaptionedTable_RemainsVisibleAndCarriesCaptionAndLabelMetadata() {
         const string source =
@@ -149,5 +180,68 @@ public sealed class LatexConversionRegressionTests {
         Assert.Contains("\\usepackage{ulem}", result.Source, StringComparison.Ordinal);
         Assert.Contains("\\sout{gone \\textbf{bold}}", result.Source, StringComparison.Ordinal);
         Assert.DoesNotContain("\\usepackage{amsmath}", result.Source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CommentAndVerbatimEnvironmentsRemainOpaqueDuringMarkdownConversion() {
+        const string source =
+            "\\documentclass{article}\n\\begin{document}\n" +
+            "Before.\n\\begin{comment}SECRET \\section{Hidden}\\end{comment}\n" +
+            "\\begin{verbatim}literal % value { \\command\\end{verbatim}\n" +
+            "After.\n\\end{document}\n";
+
+        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        string markdown = result.Value.ToMarkdown();
+
+        Assert.DoesNotContain("SECRET", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden", markdown, StringComparison.Ordinal);
+        Assert.Contains("literal % value { \\command", markdown, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "LATEXMD210" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "LATEXMD213" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Simplified);
+    }
+
+    [Fact]
+    public void InlineVerbPreservesCommentMarkersAsCode() {
+        const string source =
+            "\\documentclass{article}\n\\begin{document}\nBefore \\verb|a%b{c}| after.\n\\end{document}\n";
+
+        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        string markdown = result.Value.ToMarkdown();
+
+        Assert.Contains("`a%b{c}`", markdown, StringComparison.Ordinal);
+        Assert.Contains("after", markdown, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD111");
+    }
+
+    [Fact]
+    public void CommentNestedInsideUnknownEnvironmentIsOmittedFromSourceFallback() {
+        const string source =
+            "\\documentclass{article}\n\\begin{document}\n" +
+            "\\begin{unknown}Visible before.\\begin{comment}SECRET\\section{Hidden}\\end{comment}Visible after.\\end{unknown}\n" +
+            "\\end{document}\n";
+
+        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        string markdown = result.Value.ToMarkdown();
+
+        Assert.Contains("Visible before", markdown, StringComparison.Ordinal);
+        Assert.Contains("Visible after", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("SECRET", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden", markdown, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD210" &&
+            diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD299" &&
+            diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
+    }
+
+    [Fact]
+    public void UnterminatedInlineVerbPreservesEveryContentCharacter() {
+        const string source = "\\documentclass{article}\n\\begin{document}\nBefore \\verb|abc";
+
+        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+
+        Assert.Contains("`abc`", result.Value.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD111");
     }
 }

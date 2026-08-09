@@ -599,7 +599,7 @@ public class RtfLosslessEditorTests {
         const string expected = @"{\rtf1\ansi{\*\filetbl{\file\fid0\frelative3\fosnum42\fvalidntfs\fnetwork C:\\New \{file\} \u380?.docx}{\file\fid2\fnetwork \\\\Server\\Share\\Added.docx}}{\*\xmlnstbl{\xmlns1 urn:keep;}}{\info{\title Keep}}\pard Body \'80\par}";
         Assert.Equal(expected, editor.ToRtf());
 
-        RtfReadResult read = editor.ToReadResult();
+        RtfReadResult read = editor.ToReadResult(RtfReadOptions.CreateCompatibilityProfile());
         Assert.Collection(
             read.Document.FileReferences,
             file => {
@@ -631,7 +631,7 @@ public class RtfLosslessEditorTests {
         });
 
         Assert.Equal(@"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\*\filetbl{\file\fid4\fvaliddos created.docx}}{\*\xmlnstbl{\xmlns1 urn:keep;}}\pard Body\par}", editor.ToRtf());
-        RtfFileReference file = Assert.Single(editor.ToReadResult().Document.FileReferences);
+        RtfFileReference file = Assert.Single(editor.ToReadResult(RtfReadOptions.CreateCompatibilityProfile()).Document.FileReferences);
         Assert.Equal(4, file.Id);
         Assert.Equal("created.docx", file.Path);
         Assert.Equal(RtfFileSource.Dos, file.Sources);

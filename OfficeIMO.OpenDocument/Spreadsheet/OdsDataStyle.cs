@@ -21,7 +21,58 @@ public sealed class OdsDataStyle {
     public string Name => (string?)Element.Attribute(OdfNamespaces.Style + "name") ?? string.Empty;
     /// <summary>Data style kind.</summary>
     public OdsDataStyleKind Kind { get; }
+    /// <summary>Configured decimal places, or zero when the style has no decimal number component.</summary>
+    public int DecimalPlaces => (int?)Element.Descendants(OdfNamespaces.Number + "number").FirstOrDefault()
+        ?.Attribute(OdfNamespaces.Number + "decimal-places") ?? 0;
+    /// <summary>Whether the style requests grouped thousands.</summary>
+    public bool UsesGrouping => string.Equals(
+        (string?)Element.Descendants(OdfNamespaces.Number + "number").FirstOrDefault()
+            ?.Attribute(OdfNamespaces.Number + "grouping"),
+        "true",
+        StringComparison.OrdinalIgnoreCase);
+    /// <summary>Visible currency symbol or code, when present.</summary>
+    public string? CurrencySymbol => Element.Descendants(OdfNamespaces.Number + "currency-symbol")
+        .Select(element => element.Value)
+        .FirstOrDefault(value => value.Length > 0);
+
+    /// <summary>Projects the represented common ODF style to an Excel number-format code.</summary>
+    public string ToExcelNumberFormatCode() {
+        if (Kind == OdsDataStyleKind.Date || Kind == OdsDataStyleKind.Time) return BuildDateTimeFormat();
+        string number = (UsesGrouping ? "#,##" : string.Empty) + "0";
+        if (DecimalPlaces > 0) number += "." + new string('0', DecimalPlaces);
+        if (Kind == OdsDataStyleKind.Percentage) return number + "%";
+        if (Kind == OdsDataStyleKind.Currency && !string.IsNullOrWhiteSpace(CurrencySymbol)) {
+            return EscapeExcelLiteral(CurrencySymbol!) + number;
+        }
+        return number;
+    }
+
     internal XElement Element { get; }
+
+    private string BuildDateTimeFormat() {
+        var builder = new System.Text.StringBuilder();
+        foreach (XElement child in Element.Elements()) {
+            string style = (string?)child.Attribute(OdfNamespaces.Number + "style") ?? "short";
+            if (child.Name == OdfNamespaces.Number + "year") builder.Append(style == "long" ? "yyyy" : "yy");
+            else if (child.Name == OdfNamespaces.Number + "month") builder.Append(style == "long" ? "mm" : "m");
+            else if (child.Name == OdfNamespaces.Number + "day") builder.Append(style == "long" ? "dd" : "d");
+            else if (child.Name == OdfNamespaces.Number + "hours") builder.Append(style == "long" ? "hh" : "h");
+            else if (child.Name == OdfNamespaces.Number + "minutes") builder.Append(style == "long" ? "mm" : "m");
+            else if (child.Name == OdfNamespaces.Number + "seconds") {
+                builder.Append(style == "long" ? "ss" : "s");
+                int decimalPlaces = (int?)child.Attribute(OdfNamespaces.Number + "decimal-places") ?? 0;
+                if (decimalPlaces > 0) builder.Append('.').Append('0', decimalPlaces);
+            } else if (child.Name == OdfNamespaces.Number + "am-pm") builder.Append("AM/PM");
+            else if (child.Name == OdfNamespaces.Number + "text") builder.Append(EscapeExcelLiteral(child.Value));
+        }
+        return builder.Length == 0 ? (Kind == OdsDataStyleKind.Date ? "yyyy-mm-dd" : "hh:mm:ss") : builder.ToString();
+    }
+
+    private static string EscapeExcelLiteral(string value) {
+        if (value.All(character => character == '-' || character == '/' || character == ':' || character == ' ' ||
+                                   character == '$' || character == '€' || character == '£' || character == '¥')) return value;
+        return "\"" + value.Replace("\"", "\"\"") + "\"";
+    }
 }
 
 public sealed partial class OdsDocument {
@@ -44,26 +95,28 @@ public sealed partial class OdsDocument {
     }
 
     /// <summary>Adds a decimal number style.</summary>
-    public OdsDataStyle AddNumberStyle(string name, int decimalPlaces = 2) {
+    public OdsDataStyle AddNumberStyle(string name, int decimalPlaces = 2, bool useGrouping = false) {
         if (decimalPlaces < 0) throw new ArgumentOutOfRangeException(nameof(decimalPlaces));
         return AddDataStyle(name, OdsDataStyleKind.Number,
             new XElement(OdfNamespaces.Number + "number",
                 new XAttribute(OdfNamespaces.Number + "decimal-places", decimalPlaces),
+                new XAttribute(OdfNamespaces.Number + "grouping", useGrouping),
                 new XAttribute(OdfNamespaces.Number + "min-integer-digits", 1)));
     }
 
     /// <summary>Adds a percentage style.</summary>
-    public OdsDataStyle AddPercentageStyle(string name, int decimalPlaces = 2) {
+    public OdsDataStyle AddPercentageStyle(string name, int decimalPlaces = 2, bool useGrouping = false) {
         if (decimalPlaces < 0) throw new ArgumentOutOfRangeException(nameof(decimalPlaces));
         return AddDataStyle(name, OdsDataStyleKind.Percentage,
             new XElement(OdfNamespaces.Number + "number",
                 new XAttribute(OdfNamespaces.Number + "decimal-places", decimalPlaces),
+                new XAttribute(OdfNamespaces.Number + "grouping", useGrouping),
                 new XAttribute(OdfNamespaces.Number + "min-integer-digits", 1)),
             new XElement(OdfNamespaces.Number + "text", "%"));
     }
 
     /// <summary>Adds a currency style with a visible currency symbol or code.</summary>
-    public OdsDataStyle AddCurrencyStyle(string name, string currencySymbol, int decimalPlaces = 2) {
+    public OdsDataStyle AddCurrencyStyle(string name, string currencySymbol, int decimalPlaces = 2, bool useGrouping = false) {
         if (string.IsNullOrWhiteSpace(currencySymbol)) throw new ArgumentException("Currency symbol cannot be empty.", nameof(currencySymbol));
         if (decimalPlaces < 0) throw new ArgumentOutOfRangeException(nameof(decimalPlaces));
         return AddDataStyle(name, OdsDataStyleKind.Currency,
@@ -71,6 +124,7 @@ public sealed partial class OdsDocument {
             new XElement(OdfNamespaces.Number + "text", " "),
             new XElement(OdfNamespaces.Number + "number",
                 new XAttribute(OdfNamespaces.Number + "decimal-places", decimalPlaces),
+                new XAttribute(OdfNamespaces.Number + "grouping", useGrouping),
                 new XAttribute(OdfNamespaces.Number + "min-integer-digits", 1)));
     }
 

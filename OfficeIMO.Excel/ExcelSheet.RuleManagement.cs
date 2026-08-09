@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.Utilities;
+using OfficeIMO.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -927,18 +928,11 @@ namespace OfficeIMO.Excel {
 
         private static string GetFirstCellReference(string range) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
-            string firstReference = range.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries)[0];
-            int sheetSeparatorIndex = firstReference.LastIndexOf('!');
-            if (sheetSeparatorIndex >= 0 && sheetSeparatorIndex < firstReference.Length - 1) {
-                firstReference = firstReference.Substring(sheetSeparatorIndex + 1);
-            }
-
-            int rangeSeparatorIndex = firstReference.IndexOf(':');
-            if (rangeSeparatorIndex >= 0) {
-                firstReference = firstReference.Substring(0, rangeSeparatorIndex);
-            }
-
-            return firstReference.Replace("$", string.Empty);
+            SpreadsheetReferenceSequence syntax = SpreadsheetReferenceSequence.Parse(
+                range, SpreadsheetAddressDialect.ExcelA1);
+            SpreadsheetCellReference start = syntax.References[0].Start;
+            if (!start.IsCell) throw new ArgumentException("Conditional formatting requires a cell reference.", nameof(range));
+            return A1.CellReference(checked((int)start.Row!.Value), start.Column!.Value);
         }
 
         private static string EscapeFormulaString(string value) {

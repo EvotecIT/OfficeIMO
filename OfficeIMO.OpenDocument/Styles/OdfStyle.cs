@@ -45,6 +45,16 @@ public sealed class OdfStyle {
         get => ReadToggle(TextProperties, OdfNamespaces.Fo + "font-style", "italic", "normal");
         set => WriteToggle(GetProperties(OdfNamespaces.Style + "text-properties"), OdfNamespaces.Fo + "font-style", value, "italic", "normal");
     }
+    /// <summary>True when text underline is explicitly enabled by this style.</summary>
+    public bool? Underline {
+        get => ReadDecorationToggle(TextProperties, OdfNamespaces.Style + "text-underline-style");
+        set => WriteDecorationToggle(OdfNamespaces.Style + "text-underline-style", value);
+    }
+    /// <summary>True when text strike-through is explicitly enabled by this style.</summary>
+    public bool? StrikeThrough {
+        get => ReadDecorationToggle(TextProperties, OdfNamespaces.Style + "text-line-through-style");
+        set => WriteDecorationToggle(OdfNamespaces.Style + "text-line-through-style", value);
+    }
     /// <summary>Explicit font size.</summary>
     public OdfLength? FontSize {
         get => ReadLength(TextProperties, OdfNamespaces.Fo + "font-size");
@@ -62,6 +72,14 @@ public sealed class OdfStyle {
             return value == null ? (OdfColor?)null : OdfColor.Parse(value);
         }
         set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"), OdfNamespaces.Fo + "color", value?.ToString());
+    }
+    /// <summary>Explicit text background color, commonly used for highlighting.</summary>
+    public OdfColor? TextBackgroundColor {
+        get {
+            string? value = (string?)TextProperties?.Attribute(OdfNamespaces.Fo + "background-color");
+            return value == null || value == "transparent" ? (OdfColor?)null : OdfColor.Parse(value);
+        }
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"), OdfNamespaces.Fo + "background-color", value?.ToString());
     }
     /// <summary>Explicit cell or paragraph background color.</summary>
     public OdfColor? BackgroundColor {
@@ -86,6 +104,31 @@ public sealed class OdfStyle {
     public string? TextAlign {
         get => (string?)ParagraphProperties?.Attribute(OdfNamespaces.Fo + "text-align");
         set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "text-align", value);
+    }
+    /// <summary>Explicit paragraph start margin.</summary>
+    public OdfLength? MarginLeft {
+        get => ReadLength(ParagraphProperties, OdfNamespaces.Fo + "margin-left");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "margin-left", value?.ToString());
+    }
+    /// <summary>Explicit paragraph end margin.</summary>
+    public OdfLength? MarginRight {
+        get => ReadLength(ParagraphProperties, OdfNamespaces.Fo + "margin-right");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "margin-right", value?.ToString());
+    }
+    /// <summary>Explicit paragraph top margin.</summary>
+    public OdfLength? MarginTop {
+        get => ReadLength(ParagraphProperties, OdfNamespaces.Fo + "margin-top");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "margin-top", value?.ToString());
+    }
+    /// <summary>Explicit paragraph bottom margin.</summary>
+    public OdfLength? MarginBottom {
+        get => ReadLength(ParagraphProperties, OdfNamespaces.Fo + "margin-bottom");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "margin-bottom", value?.ToString());
+    }
+    /// <summary>Explicit first-line paragraph indentation.</summary>
+    public OdfLength? TextIndent {
+        get => ReadLength(ParagraphProperties, OdfNamespaces.Fo + "text-indent");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "text-indent", value?.ToString());
     }
 
     internal string PartPath { get; }
@@ -121,6 +164,17 @@ public sealed class OdfStyle {
 
     private void WriteToggle(XElement element, XName attribute, bool? value, string trueValue, string falseValue) {
         SetAttribute(element, attribute, value.HasValue ? (value.Value ? trueValue : falseValue) : null);
+    }
+
+    private static bool? ReadDecorationToggle(XElement? element, XName attribute) {
+        string? value = (string?)element?.Attribute(attribute);
+        if (value == null) return null;
+        return string.Equals(value, "none", StringComparison.OrdinalIgnoreCase) ? false : true;
+    }
+
+    private void WriteDecorationToggle(XName attribute, bool? value) {
+        SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"), attribute,
+            value.HasValue ? (value.Value ? "solid" : "none") : null);
     }
 
     private static OdfLength? ReadLength(XElement? element, XName attribute) {

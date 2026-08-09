@@ -42,6 +42,10 @@ internal static class LatexInlineToMarkdownConverter {
         candidates.AddRange(document.Math
             .Where(math => math.Syntax.Span.Start.Offset >= start && math.Syntax.Span.End.Offset <= end && math.Kind != LatexMathKind.Environment)
             .Select(static math => new InlineCandidate(math.Syntax.Span, null, math)));
+        candidates.AddRange(document.SyntaxTree.Root.DescendantsAndSelf()
+            .Where(node => node.Kind == LatexSyntaxKind.Verbatim &&
+                node.Span.Start.Offset >= start && node.Span.End.Offset <= end)
+            .Select(static node => new InlineCandidate(node.Span, null, null, node)));
         InlineCandidate[] ordered = candidates.OrderBy(static candidate => candidate.Span.Start.Offset)
             .ThenByDescending(static candidate => candidate.Span.End.Offset)
             .ToArray();
@@ -53,6 +57,7 @@ internal static class LatexInlineToMarkdownConverter {
             AddPlain(target, document.Source.Text.Substring(cursor, candidate.Span.Start.Offset - cursor));
             if (candidate.Command != null) AddCommand(target, document, candidate.Command, diagnostics);
             else if (candidate.Math != null) AddMath(target, candidate.Math, diagnostics);
+            else if (candidate.Verbatim != null) AddVerbatim(target, candidate.Verbatim, diagnostics);
             cursor = candidate.Span.End.Offset;
         }
         if (cursor < end) AddPlain(target, document.Source.Text.Substring(cursor, end - cursor));
@@ -151,6 +156,40 @@ internal static class LatexInlineToMarkdownConverter {
             "LaTeX math source was transported in a code span; TeX layout was not evaluated.", math.Syntax.Span);
     }
 
+    private static void AddVerbatim(
+        InlineSequence target,
+        LatexSyntaxNode syntax,
+        List<LatexMarkdownConversionDiagnostic> diagnostics) {
+        if (string.Equals(syntax.Value, "comment", StringComparison.Ordinal)) {
+            Report(diagnostics, "LATEXMD110", LatexMarkdownConversionOutcome.Omitted, "comment-environment",
+                "The LaTeX comment environment was omitted and its body was not exposed as Markdown text.", syntax.Span);
+            return;
+        }
+        target.AddRaw(new CodeSpanInline(GetVerbatimContent(syntax)));
+        Report(diagnostics, "LATEXMD111", LatexMarkdownConversionOutcome.Simplified, "verbatim",
+            "Opaque LaTeX verbatim content was retained as code without TeX environment semantics.", syntax.Span);
+    }
+
+    internal static string GetVerbatimContent(LatexSyntaxNode syntax) {
+        string source = syntax.OriginalText;
+        if (string.Equals(syntax.Value, "verb", StringComparison.Ordinal)) {
+            int delimiter = source.StartsWith("\\verb*", StringComparison.Ordinal) ? 6 : 5;
+            if (source.Length <= delimiter) return string.Empty;
+            int contentStart = delimiter + 1;
+            bool terminated = source.Length > contentStart && source[source.Length - 1] == source[delimiter];
+            int contentEnd = terminated ? source.Length - 1 : source.Length;
+            return contentEnd > contentStart ? source.Substring(contentStart, contentEnd - contentStart) : string.Empty;
+        }
+        string opening = "\\begin{" + syntax.Value + "}";
+        string closing = "\\end{" + syntax.Value + "}";
+        if (!source.StartsWith(opening, StringComparison.Ordinal)) return source;
+        int start = opening.Length;
+        int length = source.EndsWith(closing, StringComparison.Ordinal)
+            ? source.Length - start - closing.Length
+            : source.Length - start;
+        return length > 0 ? source.Substring(start, length) : string.Empty;
+    }
+
     private static void AddPlain(InlineSequence target, string value) {
         var text = new StringBuilder();
         for (int index = 0; index < value.Length; index++) {
@@ -191,13 +230,16 @@ internal static class LatexInlineToMarkdownConverter {
         diagnostics.Add(new LatexMarkdownConversionDiagnostic(code, outcome, feature, message, span));
 
     private sealed class InlineCandidate {
-        internal InlineCandidate(LatexSourceSpan span, LatexCommand? command, LatexMath? math) {
+        internal InlineCandidate(LatexSourceSpan span, LatexCommand? command, LatexMath? math,
+            LatexSyntaxNode? verbatim = null) {
             Span = span;
             Command = command;
             Math = math;
+            Verbatim = verbatim;
         }
         internal LatexSourceSpan Span { get; }
         internal LatexCommand? Command { get; }
         internal LatexMath? Math { get; }
+        internal LatexSyntaxNode? Verbatim { get; }
     }
 }

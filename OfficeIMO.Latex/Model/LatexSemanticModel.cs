@@ -212,8 +212,10 @@ public sealed class LatexHeading {
 
     /// <summary>Backing command.</summary>
     public LatexCommand Command { get; }
-    /// <summary>Section level, where 1 is section.</summary>
+    /// <summary>Structural LaTeX level: part 0, chapter 1, section 2, through subparagraph 6.</summary>
     public int Level { get; }
+    /// <summary>Whether the source heading is unnumbered and normally omitted from the automatic table of contents.</summary>
+    public bool IsStarred => Command.IsStarred;
     /// <summary>Heading title argument.</summary>
     public string Title {
         get => Command.GetRequiredArgument(0)?.Content ?? string.Empty;

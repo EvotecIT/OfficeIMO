@@ -25,7 +25,7 @@ public static class PowerPointOpenDocumentConversionExtensions {
 
         int textBoxes = 0, paragraphs = 0, textRuns = 0, pictures = 0, tables = 0, autoShapes = 0;
         int notes = 0, transitions = 0, backgrounds = 0, unsupportedBackgrounds = 0, unsupportedShapes = 0, unsupportedPictures = 0;
-        int listParagraphs = 0, runDetails = 0, transformedShapes = 0;
+        int listParagraphs = 0, transformedShapes = 0, skippedBasicFormatting = 0, skippedNotes = 0;
         for (int slideIndex = 0; slideIndex < source.Slides.Count; slideIndex++) {
             PowerPointSlide sourceSlide = source.Slides[slideIndex];
             OdpSlide targetSlide = target.AddSlide("Slide" + (slideIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -43,15 +43,12 @@ public static class PowerPointOpenDocumentConversionExtensions {
                         if (runs.Count == 0) targetParagraph.Text = paragraph.Text;
                         else {
                             foreach (PowerPointTextRun run in runs) {
-                                OdpRun targetRun = targetParagraph.AddRun(run.Text);
-                                if (effective.IncludeBasicFormatting) {
-                                    targetRun.Bold = run.Bold ? true : (bool?)null;
-                                    targetRun.Italic = run.Italic ? true : (bool?)null;
-                                    if (run.FontSize.HasValue) targetRun.FontSize = OdfLength.Points(run.FontSize.Value);
-                                    targetRun.FontFamily = run.FontName;
-                                    if (!string.IsNullOrWhiteSpace(run.Color)) targetRun.Color = ParseColor(run.Color);
+                                if (!effective.IncludeBasicFormatting && HasBasicFormatting(run)) skippedBasicFormatting++;
+                                if (run.Hyperlink != null) {
+                                    ApplyPowerPointRun(run, targetParagraph.AddHyperlink(run.Text, run.Hyperlink.ToString()), effective);
+                                } else {
+                                    ApplyPowerPointRun(run, targetParagraph.AddRun(run.Text), effective);
                                 }
-                                if (run.Underline || run.Strikethrough || run.Hyperlink != null || run.HighlightColor != null) runDetails++;
                                 textRuns++;
                             }
                         }
@@ -118,6 +115,7 @@ public static class PowerPointOpenDocumentConversionExtensions {
                 } else {
                     unsupportedShapes++;
                 }
+                if (!effective.IncludeBasicFormatting && HasBasicFormatting(shape)) skippedBasicFormatting++;
                 if (shape.Rotation.HasValue || shape.HorizontalFlip.HasValue || shape.VerticalFlip.HasValue) transformedShapes++;
             }
 
@@ -127,6 +125,8 @@ public static class PowerPointOpenDocumentConversionExtensions {
                     foreach (string paragraph in SplitParagraphs(noteText)) targetSlide.GetOrCreateSpeakerNotes().AddParagraph(paragraph);
                     notes++;
                 }
+            } else if (!effective.IncludeSpeakerNotes && sourceSlide.HasSpeakerNotes) {
+                skippedNotes++;
             }
         }
 
@@ -144,14 +144,17 @@ public static class PowerPointOpenDocumentConversionExtensions {
             "Common transition families are mapped without PowerPoint-specific speed and timing metadata.");
         if (listParagraphs > 0) report.Add("text-lists", OdfConversionMappingStatus.Approximated, listParagraphs,
             "List text is retained as paragraphs; PowerPoint bullet and numbering definitions are not translated.");
-        AddUnsupported(report, "run-format-details", runDetails, "Underline, strike, highlight, and run hyperlinks are not translated.");
+        if (skippedBasicFormatting > 0) report.Add("basic-formatting", OdfConversionMappingStatus.Skipped, skippedBasicFormatting,
+            "Common text, fill, and outline formatting was omitted because IncludeBasicFormatting is disabled.");
+        if (skippedNotes > 0) report.Add("speaker-notes", OdfConversionMappingStatus.Skipped, skippedNotes,
+            "Speaker notes were omitted because IncludeSpeakerNotes is disabled.");
         AddUnsupported(report, "shape-transforms", transformedShapes, "Complex geometry, rotation, flips, and connector semantics are approximated or omitted.");
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or unavailable from an embedded image part were skipped.");
         AddUnsupported(report, "shapes", unsupportedShapes, "Charts, SmartArt, media, groups, and other advanced drawing shapes are not translated.");
         report.Add("masters-layouts", OdfConversionMappingStatus.Approximated, source.Slides.Count,
             "Slide content is placed on one default ODP master and blank layout.");
         AddAdvancedPowerPointFindings(source.InspectFeatures(), report);
-        return new OdfConversionResult<OdpPresentation>(target, report);
+        return new OdfConversionResult<OdpPresentation>(target, report).ApplyPolicy(effective.LossPolicy);
     }
 
     /// <summary>Converts an ODP document to an in-memory PowerPoint presentation.</summary>
@@ -168,9 +171,10 @@ public static class PowerPointOpenDocumentConversionExtensions {
         target.BuiltinDocumentProperties.Title = source.Metadata.Title;
         target.SlideSize.SetSizePoints(source.PageWidth.ToPoints(), source.PageHeight.ToPoints());
 
-        int textBoxes = 0, paragraphs = 0, textRuns = 0, pictures = 0, tables = 0, basicShapes = 0;
+        int textBoxes = 0, paragraphs = 0, textRuns = 0, hyperlinks = 0, externalHyperlinks = 0, pictures = 0, tables = 0, basicShapes = 0;
         int notes = 0, transitions = 0, unsupportedTransitions = 0, unsupportedShapes = 0, unsupportedPictures = 0, transformedShapes = 0;
-        int listParagraphs = 0, approximatedRuns = 0;
+        int listParagraphs = 0, approximatedRuns = 0, skippedBasicFormatting = 0, skippedNotes = 0, noteContainers = 0;
+        var pendingInternalLinks = new List<(PowerPointTextRun Run, int SlideIndex)>();
         foreach (OdpSlide sourceSlide in source.Slides) {
             PowerPointSlide targetSlide = target.AddSlide();
             targetSlide.Hidden = sourceSlide.Hidden;
@@ -194,22 +198,44 @@ public static class PowerPointOpenDocumentConversionExtensions {
                     for (int index = 0; index < sourceParagraphs.Count && index < converted.Paragraphs.Count; index++) {
                         OdpParagraph sourceParagraph = sourceParagraphs[index];
                         PowerPointParagraph targetParagraph = converted.Paragraphs[index];
-                        IReadOnlyList<OdpRun> runs = sourceParagraph.Runs;
-                        if (runs.Count > 0 && string.Equals(string.Concat(runs.Select(run => run.Text)), sourceParagraph.Text, StringComparison.Ordinal)) {
-                            IReadOnlyList<PowerPointTextRun> existing = targetParagraph.Runs;
-                            PowerPointTextRun first = existing.Count > 0 ? existing[0] : targetParagraph.AddRun(string.Empty);
-                            ApplyOdpRun(runs[0], first, effective);
-                            for (int runIndex = 1; runIndex < runs.Count; runIndex++) {
-                                PowerPointTextRun added = targetParagraph.AddRun(runs[runIndex].Text);
-                                ApplyOdpRun(runs[runIndex], added, effective);
-                            }
-                            textRuns += runs.Count;
+                        IReadOnlyList<OdpInlineNode> inlineNodes = sourceParagraph.InlineNodes;
+                        IReadOnlyList<PowerPointTextRun> existing = targetParagraph.Runs;
+                        bool useExisting = existing.Count > 0;
+                        PowerPointTextRun AddInlineRun(string text) {
+                            PowerPointTextRun result = useExisting ? existing[0] : targetParagraph.AddRun(string.Empty);
+                            useExisting = false;
+                            result.Text = text;
+                            return result;
+                        }
+                        if (inlineNodes.Count == 0) {
+                            PowerPointTextRun run = useExisting ? existing[0] : targetParagraph.AddRun(string.Empty);
+                            ApplyOdpParagraphFormatting(sourceParagraph, run, effective);
                         } else {
-                            if (runs.Count > 0) approximatedRuns++;
-                            PowerPointTextRun? run = targetParagraph.Runs.FirstOrDefault();
-                            if (run != null) {
-                                run.Bold = sourceParagraph.Bold == true;
-                                if (sourceParagraph.FontSize.HasValue) run.FontSize = checked((int)Math.Round(sourceParagraph.FontSize.Value.ToPoints()));
+                            foreach (OdpInlineNode node in inlineNodes) {
+                                PowerPointTextRun targetRun = AddInlineRun(node.Text);
+                                if (node.Kind == OdpInlineNodeKind.Run) {
+                                    ApplyOdpRun(node.Run!, targetRun, effective);
+                                    if (!effective.IncludeBasicFormatting && HasBasicFormatting(node.Run!)) skippedBasicFormatting++;
+                                } else if (node.Kind == OdpInlineNodeKind.Hyperlink) {
+                                    OdpHyperlink hyperlink = node.Hyperlink!;
+                                    ApplyOdpHyperlink(hyperlink, sourceParagraph, targetRun, effective);
+                                    hyperlinks++;
+                                    if (TryParseSlideFragment(hyperlink.Href, source.Slides.Count, out int targetSlideIndex)) {
+                                        pendingInternalLinks.Add((targetRun, targetSlideIndex));
+                                    } else if (hyperlink.Href.StartsWith("#slide-", StringComparison.OrdinalIgnoreCase)) {
+                                        approximatedRuns++;
+                                    } else if (Uri.TryCreate(hyperlink.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
+                                        targetRun.SetHyperlink(uri);
+                                        if (IsExternalOdfHref(hyperlink.Href)) externalHyperlinks++;
+                                    } else {
+                                        approximatedRuns++;
+                                    }
+                                    if (!effective.IncludeBasicFormatting && HasBasicFormatting(hyperlink)) skippedBasicFormatting++;
+                                } else {
+                                    ApplyOdpParagraphFormatting(sourceParagraph, targetRun, effective);
+                                    if (node.Kind == OdpInlineNodeKind.Other) approximatedRuns++;
+                                }
+                                textRuns++;
                             }
                         }
                         paragraphs++;
@@ -278,13 +304,22 @@ public static class PowerPointOpenDocumentConversionExtensions {
                 } else {
                     unsupportedShapes++;
                 }
+                if (!effective.IncludeBasicFormatting && HasBasicFormatting(shape)) skippedBasicFormatting++;
                 if (!string.IsNullOrWhiteSpace(shape.Transform)) transformedShapes++;
             }
 
+            if (sourceSlide.SpeakerNotes != null) noteContainers++;
             if (effective.IncludeSpeakerNotes && sourceSlide.SpeakerNotes != null) {
                 string noteText = string.Join(Environment.NewLine, sourceSlide.SpeakerNotes.Paragraphs.Select(paragraph => paragraph.Text));
                 if (noteText.Length > 0) { targetSlide.Notes.Text = noteText; notes++; }
+            } else if (!effective.IncludeSpeakerNotes && sourceSlide.SpeakerNotes != null &&
+                       sourceSlide.SpeakerNotes.Paragraphs.Any(paragraph => paragraph.Text.Length > 0)) {
+                skippedNotes++;
             }
+        }
+
+        foreach ((PowerPointTextRun run, int slideIndex) in pendingInternalLinks) {
+            run.SetHyperlink(target.Slides[slideIndex]);
         }
 
         AddConverted(report, "slides", source.Slides.Count);
@@ -300,18 +335,66 @@ public static class PowerPointOpenDocumentConversionExtensions {
         if (listParagraphs > 0) report.Add("text-lists", OdfConversionMappingStatus.Approximated, listParagraphs,
             "ODP list text is retained as paragraphs; PowerPoint bullet and numbering definitions are not translated.");
         if (approximatedRuns > 0) report.Add("inline-formatting", OdfConversionMappingStatus.Approximated, approximatedRuns,
-            "Mixed plain text and styled ODP spans are flattened when their exact inline order cannot be represented by the typed surface.");
+            "Inline ODP elements outside plain text, spans, and hyperlinks were flattened to text.");
+        if (skippedBasicFormatting > 0) report.Add("basic-formatting", OdfConversionMappingStatus.Skipped, skippedBasicFormatting,
+            "Common text, fill, and outline formatting was omitted because IncludeBasicFormatting is disabled.");
+        if (skippedNotes > 0) report.Add("speaker-notes", OdfConversionMappingStatus.Skipped, skippedNotes,
+            "Speaker notes were omitted because IncludeSpeakerNotes is disabled.");
         AddUnsupported(report, "slide-transitions", unsupportedTransitions, "The ODF transition family is not supported by the PowerPoint adapter.");
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or using an unsupported PowerPoint image format were skipped.");
         AddUnsupported(report, "shapes", unsupportedShapes, "Groups and unsupported ODF drawing elements are not translated.");
         AddUnsupported(report, "shape-transforms", transformedShapes, "Raw ODF transform expressions are not translated.");
-        if (source.MasterPages.Count > 1 || source.Layouts.Count > 1) report.Add("masters-layouts", OdfConversionMappingStatus.Approximated,
+        if (source.MasterPages.Count > 0 || source.Layouts.Count > 0) report.Add("masters-layouts", OdfConversionMappingStatus.Approximated,
             source.MasterPages.Count + source.Layouts.Count, "Content is placed on PowerPoint's default master and layout.");
-        foreach (OdfFeatureFinding finding in source.InspectFeatures().Findings.Where(item => item.Name != "presentation-transitions")) {
-            report.Add("source-" + finding.Name, OdfConversionMappingStatus.Unsupported, finding.Count,
+        AddUnmappedOdfFindings(source.InspectFeatures(), report, externalHyperlinks, noteContainers,
+            source.MasterPages.Count, transitions + unsupportedTransitions);
+        return new OdfConversionResult<PowerPointPresentation>(target, report).ApplyPolicy(effective.LossPolicy);
+    }
+
+    private static bool TryParseSlideFragment(string href, int slideCount, out int zeroBasedIndex) {
+        zeroBasedIndex = -1;
+        const string prefix = "#slide-";
+        if (!href.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            || !int.TryParse(href.Substring(prefix.Length), System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture, out int oneBased)
+            || oneBased < 1 || oneBased > slideCount) return false;
+        zeroBasedIndex = oneBased - 1;
+        return true;
+    }
+
+    private static bool IsExternalOdfHref(string href) =>
+        !string.IsNullOrWhiteSpace(href) && !href.StartsWith("#", StringComparison.Ordinal)
+        && (href.StartsWith("//", StringComparison.Ordinal) || Uri.TryCreate(href, UriKind.Absolute, out _));
+
+    private static void AddUnmappedOdfFindings(
+        OdfFeatureReport features,
+        OdfConversionReport report,
+        int hyperlinks,
+        int notes,
+        int masterPages,
+        int transitions) {
+        foreach (OdfFeatureDiagnostic diagnostic in features.Diagnostics) {
+            report.Add("source-inspection", OdfConversionMappingStatus.Unsupported, 1,
+                diagnostic.Code + " in " + diagnostic.PartPath + ": " + diagnostic.Message);
+        }
+        int remainingHyperlinks = hyperlinks, remainingNotes = notes;
+        int remainingMasterPages = masterPages, remainingTransitions = transitions;
+        foreach (OdfFeatureFinding finding in features.Findings) {
+            int handled = 0;
+            if (finding.Name == "external-links") handled = Consume(ref remainingHyperlinks, finding.Count);
+            else if (finding.Name == "presentation-notes") handled = Consume(ref remainingNotes, finding.Count);
+            else if (finding.Name == "master-pages") handled = Consume(ref remainingMasterPages, finding.Count);
+            else if (finding.Name == "presentation-transitions") handled = Consume(ref remainingTransitions, finding.Count);
+            int remaining = Math.Max(0, finding.Count - handled);
+            if (remaining > 0) report.Add("source-" + finding.Name, OdfConversionMappingStatus.Unsupported, remaining,
                 "The source ODP feature cannot be transferred to PPTX by this adapter.");
         }
-        return new OdfConversionResult<PowerPointPresentation>(target, report);
+    }
+
+    private static int Consume(ref int available, int requested) {
+        int consumed = Math.Min(available, requested);
+        available -= consumed;
+        return consumed;
     }
 
     private static PowerPointOpenDocumentConversionOptions NormalizeOptions(PowerPointOpenDocumentConversionOptions? options) {
@@ -328,10 +411,83 @@ public static class PowerPointOpenDocumentConversionExtensions {
         if (!options.IncludeBasicFormatting) return;
         target.Bold = source.Bold == true;
         target.Italic = source.Italic == true;
+        target.Underline = source.Underline == true;
+        target.Strikethrough = source.StrikeThrough == true;
+        if (source.FontSize.HasValue) target.FontSize = checked((int)Math.Round(source.FontSize.Value.ToPoints()));
+        target.FontName = source.FontFamily;
+        if (source.Color.HasValue) target.Color = source.Color.Value.ToString().TrimStart('#');
+        if (source.BackgroundColor.HasValue) target.HighlightColor = source.BackgroundColor.Value.ToString().TrimStart('#');
+    }
+
+    private static void ApplyOdpHyperlink(OdpHyperlink source, OdpParagraph paragraph,
+        PowerPointTextRun target, PowerPointOpenDocumentConversionOptions options) {
+        if (!options.IncludeBasicFormatting) return;
+        target.Bold = source.Bold ?? paragraph.Bold ?? false;
+        target.Italic = source.Italic ?? paragraph.Italic ?? false;
+        target.Underline = source.Underline == true;
+        target.Strikethrough = source.StrikeThrough == true;
+        OdfLength? fontSize = source.FontSize ?? paragraph.FontSize;
+        if (fontSize.HasValue) target.FontSize = checked((int)Math.Round(fontSize.Value.ToPoints()));
+        target.FontName = source.FontFamily ?? paragraph.FontFamily;
+        OdfColor? color = source.Color ?? paragraph.Color;
+        if (color.HasValue) target.Color = color.Value.ToString().TrimStart('#');
+        if (source.BackgroundColor.HasValue) target.HighlightColor = source.BackgroundColor.Value.ToString().TrimStart('#');
+    }
+
+    private static void ApplyOdpParagraphFormatting(OdpParagraph source, PowerPointTextRun target,
+        PowerPointOpenDocumentConversionOptions options) {
+        if (!options.IncludeBasicFormatting) return;
+        target.Bold = source.Bold == true;
+        target.Italic = source.Italic == true;
         if (source.FontSize.HasValue) target.FontSize = checked((int)Math.Round(source.FontSize.Value.ToPoints()));
         target.FontName = source.FontFamily;
         if (source.Color.HasValue) target.Color = source.Color.Value.ToString().TrimStart('#');
     }
+
+    private static void ApplyPowerPointRun(PowerPointTextRun source, OdpRun target,
+        PowerPointOpenDocumentConversionOptions options) {
+        if (!options.IncludeBasicFormatting) return;
+        target.Bold = source.Bold ? true : (bool?)null;
+        target.Italic = source.Italic ? true : (bool?)null;
+        target.Underline = source.Underline ? true : (bool?)null;
+        target.StrikeThrough = source.Strikethrough ? true : (bool?)null;
+        if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value);
+        target.FontFamily = source.FontName;
+        if (!string.IsNullOrWhiteSpace(source.Color)) target.Color = ParseColor(source.Color);
+        if (!string.IsNullOrWhiteSpace(source.HighlightColor)) target.BackgroundColor = ParseColor(source.HighlightColor);
+    }
+
+    private static void ApplyPowerPointRun(PowerPointTextRun source, OdpHyperlink target,
+        PowerPointOpenDocumentConversionOptions options) {
+        if (!options.IncludeBasicFormatting) return;
+        target.Bold = source.Bold ? true : (bool?)null;
+        target.Italic = source.Italic ? true : (bool?)null;
+        target.Underline = source.Underline ? true : (bool?)null;
+        target.StrikeThrough = source.Strikethrough ? true : (bool?)null;
+        if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value);
+        target.FontFamily = source.FontName;
+        if (!string.IsNullOrWhiteSpace(source.Color)) target.Color = ParseColor(source.Color);
+        if (!string.IsNullOrWhiteSpace(source.HighlightColor)) target.BackgroundColor = ParseColor(source.HighlightColor);
+    }
+
+    private static bool HasBasicFormatting(PowerPointTextRun run) =>
+        run.Bold || run.Italic || run.Underline || run.Strikethrough || run.FontSize.HasValue ||
+        !string.IsNullOrWhiteSpace(run.FontName) || !string.IsNullOrWhiteSpace(run.Color) ||
+        !string.IsNullOrWhiteSpace(run.HighlightColor);
+
+    private static bool HasBasicFormatting(OdpRun run) =>
+        run.Bold.HasValue || run.Italic.HasValue || run.Underline.HasValue || run.StrikeThrough.HasValue ||
+        run.FontSize.HasValue || !string.IsNullOrWhiteSpace(run.FontFamily) || run.Color.HasValue || run.BackgroundColor.HasValue;
+
+    private static bool HasBasicFormatting(OdpHyperlink run) =>
+        run.Bold.HasValue || run.Italic.HasValue || run.Underline.HasValue || run.StrikeThrough.HasValue ||
+        run.FontSize.HasValue || !string.IsNullOrWhiteSpace(run.FontFamily) || run.Color.HasValue || run.BackgroundColor.HasValue;
+
+    private static bool HasBasicFormatting(PowerPointShape shape) =>
+        !string.IsNullOrWhiteSpace(shape.FillColor) || !string.IsNullOrWhiteSpace(shape.OutlineColor) || shape.OutlineWidthPoints.HasValue;
+
+    private static bool HasBasicFormatting(OdpShape shape) =>
+        shape.FillColor.HasValue || shape.StrokeColor.HasValue || shape.StrokeWidth.HasValue;
 
     private static void CopyShapeAppearance(PowerPointShape source, OdpShape target, PowerPointOpenDocumentConversionOptions options) {
         target.Hidden = source.Hidden;

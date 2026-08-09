@@ -26,10 +26,18 @@ public sealed class OdtSpan {
     public bool? Bold { get => Resolve(style => style.Bold); set => EnsureStyle().Bold = value; }
     /// <summary>Explicit or inherited italic state.</summary>
     public bool? Italic { get => Resolve(style => style.Italic); set => EnsureStyle().Italic = value; }
+    /// <summary>Explicit or inherited underline state.</summary>
+    public bool? Underline { get => Resolve(style => style.Underline); set => EnsureStyle().Underline = value; }
+    /// <summary>Explicit or inherited strike-through state.</summary>
+    public bool? StrikeThrough { get => Resolve(style => style.StrikeThrough); set => EnsureStyle().StrikeThrough = value; }
     /// <summary>Explicit or inherited font size.</summary>
     public OdfLength? FontSize { get => Resolve(style => style.FontSize); set => EnsureStyle().FontSize = value; }
+    /// <summary>Explicit or inherited font family.</summary>
+    public string? FontFamily { get => ResolveReference(style => style.FontFamily); set => EnsureStyle().FontFamily = value; }
     /// <summary>Explicit or inherited text color.</summary>
     public OdfColor? Color { get => Resolve(style => style.Color); set => EnsureStyle().Color = value; }
+    /// <summary>Explicit or inherited text background color.</summary>
+    public OdfColor? BackgroundColor { get => Resolve(style => style.TextBackgroundColor); set => EnsureStyle().TextBackgroundColor = value; }
 
     /// <summary>Appends decoded plain text.</summary>
     public OdtSpan AddText(string text) { OdfTextCodec.Append(_element, text); Dirty(); return this; }
@@ -43,6 +51,16 @@ public sealed class OdtSpan {
         foreach (OdfStyle candidate in _document.Styles.Resolve(style)) {
             T? value = selector(candidate);
             if (value.HasValue) return value;
+        }
+        return null;
+    }
+
+    private string? ResolveReference(Func<OdfStyle, string?> selector) {
+        OdfStyle? style = StyleName == null ? null : _document.Styles.FindInPart(OdfStyleFamily.Text, StyleName, _partPath);
+        if (style == null) return null;
+        foreach (OdfStyle candidate in _document.Styles.Resolve(style)) {
+            string? value = selector(candidate);
+            if (value != null) return value;
         }
         return null;
     }

@@ -14,6 +14,23 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class OpenDocumentConversionContracts {
     [Fact]
+    public void RejectingConversionResultAccessorsDisposeOwnedDocuments() {
+        OdfConversionReport report = new OdfConversionReport("source", "target")
+            .Add("unsupported", OdfConversionMappingStatus.Unsupported);
+        var first = new DisposableProbe();
+        var second = new DisposableProbe();
+
+        Assert.Throws<OdfConversionLossException>(() =>
+            new OdfConversionResult<DisposableProbe>(first, report).RequireNoLoss());
+        Assert.Throws<OdfConversionLossException>(() =>
+            new OdfConversionResult<DisposableProbe>(second, report)
+                .GetValue(OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported));
+
+        Assert.True(first.IsDisposed);
+        Assert.True(second.IsDisposed);
+    }
+
+    [Fact]
     public void WordAndOdtRoundTripSemanticBlocksAndReportFidelity() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Native OpenDocument conversion").Style = WordParagraphStyles.Heading1;
@@ -43,6 +60,136 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Contains(snapshot.Sections.SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>(),
             paragraph => paragraph.Text.Contains("First item", StringComparison.Ordinal));
         Assert.Contains(snapshot.Sections.SelectMany(section => section.Elements), block => block is WordTableSnapshot);
+    }
+
+    [Fact]
+    public void WordAndOdtRoundTripCommonParagraphAndRunFormatting() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph("Styled text");
+        paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
+        paragraph.IndentationBeforePoints = 18;
+        paragraph.IndentationAfterPoints = 9;
+        paragraph.IndentationFirstLinePoints = 12;
+        paragraph.LineSpacingBeforePoints = 6;
+        paragraph.LineSpacingAfterPoints = 8;
+        paragraph.ShadingFillColorHex = "EAF2F8";
+        paragraph.Bold = true;
+        paragraph.Italic = true;
+        paragraph.Underline = WordUnderlineStyle.Single;
+        paragraph.Strike = true;
+        paragraph.FontSize = 13;
+        paragraph.FontFamily = "Aptos";
+        paragraph.ColorHex = "123456";
+        paragraph.Highlight = WordHighlightColor.Yellow;
+
+        OdfConversionResult<OdtDocument> toOdt = source.ToOpenDocumentResult();
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(toOdt.Value.ToBytes()));
+        OdtParagraph odtParagraph = Assert.Single(reopened.Paragraphs);
+        OdtSpan odtSpan = Assert.Single(odtParagraph.Spans);
+
+        Assert.Equal(OdtParagraphAlignment.Center, odtParagraph.Alignment);
+        Assert.Equal(18, odtParagraph.IndentStart!.Value.ToPoints(), 3);
+        Assert.Equal(9, odtParagraph.IndentEnd!.Value.ToPoints(), 3);
+        Assert.Equal(12, odtParagraph.FirstLineIndent!.Value.ToPoints(), 3);
+        Assert.Equal(6, odtParagraph.SpaceAbove!.Value.ToPoints(), 3);
+        Assert.Equal(8, odtParagraph.SpaceBelow!.Value.ToPoints(), 3);
+        Assert.Equal("#EAF2F8", odtParagraph.BackgroundColor!.Value.ToString());
+        Assert.True(odtSpan.Bold);
+        Assert.True(odtSpan.Italic);
+        Assert.True(odtSpan.Underline);
+        Assert.True(odtSpan.StrikeThrough);
+        Assert.Equal("Aptos", odtSpan.FontFamily);
+        Assert.Equal("#FFFF00", odtSpan.BackgroundColor!.Value.ToString());
+        Assert.DoesNotContain(toOdt.Report.Mappings, mapping =>
+            mapping.Feature == "paragraph-formatting" || mapping.Feature == "run-formatting");
+
+        OdfConversionResult<WordDocument> toWord = reopened.ToWordDocumentResult();
+        using WordDocument roundTrip = toWord.Value;
+        WordParagraphSnapshot converted = Assert.Single(roundTrip.CreateInspectionSnapshot().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordRunSnapshot run = Assert.Single(converted.Runs);
+
+        Assert.Equal("Center", converted.Alignment);
+        Assert.Equal(18, converted.IndentStartPoints!.Value, 3);
+        Assert.Equal(9, converted.IndentEndPoints!.Value, 3);
+        Assert.Equal(12, converted.IndentFirstLinePoints!.Value, 3);
+        Assert.Equal(6, converted.SpaceAbovePoints!.Value, 3);
+        Assert.Equal(8, converted.SpaceBelowPoints!.Value, 3);
+        Assert.Equal("EAF2F8", converted.ShadingFillColorHex);
+        Assert.True(run.Bold);
+        Assert.True(run.Italic);
+        Assert.True(run.Underline);
+        Assert.True(run.Strike);
+        Assert.Equal(13, run.FontSize);
+        Assert.Equal("Aptos", run.FontFamily);
+        Assert.Equal("123456", run.ColorHex);
+        Assert.Equal("Yellow", run.HighlightColor);
+    }
+
+    [Fact]
+    public void OdtInlineSyntaxPreservesMixedTextSpanAndHyperlinkOrderInWord() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph paragraph = source.AddParagraph();
+        paragraph.AddText("Before ");
+        paragraph.AddSpan("bold").Bold = true;
+        paragraph.AddText(" between ");
+        paragraph.AddHyperlink("link", "https://example.com").Italic = true;
+        paragraph.AddText(" after");
+
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(source.ToBytes()));
+        OdtParagraph reopenedParagraph = Assert.Single(reopened.Paragraphs);
+        Assert.Equal(
+            new[] {
+                OdtInlineNodeKind.Text,
+                OdtInlineNodeKind.Span,
+                OdtInlineNodeKind.Text,
+                OdtInlineNodeKind.Hyperlink,
+                OdtInlineNodeKind.Text
+            },
+            reopenedParagraph.InlineNodes.Select(node => node.Kind));
+
+        OdfConversionResult<WordDocument> conversion = reopened.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        WordParagraphSnapshot converted = Assert.Single(target.CreateInspectionSnapshot().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+
+        Assert.Equal("Before bold between link after", converted.Text);
+        Assert.Equal(new[] { "Before ", "bold", " between ", "link", " after" },
+            converted.Runs.Select(run => run.Text));
+        Assert.True(converted.Runs[1].Bold);
+        Assert.True(converted.Runs[3].Italic);
+        Assert.Equal("https://example.com/", converted.Runs[3].HyperlinkUri);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "inline-formatting");
+    }
+
+    [Fact]
+    public void OdtInlineSyntaxPreservesImageOrderAndMapsBookmarksInWord() {
+        byte[] png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph paragraph = source.AddParagraph();
+        paragraph.AddText("Before");
+        paragraph.AddImage(png, "pixel.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+        paragraph.AddBookmark("target");
+        paragraph.AddText("After");
+
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(source.ToBytes()));
+        Assert.Equal(
+            new[] { OdtInlineNodeKind.Text, OdtInlineNodeKind.Image, OdtInlineNodeKind.Bookmark, OdtInlineNodeKind.Text },
+            Assert.Single(reopened.Paragraphs).InlineNodes.Select(node => node.Kind));
+
+        OdfConversionResult<WordDocument> conversion = reopened.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        WordParagraphSnapshot converted = Assert.Single(target.CreateInspectionSnapshot().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+
+        int imageIndex = converted.Runs.ToList().FindIndex(run => run.InlineImage != null);
+        Assert.True(imageIndex > 0 && imageIndex < converted.Runs.Count - 1);
+        Assert.Equal("Before", string.Concat(converted.Runs.Take(imageIndex).Select(run => run.Text)));
+        Assert.Equal("After", string.Concat(converted.Runs.Skip(imageIndex + 1).Select(run => run.Text)));
+        Assert.Equal("target", converted.BookmarkName);
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "bookmarks" && mapping.Status == OdfConversionMappingStatus.Converted);
     }
 
     [Fact]
@@ -112,6 +259,104 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Single(roundTripSlide.Tables);
         Assert.Equal("Speaker note", roundTripSlide.GetSpeakerNotesText());
         Assert.Equal(PowerPointSlideTransition.Fade, roundTripSlide.Transition);
+    }
+
+    private sealed class DisposableProbe : IDisposable {
+        internal bool IsDisposed { get; private set; }
+        public void Dispose() => IsDisposed = true;
+    }
+
+    [Fact]
+    public void PowerPointAndOdpRoundTripCommonRunFormatting() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        PowerPointTextRun run = source.AddSlide().AddTextBoxPoints("Styled", 10, 10, 200, 40)
+            .Paragraphs[0].Runs[0];
+        run.Bold = true;
+        run.Italic = true;
+        run.Underline = true;
+        run.Strikethrough = true;
+        run.FontSize = 18;
+        run.FontName = "Aptos";
+        run.Color = "123456";
+        run.HighlightColor = "FFF200";
+
+        OdfConversionResult<OdpPresentation> toOdp = source.ToOpenDocumentResult();
+        OdpRun odpRun = Assert.Single(Assert.IsType<OdpTextBox>(Assert.Single(toOdp.Value.Slides[0].Shapes))
+            .Paragraphs[0].Runs);
+        Assert.True(odpRun.Bold);
+        Assert.True(odpRun.Italic);
+        Assert.True(odpRun.Underline);
+        Assert.True(odpRun.StrikeThrough);
+        Assert.Equal("Aptos", odpRun.FontFamily);
+        Assert.Equal("#123456", odpRun.Color!.Value.ToString());
+        Assert.Equal("#FFF200", odpRun.BackgroundColor!.Value.ToString());
+        Assert.DoesNotContain(toOdp.Report.Mappings, mapping => mapping.Feature == "run-format-details");
+
+        OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(toOdp.Value.ToBytes()));
+        OdfConversionResult<PowerPointPresentation> toPowerPoint = reopened.ToPowerPointPresentationResult();
+        using PowerPointPresentation roundTrip = toPowerPoint.Value;
+        PowerPointTextRun converted = roundTrip.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0];
+        Assert.True(converted.Bold);
+        Assert.True(converted.Italic);
+        Assert.True(converted.Underline);
+        Assert.True(converted.Strikethrough);
+        Assert.Equal(18, converted.FontSize);
+        Assert.Equal("Aptos", converted.FontName);
+        Assert.Equal("123456", converted.Color);
+        Assert.Equal("FFF200", converted.HighlightColor);
+    }
+
+    [Fact]
+    public void OdpInlineSyntaxPreservesMixedTextRunAndHyperlinkOrderInPowerPoint() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpParagraph paragraph = source.AddSlide("Inline").AddTextBox(
+            OdfRect.FromCentimeters(1, 1, 10, 3), null, "Text").AddParagraph();
+        paragraph.AddText("Before ");
+        paragraph.AddRun("bold").Bold = true;
+        paragraph.AddText(" between ");
+        paragraph.AddHyperlink("link", "https://example.com").Italic = true;
+        paragraph.AddText(" after");
+
+        OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(source.ToBytes()));
+        OdpParagraph reopenedParagraph = Assert.Single(Assert.IsType<OdpTextBox>(
+            Assert.Single(reopened.Slides[0].Shapes)).Paragraphs);
+        Assert.Equal(
+            new[] {
+                OdpInlineNodeKind.Text,
+                OdpInlineNodeKind.Run,
+                OdpInlineNodeKind.Text,
+                OdpInlineNodeKind.Hyperlink,
+                OdpInlineNodeKind.Text
+            },
+            reopenedParagraph.InlineNodes.Select(node => node.Kind));
+
+        OdfConversionResult<PowerPointPresentation> conversion = reopened.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        var runs = target.Slides[0].TextBoxes.Single().Paragraphs[0].Runs;
+        Assert.Equal(new[] { "Before ", "bold", " between ", "link", " after" }, runs.Select(run => run.Text));
+        Assert.True(runs[1].Bold);
+        Assert.True(runs[3].Italic);
+        Assert.Equal("https://example.com/", runs[3].Hyperlink?.ToString());
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "inline-formatting");
+    }
+
+    [Fact]
+    public void PowerPointRunHyperlinksMapToOdpHyperlinkSyntax() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        PowerPointTextRun run = source.AddSlide().AddTextBoxPoints("Linked", 10, 10, 160, 40)
+            .Paragraphs[0].Runs[0];
+        run.Bold = true;
+        run.SetHyperlink("https://example.com/path");
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdpParagraph paragraph = Assert.Single(Assert.IsType<OdpTextBox>(
+            Assert.Single(conversion.Value.Slides[0].Shapes)).Paragraphs);
+        OdpInlineNode node = Assert.Single(paragraph.InlineNodes);
+
+        Assert.Equal(OdpInlineNodeKind.Hyperlink, node.Kind);
+        Assert.Equal("https://example.com/path", node.Hyperlink!.Href);
+        Assert.True(node.Hyperlink.Bold);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "run-format-details");
     }
 
     [Fact]

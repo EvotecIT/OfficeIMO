@@ -1,10 +1,12 @@
 using OfficeIMO.Excel;
 using OfficeIMO.OpenDocument;
+using OfficeIMO.Spreadsheet;
+using System.Text;
 
 namespace OfficeIMO.Excel.OpenDocument;
 
 /// <summary>Explicit conversions between OfficeIMO Excel and native OpenDocument spreadsheet models.</summary>
-public static class ExcelOpenDocumentConversionExtensions {
+public static partial class ExcelOpenDocumentConversionExtensions {
     /// <summary>Converts an Excel workbook to an in-memory ODS document.</summary>
     public static OdsDocument ToOpenDocument(this ExcelDocument source,
         ExcelOpenDocumentConversionOptions? options = null) => source.ToOpenDocumentResult(options).Value;
@@ -20,13 +22,16 @@ public static class ExcelOpenDocumentConversionExtensions {
         var report = new OdfConversionReport(source.SourceFormat.ToString().ToUpperInvariant(), "ODS");
         target.Metadata.Title = snapshot.Title;
 
-        int cells = 0, formulas = 0, styles = 0, hyperlinks = 0, comments = 0, merges = 0;
-        int rows = 0, columns = 0, validations = 0, tables = 0, filters = 0, unsupportedStyles = 0, skippedStyles = 0;
+        int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, comments = 0, threadedComments = 0, merges = 0;
+        int rows = 0, columns = 0, convertedValidations = 0, skippedValidations = 0, tables = 0, filters = 0, unsupportedStyles = 0, skippedStyles = 0;
         long materializedCells = 0, skippedCells = 0, skippedRows = 0, skippedColumns = 0, skippedMerges = 0;
         bool truncated = false;
         var dataStyles = new Dictionary<uint, string>();
+        int worksheetOrdinal = 0;
         foreach (ExcelWorksheetSnapshot worksheet in snapshot.Worksheets) {
+            worksheetOrdinal++;
             OdsSheet sheet = target.AddSheet(worksheet.Name);
+            var materializedCoordinates = new HashSet<(int Row, int Column)>();
             sheet.Hidden = worksheet.Hidden;
             foreach (ExcelColumnSnapshot column in worksheet.Columns) {
                 if (column.EndIndex > effective.MaximumColumns) {
@@ -50,8 +55,6 @@ public static class ExcelOpenDocumentConversionExtensions {
             }
 
             foreach (ExcelCellSnapshot cell in worksheet.Cells) {
-                if (cell.Comment != null) comments++;
-                if (cell.ThreadedComment != null) comments++;
                 if (cell.Row < 1 || cell.Column < 1 || cell.Row > effective.MaximumRows || cell.Column > effective.MaximumColumns ||
                     materializedCells >= effective.MaximumExpandedCells) {
                     skippedCells++;
@@ -59,10 +62,16 @@ public static class ExcelOpenDocumentConversionExtensions {
                     continue;
                 }
                 materializedCells++;
+                materializedCoordinates.Add((cell.Row, cell.Column));
                 OdsCell converted = sheet.Cell(cell.Row - 1L, cell.Column - 1L);
                 if (!string.IsNullOrWhiteSpace(cell.Formula)) {
-                    converted.Formula = SpreadsheetAddressConverter.ExcelFormulaToOpenFormula(cell.Formula!);
-                    formulas++;
+                    var translation = SpreadsheetAddressConverter.ExcelFormulaToOpenFormula(cell.Formula!);
+                    if (translation.IsSuccessful) {
+                        converted.Formula = translation.Formula;
+                        formulas++;
+                    } else {
+                        formulaTranslationFailures++;
+                    }
                 }
                 bool exactValue = SetOdsValue(converted, cell.Value);
                 if (!exactValue) unsupportedStyles++;
@@ -79,7 +88,108 @@ public static class ExcelOpenDocumentConversionExtensions {
                 } else if (cell.Style != null) {
                     skippedStyles++;
                 }
+                if (cell.Comment != null) {
+                    converted.AddAnnotation(cell.Comment.Text, cell.Comment.Author);
+                    comments++;
+                }
                 cells++;
+            }
+
+            foreach (ExcelThreadedCommentSnapshot threaded in worksheet.ThreadedComments) {
+                if (!ExcelReference.TryParse(threaded.CellReference, out ExcelReference? reference)
+                    || reference!.Kind != ExcelReferenceKind.Cell
+                    || reference.IsQualified
+                    || reference.Start.Row < 1
+                    || reference.Start.Column < 1
+                    || reference.Start.Row > effective.MaximumRows
+                    || reference.Start.Column > effective.MaximumColumns) {
+                    skippedCells++;
+                    truncated = true;
+                    continue;
+                }
+                var coordinate = (reference.Start.Row, reference.Start.Column);
+                if (materializedCoordinates.Add(coordinate)) {
+                    if (materializedCells >= effective.MaximumExpandedCells) {
+                        skippedCells++;
+                        truncated = true;
+                        continue;
+                    }
+                    materializedCells++;
+                }
+                DateTimeOffset? date = threaded.Date.HasValue
+                    ? new DateTimeOffset(threaded.Date.Value.ToUniversalTime())
+                    : (DateTimeOffset?)null;
+                sheet.Cell(coordinate.Row - 1L, coordinate.Column - 1L)
+                    .AddAnnotation(threaded.Text, threaded.Author, date, threaded.Id);
+                threadedComments++;
+            }
+
+            int validationOrdinal = 0;
+            foreach (ExcelDataValidationSnapshot validation in worksheet.Validations) {
+                validationOrdinal++;
+                if (!TryCreateOdsValidationCondition(validation, out OdsValidationConditionSyntax? condition)) {
+                    skippedValidations++;
+                    continue;
+                }
+
+                string validationName = "validation_" + worksheetOrdinal.ToString(CultureInfo.InvariantCulture)
+                    + "_" + validationOrdinal.ToString(CultureInfo.InvariantCulture);
+                bool assigned = false;
+                bool validationLimitReached = false;
+                foreach (string a1Range in validation.A1Ranges) {
+                    if (validationLimitReached) break;
+                    if (!SpreadsheetRangeReference.TryParse(a1Range, SpreadsheetAddressDialect.ExcelA1, out SpreadsheetRangeReference? parsed)
+                        || !parsed!.Start.IsCell || parsed.Start.SheetName != null
+                        || (parsed.End != null && (!parsed.End.IsCell || parsed.End.SheetName != null))) {
+                        skippedValidations++;
+                        continue;
+                    }
+                    SpreadsheetCellReference end = parsed.End ?? parsed.Start;
+                    long firstRow = parsed.Start.Row!.Value;
+                    int firstColumn = parsed.Start.Column!.Value;
+                    long lastRow = end.Row!.Value;
+                    int lastColumn = end.Column!.Value;
+                    if (firstRow > lastRow || firstColumn > lastColumn
+                        || firstRow > effective.MaximumRows || firstColumn > effective.MaximumColumns) {
+                        skippedValidations++;
+                        continue;
+                    }
+                    lastRow = Math.Min(lastRow, effective.MaximumRows);
+                    lastColumn = Math.Min(lastColumn, effective.MaximumColumns);
+                    for (long row = firstRow; row <= lastRow; row++) {
+                        for (int column = firstColumn; column <= lastColumn; column++) {
+                            var coordinate = (checked((int)row), column);
+                            if (materializedCoordinates.Add(coordinate)) {
+                                if (materializedCells >= effective.MaximumExpandedCells) {
+                                    truncated = true;
+                                    skippedValidations++;
+                                    validationLimitReached = true;
+                                    break;
+                                }
+                                materializedCells++;
+                            }
+                            sheet.Cell(row - 1L, column - 1L).ValidationName = validationName;
+                            assigned = true;
+                        }
+                        if (validationLimitReached) break;
+                    }
+                }
+                if (assigned) {
+                    OdsValidation convertedValidation = target.AddValidation(validationName, condition!, validation.AllowBlank);
+                    if (validation.PromptTitle != null || validation.Prompt != null) {
+                        convertedValidation.SetHelpMessage(validation.PromptTitle, validation.Prompt, validation.ShowInputMessage);
+                    }
+                    if (validation.ErrorTitle != null || validation.Error != null) {
+                        convertedValidation.SetErrorMessage(
+                            validation.ErrorTitle,
+                            validation.Error,
+                            ParseOdsValidationMessageType(validation.ErrorStyle),
+                            validation.ShowErrorMessage);
+                    }
+                    convertedValidations++;
+                } else {
+                    skippedValidations++;
+                }
             }
 
             foreach (ExcelMergedRangeSnapshot merged in worksheet.MergedRanges) {
@@ -104,7 +214,6 @@ public static class ExcelOpenDocumentConversionExtensions {
                 materializedCells += mergeCells;
                 merges++;
             }
-            validations += worksheet.Validations.Count;
             tables += worksheet.Tables.Count;
             if (worksheet.AutoFilter != null) filters++;
             if (worksheet.FrozenRowCount > 0 || worksheet.FrozenColumnCount > 0 || worksheet.RightToLeft || !worksheet.ShowGridlines) {
@@ -140,14 +249,20 @@ public static class ExcelOpenDocumentConversionExtensions {
         if (disambiguatedNames > 0) report.Add("sheet-local-named-ranges", OdfConversionMappingStatus.Approximated, disambiguatedNames,
             "Duplicate sheet-local Excel names were made unique because ODS named ranges are workbook scoped.");
         if (formulas > 0) report.Add("formulas", OdfConversionMappingStatus.Approximated, formulas,
-            "Formula text and cached values are retained; local A1 references are translated to an OpenFormula subset.");
+            "Formula syntax is parsed and translated to OpenFormula; cached values are retained.");
+        if (formulaTranslationFailures > 0) report.Add("formulas", OdfConversionMappingStatus.Skipped, formulaTranslationFailures,
+            "Formula syntax without a safe OpenFormula representation was omitted; the cached cell value was retained.");
         if (styles > 0) report.Add("cell-styles", OdfConversionMappingStatus.Approximated, styles,
             "Bold, italic, font, foreground, fill, and common number formats are mapped; other Excel style details are omitted.");
         if (skippedStyles > 0) report.Add("cell-styles", OdfConversionMappingStatus.Skipped, skippedStyles,
             "Cell styles were omitted because IncludeBasicStyles is disabled.");
         if (unsupportedStyles > 0) report.Add("cell-format-details", OdfConversionMappingStatus.Unsupported, unsupportedStyles);
-        AddUnsupported(report, "comments", comments, "ODS annotations are not exposed by the current native spreadsheet model.");
-        AddUnsupported(report, "validations", validations, "Cell values remain, but Excel validation rules are not translated yet.");
+        AddConverted(report, "comments", comments);
+        if (threadedComments > 0) report.Add("threaded-comments", OdfConversionMappingStatus.Approximated, threadedComments,
+            "Comment bodies, authors, timestamps, and identifiers were retained as ODS annotations; reply and resolved-state semantics are not represented.");
+        AddConverted(report, "validations", convertedValidations);
+        if (skippedValidations > 0) report.Add("validations", OdfConversionMappingStatus.Unsupported, skippedValidations,
+            "Only explicit lists and scalar whole-number, decimal, and text-length validation rules have an exact interoperable ODF mapping.");
         AddUnsupported(report, "structured-tables", tables, "Table cells remain; Excel table semantics and styles are not translated.");
         AddUnsupported(report, "filters", filters, "Filter state is not translated.");
         AddUnsupported(report, "built-in-names", builtInNames, "Excel print-area and print-title names are not translated.");
@@ -163,7 +278,7 @@ public static class ExcelOpenDocumentConversionExtensions {
         AddUnsupported(report, "query-tables", snapshot.QueryTablePartCount, null);
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
             $"Configured limits omitted {skippedCells} cells, {skippedRows} rows, {skippedColumns} columns, and {skippedMerges} merges.");
-        return new OdfConversionResult<OdsDocument>(target, report);
+        return new OdfConversionResult<OdsDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }
 
     private static string CreateUniqueNamedRangeName(string name, string? sheetName, HashSet<string> usedNames) {
@@ -189,17 +304,21 @@ public static class ExcelOpenDocumentConversionExtensions {
         var report = new OdfConversionReport("ODS", "XLSX");
         target.BuiltinDocumentProperties.Title = source.Metadata.Title;
         var dataStyles = source.DataStyles.GroupBy(style => style.Name, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First().Kind, StringComparer.Ordinal);
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        var sourceValidations = source.Validations
+            .GroupBy(validation => validation.Name, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
 
         long expandedCells = 0;
-        int cells = 0, formulas = 0, styles = 0, hyperlinks = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
-        int invalidValues = 0, validations = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
+        int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, externalHyperlinks = 0, comments = 0, combinedComments = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
+        int invalidValues = 0, validations = 0, convertedValidations = 0, unsupportedValidationAssignments = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
         int forcedVisibleWorksheets = 0;
         bool truncated = false;
         ExcelSheet? activeTarget = null;
         ExcelSheet? firstTarget = null;
         foreach (OdsSheet odsSheet in source.Sheets) {
             ExcelSheet sheet = target.AddWorksheet(odsSheet.Name);
+            var validationTargets = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             firstTarget ??= sheet;
             worksheetCount++;
             if (!string.Equals(sheet.Name, odsSheet.Name, StringComparison.Ordinal)) renamedSheets++;
@@ -240,8 +359,13 @@ public static class ExcelOpenDocumentConversionExtensions {
                             ExcelCell converted = sheet.CellAt(excelRow, excelColumn);
                             if (!SetExcelValue(converted, cellRun.Value)) invalidValues++;
                             if (!string.IsNullOrWhiteSpace(cellRun.Formula)) {
-                                converted.SetFormula(SpreadsheetAddressConverter.OpenFormulaToExcel(cellRun.Formula!));
-                                formulas++;
+                                var translation = SpreadsheetAddressConverter.OpenFormulaToExcel(cellRun.Formula!);
+                                if (translation.IsSuccessful) {
+                                    converted.SetFormula(translation.Formula);
+                                    formulas++;
+                                } else {
+                                    formulaTranslationFailures++;
+                                }
                             }
                             if (!string.IsNullOrWhiteSpace(cellRun.HyperlinkHref)) {
                                 string href = cellRun.HyperlinkHref!;
@@ -253,9 +377,11 @@ public static class ExcelOpenDocumentConversionExtensions {
                                 }
                                 if (cellRun.Value.Kind != OdsCellValueKind.Empty) _ = SetExcelValue(converted, cellRun.Value);
                                 if (!string.IsNullOrWhiteSpace(cellRun.Formula)) {
-                                    converted.SetFormula(SpreadsheetAddressConverter.OpenFormulaToExcel(cellRun.Formula!));
+                                    var translation = SpreadsheetAddressConverter.OpenFormulaToExcel(cellRun.Formula!);
+                                    if (translation.IsSuccessful) converted.SetFormula(translation.Formula);
                                 }
                                 hyperlinks++;
+                                if (IsExternalOdfHref(href)) externalHyperlinks++;
                             }
                             if (effective.IncludeBasicStyles && cellRun.StyleName != null) {
                                 ApplyOdsStyle(converted, cellRun, dataStyles);
@@ -263,7 +389,24 @@ public static class ExcelOpenDocumentConversionExtensions {
                             } else if (cellRun.StyleName != null) {
                                 skippedStyles++;
                             }
-                            if (cellRun.ValidationName != null) validations++;
+                            if (cellRun.ValidationName != null) {
+                                validations++;
+                                if (!validationTargets.TryGetValue(cellRun.ValidationName, out List<string>? targets)) {
+                                    targets = new List<string>();
+                                    validationTargets.Add(cellRun.ValidationName, targets);
+                                }
+                                targets.Add(SpreadsheetAddressConverter.ToA1(excelRow, excelColumn));
+                            }
+                            if (cellRun.Annotations.Count > 0) {
+                                OdsAnnotation first = cellRun.Annotations[0];
+                                string commentText = cellRun.Annotations.Count == 1
+                                    ? first.Text
+                                    : string.Join("\n\n", cellRun.Annotations.Select(FormatAnnotationForExcel));
+                                sheet.SetComment(excelRow, excelColumn, commentText,
+                                    string.IsNullOrWhiteSpace(first.Creator) ? "OfficeIMO" : first.Creator!);
+                                comments += cellRun.Annotations.Count;
+                                if (cellRun.Annotations.Count > 1) combinedComments += cellRun.Annotations.Count;
+                            }
                             cells++;
 
                             if (cellRun.RowSpan > 1 || cellRun.ColumnSpan > 1) {
@@ -283,6 +426,17 @@ public static class ExcelOpenDocumentConversionExtensions {
                     if (expandedCells >= effective.MaximumExpandedCells) break;
                 }
                 if (expandedCells >= effective.MaximumExpandedCells) break;
+            }
+
+            foreach (KeyValuePair<string, List<string>> entry in validationTargets) {
+                string references = string.Join(" ", entry.Value.Distinct(StringComparer.Ordinal));
+                if (!sourceValidations.TryGetValue(entry.Key, out OdsValidation? validation)
+                    || !TryApplyOdsValidation(sheet, references, validation)) {
+                    unsupportedValidationAssignments += entry.Value.Count;
+                    continue;
+                }
+                ApplyOdsValidationMessages(sheet, entry.Value[0], validation);
+                convertedValidations++;
             }
         }
 
@@ -309,9 +463,14 @@ public static class ExcelOpenDocumentConversionExtensions {
             "Physical ODF column widths are converted to approximate Excel character widths.");
         AddConverted(report, "merges", merges);
         AddConverted(report, "hyperlinks", hyperlinks);
+        AddConverted(report, "comments", comments - combinedComments);
+        if (combinedComments > 0) report.Add("comments", OdfConversionMappingStatus.Approximated, combinedComments,
+            "Multiple annotations on one ODS cell were combined into one Excel legacy comment.");
         AddConverted(report, "named-ranges", namedRanges);
         if (formulas > 0) report.Add("formulas", OdfConversionMappingStatus.Approximated, formulas,
-            "OpenFormula text is translated to an Excel formula subset; cached ODS values remain available only when independently represented.");
+            "OpenFormula syntax is parsed and translated to Excel A1 syntax; cached ODS values remain independently represented.");
+        if (formulaTranslationFailures > 0) report.Add("formulas", OdfConversionMappingStatus.Skipped, formulaTranslationFailures,
+            "Formula syntax without a safe Excel A1 representation was omitted; the cached cell value was retained.");
         if (styles > 0) report.Add("cell-styles", OdfConversionMappingStatus.Approximated, styles,
             "Basic font, fill, and data-style categories are mapped.");
         if (skippedStyles > 0) report.Add("cell-styles", OdfConversionMappingStatus.Skipped, skippedStyles,
@@ -320,18 +479,29 @@ public static class ExcelOpenDocumentConversionExtensions {
             "Worksheet names that are not valid in XLSX were sanitized; formulas and named-range text may still use the source names.");
         if (forcedVisibleWorksheets > 0) report.Add("worksheet-visibility", OdfConversionMappingStatus.Approximated,
             forcedVisibleWorksheets, "The first worksheet was made visible because XLSX requires at least one visible worksheet.");
-        AddUnsupported(report, "validations", validations, "ODF validation conditions are retained in the source but are not translated to Excel rules.");
+        AddConverted(report, "validations", convertedValidations);
+        if (unsupportedValidationAssignments > 0) report.Add("validations", OdfConversionMappingStatus.Unsupported,
+            unsupportedValidationAssignments,
+            "Only explicit lists and scalar whole-number, decimal, and text-length ODF validation conditions have an exact Excel mapping.");
         AddUnsupported(report, "invalid-values", invalidValues, "Invalid typed lexemes were transferred as display text.");
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
             "Content outside the configured row, column, or expanded-cell limits was not materialized.");
-        AddUnmappedOdfFindings(source.InspectFeatures(), report, formulas, validations, hyperlinks);
+        AddUnmappedOdfFindings(source.InspectFeatures(), report, formulas, convertedValidations,
+            externalHyperlinks, comments, namedRanges);
         target = Normalize(target);
-        return new OdfConversionResult<ExcelDocument>(target, report);
+        return new OdfConversionResult<ExcelDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }
 
     private static bool IsSignificant(OdsCellRun cell) => cell.Value.Kind != OdsCellValueKind.Empty ||
         cell.Formula != null || cell.StyleName != null || cell.ValidationName != null || cell.HyperlinkHref != null ||
-        cell.RowSpan > 1 || cell.ColumnSpan > 1;
+        cell.Annotations.Count > 0 || cell.RowSpan > 1 || cell.ColumnSpan > 1;
+
+    private static string FormatAnnotationForExcel(OdsAnnotation annotation) {
+        var header = new List<string>();
+        if (!string.IsNullOrWhiteSpace(annotation.Creator)) header.Add(annotation.Creator!);
+        if (annotation.Date.HasValue) header.Add(annotation.Date.Value.ToString("u", CultureInfo.InvariantCulture));
+        return header.Count == 0 ? annotation.Text : "[" + string.Join(" — ", header) + "]\n" + annotation.Text;
+    }
 
     private static bool SetOdsValue(OdsCell target, object? value) {
         if (value == null) return true;
@@ -379,10 +549,26 @@ public static class ExcelOpenDocumentConversionExtensions {
         if (!string.IsNullOrWhiteSpace(style.NumberFormatCode) && style.NumberFormatCode != "General") {
             if (!dataStyles.TryGetValue(style.StyleIndex, out string? name)) {
                 name = "xlData" + style.StyleIndex.ToString(CultureInfo.InvariantCulture);
-                if (style.IsDateLike) document.AddDateStyle(name);
-                else if (style.NumberFormatCode!.IndexOf('%') >= 0) document.AddPercentageStyle(name, CountDecimalPlaces(style.NumberFormatCode));
-                else if (TryCurrencySymbol(style.NumberFormatCode, out string symbol)) document.AddCurrencyStyle(name, symbol, CountDecimalPlaces(style.NumberFormatCode));
-                else document.AddNumberStyle(name, CountDecimalPlaces(style.NumberFormatCode));
+                SpreadsheetNumberFormatSyntax format = SpreadsheetNumberFormatSyntax.Parse(style.NumberFormatCode!);
+                if (style.IsDateLike) {
+                    bool timeOnly = format.Tokens.Any(token => token.Kind == SpreadsheetNumberFormatTokenKind.DateTimeSymbol &&
+                            (token.Value.IndexOf("h", StringComparison.OrdinalIgnoreCase) >= 0 || token.Value.IndexOf("s", StringComparison.OrdinalIgnoreCase) >= 0)) &&
+                        !format.Tokens.Any(token => token.Kind == SpreadsheetNumberFormatTokenKind.DateTimeSymbol &&
+                            (token.Value.IndexOf("y", StringComparison.OrdinalIgnoreCase) >= 0 || token.Value.IndexOf("d", StringComparison.OrdinalIgnoreCase) >= 0));
+                    if (timeOnly) document.AddTimeStyle(name); else document.AddDateStyle(name);
+                } else if (format.IsPercentage) {
+                    document.AddPercentageStyle(name, format.DecimalPlaces, format.UsesGrouping);
+                } else if (!string.IsNullOrWhiteSpace(format.CurrencySymbol)) {
+                    document.AddCurrencyStyle(name, format.CurrencySymbol!, format.DecimalPlaces, format.UsesGrouping);
+                } else {
+                    document.AddNumberStyle(name, format.DecimalPlaces, format.UsesGrouping);
+                }
+                if (!format.IsValid || format.SectionCount > 1 || format.Tokens.Any(token =>
+                        token.Kind == SpreadsheetNumberFormatTokenKind.BracketedDirective ||
+                        token.Kind == SpreadsheetNumberFormatTokenKind.ScalingSeparator ||
+                        token.Kind == SpreadsheetNumberFormatTokenKind.TextPlaceholder ||
+                        token.Kind == SpreadsheetNumberFormatTokenKind.Literal ||
+                        token.Kind == SpreadsheetNumberFormatTokenKind.Other)) unsupported++;
                 dataStyles.Add(style.StyleIndex, name);
             }
             target.NumberFormatName = name;
@@ -391,21 +577,15 @@ public static class ExcelOpenDocumentConversionExtensions {
             style.TextRotation.HasValue || style.HorizontalAlignment != null || style.VerticalAlignment != null) unsupported++;
     }
 
-    private static void ApplyOdsStyle(ExcelCell target, OdsCellRun style, IReadOnlyDictionary<string, OdsDataStyleKind> dataStyles) {
+    private static void ApplyOdsStyle(ExcelCell target, OdsCellRun style, IReadOnlyDictionary<string, OdsDataStyle> dataStyles) {
         if (style.Bold == true) target.SetBold();
         if (style.Italic == true) target.SetItalic();
         if (style.FontSize.HasValue) target.SetFontSize(style.FontSize.Value.ToPoints());
         if (!string.IsNullOrWhiteSpace(style.FontFamily)) target.SetFontName(style.FontFamily!);
         if (style.Color.HasValue) target.SetFontColor(style.Color.Value.ToString().TrimStart('#'));
         if (style.BackgroundColor.HasValue) target.SetFillColor(style.BackgroundColor.Value.ToString().TrimStart('#'));
-        if (style.NumberFormatName != null && dataStyles.TryGetValue(style.NumberFormatName, out OdsDataStyleKind kind)) {
-            switch (kind) {
-                case OdsDataStyleKind.Percentage: target.SetNumberFormat("0.00%"); break;
-                case OdsDataStyleKind.Currency: target.SetNumberFormat("#,##0.00"); break;
-                case OdsDataStyleKind.Date: target.SetNumberFormat("yyyy-mm-dd"); break;
-                case OdsDataStyleKind.Time: target.SetNumberFormat("hh:mm:ss"); break;
-                default: target.SetNumberFormat("#,##0.00"); break;
-            }
+        if (style.NumberFormatName != null && dataStyles.TryGetValue(style.NumberFormatName, out OdsDataStyle? dataStyle)) {
+            target.SetNumberFormat(dataStyle.ToExcelNumberFormatCode());
         }
     }
 
@@ -418,23 +598,11 @@ public static class ExcelOpenDocumentConversionExtensions {
     private static double ExcelWidthToPoints(double width) => Math.Max(0D, (width * 7D + 5D) * 72D / 96D);
     private static double PointsToExcelWidth(double points) => Math.Max(0D, Math.Min(255D, (points * 96D / 72D - 5D) / 7D));
 
-    private static int CountDecimalPlaces(string format) {
-        int dot = format.IndexOf('.');
-        if (dot < 0) return 0;
-        int count = 0;
-        for (int index = dot + 1; index < format.Length && (format[index] == '0' || format[index] == '#'); index++) count++;
-        return Math.Min(10, count);
-    }
-
     private static long SaturatingAdd(long left, long right) => right > long.MaxValue - left ? long.MaxValue : left + right;
 
-    private static bool TryCurrencySymbol(string format, out string symbol) {
-        foreach (char candidate in new[] { '$', '€', '£', '¥' }) {
-            if (format.IndexOf(candidate) >= 0) { symbol = candidate.ToString(); return true; }
-        }
-        symbol = string.Empty;
-        return false;
-    }
+    private static bool IsExternalOdfHref(string href) =>
+        !string.IsNullOrWhiteSpace(href) && !href.StartsWith("#", StringComparison.Ordinal)
+        && (href.StartsWith("//", StringComparison.Ordinal) || Uri.TryCreate(href, UriKind.Absolute, out _));
 
     private static void AddConverted(OdfConversionReport report, string feature, int count) {
         if (count > 0) report.Add(feature, OdfConversionMappingStatus.Converted, count);
@@ -445,13 +613,20 @@ public static class ExcelOpenDocumentConversionExtensions {
     }
 
     private static void AddUnmappedOdfFindings(OdfFeatureReport features, OdfConversionReport report,
-        int formulas, int validations, int hyperlinks) {
+        int formulas, int validations, int hyperlinks, int annotations, int namedRanges) {
+        foreach (OdfFeatureDiagnostic diagnostic in features.Diagnostics) {
+            report.Add("source-inspection", OdfConversionMappingStatus.Unsupported, 1,
+                diagnostic.Code + " in " + diagnostic.PartPath + ": " + diagnostic.Message);
+        }
         int remainingFormulas = formulas, remainingValidations = validations, remainingHyperlinks = hyperlinks;
+        int remainingAnnotations = annotations, remainingNamedRanges = namedRanges;
         foreach (OdfFeatureFinding finding in features.Findings) {
             int handled = 0;
             if (finding.Name == "spreadsheet-formulas") handled = Consume(ref remainingFormulas, finding.Count);
             else if (finding.Name == "spreadsheet-validations") handled = Consume(ref remainingValidations, finding.Count);
             else if (finding.Name == "external-links") handled = Consume(ref remainingHyperlinks, finding.Count);
+            else if (finding.Name == "annotations") handled = Consume(ref remainingAnnotations, finding.Count);
+            else if (finding.Name == "spreadsheet-named-ranges") handled = Consume(ref remainingNamedRanges, finding.Count);
             int remaining = Math.Max(0, finding.Count - handled);
             if (remaining > 0) report.Add("source-" + finding.Name, OdfConversionMappingStatus.Unsupported, remaining,
                 "The source feature is not represented by the XLSX conversion surface.");

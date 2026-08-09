@@ -128,14 +128,13 @@ namespace OfficeIMO.Excel {
                 return TryCompareFormulaValues(leftValue, comparisonOperator, rightValue, out result);
             }
 
-            var comparison = SimpleComparisonFormulaRegex.Match(condition);
-            if (comparison.Success) {
-                if (!TryResolveNumericOperand(comparison.Groups[1].Value, out double left)
-                    || !TryResolveNumericOperand(comparison.Groups[3].Value, out double right)) {
+            if (ExcelFormulaExpressionParser.TryParseComparison(condition, out ExcelFormulaBinaryExpressionSyntax? comparison)) {
+                if (!TryResolveNumericOperand(comparison!.Left, out double left)
+                    || !TryResolveNumericOperand(comparison.Right, out double right)) {
                     return false;
                 }
 
-                switch (comparison.Groups[2].Value) {
+                switch (comparison.Operator) {
                     case ">":
                         result = left > right;
                         return true;

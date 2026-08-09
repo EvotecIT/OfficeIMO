@@ -5,8 +5,13 @@ internal static class OdfTextCodec {
 
     internal static string Read(XElement element) {
         if (element == null) throw new ArgumentNullException(nameof(element));
+        return ReadNodes(element.Nodes());
+    }
+
+    internal static string ReadNodes(IEnumerable<XNode> nodes) {
+        if (nodes == null) throw new ArgumentNullException(nameof(nodes));
         var builder = new StringBuilder();
-        AppendValue(element.Nodes(), builder, MaximumDecodedCharacters);
+        AppendValue(nodes, builder, MaximumDecodedCharacters);
         return builder.ToString();
     }
 

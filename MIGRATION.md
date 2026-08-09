@@ -53,6 +53,20 @@ keep their existing capability-object shape. The former static implementation
 engines remain internal; applications should not replace the removed root
 methods with calls to those engines.
 
+## OfficeIMO 3.2: bounded RTF reads by default
+
+`RtfReadOptions` now defaults to the bounded OfficeIMO profile. Embedded objects and file-table references are not materialized, hyperlink fields are restricted to web and mail schemes, and byte, character, token, group, payload, image, object, and semantic-block limits apply.
+
+Applications that intentionally rely on the former permissive behavior for trusted files must opt in:
+
+```csharp
+RtfReadResult result = RtfDocument.Load(
+    "trusted-legacy.rtf",
+    RtfReadOptions.CreateCompatibilityProfile());
+```
+
+Do not use the compatibility profile for uploads or other untrusted inputs. Lossless byte output from character-only reads now fails when the source cannot be represented exactly; use byte, stream, or file input when exact original bytes are required.
+
 ## OfficeIMO 3.2: neutral conversion model
 
 Direct format conversion no longer uses Reader as its intermediate ownership

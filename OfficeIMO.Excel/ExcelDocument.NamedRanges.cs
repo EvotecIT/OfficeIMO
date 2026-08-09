@@ -388,10 +388,9 @@ namespace OfficeIMO.Excel {
         private string NormalizeRange(string range, ExcelDefinedNameValidationMode validationMode) {
             string? sheetPrefix = null;
             string a1 = range;
-            int idx = range.LastIndexOf('!');
-            if (idx >= 0) {
-                sheetPrefix = NormalizeSheetPrefix(range.Substring(0, idx), validationMode);
-                a1 = range.Substring(idx + 1);
+            if (SheetNameLookup.TryParseSheetQualifiedReference(range, out string parsedSheet, out string parsedReference)) {
+                sheetPrefix = NormalizeSheetPrefix(parsedSheet, validationMode);
+                a1 = parsedReference;
             }
             a1 = a1.Replace("$", string.Empty);
 

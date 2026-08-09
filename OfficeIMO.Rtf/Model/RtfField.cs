@@ -16,9 +16,13 @@ public sealed class RtfField : IRtfInline {
         get => _instruction;
         set {
             _instruction = value ?? throw new ArgumentNullException(nameof(Instruction));
-            HyperlinkField = RtfHyperlinkFieldInfo.Parse(_instruction);
+            FieldCode = RtfFieldCodeSyntax.Parse(_instruction);
+            HyperlinkField = RtfHyperlinkFieldInfo.Parse(FieldCode);
         }
     }
+
+    /// <summary>Lossless typed syntax for <see cref="Instruction"/>.</summary>
+    public RtfFieldCodeSyntax FieldCode { get; private set; } = RtfFieldCodeSyntax.Parse(string.Empty);
 
     /// <summary>Visible field result content.</summary>
     public RtfParagraph Result { get; } = new RtfParagraph();
@@ -29,9 +33,7 @@ public sealed class RtfField : IRtfInline {
     /// <summary>Gets whether this is a Word <c>EQ</c> mathematical equation field.</summary>
     public bool IsEquation {
         get {
-            string trimmed = Instruction.TrimStart();
-            return trimmed.StartsWith("EQ", StringComparison.OrdinalIgnoreCase)
-                && (trimmed.Length == 2 || char.IsWhiteSpace(trimmed[2]));
+            return string.Equals(FieldCode.Keyword, "EQ", StringComparison.OrdinalIgnoreCase);
         }
     }
 

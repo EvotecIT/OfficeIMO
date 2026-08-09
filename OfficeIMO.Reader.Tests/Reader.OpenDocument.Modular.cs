@@ -46,6 +46,19 @@ public class ReaderOpenDocumentModularTests {
 
     }
 
+    [Theory]
+    [InlineData("Data!A1:B2")]
+    [InlineData("A1:B2:C3")]
+    [InlineData("A1:2")]
+    [InlineData("B2:A1")]
+    public void RegisteredAdapterRejectsNonCellOrMalformedOdsRanges(string requestedRange) {
+        OdsDocument document = OdsDocument.Create();
+        document.AddSheet("Data").Cell(0, 0).SetString("A");
+        OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.OpenDocument(a1Range: requestedRange);
+
+        Assert.Throws<FormatException>(() => reader.Read(document.ToBytes(), "range.ods").ToList());
+    }
+
     [Fact]
     public void RegisteredAdapterEmitsSlideAlignedOdpChunkWithNotesAndTable() {
         OdpPresentation document = OdpPresentation.Create();

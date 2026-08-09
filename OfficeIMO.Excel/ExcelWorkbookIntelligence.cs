@@ -224,7 +224,6 @@ namespace OfficeIMO.Excel {
     }
 
     public partial class ExcelDocument {
-        private static readonly Regex FormulaFunctionRegex = new Regex(@"(?<![A-Za-z0-9_])([A-Za-z_][A-Za-z0-9_\.]*)\s*\(", RegexOptions.Compiled);
         private static readonly HashSet<string> VolatileFormulaFunctions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
             "NOW", "TODAY", "RAND", "RANDBETWEEN", "OFFSET", "INDIRECT", "INFO", "CELL"
         };
@@ -272,14 +271,15 @@ namespace OfficeIMO.Excel {
                     if (string.IsNullOrWhiteSpace(formulaText)) continue;
 
                     string address = cell.CellReference?.Value ?? string.Empty;
-                    var references = ExcelFormulaSyntaxTree.Parse(formulaText!).Nodes
+                    ExcelFormulaSyntaxTree syntaxTree = ExcelFormulaSyntaxTree.Parse(formulaText!);
+                    var references = syntaxTree.Nodes
                         .OfType<ExcelFormulaReferenceSyntax>()
                         .Select(reference => reference.Text)
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .ToArray();
-                    var functions = FormulaFunctionRegex.Matches(formulaText!)
-                        .Cast<Match>()
-                        .Select(match => match.Groups[1].Value)
+                    var functions = syntaxTree.Nodes
+                        .OfType<ExcelFormulaFunctionSyntax>()
+                        .Select(function => function.Name)
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .ToArray();
 

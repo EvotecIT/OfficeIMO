@@ -1,18 +1,15 @@
-using System.Text.RegularExpressions;
-
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private bool TryEvaluateCustomFormulaFunction(string formula, out FormulaArgumentValue result) {
             result = default;
-            Match match = AnyFunctionFormulaRegex.Match(formula);
-            if (!match.Success) {
+            if (!ExcelFormulaExpressionParser.TryParseFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? call)) {
                 return false;
             }
 
-            string functionName = match.Groups[1].Value.ToUpperInvariant();
+            string functionName = call!.Name.ToUpperInvariant();
             if (!_excelDocument.Calculation.TryGetCustomFunction(functionName, out ExcelCustomFormulaFunction? function)
                 || function == null
-                || !TryResolveFormulaArguments(match.Groups[2].Value, out List<FormulaArgumentValue> arguments)
+                || !TryResolveFormulaArguments(call.Arguments, out List<FormulaArgumentValue> arguments)
                 || arguments.Any(argument => argument.IsUnresolvedFormula)) {
                 return false;
             }

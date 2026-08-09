@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -63,10 +62,11 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    bool wholeCell = WholeCellTemplateMarkerRegex.IsMatch(text);
-                    foreach (Match match in TemplateMarkerRegex.Matches(text)) {
-                        string name = match.Groups["name"].Value;
-                        string? format = match.Groups["format"].Success ? match.Groups["format"].Value.Trim() : null;
+                    ExcelTemplateSyntax syntax = ExcelTemplateSyntax.Parse(text);
+                    bool wholeCell = syntax.IsWholeMarker;
+                    foreach (ExcelTemplateMarkerSyntax match in syntax.Markers) {
+                        string name = match.Name;
+                        string? format = match.Format;
                         bool? isBound = null;
                         string? boundValueKind = null;
                         string? boundValueTypeName = null;

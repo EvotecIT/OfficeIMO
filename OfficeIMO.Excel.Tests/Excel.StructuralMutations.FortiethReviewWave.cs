@@ -57,9 +57,16 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData("Sheet1!A1:Sheet1!C1", "Sheet1!A1:C1")]
         [InlineData("'Data Set'!$A$1:'Data Set'!$C$1", "'Data Set'!$A$1:$C$1")]
+        [InlineData("Data!2:Data!5", "Data!2:5")]
+        [InlineData("Data!A:Data!C", "Data!A:C")]
+        [InlineData("'Data: Q1'!A1:'Data: Q1'!C3", "'Data: Q1'!A1:C3")]
+        [InlineData("'Owner''s Data'!A1:'Owner''s Data'!C3", "'Owner''s Data'!A1:C3")]
         public void Test_FormulaSyntaxTree_NormalizesRepeatedIdenticalRangeQualifiers(
             string formula,
             string normalized) {
+            Assert.True(ExcelFormulaReferenceRewriter.TryReadReferenceAt(formula, 0, out ExcelFormulaReferenceCandidate? candidate));
+            Assert.NotNull(candidate);
+            Assert.Equal(formula, candidate!.Text);
             ExcelFormulaSyntaxTree tree = ExcelFormulaSyntaxTree.Parse(formula);
 
             ExcelFormulaReferenceSyntax reference = Assert.Single(tree.Nodes.OfType<ExcelFormulaReferenceSyntax>());
@@ -77,6 +84,78 @@ namespace OfficeIMO.Tests {
             data.DeleteColumns(1);
 
             Assert.Equal("SUM(Data!A1:B1)", Assert.Single(formulas.GetFormulaCells()).Formula);
+        }
+
+        [Fact]
+        public void Test_FormulaSyntaxTree_IdentifiesNestedFunctionsWithoutInspectingStringsOrStructuredColumns() {
+            ExcelFormulaSyntaxTree tree = ExcelFormulaSyntaxTree.Parse(
+                "IF(A1>0, _xlfn.XLOOKUP(A1,Data[Call (legacy)],Data[Value]),\"SUM(B1)\")");
+
+            Assert.Equal(
+                new[] { "IF", "_xlfn.XLOOKUP" },
+                tree.Nodes.OfType<ExcelFormulaFunctionSyntax>().Select(function => function.Name));
+        }
+
+        [Fact]
+        public void Test_FormulaSyntaxTree_RewritesOnlyCompleteDefinedNameNodes() {
+            ExcelFormulaSyntaxTree tree = ExcelFormulaSyntaxTree.Parse(
+                "SUM(Tax,TaxRate,\"Tax\")+Table1[Tax]+Sheet1!Tax");
+
+            string rewritten = tree.RewriteNames(name =>
+                string.Equals(name, "Tax", StringComparison.OrdinalIgnoreCase) ? "Tax_Copy" : name);
+
+            Assert.Equal("SUM(Tax_Copy,TaxRate,\"Tax\")+Table1[Tax]+Sheet1!Tax", rewritten);
+        }
+
+        [Fact]
+        public void Test_FormulaExpressionParser_ParsesCustomFunctionCallWithoutClassifyingItAsBuiltIn() {
+            Assert.True(ExcelFormulaExpressionParser.TryParseFunctionCall(
+                "DOUBLEVALUE(A1)", out ExcelFormulaFunctionCallSyntax? call));
+            Assert.Equal("DOUBLEVALUE", call!.Name);
+            Assert.Equal("A1", call.Arguments);
+            Assert.False(ExcelFormulaExpressionParser.TryParseSupportedFunctionCall("DOUBLEVALUE(A1)", out _));
+        }
+
+        [Theory]
+        [InlineData("'Profit-Loss'!A1+1", "'Profit-Loss'!A1", "+", "1")]
+        [InlineData("'Owner''s <Data>'!A1>=0", "'Owner''s <Data>'!A1", ">=", "0")]
+        public void Test_FormulaExpressionParser_IgnoresOperatorsInsideQuotedSheetQualifiers(
+            string formula,
+            string expectedLeft,
+            string expectedOperator,
+            string expectedRight) {
+            ExcelFormulaBinaryExpressionSyntax? expression;
+            bool parsed = expectedOperator == "+"
+                ? ExcelFormulaExpressionParser.TryParseArithmetic(formula, out expression)
+                : ExcelFormulaExpressionParser.TryParseComparison(formula, out expression);
+
+            Assert.True(parsed);
+            Assert.NotNull(expression);
+            Assert.Equal(expectedLeft, expression!.Left);
+            Assert.Equal(expectedOperator, expression.Operator);
+            Assert.Equal(expectedRight, expression.Right);
+        }
+
+        [Theory]
+        [InlineData("'Unclosed-Sheet!A1+1")]
+        [InlineData("'Unclosed<Sheet!A1=1")]
+        public void Test_FormulaExpressionParser_RejectsUnterminatedQuotedSheetQualifiers(string formula) {
+            Assert.False(ExcelFormulaExpressionParser.TryParseArithmetic(formula, out _));
+            Assert.False(ExcelFormulaExpressionParser.TryParseComparison(formula, out _));
+        }
+
+        [Fact]
+        public void Test_NamedRangeParser_PreservesBangInsideQuotedSheetName() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            document.AddWorksheet("Bang!Sheet");
+
+            document.SetNamedRange("DataRange", "'Bang!Sheet'!A1:B2", save: false,
+                validationMode: ExcelDefinedNameValidationMode.Strict);
+
+            DocumentFormat.OpenXml.Spreadsheet.DefinedName definedName = Assert.Single(
+                document.WorkbookPartRoot.Workbook.DefinedNames!
+                    .Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>());
+            Assert.Equal("'Bang!Sheet'!$A$1:$B$2", definedName.Text);
         }
 
         [Fact]

@@ -5,17 +5,20 @@
 ```csharp
 using OfficeIMO.Word;
 using OfficeIMO.Word.OpenDocument;
+using OfficeIMO.OpenDocument;
 
 using WordDocument word = WordDocument.Load("input.docx", readOnly: true);
-OdfConversionResult<OdtDocument> result = word.ToOpenDocument();
-result.Document.Save("output.odt");
+OdfConversionResult<OdtDocument> result = word.ToOpenDocumentResult();
+result.Value.Save("output.odt");
 
 foreach (OdfConversionMapping mapping in result.Report.Mappings) {
     Console.WriteLine($"{mapping.Feature}: {mapping.Status} ({mapping.Count})");
 }
 ```
 
-The adapter currently maps ordered body blocks, headings, paragraphs, basic inline formatting, hyperlinks, lists, tables and merges, embedded inline images, page layout, page breaks, bookmarks, and default headers and footers. The report calls out omitted run, paragraph, table, and image-layout details as well as tracked changes, section-specific layout, alternate headers/footers, footnotes, fields, charts, content controls, and other source features that cannot be represented directly.
+The adapter maps ordered body blocks, headings, paragraphs, alignment, indentation, spacing, shading, font family, common run formatting, hyperlinks, lists, tables and merges, embedded inline images, page layout, page breaks, bookmarks, and default headers and footers. Mixed ODT text, spans, hyperlinks, images, and bookmark markers are consumed in document order. Nested inline markup that does not have an exact typed mapping is flattened with an explicit `inline-formatting` approximation instead of being reported as exact.
+
+The report calls out omitted table and image-layout details as well as tracked changes, section-specific layout, alternate headers/footers, footnotes, fields, charts, content controls, and other source features that cannot be represented directly. Use `ToOpenDocumentResult` or `ToWordDocumentResult` for evidence-bearing conversion, and set the options' `LossPolicy` to `ThrowOnAnyLoss` for strict workflows.
 
 ## Dependency footprint
 

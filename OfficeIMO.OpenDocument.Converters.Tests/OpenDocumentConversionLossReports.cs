@@ -155,7 +155,7 @@ public sealed class OpenDocumentConversionLossReportTests {
 
         Assert.Equal("of:=IF([.A1]=\"B2\";1;0)", target.GetSheet("Data")!.Cell(0, 1).Formula);
 
-        target.GetSheet("Data")!.Cell(0, 2).Formula = "of:=IF([.A1]=\"[.B2]\",1,0)";
+        target.GetSheet("Data")!.Cell(0, 2).Formula = "of:=IF([.A1]=\"[.B2]\";1;0)";
         OdfConversionResult<ExcelDocument> reverse = target.ToExcelDocumentResult();
         using ExcelDocument roundTrip = reverse.Value;
         ExcelCellSnapshot reverseFormula = roundTrip.CreateInspectionSnapshot().Worksheets.Single().Cells

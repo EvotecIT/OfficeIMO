@@ -1,23 +1,12 @@
 using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        private static readonly Regex TemplateMarkerRegex = new Regex(
-            @"\{\{\s*(?<name>[A-Za-z0-9_.-]+)(?:\s*:\s*(?<format>[^}]+?))?\s*\}\}",
-            RegexOptions.Compiled,
-            TimeSpan.FromMilliseconds(100));
-
-        private static readonly Regex WholeCellTemplateMarkerRegex = new Regex(
-            @"^\s*\{\{\s*(?<name>[A-Za-z0-9_.-]+)(?:\s*:\s*(?<format>[^}]+?))?\s*\}\}\s*$",
-            RegexOptions.Compiled,
-            TimeSpan.FromMilliseconds(100));
-
         /// <summary>
         /// Replaces {{Marker}} placeholders in text cells on this worksheet using the supplied values.
         /// </summary>
