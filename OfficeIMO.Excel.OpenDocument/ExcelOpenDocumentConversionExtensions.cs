@@ -337,8 +337,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             StringComparer.Ordinal);
 
         long expandedCells = 0;
-        int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, externalHyperlinks = 0, comments = 0, combinedComments = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
-        int invalidValues = 0, validations = 0, convertedValidations = 0, unsupportedValidationAssignments = 0, unsupportedHyperlinks = 0, unsupportedMeasurements = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
+        int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, externalHyperlinks = 0, comments = 0, combinedComments = 0, metadataTranscriptComments = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
+        int invalidValues = 0, validations = 0, convertedValidations = 0, unsupportedValidationAssignments = 0, unsupportedHyperlinks = 0, unsupportedMeasurements = 0, unsupportedDataStyleFormats = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
         int forcedVisibleWorksheets = 0;
         bool truncated = false;
         ExcelSheet? activeTarget = null;
@@ -429,7 +429,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                 }
                             }
                             if (effective.IncludeBasicStyles && cellRun.StyleName != null) {
-                                unsupportedMeasurements += ApplyOdsStyle(converted, cellRun, dataStyles);
+                                unsupportedMeasurements += ApplyOdsStyle(converted, cellRun, dataStyles,
+                                    out bool unsupportedDataStyleFormat);
+                                if (unsupportedDataStyleFormat) unsupportedDataStyleFormats++;
                                 styles++;
                             } else if (cellRun.StyleName != null) {
                                 skippedStyles++;
@@ -444,13 +446,16 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                             }
                             if (cellRun.Annotations.Count > 0) {
                                 OdsAnnotation first = cellRun.Annotations[0];
-                                string commentText = cellRun.Annotations.Count == 1
+                                bool preserveSingleMetadata = cellRun.Annotations.Count == 1
+                                    && (!string.IsNullOrWhiteSpace(first.Name) || first.Date.HasValue);
+                                string commentText = cellRun.Annotations.Count == 1 && !preserveSingleMetadata
                                     ? first.Text
                                     : string.Join("\n\n", cellRun.Annotations.Select(FormatAnnotationForExcel));
                                 sheet.SetComment(excelRow, excelColumn, commentText,
                                     string.IsNullOrWhiteSpace(first.Creator) ? "OfficeIMO" : first.Creator!);
                                 comments += cellRun.Annotations.Count;
                                 if (cellRun.Annotations.Count > 1) combinedComments += cellRun.Annotations.Count;
+                                else if (preserveSingleMetadata) metadataTranscriptComments++;
                             }
                             cells++;
 
@@ -510,9 +515,12 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         AddConverted(report, "hyperlinks", hyperlinks);
         AddUnsupported(report, "hyperlinks", unsupportedHyperlinks,
             "Internal hyperlink fragments that are neither cell addresses nor transferred named ranges were omitted.");
-        AddConverted(report, "comments", comments - combinedComments);
+        AddConverted(report, "comments", comments - combinedComments - metadataTranscriptComments);
         if (combinedComments > 0) report.Add("comments", OdfConversionMappingStatus.Approximated, combinedComments,
             "Multiple annotations on one ODS cell were combined into one Excel legacy comment.");
+        if (metadataTranscriptComments > 0) report.Add("comments", OdfConversionMappingStatus.Approximated,
+            metadataTranscriptComments,
+            "ODS annotation timestamps and stable names were retained in the Excel legacy comment transcript because legacy comments have no equivalent metadata fields.");
         AddConverted(report, "named-ranges", namedRanges);
         if (formulas > 0) report.Add("formulas", OdfConversionMappingStatus.Approximated, formulas,
             "OpenFormula syntax is parsed and translated to Excel A1 syntax; cached ODS values remain independently represented.");
@@ -533,6 +541,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         AddUnsupported(report, "invalid-values", invalidValues, "Invalid typed lexemes were transferred as display text.");
         AddUnsupported(report, "relative-measurements", unsupportedMeasurements,
             "Relative or unsupported ODF row, column, or text measurements could not be projected to fixed Excel sizes and were omitted.");
+        AddUnsupported(report, "cell-format-details", unsupportedDataStyleFormats,
+            $"ODF data styles that exceed Excel's {OdsDataStyle.MaximumExcelNumberFormatCodeLength}-character custom number-format limit were omitted.");
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
             "Content outside the configured row, column, or expanded-cell limits was not materialized.");
         AddUnmappedOdfFindings(source.InspectFeatures(), report, formulas, convertedValidations,
@@ -549,6 +559,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var header = new List<string>();
         if (!string.IsNullOrWhiteSpace(annotation.Creator)) header.Add(annotation.Creator!);
         if (annotation.Date.HasValue) header.Add(annotation.Date.Value.ToString("u", CultureInfo.InvariantCulture));
+        if (!string.IsNullOrWhiteSpace(annotation.Name)) header.Add("Id: " + annotation.Name);
         return header.Count == 0 ? annotation.Text : "[" + string.Join(" — ", header) + "]\n" + annotation.Text;
     }
 
@@ -648,8 +659,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             style.TextRotation.HasValue || style.HorizontalAlignment != null || style.VerticalAlignment != null) unsupported++;
     }
 
-    private static int ApplyOdsStyle(ExcelCell target, OdsCellRun style, IReadOnlyDictionary<string, OdsDataStyle> dataStyles) {
+    private static int ApplyOdsStyle(
+        ExcelCell target,
+        OdsCellRun style,
+        IReadOnlyDictionary<string, OdsDataStyle> dataStyles,
+        out bool unsupportedDataStyleFormat) {
         int unsupported = 0;
+        unsupportedDataStyleFormat = false;
         if (style.Bold == true) target.SetBold();
         if (style.Italic == true) target.SetItalic();
         if (style.FontSize.HasValue) {
@@ -660,7 +676,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (style.Color.HasValue) target.SetFontColor(style.Color.Value.ToString().TrimStart('#'));
         if (style.BackgroundColor.HasValue) target.SetFillColor(style.BackgroundColor.Value.ToString().TrimStart('#'));
         if (style.NumberFormatName != null && dataStyles.TryGetValue(style.NumberFormatName, out OdsDataStyle? dataStyle)) {
-            target.SetNumberFormat(dataStyle.ToExcelNumberFormatCode());
+            if (dataStyle.TryGetExcelNumberFormatCode(out string formatCode)) target.SetNumberFormat(formatCode);
+            else unsupportedDataStyleFormat = true;
         }
         return unsupported;
     }

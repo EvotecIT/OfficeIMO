@@ -264,6 +264,32 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
             diagnostic.Message.IndexOf("Missing", StringComparison.Ordinal) >= 0);
     }
 
+    [Fact]
+    public void ExcelFormatProjectionBoundsMinimumIntegerAndFractionalSecondPlaceholders() {
+        OdsDocument numberDocument = OdsDocument.Create();
+        numberDocument.AddNumberStyle("Number", 0);
+        XDocument numberFlat = numberDocument.ToFlatXml();
+        numberFlat.Descendants(OdfNamespaces.Number + "number").Single()
+            .SetAttributeValue(OdfNamespaces.Number + "min-integer-digits", int.MaxValue);
+        using var numberStream = new MemoryStream();
+        numberFlat.Save(numberStream);
+        numberStream.Position = 0;
+        OdsDataStyle numberStyle = Assert.Single(OdsDocument.LoadFlatXml(numberStream).DataStyles);
+
+        OdsDocument timeDocument = OdsDocument.Create();
+        timeDocument.AddTimeStyle("Time");
+        XDocument timeFlat = timeDocument.ToFlatXml();
+        timeFlat.Descendants(OdfNamespaces.Number + "seconds").Single()
+            .SetAttributeValue(OdfNamespaces.Number + "decimal-places", int.MaxValue);
+        using var timeStream = new MemoryStream();
+        timeFlat.Save(timeStream);
+        timeStream.Position = 0;
+        OdsDataStyle timeStyle = Assert.Single(OdsDocument.LoadFlatXml(timeStream).DataStyles);
+
+        Assert.False(numberStyle.TryGetExcelNumberFormatCode(out _));
+        Assert.False(timeStyle.TryGetExcelNumberFormatCode(out _));
+    }
+
     private static void WrapFirstRowAsHeader(XElement table) {
         XElement firstRow = table.Elements(OdfNamespaces.Table + "table-row").First();
         XElement secondRow = firstRow.ElementsAfterSelf(OdfNamespaces.Table + "table-row").First();

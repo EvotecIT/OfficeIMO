@@ -131,6 +131,26 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     }
 
     [Fact]
+    public void OdsAnnotationIdentityAndTimestampAreRetainedInAnApproximatedExcelCommentTranscript() {
+        OdsDocument source = OdsDocument.Create();
+        DateTimeOffset timestamp = new DateTimeOffset(2026, 8, 9, 9, 15, 0, TimeSpan.Zero);
+        source.AddSheet("Data").Cell(0, 0).AddAnnotation("Review", "Alice", timestamp, "note-17");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        ExcelCommentInfo comment = Assert.Single(target.Sheets.Single().GetComments());
+
+        Assert.Equal("Alice", comment.Author);
+        Assert.Contains("2026-08-09 09:15:00Z", comment.Text, StringComparison.Ordinal);
+        Assert.Contains("Id: note-17", comment.Text, StringComparison.Ordinal);
+        Assert.Contains("Review", comment.Text, StringComparison.Ordinal);
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "comments" && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
     public void ThreadedExcelCommentsBecomeExplicitlyApproximatedOdsAnnotations() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Data");
@@ -288,5 +308,26 @@ public sealed class SpreadsheetNumberFormatConversionTests {
 
         Assert.Equal(4, style.MinimumIntegerDigits);
         Assert.Equal("0000.00", style.ToExcelNumberFormatCode());
+    }
+
+    [Fact]
+    public void ExcessiveOdfDecimalPlacesAreRejectedBeforeExcelFormatAllocationAndReportedAsUnsupported() {
+        OdsDocument source = OdsDocument.Create();
+        OdsDataStyle style = source.AddNumberStyle("Unbounded", int.MaxValue);
+        OdsCell cell = source.AddSheet("Data").Cell(0, 0);
+        cell.SetDecimal(1.25M);
+        cell.NumberFormatName = style.Name;
+
+        Assert.False(style.TryGetExcelNumberFormatCode(out _));
+        Assert.Throws<InvalidOperationException>(() => style.ToExcelNumberFormatCode());
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "cell-format-details"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
     }
 }

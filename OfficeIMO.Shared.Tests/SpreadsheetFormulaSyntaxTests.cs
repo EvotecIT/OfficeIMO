@@ -15,6 +15,7 @@ public sealed class SpreadsheetFormulaSyntaxTests {
     [InlineData("=MyRange A1", "of:=MyRange![.A1]")]
     [InlineData("=A1 OtherRange", "of:=[.A1]!OtherRange")]
     [InlineData("=FirstRange SecondRange", "of:=FirstRange!SecondRange")]
+    [InlineData("=SUM($1:$2)", "of:=SUM([.$1:.$2])")]
     public void ExcelFormulaTranslationUsesStructuralContext(string excel, string expected) {
         SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
             .Parse(excel, SpreadsheetFormulaDialect.ExcelA1)
@@ -40,6 +41,7 @@ public sealed class SpreadsheetFormulaSyntaxTests {
     [InlineData("of:={1;2|3;4}", "={1,2;3,4}")]
     [InlineData("of:=SUM(([.A1]~[.B1]))", "=SUM((A1,B1))")]
     [InlineData("of:=SUM([.A1]![.B1])", "=SUM(A1 B1)")]
+    [InlineData("of:=SUM([.$1:.$2])", "=SUM($1:$2)")]
     public void OpenFormulaTranslationUsesStructuralContext(string openFormula, string expected) {
         SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
             .Parse(openFormula, SpreadsheetFormulaDialect.OpenFormula)

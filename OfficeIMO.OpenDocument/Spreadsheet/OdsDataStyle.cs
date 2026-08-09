@@ -16,6 +16,9 @@ public enum OdsDataStyleKind {
 
 /// <summary>An XML-backed ODS number, percentage, currency, date, or time style.</summary>
 public sealed class OdsDataStyle {
+    /// <summary>Maximum number of characters supported by an Excel custom number-format code.</summary>
+    public const int MaximumExcelNumberFormatCodeLength = 255;
+
     internal OdsDataStyle(XElement element, OdsDataStyleKind kind) { Element = element; Kind = kind; }
     /// <summary>Style name referenced by a cell style.</summary>
     public string Name => (string?)Element.Attribute(OdfNamespaces.Style + "name") ?? string.Empty;
@@ -40,79 +43,129 @@ public sealed class OdsDataStyle {
         .FirstOrDefault(value => value.Length > 0);
 
     /// <summary>Projects the represented common ODF style to an Excel number-format code.</summary>
+    /// <exception cref="InvalidOperationException">The style cannot be represented within Excel's custom-format limit.</exception>
     public string ToExcelNumberFormatCode() {
-        if (Kind == OdsDataStyleKind.Date || Kind == OdsDataStyleKind.Time) return BuildDateTimeFormat();
-        string number = BuildNumericComponent();
+        if (TryGetExcelNumberFormatCode(out string formatCode)) return formatCode;
+        throw new InvalidOperationException(
+            $"The ODF data style cannot be represented within Excel's {MaximumExcelNumberFormatCodeLength}-character custom number-format limit.");
+    }
+
+    /// <summary>Attempts to project the represented common ODF style to a bounded Excel number-format code.</summary>
+    public bool TryGetExcelNumberFormatCode(out string formatCode) {
+        formatCode = string.Empty;
+        if (Kind == OdsDataStyleKind.Date || Kind == OdsDataStyleKind.Time) {
+            return TryBuildDateTimeFormat(out formatCode);
+        }
+        if (!TryBuildNumericComponent(out string number)) return false;
         var builder = new System.Text.StringBuilder();
         bool wroteNumber = false;
         bool wrotePercentageScaling = false;
         foreach (XElement child in Element.Elements()) {
             if (child.Name == OdfNamespaces.Number + "number") {
-                builder.Append(number);
+                if (!TryAppend(builder, number)) return false;
                 wroteNumber = true;
             } else if (child.Name == OdfNamespaces.Number + "currency-symbol") {
-                builder.Append(EscapeExcelLiteral(child.Value));
+                if (!TryAppendExcelLiteral(builder, child.Value)) return false;
             } else if (child.Name == OdfNamespaces.Number + "text") {
                 string text = child.Value;
                 if (Kind == OdsDataStyleKind.Percentage && !wrotePercentageScaling) {
                     int percent = text.IndexOf('%');
                     if (percent >= 0) {
-                        builder.Append(EscapeExcelLiteral(text.Substring(0, percent)));
-                        builder.Append('%');
-                        builder.Append(EscapeExcelLiteral(text.Substring(percent + 1)));
+                        if (!TryAppendExcelLiteral(builder, text.Substring(0, percent)) ||
+                            !TryAppend(builder, "%") ||
+                            !TryAppendExcelLiteral(builder, text.Substring(percent + 1))) return false;
                         wrotePercentageScaling = true;
                     } else {
-                        builder.Append(EscapeExcelLiteral(text));
+                        if (!TryAppendExcelLiteral(builder, text)) return false;
                     }
                 } else {
-                    builder.Append(EscapeExcelLiteral(text));
+                    if (!TryAppendExcelLiteral(builder, text)) return false;
                 }
             }
         }
-        if (!wroteNumber) builder.Append(number);
-        if (Kind == OdsDataStyleKind.Percentage && !wrotePercentageScaling) builder.Append('%');
-        return builder.ToString();
+        if (!wroteNumber && !TryAppend(builder, number)) return false;
+        if (Kind == OdsDataStyleKind.Percentage && !wrotePercentageScaling && !TryAppend(builder, "%")) return false;
+        formatCode = builder.ToString();
+        return true;
     }
 
     internal XElement Element { get; }
 
-    private string BuildNumericComponent() {
-        string number = (UsesGrouping ? "#,##" : string.Empty) + new string('0', MinimumIntegerDigits);
-        if (DecimalPlaces > 0) number += "." + new string('0', DecimalPlaces);
-        return number;
+    private bool TryBuildNumericComponent(out string number) {
+        number = string.Empty;
+        XElement? component = Element.Descendants(OdfNamespaces.Number + "number").FirstOrDefault();
+        if (!TryReadNonNegativeInteger(component, "min-integer-digits", 1, out int minimumIntegerDigits) ||
+            !TryReadNonNegativeInteger(component, "decimal-places", 0, out int decimalPlaces)) return false;
+        minimumIntegerDigits = Math.Max(1, minimumIntegerDigits);
+        int groupingLength = UsesGrouping ? 4 : 0;
+        int decimalSeparatorLength = decimalPlaces > 0 ? 1 : 0;
+        if (minimumIntegerDigits > MaximumExcelNumberFormatCodeLength - groupingLength - decimalSeparatorLength ||
+            decimalPlaces > MaximumExcelNumberFormatCodeLength - groupingLength - decimalSeparatorLength - minimumIntegerDigits) return false;
+        number = (UsesGrouping ? "#,##" : string.Empty) + new string('0', minimumIntegerDigits);
+        if (decimalPlaces > 0) number += "." + new string('0', decimalPlaces);
+        return true;
     }
 
-    private string BuildDateTimeFormat() {
+    private bool TryBuildDateTimeFormat(out string formatCode) {
+        formatCode = string.Empty;
         var builder = new System.Text.StringBuilder();
         foreach (XElement child in Element.Elements()) {
             string style = (string?)child.Attribute(OdfNamespaces.Number + "style") ?? "short";
-            if (child.Name == OdfNamespaces.Number + "year") builder.Append(style == "long" ? "yyyy" : "yy");
-            else if (child.Name == OdfNamespaces.Number + "month") {
+            if (child.Name == OdfNamespaces.Number + "year") {
+                if (!TryAppend(builder, style == "long" ? "yyyy" : "yy")) return false;
+            } else if (child.Name == OdfNamespaces.Number + "month") {
                 bool textual = string.Equals(
                     (string?)child.Attribute(OdfNamespaces.Number + "textual"),
                     "true",
                     StringComparison.OrdinalIgnoreCase);
-                builder.Append(textual
+                if (!TryAppend(builder, textual
                     ? (style == "long" ? "mmmm" : "mmm")
-                    : (style == "long" ? "mm" : "m"));
-            }
-            else if (child.Name == OdfNamespaces.Number + "day") builder.Append(style == "long" ? "dd" : "d");
-            else if (child.Name == OdfNamespaces.Number + "hours") builder.Append(style == "long" ? "hh" : "h");
-            else if (child.Name == OdfNamespaces.Number + "minutes") builder.Append(style == "long" ? "mm" : "m");
-            else if (child.Name == OdfNamespaces.Number + "seconds") {
-                builder.Append(style == "long" ? "ss" : "s");
-                int decimalPlaces = (int?)child.Attribute(OdfNamespaces.Number + "decimal-places") ?? 0;
-                if (decimalPlaces > 0) builder.Append('.').Append('0', decimalPlaces);
-            } else if (child.Name == OdfNamespaces.Number + "am-pm") builder.Append("AM/PM");
-            else if (child.Name == OdfNamespaces.Number + "text") builder.Append(EscapeExcelLiteral(child.Value));
+                    : (style == "long" ? "mm" : "m"))) return false;
+            } else if (child.Name == OdfNamespaces.Number + "day") {
+                if (!TryAppend(builder, style == "long" ? "dd" : "d")) return false;
+            } else if (child.Name == OdfNamespaces.Number + "hours") {
+                if (!TryAppend(builder, style == "long" ? "hh" : "h")) return false;
+            } else if (child.Name == OdfNamespaces.Number + "minutes") {
+                if (!TryAppend(builder, style == "long" ? "mm" : "m")) return false;
+            } else if (child.Name == OdfNamespaces.Number + "seconds") {
+                if (!TryAppend(builder, style == "long" ? "ss" : "s") ||
+                    !TryReadNonNegativeInteger(child, "decimal-places", 0, out int decimalPlaces)) return false;
+                if (decimalPlaces > 0) {
+                    if (decimalPlaces > MaximumExcelNumberFormatCodeLength - builder.Length - 1 ||
+                        !TryAppend(builder, ".") || !TryAppend(builder, new string('0', decimalPlaces))) return false;
+                }
+            } else if (child.Name == OdfNamespaces.Number + "am-pm") {
+                if (!TryAppend(builder, "AM/PM")) return false;
+            } else if (child.Name == OdfNamespaces.Number + "text" && !TryAppendExcelLiteral(builder, child.Value)) return false;
         }
-        return builder.Length == 0 ? (Kind == OdsDataStyleKind.Date ? "yyyy-mm-dd" : "hh:mm:ss") : builder.ToString();
+        formatCode = builder.Length == 0 ? (Kind == OdsDataStyleKind.Date ? "yyyy-mm-dd" : "hh:mm:ss") : builder.ToString();
+        return true;
     }
 
-    private static string EscapeExcelLiteral(string value) {
-        if (value.All(character => character == '-' || character == '/' || character == ':' || character == ' ' ||
-                                   character == '$' || character == '€' || character == '£' || character == '¥')) return value;
-        return "\"" + value.Replace("\"", "\"\"") + "\"";
+    private static bool TryReadNonNegativeInteger(XElement? element, string localName, int fallback, out int value) {
+        string? lexical = (string?)element?.Attribute(OdfNamespaces.Number + localName);
+        if (lexical == null) {
+            value = fallback;
+            return true;
+        }
+        return int.TryParse(lexical, System.Globalization.NumberStyles.None,
+            System.Globalization.CultureInfo.InvariantCulture, out value) && value >= 0;
+    }
+
+    private static bool TryAppendExcelLiteral(System.Text.StringBuilder builder, string value) {
+        bool needsQuotes = !value.All(character => character == '-' || character == '/' || character == ':' || character == ' ' ||
+                                                     character == '$' || character == '€' || character == '£' || character == '¥');
+        if (!needsQuotes) return TryAppend(builder, value);
+        long escapedLength = (long)value.Length + 2L + value.Count(character => character == '"');
+        if (escapedLength > MaximumExcelNumberFormatCodeLength - builder.Length) return false;
+        builder.Append('"').Append(value.Replace("\"", "\"\"")).Append('"');
+        return true;
+    }
+
+    private static bool TryAppend(System.Text.StringBuilder builder, string value) {
+        if (value.Length > MaximumExcelNumberFormatCodeLength - builder.Length) return false;
+        builder.Append(value);
+        return true;
     }
 }
 

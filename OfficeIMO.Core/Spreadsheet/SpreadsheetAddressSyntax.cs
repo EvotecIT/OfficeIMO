@@ -216,7 +216,9 @@ public sealed class SpreadsheetRangeReference {
             }
         }
 
-        bool columnAbsolute = cursor < text.Length && text[cursor] == '$';
+        // In a whole-row endpoint such as $1 the leading dollar belongs to the row.
+        // Only consume it as a column marker when a column name actually follows.
+        bool columnAbsolute = cursor + 1 < text.Length && text[cursor] == '$' && IsAsciiLetter(text[cursor + 1]);
         if (columnAbsolute) cursor++;
         int columnStart = cursor;
         while (cursor < text.Length && IsAsciiLetter(text[cursor])) cursor++;
