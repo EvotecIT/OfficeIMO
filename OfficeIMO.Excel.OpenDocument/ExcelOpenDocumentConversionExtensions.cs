@@ -95,6 +95,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 cells++;
             }
 
+            var threadedAnnotations = new Dictionary<(int Row, int Column), List<ExcelThreadedCommentSnapshot>>();
             foreach (ExcelThreadedCommentSnapshot threaded in worksheet.ThreadedComments) {
                 if (!ExcelReference.TryParse(threaded.CellReference, out ExcelReference? reference)
                     || reference!.Kind != ExcelReferenceKind.Cell
@@ -108,20 +109,35 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     continue;
                 }
                 var coordinate = (reference.Start.Row, reference.Start.Column);
-                if (materializedCoordinates.Add(coordinate)) {
-                    if (materializedCells >= effective.MaximumExpandedCells) {
-                        skippedCells++;
-                        truncated = true;
-                        continue;
+                if (!threadedAnnotations.TryGetValue(coordinate, out List<ExcelThreadedCommentSnapshot>? annotationThread)) {
+                    if (!materializedCoordinates.Contains(coordinate)) {
+                        if (materializedCells >= effective.MaximumExpandedCells) {
+                            skippedCells++;
+                            truncated = true;
+                            continue;
+                        }
+                        materializedCoordinates.Add(coordinate);
+                        materializedCells++;
                     }
-                    materializedCells++;
+                    annotationThread = new List<ExcelThreadedCommentSnapshot>();
+                    threadedAnnotations.Add(coordinate, annotationThread);
                 }
-                DateTimeOffset? date = threaded.Date.HasValue
-                    ? new DateTimeOffset(threaded.Date.Value.ToUniversalTime())
-                    : (DateTimeOffset?)null;
-                sheet.Cell(coordinate.Row - 1L, coordinate.Column - 1L)
-                    .AddAnnotation(threaded.Text, threaded.Author, date, threaded.Id);
+                annotationThread.Add(threaded);
                 threadedComments++;
+            }
+            foreach (KeyValuePair<(int Row, int Column), List<ExcelThreadedCommentSnapshot>> entry in threadedAnnotations
+                .OrderBy(item => item.Key.Row).ThenBy(item => item.Key.Column)) {
+                OdsCell cell = sheet.Cell(entry.Key.Row - 1L, entry.Key.Column - 1L);
+                ExcelThreadedCommentSnapshot first = entry.Value[0];
+                string text = FormatThreadedCommentTranscript(entry.Value);
+                if (cell.Annotation != null) {
+                    cell.Annotation.Text = cell.Annotation.Text + "\n\nThreaded discussion:\n" + text;
+                } else {
+                    DateTimeOffset? date = first.Date.HasValue
+                        ? new DateTimeOffset(first.Date.Value.ToUniversalTime())
+                        : (DateTimeOffset?)null;
+                    cell.AddAnnotation(text, first.Author, date, first.Id);
+                }
             }
 
             int validationOrdinal = 0;
@@ -259,7 +275,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (unsupportedStyles > 0) report.Add("cell-format-details", OdfConversionMappingStatus.Unsupported, unsupportedStyles);
         AddConverted(report, "comments", comments);
         if (threadedComments > 0) report.Add("threaded-comments", OdfConversionMappingStatus.Approximated, threadedComments,
-            "Comment bodies, authors, timestamps, and identifiers were retained as ODS annotations; reply and resolved-state semantics are not represented.");
+            "Each cell thread was flattened into one schema-valid ODS annotation transcript that retains comment bodies and available author, timestamp, identity, parent, and resolved-state metadata.");
         AddConverted(report, "validations", convertedValidations);
         if (skippedValidations > 0) report.Add("validations", OdfConversionMappingStatus.Unsupported, skippedValidations,
             "Only explicit lists and scalar whole-number, decimal, and text-length validation rules have an exact interoperable ODF mapping.");
@@ -501,6 +517,25 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (!string.IsNullOrWhiteSpace(annotation.Creator)) header.Add(annotation.Creator!);
         if (annotation.Date.HasValue) header.Add(annotation.Date.Value.ToString("u", CultureInfo.InvariantCulture));
         return header.Count == 0 ? annotation.Text : "[" + string.Join(" — ", header) + "]\n" + annotation.Text;
+    }
+
+    private static string FormatThreadedCommentTranscript(IReadOnlyList<ExcelThreadedCommentSnapshot> comments) {
+        if (comments.Count == 1 && string.IsNullOrWhiteSpace(comments[0].ParentId) && !comments[0].Done) {
+            return comments[0].Text;
+        }
+        var builder = new StringBuilder();
+        for (int index = 0; index < comments.Count; index++) {
+            ExcelThreadedCommentSnapshot comment = comments[index];
+            if (index > 0) builder.Append("\n\n");
+            builder.Append(string.IsNullOrWhiteSpace(comment.ParentId) ? "Comment" : "Reply");
+            if (!string.IsNullOrWhiteSpace(comment.Author)) builder.Append(" by ").Append(comment.Author);
+            if (comment.Date.HasValue) builder.Append(" — ").Append(comment.Date.Value.ToUniversalTime().ToString("u", CultureInfo.InvariantCulture));
+            if (comment.Done) builder.Append(" — resolved");
+            if (!string.IsNullOrWhiteSpace(comment.Id)) builder.Append("\nId: ").Append(comment.Id);
+            if (!string.IsNullOrWhiteSpace(comment.ParentId)) builder.Append("\nParent: ").Append(comment.ParentId);
+            builder.Append('\n').Append(comment.Text);
+        }
+        return builder.ToString();
     }
 
     private static bool SetOdsValue(OdsCell target, object? value) {

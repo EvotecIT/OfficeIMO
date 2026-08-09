@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;
@@ -21,6 +22,22 @@ public class OpenDocumentOdsTests {
         Assert.Equal("Alice", annotation.Creator);
         Assert.Equal(timestamp, annotation.Date);
         Assert.Equal("Review  this\tvalue\nbefore release", annotation.Text);
+    }
+
+    [Fact]
+    public void CellAnnotationPrecedesTextContentAndRejectsASecondAnnotation() {
+        OdsDocument document = OdsDocument.Create();
+        OdsCell cell = document.AddSheet("Data").Cell(0, 0);
+        cell.SetString("Visible");
+
+        OdsAnnotation annotation = cell.AddAnnotation("Review", "Alice");
+
+        Assert.Equal(annotation.Text, cell.Annotation!.Text);
+        Assert.Throws<InvalidOperationException>(() => cell.AddAnnotation("Second"));
+        XElement rawCell = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table-cell").Single();
+        Assert.Equal(new[] { OdfNamespaces.Office + "annotation", OdfNamespaces.Text + "p" },
+            rawCell.Elements().Select(element => element.Name));
     }
 
     [Fact]

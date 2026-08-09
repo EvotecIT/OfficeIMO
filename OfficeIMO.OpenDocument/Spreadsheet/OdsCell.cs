@@ -26,7 +26,9 @@ public sealed class OdsCell {
             Dirty();
         }
     }
-    /// <summary>Annotations attached to this cell in document order.</summary>
+    /// <summary>The annotation attached to this cell, when present.</summary>
+    public OdsAnnotation? Annotation => ReadAnnotations(_document, _element).FirstOrDefault();
+    /// <summary>Annotation elements present on this cell. Conforming ODF permits at most one.</summary>
     public IReadOnlyList<OdsAnnotation> Annotations => ReadAnnotations(_document, _element);
     /// <summary>Referenced cell style name.</summary>
     public string? StyleName {
@@ -172,8 +174,12 @@ public sealed class OdsCell {
         string? name = null) {
         if (text == null) throw new ArgumentNullException(nameof(text));
         EnsureEditable();
+        if (_element.Elements(OdfNamespaces.Office + "annotation").Any()) {
+            throw new InvalidOperationException("An ODF spreadsheet cell can contain only one annotation.");
+        }
         var annotationElement = new XElement(OdfNamespaces.Office + "annotation");
-        _element.Add(annotationElement);
+        XElement? rangeSource = _element.Element(OdfNamespaces.Table + "cell-range-source");
+        if (rangeSource == null) _element.AddFirst(annotationElement); else rangeSource.AddAfterSelf(annotationElement);
         var annotation = new OdsAnnotation(_document, annotationElement) {
             Name = name,
             Creator = creator,
@@ -322,7 +328,9 @@ public sealed class OdsCellRun {
     public string? NumberFormatName => Cell.NumberFormatName;
     /// <summary>Referenced prototype validation rule.</summary>
     public string? ValidationName => Cell.ValidationName;
-    /// <summary>Annotations attached to the prototype cell.</summary>
+    /// <summary>The annotation attached to the prototype cell, when present.</summary>
+    public OdsAnnotation? Annotation => OdsCell.ReadAnnotations(_document, _element).FirstOrDefault();
+    /// <summary>Annotation elements present on the prototype cell. Conforming ODF permits at most one.</summary>
     public IReadOnlyList<OdsAnnotation> Annotations => OdsCell.ReadAnnotations(_document, _element);
     /// <summary>Explicit or inherited prototype bold state.</summary>
     public bool? Bold => Cell.Bold;

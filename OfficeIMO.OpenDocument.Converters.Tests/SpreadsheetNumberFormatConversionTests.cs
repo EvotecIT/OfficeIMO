@@ -96,11 +96,13 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         });
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
-        IReadOnlyList<OdsAnnotation> annotations = conversion.Value.GetSheet("Data")!.Cell(0, 0).Annotations;
+        OdsAnnotation annotation = Assert.Single(conversion.Value.GetSheet("Data")!.Cell(0, 0).Annotations);
 
-        Assert.Equal(2, annotations.Count);
-        Assert.Equal(new[] { "Root", "Reply" }, annotations.Select(annotation => annotation.Text));
-        Assert.Equal(new[] { "Alice", "Bob" }, annotations.Select(annotation => annotation.Creator));
+        Assert.Equal("Alice", annotation.Creator);
+        Assert.Contains("Root", annotation.Text, StringComparison.Ordinal);
+        Assert.Contains("Reply", annotation.Text, StringComparison.Ordinal);
+        Assert.Contains("Bob", annotation.Text, StringComparison.Ordinal);
+        Assert.Contains("resolved", annotation.Text, StringComparison.Ordinal);
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "threaded-comments"
             && mapping.Status == OdfConversionMappingStatus.Approximated
