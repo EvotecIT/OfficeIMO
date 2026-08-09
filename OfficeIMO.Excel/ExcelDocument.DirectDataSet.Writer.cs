@@ -275,7 +275,7 @@ namespace OfficeIMO.Excel {
             private static void WriteSharedStrings(ZipArchive archive, DirectSharedStringTable sharedStrings) {
                 var entry = archive.CreateEntry("xl/sharedStrings.xml", CompressionLevel.Fastest);
                 using var stream = entry.Open();
-                using var writer = new StreamWriter(stream, Utf8NoBom, XmlWriterBufferSize);
+                using var writer = new PooledUtf8TextWriter(stream, Utf8NoBom, XmlWriterBufferSize);
 
                 writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                 writer.Write("<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"");

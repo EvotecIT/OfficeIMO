@@ -52,7 +52,7 @@ if (comparePairedDataReaderWrite) {
     const int warmupIterations = 12;
 
     var benchmark = new ExcelDataReaderWriteBenchmarks { RowCount = 25_000 };
-    benchmark.Setup();
+    benchmark.SetupOfficeIMOAndSpreadCheetah();
     for (int index = 0; index < warmupIterations; index++) {
         benchmark.OfficeIMO();
         benchmark.SpreadCheetah();
@@ -104,7 +104,13 @@ if (profileOfficeIMODataReaderWrite || profileLargeXlsxDataReaderWrite || profil
     ApplyProcessAffinity(args, argumentIndex: 2);
 
     var benchmark = new ExcelDataReaderWriteBenchmarks { RowCount = 25_000 };
-    benchmark.Setup();
+    if (profileOfficeIMODataReaderWrite) {
+        benchmark.SetupOfficeIMO();
+    } else if (profileLargeXlsxDataReaderWrite) {
+        benchmark.SetupLargeXlsx();
+    } else {
+        benchmark.SetupSpreadCheetah();
+    }
     Func<int> write = profileOfficeIMODataReaderWrite
         ? benchmark.OfficeIMO
         : profileLargeXlsxDataReaderWrite ? benchmark.LargeXlsx : benchmark.SpreadCheetah;

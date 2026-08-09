@@ -11,6 +11,21 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
+        public void PooledUtf8TextWriter_PreservesSurrogatePairsAcrossFlushes() {
+            using var output = new MemoryStream();
+            using (var writer = new PooledUtf8TextWriter(output, new UTF8Encoding(false), bufferSize: 16, leaveOpen: true)) {
+                writer.Write("prefix ");
+                writer.Write('\ud83d');
+                writer.Flush();
+                writer.Write('\ude80');
+                writer.Write(" & <suffix>");
+            }
+
+            Assert.True(output.CanWrite);
+            Assert.Equal("prefix \ud83d\ude80 & <suffix>", Encoding.UTF8.GetString(output.ToArray()));
+        }
+
+        [Fact]
         public void WriteDataReader_WritesPackageAndLeavesReaderOpen() {
             var table = new DataTable("ReaderData");
             table.Columns.Add("Id", typeof(int));

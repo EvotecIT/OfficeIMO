@@ -94,9 +94,9 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIM
 
 | Mode | L3 domain 0 mean (99.9% CI) | L3 domain 1 mean (99.9% CI) | Managed allocation |
 | --- | ---: | ---: | ---: |
-| Automatic | 33.13 ms (31.32-34.94) | 29.92 ms (28.34-31.50) | 11.84 MB |
-| Sequential | 33.85 ms (31.85-35.85) | 30.74 ms (28.20-33.28) | 11.84 MB |
-| Parallel | 33.15 ms (31.26-35.04) | 30.38 ms (28.54-32.22) | 11.84 MB |
+| Automatic | 27.67 ms (25.48-29.86) | 29.02 ms (27.63-30.41) | 11.22 MB |
+| Sequential | 29.75 ms (28.38-31.13) | 29.40 ms (27.49-31.32) | 11.22 MB |
+| Parallel | 31.45 ms (29.68-33.23) | 26.48 ms (24.17-28.80) | 11.22 MB |
 
 All three modes shared rank 1 in both BenchmarkDotNet jobs. Automatic and
 Sequential use the same direct writer here, while the small changes in their
@@ -105,10 +105,10 @@ and domain sensitivity rather than a reason to declare a winner from one
 favorable job.
 
 The companion runner therefore measures Automatic and Parallel as alternating
-ABBA pairs in one pinned process. On domain 0 their medians were 38.802 ms and
-40.144 ms; the paired Parallel/Automatic ratio median was 1.0417 (P25 0.9625,
-P75 1.1445). On domain 1 their medians were 36.837 ms and 38.455 ms; the paired
-ratio median was 1.0188 (P25 0.9523, P75 1.1466). The interquartile ranges
+ABBA pairs in one pinned process. On domain 0 their medians were 35.639 ms and
+35.640 ms; the paired Parallel/Automatic ratio median was 1.0209 (P25 0.9146,
+P75 1.1168). On domain 1 their medians were 32.709 ms and 34.738 ms; the paired
+ratio median was 1.0352 (P25 0.9541, P75 1.1217). The interquartile ranges
 straddle 1 on both domains. That supports practical parity on this workload,
 but it is not a statistical-equivalence proof.
 
@@ -124,37 +124,44 @@ single-pass operation rather than parallel work.
 
 This BenchmarkDotNet 0.15.8 run wrote the same prepared 25,000-row,
 eight-column `DataTableReader` to a forward-only XLSX package through each
-library's public compact writer. Before measurement, the fixture reopens every
-package and compares every header and cell. OfficeIMO 3.2.0 was compared with
+library's public compact writer. Target-specific setup reopens that target's
+package and compares every header and cell without priming the other writers in
+the same benchmark process. OfficeIMO 3.2.0 was compared with
 SpreadCheetah 1.28.0, Sylvan.Data.Excel 0.5.7, and LargeXlsx 2.0.1 on .NET 10
 with workstation GC and the Windows High performance power plan.
 
 The two 16-logical-processor L3 domains on the AMD Ryzen 9 9950X3D2 were
 measured as separate jobs. Twelve warmups let tiered compilation settle, and
-all methods used the same eight invocations per sample, twenty measured
+all methods used the same twelve invocations per sample, twenty measured
 iterations, and one launch. Every benchmark process also used the same `High`
 priority class to reduce interference from unrelated services; affinity and
 priority are both recorded in the BenchmarkDotNet evidence.
 
 ```powershell
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*ExcelDataReaderWriteBenchmarks*" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 8 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*ExcelDataReaderWriteBenchmarks*" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 12 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
+
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-datareader-write-paired 40 0xFFFF High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj --no-build -- --compare-datareader-write-paired 40 0xFFFF0000 High
 ```
 
 | Library | L3 domain 0 mean (99.9% CI) | L3 domain 1 mean (99.9% CI) | Managed allocation |
 | --- | ---: | ---: | ---: |
-| OfficeIMO.Excel | 18.91 ms (18.36-19.46) | 16.44 ms (15.48-17.40) | 6.50 MB |
-| SpreadCheetah | 19.46 ms (18.95-19.97) | 17.23 ms (16.42-18.04) | 5.62 MB |
-| Sylvan.Data.Excel | 26.66 ms (26.09-27.23) | 24.38 ms (23.58-25.18) | 7.52 MB |
-| LargeXlsx | 23.07 ms (22.53-23.62) | 17.98 ms (17.68-18.29) | 5.67 MB |
+| OfficeIMO.Excel | 13.30 ms (12.71-13.90) | 13.71 ms (13.27-14.15) | 6.18 MB |
+| SpreadCheetah | 14.36 ms (13.73-14.98) | 14.83 ms (14.48-15.18) | 5.62 MB |
+| Sylvan.Data.Excel | 22.45 ms (20.26-24.63) | 20.98 ms (20.45-21.51) | 7.52 MB |
+| LargeXlsx | 19.62 ms (18.89-20.35) | 18.95 ms (17.86-20.05) | 5.67 MB |
 
-OfficeIMO recorded the lowest mean on both domains. The 99.9% confidence
-intervals for OfficeIMO and SpreadCheetah still overlap on both domains, so this
-run does not prove that either library is faster or equivalent. OfficeIMO's
-intervals are wholly below Sylvan's and LargeXlsx's on both domains. SpreadCheetah
-retains the managed-allocation lead. The honest result is therefore a fastest
-observed mean and unresolved near-parity with SpreadCheetah, not a universal
-fastest, equivalent, or lowest-allocation claim. The domain-to-domain movement
-is also why a single favorable affinity result must not be published alone.
+OfficeIMO recorded the lowest mean on both domains. Its interval overlaps
+SpreadCheetah's narrowly on domain 0 and is wholly below it on domain 1;
+OfficeIMO's intervals are wholly below Sylvan's and LargeXlsx's on both domains.
+The companion ABBA run measured OfficeIMO at 16.911 ms versus 18.092 ms on
+domain 0 (ratio of medians 0.9347, paired median 0.9496, P25-P75
+0.8738-0.9813) and 15.418 ms versus 15.946 ms on domain 1 (ratio 0.9669,
+paired median 0.9639, P25-P75 0.9395-1.0289). Under the repository's 5%
+threshold this is a domain-0 win and a domain-1 tie, not a universal fastest
+claim. SpreadCheetah retains the managed-allocation lead, although OfficeIMO's
+pooled package writer reduced this workload from 6.50 MB to 6.18 MB and also
+serves typed, asynchronous, and parallel worksheet exports.
 
 ## Library comparison
 

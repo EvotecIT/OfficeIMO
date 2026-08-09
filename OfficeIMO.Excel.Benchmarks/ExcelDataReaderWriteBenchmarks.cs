@@ -19,8 +19,46 @@ public class ExcelDataReaderWriteBenchmarks {
     [Params(25000)]
     public int RowCount { get; set; }
 
-    [GlobalSetup]
     public void Setup() {
+        Initialize();
+
+        ValidateOutput(nameof(OfficeIMO), ExcelLibraryComparisonRunner.OfficeImoWriteDataReaderCompactPackageBytes(_table));
+        ValidateOutput(nameof(SpreadCheetah), ExcelLibraryComparisonRunner.SpreadCheetahWriteDataReaderPlainBytes(_table));
+        ValidateOutput(nameof(Sylvan), ExcelLibraryComparisonRunner.SylvanWriteDataReaderPlainBytes(_table));
+        ValidateOutput(nameof(LargeXlsx), ExcelLibraryComparisonRunner.LargeXlsxWriteDataReaderPlainBytes(_table, requireCellReferences: false));
+    }
+
+    public void SetupOfficeIMOAndSpreadCheetah() {
+        Initialize();
+        ValidateOutput(nameof(OfficeIMO), ExcelLibraryComparisonRunner.OfficeImoWriteDataReaderCompactPackageBytes(_table));
+        ValidateOutput(nameof(SpreadCheetah), ExcelLibraryComparisonRunner.SpreadCheetahWriteDataReaderPlainBytes(_table));
+    }
+
+    [GlobalSetup(Target = nameof(OfficeIMO))]
+    public void SetupOfficeIMO() {
+        Initialize();
+        ValidateOutput(nameof(OfficeIMO), ExcelLibraryComparisonRunner.OfficeImoWriteDataReaderCompactPackageBytes(_table));
+    }
+
+    [GlobalSetup(Target = nameof(SpreadCheetah))]
+    public void SetupSpreadCheetah() {
+        Initialize();
+        ValidateOutput(nameof(SpreadCheetah), ExcelLibraryComparisonRunner.SpreadCheetahWriteDataReaderPlainBytes(_table));
+    }
+
+    [GlobalSetup(Target = nameof(Sylvan))]
+    public void SetupSylvan() {
+        Initialize();
+        ValidateOutput(nameof(Sylvan), ExcelLibraryComparisonRunner.SylvanWriteDataReaderPlainBytes(_table));
+    }
+
+    [GlobalSetup(Target = nameof(LargeXlsx))]
+    public void SetupLargeXlsx() {
+        Initialize();
+        ValidateOutput(nameof(LargeXlsx), ExcelLibraryComparisonRunner.LargeXlsxWriteDataReaderPlainBytes(_table, requireCellReferences: false));
+    }
+
+    private void Initialize() {
         string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
         if (!string.IsNullOrEmpty(priority)) {
             BenchmarkProcessorAffinity.ApplyPriority(priority);
@@ -28,11 +66,6 @@ public class ExcelDataReaderWriteBenchmarks {
 
         var rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(RowCount);
         _table = ExcelLibraryComparisonRunner.CreateSalesDataTable(rows, "Data");
-
-        ValidateOutput(nameof(OfficeIMO), ExcelLibraryComparisonRunner.OfficeImoWriteDataReaderCompactPackageBytes(_table));
-        ValidateOutput(nameof(SpreadCheetah), ExcelLibraryComparisonRunner.SpreadCheetahWriteDataReaderPlainBytes(_table));
-        ValidateOutput(nameof(Sylvan), ExcelLibraryComparisonRunner.SylvanWriteDataReaderPlainBytes(_table));
-        ValidateOutput(nameof(LargeXlsx), ExcelLibraryComparisonRunner.LargeXlsxWriteDataReaderPlainBytes(_table, requireCellReferences: false));
     }
 
     [Benchmark(Baseline = true)]
