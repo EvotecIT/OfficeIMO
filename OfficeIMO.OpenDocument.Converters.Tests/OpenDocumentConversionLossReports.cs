@@ -265,6 +265,26 @@ public sealed class OpenDocumentConversionLossReportTests {
     }
 
     [Fact]
+    public void ExcelDefinedExpressionsThatAreNotRangesAreReportedAsUnsupported() {
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        source.OpenXmlDocument.WorkbookPart!.Workbook!.DefinedNames = new DocumentFormat.OpenXml.Spreadsheet.DefinedNames(
+            new DocumentFormat.OpenXml.Spreadsheet.DefinedName("0.2") { Name = "TaxRate" });
+        sheet.CellAt(1, 1).SetFormula("TaxRate*100");
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+
+        Assert.Empty(conversion.Value.NamedRanges);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "named-expressions" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            }));
+    }
+
+    [Fact]
     public void WordAutomaticColorsAndUnsupportedImagesDoNotAbortConversion() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Automatic color").ColorHex = "auto";

@@ -78,27 +78,27 @@ internal static class LatexToMarkdownConverter {
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         switch (candidate.Value) {
             case LatexHeading heading: {
-                LatexArgument title = heading.Command.GetRequiredArgument(0)!;
-                int markdownLevel = GetMarkdownHeadingLevel(document, heading);
-                var block = new HeadingBlock(markdownLevel,
-                    LatexInlineToMarkdownConverter.Convert(document, title.ContentSpan, diagnostics));
-                ApplyLabel(document, block, candidate.Span);
-                target.Add(block);
-                diagnostics.Add(new LatexMarkdownConversionDiagnostic(
-                    "LATEXMD212",
-                    LatexMarkdownConversionOutcome.Simplified,
-                    "heading-numbering",
-                    heading.IsStarred
-                        ? "The unnumbered LaTeX heading was mapped to a Markdown heading; starred numbering and table-of-contents behavior is not expressible in plain Markdown."
-                        : "The numbered LaTeX heading was mapped to a Markdown heading; automatic numbering and table-of-contents behavior is not expressible in plain Markdown.",
-                    heading.Command.Syntax.Span));
-                break;
-            }
+                    LatexArgument title = heading.Command.GetRequiredArgument(0)!;
+                    int markdownLevel = GetMarkdownHeadingLevel(document, heading);
+                    var block = new HeadingBlock(markdownLevel,
+                        LatexInlineToMarkdownConverter.Convert(document, title.ContentSpan, diagnostics));
+                    ApplyLabel(document, block, candidate.Span);
+                    target.Add(block);
+                    diagnostics.Add(new LatexMarkdownConversionDiagnostic(
+                        "LATEXMD212",
+                        LatexMarkdownConversionOutcome.Simplified,
+                        "heading-numbering",
+                        heading.IsStarred
+                            ? "The unnumbered LaTeX heading was mapped to a Markdown heading; starred numbering and table-of-contents behavior is not expressible in plain Markdown."
+                            : "The numbered LaTeX heading was mapped to a Markdown heading; automatic numbering and table-of-contents behavior is not expressible in plain Markdown.",
+                        heading.Command.Syntax.Span));
+                    break;
+                }
             case LatexParagraph paragraph: {
-                InlineSequence inlines = LatexInlineToMarkdownConverter.Convert(document, paragraph.Span, diagnostics);
-                if (inlines.Nodes.Count > 0) target.Add(new ParagraphBlock(inlines));
-                break;
-            }
+                    InlineSequence inlines = LatexInlineToMarkdownConverter.Convert(document, paragraph.Span, diagnostics);
+                    if (inlines.Nodes.Count > 0) target.Add(new ParagraphBlock(inlines));
+                    break;
+                }
             case LatexList list:
                 AddList(document, target, list, diagnostics);
                 break;
@@ -153,7 +153,12 @@ internal static class LatexToMarkdownConverter {
 
     private static int GetMarkdownHeadingLevel(LatexDocument document, LatexHeading heading) {
         int firstSectionLevel = string.Equals(document.DocumentClassName, "article", StringComparison.Ordinal) ? 2 : 1;
-        return Math.Max(1, Math.Min(6, heading.Level - firstSectionLevel + 1));
+        bool hasPart = document.Body != null && document.Headings.Any(candidate => candidate.Level == 0 &&
+            IsInside(candidate.Command.Syntax.Span, document.Body.ContentSpan.Start.Offset, document.Body.ContentSpan.End.Offset));
+        if (hasPart && heading.Level == 0) return 1;
+        int markdownLevel = heading.Level - firstSectionLevel + 1;
+        if (hasPart) markdownLevel++;
+        return Math.Max(1, Math.Min(6, markdownLevel));
     }
 
     private static void AddList(

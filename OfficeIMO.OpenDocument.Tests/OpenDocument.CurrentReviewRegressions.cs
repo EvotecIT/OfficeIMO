@@ -320,6 +320,27 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
     }
 
     [Theory]
+    [InlineData("short")]
+    [InlineData("long")]
+    public void ExcelFormatProjectionRejectsMinutesWithoutTimeContext(string styleName) {
+        OdsDocument document = OdsDocument.Create();
+        document.AddTimeStyle("MinuteOnly");
+        XDocument flat = document.ToFlatXml();
+        XElement style = flat.Descendants(OdfNamespaces.Number + "time-style").Single();
+        style.RemoveNodes();
+        style.Add(new XElement(OdfNamespaces.Number + "minutes",
+            new XAttribute(OdfNamespaces.Number + "style", styleName)));
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        OdsDataStyle minuteOnly = Assert.Single(OdsDocument.LoadFlatXml(stream).DataStyles);
+
+        Assert.False(minuteOnly.TryGetExcelNumberFormatCode(out _));
+        Assert.Throws<InvalidOperationException>(() => minuteOnly.ToExcelNumberFormatCode());
+    }
+
+    [Theory]
     [InlineData("scientific-number")]
     [InlineData("fraction")]
     public void ExcelFormatProjectionRejectsUnsupportedNumericComponents(string componentName) {

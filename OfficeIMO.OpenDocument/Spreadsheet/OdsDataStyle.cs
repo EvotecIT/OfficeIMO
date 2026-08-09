@@ -114,6 +114,8 @@ public sealed class OdsDataStyle {
     private bool TryBuildDateTimeFormat(out string formatCode) {
         formatCode = string.Empty;
         var builder = new System.Text.StringBuilder();
+        bool hasHourContext = Element.Elements().Any(child => child.Name == OdfNamespaces.Number + "hours");
+        bool hasSecondContext = Element.Elements().Any(child => child.Name == OdfNamespaces.Number + "seconds");
         foreach (XElement child in Element.Elements()) {
             string style = (string?)child.Attribute(OdfNamespaces.Number + "style") ?? "short";
             if (child.Name == OdfNamespaces.Number + "year") {
@@ -133,6 +135,7 @@ public sealed class OdsDataStyle {
             } else if (child.Name == OdfNamespaces.Number + "hours") {
                 if (!TryAppend(builder, style == "long" ? "hh" : "h")) return false;
             } else if (child.Name == OdfNamespaces.Number + "minutes") {
+                if (!hasHourContext && !hasSecondContext) return false;
                 if (!TryAppend(builder, style == "long" ? "mm" : "m")) return false;
             } else if (child.Name == OdfNamespaces.Number + "seconds") {
                 if (!TryAppend(builder, style == "long" ? "ss" : "s") ||

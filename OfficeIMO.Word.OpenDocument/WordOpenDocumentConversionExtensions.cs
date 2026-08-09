@@ -57,7 +57,8 @@ public static class WordOpenDocumentConversionExtensions {
                 } else if (block is WordTableSnapshot table) {
                     currentList = null;
                     currentOrdered = null;
-                    ConvertTable(table, target);
+                    ConvertTable(table, target, effective, ref hyperlinks, ref images, ref unsupportedImages,
+                        ref bookmarks, ref unsupportedFootnotes);
                     tables++;
                 }
             }
@@ -138,7 +139,8 @@ public static class WordOpenDocumentConversionExtensions {
             if (block.Table != null) {
                 currentList = null;
                 currentOrdered = null;
-                ConvertTable(block.Table, target);
+                ConvertTable(block.Table, target, effective, ref hyperlinks, ref externalHyperlinks, ref images,
+                    ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements);
                 tables++;
                 continue;
             }
@@ -497,7 +499,9 @@ public static class WordOpenDocumentConversionExtensions {
         }
     }
 
-    private static void ConvertTable(WordTableSnapshot source, OdtDocument targetDocument) {
+    private static void ConvertTable(WordTableSnapshot source, OdtDocument targetDocument,
+        WordOpenDocumentConversionOptions options, ref int hyperlinks, ref int images, ref int unsupportedImages,
+        ref int bookmarks, ref int unsupportedFootnotes) {
         int rows = Math.Max(1, source.RowCount);
         int columns = Math.Max(1, source.ColumnCount);
         OdtTable target = targetDocument.AddTable(rows, columns, source.Title);
@@ -506,19 +510,28 @@ public static class WordOpenDocumentConversionExtensions {
             foreach (WordTableCellSnapshot cell in row.Cells) {
                 int column = cell.ColumnIndex;
                 if (row.RowIndex < 0 || row.RowIndex >= rows || column < 0 || column >= columns || covered[row.RowIndex, column]) continue;
-                target.Cell(row.RowIndex, column).Text = string.Join("\n", cell.Paragraphs.Select(paragraph => paragraph.Text));
+                OdtTableCell targetCell = target.Cell(row.RowIndex, column);
+                for (int paragraphIndex = 0; paragraphIndex < cell.Paragraphs.Count; paragraphIndex++) {
+                    OdtParagraph targetParagraph = paragraphIndex == 0
+                        ? targetCell.Paragraphs[0]
+                        : targetCell.AddParagraph();
+                    CopyParagraph(cell.Paragraphs[paragraphIndex], targetParagraph, options, ref hyperlinks, ref images,
+                        ref unsupportedImages, ref bookmarks, ref unsupportedFootnotes);
+                }
                 int rowSpan = Math.Min(cell.RowSpan, rows - row.RowIndex);
                 int columnSpan = Math.Min(cell.ColumnSpan, columns - column);
                 if (rowSpan > 1 || columnSpan > 1) {
                     target.Merge(row.RowIndex, column, rowSpan, columnSpan);
                     for (int y = 0; y < rowSpan; y++) for (int x = 0; x < columnSpan; x++)
-                        if (x != 0 || y != 0) covered[row.RowIndex + y, column + x] = true;
+                            if (x != 0 || y != 0) covered[row.RowIndex + y, column + x] = true;
                 }
             }
         }
     }
 
-    private static void ConvertTable(OdtTable source, WordDocument targetDocument) {
+    private static void ConvertTable(OdtTable source, WordDocument targetDocument,
+        WordOpenDocumentConversionOptions options, ref int hyperlinks, ref int externalHyperlinks, ref int images,
+        ref int bookmarks, ref int approximatedRuns, ref int approximatedBookmarkRanges, ref int unsupportedMeasurements) {
         int rows = Math.Max(1, source.Rows.Count);
         int columns = Math.Max(1, source.Rows.Select(row => row.Cells.Count).DefaultIfEmpty(1).Max());
         WordTable target = targetDocument.AddTable(rows, columns);
@@ -529,7 +542,12 @@ public static class WordOpenDocumentConversionExtensions {
                 OdtTableCell cell = cells[column];
                 if (cell.IsCovered) continue;
                 WordTableCell targetCell = target.Rows[row].Cells[column];
-                targetCell.Paragraphs[0].Text = cell.Text;
+                for (int paragraphIndex = 0; paragraphIndex < cell.Paragraphs.Count; paragraphIndex++) {
+                    WordParagraph targetParagraph = targetCell.AddParagraph(removeExistingParagraphs: paragraphIndex == 0);
+                    CopyParagraph(cell.Paragraphs[paragraphIndex], targetParagraph, options, ref hyperlinks,
+                        ref externalHyperlinks, ref images, ref bookmarks, ref approximatedRuns,
+                        ref approximatedBookmarkRanges, ref unsupportedMeasurements);
+                }
                 if (cell.RowSpan > 1 || cell.ColumnSpan > 1) merges.Add((row, column, cell.RowSpan, cell.ColumnSpan));
             }
         }

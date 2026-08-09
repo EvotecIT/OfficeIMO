@@ -22,16 +22,19 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             IReadOnlyDictionary<string, string> globalNames,
             IReadOnlyDictionary<string, Dictionary<string, string>> localNames,
             int builtInCount,
+            int unsupportedExpressionCount,
             int disambiguatedCount) {
             Entries = entries;
             _globalNames = globalNames;
             _localNames = localNames;
             BuiltInCount = builtInCount;
+            UnsupportedExpressionCount = unsupportedExpressionCount;
             DisambiguatedCount = disambiguatedCount;
         }
 
         internal IReadOnlyList<NamedRangeConversionEntry> Entries { get; }
         internal int BuiltInCount { get; }
+        internal int UnsupportedExpressionCount { get; }
         internal int DisambiguatedCount { get; }
 
         internal string RewriteFormula(string formula, string worksheetName) {
@@ -59,6 +62,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var localNames = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
         var usedOutputNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int builtInCount = 0;
+        int unsupportedExpressionCount = 0;
         int disambiguatedCount = 0;
 
         foreach (ExcelNamedRangeSnapshot named in namedRanges) {
@@ -67,7 +71,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 continue;
             }
             string address = SpreadsheetAddressConverter.ExcelRangeToOpenAddress(named.ReferenceA1, named.SheetName);
-            if (address.Length == 0) continue;
+            if (address.Length == 0) {
+                unsupportedExpressionCount++;
+                continue;
+            }
 
             string outputName = named.Name;
             if (!usedOutputNames.Add(outputName)) {
@@ -94,6 +101,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             globalNames,
             localNames,
             builtInCount,
+            unsupportedExpressionCount,
             disambiguatedCount);
     }
 

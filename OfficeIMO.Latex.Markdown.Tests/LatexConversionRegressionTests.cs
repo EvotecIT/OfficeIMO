@@ -19,6 +19,21 @@ public sealed class LatexConversionRegressionTests {
         Assert.Equal(2, result.Report.Diagnostics.Count(diagnostic => diagnostic.Feature == "heading-numbering"));
     }
 
+    [Theory]
+    [InlineData("article", 2, 3)]
+    [InlineData("report", 3, 4)]
+    [InlineData("book", 3, 4)]
+    public void PartReservesTheTopMarkdownHeadingLevel(string documentClass, int sectionLevel, int subsectionLevel) {
+        string source = "\\documentclass{" + documentClass + "}\n\\begin{document}\n" +
+            "\\part{Part}\\section{Section}\\subsection{Subsection}\n\\end{document}\n";
+
+        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        HeadingBlock[] headings = result.Value.Blocks.OfType<HeadingBlock>().ToArray();
+
+        Assert.Equal(new[] { "Part", "Section", "Subsection" }, headings.Select(heading => heading.Text));
+        Assert.Equal(new[] { 1, sectionLevel, subsectionLevel }, headings.Select(heading => heading.Level));
+    }
+
     [Fact]
     public void Starred_Heading_State_Is_Exposed_And_Reported_As_Simplified() {
         const string source = "\\documentclass{article}\n\\begin{document}\n\\section*{Unnumbered}\n\\end{document}\n";

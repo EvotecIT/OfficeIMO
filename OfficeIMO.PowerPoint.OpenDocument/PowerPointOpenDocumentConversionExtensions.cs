@@ -26,6 +26,7 @@ public static class PowerPointOpenDocumentConversionExtensions {
         int textBoxes = 0, paragraphs = 0, textRuns = 0, pictures = 0, tables = 0, autoShapes = 0;
         int notes = 0, transitions = 0, backgrounds = 0, unsupportedBackgrounds = 0, unsupportedShapes = 0, unsupportedPictures = 0;
         int listParagraphs = 0, transformedShapes = 0, skippedBasicFormatting = 0, skippedNotes = 0, unsupportedHyperlinkTooltips = 0;
+        int unsupportedShapeHyperlinks = 0;
         for (int slideIndex = 0; slideIndex < source.Slides.Count; slideIndex++) {
             PowerPointSlide sourceSlide = source.Slides[slideIndex];
             OdpSlide targetSlide = target.AddSlide("Slide" + (slideIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -34,6 +35,7 @@ public static class PowerPointOpenDocumentConversionExtensions {
             if (MapTransition(sourceSlide.Transition, targetSlide)) transitions++;
 
             foreach (PowerPointShape shape in sourceSlide.Shapes.OrderBy(item => item.DrawingOrder)) {
+                if (shape.Hyperlink != null) unsupportedShapeHyperlinks++;
                 if (shape is PowerPointTextBox textBox) {
                     OdpTextBox converted = targetSlide.AddTextBox(ToOdfRect(textBox), null, textBox.Name);
                     CopyShapeAppearance(textBox, converted, effective);
@@ -152,6 +154,8 @@ public static class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "shape-transforms", transformedShapes, "Complex geometry, rotation, flips, and connector semantics are approximated or omitted.");
         AddUnsupported(report, "hyperlink-tooltips", unsupportedHyperlinkTooltips,
             "PowerPoint hyperlink tooltips have no equivalent in the current ODP hyperlink surface and were omitted.");
+        AddUnsupported(report, "shape-hyperlinks", unsupportedShapeHyperlinks,
+            "PowerPoint shape-level click hyperlinks, including internal slide jumps, are not translated to ODP.");
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or unavailable from an embedded image part were skipped.");
         AddUnsupported(report, "shapes", unsupportedShapes, "Charts, SmartArt, media, groups, and other advanced drawing shapes are not translated.");
         report.Add("masters-layouts", OdfConversionMappingStatus.Approximated, source.Slides.Count,

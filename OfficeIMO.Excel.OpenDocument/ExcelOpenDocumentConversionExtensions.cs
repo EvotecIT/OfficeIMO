@@ -270,6 +270,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         }
         int namedRanges = namedRangePlan.Entries.Count;
         int builtInNames = namedRangePlan.BuiltInCount;
+        int unsupportedNamedExpressions = namedRangePlan.UnsupportedExpressionCount;
         int disambiguatedNames = namedRangePlan.DisambiguatedCount;
 
         AddConverted(report, "worksheets", snapshot.Worksheets.Count);
@@ -300,6 +301,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         AddUnsupported(report, "structured-tables", tables, "Table cells remain; Excel table semantics and styles are not translated.");
         AddUnsupported(report, "filters", filters, "Filter state is not translated.");
         AddUnsupported(report, "built-in-names", builtInNames, "Excel print-area and print-title names are not translated.");
+        AddUnsupported(report, "named-expressions", unsupportedNamedExpressions,
+            "Excel defined names that contain constants or formulas instead of representable A1 ranges are not translated to ODS.");
         AddUnsupported(report, "charts", snapshot.ChartPartCount, "Excel chart parts are not translated to ODS.");
         AddUnsupported(report, "pivot-tables", snapshot.PivotTablePartCount, "Excel pivot-table parts are not translated to ODS.");
         AddUnsupported(report, "slicers", snapshot.SlicerPartCount, null);

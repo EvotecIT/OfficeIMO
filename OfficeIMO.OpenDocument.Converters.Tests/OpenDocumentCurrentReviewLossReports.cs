@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.OpenDocument.Testing;
 using OfficeIMO.Excel;
@@ -12,6 +13,8 @@ using OfficeIMO.PowerPoint.OpenDocument;
 using OfficeIMO.Word;
 using OfficeIMO.Word.OpenDocument;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
@@ -76,6 +79,91 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "run-formatting"
             && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+    }
+
+    [Fact]
+    public void WordTableCellRunFormattingIsPreservedInsteadOfFlattened() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+        paragraph.Text = "Decorated cell";
+        paragraph.Underline = WordUnderlineStyle.Single;
+        paragraph.Strike = true;
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdtParagraph converted = conversion.Value.Tables.Single().Cell(0, 0).Paragraphs.Single();
+        OdtSpan span = Assert.Single(converted.Spans);
+
+        Assert.Equal("Decorated cell", span.Text);
+        Assert.True(span.Underline);
+        Assert.True(span.StrikeThrough);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "run-formatting" &&
+            mapping.Status != OdfConversionMappingStatus.Converted);
+    }
+
+    [Fact]
+    public void OdtTableCellRunFormattingIsPreservedInsteadOfFlattened() {
+        OdtDocument source = OdtDocument.Create();
+        OdtSpan span = source.AddTable(1, 1).Cell(0, 0).Paragraphs[0].AddSpan("Decorated cell");
+        span.Underline = true;
+        span.StrikeThrough = true;
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        WordParagraph converted = Assert.Single(conversion.Value.Tables.Single().Rows[0].Cells[0].Paragraphs,
+            paragraph => paragraph.Text == "Decorated cell");
+
+        Assert.Equal("Decorated cell", converted.Text);
+        Assert.Equal(WordUnderlineStyle.Single, converted.Underline);
+        Assert.True(converted.Strike);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "inline-formatting" &&
+            mapping.Status != OdfConversionMappingStatus.Converted);
+    }
+
+    [Fact]
+    public void PowerPointShapeClickHyperlinksAreReportedBeforeLossPolicyIsApplied() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
+        try {
+            using (PowerPointPresentation created = PowerPointPresentation.Create(path)) {
+                PowerPointSlide first = created.AddSlide();
+                first.AddRectanglePoints(10, 10, 40, 20, "External link");
+                first.AddRectanglePoints(60, 10, 40, 20, "Internal link");
+                created.AddSlide().AddTitle("Target");
+                created.Save();
+            }
+            using (PresentationDocument package = PresentationDocument.Open(path, true)) {
+                SlidePart[] slides = package.PresentationPart!.SlideParts.ToArray();
+                P.Shape[] shapes = slides[0].Slide!.Descendants<P.Shape>()
+                    .Where(shape => shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value is
+                        "External link" or "Internal link").ToArray();
+                P.Shape external = Assert.Single(shapes, shape =>
+                    shape.NonVisualShapeProperties!.NonVisualDrawingProperties!.Name!.Value == "External link");
+                HyperlinkRelationship relationship = slides[0].AddHyperlinkRelationship(
+                    new Uri("https://example.test/shape"), true);
+                external.NonVisualShapeProperties!.NonVisualDrawingProperties!.Append(
+                    new A.HyperlinkOnClick { Id = relationship.Id });
+
+                P.Shape internalShape = Assert.Single(shapes, shape =>
+                    shape.NonVisualShapeProperties!.NonVisualDrawingProperties!.Name!.Value == "Internal link");
+                slides[0].AddPart(slides[1]);
+                internalShape.NonVisualShapeProperties!.NonVisualDrawingProperties!.Append(
+                    new A.HyperlinkOnClick {
+                        Id = slides[0].GetIdOfPart(slides[1]),
+                        Action = "ppaction://hlinksldjump"
+                    });
+                slides[0].Slide!.Save();
+            }
+
+            using PowerPointPresentation source = PowerPointPresentation.Load(path);
+            OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+
+            Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shape-hyperlinks" &&
+                mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
+            Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+                new PowerPointOpenDocumentConversionOptions {
+                    LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+                }));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
     }
 
     [Fact]
@@ -477,7 +565,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
-    public void OdtToWordToleratesMissingStylesAndReportsTableCellImages() {
+    public void OdtToWordToleratesMissingStylesAndPreservesTableCellImages() {
         OdtDocument template = OdtDocument.Create();
         template.AddParagraph("Minimal");
         template.AddTable(1, 1, "Media").Cell(0, 0).Paragraphs[0].AddImage(TinyPng, "cell.png",
@@ -489,8 +577,12 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         Assert.Contains(target.CreateInspectionSnapshot().Sections.SelectMany(section => section.Elements)
             .OfType<WordParagraphSnapshot>(), paragraph => paragraph.Text == "Minimal");
+        WordTableSnapshot table = Assert.Single(target.CreateInspectionSnapshot().Sections
+            .SelectMany(section => section.Elements).OfType<WordTableSnapshot>());
+        Assert.Contains(table.Rows.Single().Cells.Single().Paragraphs.SelectMany(paragraph => paragraph.Runs),
+            run => run.InlineImage != null);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
-            mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 1);
+            mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 1);
     }
 
     [Fact]
