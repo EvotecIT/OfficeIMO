@@ -200,7 +200,9 @@ public static class EmailImageExportExtensions {
         EmailImageExportOptions options) {
         var builder = new StringBuilder();
         builder.Append("<!doctype html><html><head><meta charset=\"utf-8\"><style>")
-            .Append("html{background:#f4f6f8}body{margin:0;padding:24px;color:#172033;font-family:Arial,sans-serif}")
+            .Append("html{background:#f4f6f8}body{margin:0;padding:24px;color:#172033;font-family:\"")
+            .Append(EscapeCssString(options.DefaultFontFamily))
+            .Append("\",sans-serif}")
             .Append(".officeimo-email{max-width:920px;margin:0 auto;background:#fff;border:1px solid #d8dee8;border-radius:10px;padding:28px}")
             .Append(".officeimo-email-header{border-bottom:1px solid #e5e9f0;margin-bottom:24px;padding-bottom:18px}")
             .Append(".officeimo-email-subject{font-size:24px;font-weight:700;margin:0 0 16px}")
@@ -216,6 +218,31 @@ public static class EmailImageExportExtensions {
             .Append(body)
             .Append("</section></main></body></html>");
         return builder.ToString();
+    }
+
+    private static string EscapeCssString(string value) {
+        var escaped = new StringBuilder(value.Length);
+        foreach (char character in value) {
+            switch (character) {
+                case '\\': escaped.Append("\\\\"); break;
+                case '"': escaped.Append("\\\""); break;
+                case '\n': escaped.Append("\\A "); break;
+                case '\r': escaped.Append("\\D "); break;
+                case '\f': escaped.Append("\\C "); break;
+                case '<': escaped.Append("\\3C "); break;
+                case '>': escaped.Append("\\3E "); break;
+                default:
+                    if (character == '\0' || character < ' ' || character == '\u007F') {
+                        escaped.Append('\\')
+                            .Append(((int)character).ToString("X", System.Globalization.CultureInfo.InvariantCulture))
+                            .Append(' ');
+                    } else {
+                        escaped.Append(character);
+                    }
+                    break;
+            }
+        }
+        return escaped.ToString();
     }
 
     private static void AppendHeaders(StringBuilder builder, EmailDocument source) {

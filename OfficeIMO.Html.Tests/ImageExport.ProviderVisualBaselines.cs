@@ -138,7 +138,8 @@ public sealed class ImageExportProviderVisualBaselineTests {
         email.Body.Html = "<div style='font-family:Carlito,sans-serif'><h2 style='color:#1d4ed8'>Approved</h2><p>The image export review is ready for delivery.</p></div>";
         var options = new EmailImageExportOptions {
             MaximumOutputWidth = 360,
-            MaximumOutputHeight = 360
+            MaximumOutputHeight = 360,
+            DefaultFontFamily = PortableFontFamily
         };
         AddPortableFonts(options.Fonts);
         return email.ExportImage(OfficeImageExportFormat.Png, options).Bytes;

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Email;
 using OfficeIMO.Html;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -62,6 +63,28 @@ public sealed class HtmlEmailImageExportTests {
         Assert.DoesNotContain(
             result.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_IMAGE_BODY_MISSING");
+    }
+
+    [Fact]
+    public void EmailMessageChromeUsesTheConfiguredCallerScopedDefaultFont() {
+        var email = new EmailDocument { Subject = "A" };
+        email.Body.Html = "<p style='font-family:Arial'>A</p>";
+        var options = new EmailImageExportOptions {
+            DefaultFontFamily = ManagedTextShapingTestAssets.FamilyName
+        };
+        options.Fonts.Add(
+            ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFont('A'));
+
+        OfficeImageExportResult result = email.ExportImage(
+            OfficeImageExportFormat.Svg,
+            options);
+
+        string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
+        Assert.Contains(
+            "font-family=\"" + ManagedTextShapingTestAssets.FamilyName + "\"",
+            svg,
+            StringComparison.Ordinal);
     }
 
     [Fact]
