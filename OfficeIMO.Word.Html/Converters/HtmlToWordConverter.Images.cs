@@ -32,7 +32,7 @@ namespace OfficeIMO.Word.Html {
 
                 return;
             }
-            var decl = _inlineParser.ParseDeclaration(img.GetAttribute("style") ?? string.Empty);
+            var decl = ParseInlineDeclaration(img.GetAttribute("style"));
             var floatVal = decl.GetPropertyValue("float")?.Trim().ToLowerInvariant();
             var wrap = WordImageTextWrapping.InLineWithText;
             string? horizontalAlignment = null;
@@ -194,7 +194,7 @@ namespace OfficeIMO.Word.Html {
             WordParagraph? currentParagraph,
             WordHeaderFooter? headerFooter,
             Func<int?>? resolveContainerWidthTwips) {
-            var decl = _inlineParser.ParseDeclaration(img.GetAttribute("style") ?? string.Empty);
+            var decl = ParseInlineDeclaration(img.GetAttribute("style"));
             double? width = img.DisplayWidth > 0 ? img.DisplayWidth : null;
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
             width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc, resolveContainerWidthTwips);
