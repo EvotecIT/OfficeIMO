@@ -330,7 +330,7 @@ public sealed partial class PdfReadPage {
             Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources);
             bool usesFillPaint = false;
             bool usesStrokePaint = false;
-            bool usesDashedInheritedShadingStroke = false;
+            bool usesUnsupportedInheritedShadingStroke = false;
             _ = PdfPageContentVisualParser.Parse(
                 content,
                 GetPageSize().Width,
@@ -348,10 +348,13 @@ public sealed partial class PdfReadPage {
                 primitiveVisitor: primitive => {
                     usesFillPaint |= primitive.HasFillPaint;
                     usesStrokePaint |= primitive.HasStrokePaint;
-                    usesDashedInheritedShadingStroke |=
+                    usesUnsupportedInheritedShadingStroke |=
                         primitive.HasStrokePaint &&
-                        primitive.StrokeDashStyle != OfficeStrokeDashStyle.Solid &&
-                        initialStrokePattern?.ShadingPattern.HasValue == true;
+                        initialStrokePattern?.ShadingPattern.HasValue == true &&
+                        (primitive.StrokeDashStyle != OfficeStrokeDashStyle.Solid ||
+                         !PdfPageContentVisualParser.IsSupportedShadingStrokeTransform(
+                             initialStrokePattern.Value.ShadingPattern.Value,
+                             initialStrokePattern.Value.PaintTransform));
                 },
                 retainPrimitiveData: false,
                 unsupportedShadingTransformVisitor: () => {
@@ -362,7 +365,7 @@ public sealed partial class PdfReadPage {
                         PdfRenderCapabilities.UnsupportedShadingId,
                         "type3-shading-paint");
                 });
-            if (usesDashedInheritedShadingStroke) {
+            if (usesUnsupportedInheritedShadingStroke) {
                 AddRenderDiagnostic(
                     diagnostics,
                     seen,
