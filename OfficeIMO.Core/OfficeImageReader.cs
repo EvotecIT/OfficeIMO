@@ -444,7 +444,7 @@ public static partial class OfficeImageReader {
             string.Compare(value, offset, expected, 0, expected.Length, comparison) == 0;
     }
 
-    private static bool TryParseSvgLength(string? value, out double result) {
+    internal static bool TryParseSvgLength(string? value, out double result) {
         result = 0D;
         if (string.IsNullOrWhiteSpace(value)) {
             return false;
