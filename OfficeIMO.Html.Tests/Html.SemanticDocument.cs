@@ -118,6 +118,56 @@ public partial class Html {
         Assert.Equal(string.Empty, control.Value);
     }
 
+    [Fact]
+    public void SemanticDocument_SelectDefaultsToFirstEnabledOption() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse("""
+            <select name="choice">
+              <option disabled>Directly disabled</option>
+              <optgroup disabled><option>Group disabled</option></optgroup>
+              <option>Enabled</option>
+            </select>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(new[] { "Enabled" }, control.Values);
+
+        HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(
+            "<main><select><option disabled>A</option><optgroup disabled><option>B</option></optgroup><option>C</option></select></main>",
+            "<main><select><option disabled>A</option><optgroup disabled><option>B</option></optgroup><option selected>C</option></select></main>");
+        Assert.Equal(1D, score.Metrics["form-state"], 3);
+    }
+
+    [Fact]
+    public void SemanticDocument_OptionDefaultValueCollapsesOnlyAsciiWhitespace() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse(
+            "<select name='choice'><option>\tA&nbsp;\nB\u2003C\r</option></select>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(new[] { "A\u00A0 B\u2003C" }, control.Values);
+    }
+
+    [Fact]
+    public void SemanticDocument_OptionDefaultValuePreservesOnlyNonAsciiWhitespace() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse(
+            "<select name='choice'><option>&nbsp;\u2003</option></select>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(new[] { "\u00A0\u2003" }, control.Values);
+
+        HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(
+            "<select><option>&nbsp;</option></select>",
+            "<select><option>\u2003</option></select>");
+        Assert.True(score.Metrics["form-state"] < 1D);
+    }
+
+    [Fact]
+    public void SemanticDocument_AllDisabledSingleSelectHasNoImplicitValue() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse(
+            "<select><option disabled>A</option><optgroup disabled><option>B</option></optgroup></select>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Empty(control.Values);
+    }
+
     [Theory]
     [InlineData("<input type='range'>", "50")]
     [InlineData("<input type='range' value='invalid'>", "50")]

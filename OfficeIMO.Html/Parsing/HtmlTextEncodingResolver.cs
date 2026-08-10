@@ -102,9 +102,10 @@ internal static class HtmlTextEncodingResolver {
     }
 
     private static Encoding? ResolveHtmlEncoding(byte[] prefix, int count) {
-        Encoding? bom = ResolveBomEncoding(prefix, count);
-        if (bom != null) return bom;
-        return PrescanHtmlEncoding(prefix, count) ?? ResolveXmlDeclarationEncoding(prefix, count);
+        Encoding? encoding = ResolveBomEncoding(prefix, count)
+            ?? PrescanHtmlEncoding(prefix, count)
+            ?? ResolveXmlDeclarationEncoding(prefix, count);
+        return encoding == null ? null : WithReplacementDecoderFallback(encoding);
     }
 
     private static Encoding? PrescanHtmlEncoding(byte[] bytes, int count) {
@@ -402,6 +403,11 @@ internal static class HtmlTextEncodingResolver {
             EncoderFallback.ExceptionFallback,
             DecoderFallback.ExceptionFallback);
     }
+
+    private static Encoding WithReplacementDecoderFallback(Encoding encoding) => Encoding.GetEncoding(
+        encoding.CodePage,
+        encoding.EncoderFallback,
+        new DecoderReplacementFallback("\uFFFD"));
 
     private static string GetAsciiPrefix(byte[] bytes) =>
         Encoding.ASCII.GetString(bytes, 0, Math.Min(bytes.Length, CssSniffLength));

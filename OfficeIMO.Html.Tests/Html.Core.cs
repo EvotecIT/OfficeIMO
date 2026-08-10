@@ -99,6 +99,32 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public async Task HtmlConversionDocument_MalformedBomDeclaredHtmlUsesReplacementCharacters() {
+        byte[] utf8 = new byte[] { 0xEF, 0xBB, 0xBF }
+            .Concat(Encoding.ASCII.GetBytes("<p>A"))
+            .Concat(new byte[] { 0xFF })
+            .Concat(Encoding.ASCII.GetBytes("B</p>"))
+            .ToArray();
+        byte[] utf16 = new byte[] { 0xFF, 0xFE }
+            .Concat(new UnicodeEncoding(false, false).GetBytes("<p>A"))
+            .Concat(new byte[] { 0x00, 0xD8 })
+            .Concat(new UnicodeEncoding(false, false).GetBytes("B</p>"))
+            .ToArray();
+
+        foreach (byte[] html in new[] { utf8, utf16 }) {
+            using var syncStream = new MemoryStream(html);
+            HtmlSemanticBlock syncParagraph = Assert.Single(HtmlConversionDocument.Load(syncStream)
+                .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+            Assert.Equal("A\uFFFDB", syncParagraph.Text);
+
+            using var asyncStream = new MemoryStream(html);
+            HtmlSemanticBlock asyncParagraph = Assert.Single((await HtmlConversionDocument.LoadAsync(asyncStream))
+                .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+            Assert.Equal("A\uFFFDB", asyncParagraph.Text);
+        }
+    }
+
+    [Fact]
     public void HtmlConversionDocument_InvalidCharsetAttributeRejectsLegacyContentFallbackOnSameMeta() {
         byte[] prefix = Encoding.ASCII.GetBytes(
             "<meta charset='invalid' http-equiv='content-type' content='text/html;charset=windows-1251'>"

@@ -416,7 +416,7 @@ public static partial class HtmlRoundTripScorer {
                         continue;
                     }
                     string defaultValue = GetDefaultFormControlValue(control.TagName, control.GetAttribute("type"), control.TextContent);
-                    if (!string.IsNullOrWhiteSpace(defaultValue)) {
+                    if (defaultValue.Length > 0) {
                         parts.Add("value=" + defaultValue);
                         continue;
                     }
@@ -452,14 +452,12 @@ public static partial class HtmlRoundTripScorer {
 
     private static void SynthesizeImplicitSelectedOptions(AngleSharp.Html.Dom.IHtmlDocument document) {
         foreach (var select in document.QuerySelectorAll("select:not([multiple])")) {
-            AngleSharp.Dom.IElement[] selected = select.QuerySelectorAll("option[selected]").ToArray();
-            if (selected.Length > 0) {
-                foreach (AngleSharp.Dom.IElement option in selected.Take(selected.Length - 1)) {
-                    option.RemoveAttribute("selected");
-                }
-            } else {
-                AngleSharp.Dom.IElement? firstOption = select.QuerySelector("option");
-                firstOption?.SetAttribute("selected", string.Empty);
+            AngleSharp.Dom.IElement? effective = HtmlFormControlSemantics
+                .GetEffectiveSelectedOptions(select)
+                .SingleOrDefault();
+            foreach (AngleSharp.Dom.IElement option in select.QuerySelectorAll("option")) {
+                if (ReferenceEquals(option, effective)) option.SetAttribute("selected", string.Empty);
+                else option.RemoveAttribute("selected");
             }
         }
     }
@@ -596,7 +594,7 @@ public static partial class HtmlRoundTripScorer {
         }
 
         string text = ExtractLogicalNodeText(node);
-        if (!string.IsNullOrWhiteSpace(text)) {
+        if (text.Length > 0) {
             parts.Add("text=" + NormalizeText(text));
         }
 
@@ -619,7 +617,7 @@ public static partial class HtmlRoundTripScorer {
         }
 
         string text = ExtractLogicalNodeText(node);
-        if (!string.IsNullOrWhiteSpace(text)) {
+        if (text.Length > 0) {
             parts.Add("text=" + NormalizeText(text));
         }
 
@@ -690,7 +688,7 @@ public static partial class HtmlRoundTripScorer {
             }
             node.Attributes.TryGetValue("type", out string? rawType);
             string defaultValue = GetDefaultFormControlValue(node.Name, rawType, ExtractLogicalNodeText(node));
-            if (!string.IsNullOrWhiteSpace(defaultValue)) {
+            if (defaultValue.Length > 0) {
                 parts.Add("value=" + defaultValue);
                 return;
             }
@@ -784,7 +782,7 @@ public static partial class HtmlRoundTripScorer {
 
     private static string CreateTextualNodeSignature(HtmlLogicalNode node) {
         string text = ExtractLogicalNodeText(node);
-        return string.IsNullOrWhiteSpace(text)
+        return text.Length == 0
             ? node.Name
             : node.Name + "|text=" + NormalizeText(text);
     }
@@ -803,7 +801,7 @@ public static partial class HtmlRoundTripScorer {
         AddAttributePart(parts, node, "rel");
         AddAttributePart(parts, node, "download");
         string text = ExtractLogicalNodeText(node);
-        if (!string.IsNullOrWhiteSpace(text)) {
+        if (text.Length > 0) {
             parts.Add("text=" + NormalizeText(text));
         }
 
@@ -815,7 +813,7 @@ public static partial class HtmlRoundTripScorer {
             node.Name
         };
         string text = ExtractLogicalNodeText(node);
-        if (!string.IsNullOrWhiteSpace(text)) {
+        if (text.Length > 0) {
             parts.Add("text=" + NormalizeText(text));
         }
 
@@ -1002,7 +1000,7 @@ public static partial class HtmlRoundTripScorer {
             }
         }
 
-        if (currentVisibility && node.NodeType == NodeType.Text && !string.IsNullOrWhiteSpace(node.TextContent)) {
+        if (currentVisibility && node.NodeType == NodeType.Text && NormalizeText(node.TextContent).Length > 0) {
             parts.Add(node.TextContent);
             return;
         }
@@ -1027,7 +1025,7 @@ public static partial class HtmlRoundTripScorer {
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(node.Text) && (node.Kind == HtmlLogicalNodeKind.Text || !HasTextChild(node))) {
+        if (node.Text.Length > 0 && (node.Kind == HtmlLogicalNodeKind.Text || !HasTextChild(node))) {
             parts.Add(node.Text);
         }
 
@@ -1038,7 +1036,7 @@ public static partial class HtmlRoundTripScorer {
 
     private static bool HasTextChild(HtmlLogicalNode node) {
         foreach (HtmlLogicalNode child in node.Children) {
-            if (!string.IsNullOrWhiteSpace(child.Text) || HasTextChild(child)) {
+            if (child.Text.Length > 0 || HasTextChild(child)) {
                 return true;
             }
         }
@@ -1171,7 +1169,7 @@ public static partial class HtmlRoundTripScorer {
     }
 
     private static string NormalizeText(string text) {
-        return string.IsNullOrWhiteSpace(text)
+        return text.Length == 0
             ? string.Empty
             : string.Join(" ", text.Split(WhitespaceSeparators, StringSplitOptions.RemoveEmptyEntries));
     }

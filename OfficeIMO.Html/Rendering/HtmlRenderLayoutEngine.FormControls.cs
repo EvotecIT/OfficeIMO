@@ -115,7 +115,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (tag == "select") {
             string longest = element.QuerySelectorAll("option")
-                .Select(option => NormalizeControlText(option.TextContent))
+                .Select(HtmlFormControlSemantics.GetOptionLabel)
                 .OrderByDescending(text => text.Length)
                 .FirstOrDefault() ?? string.Empty;
             return Math.Max(108D, MeasureText(longest, style.Font) + 24D);
@@ -398,25 +398,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         HtmlRenderBoxStyle style,
         string source) {
-        IElement[] options = element.QuerySelectorAll("option").ToArray();
         bool multiple = element.HasAttribute("multiple");
         bool listBox = multiple || ParsePositiveInteger(element.GetAttribute("size"), 1, 1, 100) > 1;
         if (listBox) {
-            IEnumerable<IElement> selectedOptions = options.Where(option => option.HasAttribute("selected"));
-            if (!multiple) {
-                IElement? effective = selectedOptions.LastOrDefault() ?? options.FirstOrDefault();
-                selectedOptions = effective == null ? Array.Empty<IElement>() : new[] { effective };
-            }
-            string[] values = selectedOptions
-                .Select(option => NormalizeControlText(option.TextContent))
+            string[] values = HtmlFormControlSemantics.GetEffectiveSelectedOptions(element)
+                .Select(HtmlFormControlSemantics.GetOptionLabel)
                 .Where(value => value.Length > 0)
                 .ToArray();
             AddMultilineControlText(visuals, string.Join("\n", values), x, y, width, height, style, false, source);
             return;
         }
 
-        IElement? selected = options.LastOrDefault(option => option.HasAttribute("selected")) ?? options.FirstOrDefault();
-        string value = selected == null ? string.Empty : NormalizeControlText(selected.TextContent);
+        IElement? selected = HtmlFormControlSemantics.GetEffectiveSelectedOptions(element).SingleOrDefault();
+        string value = selected == null ? string.Empty : HtmlFormControlSemantics.GetOptionLabel(selected);
         AddSingleLineControlText(visuals, value, x, y, Math.Max(1D, width - 16D), height, style, false, OfficeTextAlignment.Left, source);
 
         double arrowWidth = Math.Min(8D, width * 0.12D);

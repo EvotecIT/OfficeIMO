@@ -302,17 +302,17 @@ internal static partial class HtmlReaderAdapter {
         if (!hasValue && string.Equals(node.Name, "textarea", StringComparison.OrdinalIgnoreCase)) {
             value = GetHtmlNodeText(node);
         } else if (!hasValue && string.Equals(node.Name, "select", StringComparison.OrdinalIgnoreCase)) {
-            HtmlLogicalNode[] options = EnumerateHtmlOptions(node).ToArray();
-            HtmlLogicalNode[] selected = options.Where(option => option.Attributes.ContainsKey("selected")).ToArray();
+            HtmlLogicalOption[] options = EnumerateHtmlOptions(node).ToArray();
+            HtmlLogicalOption[] selected = options.Where(option => option.Node.Attributes.ContainsKey("selected")).ToArray();
             bool multiple = node.Attributes.ContainsKey("multiple");
             if (!multiple) {
-                HtmlLogicalNode? effective = selected.LastOrDefault() ?? options.FirstOrDefault();
-                selected = effective == null ? Array.Empty<HtmlLogicalNode>() : new[] { effective };
+                HtmlLogicalOption? effective = selected.LastOrDefault() ?? options.FirstOrDefault(option => !option.IsDisabled);
+                selected = effective == null ? Array.Empty<HtmlLogicalOption>() : new[] { effective };
             }
             value = string.Join("\n", selected.Select(option =>
-                option.Attributes.TryGetValue("value", out string? optionValue) && !string.IsNullOrWhiteSpace(optionValue)
+                option.Node.Attributes.TryGetValue("value", out string? optionValue)
                     ? optionValue
-                    : GetHtmlNodeText(option)));
+                    : HtmlFormControlSemantics.NormalizeOptionText(GetHtmlNodeText(option.Node))));
         }
         if (string.Equals(kind, "checkbox", StringComparison.OrdinalIgnoreCase)
             || string.Equals(kind, "radio", StringComparison.OrdinalIgnoreCase)) {
@@ -332,14 +332,33 @@ internal static partial class HtmlReaderAdapter {
         };
     }
 
-    private static IEnumerable<HtmlLogicalNode> EnumerateHtmlOptions(HtmlLogicalNode node) {
+    private static IEnumerable<HtmlLogicalOption> EnumerateHtmlOptions(
+        HtmlLogicalNode node,
+        bool disabledByOptGroup = false) {
         foreach (HtmlLogicalNode child in node.Children) {
+            bool childDisabledByOptGroup = disabledByOptGroup
+                || string.Equals(child.Name, "optgroup", StringComparison.OrdinalIgnoreCase)
+                    && child.Attributes.ContainsKey("disabled");
             if (child.Kind == HtmlLogicalNodeKind.FormControl &&
                 string.Equals(child.Name, "option", StringComparison.OrdinalIgnoreCase)) {
-                yield return child;
+                yield return new HtmlLogicalOption(
+                    child,
+                    child.Attributes.ContainsKey("disabled") || childDisabledByOptGroup);
             }
-            foreach (HtmlLogicalNode descendant in EnumerateHtmlOptions(child)) yield return descendant;
+            foreach (HtmlLogicalOption descendant in EnumerateHtmlOptions(child, childDisabledByOptGroup)) {
+                yield return descendant;
+            }
         }
+    }
+
+    private sealed class HtmlLogicalOption {
+        internal HtmlLogicalOption(HtmlLogicalNode node, bool isDisabled) {
+            Node = node;
+            IsDisabled = isDisabled;
+        }
+
+        internal HtmlLogicalNode Node { get; }
+        internal bool IsDisabled { get; }
     }
 
     private static string BuildHtmlTableBlockText(ReaderTable table) {
@@ -476,8 +495,8 @@ internal static partial class HtmlReaderAdapter {
     }
 
     private static string GetHtmlNodeText(HtmlLogicalNode node) {
-        if (!string.IsNullOrWhiteSpace(node.Text)) return node.Text;
-        return string.Join(" ", Descendants(node, HtmlLogicalNodeKind.Text).Select(static child => child.Text).Where(static text => !string.IsNullOrWhiteSpace(text)));
+        if (node.Text.Length > 0) return node.Text;
+        return string.Join(" ", Descendants(node, HtmlLogicalNodeKind.Text).Select(static child => child.Text).Where(static text => text.Length > 0));
     }
 
     private static string GetHtmlNodeAccessibleText(HtmlLogicalNode node) {

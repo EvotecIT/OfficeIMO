@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Html;
@@ -183,7 +184,7 @@ internal static class HtmlFormControlSemantics {
 
     internal static string GetDefaultValue(string elementName, string? type, string textContent) {
         string name = NormalizeIdentifier(elementName);
-        if (name == "option") return NormalizeText(textContent);
+        if (name == "option") return NormalizeOptionText(textContent);
         if (name == "input") {
             string effectiveType = GetEffectiveType(name, type);
             if (effectiveType == "checkbox" || effectiveType == "radio") return "on";
@@ -191,6 +192,9 @@ internal static class HtmlFormControlSemantics {
         }
         return string.Empty;
     }
+
+    internal static string GetOptionLabel(IElement option) =>
+        option.GetAttribute("label") ?? NormalizeOptionText(option.TextContent);
 
     internal static bool IsEffectivelyDisabled(IElement element) {
         if (element.HasAttribute("disabled")) return true;
@@ -246,12 +250,27 @@ internal static class HtmlFormControlSemantics {
     }
 
     private static IReadOnlyList<string> GetSelectValues(IElement select) {
-        bool multiple = select.HasAttribute("multiple");
+        return GetEffectiveSelectedOptions(select).Select(GetOptionValue).ToArray();
+    }
+
+    internal static IReadOnlyList<IElement> GetEffectiveSelectedOptions(IElement select) {
         IElement[] options = select.QuerySelectorAll("option").ToArray();
         IElement[] selected = options.Where(option => option.HasAttribute("selected")).ToArray();
-        if (multiple) return selected.Select(GetOptionValue).ToArray();
-        IElement? effective = selected.LastOrDefault() ?? options.FirstOrDefault();
-        return effective == null ? Array.Empty<string>() : new[] { GetOptionValue(effective) };
+        if (select.HasAttribute("multiple")) return selected;
+        IElement? effective = selected.LastOrDefault()
+            ?? options.FirstOrDefault(option => !IsOptionEffectivelyDisabled(option));
+        return effective == null ? Array.Empty<IElement>() : new[] { effective };
+    }
+
+    internal static bool IsOptionEffectivelyDisabled(IElement option) {
+        if (!string.Equals(option.LocalName, "option", StringComparison.OrdinalIgnoreCase)) return false;
+        if (option.HasAttribute("disabled")) return true;
+        for (IElement? ancestor = option.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
+            if (string.Equals(ancestor.LocalName, "optgroup", StringComparison.OrdinalIgnoreCase)
+                && ancestor.HasAttribute("disabled")) return true;
+            if (string.Equals(ancestor.LocalName, "select", StringComparison.OrdinalIgnoreCase)) break;
+        }
+        return false;
     }
 
     private static string GetOptionValue(IElement option) =>
@@ -549,8 +568,28 @@ internal static class HtmlFormControlSemantics {
         return normalized == null ? text : new string(normalized);
     }
 
-    private static string NormalizeText(string? value) =>
-        string.Join(" ", (value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+    internal static string NormalizeOptionText(string? value) {
+        string text = value ?? string.Empty;
+        var normalized = new StringBuilder(text.Length);
+        bool hasText = false;
+        bool pendingSpace = false;
+        foreach (char current in text) {
+            if (IsAsciiWhitespace(current)) {
+                if (hasText) pendingSpace = true;
+                continue;
+            }
+            if (pendingSpace) {
+                normalized.Append(' ');
+                pendingSpace = false;
+            }
+            normalized.Append(current);
+            hasText = true;
+        }
+        return normalized.ToString();
+    }
+
+    private static bool IsAsciiWhitespace(char value) =>
+        value == '\t' || value == '\n' || value == '\f' || value == '\r' || value == ' ';
 
     private readonly struct HtmlRangeState {
         internal HtmlRangeState(string valueText, double fraction) {

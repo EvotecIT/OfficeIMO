@@ -196,6 +196,22 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderHtml_SingleSelectUsesFirstEnabledOptionAndHtmlOptionValues() {
+        const string html = "<select name='status'><option disabled>Disabled</option>"
+            + "<optgroup disabled><option>Group disabled</option></optgroup>"
+            + "<option>\tA&nbsp;\nB\u2003C\r</option></select>"
+            + "<select name='spaces'><option>&nbsp;\u2003</option></select>"
+            + "<select name='disabled'><option disabled>A</option>"
+            + "<optgroup disabled><option>B</option></optgroup></select>";
+
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "select-enabled.html");
+
+        Assert.Equal("A\u00A0 B\u2003C", Assert.Single(result.Forms, form => form.Name == "status").Value);
+        Assert.Equal("\u00A0\u2003", Assert.Single(result.Forms, form => form.Name == "spaces").Value);
+        Assert.Equal(string.Empty, Assert.Single(result.Forms, form => form.Name == "disabled").Value);
+    }
+
+    [Fact]
     public void DocumentReaderHtml_RichProjection_PreservesCheckedStateForCheckboxesAndRadios() {
         const string html = "<form>"
             + "<input type=\"checkbox\" name=\"unchecked\" value=\"yes\">"

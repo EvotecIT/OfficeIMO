@@ -116,9 +116,9 @@ namespace OfficeIMO.Word.Html {
         private void ProcessSelect(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
             var optionsList = element.QuerySelectorAll("option")
                 .Select(option => new {
+                    Element = option,
                     Value = GetOptionValue(option),
-                    DisplayText = NormalizeFormText(option.TextContent),
-                    Selected = option.HasAttribute("selected")
+                    DisplayText = HtmlFormControlSemantics.GetOptionLabel(option)
                 })
                 .ToList();
 
@@ -129,9 +129,8 @@ namespace OfficeIMO.Word.Html {
             currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
             var (alias, tag) = GetInputMetadata(element);
             if (element.HasAttribute("multiple")) {
-                var selectedValues = optionsList
-                    .Where(option => option.Selected)
-                    .Select(option => option.Value)
+                var selectedValues = HtmlFormControlSemantics.GetEffectiveSelectedOptions(element)
+                    .Select(GetOptionValue)
                     .ToList();
                 currentParagraph.AddStructuredDocumentTag(string.Join("\n", selectedValues), alias, tag);
                 if (ShouldAddSpaceAfterInput(element)) {
@@ -141,8 +140,8 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            int selectedIndex = optionsList.FindLastIndex(option => option.Selected);
-            if (selectedIndex < 0) selectedIndex = 0;
+            IElement? selectedOption = HtmlFormControlSemantics.GetEffectiveSelectedOptions(element).SingleOrDefault();
+            int selectedIndex = optionsList.FindIndex(option => ReferenceEquals(option.Element, selectedOption));
             var importedItems = optionsList
                 .Select(option => (option.Value, option.DisplayText))
                 .ToList();
@@ -236,7 +235,8 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static string GetOptionValue(IElement option) =>
-            NormalizeFormText(option.GetAttribute("value") ?? option.TextContent);
+            option.GetAttribute("value")
+            ?? HtmlFormControlSemantics.GetDefaultValue("option", null, option.TextContent ?? string.Empty);
 
         private static List<IElement> GetRadioGroup(IElement element) {
             var name = element.GetAttribute("name");

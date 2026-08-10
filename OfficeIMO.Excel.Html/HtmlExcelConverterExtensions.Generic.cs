@@ -41,7 +41,7 @@ public static partial class HtmlExcelConverterExtensions {
         }
 
         bool hasNarrative = tables.Count == 0 || document.Sections
-            .Any(section => section.Blocks.Any(block => IsSectionNarrativeBlock(section, block)));
+            .Any(HasSectionNarrative);
         ExcelSheet? narrativeSheet = null;
         int row = 1;
         if (hasNarrative) {
@@ -55,7 +55,7 @@ public static partial class HtmlExcelConverterExtensions {
                 int maxTableCells = budget.Limits.MaxTableCells;
                 foreach (HtmlSemanticSection section in document.Sections) {
                     if (row > maxTableCells || row > A1.MaxRows) break;
-                    bool sectionHasNarrative = section.Blocks.Any(block => IsSectionNarrativeBlock(section, block));
+                    bool sectionHasNarrative = HasSectionNarrative(section);
                     if (!sectionHasNarrative && tables.Count > 0) continue;
                     if (TrySetCellTextValue(narrativeSheet, row, 1, section.Title, result, budget)) {
                         narrativeSheet.CellAt(row, 1).SetBold();
@@ -101,6 +101,9 @@ public static partial class HtmlExcelConverterExtensions {
         IsGenericTextBlock(block.Kind) && block.Text.Length > 0
         && !(block.Kind == HtmlSemanticBlockKind.Heading
             && string.Equals(block.Text, section.Title, StringComparison.Ordinal));
+
+    private static bool HasSectionNarrative(HtmlSemanticSection section) =>
+        section.Blocks.Count == 0 || section.Blocks.Any(block => IsSectionNarrativeBlock(section, block));
 
     private static void ImportGenericImages(
         HtmlSemanticDocument document,

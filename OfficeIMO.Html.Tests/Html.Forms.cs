@@ -156,6 +156,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_SingleSelectUsesFirstEnabledOptionAndHtmlOptionValues() {
+            const string html = "<select><option disabled>Disabled</option><optgroup disabled><option>Group disabled</option></optgroup><option label='Enabled label'>\tA&nbsp;\nB\u2003C\r</option></select>";
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            WordDropDownList dropDown = Assert.Single(doc.DropDownLists);
+            Assert.Equal(new[] { "Disabled", "Group disabled", "Enabled label" }, dropDown.Items.ToArray());
+            Assert.Equal("A\u00A0 B\u2003C", dropDown.SelectedValue);
+        }
+
+        [Fact]
+        public void HtmlToWord_AllDisabledSingleSelectHasNoSelectedValue() {
+            const string html = "<select><option disabled>A</option><optgroup disabled><option>B</option></optgroup></select>";
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            WordDropDownList dropDown = Assert.Single(doc.DropDownLists);
+            Assert.Equal(string.Empty, dropDown.SelectedValue);
+        }
+
+        [Fact]
         public void HtmlToWord_Select_PreservesDistinctOptionValueAndDisplayText() {
             const string html = "<p>Status <select data-tag=\"status\"><option value=\"internal-id\" selected>Visible label</option><option value=\"other-id\">Other label</option></select></p>";
 

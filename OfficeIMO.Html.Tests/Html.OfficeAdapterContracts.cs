@@ -21,6 +21,17 @@ public partial class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void ExcelHtml_GenericImportRetainsTableAdjacentHeadingOnlySection() {
+        HtmlToExcelResult result = HtmlConversionDocument
+            .Parse("<table><tr><td>Cell</td></tr></table><h1>Summary</h1>")
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+
+        ExcelSheet narrative = Assert.Single(workbook.Sheets, sheet => sheet.Name == "Imported");
+        Assert.Equal("Summary", narrative.CellAt(1, 1).GetValue<string>());
+    }
+
+    [Fact]
     public void PowerPointHtml_RendersHeadingOnlySemanticSections() {
         HtmlToPowerPointResult result = HtmlConversionDocument
             .Parse("<p>First slide</p><h1>Heading-only slide</h1>")

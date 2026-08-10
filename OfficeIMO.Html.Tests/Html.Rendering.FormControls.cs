@@ -101,6 +101,17 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_SingleSelectDefaultsToFirstEnabledOption() {
+        const string html = "<select><option disabled>Disabled</option><optgroup disabled><option>Group disabled</option></optgroup><option label='Enabled label'>Fallback text</option></select>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Contains("Enabled label", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Disabled", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Fallback text", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlRendering_UsesEffectiveInputTypesAndSanitizedRangePositions() {
         HtmlRenderDocument invalidType = HtmlRenderTestDriver.Render(
             "<input id='choice' type=' checkbox ' value='Text state' checked>",
