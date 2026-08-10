@@ -28,6 +28,7 @@ public sealed partial class PdfDocument {
         _blockScopes.Push(_blocks.Add);
         Pages = new PdfDocumentPages(this);
         Read = new PdfDocumentReader(this);
+        Text = new PdfDocumentTextEditor(this);
         Stamp = new PdfDocumentStamper(this);
         Forms = new PdfDocumentForms(this);
         Attachments = new PdfDocumentAttachments(this);
@@ -131,6 +132,9 @@ public sealed partial class PdfDocument {
     /// Readback operations for this PDF.
     /// </summary>
     public PdfDocumentReader Read { get; }
+
+    /// <summary>Existing-page text search and editing operations.</summary>
+    public PdfDocumentTextEditor Text { get; }
 
     /// <summary>Existing-document embedded and associated file editing operations.</summary>
     public PdfDocumentAttachments Attachments { get; }
