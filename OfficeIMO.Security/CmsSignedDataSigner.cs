@@ -77,8 +77,8 @@ public static class CmsSignedDataSigner {
             }
         }
 
-        var processable = new CmsProcessableByteArray(content);
-        return generator.Generate(contentTypeOid, processable, encapsulate).GetEncoded();
+        var processable = new CmsProcessableByteArray(new DerObjectIdentifier(contentTypeOid), content);
+        return generator.Generate(processable, encapsulate).GetEncoded();
     }
 
     private sealed class SignedAttributeGenerator : CmsAttributeTableGenerator {
