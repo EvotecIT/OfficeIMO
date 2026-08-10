@@ -132,20 +132,14 @@ public static partial class HtmlPowerPointConverterExtensions {
             return;
         }
 
-        if (!budget.IsImageWithinLimit(dataUri, out string imageLimit)) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                "An embedded slide picture was omitted because the shared image limit was reached.",
-                lossKind: OfficeConversionLossKind.Omission, detail: imageLimit);
-            return;
-        }
-
-        if (!budget.TryReserveImageWithShape(dataUri, out imageLimit)) {
+        if (!budget.TryReserveImageWithShape(dataUri, out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An embedded slide picture was omitted because the shared import limit was reached.",
                 lossKind: OfficeConversionLossKind.Omission, detail: imageLimit);
             return;
         }
 
+        using HtmlImportBudgetReservation imageReservationScope = imageReservation;
         if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
                 "Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.", lossKind: OfficeConversionLossKind.Omission);
@@ -168,6 +162,7 @@ public static partial class HtmlPowerPointConverterExtensions {
 
         ApplyPictureTransforms(item, picture, budget, result);
         result.Pictures++;
+        imageReservation.Commit();
         fallbackTop = Math.Max(fallbackTop, pictureTop + height + 18D);
     }
 

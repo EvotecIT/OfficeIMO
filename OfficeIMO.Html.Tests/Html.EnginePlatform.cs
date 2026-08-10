@@ -240,6 +240,8 @@ public partial class Html {
         Assert.Contains("Preserved: headings => roundtrip HTML contains h1", manifestMarkdown);
         Assert.Contains("Blocked: blocked resources => resource manifest reports rejected data URI image", manifestMarkdown);
         Assert.Contains("Round Trip Score", manifestMarkdown);
+        Assert.Contains("Schema version: 2", manifestMarkdown);
+        Assert.Contains("Dimensions:", manifestMarkdown);
         Assert.Contains("ImageResourceRejectedByPolicy", manifestMarkdown);
         Assert.Contains("[ContentSimplification]", manifestMarkdown);
         Assert.Equal("officeimo.html.capability-gallery", manifestJsonRoot.GetProperty("schemaId").GetString());
@@ -248,10 +250,25 @@ public partial class Html {
         Assert.Equal("Document", manifestJsonRoot.GetProperty("profile").GetProperty("id").GetString());
         Assert.Equal(3, manifestJsonRoot.GetProperty("expectations").GetArrayLength());
         Assert.Equal("source", manifestJsonRoot.GetProperty("artifacts")[0].GetProperty("id").GetString());
-        Assert.True(manifestJsonRoot.GetProperty("roundTripScore").GetProperty("score").GetDouble() >= 0D);
+        JsonElement manifestScore = manifestJsonRoot.GetProperty("roundTripScore");
+        Assert.Equal(HtmlRoundTripScore.CurrentSchemaVersion, manifestScore.GetProperty("schemaVersion").GetInt32());
+        Assert.True(manifestScore.GetProperty("score").GetDouble() >= 0D);
+        Assert.Equal(score.ArtifactReloadVerified, manifestScore.GetProperty("artifactReloadVerified").GetBoolean());
+        Assert.True(manifestScore.TryGetProperty("artifactKind", out _));
+        Assert.Equal(score.Dimensions.Count, manifestScore.GetProperty("dimensions").EnumerateObject().Count());
         Assert.True(manifestJsonRoot.GetProperty("resources").GetProperty("blockedCount").GetInt32() > 0);
         Assert.Contains("ImageResourceRejectedByPolicy", manifestJson);
         Assert.Contains("\"origin\": \"resource\"", manifestJson);
+
+        var manifestWithoutOptionalEvidence = new HtmlCapabilityGalleryManifest(
+            galleryResult,
+            HtmlConversionProfile.Document,
+            roundTripScore: null,
+            resourceManifest: null);
+        using JsonDocument optionalJsonDocument = JsonDocument.Parse(
+            HtmlCapabilityGalleryManifestJsonWriter.ToJson(manifestWithoutOptionalEvidence));
+        Assert.Equal(JsonValueKind.Null, optionalJsonDocument.RootElement.GetProperty("roundTripScore").ValueKind);
+        Assert.Equal(JsonValueKind.Null, optionalJsonDocument.RootElement.GetProperty("resources").ValueKind);
 
         HtmlToWordOptions untrusted = HtmlToWordOptions.CreateUntrustedHtmlProfile();
         HtmlToWordOptions trusted = HtmlToWordOptions.CreateTrustedDocumentProfile();
@@ -1255,7 +1272,7 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/app.js" && resource.Kind == HtmlResourceKind.Script);
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/favicon.png" && resource.Kind == HtmlResourceKind.Image);
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/preload.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "imagesrcset" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/spaced-submit.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/spaced-submit.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/preload-large.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "imagesrcset");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/picture-source.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/selected-picture.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset");
@@ -1672,6 +1689,16 @@ public partial class Html {
             "<main><form><input name=\"email\"></form></main>");
         Assert.Equal(1D, requiredFormScore.Metrics["forms"], 3);
         Assert.InRange(requiredFormScore.Metrics["form-state"], 0D, 0.99D);
+
+        HtmlRoundTripScore inertNumberPlaceholderScore = HtmlRoundTripScorer.Compare(
+            "<main><form><input type=\"number\" name=\"quantity\" placeholder=\"Count\"></form></main>",
+            "<main><form><input type=\"number\" name=\"quantity\"></form></main>");
+        Assert.Equal(1D, inertNumberPlaceholderScore.Metrics["form-state"], 3);
+
+        HtmlRoundTripScore inertFileValueScore = HtmlRoundTripScorer.Compare(
+            "<main><form><input type=\"file\" name=\"attachment\" value=\"report.pdf\"></form></main>",
+            "<main><form><input type=\"file\" name=\"attachment\"></form></main>");
+        Assert.Equal(1D, inertFileValueScore.Metrics["form-state"], 3);
 
         HtmlRoundTripScore imageSubmitterScore = HtmlRoundTripScorer.Compare(
             "<main><form><input type=\"image\" src=\"save-a.png\" alt=\"Save\"></form></main>",

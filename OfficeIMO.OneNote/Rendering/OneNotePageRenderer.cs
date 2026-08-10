@@ -60,6 +60,7 @@ public static partial class OneNotePageRenderer {
             }
         }
 
+        context.ResetListNumbering();
         foreach (OneNoteElement element in page.DirectContent) {
             if (element is OneNoteImage image && image.IsBackground == true) continue;
             double x = element.Layout?.X.HasValue == true ? element.Layout.X.Value * PointsPerHalfInch : marginLeft;
@@ -128,6 +129,7 @@ public static partial class OneNotePageRenderer {
             double x = outline.Layout?.X.HasValue == true ? outline.Layout.X.Value * PointsPerHalfInch : marginLeft;
             double y = outline.Layout?.Y.HasValue == true ? outline.Layout.Y.Value * PointsPerHalfInch : flow + pendingSpace;
             double width = ResolveEstimatedWidth(outline, bodyWidth, options);
+            estimator.ResetListNumbering();
             (double childRight, double childBottom) = estimator.MeasureElementsBounds(outline.Children, width);
             double height = outline.Layout?.Height.HasValue == true
                 ? outline.Layout.Height.Value * PointsPerHalfInch
@@ -139,21 +141,24 @@ public static partial class OneNotePageRenderer {
                 pendingSpace = 6D;
             }
         }
-        foreach (OneNoteElement element in page.DirectContent) {
-            if (element is OneNoteImage background && background.IsBackground == true) continue;
-            double x = element.Layout?.X.HasValue == true ? element.Layout.X.Value * PointsPerHalfInch : marginLeft;
-            double y = element.Layout?.Y.HasValue == true
-                ? element.Layout.Y.Value * PointsPerHalfInch
-                : flow + Math.Max(pendingSpace, RenderContext.ParagraphSpaceBefore(element));
-            double elementWidth = ResolveEstimatedWidth(element, bodyWidth, options);
-            double elementHeight = estimator.MeasureElementHeight(element, elementWidth);
-            right = Math.Max(right, x + estimator.MeasureElementWidthExtent(element, elementWidth));
-            bottom = Math.Max(bottom, y + elementHeight);
-            if (element.Layout?.Y.HasValue != true) {
-                flow = Math.Max(flow, y + elementHeight);
-                pendingSpace = element is OneNoteParagraph ? RenderContext.ParagraphSpaceAfter(element) : 6D;
+        estimator.ResetListNumbering();
+        estimator.MeasureWithTemporaryListNumbering(() => {
+            foreach (OneNoteElement element in page.DirectContent) {
+                if (element is OneNoteImage background && background.IsBackground == true) continue;
+                double x = element.Layout?.X.HasValue == true ? element.Layout.X.Value * PointsPerHalfInch : marginLeft;
+                double y = element.Layout?.Y.HasValue == true
+                    ? element.Layout.Y.Value * PointsPerHalfInch
+                    : flow + Math.Max(pendingSpace, RenderContext.ParagraphSpaceBefore(element));
+                double elementWidth = ResolveEstimatedWidth(element, bodyWidth, options);
+                double elementHeight = estimator.MeasureElementHeight(element, elementWidth);
+                right = Math.Max(right, x + estimator.MeasureElementWidthExtent(element, elementWidth));
+                bottom = Math.Max(bottom, y + elementHeight);
+                if (element.Layout?.Y.HasValue != true) {
+                    flow = Math.Max(flow, y + elementHeight);
+                    pendingSpace = element is OneNoteParagraph ? RenderContext.ParagraphSpaceAfter(element) : 6D;
+                }
             }
-        }
+        });
         return (right, Math.Max(bottom, flow + pendingSpace));
     }
 

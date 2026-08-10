@@ -1,5 +1,6 @@
 using OfficeIMO.Word.Html;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using Xunit;
@@ -25,6 +26,23 @@ namespace OfficeIMO.Tests {
             Assert.Single(doc.Images);
             string back = doc.ToHtml();
             Assert.Contains("<svg", back, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void HtmlToWord_InlineSvgDimensionsUseInvariantHtmlNumbers() {
+            CultureInfo previousCulture = CultureInfo.CurrentCulture;
+            try {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+                const string html = "<svg xmlns='http://www.w3.org/2000/svg' width='10.5px' height='5.5px'><rect width='10' height='5'/></svg>";
+
+                using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+                var image = Assert.Single(document.Images);
+
+                Assert.InRange(image.Width!.Value, 10.49D, 10.51D);
+                Assert.InRange(image.Height!.Value, 5.49D, 5.51D);
+            } finally {
+                CultureInfo.CurrentCulture = previousCulture;
+            }
         }
     }
 }

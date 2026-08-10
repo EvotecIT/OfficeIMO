@@ -305,6 +305,7 @@ public static partial class HtmlRoundTripScorer {
         AngleSharp.Html.Dom.IHtmlDocument document = source.CreateSourceDocumentForConversion();
         ResolveResourceSourceAttributes(document);
         SynthesizeImplicitSelectedOptions(document);
+        SynthesizeEffectiveInputState(document);
         PropagateFieldsetDisabledState(document);
         PruneHiddenStructure(document);
         return document;
@@ -403,19 +404,50 @@ public static partial class HtmlRoundTripScorer {
                 }
 
                 if (string.Equals(attributeName, "value", StringComparison.OrdinalIgnoreCase) && !control.HasAttribute(attributeName)) {
+                    if (string.Equals(
+                        HtmlFormControlSemantics.GetEffectiveType(control.TagName, control.GetAttribute("type")),
+                        "range",
+                        StringComparison.Ordinal)) {
+                        parts.Add("value=" + HtmlFormControlSemantics.GetRangeValue(
+                            null,
+                            control.GetAttribute("min"),
+                            control.GetAttribute("max"),
+                            control.GetAttribute("step")));
+                        continue;
+                    }
                     string defaultValue = GetDefaultFormControlValue(control.TagName, control.GetAttribute("type"), control.TextContent);
-                    if (!string.IsNullOrWhiteSpace(defaultValue)) {
+                    if (defaultValue.Length > 0) {
                         parts.Add("value=" + defaultValue);
                         continue;
                     }
                 }
 
+                if (IsLengthConstraintAttribute(attributeName)) {
+                    if (control.HasAttribute(attributeName)
+                        && HtmlFormControlSemantics.TryParseLengthConstraint(control.GetAttribute(attributeName), out int length)) {
+                        parts.Add(attributeName + "=" + length.ToString(CultureInfo.InvariantCulture));
+                    }
+                    continue;
+                }
+
                 if (control.HasAttribute(attributeName)) {
+                    if (string.Equals(attributeName, "value", StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(
+                            HtmlFormControlSemantics.GetEffectiveType(control.TagName, control.GetAttribute("type")),
+                            "range",
+                            StringComparison.Ordinal)) {
+                        parts.Add("value=" + HtmlFormControlSemantics.GetRangeValue(
+                            control.GetAttribute("value"),
+                            control.GetAttribute("min"),
+                            control.GetAttribute("max"),
+                            control.GetAttribute("step")));
+                        continue;
+                    }
                     parts.Add(FormatAttributePart(attributeName, control.GetAttribute(attributeName)));
                 }
             }
 
-            string owner = ResolveFormOwnerSignature(document, control);
+            string owner = ResolveFormOwnerSignature(control);
             if (!string.IsNullOrWhiteSpace(owner)) {
                 parts.Add("owner=" + owner);
             }
@@ -428,64 +460,47 @@ public static partial class HtmlRoundTripScorer {
 
     private static void SynthesizeImplicitSelectedOptions(AngleSharp.Html.Dom.IHtmlDocument document) {
         foreach (var select in document.QuerySelectorAll("select:not([multiple])")) {
-            if (select.QuerySelector("option[selected]") != null) {
-                continue;
+            AngleSharp.Dom.IElement? effective = HtmlFormControlSemantics
+                .GetEffectiveSelectedOptions(select)
+                .SingleOrDefault();
+            foreach (AngleSharp.Dom.IElement option in select.QuerySelectorAll("option")) {
+                if (ReferenceEquals(option, effective)) option.SetAttribute("selected", string.Empty);
+                else option.RemoveAttribute("selected");
             }
+        }
+    }
 
-            AngleSharp.Dom.IElement? firstOption = select.QuerySelector("option");
-            firstOption?.SetAttribute("selected", string.Empty);
+    private static void SynthesizeEffectiveInputState(AngleSharp.Html.Dom.IHtmlDocument document) {
+        foreach (AngleSharp.Dom.IElement input in document.QuerySelectorAll("input")) {
+            string effectiveType = HtmlFormControlSemantics.GetEffectiveType("input", input.GetAttribute("type"));
+            if (input.HasAttribute("value") && effectiveType != "file") {
+                string currentValue = HtmlFormControlSemantics.GetValues(input).FirstOrDefault() ?? string.Empty;
+                input.SetAttribute("value", currentValue);
+            }
+            if (effectiveType != "radio") continue;
+            if (HtmlFormControlSemantics.IsEffectivelyChecked(input)) {
+                input.SetAttribute("checked", string.Empty);
+            } else {
+                input.RemoveAttribute("checked");
+            }
         }
     }
 
     private static void PropagateFieldsetDisabledState(AngleSharp.Html.Dom.IHtmlDocument document) {
-        foreach (var fieldset in document.QuerySelectorAll("fieldset[disabled]")) {
-            AngleSharp.Dom.IElement? firstLegend = fieldset.Children.FirstOrDefault(child => string.Equals(child.TagName, "legend", StringComparison.OrdinalIgnoreCase));
-            foreach (var control in fieldset.QuerySelectorAll("input,select,textarea,button")) {
-                if (firstLegend != null && IsDescendantOf(control, firstLegend)) {
-                    continue;
-                }
-
+        foreach (var control in document.QuerySelectorAll("input,select,textarea,button")) {
+            if (!control.HasAttribute("disabled") && HtmlFormControlSemantics.IsEffectivelyDisabled(control)) {
                 control.SetAttribute("data-fieldset-disabled", "true");
             }
         }
     }
 
-    private static bool IsDescendantOf(AngleSharp.Dom.IElement element, AngleSharp.Dom.IElement ancestor) {
-        AngleSharp.Dom.IElement? current = element;
-        while (current != null) {
-            if (ReferenceEquals(current, ancestor)) {
-                return true;
-            }
-
-            current = current.ParentElement;
-        }
-
-        return false;
-    }
-
-    private static string ResolveFormOwnerSignature(AngleSharp.Html.Dom.IHtmlDocument document, AngleSharp.Dom.IElement control) {
-        string? explicitOwner = control.GetAttribute("form");
-        if (!string.IsNullOrWhiteSpace(explicitOwner)) {
-            string owner = explicitOwner!.Trim();
-            return HasFormWithId(document, owner) ? owner : string.Empty;
-        }
-
-        AngleSharp.Dom.IElement? current = control.ParentElement;
-        while (current != null) {
-            if (string.Equals(current.TagName, "form", StringComparison.OrdinalIgnoreCase)) {
-                string? id = current.GetAttribute("id");
-                if (!string.IsNullOrWhiteSpace(id)) {
-                    return id!.Trim();
-                }
-
-                string? action = current.GetAttribute("action");
-                return string.IsNullOrWhiteSpace(action) ? "ancestor-form" : action!.Trim();
-            }
-
-            current = current.ParentElement;
-        }
-
-        return string.Empty;
+    private static string ResolveFormOwnerSignature(AngleSharp.Dom.IElement control) {
+        AngleSharp.Dom.IElement? owner = HtmlFormControlSemantics.ResolveFormOwner(control);
+        if (owner == null) return string.Empty;
+        string? id = owner.GetAttribute("id");
+        if (!string.IsNullOrEmpty(id)) return id!;
+        string? action = owner.GetAttribute("action");
+        return string.IsNullOrWhiteSpace(action) ? "ancestor-form" : action!.Trim();
     }
 
     private static IReadOnlyList<string> ExtractSignatures(HtmlLogicalDocument document, HtmlLogicalNodeKind kind, Func<HtmlLogicalNode, string> createSignature) {
@@ -587,7 +602,7 @@ public static partial class HtmlRoundTripScorer {
         }
 
         string text = ExtractLogicalNodeText(node);
-        if (!string.IsNullOrWhiteSpace(text)) {
+        if (text.Length > 0) {
             parts.Add("text=" + NormalizeText(text));
         }
 
@@ -610,7 +625,7 @@ public static partial class HtmlRoundTripScorer {
         }
 
         string text = ExtractLogicalNodeText(node);
-        if (!string.IsNullOrWhiteSpace(text)) {
+        if (text.Length > 0) {
             parts.Add("text=" + NormalizeText(text));
         }
 
@@ -652,6 +667,15 @@ public static partial class HtmlRoundTripScorer {
             return;
         }
 
+        node.Attributes.TryGetValue("type", out string? rawControlType);
+        string effectiveControlType = HtmlFormControlSemantics.GetEffectiveType(
+            node.Name,
+            rawControlType,
+            node.Attributes.ContainsKey("multiple"));
+        if (!HtmlFormControlSemantics.IsStateAttributeApplicable(node.Name, effectiveControlType, attributeName)) {
+            return;
+        }
+
         if (string.Equals(attributeName, "type", StringComparison.OrdinalIgnoreCase)) {
             node.Attributes.TryGetValue(attributeName, out string? rawType);
             string defaultType = GetEffectiveFormControlType(node.Name, rawType);
@@ -662,16 +686,46 @@ public static partial class HtmlRoundTripScorer {
         }
 
         if (string.Equals(attributeName, "value", StringComparison.OrdinalIgnoreCase) && !node.Attributes.ContainsKey(attributeName)) {
+            if (string.Equals(effectiveControlType, "range", StringComparison.Ordinal)) {
+                parts.Add("value=" + HtmlFormControlSemantics.GetRangeValue(
+                    null,
+                    node.Attributes.TryGetValue("min", out string? minimum) ? minimum : null,
+                    node.Attributes.TryGetValue("max", out string? maximum) ? maximum : null,
+                    node.Attributes.TryGetValue("step", out string? step) ? step : null));
+                return;
+            }
             node.Attributes.TryGetValue("type", out string? rawType);
             string defaultValue = GetDefaultFormControlValue(node.Name, rawType, ExtractLogicalNodeText(node));
-            if (!string.IsNullOrWhiteSpace(defaultValue)) {
+            if (defaultValue.Length > 0) {
                 parts.Add("value=" + defaultValue);
                 return;
             }
         }
 
+        if (string.Equals(attributeName, "value", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(effectiveControlType, "range", StringComparison.Ordinal)) {
+            parts.Add("value=" + HtmlFormControlSemantics.GetRangeValue(
+                node.Attributes.TryGetValue("value", out string? value) ? value : null,
+                node.Attributes.TryGetValue("min", out string? minimum) ? minimum : null,
+                node.Attributes.TryGetValue("max", out string? maximum) ? maximum : null,
+                node.Attributes.TryGetValue("step", out string? step) ? step : null));
+            return;
+        }
+
+        if (IsLengthConstraintAttribute(attributeName)) {
+            if (node.Attributes.TryGetValue(attributeName, out string? rawLength)
+                && HtmlFormControlSemantics.TryParseLengthConstraint(rawLength, out int length)) {
+                parts.Add(attributeName + "=" + length.ToString(CultureInfo.InvariantCulture));
+            }
+            return;
+        }
+
         AddAttributePart(parts, node, attributeName);
     }
+
+    private static bool IsLengthConstraintAttribute(string attributeName) =>
+        string.Equals(attributeName, "minlength", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(attributeName, "maxlength", StringComparison.OrdinalIgnoreCase);
 
     private static bool ShouldIncludeFormControlAttribute(AngleSharp.Dom.IElement control, string attributeName) {
         if (string.Equals(attributeName, "form", StringComparison.OrdinalIgnoreCase) && !IsFormAssociatedControl(control.TagName)) {
@@ -683,6 +737,14 @@ public static partial class HtmlRoundTripScorer {
         }
 
         if (ImageSubmitterAttributes.Contains(attributeName) && !IsImageSubmitterControl(control)) {
+            return false;
+        }
+
+        string effectiveType = HtmlFormControlSemantics.GetEffectiveType(
+            control.TagName,
+            control.GetAttribute("type"),
+            control.HasAttribute("multiple"));
+        if (!HtmlFormControlSemantics.IsStateAttributeApplicable(control.TagName, effectiveType, attributeName)) {
             return false;
         }
 
@@ -740,7 +802,7 @@ public static partial class HtmlRoundTripScorer {
 
     private static string CreateTextualNodeSignature(HtmlLogicalNode node) {
         string text = ExtractLogicalNodeText(node);
-        return string.IsNullOrWhiteSpace(text)
+        return text.Length == 0
             ? node.Name
             : node.Name + "|text=" + NormalizeText(text);
     }
@@ -759,7 +821,7 @@ public static partial class HtmlRoundTripScorer {
         AddAttributePart(parts, node, "rel");
         AddAttributePart(parts, node, "download");
         string text = ExtractLogicalNodeText(node);
-        if (!string.IsNullOrWhiteSpace(text)) {
+        if (text.Length > 0) {
             parts.Add("text=" + NormalizeText(text));
         }
 
@@ -771,7 +833,7 @@ public static partial class HtmlRoundTripScorer {
             node.Name
         };
         string text = ExtractLogicalNodeText(node);
-        if (!string.IsNullOrWhiteSpace(text)) {
+        if (text.Length > 0) {
             parts.Add("text=" + NormalizeText(text));
         }
 
@@ -863,115 +925,26 @@ public static partial class HtmlRoundTripScorer {
     }
 
     private static string GetEffectiveFormControlType(string name, string? type) {
-        string normalized = (type ?? string.Empty).Trim().ToLowerInvariant();
-        if (string.Equals(name, "input", StringComparison.OrdinalIgnoreCase)) {
-            return IsValidInputType(normalized) ? normalized : "text";
-        }
-
-        if (string.Equals(name, "button", StringComparison.OrdinalIgnoreCase)) {
-            return IsValidButtonType(normalized) ? normalized : "submit";
-        }
-
-        return string.Empty;
-    }
-
-    private static bool HasFormWithId(AngleSharp.Html.Dom.IHtmlDocument document, string id) {
-        foreach (AngleSharp.Dom.IElement form in document.QuerySelectorAll("form[id]")) {
-            if (string.Equals(form.GetAttribute("id"), id, StringComparison.Ordinal)) {
-                return true;
-            }
-        }
-
-        return false;
+        string normalizedName = (name ?? string.Empty).Trim().ToLowerInvariant();
+        return normalizedName == "input" || normalizedName == "button"
+            ? HtmlFormControlSemantics.GetEffectiveType(normalizedName, type)
+            : string.Empty;
     }
 
     private static bool IsValidFormControlType(string name, string? type) {
-        string normalized = (type ?? string.Empty).Trim().ToLowerInvariant();
-        if (string.Equals(name, "input", StringComparison.OrdinalIgnoreCase)) {
-            return IsValidInputType(normalized);
-        }
-
-        if (string.Equals(name, "button", StringComparison.OrdinalIgnoreCase)) {
-            return IsValidButtonType(normalized);
-        }
-
-        return false;
-    }
-
-    private static bool IsValidInputType(string type) {
-        switch (type) {
-            case "button":
-            case "checkbox":
-            case "color":
-            case "date":
-            case "datetime-local":
-            case "email":
-            case "file":
-            case "hidden":
-            case "image":
-            case "month":
-            case "number":
-            case "password":
-            case "radio":
-            case "range":
-            case "reset":
-            case "search":
-            case "submit":
-            case "tel":
-            case "text":
-            case "time":
-            case "url":
-            case "week":
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    private static bool IsValidButtonType(string type) {
-        return string.Equals(type, "submit", StringComparison.Ordinal)
-            || string.Equals(type, "reset", StringComparison.Ordinal)
-            || string.Equals(type, "button", StringComparison.Ordinal);
+        return HtmlFormControlSemantics.IsValidType(name, type);
     }
 
     private static string GetEffectiveFormMethod(string? method) {
-        string normalized = (method ?? string.Empty).Trim().ToLowerInvariant();
-        switch (normalized) {
-            case "get":
-            case "post":
-            case "dialog":
-                return normalized;
-            default:
-                return "get";
-        }
+        return HtmlFormControlSemantics.GetEffectiveFormMethod(method);
     }
 
     private static string GetEffectiveFormEncoding(string? enctype) {
-        string normalized = (enctype ?? string.Empty).Trim().ToLowerInvariant();
-        switch (normalized) {
-            case "application/x-www-form-urlencoded":
-            case "multipart/form-data":
-            case "text/plain":
-                return normalized;
-            default:
-                return "application/x-www-form-urlencoded";
-        }
+        return HtmlFormControlSemantics.GetEffectiveFormEncoding(enctype);
     }
 
     private static string GetDefaultFormControlValue(string name, string? type, string textContent) {
-        if (string.Equals(name, "option", StringComparison.OrdinalIgnoreCase)) {
-            return NormalizeText(textContent);
-        }
-
-        if (string.Equals(name, "input", StringComparison.OrdinalIgnoreCase)) {
-            string effectiveType = GetEffectiveFormControlType(name, type);
-            if (string.Equals(effectiveType, "checkbox", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(effectiveType, "radio", StringComparison.OrdinalIgnoreCase)) {
-                return "on";
-            }
-        }
-
-        return string.Empty;
+        return HtmlFormControlSemantics.GetDefaultValue(name, type, textContent);
     }
 
     private static string NormalizeTokenList(string? value) {
@@ -1047,7 +1020,7 @@ public static partial class HtmlRoundTripScorer {
             }
         }
 
-        if (currentVisibility && node.NodeType == NodeType.Text && !string.IsNullOrWhiteSpace(node.TextContent)) {
+        if (currentVisibility && node.NodeType == NodeType.Text && NormalizeText(node.TextContent).Length > 0) {
             parts.Add(node.TextContent);
             return;
         }
@@ -1072,7 +1045,7 @@ public static partial class HtmlRoundTripScorer {
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(node.Text) && (node.Kind == HtmlLogicalNodeKind.Text || !HasTextChild(node))) {
+        if (node.Text.Length > 0 && (node.Kind == HtmlLogicalNodeKind.Text || !HasTextChild(node))) {
             parts.Add(node.Text);
         }
 
@@ -1083,7 +1056,7 @@ public static partial class HtmlRoundTripScorer {
 
     private static bool HasTextChild(HtmlLogicalNode node) {
         foreach (HtmlLogicalNode child in node.Children) {
-            if (!string.IsNullOrWhiteSpace(child.Text) || HasTextChild(child)) {
+            if (child.Text.Length > 0 || HasTextChild(child)) {
                 return true;
             }
         }
@@ -1216,7 +1189,7 @@ public static partial class HtmlRoundTripScorer {
     }
 
     private static string NormalizeText(string text) {
-        return string.IsNullOrWhiteSpace(text)
+        return text.Length == 0
             ? string.Empty
             : string.Join(" ", text.Split(WhitespaceSeparators, StringSplitOptions.RemoveEmptyEntries));
     }

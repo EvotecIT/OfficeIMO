@@ -1,6 +1,7 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Html;
 using System.Globalization;
 using System.Text;
 
@@ -46,7 +47,7 @@ namespace OfficeIMO.Word.Html {
             if (ordered) {
                 int? startValue = null;
                 var start = element.GetAttribute("start");
-                if (!string.IsNullOrEmpty(start) && int.TryParse(start, out int startVal)) {
+                if (HtmlIntegerSemantics.TryParseInteger(start, out int startVal)) {
                     startValue = startVal;
                 } else if (element.HasAttribute("reversed")) {
                     var itemCount = element.Children.OfType<IHtmlListItemElement>().Count();
@@ -463,12 +464,12 @@ namespace OfficeIMO.Word.Html {
             }
 
             var raw = element.GetAttribute("value");
-            if (!string.IsNullOrWhiteSpace(raw) && int.TryParse(raw, out value)) {
+            if (HtmlIntegerSemantics.TryParseInteger(raw, out value)) {
                 return true;
             }
 
             var attr = element.Attributes.FirstOrDefault(a => a.Name.Equals("value", StringComparison.OrdinalIgnoreCase));
-            if (attr != null && !string.IsNullOrWhiteSpace(attr.Value) && int.TryParse(attr.Value, out value)) {
+            if (attr != null && HtmlIntegerSemantics.TryParseInteger(attr.Value, out value)) {
                 return true;
             }
 

@@ -261,9 +261,6 @@ namespace OfficeIMO.Word.Html {
                 bool hasImportedDateTime = HtmlSemanticMetadata.TryGetTimeDateTime(run, out string dateTime);
                 if (!hasImportedDateTime) {
                     dateTime = text;
-                    if (DateTime.TryParse(text, out DateTime parsed)) {
-                        dateTime = parsed.ToString("o");
-                    }
                 }
                 SetOutputAttribute(semanticNode, "datetime", dateTime, "EquationSemanticFormatting:datetime");
             } else if (string.Equals(run.CharacterStyleId, "HtmlCode", StringComparison.OrdinalIgnoreCase)) {

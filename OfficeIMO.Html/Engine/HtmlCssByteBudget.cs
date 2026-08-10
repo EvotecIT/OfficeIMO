@@ -12,12 +12,15 @@ internal sealed class HtmlCssByteBudget {
     }
 
     internal bool TryReserve(string css, out HtmlDomLimitException? exception) {
+        return TryReserve(Encoding.UTF8.GetByteCount(css ?? string.Empty), out exception);
+    }
+
+    internal bool TryReserve(long bytes, out HtmlDomLimitException? exception) {
         if (!_limits.MaxCssBytes.HasValue && !_limits.MaxTotalCssBytes.HasValue) {
             exception = null;
             return true;
         }
 
-        long bytes = Encoding.UTF8.GetByteCount(css ?? string.Empty);
         if (_limits.MaxCssBytes.HasValue && bytes > _limits.MaxCssBytes.Value) {
             exception = CreateException(
                 HtmlConversionDiagnosticCodes.CssSizeLimitExceeded,

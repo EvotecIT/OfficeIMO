@@ -24,9 +24,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             double contentTop = 30D;
             if (!string.IsNullOrWhiteSpace(section.Title)) {
                 HtmlSemanticBlock? titleBlock = section.Blocks.FirstOrDefault();
-                if (titleBlock != null) {
-                    contentTop = ImportTextBox(titleBlock.SourceElement, section.Title, slide, 30D, result, budget, 44D);
-                }
+                contentTop = ImportTextBox(titleBlock?.SourceElement, section.Title, slide, 30D, result, budget, 44D);
             }
 
             double pictureTop = contentTop;
@@ -38,7 +36,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 bool importPicture = options.ImportPictures && block.Kind == HtmlSemanticBlockKind.Image;
                 if (importText && !isSectionTitle) {
                     contentTop = ImportTextBox(block.SourceElement, block.Text, slide, contentTop, result, budget,
-                        block.Kind == HtmlSemanticBlockKind.List ? Math.Max(52D, block.Children.Count * 30D) : 52D,
+                        block.Kind == HtmlSemanticBlockKind.List ? Math.Max(52D, CountSemanticListItems(block) * 30D) : 52D,
                         block);
                 } else if (importTable) {
                     contentTop = ImportTable(block.SourceElement, slide, contentTop, result, budget, block);
@@ -82,18 +80,13 @@ public static partial class HtmlPowerPointConverterExtensions {
                 lossKind: OfficeConversionLossKind.Omission, source: resource.Source);
             return;
         }
-        if (!budget.IsImageWithinLimit(dataUri, out string limit)) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                "An inline generic slide image was omitted because it exceeded the shared image limit.",
-                lossKind: OfficeConversionLossKind.Omission, source: resource.Source, detail: limit);
-            return;
-        }
-        if (!budget.TryReserveImageWithShape(dataUri, out limit)) {
+        if (!budget.TryReserveImageWithShape(dataUri, out HtmlImportBudgetReservation imageReservation, out string limit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An inline generic slide image was omitted because the shared image or shape limit was reached.",
                 lossKind: OfficeConversionLossKind.Omission, source: resource.Source, detail: limit);
             return;
         }
+        using HtmlImportBudgetReservation imageReservationScope = imageReservation;
         if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
                 "An inline generic slide image could not be decoded.",
@@ -107,6 +100,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, 64D, top, width, height);
         if (!string.IsNullOrWhiteSpace(resource.AlternateText)) picture.AltText = resource.AlternateText;
         result.Pictures++;
+        imageReservation.Commit();
         top += height + 18D;
     }
 
@@ -114,4 +108,9 @@ public static partial class HtmlPowerPointConverterExtensions {
         kind == HtmlSemanticBlockKind.Heading || kind == HtmlSemanticBlockKind.Paragraph
         || kind == HtmlSemanticBlockKind.Code || kind == HtmlSemanticBlockKind.Quote
         || kind == HtmlSemanticBlockKind.List || kind == HtmlSemanticBlockKind.Note;
+
+    private static int CountSemanticListItems(HtmlSemanticBlock list) =>
+        list.Children.Sum(item => 1 + item.Children
+            .Where(child => child.Kind == HtmlSemanticBlockKind.List)
+            .Sum(CountSemanticListItems));
 }

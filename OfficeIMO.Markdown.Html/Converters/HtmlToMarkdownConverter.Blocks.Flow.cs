@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using OfficeIMO.Html;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Markdown.Html;
@@ -76,28 +77,20 @@ internal sealed partial class HtmlToMarkdownConverter {
             bool reversed = element.HasAttribute("reversed");
             list.Reversed = reversed;
             int currentValue = reversed ? itemElements.Length : 1;
-            if (int.TryParse(
-                    element.GetAttribute("start"),
-                    System.Globalization.NumberStyles.Integer,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out int start)) {
+            if (HtmlIntegerSemantics.TryParseInteger(element.GetAttribute("start"), out int start)) {
                 currentValue = start;
             }
             list.Start = currentValue;
             int step = reversed ? -1 : 1;
 
             foreach (IElement itemElement in itemElements) {
-                if (int.TryParse(
-                        itemElement.GetAttribute("value"),
-                        System.Globalization.NumberStyles.Integer,
-                        System.Globalization.CultureInfo.InvariantCulture,
-                        out int itemValue)) {
+                if (HtmlIntegerSemantics.TryParseInteger(itemElement.GetAttribute("value"), out int itemValue)) {
                     currentValue = itemValue;
                 }
                 ListItem item = ConvertListItem(itemElement, context);
                 item.MarkerText = currentValue.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".";
                 list.Items.Add(item);
-                currentValue += step;
+                currentValue = HtmlIntegerSemantics.AdvanceSaturating(currentValue, step);
             }
 
             return list;

@@ -34,7 +34,10 @@ internal static class HtmlGenericDocumentProjector {
     private static void EnsureAtLeastOneSection(IHtmlDocument document, List<HtmlGenericSectionProjection> result) {
         if (result.Count > 0) return;
         string title = Normalize(document.Title);
-        result.Add(new HtmlGenericSectionProjection(title.Length > 0 ? title : "Imported 1", Array.Empty<IElement>()));
+        result.Add(new HtmlGenericSectionProjection(
+            title.Length > 0 ? title : "Imported 1",
+            Array.Empty<IElement>(),
+            title.Length > 0 ? HtmlSemanticSectionTitleSource.DocumentTitle : HtmlSemanticSectionTitleSource.Generated));
     }
 
     private static void AppendGroupedSections(
@@ -47,9 +50,8 @@ internal static class HtmlGenericDocumentProjector {
             if (Is(child, "section") || Is(child, "article")) {
                 AppendImplicitSections(document, pending, result);
                 pending.Clear();
-                result.Add(new HtmlGenericSectionProjection(
-                    GetSectionTitle(document, child, result.Count + 1),
-                    GetChildBlocks(child)));
+                string title = GetSectionTitle(document, child, result.Count + 1, out HtmlSemanticSectionTitleSource titleSource);
+                result.Add(new HtmlGenericSectionProjection(title, GetChildBlocks(child), titleSource));
                 continue;
             }
 
@@ -72,27 +74,41 @@ internal static class HtmlGenericDocumentProjector {
         List<HtmlGenericSectionProjection> result) {
         var blocks = new List<IElement>();
         string title = Normalize(document.Title);
+        HtmlSemanticSectionTitleSource titleSource = title.Length > 0
+            ? HtmlSemanticSectionTitleSource.DocumentTitle
+            : HtmlSemanticSectionTitleSource.Generated;
+        bool hasCapturedHeading = false;
         foreach (IElement child in source) {
             if (IsPrimaryHeading(child) && blocks.Count > 0) {
                 result.Add(new HtmlGenericSectionProjection(
                     title.Length > 0 ? title : "Imported " + (result.Count + 1).ToString(CultureInfo.InvariantCulture),
-                    blocks.ToArray()));
+                    blocks.ToArray(),
+                    title.Length > 0 ? titleSource : HtmlSemanticSectionTitleSource.Generated));
                 blocks.Clear();
                 title = Normalize(child.TextContent);
+                hasCapturedHeading = title.Length > 0;
+                titleSource = hasCapturedHeading
+                    ? HtmlSemanticSectionTitleSource.Heading
+                    : HtmlSemanticSectionTitleSource.Generated;
                 continue;
             }
 
             if (IsPrimaryHeading(child) && title.Length == 0) {
                 title = Normalize(child.TextContent);
+                hasCapturedHeading = title.Length > 0;
+                titleSource = hasCapturedHeading
+                    ? HtmlSemanticSectionTitleSource.Heading
+                    : HtmlSemanticSectionTitleSource.Generated;
                 continue;
             }
             blocks.Add(child);
         }
 
-        if (blocks.Count > 0) {
+        if (blocks.Count > 0 || hasCapturedHeading) {
             result.Add(new HtmlGenericSectionProjection(
                 title.Length > 0 ? title : "Imported " + (result.Count + 1).ToString(CultureInfo.InvariantCulture),
-                blocks.ToArray()));
+                blocks.ToArray(),
+                title.Length > 0 ? titleSource : HtmlSemanticSectionTitleSource.Generated));
         }
     }
 
@@ -242,12 +258,37 @@ internal static class HtmlGenericDocumentProjector {
 
     internal static bool IsIgnoredElement(IElement element) => IgnoredElements.Contains(element.LocalName);
 
-    private static string GetSectionTitle(IHtmlDocument document, IElement section, int index) {
+    private static string GetSectionTitle(
+        IHtmlDocument document,
+        IElement section,
+        int index,
+        out HtmlSemanticSectionTitleSource titleSource) {
         string title = Normalize(section.GetAttribute("aria-label"));
-        if (title.Length == 0) title = Normalize(section.Children.FirstOrDefault(IsHeading)?.TextContent);
-        if (title.Length == 0) title = Normalize(section.Id);
-        if (title.Length == 0) title = Normalize(document.Title);
-        return title.Length > 0 ? title : "Imported " + index.ToString(CultureInfo.InvariantCulture);
+        if (title.Length > 0) {
+            titleSource = HtmlSemanticSectionTitleSource.AriaLabel;
+            return title;
+        }
+
+        title = Normalize(section.Children.FirstOrDefault(IsHeading)?.TextContent);
+        if (title.Length > 0) {
+            titleSource = HtmlSemanticSectionTitleSource.Heading;
+            return title;
+        }
+
+        title = Normalize(section.Id);
+        if (title.Length > 0) {
+            titleSource = HtmlSemanticSectionTitleSource.Id;
+            return title;
+        }
+
+        title = Normalize(document.Title);
+        if (title.Length > 0) {
+            titleSource = HtmlSemanticSectionTitleSource.DocumentTitle;
+            return title;
+        }
+
+        titleSource = HtmlSemanticSectionTitleSource.Generated;
+        return "Imported " + index.ToString(CultureInfo.InvariantCulture);
     }
 
     private static bool IsExplicitGroupingElement(IElement element) =>
@@ -266,11 +307,16 @@ internal static class HtmlGenericDocumentProjector {
 }
 
 internal sealed class HtmlGenericSectionProjection {
-    internal HtmlGenericSectionProjection(string title, IReadOnlyList<IElement> blocks) {
+    internal HtmlGenericSectionProjection(
+        string title,
+        IReadOnlyList<IElement> blocks,
+        HtmlSemanticSectionTitleSource titleSource) {
         Title = title;
         Blocks = blocks;
+        TitleSource = titleSource;
     }
 
     internal string Title { get; }
     internal IReadOnlyList<IElement> Blocks { get; }
+    internal HtmlSemanticSectionTitleSource TitleSource { get; }
 }

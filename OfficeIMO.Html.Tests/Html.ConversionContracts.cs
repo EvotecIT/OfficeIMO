@@ -21,6 +21,17 @@ namespace OfficeIMO.Tests;
 
 public partial class Html {
     [Fact]
+    public void MarkdownImport_UsesHtmlIntegerRulesForOrderedLists() {
+        string markdown = HtmlConversionDocument
+            .Parse("<ol start='9x'><li>First</li><li value='12junk'>Second</li><li>Third</li></ol>")
+            .ToMarkdown();
+
+        Assert.Contains("9. First", markdown, StringComparison.Ordinal);
+        Assert.Contains("12. Second", markdown, StringComparison.Ordinal);
+        Assert.Contains("13. Third", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPreparedDocumentApis_ProduceArtifactsAcrossConversionTargets() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse("<h1>Hello</h1><p>Body</p>");
 

@@ -378,7 +378,7 @@ internal static class HtmlLogicalDocumentBuilder {
     }
 
     private static string NormalizeText(string text) {
-        if (string.IsNullOrWhiteSpace(text)) {
+        if (text.Length == 0) {
             return string.Empty;
         }
 

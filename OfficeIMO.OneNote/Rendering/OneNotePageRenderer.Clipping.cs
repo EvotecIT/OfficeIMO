@@ -12,15 +12,20 @@ public static partial class OneNotePageRenderer {
             double availableHeight,
             bool forcePageBounds,
             bool? inheritedRightToLeft) {
+            Dictionary<string, int> listIndices = SnapshotListNumbering();
             double renderWidth = Math.Max(1D, availableWidth);
             double contentWidth = Math.Max(renderWidth, MeasureElementWidthExtent(element, renderWidth));
             double contentHeight = Math.Max(1D, MeasureElementHeight(element, renderWidth));
-            if (x + contentWidth <= 0D || y + contentHeight <= 0D) return contentHeight;
+            if (x + contentWidth <= 0D || y + contentHeight <= 0D) {
+                AdvanceListNumberingForElement(element);
+                return contentHeight;
+            }
 
             double localWidth = Math.Max(contentWidth, _drawing.Width - x);
             double localHeight = Math.Max(contentHeight, _drawing.Height - y);
             var localDrawing = new OfficeDrawing(localWidth, localHeight);
             var localContext = new RenderContext(localDrawing, _options, _diagnostics, _pageRightToLeft, _imageCache);
+            localContext.RestoreListNumbering(listIndices);
             double used = localContext.RenderElement(
                 element,
                 0D,
@@ -29,6 +34,7 @@ public static partial class OneNotePageRenderer {
                 availableHeight,
                 forcePageBounds,
                 inheritedRightToLeft);
+            RestoreListNumbering(localContext.SnapshotListNumbering());
 
             double clipX = Math.Max(0D, x);
             double clipY = Math.Max(0D, y);
@@ -44,6 +50,28 @@ public static partial class OneNotePageRenderer {
                     y - clipY);
             }
             return used;
+        }
+
+        private void AdvanceListNumberingForElement(OneNoteElement element) {
+            if (element is OneNoteOutline outline) {
+                ResetListNumbering();
+                foreach (OneNoteElement child in outline.Children) AdvanceListNumberingForElement(child);
+                return;
+            }
+
+            if (element is OneNoteParagraph paragraph) {
+                if (paragraph.List?.Ordered == true) ResolveListIndex(paragraph.List, advanceListState: true);
+                foreach (OneNoteElement child in paragraph.Children) AdvanceListNumberingForElement(child);
+                return;
+            }
+
+            if (element is OneNoteTable table) {
+                foreach (OneNoteTableRow row in table.Rows) {
+                    foreach (OneNoteTableCell cell in row.Cells) {
+                        foreach (OneNoteElement child in cell.Content) AdvanceListNumberingForElement(child);
+                    }
+                }
+            }
         }
     }
 }
