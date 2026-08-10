@@ -16,11 +16,13 @@ internal readonly struct PdfPagePatternSelection {
         OfficeColor? tint,
         PdfPageColorSpace? baseColorSpace,
         PdfPageTilingPatternResource? tilingPattern,
+        PdfPageShadingPatternResource? shadingPattern,
         Matrix2D paintTransform) {
         Name = name;
         Tint = tint;
         BaseColorSpace = baseColorSpace;
         TilingPattern = tilingPattern;
+        ShadingPattern = shadingPattern;
         PaintTransform = paintTransform;
     }
 
@@ -28,6 +30,7 @@ internal readonly struct PdfPagePatternSelection {
     internal OfficeColor? Tint { get; }
     internal PdfPageColorSpace? BaseColorSpace { get; }
     internal PdfPageTilingPatternResource? TilingPattern { get; }
+    internal PdfPageShadingPatternResource? ShadingPattern { get; }
     internal Matrix2D PaintTransform { get; }
 }
 

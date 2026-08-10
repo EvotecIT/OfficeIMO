@@ -65,12 +65,13 @@ internal static class PdfPageXObjectInvocationParser {
         PdfPagePatternSelection? initialStrokePattern = null,
         PdfPageColorSpace? initialStrokePatternBaseColorSpace = null,
         IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns = null,
+        IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns = null,
         Func<PdfFontResource, byte[], PdfType3PaintChannels>? type3PaintChannelResolver = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, type3PaintChannelResolver);
+        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver);
         return parser.Parse();
     }
 
@@ -82,6 +83,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly IReadOnlyDictionary<string, PdfPageColorSpace>? _colorSpaces;
         private readonly IReadOnlyDictionary<string, PdfPageColorSpace>? _patternBaseColorSpaces;
         private readonly IReadOnlyDictionary<string, PdfPageTilingPatternResource>? _tilingPatterns;
+        private readonly IReadOnlyDictionary<string, PdfPageShadingPatternResource>? _shadingPatterns;
         private readonly PdfPageOptionalContentVisibility? _optionalContentVisibility;
         private readonly double _paintOrderBase;
         private readonly double _paintOrderScale;
@@ -176,6 +178,7 @@ internal static class PdfPageXObjectInvocationParser {
             PdfPagePatternSelection? initialStrokePattern,
             PdfPageColorSpace? initialStrokePatternBaseColorSpace,
             IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns,
+            IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns,
             Func<PdfFontResource, byte[], PdfType3PaintChannels>? type3PaintChannelResolver) {
             _content = content;
             _baseTransform = baseTransform;
@@ -183,6 +186,7 @@ internal static class PdfPageXObjectInvocationParser {
             _colorSpaces = colorSpaces;
             _patternBaseColorSpaces = patternBaseColorSpaces;
             _tilingPatterns = tilingPatterns;
+            _shadingPatterns = shadingPatterns;
             _optionalContentVisibility = optionalContentVisibility;
             _initialState = GraphicsState.Create(baseTransform, initialFillColor, initialFillColorSpace, initialFillOpacity, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin);
             _initialPatternState = new PatternState(
@@ -664,6 +668,7 @@ internal static class PdfPageXObjectInvocationParser {
                                     tint,
                                     _patternState.FillBaseColorSpace,
                                     ResolveTilingPattern(fillPatternName),
+                                    ResolveShadingPattern(fillPatternName),
                                     _state.Transform),
                                 _patternState.FillBaseColorSpace);
                         } else if (!HasHiddenContent()) {
@@ -697,6 +702,7 @@ internal static class PdfPageXObjectInvocationParser {
                                     tint,
                                     _patternState.StrokeBaseColorSpace,
                                     ResolveTilingPattern(strokePatternName),
+                                    ResolveShadingPattern(strokePatternName),
                                     _state.Transform),
                                 _patternState.StrokeBaseColorSpace);
                         } else if (!HasHiddenContent()) {
@@ -1174,6 +1180,14 @@ internal static class PdfPageXObjectInvocationParser {
             return _tilingPatterns != null && _tilingPatterns.TryGetValue(name, out PdfPageTilingPatternResource? pattern)
                 ? pattern
                 : null;
+        }
+
+        private PdfPageShadingPatternResource? ResolveShadingPattern(string name) {
+            if (_shadingPatterns == null ||
+                !_shadingPatterns.TryGetValue(name, out PdfPageShadingPatternResource pattern)) return null;
+            return PdfPageContentVisualParser.IsSupportedShadingTransform(pattern, _state.Transform)
+                ? pattern
+                : PdfPageShadingPatternResource.Unsupported;
         }
 
         private static byte ToByte(double value) => (byte)Math.Round(Clamp01(value) * 255D);
