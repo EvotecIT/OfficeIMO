@@ -21,6 +21,7 @@ on:
       - 'Docs/pdf-conversion-scenarios.json'
       - 'Docs/officeimo.pdf*.md'
       - '.github/scripts/Assert-PdfComplianceProof.ps1'
+      - '.github/scripts/verapdf-cli-install.xml'
       - '.github/workflows/pdf-compliance-proof.yml'
   push:
     branches:
@@ -42,6 +43,7 @@ on:
       - 'Docs/pdf-conversion-scenarios.json'
       - 'Docs/officeimo.pdf*.md'
       - '.github/scripts/Assert-PdfComplianceProof.ps1'
+      - '.github/scripts/verapdf-cli-install.xml'
       - '.github/workflows/pdf-compliance-proof.yml'
   workflow_dispatch:
     inputs:
@@ -90,7 +92,9 @@ env:
     10.0.103
   BUILD_CONFIGURATION: Release
   PROOF_PATH: artifacts/pdf-compliance-proof
-  VERAPDF_CLI_IMAGE: ghcr.io/verapdf/cli:v1.31.133@sha256:dc2572cf0850b6078cefe0f4edd03d7d92e6bb44c2c58890198dd753434a81c0
+  VERAPDF_VERSION: 1.30.2
+  VERAPDF_INSTALLER_URL: https://software.verapdf.org/releases/1.30/verapdf-greenfield-1.30.2-installer.zip
+  VERAPDF_INSTALLER_SHA256: 6cc6341cb1af644044054b81f00a6590a7918abb18f762243de115258bcad838
   MUSTANG_VERSION: 2.24.0
   MUSTANG_CLI_URL: https://github.com/ZUGFeRD/mustangproject/releases/download/core-2.24.0/Mustang-CLI-2.24.0.jar
   MUSTANG_CLI_SHA256: e4904ffa0afdce3f5836dceb927c440a05ed5d60386fdd37e17a4b2f7652edbf
@@ -132,34 +136,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker pull "$VERAPDF_CLI_IMAGE"
-          wrapper="$RUNNER_TEMP/verapdf-docker"
-          cat > "$wrapper" <<'BASH'
-          #!/usr/bin/env bash
-          set -euo pipefail
+          archive="$RUNNER_TEMP/verapdf-installer.zip"
+          unpacked="$RUNNER_TEMP/verapdf-installer"
+          install_dir="$RUNNER_TEMP/verapdf"
+          install_config="$RUNNER_TEMP/verapdf-install.xml"
 
-          image="${VERAPDF_CLI_IMAGE:?VERAPDF_CLI_IMAGE is required}"
-          mount_args=()
-          mapped_args=()
-          mount_index=0
+          curl --fail --location --silent --show-error "$VERAPDF_INSTALLER_URL" --output "$archive"
+          echo "${VERAPDF_INSTALLER_SHA256}  ${archive}" | sha256sum --check
+          unzip -q "$archive" -d "$unpacked"
+          sed "s|__VERAPDF_INSTALL_PATH__|${install_dir}|g" \
+            .github/scripts/verapdf-cli-install.xml > "$install_config"
+          java -jar \
+            "$unpacked/verapdf-greenfield-${VERAPDF_VERSION}/verapdf-izpack-installer-${VERAPDF_VERSION}.jar" \
+            "$install_config"
 
-          for arg in "$@"; do
-            if [[ -f "$arg" ]]; then
-              dir="$(cd "$(dirname "$arg")" && pwd)"
-              base="$(basename "$arg")"
-              target="/work${mount_index}"
-              mount_args+=("-v" "${dir}:${target}:ro")
-              mapped_args+=("${target}/${base}")
-              mount_index=$((mount_index + 1))
-            else
-              mapped_args+=("$arg")
-            fi
-          done
-
-          docker run --rm "${mount_args[@]}" "$image" "${mapped_args[@]}"
-          BASH
-          chmod +x "$wrapper"
-          echo "OFFICEIMO_VERAPDF_DOCKER=$wrapper" >> "$GITHUB_ENV"
+          validator="$install_dir/verapdf"
+          test -x "$validator"
+          "$validator" --version
+          echo "OFFICEIMO_VERAPDF_CLI=$validator" >> "$GITHUB_ENV"
 
       - name: Prepare Mustang validator
         if: github.event_name != 'workflow_dispatch' || inputs.mustang_path == ''
@@ -194,8 +188,8 @@ jobs:
             $parameters.RequireValidators = $true
           }
 
-          if ([string]::IsNullOrWhiteSpace($env:VERAPDF_PATH) -and -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF_DOCKER)) {
-            $parameters.VeraPdfPath = $env:OFFICEIMO_VERAPDF_DOCKER
+          if ([string]::IsNullOrWhiteSpace($env:VERAPDF_PATH) -and -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF_CLI)) {
+            $parameters.VeraPdfPath = $env:OFFICEIMO_VERAPDF_CLI
           }
 
           if (-not [string]::IsNullOrWhiteSpace($env:VERAPDF_PATH)) {
@@ -206,15 +200,15 @@ jobs:
             $parameters.VeraPdfArgs = $env:VERAPDF_ARGS
           }
 
-          if ([string]::IsNullOrWhiteSpace($env:PDFUA_VALIDATOR_PATH) -and -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF_DOCKER)) {
-            $parameters.PdfUaValidatorPath = $env:OFFICEIMO_VERAPDF_DOCKER
+          if ([string]::IsNullOrWhiteSpace($env:PDFUA_VALIDATOR_PATH) -and -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF_CLI)) {
+            $parameters.PdfUaValidatorPath = $env:OFFICEIMO_VERAPDF_CLI
           }
 
           if (-not [string]::IsNullOrWhiteSpace($env:PDFUA_VALIDATOR_PATH)) {
             $parameters.PdfUaValidatorPath = $env:PDFUA_VALIDATOR_PATH
           }
 
-          if ([string]::IsNullOrWhiteSpace($env:PDFUA_VALIDATOR_ARGS) -and -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF_DOCKER)) {
+          if ([string]::IsNullOrWhiteSpace($env:PDFUA_VALIDATOR_ARGS) -and -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF_CLI)) {
             $parameters.PdfUaValidatorArgs = '-f ua1 {pdf}'
           }
 
