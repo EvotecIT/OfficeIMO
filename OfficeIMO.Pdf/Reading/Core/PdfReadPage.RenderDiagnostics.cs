@@ -179,7 +179,8 @@ public sealed partial class PdfReadPage {
                          type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
                          unsupportedTextVisitor: () => supported = false,
                          unsupportedGraphicsEffectVisitor: () => supported = false,
-                         unsupportedPatternVisitor: () => supported = false)) {
+                         unsupportedPatternVisitor: () => supported = false,
+                         unsupportedColorVisitor: () => supported = false)) {
                 if (invocation.InlineImage != null ||
                     !TryGetFormStream(resources, invocation.Name, out PdfStream form)) {
                     supported = false;

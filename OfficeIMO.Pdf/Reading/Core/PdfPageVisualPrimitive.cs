@@ -217,6 +217,36 @@ internal readonly struct PdfPageVisualPrimitive {
             ClipPath,
             PaintOrder);
 
+    internal PdfPageVisualPrimitive WithPaintOrder(double paintOrder) =>
+        new PdfPageVisualPrimitive(
+            Kind,
+            X,
+            Y,
+            Width,
+            Height,
+            X1,
+            Y1,
+            X2,
+            Y2,
+            PathCommands,
+            FillColor,
+            FillGradient,
+            FillRadialGradient,
+            StrokeColor,
+            StrokeGradient,
+            StrokeRadialGradient,
+            StrokeWidth,
+            StrokeDashStyle,
+            StrokeLineCap,
+            StrokeLineJoin,
+            FillOpacity,
+            StrokeOpacity,
+            FillRule,
+            ClipPath,
+            paintOrder,
+            FillTilingPattern,
+            StrokeTilingPattern);
+
     private static void Include(OfficePoint point, ref bool hasPoint, ref double left, ref double top, ref double right, ref double bottom) {
         if (!hasPoint) {
             left = right = point.X;

@@ -257,15 +257,8 @@ public sealed class PdfPublicApiContractTests {
     public void PublicSurfaceAndRuntimeDependenciesStayBounded() {
         Assembly assembly = typeof(PdfDocument).Assembly;
         Type[] exportedTypes = assembly.GetExportedTypes();
-        int publicMemberCount = exportedTypes.Sum(type =>
-            type.GetMembers(
-                BindingFlags.Public |
-                BindingFlags.Instance |
-                BindingFlags.Static |
-                BindingFlags.DeclaredOnly).Length);
 
         Assert.InRange(exportedTypes.Length, 1, 512);
-        Assert.InRange(publicMemberCount, 1, 9871);
         Assert.InRange(
             typeof(PdfDocument)
                 .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)

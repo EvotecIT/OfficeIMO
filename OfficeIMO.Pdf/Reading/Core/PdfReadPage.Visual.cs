@@ -420,6 +420,34 @@ public sealed partial class PdfReadPage {
         Dictionary<string, Func<byte[], double>> widthProviders = resources == null
             ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
             : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
+        var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
+        if (includeTilingPatterns) {
+            _ = PdfPageXObjectInvocationParser.Parse(
+                content,
+                baseTransform,
+                pageHeight,
+                GetGraphicsStateResources(resources),
+                GetColorSpaceResources(resources),
+                GetOptionalContentVisibility(resources),
+                paintOrderBase: paintOrderBase,
+                paintOrderScale: paintOrderScale,
+                paintOrderOffset: paintOrderOffset,
+                initialClipPath: initialClipPath,
+                initialFillColor: initialFillColor,
+                initialFillColorSpace: initialFillColorSpace,
+                initialFillOpacity: initialFillOpacity,
+                initialStrokeColor: initialStrokeColor,
+                initialStrokeColorSpace: initialStrokeColorSpace,
+                initialStrokeOpacity: initialStrokeOpacity,
+                initialStrokeWidth: initialStrokeWidth,
+                initialStrokeDashStyle: initialStrokeDashStyle,
+                initialStrokeLineCap: initialStrokeLineCap,
+                initialStrokeLineJoin: initialStrokeLineJoin,
+                maxOperations: _limits.MaxContentOperations,
+                maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxOperands: _limits.MaxContentOperands,
+                patternInvocationVisitor: name => invokedPatternNames.Add(name));
+        }
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         _ = PdfPageContentVisualParser.Parse(
             transformedContent,
@@ -430,7 +458,7 @@ public sealed partial class PdfReadPage {
             GetShadingResources(resources),
             GetShadingPatternResources(resources),
             includeTilingPatterns
-                ? GetTilingPatternResources(resources, tilingPatternResourceCache, textOutputBudget, pageContentBudget, type3GlyphBudget)
+                ? GetTilingPatternResources(resources, invokedPatternNames, tilingPatternResourceCache, textOutputBudget, pageContentBudget, type3GlyphBudget)
                 : null,
             GetOptionalContentVisibility(resources),
             paintOrderBase,
@@ -488,8 +516,8 @@ public sealed partial class PdfReadPage {
                               primitiveVisitor,
                               activeForms,
                               activeType3Glyphs,
-                              renderedType3PaintOrders,
                               type3GlyphBudget,
+                              paintOrderScale,
                               includeTilingPatterns,
                               retainPrimitiveData,
                               tilingPatternResourceCache,
@@ -503,13 +531,15 @@ public sealed partial class PdfReadPage {
                       type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
                       unsupportedTextVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null,
                       unsupportedGraphicsEffectVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null,
-                      unsupportedPatternVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null)) {
+                      unsupportedPatternVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null,
+                      unsupportedColorVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 if (requireVectorOnly) type3GlyphBudget.RecordFailure();
                 continue;
             }
 
             if (!activeForms.Add(formStream)) {
+                if (requireVectorOnly) type3GlyphBudget.RecordFailure();
                 continue;
             }
 

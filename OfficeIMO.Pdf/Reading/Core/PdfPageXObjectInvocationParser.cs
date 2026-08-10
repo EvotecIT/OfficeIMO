@@ -54,6 +54,7 @@ internal static class PdfPageXObjectInvocationParser {
         Action? unsupportedTextVisitor = null,
         Action? unsupportedGraphicsEffectVisitor = null,
         Action? unsupportedPatternVisitor = null,
+        Action? unsupportedColorVisitor = null,
         Action<string>? visibleFontVisitor = null,
         Action<string>? patternInvocationVisitor = null,
         Action<PdfPageGraphicsStateResource>? graphicsStateVisitor = null) {
@@ -61,7 +62,7 @@ internal static class PdfPageXObjectInvocationParser {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor);
+        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor);
         return parser.Parse();
     }
 
@@ -108,6 +109,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Action? _unsupportedTextVisitor;
         private readonly Action? _unsupportedGraphicsEffectVisitor;
         private readonly Action? _unsupportedPatternVisitor;
+        private readonly Action? _unsupportedColorVisitor;
         private readonly Action<string>? _visibleFontVisitor;
         private readonly Action<string>? _patternInvocationVisitor;
         private readonly Action<PdfPageGraphicsStateResource>? _graphicsStateVisitor;
@@ -146,6 +148,7 @@ internal static class PdfPageXObjectInvocationParser {
             Action? unsupportedTextVisitor,
             Action? unsupportedGraphicsEffectVisitor,
             Action? unsupportedPatternVisitor,
+            Action? unsupportedColorVisitor,
             Action<string>? visibleFontVisitor,
             Action<string>? patternInvocationVisitor,
             Action<PdfPageGraphicsStateResource>? graphicsStateVisitor) {
@@ -171,6 +174,7 @@ internal static class PdfPageXObjectInvocationParser {
             _unsupportedTextVisitor = unsupportedTextVisitor;
             _unsupportedGraphicsEffectVisitor = unsupportedGraphicsEffectVisitor;
             _unsupportedPatternVisitor = unsupportedPatternVisitor;
+            _unsupportedColorVisitor = unsupportedColorVisitor;
             _visibleFontVisitor = visibleFontVisitor;
             _patternInvocationVisitor = patternInvocationVisitor;
             _graphicsStateVisitor = graphicsStateVisitor;
@@ -522,6 +526,8 @@ internal static class PdfPageXObjectInvocationParser {
                         _args[_args.Count - 1] is string fillColorSpaceName &&
                         TryReadColorSpace(fillColorSpaceName, out PdfPageColorSpace fillColorSpace)) {
                         _state = _state.WithFillColorSpace(fillColorSpace);
+                    } else if (!HasHiddenContent()) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;
@@ -530,6 +536,8 @@ internal static class PdfPageXObjectInvocationParser {
                         _args[_args.Count - 1] is string strokeColorSpaceName &&
                         TryReadColorSpace(strokeColorSpaceName, out PdfPageColorSpace strokeColorSpace)) {
                         _state = _state.WithStrokeColorSpace(strokeColorSpace);
+                    } else if (!HasHiddenContent()) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;
@@ -541,6 +549,8 @@ internal static class PdfPageXObjectInvocationParser {
                     }
                     if (TryReadColor(_state.FillColorSpace, out OfficeColor fillColor)) {
                         _state = _state.WithFillColor(fillColor);
+                    } else if (!HasHiddenContent() && !(_args.Count > 0 && _args[_args.Count - 1] is string)) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;
@@ -552,6 +562,8 @@ internal static class PdfPageXObjectInvocationParser {
                     }
                     if (TryReadColor(_state.StrokeColorSpace, out OfficeColor strokeColor)) {
                         _state = _state.WithStrokeColor(strokeColor);
+                    } else if (!HasHiddenContent() && !(_args.Count > 0 && _args[_args.Count - 1] is string)) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;

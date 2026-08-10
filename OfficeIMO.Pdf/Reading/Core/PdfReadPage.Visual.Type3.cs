@@ -10,8 +10,8 @@ public sealed partial class PdfReadPage {
         Action<PdfPageVisualPrimitive> primitiveVisitor,
         HashSet<PdfStream> activeForms,
         HashSet<PdfStream> activeType3Glyphs,
-        HashSet<double> renderedType3PaintOrders,
         Type3GlyphBudget type3GlyphBudget,
+        double paintOrderScale,
         bool includeTilingPatterns,
         bool retainPrimitiveData,
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache,
@@ -29,12 +29,15 @@ public sealed partial class PdfReadPage {
         }
 
         var glyphPrimitives = new List<PdfPageVisualPrimitive>();
+        double nextPaintOrder = invocation.PaintOrder;
+        double paintOrderLimit = invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.5D);
         for (int i = 0; i < invocation.Glyphs.Count; i++) {
             PdfPageType3GlyphInvocation glyph = invocation.Glyphs[i];
             PdfType3FontResource type3 = glyph.Font.Type3!;
             _ = type3.TryGetGlyph(glyph.CharacterCode, out PdfStream glyphStream);
             if (!activeType3Glyphs.Add(glyphStream)) return false;
             try {
+                var localPrimitives = new List<PdfPageVisualPrimitive>();
                 int failureVersion = type3GlyphBudget.FailureVersion;
                 string glyphContent;
                 try {
@@ -44,20 +47,20 @@ public sealed partial class PdfReadPage {
                 }
 
                 Matrix2D glyphTransform = Matrix2D.Multiply(glyph.Transform, type3.FontMatrix);
-                int primitiveStart = glyphPrimitives.Count;
+                var localRenderedType3PaintOrders = new HashSet<double>();
                 CollectVisualPrimitivesAndForms(
                     glyphContent,
                     type3.Resources,
                     glyphTransform,
                     pageWidth,
                     pageHeight,
-                    glyphPrimitives.Add,
+                    localPrimitives.Add,
                     activeForms,
                     activeType3Glyphs,
-                    renderedType3PaintOrders,
+                    localRenderedType3PaintOrders,
                     type3GlyphBudget,
-                    invocation.PaintOrder + (i * 0.000000001D),
-                    0.000000000001D,
+                    0D,
+                    1D,
                     initialClipPath: glyph.ClipPath,
                     initialFillColor: glyph.FillColor,
                     initialFillColorSpace: glyph.FillColorSpace,
@@ -80,9 +83,16 @@ public sealed partial class PdfReadPage {
                 if (type3GlyphBudget.FailureVersion != failureVersion) return false;
 
                 if (type3.IsUncolored) {
-                    for (int primitiveIndex = primitiveStart; primitiveIndex < glyphPrimitives.Count; primitiveIndex++) {
-                        glyphPrimitives[primitiveIndex] = glyphPrimitives[primitiveIndex].WithPaintColors(glyph.FillColor, glyph.StrokeColor);
+                    for (int primitiveIndex = 0; primitiveIndex < localPrimitives.Count; primitiveIndex++) {
+                        localPrimitives[primitiveIndex] = localPrimitives[primitiveIndex].WithPaintColors(glyph.FillColor, glyph.StrokeColor);
                     }
+                }
+
+                localPrimitives.Sort(static (left, right) => left.PaintOrder.CompareTo(right.PaintOrder));
+                for (int primitiveIndex = 0; primitiveIndex < localPrimitives.Count; primitiveIndex++) {
+                    nextPaintOrder = NextRepresentablePaintOrder(nextPaintOrder);
+                    if (nextPaintOrder >= paintOrderLimit) return false;
+                    glyphPrimitives.Add(localPrimitives[primitiveIndex].WithPaintOrder(nextPaintOrder));
                 }
             } finally {
                 activeType3Glyphs.Remove(glyphStream);
@@ -91,6 +101,13 @@ public sealed partial class PdfReadPage {
 
         for (int i = 0; i < glyphPrimitives.Count; i++) primitiveVisitor(glyphPrimitives[i]);
         return true;
+    }
+
+    private static double NextRepresentablePaintOrder(double value) {
+        if (value == 0D) return double.Epsilon;
+        long bits = BitConverter.DoubleToInt64Bits(value);
+        bits += value > 0D ? 1L : -1L;
+        return BitConverter.Int64BitsToDouble(bits);
     }
 
     private sealed class Type3GlyphBudget {
