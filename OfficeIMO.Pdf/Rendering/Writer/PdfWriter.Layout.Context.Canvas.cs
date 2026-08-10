@@ -334,7 +334,10 @@ internal static partial class PdfWriter {
             }
 
             bool markedContent;
-            int? structElementIndex = AppendDrawingMarkedContentBegin(style, out markedContent);
+            int? structElementIndex = AppendDrawingMarkedContentBegin(
+                style,
+                out markedContent,
+                recordDrawingEvidence: !ChildImagesOwnDrawingAccessibility(block.Drawing, style));
             bool previousSuppressAccessibilityWrappers = _suppressCanvasAccessibilityWrappers;
             if (markedContent || style.Decorative) {
                 _suppressCanvasAccessibilityWrappers = true;

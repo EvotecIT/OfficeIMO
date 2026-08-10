@@ -244,6 +244,32 @@ public sealed class OfficeVisualIntegrationTests {
     }
 
     [Fact]
+    public void ExcelPlacementPreservesUniquePictureNamesAndUsesArtifactTitleAsMetadata() {
+        OfficeVisualConversionResult visual = CreateArtifact().ToOfficeVisual(new OfficeVisualConversionOptions { WidthPoints = 300D });
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-excel-placement-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (var workbook = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = workbook.AddWorksheet("Dashboard");
+                ExcelImage first = sheet.AddVisualArtifact(2, 2, visual);
+                ExcelImage second = sheet.AddVisualArtifact(20, 2, visual);
+
+                Assert.NotEqual(first.Name, second.Name);
+                Assert.Equal(visual.Title, first.Title);
+                Assert.Equal(visual.Title, second.Title);
+                workbook.Save();
+            }
+
+            using ExcelDocument loaded = ExcelDocument.Load(path);
+            ExcelImage[] images = loaded.Sheets[0].Images.ToArray();
+            Assert.Equal(2, images.Length);
+            Assert.NotEqual(images[0].Name, images[1].Name);
+            Assert.All(images, image => Assert.Equal(visual.Title, image.Title));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void PdfPlacementRasterizesUnsupportedEffectGroupsOrFailsClosed() {
         const string blendedSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='80' viewBox='0 0 120 80'><rect width='120' height='80' fill='#ffffff'/><g style='mix-blend-mode:multiply'><rect x='10' y='10' width='70' height='50' fill='#ef4444'/><rect x='40' y='20' width='70' height='50' fill='#2563eb'/></g></svg>";
         const string maskedSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='80' viewBox='0 0 120 80'><defs><mask id='fade' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='80'><rect width='60' height='80' fill='white'/></mask></defs><rect width='120' height='80' fill='#2563eb' mask='url(#fade)'/></svg>";
