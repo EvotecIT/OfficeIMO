@@ -71,4 +71,23 @@ public class HtmlOfficeAdaptersPowerPointTables {
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
         Assert.Equal((1, 1), Assert.Single(Assert.Single(presentation.Slides).Tables).GetCell(0, 0).Merge);
     }
+
+    [Fact]
+    public void PowerPointHtml_SemanticFormattingUsesTheBoundedNativeTableGrid() {
+        const string html = """
+            <table>
+              <tr><td>First</td><td colspan="999999999999"><strong>Second</strong></td></tr>
+            </table>
+            """;
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(
+            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 4 });
+        using PowerPointPresentation presentation = result.Value;
+        PowerPointTable table = Assert.Single(Assert.Single(presentation.Slides).Tables);
+
+        Assert.Equal("First", table.GetCell(0, 0).Text);
+        Assert.Equal("Second", table.GetCell(0, 1).Text);
+        Assert.True(table.GetCell(0, 1).Runs[0].Bold);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TableSpanInvalid);
+    }
 }

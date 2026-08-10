@@ -550,7 +550,7 @@ internal static class HtmlRenderResourceLoader {
                 if (reference.Kind == HtmlResourceKind.Stylesheet
                     && HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, resource.ContentType, out string css)) {
                     if (cssBudget != null
-                        && !HtmlRenderStylesheetApplier.TryReserveCss(cssBudget, css, reference.Source, diagnostics)) {
+                        && !HtmlRenderStylesheetApplier.TryReserveCss(cssBudget, resource.EncodedBytes.LongLength, reference.Source, diagnostics)) {
                         result.MarkStylesheetRejected(reference);
                         continue;
                     }

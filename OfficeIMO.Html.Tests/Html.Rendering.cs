@@ -141,6 +141,32 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlRenderAsync_ChargesEncodedBytesForResolvedStylesheets() {
+        const string css = ".target { color:red; }";
+        byte[] encodedCss = System.Text.Encoding.Unicode.GetPreamble()
+            .Concat(System.Text.Encoding.Unicode.GetBytes(css))
+            .ToArray();
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssBytes = System.Text.Encoding.UTF8.GetByteCount(css);
+        limits.MaxTotalCssBytes = 128;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://assets.example.test/utf16.css'><p class='target'>Text</p>",
+            new HtmlConversionDocumentOptions { Limits = limits });
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(encodedCss, "text/css; charset=utf-16"))
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
+
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.CssSizeLimitExceeded
+            && diagnostic.Source == "https://assets.example.test/utf16.css");
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text =>
+            text.Text.Contains("Text", StringComparison.Ordinal) && text.Color == OfficeColor.FromRgb(255, 0, 0));
+    }
+
+    [Fact]
     public async Task HtmlRenderAsync_RejectsOversizedStylesheetBeforeQueuingImports() {
         const string oversizedCss = "@import 'must-not-load.css'; .oversized { color: red; padding: 20px; }";
         var requested = new List<string>();
