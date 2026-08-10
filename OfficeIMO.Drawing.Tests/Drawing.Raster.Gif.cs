@@ -178,6 +178,31 @@ namespace OfficeIMO.Tests {
             Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "extension.gif", out _));
         }
 
+        [Fact]
+        public void CompleteContentValidationRejectsReservedGraphicControlBits() {
+            byte[] valid = CreateSinglePixelGif();
+            int imageDescriptorOffset = Array.IndexOf(valid, (byte)0x2C);
+            var malformed = valid.ToList();
+            malformed.InsertRange(
+                imageDescriptorOffset,
+                new byte[] { 0x21, 0xF9, 0x04, 0x80, 0x00, 0x00, 0x00, 0x00 });
+
+            Assert.True(OfficeGifReader.TryDecodeFrame(malformed.ToArray(), 0, out _, out _));
+            Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "reserved-gce.gif", out _));
+        }
+
+        [Theory]
+        [InlineData(0x08)]
+        [InlineData(0x10)]
+        public void CompleteContentValidationRejectsReservedImageDescriptorBits(byte reservedBit) {
+            byte[] malformed = CreateSinglePixelGif();
+            int imageDescriptorOffset = Array.IndexOf(malformed, (byte)0x2C);
+            malformed[imageDescriptorOffset + 9] |= reservedBit;
+
+            Assert.True(OfficeGifReader.TryDecodeFrame(malformed, 0, out _, out _));
+            Assert.False(OfficeImageReader.TryValidateContent(malformed, "reserved-descriptor.gif", out _));
+        }
+
         private static byte[] CreateSinglePixelGif() =>
             Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
 

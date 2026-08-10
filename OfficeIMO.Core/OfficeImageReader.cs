@@ -383,8 +383,14 @@ public static partial class OfficeImageReader {
                 XmlResolver = null
             };
             using var reader = XmlReader.Create(ms, settings);
-            if (reader.MoveToContent() != XmlNodeType.Element ||
-                !reader.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase)) {
+            if (reader.MoveToContent() != XmlNodeType.Element) {
+                return false;
+            }
+            bool isSvgRoot = validateCompleteDocument
+                ? reader.LocalName.Equals("svg", StringComparison.Ordinal) &&
+                  reader.NamespaceURI.Equals("http://www.w3.org/2000/svg", StringComparison.Ordinal)
+                : reader.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase);
+            if (!isSvgRoot) {
                 return false;
             }
 

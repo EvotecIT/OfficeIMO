@@ -86,10 +86,15 @@ public static class OfficeGifReader {
 
                     byte label = bytes[offset++];
                     if (label == 0xF9) {
-                        if (!TryReadGraphicControlExtension(bytes, ref offset, out transparentIndex, out disposalMethod)) {
+                        if (!TryReadGraphicControlExtension(
+                            bytes,
+                            ref offset,
+                            out transparentIndex,
+                            out disposalMethod,
+                            out bool hasReservedBits)) {
                             return false;
                         }
-                        if (validateAllFrames && disposalMethod > 3) {
+                        if (validateAllFrames && (hasReservedBits || disposalMethod > 3)) {
                             return false;
                         }
                     } else if (validateAllFrames && label == 0xFF) {
@@ -188,7 +193,8 @@ public static class OfficeGifReader {
         int height = ReadUInt16LittleEndian(bytes, offset + 6);
         byte packed = bytes[offset + 8];
         offset += 9;
-        if (width <= 0 || height <= 0 || left < 0 || top < 0 ||
+        if ((requireCompleteLzw && (packed & 0x18) != 0) ||
+            width <= 0 || height <= 0 || left < 0 || top < 0 ||
             left + width > canvasWidth || top + height > canvasHeight) {
             return false;
         }
@@ -379,9 +385,15 @@ public static class OfficeGifReader {
         return true;
     }
 
-    private static bool TryReadGraphicControlExtension(byte[] bytes, ref int offset, out int transparentIndex, out int disposalMethod) {
+    private static bool TryReadGraphicControlExtension(
+        byte[] bytes,
+        ref int offset,
+        out int transparentIndex,
+        out int disposalMethod,
+        out bool hasReservedBits) {
         transparentIndex = -1;
         disposalMethod = 0;
+        hasReservedBits = false;
         if (offset >= bytes.Length) {
             return false;
         }
@@ -403,6 +415,7 @@ public static class OfficeGifReader {
         }
 
         disposalMethod = (packed >> 2) & 0x07;
+        hasReservedBits = (packed & 0xE0) != 0;
 
         return true;
     }

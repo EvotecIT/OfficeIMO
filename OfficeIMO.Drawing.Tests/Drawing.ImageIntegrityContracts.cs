@@ -22,6 +22,19 @@ public partial class DrawingTests {
             new OfficeImageExportResult(OfficeImageExportFormat.Png, 1, 1, png));
     }
 
+    [Theory]
+    [InlineData("<SVG xmlns='http://www.w3.org/2000/svg' width='1' height='1'/>")]
+    [InlineData("<svg xmlns='urn:not-svg' width='1' height='1'/>")]
+    public void CompleteContentValidationRejectsIncorrectlyQualifiedSvgRoots(string markup) {
+        byte[] svg = System.Text.Encoding.UTF8.GetBytes(markup);
+
+        Assert.True(OfficeImageReader.TryIdentify(svg, "invalid.svg", out _));
+        Assert.False(OfficeImageReader.TryIdentifyByContent(svg, "invalid.svg", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(svg, "invalid.svg", out _));
+        Assert.Throws<ArgumentException>(() =>
+            new OfficeImageExportResult(OfficeImageExportFormat.Svg, 1, 1, svg));
+    }
+
     [Fact]
     public void PngReaderAndExportResultRejectInvalidZlibChecksumWithValidChunkCrc() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
