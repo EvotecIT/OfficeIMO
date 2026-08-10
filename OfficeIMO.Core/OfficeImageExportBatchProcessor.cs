@@ -288,7 +288,7 @@ public static class OfficeImageExportBatchProcessor {
         var reentryScope = new AsyncLocal<AsyncConsumerReentryScope?>();
         return (result, token) => {
             AsyncConsumerReentryScope? inheritedScope = reentryScope.Value;
-            if (inheritedScope != null && inheritedScope.IsCallbackActive && !inheritedScope.AllowsSynchronousReentry) {
+            if (inheritedScope != null && !inheritedScope.AllowsSynchronousReentry) {
                 return Task.FromException(new InvalidOperationException(
                     "Forked or deferred reentry into an image export consumer is not supported. " +
                     "Await the guarded consumer directly from the synchronous portion of the callback."));
@@ -344,13 +344,9 @@ public static class OfficeImageExportBatchProcessor {
                 reentryScope.Value = previousScope;
             }
             try {
-                try {
-                    await callback.ConfigureAwait(false);
-                } finally {
-                    await scope.AwaitNestedInvocationsAsync().ConfigureAwait(false);
-                }
+                await callback.ConfigureAwait(false);
             } finally {
-                scope.EndCallback();
+                await scope.AwaitNestedInvocationsAsync().ConfigureAwait(false);
             }
         } finally {
             if (ownsGate) gate.Release();
@@ -361,15 +357,12 @@ public static class OfficeImageExportBatchProcessor {
         private readonly int _managedThreadId;
         private readonly List<Task> _nestedInvocations = new();
         private int _synchronousInvocation = 1;
-        private int _callbackActive = 1;
 
         internal AsyncConsumerReentryScope(int managedThreadId) => _managedThreadId = managedThreadId;
 
         internal bool AllowsSynchronousReentry =>
             Volatile.Read(ref _synchronousInvocation) != 0 &&
             Environment.CurrentManagedThreadId == _managedThreadId;
-
-        internal bool IsCallbackActive => Volatile.Read(ref _callbackActive) != 0;
 
         internal void EndSynchronousInvocation() =>
             Interlocked.Exchange(ref _synchronousInvocation, 0);
@@ -384,7 +377,6 @@ public static class OfficeImageExportBatchProcessor {
             return invocations.Length == 0 ? Task.CompletedTask : Task.WhenAll(invocations);
         }
 
-        internal void EndCallback() => Interlocked.Exchange(ref _callbackActive, 0);
     }
 
     private static CancellationTokenSource? CreateLinkedCancellationSource(

@@ -540,6 +540,30 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public async Task GuardedAsyncConsumerRejectsDeferredReentryAfterCallbackCompletion() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<Exception>? deferred = null;
+        OfficeImageExportAsyncConsumer? accept = null;
+        accept = OfficeImageExportBatchProcessor.CreateGuardedAsyncConsumer(
+            new OfficeImageExportOptions { MaximumOutputCount = 2 },
+            (result, token) => {
+                if (result.Name == "outer") {
+                    deferred = Task.Run(async () => {
+                        await release.Task.ConfigureAwait(false);
+                        return await Record.ExceptionAsync(() => accept!(CreateResult("late", png), token));
+                    });
+                }
+                return Task.CompletedTask;
+            });
+
+        await accept(CreateResult("outer", png), default);
+        release.TrySetResult(true);
+        Exception error = Assert.IsType<InvalidOperationException>(await deferred!);
+        Assert.Contains("deferred reentry", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void GuardedConsumerSerializesConcurrentAdmissionAndSequenceAssignment() {
         const int maximum = 300;
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));

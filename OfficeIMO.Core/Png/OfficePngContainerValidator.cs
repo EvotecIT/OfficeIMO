@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using OfficeIMO.Core.Internal;
@@ -37,6 +38,7 @@ internal static class OfficePngContainerValidator {
             bool seenIccProfile = false;
             bool seenExif = false;
             bool seenModificationTime = false;
+            var suggestedPaletteNames = new HashSet<string>(StringComparer.Ordinal);
             int bitDepth = 0;
             int colorType = 0;
             int paletteEntries = 0;
@@ -231,6 +233,13 @@ internal static class OfficePngContainerValidator {
                         seenModificationTime = true;
                         if (seenImageData) imageDataEnded = true;
                         break;
+                    case "sPLT":
+                        if (!seenHeader || !HasValidSuggestedPalette(bytes, dataOffset, length, suggestedPaletteNames)) {
+                            failureReason = "PNG bytes contain an invalid or repeated sPLT chunk.";
+                            return false;
+                        }
+                        if (seenImageData) imageDataEnded = true;
+                        break;
                     case "IDAT":
                         if (!seenHeader || imageDataEnded || (colorType == 3 && !seenPalette)) {
                             failureReason = "PNG image data is misplaced or its required palette is missing.";
@@ -280,6 +289,24 @@ internal static class OfficePngContainerValidator {
             if (sample > maximumSample) return false;
         }
         return true;
+    }
+
+    private static bool HasValidSuggestedPalette(
+        byte[] bytes,
+        int offset,
+        int length,
+        HashSet<string> names) {
+        if (!TryReadKeyword(bytes, offset, length, out int keywordEnd)) return false;
+        int nameLength = keywordEnd - offset;
+        var nameCharacters = new char[nameLength];
+        for (int index = 0; index < nameLength; index++) nameCharacters[index] = (char)bytes[offset + index];
+        string name = new(nameCharacters);
+        if (!names.Add(name)) return false;
+        int sampleDepthOffset = offset + nameLength + 1;
+        int sampleDepth = bytes[sampleDepthOffset];
+        int entrySize = sampleDepth == 8 ? 6 : sampleDepth == 16 ? 10 : 0;
+        int entriesLength = length - nameLength - 2;
+        return entrySize != 0 && entriesLength >= entrySize && entriesLength % entrySize == 0;
     }
 
     private static bool HasValidModificationTime(byte[] bytes, int offset, int length) {

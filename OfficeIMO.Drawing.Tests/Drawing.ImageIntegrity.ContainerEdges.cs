@@ -1,12 +1,63 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using OfficeIMO.Drawing;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Fact]
+    public void CompleteContentValidationBoundsAggregateExifIfdScheduling() {
+        const int pointerCount = 1025;
+        int tableLength = 2 + pointerCount * 12 + 4;
+        var exif = new byte[8 + tableLength + pointerCount * 6];
+        exif[0] = (byte)'I'; exif[1] = (byte)'I'; exif[2] = 42; exif[4] = 8;
+        WriteUInt16LittleEndian(exif, 8, (ushort)pointerCount);
+        for (int index = 0; index < pointerCount; index++) {
+            int entry = 10 + index * 12;
+            WriteUInt16LittleEndian(exif, entry, 1);
+            WriteUInt16LittleEndian(exif, entry + 2, 13);
+            WriteInt32LittleEndian(exif, entry + 4, 1);
+            WriteInt32LittleEndian(exif, entry + 8, 8 + tableLength + index * 6);
+        }
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "eXIf", exif), "ifd-budget.png", out _));
+    }
+
+    [Fact]
+    public void CompleteContentValidationChecksSuggestedPngPalettes() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] validPalette = { (byte)'p', 0, 8, 1, 2, 3, 4, 5, 0 };
+        byte[] valid = InsertPngChunkBefore(png, "IDAT", "sPLT", validPalette);
+        byte[] duplicate = InsertPngChunkBefore(valid, "IDAT", "sPLT", validPalette);
+        Assert.True(OfficeImageReader.TryValidateContent(valid, "palette.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(duplicate, "duplicate-palette.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "sPLT", Array.Empty<byte>()), "empty-palette.png", out _));
+    }
+
+    [Fact]
+    public void CompleteContentValidationChecksWebpXmpPackets() {
+        byte[] simple = OfficeWebpCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] valid = CreateExtendedWebpWithXmp(simple, Encoding.UTF8.GetBytes("<x:xmpmeta xmlns:x='adobe:ns:meta/'/>"));
+        byte[] malformed = CreateExtendedWebpWithXmp(simple, Encoding.UTF8.GetBytes("<x:xmpmeta>"));
+        Assert.True(OfficeImageReader.TryValidateContent(valid, "metadata.webp", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(malformed, "malformed-metadata.webp", out _));
+    }
+
+    [Fact]
+    public void CompleteContentValidationReconcilesOmittedIconMasksWithImageSize() {
+        byte[] omittedMask = CreateOnePixelIconDib().Take(44).ToArray();
+        byte[] valid = CreateIcon(omittedMask);
+        byte[] mismatched = (byte[])omittedMask.Clone();
+        WriteInt32LittleEndian(mismatched, 20, 8);
+        Assert.True(OfficeImageReader.TryValidateContent(valid, "omitted-mask.ico", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(CreateIcon(mismatched), "truncated-mask.ico", out _));
+    }
+
     [Theory]
     [InlineData(1, 0x80)]
     [InlineData(4, 0xF0)]
@@ -134,6 +185,19 @@ public partial class DrawingTests {
         bytes.AddRange(CreateWebpChunk("VP8X", new byte[] { 0x20, 0, 0, 0, 0, 0, 0, 0, 0, 0 }));
         bytes.AddRange(CreateWebpChunk("ICCP", profile));
         bytes.AddRange(simple.Skip(12));
+        byte[] result = bytes.ToArray();
+        WriteInt32LittleEndian(result, 4, result.Length - 8);
+        return result;
+    }
+
+    private static byte[] CreateExtendedWebpWithXmp(byte[] simple, byte[] xmp) {
+        var bytes = new List<byte> {
+            (byte)'R', (byte)'I', (byte)'F', (byte)'F', 0, 0, 0, 0,
+            (byte)'W', (byte)'E', (byte)'B', (byte)'P'
+        };
+        bytes.AddRange(CreateWebpChunk("VP8X", new byte[] { 0x04, 0, 0, 0, 0, 0, 0, 0, 0, 0 }));
+        bytes.AddRange(simple.Skip(12));
+        bytes.AddRange(CreateWebpChunk("XMP ", xmp));
         byte[] result = bytes.ToArray();
         WriteInt32LittleEndian(result, 4, result.Length - 8);
         return result;

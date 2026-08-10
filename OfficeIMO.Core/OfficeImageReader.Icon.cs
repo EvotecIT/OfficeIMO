@@ -107,19 +107,20 @@ public static partial class OfficeImageReader {
         long xorBytes = xorStride * height;
         long maskBytes = maskStride * height;
         long remaining = payload.LongLength - pixelOffset;
-        if (imageSize < 0 || (imageSize != 0 && imageSize != xorBytes && imageSize != xorBytes + maskBytes)) {
+        bool hasMask = remaining == xorBytes + maskBytes;
+        bool hasOmittedMask = bitsPerPixel == 32 && remaining == xorBytes;
+        if ((!hasMask && !hasOmittedMask) || imageSize < 0 ||
+            (imageSize != 0 && imageSize != xorBytes && !(hasMask && imageSize == xorBytes + maskBytes))) {
             return false;
         }
-        bool hasCompletePayload = remaining == xorBytes + maskBytes || bitsPerPixel == 32 && remaining == xorBytes;
-        return hasCompletePayload &&
-               (bitsPerPixel > 8 || HasValidIndexedIconPixels(
+        return bitsPerPixel > 8 || HasValidIndexedIconPixels(
                    payload,
                    (int)pixelOffset,
                    width,
                    height,
                    bitsPerPixel,
                    (int)xorStride,
-                   (int)paletteEntries));
+                   (int)paletteEntries);
     }
 
     private static bool HasValidIndexedIconPixels(

@@ -26,6 +26,7 @@ internal static class OfficeTiffStructureValidator {
         if (firstIfd < 8 || firstIfd > int.MaxValue) return false;
         var pending = new Stack<int>();
         pending.Push((int)firstIfd);
+        var scheduled = new HashSet<int> { (int)firstIfd };
         var visited = new HashSet<int>();
         int totalEntries = 0;
 
@@ -61,7 +62,7 @@ internal static class OfficeTiffStructureValidator {
                     uint nestedIfd = ReadUInt32(bytes, entryOffset + 8, littleEndian);
                     if (nestedIfd != 0) {
                         if (nestedIfd > int.MaxValue) return false;
-                        pending.Push((int)nestedIfd);
+                        if (!TryScheduleIfd((int)nestedIfd, pending, scheduled)) return false;
                     }
                 } else if (type == 13 && valueCount > 0) {
                     if (valueCount > MaximumIfdCount) return false;
@@ -75,7 +76,7 @@ internal static class OfficeTiffStructureValidator {
                         uint nestedIfd = ReadUInt32(bytes, valuesOffset + (int)valueIndex * 4, littleEndian);
                         if (nestedIfd != 0) {
                             if (nestedIfd > int.MaxValue) return false;
-                            pending.Push((int)nestedIfd);
+                            if (!TryScheduleIfd((int)nestedIfd, pending, scheduled)) return false;
                         }
                     }
                 }
@@ -84,10 +85,16 @@ internal static class OfficeTiffStructureValidator {
             uint nextIfd = ReadUInt32(bytes, entryOffset, littleEndian);
             if (nextIfd != 0) {
                 if (nextIfd > int.MaxValue) return false;
-                pending.Push((int)nextIfd);
+                if (!TryScheduleIfd((int)nextIfd, pending, scheduled)) return false;
             }
         }
 
+        return true;
+    }
+
+    private static bool TryScheduleIfd(int offset, Stack<int> pending, HashSet<int> scheduled) {
+        if (!scheduled.Add(offset) || scheduled.Count > MaximumIfdCount) return false;
+        pending.Push(offset);
         return true;
     }
 

@@ -30,6 +30,21 @@ public class VisioImageExport {
     }
 
     [Fact]
+    public void EmbeddedSvgPreviewScalesRootObjectBoundingBoxClipPaths() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' clip-path='url(#left)'>" +
+                           "<defs><clipPath id='left' clipPathUnits='objectBoundingBox'><rect width='.5' height='1'/></clipPath></defs>" +
+                           "<rect width='100' height='100' fill='red'/></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "root-object-clip.svg", default, out OfficeRasterImage? image));
+        OfficeRasterImage raster = Assert.IsType<OfficeRasterImage>(image);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(25, 50));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(75, 50));
+        Assert.Empty(diagnostics);
+    }
+
+    [Fact]
     public void EmbeddedSvgPreviewRejectsExcessiveNestingWithoutRecursingToTheProcessStack() {
         const int depth = 512;
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
