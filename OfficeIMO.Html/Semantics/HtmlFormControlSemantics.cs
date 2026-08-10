@@ -106,6 +106,9 @@ internal static class HtmlFormControlSemantics {
         NormalizeIdentifier(elementName) == "textarea"
         || NormalizeIdentifier(elementName) == "input" && IsTextInputType(effectiveType);
 
+    internal static bool TryParseLengthConstraint(string? value, out int length) =>
+        HtmlIntegerSemantics.TryParseNonNegativeInteger(value, out length);
+
     internal static bool IsRangeApplicable(string elementName, string effectiveType) {
         if (NormalizeIdentifier(elementName) != "input") return false;
         switch (effectiveType) {

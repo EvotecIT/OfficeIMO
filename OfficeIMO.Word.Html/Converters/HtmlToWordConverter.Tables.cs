@@ -290,8 +290,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (useRawAttribute &&
-                int.TryParse(htmlCell.GetAttribute("rowspan"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var rowSpan) &&
-                rowSpan >= 0) {
+                HtmlIntegerSemantics.TryParseNonNegativeInteger(htmlCell.GetAttribute("rowspan"), out int rowSpan)) {
                 return rowSpan;
             }
 
@@ -304,8 +303,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (useRawAttribute &&
-                int.TryParse(htmlCell.GetAttribute("colspan"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var colSpan) &&
-                colSpan > 0) {
+                HtmlIntegerSemantics.TryParsePositiveInteger(htmlCell.GetAttribute("colspan"), out int colSpan)) {
                 return colSpan;
             }
 
@@ -338,7 +336,7 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 int span = 1;
-                if (int.TryParse(col.GetAttribute("span"), out int sp) && sp > 1) {
+                if (HtmlIntegerSemantics.TryParsePositiveInteger(col.GetAttribute("span"), out int sp) && sp > 1) {
                     span = sp;
                 }
 

@@ -9,6 +9,17 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderHtmlModularTests {
     [Fact]
+    public void DocumentReaderHtml_UsesHtmlIntegerRulesForOrderedLists() {
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(
+            "<ol start='9x'><li>First</li><li value='12junk'>Second</li><li>Third</li></ol>",
+            "integer-list.html");
+
+        Assert.Contains("9. First", result.Markdown ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("12. Second", result.Markdown ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("13. Third", result.Markdown ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReaderHtml_RichDispatch_MapsMetadataStructureLinksFormsAndImages() {
         const string html = "<html><head><title>Rich HTML</title><meta name=\"author\" content=\"OfficeIMO\"/></head><body>"
             + "<h2>Inventory</h2><p>See <a href=\"https://example.test/inventory\">inventory</a>.</p>"

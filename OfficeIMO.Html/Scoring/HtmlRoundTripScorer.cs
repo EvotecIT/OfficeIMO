@@ -422,6 +422,14 @@ public static partial class HtmlRoundTripScorer {
                     }
                 }
 
+                if (IsLengthConstraintAttribute(attributeName)) {
+                    if (control.HasAttribute(attributeName)
+                        && HtmlFormControlSemantics.TryParseLengthConstraint(control.GetAttribute(attributeName), out int length)) {
+                        parts.Add(attributeName + "=" + length.ToString(CultureInfo.InvariantCulture));
+                    }
+                    continue;
+                }
+
                 if (control.HasAttribute(attributeName)) {
                     if (string.Equals(attributeName, "value", StringComparison.OrdinalIgnoreCase)
                         && string.Equals(
@@ -704,8 +712,20 @@ public static partial class HtmlRoundTripScorer {
             return;
         }
 
+        if (IsLengthConstraintAttribute(attributeName)) {
+            if (node.Attributes.TryGetValue(attributeName, out string? rawLength)
+                && HtmlFormControlSemantics.TryParseLengthConstraint(rawLength, out int length)) {
+                parts.Add(attributeName + "=" + length.ToString(CultureInfo.InvariantCulture));
+            }
+            return;
+        }
+
         AddAttributePart(parts, node, attributeName);
     }
+
+    private static bool IsLengthConstraintAttribute(string attributeName) =>
+        string.Equals(attributeName, "minlength", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(attributeName, "maxlength", StringComparison.OrdinalIgnoreCase);
 
     private static bool ShouldIncludeFormControlAttribute(AngleSharp.Dom.IElement control, string attributeName) {
         if (string.Equals(attributeName, "form", StringComparison.OrdinalIgnoreCase) && !IsFormAssociatedControl(control.TagName)) {

@@ -576,18 +576,18 @@ internal static partial class HtmlReaderAdapter {
             bool reversed = list.Attributes.ContainsKey("reversed");
             int value = reversed ? items.Length : 1;
             if (list.Attributes.TryGetValue("start", out string? startValue)
-                && int.TryParse(startValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedStart)) {
+                && HtmlIntegerSemantics.TryParseInteger(startValue, out int parsedStart)) {
                 value = parsedStart;
             }
             list.Attributes.TryGetValue("type", out string? markerType);
             int step = reversed ? -1 : 1;
             foreach (HtmlLogicalNode item in items) {
                 if (item.Attributes.TryGetValue("value", out string? itemValue)
-                    && int.TryParse(itemValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedValue)) {
+                    && HtmlIntegerSemantics.TryParseInteger(itemValue, out int parsedValue)) {
                     value = parsedValue;
                 }
                 markers[item] = FormatOrderedMarker(value, markerType) + ".";
-                value += step;
+                value = HtmlIntegerSemantics.AdvanceSaturating(value, step);
             }
             return new HtmlListProjectionContext(markers);
         }

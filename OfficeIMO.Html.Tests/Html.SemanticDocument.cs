@@ -69,6 +69,36 @@ public partial class Html {
         Assert.All(controls.Values, control => Assert.Equal("settings", control.FormOwnerId));
     }
 
+    [Theory]
+    [InlineData("+5", 5)]
+    [InlineData(" 5 ", 5)]
+    [InlineData("-0", 0)]
+    [InlineData("5junk", 5)]
+    [InlineData("999999999999999999999", int.MaxValue)]
+    [InlineData("-1", null)]
+    [InlineData("\u00A05", null)]
+    public void SemanticDocument_ParsesLengthConstraintsUsingHtmlIntegerRules(string value, int? expected) {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
+            .Parse($"<input minlength='{value}' maxlength='{value}'>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(expected, control.MinimumLength);
+        Assert.Equal(expected, control.MaximumLength);
+    }
+
+    [Fact]
+    public void RoundTripScorer_NormalizesEffectiveLengthConstraints() {
+        HtmlRoundTripScore equivalent = HtmlRoundTripScorer.Compare(
+            "<input minlength='+5' maxlength=' 5 '>",
+            "<input minlength='5junk' maxlength='5'>");
+        HtmlRoundTripScore invalid = HtmlRoundTripScorer.Compare(
+            "<input minlength='\u00A05' maxlength='-1'>",
+            "<input>");
+
+        Assert.Equal(1D, equivalent.Metrics["form-state"], 3);
+        Assert.Equal(1D, invalid.Metrics["form-state"], 3);
+    }
+
     [Fact]
     public void SemanticDocument_ExplicitFormOwnerUsesFirstMatchingIdElement() {
         HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse("""
@@ -363,6 +393,19 @@ public partial class Html {
 
         Assert.Equal(new int?[] { int.MaxValue, int.MaxValue },
             list.Children.Select(item => item.ListItem?.Ordinal));
+    }
+
+    [Fact]
+    public void SemanticDocument_ParsesTableSpansUsingHtmlIntegerRules() {
+        HtmlSemanticBlock[] tables = HtmlConversionDocument.Parse("""
+            <table><tr><td colspan="+2junk" rowspan=" 2tail">A</td></tr><tr><td>B</td></tr></table>
+            <table><tr><td colspan="&#160;2" rowspan="-1">C</td></tr></table>
+            """).SemanticDocument.RootTables.ToArray();
+
+        Assert.Equal(2, tables[0].Table!.Rows[0].Cells[0].ColumnSpan);
+        Assert.Equal(2, tables[0].Table.Rows[0].Cells[0].RowSpan);
+        Assert.Equal(1, tables[1].Table!.Rows[0].Cells[0].ColumnSpan);
+        Assert.Equal(1, tables[1].Table.Rows[0].Cells[0].RowSpan);
     }
 
     [Fact]

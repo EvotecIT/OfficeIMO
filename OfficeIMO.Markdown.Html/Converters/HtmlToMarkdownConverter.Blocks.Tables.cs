@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using OfficeIMO.Html;
 using OfficeIMO.Markdown;
 using System.Globalization;
 
@@ -240,7 +241,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static int ParseColumnSpan(string? rawSpan) {
-        if (!int.TryParse(rawSpan, out int span) || span < 1) {
+        if (!HtmlIntegerSemantics.TryParsePositiveInteger(rawSpan, out int span)) {
             return 1;
         }
 
@@ -248,7 +249,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static int ParseCellSpan(string? rawSpan) {
-        if (!int.TryParse(rawSpan, out int span) || span < 1) {
+        if (!HtmlIntegerSemantics.TryParsePositiveInteger(rawSpan, out int span)) {
             return 1;
         }
 

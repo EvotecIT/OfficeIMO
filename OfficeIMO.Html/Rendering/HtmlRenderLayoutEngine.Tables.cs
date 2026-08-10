@@ -403,7 +403,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static int ReadRowSpan(string? value, IReadOnlyList<IElement> rows, int rowIndex, IElement table) {
         int maximum = CountRowsRemainingInGroup(rows, rowIndex, table);
-        if (!int.TryParse(value, out int requested) || requested < 0) return 1;
+        if (!HtmlIntegerSemantics.TryParseNonNegativeInteger(value, out int requested)) return 1;
         if (requested == 0) return maximum;
         return Math.Max(1, Math.Min(requested, maximum));
     }
@@ -480,7 +480,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static int ReadSpan(string? value, int maximum) {
-        if (!int.TryParse(value, out int span) || span <= 0) span = 1;
+        if (!HtmlIntegerSemantics.TryParsePositiveInteger(value, out int span)) span = 1;
         return Math.Max(1, Math.Min(span, maximum));
     }
 

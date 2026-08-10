@@ -9,7 +9,7 @@ internal static class HtmlListSemantics {
         if (Is(list, "ol")) {
             bool reversed = list.HasAttribute("reversed");
             int defaultStart = reversed ? list.Children.Count(child => Is(child, "li")) : 1;
-            int start = TryReadInteger(list.GetAttribute("start"), out int authoredStart) ? authoredStart : defaultStart;
+            int start = HtmlIntegerSemantics.TryParseInteger(list.GetAttribute("start"), out int authoredStart) ? authoredStart : defaultStart;
             return new HtmlSemanticList(HtmlSemanticListKind.Ordered, start, reversed);
         }
         if (Is(list, "dl")) return new HtmlSemanticList(HtmlSemanticListKind.Definition, null, false);
@@ -36,12 +36,12 @@ internal static class HtmlListSemantics {
             int? explicitOrdinal = null;
             int? ordinal = null;
             if (semantics.Kind == HtmlSemanticListKind.Ordered) {
-                if (TryReadInteger(element.GetAttribute("value"), out int authoredOrdinal)) {
+                if (HtmlIntegerSemantics.TryParseInteger(element.GetAttribute("value"), out int authoredOrdinal)) {
                     current = authoredOrdinal;
                     explicitOrdinal = authoredOrdinal;
                 }
                 ordinal = current;
-                current = Advance(current, step);
+                current = HtmlIntegerSemantics.AdvanceSaturating(current, step);
             }
             result.Add(new HtmlListItemProjection(element,
                 new HtmlSemanticListItem(HtmlSemanticListItemKind.Item, ordinal, explicitOrdinal)));
@@ -94,42 +94,6 @@ internal static class HtmlListSemantics {
         ordinal = projection.Semantics.Ordinal.Value;
         return true;
     }
-
-    private static int Advance(int value, int step) {
-        if (step > 0) return value == int.MaxValue ? int.MaxValue : value + 1;
-        return value == int.MinValue ? int.MinValue : value - 1;
-    }
-
-    private static bool TryReadInteger(string? text, out int value) {
-        value = 0;
-        if (string.IsNullOrEmpty(text)) return false;
-
-        int position = 0;
-        while (position < text!.Length && IsAsciiWhitespace(text[position])) position++;
-        bool negative = false;
-        if (position < text.Length && (text[position] == '+' || text[position] == '-')) {
-            negative = text[position] == '-';
-            position++;
-        }
-
-        int firstDigit = position;
-        long magnitude = 0L;
-        long limit = negative ? (long)int.MaxValue + 1L : int.MaxValue;
-        while (position < text.Length && text[position] >= '0' && text[position] <= '9') {
-            int digit = text[position] - '0';
-            magnitude = magnitude > (limit - digit) / 10L ? limit : magnitude * 10L + digit;
-            position++;
-        }
-        if (position == firstDigit) return false;
-
-        value = negative
-            ? magnitude == (long)int.MaxValue + 1L ? int.MinValue : -(int)magnitude
-            : (int)magnitude;
-        return true;
-    }
-
-    private static bool IsAsciiWhitespace(char value) =>
-        value == '\t' || value == '\n' || value == '\f' || value == '\r' || value == ' ';
 
     private static bool Is(IElement element, string name) =>
         string.Equals(element.LocalName, name, StringComparison.OrdinalIgnoreCase);

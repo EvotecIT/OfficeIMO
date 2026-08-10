@@ -533,7 +533,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         value.Replace("\r\n", "\n").Replace('\r', '\n').Trim();
 
     private static int ParsePositiveInteger(string? value, int fallback, int minimum, int maximum) =>
-        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed)
+        HtmlIntegerSemantics.TryParsePositiveInteger(value, out int parsed)
             ? Math.Max(minimum, Math.Min(maximum, parsed))
             : fallback;
 

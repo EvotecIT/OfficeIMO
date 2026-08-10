@@ -419,8 +419,8 @@ internal static class HtmlSemanticDocumentBuilder {
             rangeApplicable ? element.GetAttribute("min") ?? string.Empty : string.Empty,
             rangeApplicable ? element.GetAttribute("max") ?? string.Empty : string.Empty,
             rangeApplicable ? element.GetAttribute("step") ?? string.Empty : string.Empty,
-            lengthApplicable ? ReadOptionalInteger(element.GetAttribute("minlength")) : null,
-            lengthApplicable ? ReadOptionalInteger(element.GetAttribute("maxlength")) : null,
+            lengthApplicable ? ReadOptionalLengthConstraint(element.GetAttribute("minlength")) : null,
+            lengthApplicable ? ReadOptionalLengthConstraint(element.GetAttribute("maxlength")) : null,
             HtmlFormControlSemantics.IsPlaceholderApplicable(elementName, effectiveType)
                 ? element.GetAttribute("placeholder") ?? string.Empty
                 : string.Empty,
@@ -447,10 +447,8 @@ internal static class HtmlSemanticDocumentBuilder {
             element.HasAttribute("novalidate"));
     }
 
-    private static int? ReadOptionalInteger(string? value) =>
-        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result) && result >= 0
-            ? result
-            : null;
+    private static int? ReadOptionalLengthConstraint(string? value) =>
+        HtmlFormControlSemantics.TryParseLengthConstraint(value, out int result) ? result : null;
 
     private static IReadOnlyDictionary<string, string> ReadMetadata(IHtmlDocument document) {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -502,7 +500,7 @@ internal static class HtmlSemanticDocumentBuilder {
     }
 
     private static int ReadSpan(IElement element, string attribute) =>
-        int.TryParse(element.GetAttribute(attribute), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) && value > 0
+        HtmlIntegerSemantics.TryParsePositiveInteger(element.GetAttribute(attribute), out int value)
             ? value
             : 1;
 
