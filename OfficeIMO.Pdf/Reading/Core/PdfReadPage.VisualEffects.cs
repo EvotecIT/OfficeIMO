@@ -95,11 +95,45 @@ public sealed partial class PdfReadPage {
         PdfPageSoftMaskResource? resource,
         PageContentBudget pageContentBudget,
         HashSet<PdfStream> validatedGroups) {
-        if (resource == null || !validatedGroups.Add(resource.Group)) return true;
-        if (Filters.StreamDecoder.GetUnsupportedFilters(resource.Group.Dictionary, _objects).Count != 0) return false;
+        return CanDecodeType3SoftMask(
+            resource,
+            pageContentBudget,
+            validatedGroups,
+            new HashSet<PdfStream>(),
+            new HashSet<PdfStream>(),
+            0);
+    }
+
+    private bool CanDecodeType3SoftMask(
+        PdfPageSoftMaskResource? resource,
+        PageContentBudget pageContentBudget,
+        HashSet<PdfStream> validatedGroups,
+        HashSet<PdfStream> activeGroups,
+        HashSet<PdfStream> activeForms,
+        int contentNestingDepth) {
+        if (resource == null) return true;
+        if (validatedGroups.Contains(resource.Group)) return true;
+        EnsureContentNestingBudget(contentNestingDepth);
+        if (!activeGroups.Add(resource.Group)) return false;
         try {
-            _ = pageContentBudget.Decode(resource.Group);
-            return true;
+            if (Filters.StreamDecoder.GetUnsupportedFilters(resource.Group.Dictionary, _objects).Count != 0) return false;
+            string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(resource.Group));
+            PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
+            PdfDictionary? resources = ResolveDictionary(
+                resource.Group.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject)
+                    ? resourceObject
+                    : null) ?? pageResources;
+            bool supported = CanDecodeType3SoftMasksInContent(
+                content,
+                resources,
+                Matrix2D.Identity,
+                pageContentBudget,
+                validatedGroups,
+                activeGroups,
+                activeForms,
+                contentNestingDepth);
+            if (supported) validatedGroups.Add(resource.Group);
+            return supported;
         } catch (PdfReadLimitException) {
             throw;
         } catch (IOException) {
@@ -108,7 +142,74 @@ public sealed partial class PdfReadPage {
             return false;
         } catch (NotSupportedException) {
             return false;
+        } finally {
+            activeGroups.Remove(resource.Group);
         }
+    }
+
+    private bool CanDecodeType3SoftMasksInContent(
+        string content,
+        PdfDictionary? resources,
+        Matrix2D baseTransform,
+        PageContentBudget pageContentBudget,
+        HashSet<PdfStream> validatedGroups,
+        HashSet<PdfStream> activeGroups,
+        HashSet<PdfStream> activeForms,
+        int contentNestingDepth) {
+        EnsureContentNestingBudget(contentNestingDepth);
+        bool supported = true;
+        IReadOnlyList<PdfPageXObjectInvocation> invocations = PdfPageXObjectInvocationParser.Parse(
+            content,
+            baseTransform,
+            GetPageSize().Height,
+            GetGraphicsStateResources(resources),
+            GetColorSpaceResources(resources),
+            GetOptionalContentVisibility(resources),
+            maxOperations: _limits.MaxContentOperations,
+            maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxOperands: _limits.MaxContentOperands,
+            unsupportedGraphicsEffectVisitor: () => supported = false,
+            graphicsStateVisitor: state => {
+                if (!CanDecodeType3SoftMask(
+                        state.SoftMask,
+                        pageContentBudget,
+                        validatedGroups,
+                        activeGroups,
+                        activeForms,
+                        contentNestingDepth + 1)) {
+                    supported = false;
+                }
+            },
+            allowSupportedGraphicsEffects: true);
+        if (!supported) return false;
+
+        for (int index = 0; index < invocations.Count; index++) {
+            PdfPageXObjectInvocation invocation = invocations[index];
+            if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) continue;
+            if (!TryGetFormStream(resources, invocation.Name, out PdfStream form) || !activeForms.Add(form)) return false;
+            try {
+                if (Filters.StreamDecoder.GetUnsupportedFilters(form.Dictionary, _objects).Count != 0) return false;
+                string formContent = PdfEncoding.Latin1GetString(pageContentBudget.Decode(form));
+                PdfDictionary? formResources = ResolveDictionary(
+                    form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceObject)
+                        ? formResourceObject
+                        : null) ?? resources;
+                if (!CanDecodeType3SoftMasksInContent(
+                        formContent,
+                        formResources,
+                        ApplyFormMatrix(invocation.Transform, form.Dictionary),
+                        pageContentBudget,
+                        validatedGroups,
+                        activeGroups,
+                        activeForms,
+                        contentNestingDepth + 1)) {
+                    return false;
+                }
+            } finally {
+                activeForms.Remove(form);
+            }
+        }
+        return true;
     }
 
     private IReadOnlyList<PdfPageDrawingEffectTransition> GetGraphicsEffectTransitions(Matrix2D pageTransform, double pageHeight, PageContentBudget? pageContentBudget = null) {
