@@ -177,8 +177,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Returns native slicer and timeline views across the workbook.</summary>
         public IReadOnlyList<ExcelPivotInteractionInfo> GetPivotInteractions() {
-            MaterializeDeferredDataSetImport();
-            return Locking.ExecuteRead(EnsureLock(), () => {
+            return ExecuteReadAfterMaterializing(() => {
                 var interactions = new List<ExcelPivotInteractionInfo>();
                 var slicerCaches = WorkbookPartRoot.SlicerCacheParts
                     .Where(part => part.SlicerCacheDefinition != null)

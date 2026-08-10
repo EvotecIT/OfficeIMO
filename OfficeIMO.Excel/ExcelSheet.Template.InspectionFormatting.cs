@@ -53,8 +53,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal IReadOnlyList<ExcelTemplateMarkerInfo> GetTemplateMarkers(IReadOnlyDictionary<string, object?>? bindings = null) {
-            MaterializeDeferredDataSetImportIfNeeded();
-            return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
+            return _excelDocument.ExecuteReadAfterMaterializing(() => {
                 var markers = new List<ExcelTemplateMarkerInfo>();
                 foreach (var cell in WorksheetRoot.Descendants<Cell>()) {
                     var value = GetCellValueSnapshot(cell);

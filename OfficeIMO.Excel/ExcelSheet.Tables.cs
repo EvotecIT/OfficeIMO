@@ -371,10 +371,10 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
-                _excelDocument.MaterializeDeferredDataSetImport();
-            }
+            return _excelDocument.ExecuteReadAfterMaterializing(() => GetTableRangeWithoutMaterializing(tableName));
+        }
 
+        private string? GetTableRangeWithoutMaterializing(string tableName) {
             return _worksheetPart.TableDefinitionParts
                 .Select(part => part.Table)
                 .FirstOrDefault(table => string.Equals(table?.Name?.Value ?? table?.DisplayName?.Value, tableName, StringComparison.OrdinalIgnoreCase))

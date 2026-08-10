@@ -289,7 +289,7 @@ namespace OfficeIMO.Excel {
         /// Returns formula cells on this sheet without changing workbook contents.
         /// </summary>
         public IReadOnlyList<ExcelFormulaCellInfo> GetFormulaCells() {
-            return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
+            return _excelDocument.ExecuteReadAfterMaterializing(() => {
                 var formulas = new List<ExcelFormulaCellInfo>();
                 FormulaDependencyAliasCatalog dependencyAliases = GetFormulaDependencyAliases();
                 FormulaDependencyTableCatalog dependencyTables = GetFormulaDependencyTables();
