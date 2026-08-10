@@ -2386,7 +2386,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_CellValuesRowSnapshotBranch_PreservesSnapshotAndCompactReferences() {
+        public void PerformanceReview_CellValuesRowSnapshotNondeferredFallback_PreservesSnapshotAndCompactReferences() {
             const int columnCount = 64;
             const int dataRowCount = 7813;
             int totalCellCount = checked((dataRowCount + 1) * columnCount);
@@ -2407,7 +2407,34 @@ namespace OfficeIMO.Tests {
             byte[] package;
             using (var output = new MemoryStream()) {
                 using (var document = ExcelDocument.Create(new MemoryStream())) {
-                    document.AddWorksheet("Data").CellValues(cells);
+                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    MethodInfo createCandidate = typeof(ExcelSheet).GetMethod(
+                        "TryCreateDirectCellValuesSaveCandidate",
+                        BindingFlags.Static | BindingFlags.NonPublic)!;
+                    object?[] createArguments = { cells, null, null };
+                    Assert.True((bool)createCandidate.Invoke(null, createArguments)!);
+                    object candidate = createArguments[2]!;
+
+                    sheet.CellValue(1, 1, "Column1");
+                    MethodInfo registerDeferred = typeof(ExcelSheet).GetMethod(
+                        "RegisterDeferredDirectCellValuesSaveCandidateIfPossible",
+                        BindingFlags.Instance | BindingFlags.NonPublic)!;
+                    Assert.False((bool)registerDeferred.Invoke(sheet, new[] { candidate })!);
+
+                    // Materialize the same snapshot before exercising the immediate fallback.
+                    // The public path does this through its ordinary cell application stage.
+                    Assert.True((bool)registerDeferred.Invoke(sheet, new[] { candidate })!);
+                    document.MaterializeDeferredDataSetImport();
+                    typeof(ExcelSheet)
+                        .GetMethod("RegisterDirectCellValuesSaveCandidateIfPossible", BindingFlags.Instance | BindingFlags.NonPublic)!
+                        .Invoke(sheet, new[] { candidate });
+
+                    object registeredCandidate = typeof(ExcelDocument)
+                        .GetField("_directDataSetSaveCandidate", BindingFlags.Instance | BindingFlags.NonPublic)!
+                        .GetValue(document)!;
+                    Assert.False((bool)registeredCandidate.GetType()
+                        .GetProperty("IsDeferred", BindingFlags.Instance | BindingFlags.NonPublic)!
+                        .GetValue(registeredCandidate)!);
                     cells[cells.Length - 1] = (dataRowCount + 1, columnCount, -1);
                     document.Save(output);
 
@@ -2442,55 +2469,6 @@ namespace OfficeIMO.Tests {
             using var reader = ExcelDocumentReader.Open(new MemoryStream(package, writable: false));
             object?[,] values = reader.GetSheet("Data").ReadRange("BL7814:BL7814");
             Assert.Equal(expectedLastValue, Convert.ToInt32(values[0, 0], CultureInfo.InvariantCulture));
-        }
-
-        [Fact]
-        public void PerformanceReview_NondeferredCellValuesRowsCandidate_ForwardsCompactReferences() {
-            const int columnCount = 64;
-            const int dataRowCount = 65;
-            var columnNames = Enumerable.Range(1, columnCount)
-                .Select(column => "Column" + column.ToString(CultureInfo.InvariantCulture))
-                .ToArray();
-            var columnTypes = Enumerable.Repeat(typeof(int), columnCount).ToArray();
-            var rows = new object?[dataRowCount][];
-            for (int row = 0; row < dataRowCount; row++) {
-                var values = new object?[columnCount];
-                for (int column = 0; column < columnCount; column++) {
-                    values[column] = (row * columnCount) + column + 1;
-                }
-
-                rows[row] = values;
-            }
-
-            using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            Type candidateType = typeof(ExcelSheet).GetNestedType("DirectCellValuesSaveCandidate", BindingFlags.NonPublic)!;
-            object candidate = Activator.CreateInstance(
-                candidateType,
-                BindingFlags.Instance | BindingFlags.NonPublic,
-                binder: null,
-                args: new object[] { columnNames, columnTypes, rows, true, "A1:BL66" },
-                culture: CultureInfo.InvariantCulture)!;
-            typeof(ExcelSheet)
-                .GetMethod("RegisterDirectCellValuesSaveCandidateIfPossible", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .Invoke(sheet, new[] { candidate });
-
-            object registeredCandidate = typeof(ExcelDocument)
-                .GetField("_directDataSetSaveCandidate", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .GetValue(document)!;
-            Assert.False((bool)registeredCandidate.GetType()
-                .GetProperty("IsDeferred", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .GetValue(registeredCandidate)!);
-            object model = registeredCandidate.GetType()
-                .GetProperty("Model", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .GetValue(registeredCandidate)!;
-            IEnumerable registeredSheets = (IEnumerable)model.GetType()
-                .GetProperty("Sheets", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .GetValue(model)!;
-            object registeredSheet = registeredSheets.Cast<object>().Single();
-            Assert.False((bool)registeredSheet.GetType()
-                .GetProperty("IncludeCellReferences", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .GetValue(registeredSheet)!);
         }
 
         [Fact]
