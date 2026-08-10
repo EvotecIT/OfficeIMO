@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Email;
 using OfficeIMO.Html;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -12,6 +13,33 @@ namespace OfficeIMO.Tests;
 public sealed class HtmlEmailImageExportTests {
     private static readonly byte[] PixelPng = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+X8m0WQAAAABJRU5ErkJggg==");
+
+    [Fact]
+    public void EmailFitWithinBoundsHighRequestedScaleBeforeHtmlSurfaceValidation() {
+        var email = new EmailDocument { Subject = "Bounded message" };
+        email.Body.Html = "<h1>Bounded</h1><p>High requested scale.</p>";
+
+        OfficeImageExportResult result = email.ToImage()
+            .WithScale(100D)
+            .FitWithin(360, 360)
+            .AsPng()
+            .Export();
+
+        Assert.True(result.Width <= 360);
+        Assert.True(result.Height <= 360);
+    }
+
+    [Fact]
+    public void EmailRtfBatchDiagnosticsPreserveSequenceMetadata() {
+        var email = new EmailDocument();
+        email.Body.Rtf = "{\\rtf1\\ansi Rendered RTF body}";
+
+        OfficeImageExportResult result = Assert.Single(email.ExportImages(OfficeImageExportFormat.Png));
+
+        Assert.Equal(0, result.SequenceIndex);
+        Assert.Equal(1, result.SequenceCount);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_IMAGE_RTF_BODY_PROJECTED");
+    }
 
     [Fact]
     public void PlainTextEmailExportsThroughHtmlWithMessageChrome() {
@@ -35,6 +63,28 @@ public sealed class HtmlEmailImageExportTests {
         Assert.DoesNotContain(
             result.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_IMAGE_BODY_MISSING");
+    }
+
+    [Fact]
+    public void EmailMessageChromeUsesTheConfiguredCallerScopedDefaultFont() {
+        var email = new EmailDocument { Subject = "A" };
+        email.Body.Html = "<p style='font-family:Arial'>A</p>";
+        var options = new EmailImageExportOptions {
+            DefaultFontFamily = ManagedTextShapingTestAssets.FamilyName
+        };
+        options.Fonts.Add(
+            ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFont('A'));
+
+        OfficeImageExportResult result = email.ExportImage(
+            OfficeImageExportFormat.Svg,
+            options);
+
+        string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
+        Assert.Contains(
+            "font-family=\"" + ManagedTextShapingTestAssets.FamilyName + "\"",
+            svg,
+            StringComparison.Ordinal);
     }
 
     [Fact]

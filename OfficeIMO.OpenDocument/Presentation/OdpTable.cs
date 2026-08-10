@@ -116,14 +116,35 @@ public sealed class OdpTableCell {
     public int RowSpan => ReadSpan(OdfNamespaces.Table + "number-rows-spanned");
     /// <summary>Number of columns spanned by a merged-cell anchor.</summary>
     public int ColumnSpan => ReadSpan(OdfNamespaces.Table + "number-columns-spanned");
+    /// <summary>Paragraphs directly stored in this cell.</summary>
+    public IReadOnlyList<OdpParagraph> Paragraphs {
+        get {
+            EnsureMaterialized();
+            return _element.Elements()
+                .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
+                .Select(element => new OdpParagraph(_presentation, element)).ToList();
+        }
+    }
     /// <summary>Decoded cell text.</summary>
     public string Text {
-        get => string.Join("\n", _element.Elements(OdfNamespaces.Text + "p").Select(OdfTextCodec.Read));
+        get => string.Join("\n", _element.Elements()
+            .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
+            .Select(OdfTextCodec.Read));
         set {
             if (IsCovered) throw new InvalidOperationException("Covered table cells cannot contain text.");
             EnsureMaterialized();
             _element.RemoveNodes(); var paragraph = new XElement(OdfNamespaces.Text + "p"); OdfTextCodec.Append(paragraph, value); _element.Add(paragraph); Dirty();
         }
+    }
+    /// <summary>Adds a paragraph to the cell.</summary>
+    public OdpParagraph AddParagraph(string? text = null) {
+        if (IsCovered) throw new InvalidOperationException("Covered table cells cannot contain paragraphs.");
+        EnsureMaterialized();
+        var paragraph = new XElement(OdfNamespaces.Text + "p");
+        OdfTextCodec.Append(paragraph, text);
+        _element.Add(paragraph);
+        Dirty();
+        return new OdpParagraph(_presentation, paragraph);
     }
     internal static XElement CreateElement() => new XElement(OdfNamespaces.Table + "table-cell", new XElement(OdfNamespaces.Text + "p"));
     internal void SetSpans(int rows, int columns) {

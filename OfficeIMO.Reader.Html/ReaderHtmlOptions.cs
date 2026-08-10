@@ -1,6 +1,7 @@
 using OfficeIMO.Html;
 using OfficeIMO.Markdown.Html;
 using System;
+using System.Text;
 
 namespace OfficeIMO.Reader.Html;
 
@@ -10,6 +11,11 @@ namespace OfficeIMO.Reader.Html;
 public sealed class ReaderHtmlOptions {
     /// <summary>Starts a new chunk at Markdown headings when possible.</summary>
     public bool ChunkByHeadings { get; set; } = true;
+
+    /// <summary>
+    /// Explicit byte encoding for stream and file input. When null, the reader detects a BOM or HTML meta charset and otherwise uses UTF-8.
+    /// </summary>
+    public Encoding? InputEncoding { get; set; }
 
     /// <summary>
     /// Creates the default OfficeIMO HTML reader profile.
@@ -65,6 +71,7 @@ public sealed class ReaderHtmlOptions {
     public ReaderHtmlOptions Clone() => new ReaderHtmlOptions {
         ConversionOptions = ConversionOptions?.Clone(),
         HtmlToMarkdownOptions = HtmlToMarkdownOptions?.Clone(),
-        ChunkByHeadings = ChunkByHeadings
+        ChunkByHeadings = ChunkByHeadings,
+        InputEncoding = InputEncoding
     };
 }

@@ -2,13 +2,13 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>Encrypts this unencrypted PDF and returns the rewritten document with preservation proof.</summary>
-    public PdfSecurityMutationResult Encrypt(PdfStandardEncryptionOptions encryption) {
+    internal PdfSecurityMutationResult Encrypt(PdfStandardEncryptionOptions encryption) {
         Guard.NotNull(encryption, nameof(encryption));
         return PdfSecurityEditor.Encrypt(GetBytesForOperation(), encryption);
     }
 
     /// <summary>Attempts to encrypt this unencrypted PDF through the shared mutation planner.</summary>
-    public PdfOperationResult<PdfSecurityMutationResult> TryEncrypt(PdfStandardEncryptionOptions encryption) {
+    internal PdfOperationResult<PdfSecurityMutationResult> TryEncrypt(PdfStandardEncryptionOptions encryption) {
         Guard.NotNull(encryption, nameof(encryption));
         return TryMutationOperation(
             "Encrypt document",
@@ -20,13 +20,13 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Removes Standard password security using the current owner password and returns preservation proof.</summary>
-    public PdfSecurityMutationResult Decrypt(string ownerPassword) {
+    internal PdfSecurityMutationResult Decrypt(string ownerPassword) {
         Guard.NotNull(ownerPassword, nameof(ownerPassword));
         return PdfSecurityEditor.Decrypt(GetBytesForOperation(), ownerPassword);
     }
 
     /// <summary>Attempts to remove Standard password security using the current owner password.</summary>
-    public PdfOperationResult<PdfSecurityMutationResult> TryDecrypt(string ownerPassword) {
+    internal PdfOperationResult<PdfSecurityMutationResult> TryDecrypt(string ownerPassword) {
         Guard.NotNull(ownerPassword, nameof(ownerPassword));
         var readOptions = new PdfReadOptions { Password = ownerPassword };
         return TryMutationOperation(
@@ -39,7 +39,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Replaces Standard password security using the current owner password and returns preservation proof.</summary>
-    public PdfSecurityMutationResult Reencrypt(
+    internal PdfSecurityMutationResult Reencrypt(
         string currentOwnerPassword,
         PdfStandardEncryptionOptions newEncryption) {
         Guard.NotNull(currentOwnerPassword, nameof(currentOwnerPassword));
@@ -48,7 +48,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Attempts to replace Standard password security using the current owner password.</summary>
-    public PdfOperationResult<PdfSecurityMutationResult> TryReencrypt(
+    internal PdfOperationResult<PdfSecurityMutationResult> TryReencrypt(
         string currentOwnerPassword,
         PdfStandardEncryptionOptions newEncryption) {
         Guard.NotNull(currentOwnerPassword, nameof(currentOwnerPassword));

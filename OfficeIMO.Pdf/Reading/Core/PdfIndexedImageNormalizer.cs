@@ -137,12 +137,18 @@ internal static class PdfIndexedImageNormalizer {
                 return false;
             }
 
-            lookupBytes = Filters.StreamDecoder.Decode(
-                lookupStream.Dictionary,
-                lookupStream.Data,
-                objects,
-                maxLookupBytes);
-            return lookupBytes.Length > 0;
+            try {
+                lookupBytes = Filters.StreamDecoder.DecodeRequired(
+                    lookupStream.Dictionary,
+                    lookupStream.Data,
+                    objects,
+                    maxLookupBytes);
+                return lookupBytes.Length > 0;
+            } catch (PdfReadLimitException) {
+                throw;
+            } catch (InvalidDataException) {
+                return false;
+            }
         }
 
         return false;
@@ -152,18 +158,7 @@ internal static class PdfIndexedImageNormalizer {
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         out byte[] bytes) {
-        bytes = Array.Empty<byte>();
-        if (stream.Dictionary.Items.TryGetValue("Filter", out _)) {
-            if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) {
-                return false;
-            }
-
-            bytes = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
-        } else {
-            bytes = stream.Data;
-        }
-
-        return bytes.Length > 0;
+        return PdfImageStreamDecoder.TryDecode(stream, objects, out bytes) && bytes.Length > 0;
     }
 
     private static bool TryBuildPngFileFromIndexedPixels(

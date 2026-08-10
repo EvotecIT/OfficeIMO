@@ -163,7 +163,7 @@ public partial class RtfDocumentRichFeatureTests {
         document.AddParagraph("Body");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.Read(rtf, RtfReadOptions.CreateCompatibilityProfile());
 
         Assert.Contains(@"{\*\filetbl{\file\fid0\frelative18\fvalidntfs C:\\Private\\Resume\\Edu\\File2.docx}{\file\fid1\fosnum42\fvalidntfs\fnetwork \\\\Server\\Share\\Linked.docx}}", rtf, StringComparison.Ordinal);
         Assert.Collection(read.Document.FileReferences,

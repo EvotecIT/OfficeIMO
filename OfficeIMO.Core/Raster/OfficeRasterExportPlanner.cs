@@ -71,15 +71,29 @@ public static class OfficeRasterExportPlanner {
             Math.Min(options.MaximumRasterPixels, rendererMaximumPixels),
             OfficeRasterImageEncoder.GetMaximumPixelCount(format));
         int maximumDimension = OfficeRasterImageEncoder.GetMaximumDimension(format);
+        double requestedScale = options.GetEffectiveScale(width, height);
         OfficeRasterScaleLimit limit = OfficeRasterScaleLimiter.Resolve(
             width,
             height,
-            options.Scale,
+            requestedScale,
             maximumPixels,
             maximumDimension);
         OfficeRasterEncodingOptions encodingOptions = options.RasterEncoding.Resolve(
             format,
             limit.Scale / options.Scale);
+
+        double minimumDpi = OfficeRasterImageEncoder.GetMinimumDpi(format);
+        if (encodingOptions.DpiX < minimumDpi || encodingOptions.DpiY < minimumDpi) {
+            throw new OfficeImageExportLimitException(
+                requestedScale,
+                CalculateRequestedPixels(width, height, requestedScale),
+                maximumPixels,
+                maximumDimension,
+                format,
+                encodingOptions.DpiX,
+                encodingOptions.DpiY,
+                minimumDpi);
+        }
 
         if (!limit.WasLimited) {
             return new OfficeRasterExportPlan(
@@ -92,29 +106,16 @@ public static class OfficeRasterExportPlanner {
 
         if (options.RasterOverflowBehavior == OfficeRasterOverflowBehavior.Throw) {
             throw new OfficeImageExportLimitException(
-                options.Scale,
-                CalculateRequestedPixels(width, height, options.Scale),
+                requestedScale,
+                CalculateRequestedPixels(width, height, requestedScale),
                 maximumPixels,
                 maximumDimension);
-        }
-
-        double minimumDpi = OfficeRasterImageEncoder.GetMinimumDpi(format);
-        if (encodingOptions.DpiX < minimumDpi || encodingOptions.DpiY < minimumDpi) {
-            throw new OfficeImageExportLimitException(
-                options.Scale,
-                CalculateRequestedPixels(width, height, options.Scale),
-                maximumPixels,
-                maximumDimension,
-                format,
-                encodingOptions.DpiX,
-                encodingOptions.DpiY,
-                minimumDpi);
         }
 
         var diagnostic = new OfficeImageExportDiagnostic(
             OfficeImageExportDiagnosticSeverity.Warning,
             OfficeImageExportDiagnosticCodes.RasterScaleReduced,
-            "The raster scale was reduced from " + Format(options.Scale) + " to " + Format(limit.Scale) +
+            "The raster scale was reduced from " + Format(requestedScale) + " to " + Format(limit.Scale) +
             " to satisfy the effective limit of " + maximumPixels.ToString(CultureInfo.InvariantCulture) +
             " pixels and " + maximumDimension.ToString(CultureInfo.InvariantCulture) + " pixels per dimension.",
             source,

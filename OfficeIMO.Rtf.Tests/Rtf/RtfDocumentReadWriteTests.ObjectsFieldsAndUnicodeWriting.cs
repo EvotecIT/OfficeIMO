@@ -9,7 +9,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Embedded_Object_Data_Result_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\pard Before {\object\objemb\objw100\objh200\objscalex75\objscaley80{\*\objclass Package}{\*\objname Attachment}{\*\objdata 010203ff}{\result Display}} after\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.Read(rtf, RtfReadOptions.CreateCompatibilityProfile());
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF101");
@@ -31,7 +31,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Object_Result_Image_And_Text_Together() {
         const string rtf = @"{\rtf1\ansi\pard Before {\object\objemb{\*\objdata 0102}{\result{\pict\pngblip\bin3 abc}Caption}} after\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.Read(rtf, RtfReadOptions.CreateCompatibilityProfile());
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
@@ -53,7 +53,7 @@ public partial class RtfDocumentReadWriteTests {
         paragraph.AddText(" after");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.Read(rtf, RtfReadOptions.CreateCompatibilityProfile());
 
         Assert.Contains(@"{\result {\pict\pngblip", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\b Caption\b0 ", rtf, StringComparison.Ordinal);

@@ -56,6 +56,12 @@ internal static class LatexToMarkdownConverter {
                      IsInside(math.Syntax.Span, start, end))) {
             yield return new BlockCandidate(math.Syntax.Span, math);
         }
+        foreach (LatexSyntaxNode verbatim in document.SyntaxTree.Root.DescendantsAndSelf().Where(node =>
+                     node.Kind == LatexSyntaxKind.Verbatim &&
+                     !string.Equals(node.Value, "verb", StringComparison.Ordinal) &&
+                     IsInside(node.Span, start, end) && IsDirectChildSyntax(node, document.Body.Syntax))) {
+            yield return new BlockCandidate(verbatim.Span, verbatim);
+        }
         foreach (LatexEnvironment environment in document.Environments.Where(environment =>
                      !ReferenceEquals(environment, document.Body) && IsInside(environment.Syntax.Span, start, end) &&
                      IsDirectChildEnvironment(environment.Syntax, document.Body.Syntax) &&
@@ -72,18 +78,27 @@ internal static class LatexToMarkdownConverter {
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         switch (candidate.Value) {
             case LatexHeading heading: {
-                LatexArgument title = heading.Command.GetRequiredArgument(0)!;
-                var block = new HeadingBlock(Math.Max(1, Math.Min(6, heading.Level)),
-                    LatexInlineToMarkdownConverter.Convert(document, title.ContentSpan, diagnostics));
-                ApplyLabel(document, block, candidate.Span);
-                target.Add(block);
-                break;
-            }
+                    LatexArgument title = heading.Command.GetRequiredArgument(0)!;
+                    int markdownLevel = GetMarkdownHeadingLevel(document, heading);
+                    var block = new HeadingBlock(markdownLevel,
+                        LatexInlineToMarkdownConverter.Convert(document, title.ContentSpan, diagnostics));
+                    ApplyLabel(document, block, candidate.Span);
+                    target.Add(block);
+                    diagnostics.Add(new LatexMarkdownConversionDiagnostic(
+                        "LATEXMD212",
+                        LatexMarkdownConversionOutcome.Simplified,
+                        "heading-numbering",
+                        heading.IsStarred
+                            ? "The unnumbered LaTeX heading was mapped to a Markdown heading; starred numbering and table-of-contents behavior is not expressible in plain Markdown."
+                            : "The numbered LaTeX heading was mapped to a Markdown heading; automatic numbering and table-of-contents behavior is not expressible in plain Markdown.",
+                        heading.Command.Syntax.Span));
+                    break;
+                }
             case LatexParagraph paragraph: {
-                InlineSequence inlines = LatexInlineToMarkdownConverter.Convert(document, paragraph.Span, diagnostics);
-                if (inlines.Nodes.Count > 0) target.Add(new ParagraphBlock(inlines));
-                break;
-            }
+                    InlineSequence inlines = LatexInlineToMarkdownConverter.Convert(document, paragraph.Span, diagnostics);
+                    if (inlines.Nodes.Count > 0) target.Add(new ParagraphBlock(inlines));
+                    break;
+                }
             case LatexList list:
                 AddList(document, target, list, diagnostics);
                 break;
@@ -112,9 +127,38 @@ internal static class LatexToMarkdownConverter {
                     "Display math source was transported without TeX layout evaluation.", math.Syntax.Span));
                 break;
             case LatexEnvironment environment:
-                AddEnvironmentFallback(target, environment, options, diagnostics);
+                AddEnvironmentFallback(document, target, environment, options, diagnostics);
+                break;
+            case LatexSyntaxNode verbatim:
+                AddVerbatimBlock(target, verbatim, diagnostics);
                 break;
         }
+    }
+
+    private static void AddVerbatimBlock(
+        MarkdownDoc target,
+        LatexSyntaxNode syntax,
+        List<LatexMarkdownConversionDiagnostic> diagnostics) {
+        if (string.Equals(syntax.Value, "comment", StringComparison.Ordinal)) {
+            diagnostics.Add(new LatexMarkdownConversionDiagnostic(
+                "LATEXMD210", LatexMarkdownConversionOutcome.Omitted, "comment-environment",
+                "The LaTeX comment environment was omitted and its body was not exposed as Markdown text.", syntax.Span));
+            return;
+        }
+        target.Add(new CodeBlock("text", LatexInlineToMarkdownConverter.GetVerbatimContent(syntax)));
+        diagnostics.Add(new LatexMarkdownConversionDiagnostic(
+            "LATEXMD213", LatexMarkdownConversionOutcome.Simplified, "verbatim-environment",
+            "Opaque LaTeX verbatim content was retained as a fenced code block without TeX environment semantics.", syntax.Span));
+    }
+
+    private static int GetMarkdownHeadingLevel(LatexDocument document, LatexHeading heading) {
+        int firstSectionLevel = string.Equals(document.DocumentClassName, "article", StringComparison.Ordinal) ? 2 : 1;
+        bool hasPart = document.Body != null && document.Headings.Any(candidate => candidate.Level == 0 &&
+            IsInside(candidate.Command.Syntax.Span, document.Body.ContentSpan.Start.Offset, document.Body.ContentSpan.End.Offset));
+        if (hasPart && heading.Level == 0) return 1;
+        int markdownLevel = heading.Level - firstSectionLevel + 1;
+        if (hasPart) markdownLevel++;
+        return Math.Max(1, Math.Min(6, markdownLevel));
     }
 
     private static void AddList(
@@ -161,7 +205,7 @@ internal static class LatexToMarkdownConverter {
             target.Add(block);
         }
         if (source.Images.Count == 0) {
-            AddEnvironmentFallback(target, source.Environment, options, diagnostics);
+            AddEnvironmentFallback(document, target, source.Environment, options, diagnostics);
             return;
         }
         var represented = source.Images.Select(static image => image.Command.Syntax.Span).ToList();
@@ -239,6 +283,7 @@ internal static class LatexToMarkdownConverter {
     }
 
     private static void AddEnvironmentFallback(
+        LatexDocument document,
         MarkdownDoc target,
         LatexEnvironment source,
         LatexToMarkdownOptions options,
@@ -251,7 +296,13 @@ internal static class LatexToMarkdownConverter {
             target.Code("text", source.Content.Trim('\r', '\n'));
             return;
         }
-        if (options.PreserveUnsupportedAsSource) target.Code("latex", source.Syntax.OriginalText);
+        LatexSyntaxNode[] comments = FindCommentEnvironments(source.Syntax).ToArray();
+        if (options.PreserveUnsupportedAsSource) {
+            string visibleSource = ExtractResidual(document.Source.Text, source.Syntax.Span,
+                comments.Select(static comment => comment.Span));
+            if (!string.IsNullOrWhiteSpace(visibleSource)) target.Code("latex", visibleSource);
+        }
+        ReportOmittedComments(comments, diagnostics);
         diagnostics.Add(new LatexMarkdownConversionDiagnostic(
             "LATEXMD299",
             options.PreserveUnsupportedAsSource ? LatexMarkdownConversionOutcome.SourceFallback : LatexMarkdownConversionOutcome.Omitted,
@@ -268,7 +319,10 @@ internal static class LatexToMarkdownConverter {
         LatexToMarkdownOptions options,
         List<LatexMarkdownConversionDiagnostic> diagnostics,
         string feature) {
-        string residual = ExtractResidual(document.Source.Text, environment.ContentSpan, representedSpans);
+        LatexSyntaxNode[] comments = FindCommentEnvironments(environment.Syntax).ToArray();
+        string residual = ExtractResidual(document.Source.Text, environment.ContentSpan,
+            representedSpans.Concat(comments.Select(static comment => comment.Span)));
+        ReportOmittedComments(comments, diagnostics);
         if (string.IsNullOrWhiteSpace(residual)) return;
         if (options.PreserveUnsupportedAsSource) target.Code("latex", residual.Trim());
         diagnostics.Add(new LatexMarkdownConversionDiagnostic(
@@ -279,6 +333,22 @@ internal static class LatexToMarkdownConverter {
                 ? "Unrepresented environment content was retained as visible LaTeX source."
                 : "Unrepresented environment content was omitted by conversion options.",
             environment.Syntax.Span));
+    }
+
+    private static IEnumerable<LatexSyntaxNode> FindCommentEnvironments(LatexSyntaxNode syntax) =>
+        syntax.DescendantsAndSelf().Where(static node =>
+            node.Kind == LatexSyntaxKind.Verbatim
+            && string.Equals(node.Value, "comment", StringComparison.Ordinal));
+
+    private static void ReportOmittedComments(
+        IEnumerable<LatexSyntaxNode> comments,
+        List<LatexMarkdownConversionDiagnostic> diagnostics) {
+        foreach (LatexSyntaxNode comment in comments) {
+            diagnostics.Add(new LatexMarkdownConversionDiagnostic(
+                "LATEXMD210", LatexMarkdownConversionOutcome.Omitted, "comment-environment",
+                "The LaTeX comment environment was omitted and its body was not exposed as Markdown text.",
+                comment.Span));
+        }
     }
 
     private static string ExtractResidual(
@@ -364,6 +434,15 @@ internal static class LatexToMarkdownConverter {
         name == "corollary" || name == "definition" || name == "remark" || name == "proof";
 
     private static bool IsDirectChildEnvironment(LatexSyntaxNode node, LatexSyntaxNode body) {
+        LatexSyntaxNode? current = node.Parent;
+        while (current != null) {
+            if (current.Kind == LatexSyntaxKind.Environment) return ReferenceEquals(current, body);
+            current = current.Parent;
+        }
+        return false;
+    }
+
+    private static bool IsDirectChildSyntax(LatexSyntaxNode node, LatexSyntaxNode body) {
         LatexSyntaxNode? current = node.Parent;
         while (current != null) {
             if (current.Kind == LatexSyntaxKind.Environment) return ReferenceEquals(current, body);

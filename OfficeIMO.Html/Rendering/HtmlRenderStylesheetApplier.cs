@@ -40,7 +40,7 @@ internal static class HtmlRenderStylesheetApplier {
                 continue;
             }
 
-            if (!HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, out string css)) {
+            if (!HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, resource.ContentType, out string css)) {
                 diagnostics.Add(
                     ComponentName,
                     HtmlRenderDiagnosticCodes.StylesheetEncodingUnsupported,
@@ -52,7 +52,7 @@ internal static class HtmlRenderStylesheetApplier {
             }
 
             if (!resources.WasStylesheetBudgeted(source, resolvedSource)
-                && !TryReserveCss(cssBudget, css, source, diagnostics)) {
+                && !TryReserveCss(cssBudget, resource.EncodedBytes.LongLength, source, diagnostics)) {
                 continue;
             }
 
@@ -140,9 +140,9 @@ internal static class HtmlRenderStylesheetApplier {
                 && Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out Uri? importedUri)) {
                 if (activeStylesheets.Contains(importedUri.AbsoluteUri)) {
                     ReportCycle(diagnostics, reportedCycles, importedUri.AbsoluteUri);
-                } else if (HtmlRenderStylesheetText.TryDecode(importedResource.EncodedBytes, out string importedCss)) {
+                } else if (HtmlRenderStylesheetText.TryDecode(importedResource.EncodedBytes, importedResource.ContentType, out string importedCss)) {
                     if (resources.WasStylesheetBudgeted(reference.Source, reference.ResolvedSource)
-                        || TryReserveCss(cssBudget, importedCss, reference.Source, diagnostics)) {
+                        || TryReserveCss(cssBudget, importedResource.EncodedBytes.LongLength, reference.Source, diagnostics)) {
                         replacement = ExpandImports(importedCss, importedUri, resources, options, limits, diagnostics, activeStylesheets, reportedCycles, cssBudget);
                     }
                 } else {
@@ -169,10 +169,10 @@ internal static class HtmlRenderStylesheetApplier {
 
     internal static bool TryReserveCss(
         HtmlCssByteBudget budget,
-        string css,
+        long encodedByteCount,
         string source,
         HtmlDiagnosticReport diagnostics) {
-        if (budget.TryReserve(css, out HtmlDomLimitException? exception)) return true;
+        if (budget.TryReserve(encodedByteCount, out HtmlDomLimitException? exception)) return true;
         diagnostics.Add(
             ComponentName,
             exception!.Code,

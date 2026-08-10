@@ -6,23 +6,23 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_RowColumns(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.RowColumns.pdf");
 
-            PdfDocument.Create(new PdfOptions {
-                    DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 10,
-                    DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
-                    HeaderFont = PdfStandardFont.Helvetica,
-                    HeaderFontSize = 8,
-                    HeaderFormat = "OfficeIMO.Pdf row columns",
-                    HeaderAlign = PdfAlign.Left,
-                    ShowHeader = true,
-                    FooterFont = PdfStandardFont.Helvetica,
-                    FooterFontSize = 8,
-                    FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                    FooterAlign = PdfAlign.Right,
-                    ShowPageNumbers = true
-                })
-                .Meta(title: "OfficeIMO.Pdf Row Columns", author: "OfficeIMO")
-                .Compose(document => {
+            var options = new PdfOptions {
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 10,
+                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                HeaderFont = PdfStandardFont.Helvetica,
+                HeaderFontSize = 8,
+                HeaderFormat = "OfficeIMO.Pdf row columns",
+                HeaderAlign = PdfAlign.Left,
+                ShowHeader = true,
+                FooterFont = PdfStandardFont.Helvetica,
+                FooterFontSize = 8,
+                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
+                FooterAlign = PdfAlign.Right,
+                ShowPageNumbers = true
+            };
+
+            PdfDocument.Create(document => {
                     document.Page(page => {
                         page.Content(content => {
                             content.Column(column => {
@@ -90,7 +90,8 @@ namespace OfficeIMO.Examples.Pdf {
                             });
                         });
                     });
-                })
+                }, options)
+                .Meta(title: "OfficeIMO.Pdf Row Columns", author: "OfficeIMO")
                 .Save(path);
 
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });

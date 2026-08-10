@@ -21,35 +21,44 @@ namespace OfficeIMO.Excel {
             CancellationToken cancellationToken = default) {
             if (consumer == null) throw new ArgumentNullException(nameof(consumer));
             ExcelWorkbookImageExportOptions resolved = NormalizeWorkbookOptions(options);
-            HashSet<string>? selected = resolved.SheetNames == null
-                ? null
-                : new HashSet<string>(resolved.SheetNames, StringComparer.OrdinalIgnoreCase);
-            if (resolved.SheetNames != null) {
-                ValidateRequestedSheetNames(resolved.SheetNames);
-            }
-            OfficeImageExportConsumer accept =
-                OfficeImageExportBatchProcessor.CreateGuardedConsumer(
-                    resolved,
-                    consumer,
-                    cancellationToken);
+            var plan = new List<ExcelWorksheetImageExportPlan>();
+            OfficeImageExportBatchProcessor.RunWithPreflight(
+                resolved,
+                operationCancellationToken => {
+                    operationCancellationToken.ThrowIfCancellationRequested();
+                    HashSet<string>? selected = resolved.SheetNames == null
+                        ? null
+                        : new HashSet<string>(resolved.SheetNames, StringComparer.OrdinalIgnoreCase);
+                    if (resolved.SheetNames != null) {
+                        ValidateRequestedSheetNames(resolved.SheetNames);
+                    }
 
-            foreach (ExcelSheet sheet in Sheets) {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (selected != null && !selected.Contains(sheet.Name)) {
-                    continue;
-                }
+                    int expectedOutputCount = 0;
+                    foreach (ExcelSheet sheet in Sheets) {
+                        operationCancellationToken.ThrowIfCancellationRequested();
+                        if (selected != null && !selected.Contains(sheet.Name)) continue;
+                        if (selected == null && sheet.Hidden && !resolved.IncludeHiddenSheets) continue;
 
-                if (selected == null && sheet.Hidden && !resolved.IncludeHiddenSheets) {
-                    continue;
-                }
+                        ExcelWorksheetImageExportOptions sheetOptions =
+                            resolved.CopyExcelOptionsTo(new ExcelWorksheetImageExportOptions());
+                        sheetOptions.HeaderFooterDateTime = resolved.HeaderFooterDateTime;
+                        sheetOptions.UsePrintArea = resolved.UseWorksheetPrintAreas;
+                        sheetOptions.SplitByManualPageBreaks = resolved.SplitWorksheetsByManualPageBreaks;
+                        int outputCount = sheet.GetImageExportResultCount(sheetOptions, operationCancellationToken);
+                        expectedOutputCount = checked(expectedOutputCount + outputCount);
+                        plan.Add(new ExcelWorksheetImageExportPlan(sheet, sheetOptions));
+                    }
 
-                ExcelWorksheetImageExportOptions sheetOptions =
-                    resolved.CopyExcelOptionsTo(new ExcelWorksheetImageExportOptions());
-                sheetOptions.HeaderFooterDateTime = resolved.HeaderFooterDateTime;
-                sheetOptions.UsePrintArea = resolved.UseWorksheetPrintAreas;
-                sheetOptions.SplitByManualPageBreaks = resolved.SplitWorksheetsByManualPageBreaks;
-                sheet.ExportImages(format, accept, sheetOptions, cancellationToken);
-            }
+                    return expectedOutputCount;
+                },
+                (accept, operationCancellationToken) => {
+                    foreach (ExcelWorksheetImageExportPlan item in plan) {
+                        operationCancellationToken.ThrowIfCancellationRequested();
+                        item.Sheet.ExportImages(format, accept, item.Options, operationCancellationToken);
+                    }
+                },
+                consumer,
+                cancellationToken);
         }
 
         /// <summary>
@@ -113,6 +122,19 @@ namespace OfficeIMO.Excel {
                     "Workbook image export requested worksheet names that do not exist: " + string.Join(", ", missing) + ".",
                     nameof(sheetNames));
             }
+        }
+
+        private sealed class ExcelWorksheetImageExportPlan {
+            internal ExcelWorksheetImageExportPlan(
+                ExcelSheet sheet,
+                ExcelWorksheetImageExportOptions options) {
+                Sheet = sheet;
+                Options = options;
+            }
+
+            internal ExcelSheet Sheet { get; }
+
+            internal ExcelWorksheetImageExportOptions Options { get; }
         }
     }
 }

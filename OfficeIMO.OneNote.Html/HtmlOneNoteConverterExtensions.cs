@@ -1,5 +1,6 @@
 using OfficeIMO.Html;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace OfficeIMO.OneNote.Html;
@@ -105,11 +106,29 @@ public static class HtmlOneNoteConverterExtensions {
         HtmlToOneNoteSectionResult result,
         HtmlImportBudget budget,
         int level) {
+        int? previousOrdinal = null;
         foreach (HtmlSemanticBlock item in list.Children) {
             OneNoteParagraph? paragraph = CreateParagraph(item, result, budget);
-            if (paragraph == null) break;
-            paragraph.List = new OneNoteListInfo { Ordered = list.Ordered, Level = level };
-            target.Add(paragraph);
+            if (paragraph == null && item.Text.Length > 0) break;
+            if (paragraph != null) {
+                int? displayIndex = null;
+                if (list.Ordered) {
+                    int ordinal = NormalizeOneNoteListOrdinal(item.ListItem?.Ordinal ?? 1, result);
+                    bool shouldRestart = !previousOrdinal.HasValue
+                        || item.ListItem?.ExplicitOrdinal.HasValue == true
+                        || list.List?.IsReversed == true
+                        || (long)ordinal != (long)previousOrdinal.Value + 1L;
+                    if (shouldRestart) displayIndex = ordinal;
+                    previousOrdinal = ordinal;
+                }
+                paragraph.List = new OneNoteListInfo {
+                    Ordered = list.Ordered,
+                    Level = level,
+                    DisplayIndex = displayIndex,
+                    Restart = displayIndex.HasValue
+                };
+                target.Add(paragraph);
+            }
             if (options.ImportImages) {
                 foreach (HtmlSemanticResource resource in item.InlineResources.Where(candidate => candidate.Kind == HtmlResourceKind.Image)) {
                     ImportImage(resource, target, result, budget);
@@ -119,6 +138,16 @@ public static class HtmlOneNoteConverterExtensions {
                 ImportList(nested, target, options, result, budget, level + 1);
             }
         }
+    }
+
+    private static int NormalizeOneNoteListOrdinal(int ordinal, HtmlToOneNoteSectionResult result) {
+        if (ordinal > 0) return ordinal;
+        Add(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+            "A nonpositive HTML list ordinal was clamped to OneNote's minimum display index of 1.",
+            HtmlDiagnosticSeverity.Warning,
+            OfficeConversionLossKind.Approximation,
+            "Ordinal=" + ordinal.ToString(CultureInfo.InvariantCulture) + "; Supported=1..2147483647");
+        return 1;
     }
 
     private static OneNoteParagraph? CreateParagraph(
@@ -225,20 +254,14 @@ public static class HtmlOneNoteConverterExtensions {
                 HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission, resource.Source);
             return;
         }
-        if (!budget.IsImageWithinLimit(dataUri, out string imageLimit)) {
+        if (!budget.TryReserveImageWithShape(dataUri, out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
             Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An embedded HTML image was omitted because the shared import limit was reached.",
                 HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission,
                 imageLimit);
             return;
         }
-        if (!budget.TryReserveImageWithShape(dataUri, out imageLimit)) {
-            Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                "An embedded HTML image was omitted because the shared import limit was reached.",
-                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission,
-                imageLimit);
-            return;
-        }
+        using HtmlImportBudgetReservation imageReservationScope = imageReservation;
         if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
             Add(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
                 "An embedded HTML image could not be decoded.", HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission);
@@ -252,6 +275,7 @@ public static class HtmlOneNoteConverterExtensions {
         });
         result.Elements++;
         result.Images++;
+        imageReservation.Commit();
     }
 
     private static void TrimRuns(OneNoteParagraph paragraph) {

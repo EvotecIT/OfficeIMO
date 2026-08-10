@@ -127,6 +127,20 @@ namespace OfficeIMO.Excel {
             MaterializeDeferredDataSetImport(CancellationToken.None);
 
         internal void MaterializeDeferredDataSetImport(CancellationToken ct) {
+            if (!RequiresDeferredMaterialization) {
+                ct.ThrowIfCancellationRequested();
+                return;
+            }
+
+            if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
+                MaterializeDeferredDataSetImportLocked(ct);
+                return;
+            }
+
+            Locking.ExecuteWrite(EnsureLock(), () => MaterializeDeferredDataSetImportLocked(ct));
+        }
+
+        private void MaterializeDeferredDataSetImportLocked(CancellationToken ct) {
             ct.ThrowIfCancellationRequested();
             if (_materializingDeferredDataSetImport) {
                 return;

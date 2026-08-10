@@ -23,6 +23,17 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfTextExtractor_ExtractAllText_TreatsNullFilterAsAbsent() {
+        byte[] bytes = BuildSingleStreamPdf(
+            Encoding.ASCII.GetBytes("BT\n/F1 12 Tf\n72 720 Td\n(Hello null filter) Tj\nET"),
+            "/Filter null /DecodeParms 42");
+
+        string text = PdfTextExtractor.ExtractAllText(bytes);
+
+        Assert.Contains("Hello null filter", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractAllText_ReadsAsciiHexEncodedContentStreams() {
         byte[] bytes = BuildPdfWithAsciiHexEncodedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello hex) Tj\nET\n");
 

@@ -100,6 +100,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_FitWithinAndTypedContentOptionsApplyToRasterAndSvg() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(240, 160);
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.BackgroundColor = "112233";
+
+            OfficeImageExportResult png = slide.ToImage()
+                .WithScale(4D)
+                .FitWithin(300, 300)
+                .IncludePictures(false)
+                .IncludeCharts(false)
+                .AsPng()
+                .Export();
+            OfficeImageExportResult svg = slide.ToImage()
+                .WithScale(4D)
+                .FitWithin(300, 300)
+                .ConfigureOptions(options => options.IncludeHiddenShapes = false)
+                .AsSvg()
+                .Export();
+
+            Assert.Equal((300, 200), (png.Width, png.Height));
+            Assert.Equal((png.Width, png.Height), (svg.Width, svg.Height));
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        public void PowerPointSlide_GroupDepthFluentMatchesDocumentedOptionContract(int maximumDepth) {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+
+            OfficeImageExportResult result = slide.ToImage()
+                .WithMaximumGroupDepth(maximumDepth)
+                .AsSvg()
+                .Export();
+
+            Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
+        }
+
+        [Fact]
         public void PowerPointPresentation_ToImagesFluentSavesVisibleSlidesAndCanIncludeHiddenSlides() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

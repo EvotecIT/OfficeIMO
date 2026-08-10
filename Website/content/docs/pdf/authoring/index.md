@@ -13,17 +13,18 @@ Prefer document blocks—paragraphs, lists, tables, images, and sections—when 
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument.Create()
+PdfDocument.Create(pdf => pdf.Page(page => page
+        .Header(h => h.Text("Quarterly service review").AlignLeft())
+        .Footer(f => f.Text("Confidential").AlignCenter())
+        .Content(layout => layout.Item(content => content
+            .H1("Service report")
+            .Paragraph(p => p.Text("Generated from validated operational data."))
+            .Table(new[] {
+                new[] { "Service", "Availability", "Status" },
+                new[] { "API", "99.97%", "On target" },
+                new[] { "Portal", "99.92%", "Review" }
+            })))))
     .Meta(title: "Service report", author: "Operations")
-    .Header(h => h.Text("Quarterly service review").AlignLeft())
-    .H1("Service report")
-    .Paragraph(p => p.Text("Generated from validated operational data."))
-    .Table(new[] {
-        new[] { "Service", "Availability", "Status" },
-        new[] { "API", "99.97%", "On target" },
-        new[] { "Portal", "99.92%", "Review" }
-    })
-    .Footer(f => f.Text("Confidential").AlignCenter())
     .Save("service-report.pdf");
 ```
 

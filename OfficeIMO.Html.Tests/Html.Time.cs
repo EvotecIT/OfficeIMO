@@ -76,6 +76,18 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(anchor.QuerySelector("math[aria-label='x=1']"));
             Assert.DoesNotContain("officeimo-html-time:", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
+
+        [Fact]
+        public void WordToHtml_TimeWithoutImportedMetadataPreservesVisibleTextVerbatim() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph().AddText("07/08/2026").CharacterStyleId = "HtmlTime";
+
+            string roundTrip = document.ToHtml();
+
+            IElement time = Assert.IsAssignableFrom<IElement>(
+                HtmlDocumentParser.ParseDocument(roundTrip).QuerySelector("time"));
+            Assert.Equal("07/08/2026", time.GetAttribute("datetime"));
+            Assert.Equal("07/08/2026", time.TextContent);
+        }
     }
 }
-

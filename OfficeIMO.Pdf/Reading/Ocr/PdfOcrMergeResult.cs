@@ -33,16 +33,16 @@ public sealed class PdfOcrPageMergeResult {
     public string Text { get; }
 }
 
-/// <summary>OCR word normalized to top-left PDF-point coordinates.</summary>
+/// <summary>OCR word normalized to top-left visual PDF-point coordinates after crop and page rotation.</summary>
 public sealed class PdfRecognizedWord {
     internal PdfRecognizedWord(string text, double x, double y, double width, double height, double confidence) {
         Text = text; X = x; Y = y; Width = width; Height = height; Confidence = confidence;
     }
     /// <summary>Recognized text.</summary>
     public string Text { get; }
-    /// <summary>Left coordinate in PDF points.</summary>
+    /// <summary>Left coordinate in visual PDF points.</summary>
     public double X { get; }
-    /// <summary>Top coordinate in PDF points.</summary>
+    /// <summary>Top coordinate in visual PDF points.</summary>
     public double Y { get; }
     /// <summary>Width in PDF points.</summary>
     public double Width { get; }

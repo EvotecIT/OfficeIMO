@@ -341,13 +341,12 @@ namespace OfficeIMO.Tests {
             requested.Notes.Text = "Preserved notes";
             NotesSlidePart sourceNotes = requested.SlidePart
                 .NotesSlidePart!;
-            const string BacklinkRelationshipId = "rIdNotesBacklink";
-            sourceNotes.AddPart(requested.SlidePart,
-                BacklinkRelationshipId);
+            string backlinkRelationshipId = sourceNotes.GetIdOfPart(
+                requested.SlidePart);
             sourceNotes.NotesSlide!.Descendants<
                     NonVisualDrawingProperties>().First()
                 .Append(new A.HyperlinkOnClick {
-                    Id = BacklinkRelationshipId,
+                    Id = backlinkRelationshipId,
                     Action = "ppaction://customshow?id=invalid"
                 });
             sourceNotes.NotesSlide.Save();
@@ -365,7 +364,7 @@ namespace OfficeIMO.Tests {
             NotesSlidePart importedNotes = imported.SlidePart
                 .NotesSlidePart!;
             Assert.Contains(importedNotes.Parts, pair =>
-                pair.RelationshipId == BacklinkRelationshipId
+                pair.RelationshipId == backlinkRelationshipId
                 && ReferenceEquals(pair.OpenXmlPart,
                     imported.SlidePart));
             Assert.Empty(importedNotes.NotesSlide!

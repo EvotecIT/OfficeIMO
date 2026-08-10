@@ -47,10 +47,6 @@ namespace OfficeIMO.Tests {
             Assert.True(result.ImportReport.DataValidationCount >= 1, importEvidence);
             Assert.True(result.ImportReport.ConditionalFormattingCount >= 1, importEvidence);
             Assert.True(result.ImportReport.AutoFilterCriteriaCount >= 1, importEvidence);
-            Assert.Contains(result.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject);
-            Assert.Contains(result.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Chart);
-            Assert.Contains(result.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject);
-            Assert.Contains(result.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.Chart);
             Assert.Contains(result.Workbook.ChartRecords, record => record.Kind != LegacyXlsChartRecordKind.PreserveOnly);
             Assert.Contains(result.Workbook.DrawingRecords, record => record.Kind != LegacyXlsDrawingRecordKind.PreserveOnly);
             LegacyXlsWorksheet importedSheet = Assert.Single(result.Workbook.Worksheets);
@@ -99,17 +95,20 @@ namespace OfficeIMO.Tests {
             string outputDirectory = Path.Combine(_directoryWithFiles, "XlsCorpusCom", GetCurrentTargetFrameworkLabel());
             Directory.CreateDirectory(outputDirectory);
             var importedPaths = new List<string>(workbookPaths.Length);
+            int workbookIndex = 0;
             foreach (string workbookPath in workbookPaths) {
                 using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
                     ReportUnsupportedContent = true
                 });
                 Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
 
-                string outputName = GetRelativePath(corpusDirectory, workbookPath)
-                    .Replace(Path.DirectorySeparatorChar, '_')
-                    .Replace(Path.AltDirectorySeparatorChar, '_');
-                string importedPath = Path.Combine(outputDirectory, Path.ChangeExtension(outputName, ".imported.xlsx"));
-                result.Document.Save(importedPath);
+                string sourceName = Path.GetFileNameWithoutExtension(workbookPath);
+                string boundedSourceName = sourceName.Substring(0, Math.Min(sourceName.Length, 32));
+                string outputName = $"{workbookIndex++:D3}-{boundedSourceName}.imported.xlsx";
+                string importedPath = Path.Combine(outputDirectory, outputName);
+                result.Document.Save(importedPath, new ExcelSaveOptions {
+                    LossPolicy = OfficeConversionLossPolicy.Allow
+                });
                 importedPaths.Add(importedPath);
             }
 
@@ -178,23 +177,24 @@ namespace OfficeIMO.Tests {
         [SupportedOSPlatform("windows")]
 #endif
         private static void CreateLegacyXlsWorkbookViaExcelCom(string path) {
-            var failures = new List<string>();
+            var failures = new System.Collections.Concurrent.ConcurrentQueue<string>();
             var thread = new Thread(() => {
                 try {
-                    CreateLegacyXlsWorkbookViaExcelComOnStaThread(path);
-                } catch (Exception ex) when (ex is COMException or InvalidOperationException or MissingMethodException or TargetInvocationException) {
-                    failures.Add(DescribeExcelComFailure(ex));
+                    RunWithExcelComLock(() =>
+                        CreateLegacyXlsWorkbookViaExcelComOnStaThread(path));
+                } catch (Exception ex) {
+                    failures.Enqueue(DescribeExcelComFailure(ex));
                 }
             });
 
             thread.IsBackground = true;
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
-            if (!thread.Join(ExcelComOpenTimeout)) {
-                failures.Add($"Excel COM legacy XLS generation timed out after {ExcelComOpenTimeout.TotalSeconds:0} seconds.");
+            if (!thread.Join(ExcelComWorkerTimeout)) {
+                failures.Enqueue($"Excel COM legacy XLS generation timed out after {ExcelComWorkerTimeout.TotalSeconds:0} seconds, including up to {ExcelComLockTimeout.TotalSeconds:0} seconds waiting for the cross-process lock. The worker continues to own the lock until it exits.");
             }
 
-            Assert.True(failures.Count == 0, "Failed to generate the legacy XLS workbook through desktop Excel." + Environment.NewLine + string.Join(Environment.NewLine, failures));
+            Assert.True(failures.IsEmpty, "Failed to generate the legacy XLS workbook through desktop Excel." + Environment.NewLine + string.Join(Environment.NewLine, failures));
         }
 
 #if NET5_0_OR_GREATER

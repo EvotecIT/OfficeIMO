@@ -334,12 +334,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsSlicerBindingMetadataPart(OpenXmlPart part) {
-            return string.Equals(part.ContentType, WorkbookSlicerCacheContentType, StringComparison.OrdinalIgnoreCase)
+            return CombinedPivotInteractionMetadataContains(part, ExcelPivotInteractionCacheKind.Slicer)
+                || string.Equals(part.ContentType, WorkbookSlicerCacheContentType, StringComparison.OrdinalIgnoreCase)
                 || IsLegacyOfficeImoPivotInteractionMetadataPart(part, ExcelPivotInteractionCacheKind.Slicer);
         }
 
         private static bool IsTimelineBindingMetadataPart(OpenXmlPart part) {
-            return string.Equals(part.ContentType, WorkbookTimelineCacheContentType, StringComparison.OrdinalIgnoreCase)
+            return CombinedPivotInteractionMetadataContains(part, ExcelPivotInteractionCacheKind.Timeline)
+                || string.Equals(part.ContentType, WorkbookTimelineCacheContentType, StringComparison.OrdinalIgnoreCase)
                 || IsLegacyOfficeImoPivotInteractionMetadataPart(part, ExcelPivotInteractionCacheKind.Timeline);
         }
 
@@ -532,8 +534,16 @@ namespace OfficeIMO.Excel {
                     Type = GetOpenXmlAttributeValue(dataValidation, "type")?.ToLowerInvariant(),
                     Operator = GetOpenXmlAttributeValue(dataValidation, "operator"),
                     AllowBlank = dataValidation.AllowBlank?.Value == true,
+                    SuppressDropDown = dataValidation.ShowDropDown?.Value == true,
                     Formula1 = dataValidation.GetFirstChild<Formula1>()?.Text,
                     Formula2 = dataValidation.GetFirstChild<Formula2>()?.Text,
+                    ShowInputMessage = dataValidation.ShowInputMessage?.Value == true,
+                    PromptTitle = dataValidation.PromptTitle?.Value,
+                    Prompt = dataValidation.Prompt?.Value,
+                    ShowErrorMessage = dataValidation.ShowErrorMessage?.Value == true,
+                    ErrorTitle = dataValidation.ErrorTitle?.Value,
+                    Error = dataValidation.Error?.Value,
+                    ErrorStyle = GetOpenXmlAttributeValue(dataValidation, "errorStyle"),
                 };
 
                 var sequenceOfReferences = dataValidation.SequenceOfReferences?.InnerText;

@@ -54,7 +54,8 @@ internal static partial class HtmlReaderAdapter {
         var parseStream = ReaderInputLimits.EnsureSeekableReadStream(htmlStream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out var ownsParseStream);
         try {
             UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes);
-            string html = ReadAllText(parseStream, cancellationToken);
+            ReaderHtmlOptions effectiveHtmlOptions = ReaderHtmlOptionsCloner.CloneOrDefault(htmlOptions);
+            string html = ReadAllText(parseStream, effectiveHtmlOptions.InputEncoding, cancellationToken);
             foreach (var chunk in ReadContent(html, source, effectiveReaderOptions, htmlOptions, cancellationToken)) {
                 yield return chunk;
             }
@@ -266,10 +267,12 @@ internal static partial class HtmlReaderAdapter {
         return parts;
     }
 
-    private static string ReadAllText(Stream stream, CancellationToken cancellationToken) {
+    private static string ReadAllText(Stream stream, Encoding? explicitEncoding, CancellationToken cancellationToken) {
         var sb = new StringBuilder();
         var buffer = new char[16 * 1024];
-        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 16 * 1024, leaveOpen: true);
+        Stream input = HtmlTextEncodingResolver.PrepareHtmlStream(stream, explicitEncoding, out Encoding encoding);
+        if (stream.CanSeek) stream.Position = 0;
+        using var reader = new StreamReader(input, encoding, detectEncodingFromByteOrderMarks: explicitEncoding == null, bufferSize: 16 * 1024, leaveOpen: true);
 
         while (true) {
             cancellationToken.ThrowIfCancellationRequested();

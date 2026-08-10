@@ -4,6 +4,17 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     /// <summary>
+    /// Fluent image-export builder for an Excel chart.
+    /// </summary>
+    public sealed class ExcelChartImageExportBuilder : OfficeImageExportBuilder<ExcelChartImageExportBuilder, ExcelImageExportOptions> {
+        internal ExcelChartImageExportBuilder(ExcelChart chart, ExcelImageExportOptions? options = null)
+            : base(
+                options?.Clone() ?? new ExcelImageExportOptions(),
+                (format, effective, cancellationToken) => chart.ExportImage(format, effective, cancellationToken)) {
+        }
+    }
+
+    /// <summary>
     /// Fluent image-export builder for an Excel range.
     /// </summary>
     public sealed class ExcelRangeImageExportBuilder : OfficeImageExportBuilder<ExcelRangeImageExportBuilder, ExcelImageExportOptions> {
@@ -63,6 +74,12 @@ namespace OfficeIMO.Excel {
             Options.ShowCommentBodies = show;
             return this;
         }
+
+        /// <summary>Enables or disables automatic hyperlink styling hints.</summary>
+        public ExcelRangeImageExportBuilder ShowHyperlinkHints(bool show = true) {
+            Options.ShowHyperlinkHints = show;
+            return this;
+        }
     }
 
     /// <summary>
@@ -99,6 +116,27 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Disables worksheet gridline rendering.</summary>
         public ExcelWorksheetImageExportBuilder WithoutGridlines() => WithGridlines(false);
+
+        /// <summary>Includes or excludes hidden rows and columns.</summary>
+        public ExcelWorksheetImageExportBuilder IncludeHidden(bool include = true) { Options.IncludeHidden = include; return this; }
+
+        /// <summary>Includes or excludes worksheet images.</summary>
+        public ExcelWorksheetImageExportBuilder IncludeImages(bool include = true) { Options.IncludeImages = include; return this; }
+
+        /// <summary>Includes or excludes worksheet charts.</summary>
+        public ExcelWorksheetImageExportBuilder IncludeCharts(bool include = true) { Options.IncludeCharts = include; return this; }
+
+        /// <summary>Includes or excludes supported drawing objects.</summary>
+        public ExcelWorksheetImageExportBuilder IncludeDrawingObjects(bool include = true) { Options.IncludeDrawingObjects = include; return this; }
+
+        /// <summary>Includes or excludes supported conditional-formatting visuals.</summary>
+        public ExcelWorksheetImageExportBuilder IncludeConditionalFormatting(bool include = true) { Options.IncludeConditionalFormatting = include; return this; }
+
+        /// <summary>Enables or disables visible cell comment bodies.</summary>
+        public ExcelWorksheetImageExportBuilder ShowComments(bool show = true) { Options.ShowCommentBodies = show; return this; }
+
+        /// <summary>Enables or disables automatic hyperlink styling hints.</summary>
+        public ExcelWorksheetImageExportBuilder ShowHyperlinkHints(bool show = true) { Options.ShowHyperlinkHints = show; return this; }
     }
 
     /// <summary>
@@ -214,6 +252,15 @@ namespace OfficeIMO.Excel {
         /// <summary>Starts a fluent image export using a cloned options snapshot.</summary>
         public ExcelRangeImageExportBuilder ToImage(ExcelImageExportOptions options) =>
             new ExcelRangeImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
+    }
+
+    public sealed partial class ExcelChart {
+        /// <summary>Starts a fluent image export for this chart.</summary>
+        public ExcelChartImageExportBuilder ToImage() => new ExcelChartImageExportBuilder(this);
+
+        /// <summary>Starts a fluent image export using a cloned options snapshot.</summary>
+        public ExcelChartImageExportBuilder ToImage(ExcelImageExportOptions options) =>
+            new ExcelChartImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
     }
 
     public partial class ExcelSheet {

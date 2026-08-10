@@ -25,21 +25,21 @@ dotnet add package OfficeIMO.Security
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument.Create(new PdfOptions {
-        DefaultFont = PdfStandardFont.Helvetica,
-        DefaultFontSize = 11
-    })
+PdfDocument.Create(pdf => pdf.Content(content => content
+        .H1("OfficeIMO.Pdf")
+        .Paragraph(p => p
+            .Text("A first-party PDF builder with ")
+            .Bold("rich text")
+            .Text(", links, tables, images, and document operations."))
+        .Table(new[] {
+            new[] { "Area", "Status" },
+            new[] { "Optional signature provider", "OfficeIMO.Security" },
+            new[] { "License", "MIT" }
+        })), new PdfOptions {
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 11
+        })
     .Meta(title: "Hello PDF", author: "OfficeIMO")
-    .H1("OfficeIMO.Pdf")
-    .Paragraph(p => p
-        .Text("A first-party PDF builder with ")
-        .Bold("rich text")
-        .Text(", links, tables, images, and document operations."))
-    .Table(new[] {
-        new[] { "Area", "Status" },
-        new[] { "Optional signature provider", "OfficeIMO.Security" },
-        new[] { "License", "MIT" }
-    })
     .Save("hello.pdf");
 ```
 
@@ -115,8 +115,12 @@ The unified API intentionally narrows the public surface around the fluent
   passing them back to `AssessComplianceProof(...)`. The returned immutable
   snapshot keeps exact output bytes and matching readiness evidence together,
   including for randomized encrypted output.
+- Author new documents through `PdfDocument.Create(pdf => ...)` or append authored
+  content through `Compose(...)`. Headings, paragraphs, tables, images, and other
+  flow primitives live on `PdfItemCompose`; they are no longer duplicated on the
+  root document.
 - Use the fluent `Pages`, `Forms`, `Attachments`, `Bookmarks`, `Annotations`,
-  `Stamp`, `Security`, and metadata operations instead of the former public
+  `Stamp`, `Security`, `Redactions`, `Optimization`, `Proof`, and metadata operations instead of the former public
   static engine classes. Those implementation engines are now internal so there
   is one supported route for each operation.
 - `Save(...)`, `SaveAsync(...)`, and every typed adapter `SaveAsPdf(...)` now
@@ -147,19 +151,20 @@ pdf.Pages[0]
 
 pdf.ToImages()
     .Pages("1-3,last")
+    .FitWithin(1600, 1200)
     .WithMaximumRasterPixels(20_000_000)
     .AsWebp()
     .Save("page-images");
 
-PdfDocument.Create()
-    .H1("Authored PDF")
-    .Paragraph(paragraph => paragraph.Text("The authored model uses the same page renderer."))
+PdfDocument.Create(pdf => pdf.Content(content => content
+        .H1("Authored PDF")
+        .Paragraph(paragraph => paragraph.Text("The authored model uses the same page renderer."))))
     .ToImages()
     .AsPng()
     .Save("authored-page-images");
 ```
 
-PNG, JPEG, TIFF, SVG, and WebP use the same `OfficeImageExportResult` contract and Drawing-owned encoders. Allocation limits are resolved before a raster buffer is created. Unsupported or simplified PDF operators and resources remain visible as typed image diagnostics.
+PNG, JPEG, TIFF, SVG, and WebP use the same `OfficeImageExportResult` contract and Drawing-owned encoders. Pixel-fit limits apply consistently to vector and raster output, and allocation limits are resolved before a raster buffer is created. Unsupported or simplified PDF operators and resources remain visible as typed image diagnostics.
 
 Any adapter that returns `PdfDocumentConversionResult` can use the same paged-image bridge without adding another renderer:
 
@@ -178,35 +183,36 @@ Source conversion warnings are copied into every page result. Use `PdfReadPage.T
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument.Create(new PdfOptions {
-        PageSize = PageSizes.A4,
-        Margins = PageMargins.UniformCentimeters(1.6),
-        DefaultFont = PdfStandardFont.Helvetica,
-        DefaultFontSize = 10
-    })
+PdfDocument.Create(pdf => pdf.Page(page => page
+        .Header(h => h.AlignCenter().Text("Service report"))
+        .Footer(f => f.AlignRight().Text("Page {page} of {pages}"))
+        .Content(layout => layout.Item(content => content
+            .H1("Service report")
+            .Paragraph(p => p
+                .Text("Generated ")
+                .Bold(DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm 'UTC'"))
+                .Text(" with first-party PDF primitives."))
+            .Table(new[] {
+                new[] { "System", "Status", "Owner" },
+                new[] { "Identity", "Green", "Operations" },
+                new[] { "Messaging", "Yellow", "Exchange" }
+            })))), new PdfOptions {
+            PageSize = PageSizes.A4,
+            Margins = PageMargins.UniformCentimeters(1.6),
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        })
     .Meta(
         title: "Service report",
         author: "OfficeIMO",
         subject: "Generated PDF")
-    .Header(h => h.AlignCenter().Text("Service report"))
-    .Footer(f => f.AlignRight().Text("Page {page} of {pages}"))
-    .H1("Service report")
-    .Paragraph(p => p
-        .Text("Generated ")
-        .Bold(DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm 'UTC'"))
-        .Text(" with first-party PDF primitives."))
-    .Table(new[] {
-        new[] { "System", "Status", "Owner" },
-        new[] { "Identity", "Green", "Operations" },
-        new[] { "Messaging", "Yellow", "Exchange" }
-    })
     .Save("service-report.pdf");
 ```
 
 Generated headers and footers can combine literal text, visually styled runs, and styled page tokens. The same builder is available for the default, first-page, and even-page variants:
 
 ```csharp
-PdfDocument.Create()
+PdfDocument.Create(pdf => pdf.Page(page => page
     .Header(header => header
         .Text(text => text
             .Run(PdfTextRun.Bolded("Confidential ", PdfColor.FromRgb(180, 0, 0)))
@@ -216,7 +222,8 @@ PdfDocument.Create()
             .TotalPages(PdfTextRun.Italicized(string.Empty)))
         .FirstPageText(text => text.Run(PdfTextRun.Bolded("Confidential cover")))
         .EvenPagesText(text => text.Run(PdfTextRun.Underlined("Confidential even page"))))
-    .Paragraph(p => p.Text("Generated report body."))
+    .Content(layout => layout.Item(content => content
+        .Paragraph(p => p.Text("Generated report body."))))))
     .Save("styled-header.pdf");
 ```
 
@@ -225,24 +232,24 @@ Styled header/footer runs support fonts, size, color, highlighting, underline, s
 ### Rich report layout
 
 ```csharp
-PdfDocument.Create()
-    .H1("Operational summary")
-    .Paragraph(p => p
-        .Text("Generated ")
-        .Bold(DateTime.Today.ToString("yyyy-MM-dd"))
-        .Text(" with links, lists, panels, and tables."))
-    .Bullets(list => list
-        .Item("No runtime package dependencies")
-        .Item("Word-like document flow")
-        .Item("Reusable PDF primitives for adapters"))
-    .Panel(panel => panel
-        .H2("Review note")
-        .Paragraph(p => p.Text("Keep polished report designs in samples; keep reusable primitives in the engine.")))
-    .Table(new[] {
-        new[] { "Area", "Status" },
-        new[] { "Layout", "Ready" },
-        new[] { "Reading", "Evolving" }
-    })
+PdfDocument.Create(pdf => pdf.Content(content => content
+        .H1("Operational summary")
+        .Paragraph(p => p
+            .Text("Generated ")
+            .Bold(DateTime.Today.ToString("yyyy-MM-dd"))
+            .Text(" with links, lists, panels, and tables."))
+        .Bullets(list => list
+            .Item("No runtime package dependencies")
+            .Item("Word-like document flow")
+            .Item("Reusable PDF primitives for adapters"))
+        .Panel(panel => panel
+            .H2("Review note")
+            .Paragraph(p => p.Text("Keep polished report designs in samples; keep reusable primitives in the engine.")))
+        .Table(new[] {
+            new[] { "Area", "Status" },
+            new[] { "Layout", "Ready" },
+            new[] { "Reading", "Evolving" }
+        })))
     .Save("summary.pdf");
 ```
 
@@ -257,9 +264,9 @@ var invoice = new PdfInvoiceComponent(
     lines: new[] { new PdfInvoiceLine("Engineering", 2M, 50M, taxRate: 0.20M) },
     currencyCode: "EUR");
 
-PdfDocument.Create()
-    .Component(new PdfReportComponent("Delivery summary", "All checks passed."))
-    .Component(invoice)
+PdfDocument.Create(pdf => pdf.Content(content => content
+        .Component(new PdfReportComponent("Delivery summary", "All checks passed."))
+        .Component(invoice)))
     .Save("delivery-pack.pdf");
 ```
 
@@ -277,12 +284,12 @@ var hyphenation = new PdfHyphenationLexicon(new[] {
     "re-port-ing"
 });
 
-PdfDocument.Create(new PdfOptions()
-        .UseTextHyphenationDictionary(hyphenation))
-    .Paragraph(paragraph => paragraph
-        .Text("Automation status ")
-        .InlineImage(statusIcon, 12, 12, alternativeText: "Healthy")
-        .Text(" remains available during long reporting runs."))
+PdfDocument.Create(pdf => pdf.Content(content => content
+        .Paragraph(paragraph => paragraph
+            .Text("Automation status ")
+            .InlineImage(statusIcon, 12, 12, alternativeText: "Healthy")
+            .Text(" remains available during long reporting runs."))),
+    new PdfOptions().UseTextHyphenationDictionary(hyphenation))
     .Save("inline-status.pdf");
 ```
 
@@ -296,17 +303,17 @@ var options = new PdfOptions {
     ObjectBufferMemoryLimitBytes = 8 * 1024 * 1024
 };
 
-PdfSaveResult save = PdfDocument.Create(options)
-    .TableOfContents()
-    .Section("Summary", section => section
-        .Container(content => content
-            .Paragraph(p => p.Text("A styled, keep-together summary."))))
-    .Section("Details", section => section
-        .Columns(columns => {
-            columns.Paragraph(p => p.Text("First column"));
-            columns.ColumnBreak();
-            columns.Paragraph(p => p.Text("Second column"));
-        }, new PdfMultiColumnOptions { ColumnCount = 2, Gap = 18 }))
+PdfSaveResult save = PdfDocument.Create(pdf => pdf.Content(content => content
+        .TableOfContents()
+        .Section("Summary", section => section
+            .Container(container => container
+                .Paragraph(p => p.Text("A styled, keep-together summary."))))
+        .Section("Details", section => section
+            .Columns(columns => {
+                columns.Paragraph(p => p.Text("First column"));
+                columns.ColumnBreak();
+                columns.Paragraph(p => p.Text("Second column"));
+            }, new PdfMultiColumnOptions { ColumnCount = 2, Gap = 18 }))), options)
     .Save("navigable-report.pdf");
 
 Console.WriteLine($"Peak page payload: {save.Serialization?.PeakRetainedPageContentBytes}");
@@ -438,15 +445,16 @@ using OfficeIMO.Security;
 IOfficeSecurityProvider security = OfficeSecurityProvider.Default;
 using var signer = new PdfCmsExternalSigner(security, signingCertificate);
 
-PdfExternalSignatureCompletion signed = PdfIncrementalUpdater.SignExternal(
-    File.ReadAllBytes("contract.pdf"),
-    signer,
-    new PdfExternalSignatureOptions { FieldName = "Approval" });
+PdfExternalSignatureCompletion signed = PdfDocument
+    .Open("contract.pdf")
+    .Security.SignExternal(
+        signer,
+        new PdfExternalSignatureOptions { FieldName = "Approval" });
 
 var cryptography = new PdfCmsSignatureCryptographyProvider(
     security,
     new CmsVerificationOptions());
-PdfSignatureValidationReport report = signed.ToDocument().ValidateSignatures(cryptography);
+PdfSignatureValidationReport report = signed.ToDocument().Security.ValidateSignatures(cryptography);
 ```
 
 The PDF package owns byte ranges, incremental updates, signature dictionaries, and preservation policy. The optional
@@ -535,9 +543,9 @@ var options = new PdfOptions()
     .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "Source Serif 4")
     .RequireCompliance(PdfComplianceProfile.PdfA2B);
 
-PdfComplianceArtifact artifact = PdfDocument.Create(options)
+PdfComplianceArtifact artifact = PdfDocument.Create(pdf => pdf.Content(content => content
+        .Paragraph(paragraph => paragraph.Text("This artifact is ready for external validation."))), options)
     .Meta(title: "Archive copy")
-    .Paragraph(paragraph => paragraph.Text("This artifact is ready for external validation."))
     .CreateComplianceArtifact(PdfComplianceProfile.PdfA2B);
 
 byte[] pdf = artifact.ToBytes();
@@ -559,7 +567,7 @@ if (!proof.CanClaimConformance) {
 }
 ```
 
-Formal generation gates are available for PDF/A-2b, PDF/A-3b, PDF/UA-1, Factur-X, and ZUGFeRD. `RequireCompliance(...)` rejects incomplete generation settings. A conformance claim still requires a passing external result for the same profile, SHA-256, and byte length; validators are build-time tools and are not runtime dependencies of `OfficeIMO.Pdf`.
+Formal generation gates are available for PDF/A-2a/b/u, PDF/A-3a/b/u, PDF/A-4/4e/4f, PDF/UA-1, PDF/UA-2, Factur-X, and ZUGFeRD. `RequireCompliance(...)` rejects incomplete generation settings. A conformance claim still requires a passing external result for the same profile, SHA-256, and byte length; validators are build-time tools and are not runtime dependencies of `OfficeIMO.Pdf`.
 
 ### Choose converter-friendly text fallbacks
 
@@ -592,14 +600,15 @@ using OfficeIMO.Pdf;
 byte[] invoiceXml = File.ReadAllBytes("factur-x.xml");
 byte[] fontBytes = File.ReadAllBytes("SourceSerif4-Regular.otf");
 
-PdfDocument.Create(new PdfOptions()
+PdfDocument.Create(pdf => pdf.Content(content => content
+        .Paragraph(paragraph => paragraph.Text("Invoice preview"))),
+    new PdfOptions()
         .UseFacturX(
             invoiceXml,
             relationship: PdfAssociatedFileRelationship.Alternative,
             textFallbacks: PdfTextFallbackFeatures.None)
         .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "Source Serif 4")
         .RequireCompliance(PdfComplianceProfile.FacturX))
-    .Paragraph("Invoice preview")
     .Save("invoice.pdf");
 ```
 
@@ -608,17 +617,18 @@ The XML must be a valid EN 16931 CrossIndustryInvoice payload. The formal carrie
 ### Page setup, watermarks, and metadata
 
 ```csharp
-PdfDocument.Create(new PdfOptions {
-        PageSize = PageSize.FromCentimeters(21, 29.7).Portrait(),
-        Margins = PageMargins.UniformCentimeters(1.5),
-        TextWatermark = new PdfTextWatermark("DRAFT") {
-            Opacity = 0.12,
-            RotationAngle = -35
-        }
-    })
+PdfDocument.Create(pdf => pdf.Content(content => content
+        .H1("Draft report")
+        .Paragraph(paragraph => paragraph.Text("This document uses page-level options instead of post-processing."))),
+    new PdfOptions {
+            PageSize = PageSize.FromCentimeters(21, 29.7).Portrait(),
+            Margins = PageMargins.UniformCentimeters(1.5),
+            TextWatermark = new PdfTextWatermark("DRAFT") {
+                Opacity = 0.12,
+                RotationAngle = -35
+            }
+        })
     .Meta(title: "Draft report", author: "OfficeIMO")
-    .H1("Draft report")
-    .Paragraph("This document uses page-level options instead of post-processing.")
     .Save("draft.pdf");
 ```
 

@@ -595,6 +595,7 @@ internal static class RtfToMarkdownConverter {
     }
 
     private static InlineSequence ConvertParagraphInlines(RtfParagraph paragraph, RtfToMarkdownConversionContext context, ref int imageIndex) {
+        ReportUnsupportedParagraphFormatting(paragraph, context);
         InlineSequence sequence = CreateInlineSequence();
         for (int i = 0; i < paragraph.Inlines.Count; i++) {
             AppendInline(sequence, paragraph.Inlines[i], context, ref imageIndex);
@@ -692,6 +693,8 @@ internal static class RtfToMarkdownConverter {
             return;
         }
 
+        ReportUnsupportedRunFormatting(run, context);
+
         IMarkdownInline? inline = BuildRunInline(run);
         if (inline != null && run.Hyperlink != null) {
             sequence.AddRaw(new LinkInline(InlineSequenceOf(inline), FormatMarkdownLinkDestination(run.Hyperlink.ToString()), null));
@@ -700,6 +703,58 @@ internal static class RtfToMarkdownConverter {
         }
 
         AppendNoteReference(sequence, run.Note, context);
+    }
+
+    private static void ReportUnsupportedRunFormatting(RtfRun run, RtfToMarkdownConversionContext context) {
+        var features = new List<string>();
+        if (run.Hidden && context.IncludeHiddenText) features.Add("hidden-visibility");
+        if ((run.UnderlineStyle != RtfUnderlineStyle.None && run.UnderlineStyle != RtfUnderlineStyle.Single) || run.UnderlineColorIndex.HasValue) features.Add("underline-style-or-color");
+        if (run.DoubleStrike) features.Add("double-strike");
+        if (run.HighlightColorIndex.HasValue) features.Add("highlight-color");
+        if (run.Outline || run.Shadow || run.Emboss || run.Imprint || run.CapsStyle != RtfCapsStyle.None) features.Add("text-effects");
+        if (run.FontSize.HasValue || run.FontId.HasValue || run.ForegroundColorIndex.HasValue) features.Add("font-or-color");
+        if (run.CharacterBackgroundColorIndex.HasValue || run.CharacterShadingForegroundColorIndex.HasValue ||
+            run.CharacterShadingPatternPercent.HasValue || run.CharacterShadingPattern != RtfShadingPattern.None) features.Add("character-shading");
+        if (run.CharacterBorder.HasAnyValue) features.Add("character-border");
+        if (run.CharacterSpacingTwips.HasValue || run.CharacterScalePercent.HasValue || run.KerningHalfPoints.HasValue ||
+            run.CharacterOffsetHalfPoints.HasValue) features.Add("character-metrics");
+        if (run.StyleId.HasValue || run.Direction.HasValue || run.LanguageId.HasValue) features.Add("style-direction-or-language");
+        if (run.RevisionKind != RtfRevisionKind.None || run.RevisionAuthorIndex.HasValue || run.RevisionTimestampValue.HasValue ||
+            run.CharacterRevisionSaveId.HasValue || run.InsertionRevisionSaveId.HasValue || run.DeletionRevisionSaveId.HasValue) features.Add("revision-metadata");
+        if (features.Count == 0) return;
+        context.Report(
+            "RTFMD021",
+            RtfMarkdownDiagnosticSeverity.Warning,
+            "RTF run formatting outside Markdown's semantic inline subset was flattened.",
+            string.Join(",", features),
+            RtfConversionAction.Flattened);
+    }
+
+    private static void ReportUnsupportedParagraphFormatting(RtfParagraph paragraph, RtfToMarkdownConversionContext context) {
+        var features = new List<string>();
+        if (paragraph.Alignment != RtfTextAlignment.Left) features.Add("alignment");
+        if (paragraph.Direction.HasValue || paragraph.StyleId.HasValue) features.Add("direction-or-style");
+        if (paragraph.RightIndentTwips.HasValue || paragraph.FirstLineIndentTwips.HasValue ||
+            (paragraph.ListKind == RtfListKind.None && paragraph.LeftIndentTwips.HasValue)) features.Add("indentation");
+        if (paragraph.SpaceBeforeTwips.HasValue || paragraph.SpaceAfterTwips.HasValue || paragraph.SpaceBeforeAuto.HasValue ||
+            paragraph.SpaceAfterAuto.HasValue || paragraph.LineSpacingTwips.HasValue || paragraph.LineSpacingMultiple.HasValue) features.Add("spacing");
+        if (paragraph.BackgroundColorIndex.HasValue || paragraph.ShadingForegroundColorIndex.HasValue ||
+            paragraph.ShadingPatternPercent.HasValue || paragraph.ShadingPattern != RtfShadingPattern.None) features.Add("shading");
+        if (paragraph.TopBorder.HasAnyValue || paragraph.LeftBorder.HasAnyValue || paragraph.BottomBorder.HasAnyValue ||
+            paragraph.RightBorder.HasAnyValue) features.Add("borders");
+        if (paragraph.TabStops.Count > 0) features.Add("tab-stops");
+        if (paragraph.PageBreakBefore || paragraph.KeepWithNext || paragraph.KeepLinesTogether || paragraph.SuppressLineNumbers ||
+            paragraph.AutoHyphenation.HasValue || paragraph.ContextualSpacing.HasValue || paragraph.AdjustRightIndent.HasValue ||
+            paragraph.SnapToLineGrid.HasValue || paragraph.WidowControl.HasValue) features.Add("pagination-or-layout-controls");
+        if (paragraph.Frame.HasAnyValue) features.Add("frame-or-drop-cap");
+        if (paragraph.RevisionSaveId.HasValue) features.Add("revision-metadata");
+        if (features.Count == 0) return;
+        context.Report(
+            "RTFMD022",
+            RtfMarkdownDiagnosticSeverity.Warning,
+            "RTF paragraph formatting outside Markdown's block subset was flattened.",
+            string.Join(",", features),
+            RtfConversionAction.Flattened);
     }
 
     private static IMarkdownInline? BuildRunInline(RtfRun run) {

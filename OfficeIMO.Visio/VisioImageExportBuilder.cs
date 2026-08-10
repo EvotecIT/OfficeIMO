@@ -17,6 +17,9 @@ public sealed class VisioPageImageExportBuilder : OfficeImageExportBuilder<Visio
     /// <summary>Includes or excludes connector labels.</summary>
     public VisioPageImageExportBuilder IncludeConnectorLabels(bool include = true) { Options.RenderConnectorLabels = include; return this; }
 
+    /// <summary>Enables or disables connector-label overlap resolution.</summary>
+    public VisioPageImageExportBuilder ResolveConnectorLabelOverlaps(bool resolve = true) { Options.ResolveConnectorLabelOverlaps = resolve; return this; }
+
     private static Func<OfficeImageExportFormat, VisioImageExportOptions, System.Threading.CancellationToken, OfficeImageExportResult> CreateExporter(VisioPage page) {
         if (page == null) throw new ArgumentNullException(nameof(page));
         return (format, options, cancellationToken) => page.ExportImage(format, options, cancellationToken);
@@ -38,6 +41,15 @@ public sealed class VisioDocumentImageExportBuilder : OfficeImageExportBuilder<V
 
     /// <summary>Includes or excludes shape and connector text.</summary>
     public VisioDocumentImageExportBuilder IncludeText(bool include = true) { Options.RenderText = include; return this; }
+
+    /// <summary>Includes or excludes built-in stencil artwork.</summary>
+    public VisioDocumentImageExportBuilder IncludeStencilArtwork(bool include = true) { Options.RenderStencilArtwork = include; return this; }
+
+    /// <summary>Includes or excludes connector labels.</summary>
+    public VisioDocumentImageExportBuilder IncludeConnectorLabels(bool include = true) { Options.RenderConnectorLabels = include; return this; }
+
+    /// <summary>Enables or disables connector-label overlap resolution.</summary>
+    public VisioDocumentImageExportBuilder ResolveConnectorLabelOverlaps(bool resolve = true) { Options.ResolveConnectorLabelOverlaps = resolve; return this; }
 
     private static Func<OfficeImageExportFormat, VisioImageExportOptions, System.Threading.CancellationToken, OfficeImageExportResult> CreateExporter(VisioDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));
@@ -77,6 +89,15 @@ public sealed class VisioDocumentImageBatchExportBuilder : OfficeImageExportBatc
 
     /// <summary>Includes or excludes shape and connector text.</summary>
     public VisioDocumentImageBatchExportBuilder IncludeText(bool include = true) { Options.RenderText = include; return this; }
+
+    /// <summary>Includes or excludes built-in stencil artwork.</summary>
+    public VisioDocumentImageBatchExportBuilder IncludeStencilArtwork(bool include = true) { Options.RenderStencilArtwork = include; return this; }
+
+    /// <summary>Includes or excludes connector labels.</summary>
+    public VisioDocumentImageBatchExportBuilder IncludeConnectorLabels(bool include = true) { Options.RenderConnectorLabels = include; return this; }
+
+    /// <summary>Enables or disables connector-label overlap resolution.</summary>
+    public VisioDocumentImageBatchExportBuilder ResolveConnectorLabelOverlaps(bool resolve = true) { Options.ResolveConnectorLabelOverlaps = resolve; return this; }
 
     private static Func<OfficeImageExportFormat, VisioImageExportOptions, IReadOnlyList<OfficeImageExportResult>> CreateExporter(VisioDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));

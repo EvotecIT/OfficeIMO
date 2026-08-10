@@ -45,6 +45,22 @@ public sealed class OdfStyle {
         get => ReadToggle(TextProperties, OdfNamespaces.Fo + "font-style", "italic", "normal");
         set => WriteToggle(GetProperties(OdfNamespaces.Style + "text-properties"), OdfNamespaces.Fo + "font-style", value, "italic", "normal");
     }
+    /// <summary>True when text underline is explicitly enabled by this style.</summary>
+    public bool? Underline {
+        get => ReadDecorationToggle(TextProperties, OdfNamespaces.Style + "text-underline-style");
+        set => WriteDecorationToggle(OdfNamespaces.Style + "text-underline-style", value);
+    }
+    /// <summary>Whether this style explicitly uses an underline variant other than <c>solid</c> or <c>none</c>.</summary>
+    public bool? UsesNonSolidUnderlineStyle => ReadNonSolidDecoration(
+        TextProperties, OdfNamespaces.Style + "text-underline-style");
+    /// <summary>True when text strike-through is explicitly enabled by this style.</summary>
+    public bool? StrikeThrough {
+        get => ReadDecorationToggle(TextProperties, OdfNamespaces.Style + "text-line-through-style");
+        set => WriteDecorationToggle(OdfNamespaces.Style + "text-line-through-style", value);
+    }
+    /// <summary>Whether this style explicitly uses a line-through variant other than <c>solid</c> or <c>none</c>.</summary>
+    public bool? UsesNonSolidLineThroughStyle => ReadNonSolidDecoration(
+        TextProperties, OdfNamespaces.Style + "text-line-through-style");
     /// <summary>Explicit font size.</summary>
     public OdfLength? FontSize {
         get => ReadLength(TextProperties, OdfNamespaces.Fo + "font-size");
@@ -52,7 +68,13 @@ public sealed class OdfStyle {
     }
     /// <summary>Explicit font family.</summary>
     public string? FontFamily {
-        get => (string?)TextProperties?.Attribute(OdfNamespaces.Fo + "font-family");
+        get {
+            string? family = NormalizeFontFamily(
+                (string?)TextProperties?.Attribute(OdfNamespaces.Fo + "font-family"));
+            if (family != null) return family;
+            string? fontName = (string?)TextProperties?.Attribute(OdfNamespaces.Style + "font-name");
+            return _document.Styles.ResolveFontFaceFamily(fontName, PartPath);
+        }
         set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"), OdfNamespaces.Fo + "font-family", value);
     }
     /// <summary>Explicit text color.</summary>
@@ -63,12 +85,19 @@ public sealed class OdfStyle {
         }
         set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"), OdfNamespaces.Fo + "color", value?.ToString());
     }
+    /// <summary>Explicit text background color, commonly used for highlighting.</summary>
+    public OdfColor? TextBackgroundColor {
+        get {
+            TryGetTextBackgroundColor(out OdfColor? color);
+            return color;
+        }
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"), OdfNamespaces.Fo + "background-color", value?.ToString());
+    }
     /// <summary>Explicit cell or paragraph background color.</summary>
     public OdfColor? BackgroundColor {
         get {
-            XElement? properties = _element.Element(OdfNamespaces.Style + "table-cell-properties") ?? ParagraphProperties;
-            string? value = (string?)properties?.Attribute(OdfNamespaces.Fo + "background-color");
-            return value == null || value == "transparent" ? (OdfColor?)null : OdfColor.Parse(value);
+            TryGetBackgroundColor(out OdfColor? color);
+            return color;
         }
         set {
             XName properties = Family == OdfStyleFamily.TableCell
@@ -87,11 +116,53 @@ public sealed class OdfStyle {
         get => (string?)ParagraphProperties?.Attribute(OdfNamespaces.Fo + "text-align");
         set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "text-align", value);
     }
+    /// <summary>Explicit ODF paragraph writing-mode token.</summary>
+    public string? WritingMode {
+        get => (string?)ParagraphProperties?.Attribute(OdfNamespaces.Style + "writing-mode");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Style + "writing-mode", value);
+    }
+    /// <summary>Explicit paragraph line height, including absolute and percentage values.</summary>
+    public OdfLength? LineHeight {
+        get => ReadLength(ParagraphProperties, OdfNamespaces.Fo + "line-height");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "line-height", value?.ToString());
+    }
+    /// <summary>Explicit paragraph start margin.</summary>
+    public OdfLength? MarginLeft {
+        get => ReadLength(ParagraphProperties, OdfNamespaces.Fo + "margin-left");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "margin-left", value?.ToString());
+    }
+    /// <summary>Explicit paragraph end margin.</summary>
+    public OdfLength? MarginRight {
+        get => ReadLength(ParagraphProperties, OdfNamespaces.Fo + "margin-right");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "margin-right", value?.ToString());
+    }
+    /// <summary>Explicit paragraph top margin.</summary>
+    public OdfLength? MarginTop {
+        get => ReadLength(ParagraphProperties, OdfNamespaces.Fo + "margin-top");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "margin-top", value?.ToString());
+    }
+    /// <summary>Explicit paragraph bottom margin.</summary>
+    public OdfLength? MarginBottom {
+        get => ReadLength(ParagraphProperties, OdfNamespaces.Fo + "margin-bottom");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "margin-bottom", value?.ToString());
+    }
+    /// <summary>Explicit first-line paragraph indentation.</summary>
+    public OdfLength? TextIndent {
+        get => ReadLength(ParagraphProperties, OdfNamespaces.Fo + "text-indent");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "text-indent", value?.ToString());
+    }
 
     internal string PartPath { get; }
     internal XElement Element => _element;
     internal XElement? TextProperties => _element.Element(OdfNamespaces.Style + "text-properties");
     internal XElement? ParagraphProperties => _element.Element(OdfNamespaces.Style + "paragraph-properties");
+
+    internal bool TryGetTextBackgroundColor(out OdfColor? color) => TryReadColorOverride(
+        TextProperties, OdfNamespaces.Fo + "background-color", out color);
+
+    internal bool TryGetBackgroundColor(out OdfColor? color) => TryReadColorOverride(
+        _element.Element(OdfNamespaces.Style + "table-cell-properties") ?? ParagraphProperties,
+        OdfNamespaces.Fo + "background-color", out color);
 
     internal XElement GetProperties(XName name) {
         XElement? properties = _element.Element(name);
@@ -123,8 +194,46 @@ public sealed class OdfStyle {
         SetAttribute(element, attribute, value.HasValue ? (value.Value ? trueValue : falseValue) : null);
     }
 
+    private static bool? ReadDecorationToggle(XElement? element, XName attribute) {
+        string? value = (string?)element?.Attribute(attribute);
+        if (value == null) return null;
+        return string.Equals(value, "none", StringComparison.OrdinalIgnoreCase) ? false : true;
+    }
+
+    private static bool? ReadNonSolidDecoration(XElement? element, XName attribute) {
+        string? value = (string?)element?.Attribute(attribute);
+        if (value == null) return null;
+        return !string.Equals(value, "none", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(value, "solid", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void WriteDecorationToggle(XName attribute, bool? value) {
+        SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"), attribute,
+            value.HasValue ? (value.Value ? "solid" : "none") : null);
+    }
+
     private static OdfLength? ReadLength(XElement? element, XName attribute) {
         string? value = (string?)element?.Attribute(attribute);
         return value == null ? (OdfLength?)null : OdfLength.Parse(value);
+    }
+
+    private static bool TryReadColorOverride(XElement? element, XName attribute, out OdfColor? color) {
+        string? value = (string?)element?.Attribute(attribute);
+        if (value == null) {
+            color = null;
+            return false;
+        }
+        color = string.Equals(value, "transparent", StringComparison.OrdinalIgnoreCase)
+            ? (OdfColor?)null
+            : OdfColor.Parse(value);
+        return true;
+    }
+
+    internal static string? NormalizeFontFamily(string? value) {
+        string? normalized = value?.Trim();
+        if (normalized == null || normalized.Length == 0) return null;
+        return OdfFontFamilySyntax.TryParse(normalized, out OdfFontFamilySyntax? syntax)
+            ? syntax!.ToString()
+            : normalized;
     }
 }

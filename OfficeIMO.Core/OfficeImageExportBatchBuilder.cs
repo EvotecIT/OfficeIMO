@@ -65,6 +65,15 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
     /// <summary>Document-specific options being configured by this builder.</summary>
     protected TOptions Options { get; }
 
+    /// <summary>
+    /// Configures the complete document-specific option set for settings that do not have a dedicated fluent shortcut.
+    /// </summary>
+    public TBuilder ConfigureOptions(Action<TOptions> configure) {
+        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        configure(Options);
+        return This;
+    }
+
     /// <summary>Configures PNG output.</summary>
     public TBuilder AsPng() => As(OfficeImageExportFormat.Png);
 
@@ -92,6 +101,36 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         OfficeImageExportOptions.ValidateScale(scale);
         Options.Scale = scale;
         Options.TargetDpi = null;
+        return This;
+    }
+
+    /// <summary>Fits every output within the specified pixel dimensions without changing aspect ratio or enlarging it.</summary>
+    public TBuilder FitWithin(int maximumWidth, int maximumHeight) {
+        if (maximumWidth < 1) throw new ArgumentOutOfRangeException(nameof(maximumWidth));
+        if (maximumHeight < 1) throw new ArgumentOutOfRangeException(nameof(maximumHeight));
+        Options.MaximumOutputWidth = maximumWidth;
+        Options.MaximumOutputHeight = maximumHeight;
+        return This;
+    }
+
+    /// <summary>Fits every output within the specified pixel width without enlarging it.</summary>
+    public TBuilder FitWithinWidth(int maximumWidth) {
+        if (maximumWidth < 1) throw new ArgumentOutOfRangeException(nameof(maximumWidth));
+        Options.MaximumOutputWidth = maximumWidth;
+        return This;
+    }
+
+    /// <summary>Fits every output within the specified pixel height without enlarging it.</summary>
+    public TBuilder FitWithinHeight(int maximumHeight) {
+        if (maximumHeight < 1) throw new ArgumentOutOfRangeException(nameof(maximumHeight));
+        Options.MaximumOutputHeight = maximumHeight;
+        return This;
+    }
+
+    /// <summary>Removes output dimension caps.</summary>
+    public TBuilder WithoutSizeLimit() {
+        Options.MaximumOutputWidth = null;
+        Options.MaximumOutputHeight = null;
         return This;
     }
 
@@ -232,6 +271,7 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
     public IReadOnlyList<OfficeImageExportResult> Export() {
         var results = new List<OfficeImageExportResult>();
         ExportEach(results.Add);
+        FinalizeSequence(results);
         return results.AsReadOnly();
     }
 
@@ -245,6 +285,7 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
                 return Task.CompletedTask;
             },
             cancellationToken).ConfigureAwait(false);
+        FinalizeSequence(results);
         return results.AsReadOnly();
     }
 
@@ -265,12 +306,14 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
                 execution.Token.ThrowIfCancellationRequested();
                 result.Require(effective.Policy);
                 tracker.Add(result);
-                consumer(result);
+                int? sequenceCount = result.SequenceIndex == completed ? result.SequenceCount : null;
+                OfficeImageExportResult sequenced = result.WithSequence(completed, sequenceCount);
+                consumer(sequenced);
                 completed++;
                 effective.Progress?.Report(new OfficeImageExportProgress(
                     OfficeImageExportProgressStage.Completed,
                     completed,
-                    name: result.Name));
+                    name: sequenced.Name));
             }
 
             if (_exportEach != null) {
@@ -305,12 +348,14 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
             token.ThrowIfCancellationRequested();
             result.Require(effective.Policy);
             tracker.Add(result);
-            await consumer(result, token).ConfigureAwait(false);
+            int? sequenceCount = result.SequenceIndex == completed ? result.SequenceCount : null;
+            OfficeImageExportResult sequenced = result.WithSequence(completed, sequenceCount);
+            await consumer(sequenced, token).ConfigureAwait(false);
             completed++;
             effective.Progress?.Report(new OfficeImageExportProgress(
                 OfficeImageExportProgressStage.Completed,
                 completed,
-                name: result.Name));
+                name: sequenced.Name));
         }
 
         try {
@@ -373,9 +418,10 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         ExportEach(result => {
             string path = ResolveBatchPath(fullFolder, result, index++, usedFileNames);
             Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, index - 1, name: result.Name, destinationPath: path));
-            string savedPath = OfficeImageExportPath.WriteAllBytes(path, _format, result.Bytes, _conflictPolicy);
+            string savedPath = result.WriteToFile(path, _conflictPolicy);
             saved.Add(result.WithSavedPath(savedPath));
         });
+        FinalizeSequence(saved);
         return saved.AsReadOnly();
     }
 
@@ -390,9 +436,10 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         ExportEach(result => {
             string path = ResolveBatchPath(fullFolder, result, index++, usedFileNames);
             Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, index - 1, name: result.Name, destinationPath: path));
-            string savedPath = OfficeImageExportPath.WriteAllBytes(path, _format, result.Bytes, _conflictPolicy);
+            string savedPath = result.WriteToFile(path, _conflictPolicy);
             files.Add(new OfficeImageExportSavedFile(result, savedPath));
         });
+        FinalizeSequence(files);
         return new OfficeImageExportBatchSaveResult(files);
     }
 
@@ -407,14 +454,10 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         await ExportEachAsync(async (result, token) => {
             string path = ResolveBatchPath(fullFolder, result, index++, usedFileNames);
             Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, index - 1, name: result.Name, destinationPath: path));
-            string savedPath = await OfficeImageExportPath.WriteAllBytesAsync(
-                path,
-                _format,
-                result.Bytes,
-                _conflictPolicy,
-                token).ConfigureAwait(false);
+            string savedPath = await result.WriteToFileAsync(path, _conflictPolicy, token).ConfigureAwait(false);
             saved.Add(result.WithSavedPath(savedPath));
         }, cancellationToken).ConfigureAwait(false);
+        FinalizeSequence(saved);
         return saved.AsReadOnly();
     }
 
@@ -429,14 +472,10 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         await ExportEachAsync(async (result, token) => {
             string path = ResolveBatchPath(fullFolder, result, index++, usedFileNames);
             Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, index - 1, name: result.Name, destinationPath: path));
-            string savedPath = await OfficeImageExportPath.WriteAllBytesAsync(
-                path,
-                _format,
-                result.Bytes,
-                _conflictPolicy,
-                token).ConfigureAwait(false);
+            string savedPath = await result.WriteToFileAsync(path, _conflictPolicy, token).ConfigureAwait(false);
             files.Add(new OfficeImageExportSavedFile(result, savedPath));
         }, cancellationToken).ConfigureAwait(false);
+        FinalizeSequence(files);
         return new OfficeImageExportBatchSaveResult(files);
     }
 
@@ -450,6 +489,18 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
             : result.Name!;
         string fileName = GetUniqueFileName(SanitizeFileName(name), _format.GetFileExtension(), usedFileNames);
         return OfficeImageExportPath.NormalizeFile(Path.Combine(folder, fileName), _format);
+    }
+
+    private static void FinalizeSequence(List<OfficeImageExportResult> results) {
+        for (int index = 0; index < results.Count; index++) {
+            results[index] = results[index].WithSequence(index, results.Count);
+        }
+    }
+
+    private static void FinalizeSequence(List<OfficeImageExportSavedFile> files) {
+        for (int index = 0; index < files.Count; index++) {
+            files[index] = files[index].WithSequence(index, files.Count);
+        }
     }
 
     private static string PrepareFolder(string folderPath) {

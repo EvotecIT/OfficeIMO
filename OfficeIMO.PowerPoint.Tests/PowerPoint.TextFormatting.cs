@@ -10,6 +10,29 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class PowerPointTextFormatting {
         [Fact]
+        public void DrawingFontSizeAuthoringEnforcesSchemaBoundsAcrossTextSurfaces() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox box = slide.AddTextBox("Text");
+            PowerPointTextRun run = box.Paragraphs.Single().Runs.Single();
+            PowerPointTableCell cell = slide.AddTable(1, 1).GetCell(0, 0);
+
+            run.FontSizePoints = 1D;
+            Assert.Equal(1D, run.FontSizePoints);
+            run.FontSizePoints = 4000D;
+            Assert.Equal(4000D, run.FontSizePoints);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => run.FontSizePoints = 0.5D);
+            Assert.Throws<ArgumentOutOfRangeException>(() => run.FontSizePoints = 4000.01D);
+            Assert.Throws<ArgumentOutOfRangeException>(() => run.FontSizePoints = double.NaN);
+            Assert.Throws<ArgumentOutOfRangeException>(() => box.FontSize = 0);
+            Assert.Throws<ArgumentOutOfRangeException>(() => box.FontSize = 4001);
+            Assert.Throws<ArgumentOutOfRangeException>(() => cell.FontSize = 0);
+            Assert.Throws<ArgumentOutOfRangeException>(() => cell.FontSize = 4001);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void CanApplyFormattingToTextBoxAndBullets() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 

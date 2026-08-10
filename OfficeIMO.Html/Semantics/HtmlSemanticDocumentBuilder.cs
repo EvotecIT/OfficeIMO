@@ -26,7 +26,11 @@ internal static class HtmlSemanticDocumentBuilder {
             }
 
             HtmlSemanticSourceLocation? location = blocks.FirstOrDefault()?.SourceLocation;
-            sections.Add(new HtmlSemanticSection(projection.Title, blocks.AsReadOnly(), location));
+            sections.Add(new HtmlSemanticSection(
+                projection.Title,
+                projection.TitleSource,
+                blocks.AsReadOnly(),
+                location));
         }
         IReadOnlyList<HtmlSemanticResource> resourceOccurrences = resources.ToList().AsReadOnly();
 
@@ -67,14 +71,16 @@ internal static class HtmlSemanticDocumentBuilder {
             ? BuildRuns(element, styles)
             : Array.Empty<HtmlSemanticRun>();
         var children = new List<HtmlSemanticBlock>();
-        bool ordered = Is(element, "ol");
         int level = kind == HtmlSemanticBlockKind.Heading ? GetHeadingLevel(element)
             : kind == HtmlSemanticBlockKind.List ? GetListDepth(element)
             : 0;
+        HtmlSemanticList? list = kind == HtmlSemanticBlockKind.List
+            ? HtmlListSemantics.BuildList(element)
+            : null;
 
-        if (kind == HtmlSemanticBlockKind.List) {
-            foreach (IElement item in element.Children.Where(child => Is(child, "li") || Is(child, "dt") || Is(child, "dd"))) {
-                children.Add(BuildListItem(document, item, styles, resources, level));
+        if (list != null) {
+            foreach (HtmlListItemProjection item in HtmlListSemantics.BuildItems(element, list)) {
+                children.Add(BuildListItem(document, item.Element, item.Semantics, styles, resources, level));
             }
         }
         if (kind == HtmlSemanticBlockKind.Form) {
@@ -108,18 +114,24 @@ internal static class HtmlSemanticDocumentBuilder {
                     HtmlSemanticSourceLocation.FromElement(sourceElement)));
             }
         }
+        HtmlSemanticForm? semanticForm = BuildForm(element);
         HtmlSemanticFormControl? form = BuildFormControl(element);
+        string text = IsTextual(kind) ? string.Concat(runs.Select(run => run.Text))
+            : list != null ? HtmlListSemantics.BuildText(list, children)
+            : HtmlGenericDocumentProjector.GetBlockText(element);
 
         return new HtmlSemanticBlock(
             kind,
-            IsTextual(kind) ? string.Concat(runs.Select(run => run.Text)) : HtmlGenericDocumentProjector.GetBlockText(element),
+            text,
             level,
-            ordered,
             runs,
             children.AsReadOnly(),
+            list,
+            listItem: null,
             table,
             resource,
             inlineResources,
+            semanticForm,
             form,
             style,
             location,
@@ -129,6 +141,7 @@ internal static class HtmlSemanticDocumentBuilder {
     private static HtmlSemanticBlock BuildListItem(
         IHtmlDocument document,
         IElement element,
+        HtmlSemanticListItem listItem,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
         ICollection<HtmlSemanticResource> resources,
         int level) {
@@ -137,7 +150,7 @@ internal static class HtmlSemanticDocumentBuilder {
         IReadOnlyList<HtmlSemanticResource> inlineResources = BuildInlineResources(element, styles, resources,
             skipNestedLists: true);
         var children = new List<HtmlSemanticBlock>();
-        foreach (IElement nestedList in element.Children.Where(child => Is(child, "ul") || Is(child, "ol") || Is(child, "dl"))) {
+        foreach (IElement nestedList in element.QuerySelectorAll("ul, ol, dl").Where(candidate => IsOwnedNestedList(candidate, element))) {
             children.Add(BuildBlock(document, nestedList, styles, resources, null));
         }
 
@@ -145,16 +158,26 @@ internal static class HtmlSemanticDocumentBuilder {
             HtmlSemanticBlockKind.ListItem,
             string.Concat(runs.Select(run => run.Text)),
             level,
-            ordered: false,
             runs,
             children.AsReadOnly(),
+            list: null,
+            listItem,
             table: null,
             resource: null,
             inlineResources,
+            form: null,
             formControl: null,
             style,
             HtmlSemanticSourceLocation.FromElement(element),
             element);
+    }
+
+    private static bool IsOwnedNestedList(IElement list, IElement item) {
+        for (IElement? ancestor = list.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
+            if (ReferenceEquals(ancestor, item)) return true;
+            if (Is(ancestor, "li") || Is(ancestor, "dt") || Is(ancestor, "dd")) return false;
+        }
+        return false;
     }
 
     private static HtmlSemanticTable BuildTable(
@@ -370,17 +393,66 @@ internal static class HtmlSemanticDocumentBuilder {
 
     private static HtmlSemanticFormControl? BuildFormControl(IElement element) {
         if (!Is(element, "input") && !Is(element, "select") && !Is(element, "textarea")
-            && !Is(element, "button") && !Is(element, "option")) return null;
-        string type = Normalize(element.GetAttribute("type")).ToLowerInvariant();
-        if (type.Length == 0) type = element.LocalName.ToLowerInvariant();
-        string value = element.GetAttribute("value") ?? Normalize(element.TextContent);
+            && !Is(element, "button")) return null;
+        string elementName = element.LocalName.ToLowerInvariant();
+        string effectiveType = HtmlFormControlSemantics.GetEffectiveType(
+            elementName,
+            element.GetAttribute("type"),
+            element.HasAttribute("multiple"));
+        bool multiple = element.HasAttribute("multiple")
+            && HtmlFormControlSemantics.IsMultipleStateApplicable(elementName, effectiveType);
+        bool lengthApplicable = HtmlFormControlSemantics.IsLengthApplicable(elementName, effectiveType);
+        bool rangeApplicable = HtmlFormControlSemantics.IsRangeApplicable(elementName, effectiveType);
+        bool submitter = HtmlFormControlSemantics.IsSubmitter(element);
         return new HtmlSemanticFormControl(
-            type,
+            elementName,
+            effectiveType,
             element.GetAttribute("name") ?? string.Empty,
-            value,
-            element.HasAttribute("checked") || element.HasAttribute("selected"),
-            element.HasAttribute("disabled"));
+            HtmlFormControlSemantics.GetValues(element),
+            HtmlFormControlSemantics.IsEffectivelyChecked(element),
+            HtmlFormControlSemantics.IsEffectivelyDisabled(element),
+            element.HasAttribute("required")
+                && HtmlFormControlSemantics.IsRequiredStateApplicable(elementName, effectiveType),
+            element.HasAttribute("readonly")
+                && HtmlFormControlSemantics.IsReadOnlyStateApplicable(elementName, effectiveType),
+            multiple,
+            HtmlFormControlSemantics.ResolveFormOwnerId(element),
+            HtmlFormControlSemantics.IsPatternApplicable(elementName, effectiveType)
+                ? element.GetAttribute("pattern") ?? string.Empty
+                : string.Empty,
+            rangeApplicable ? element.GetAttribute("min") ?? string.Empty : string.Empty,
+            rangeApplicable ? element.GetAttribute("max") ?? string.Empty : string.Empty,
+            rangeApplicable ? element.GetAttribute("step") ?? string.Empty : string.Empty,
+            lengthApplicable ? ReadOptionalLengthConstraint(element.GetAttribute("minlength")) : null,
+            lengthApplicable ? ReadOptionalLengthConstraint(element.GetAttribute("maxlength")) : null,
+            HtmlFormControlSemantics.IsPlaceholderApplicable(elementName, effectiveType)
+                ? element.GetAttribute("placeholder") ?? string.Empty
+                : string.Empty,
+            submitter ? element.GetAttribute("formaction") : null,
+            submitter && element.HasAttribute("formmethod")
+                ? HtmlFormControlSemantics.GetEffectiveFormMethod(element.GetAttribute("formmethod"))
+                : null,
+            submitter && element.HasAttribute("formenctype")
+                ? HtmlFormControlSemantics.GetEffectiveFormEncoding(element.GetAttribute("formenctype"))
+                : null,
+            submitter ? element.GetAttribute("formtarget") : null,
+            submitter && element.HasAttribute("formnovalidate"));
     }
+
+    private static HtmlSemanticForm? BuildForm(IElement element) {
+        if (!Is(element, "form")) return null;
+        return new HtmlSemanticForm(
+            element.GetAttribute("id") ?? string.Empty,
+            element.GetAttribute("name") ?? string.Empty,
+            element.GetAttribute("action") ?? string.Empty,
+            HtmlFormControlSemantics.GetEffectiveFormMethod(element.GetAttribute("method")),
+            HtmlFormControlSemantics.GetEffectiveFormEncoding(element.GetAttribute("enctype")),
+            element.GetAttribute("target") ?? string.Empty,
+            element.HasAttribute("novalidate"));
+    }
+
+    private static int? ReadOptionalLengthConstraint(string? value) =>
+        HtmlFormControlSemantics.TryParseLengthConstraint(value, out int result) ? result : null;
 
     private static IReadOnlyDictionary<string, string> ReadMetadata(IHtmlDocument document) {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -432,7 +504,7 @@ internal static class HtmlSemanticDocumentBuilder {
     }
 
     private static int ReadSpan(IElement element, string attribute) =>
-        int.TryParse(element.GetAttribute(attribute), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) && value > 0
+        HtmlIntegerSemantics.TryParsePositiveInteger(element.GetAttribute(attribute), out int value)
             ? value
             : 1;
 

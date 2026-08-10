@@ -88,4 +88,53 @@ public sealed class LatexProfileRegressionTests {
             static paragraph => paragraph.Content.IndexOf("[literal] and [unterminated", StringComparison.Ordinal) >= 0);
         Assert.Equal(source, result.Document.ToLatex());
     }
+
+    [Fact]
+    public void VerbatimCommandsAndEnvironmentsCannotCreateSemanticHeadings() {
+        const string source =
+            "\\begin{document}\n" +
+            "\\begin{verbatim}\n\\section{Fake}\n\\end{verbatim}\n" +
+            "\\verb|\\section{AlsoFake}|\n" +
+            "\\section{Real}\n" +
+            "\\end{document}\n";
+
+        LatexParseResult result = LatexDocument.Parse(source);
+
+        LatexHeading heading = Assert.Single(result.Document.Headings);
+        Assert.Equal("Real", heading.Title);
+        Assert.Single(result.Document.Commands, static command => command.Name == "section");
+        Assert.Equal(2, result.Document.SyntaxTree.Root.DescendantsAndSelf()
+            .Count(static node => node.Kind == LatexSyntaxKind.Verbatim));
+        Assert.Empty(result.Diagnostics);
+        Assert.Equal(source, result.Document.ToLatex());
+    }
+
+    [Fact]
+    public void UnterminatedVerbatimIsOpaqueLosslessAndDiagnosed() {
+        const string source = "\\begin{verbatim}\\section{Fake}";
+
+        LatexParseResult result = LatexDocument.Parse(source);
+
+        Assert.Empty(result.Document.Headings);
+        Assert.Contains(result.Diagnostics, static diagnostic => diagnostic.Code == "LATEX006");
+        Assert.Equal(source, result.Document.ToLatex());
+    }
+
+    [Fact]
+    public void TabularSeparatorsInsideVerbatimDoNotSplitCellsOrRows() {
+        const string source =
+            "\\begin{document}\n" +
+            "\\begin{tabular}{l}\n" +
+            "\\verb|A&B|\\\\\n" +
+            "\\verb|A\\\\B|\\\\\n" +
+            "\\end{tabular}\n" +
+            "\\end{document}\n";
+
+        LatexTable table = Assert.Single(LatexDocument.Parse(source).Document.Tables);
+
+        Assert.Equal(2, table.Rows.Count);
+        Assert.All(table.Rows, static row => Assert.Single(row.Cells));
+        Assert.Equal("\\verb|A&B|", table.Rows[0].Cells[0].Content);
+        Assert.Equal("\\verb|A\\\\B|", table.Rows[1].Cells[0].Content);
+    }
 }

@@ -19,24 +19,31 @@ namespace OfficeIMO.PowerPoint {
             string? relationshipId = hyperlink.Id?.Value;
             if (string.IsNullOrWhiteSpace(relationshipId)) return null;
 
-            HyperlinkRelationship? external = ownerPart.HyperlinkRelationships
+            HyperlinkRelationship? relationship = ownerPart.HyperlinkRelationships
                 .FirstOrDefault(relationship => string.Equals(
                     relationship.Id, relationshipId, StringComparison.Ordinal));
-            if (external != null) return external.Uri;
+            if (relationship?.IsExternal == true) return relationship.Uri;
 
             if (!string.Equals(hyperlink.Action?.Value, SlideJumpAction,
-                    StringComparison.OrdinalIgnoreCase)
-                || !ownerPart.TryGetPartById(relationshipId!,
-                    out OpenXmlPart? targetPart)
-                || targetPart is not SlidePart targetSlidePart) {
+                    StringComparison.OrdinalIgnoreCase)) {
                 return null;
             }
 
             PresentationPart? presentationPart = sourceSlidePart?
                 .GetParentParts().OfType<PresentationPart>().FirstOrDefault();
+            SlidePart? targetSlidePart = null;
+            if (relationship?.IsExternal == false && ownerPart is OpenXmlPart hyperlinkOwner) {
+                Uri targetUri = ResolvePartUri(hyperlinkOwner.Uri, relationship.Uri);
+                targetSlidePart = presentationPart?.SlideParts.FirstOrDefault(candidate =>
+                    candidate.Uri == targetUri);
+            } else if (ownerPart.TryGetPartById(relationshipId!,
+                    out OpenXmlPart? targetPart)) {
+                targetSlidePart = targetPart as SlidePart;
+            }
+
             P.SlideIdList? slideIds = presentationPart?.Presentation?
                 .SlideIdList;
-            if (presentationPart == null || slideIds == null) return null;
+            if (presentationPart == null || slideIds == null || targetSlidePart == null) return null;
 
             int slideNumber = 0;
             foreach (P.SlideId slideId in slideIds.Elements<P.SlideId>()) {
@@ -54,6 +61,27 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return null;
+        }
+
+        internal static Uri CreatePartRelativeUri(OpenXmlPart sourcePart,
+            OpenXmlPart targetPart) {
+            Uri packageRoot = new Uri("http://officeimo.invalid/", UriKind.Absolute);
+            Uri sourceUri = new Uri(packageRoot,
+                sourcePart.Uri.OriginalString.TrimStart('/'));
+            Uri sourceDirectory = new Uri(sourceUri, ".");
+            Uri targetUri = new Uri(packageRoot,
+                targetPart.Uri.OriginalString.TrimStart('/'));
+            return sourceDirectory.MakeRelativeUri(targetUri);
+        }
+
+        private static Uri ResolvePartUri(Uri sourcePartUri,
+            Uri relationshipUri) {
+            Uri packageRoot = new Uri("http://officeimo.invalid/", UriKind.Absolute);
+            Uri sourceUri = new Uri(packageRoot,
+                sourcePartUri.OriginalString.TrimStart('/'));
+            Uri sourceDirectory = new Uri(sourceUri, ".");
+            Uri resolved = new Uri(sourceDirectory, relationshipUri);
+            return new Uri("/" + packageRoot.MakeRelativeUri(resolved), UriKind.Relative);
         }
     }
 }

@@ -5,6 +5,7 @@ using Xunit;
 
 namespace OfficeIMO.Email.Tests;
 
+[Collection(EmailContentSourceMemoryCollection.Name)]
 public sealed class EmailContentSourceTests {
     [Theory]
     [InlineData(EmailFileFormat.Eml)]
@@ -360,4 +361,9 @@ public sealed class EmailContentSourceTests {
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
+}
+
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class EmailContentSourceMemoryCollection {
+    public const string Name = "Email content source memory isolation";
 }

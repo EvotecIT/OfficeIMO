@@ -61,7 +61,9 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        byte[] maskPixels = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
+        if (!TryDecodeImageStream(stream, objects, out byte[] maskPixels)) {
+            return false;
+        }
         byte[] scanlines = new byte[scanlineBytes];
         for (int sampleIndex = 0; sampleIndex < pixelCount; sampleIndex++) {
             if (!TryReadIndexedSample(maskPixels, width, sampleIndex, 1, out int sample)) {
@@ -118,7 +120,9 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        byte[] basePixels = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
+        if (!TryDecodeImageStream(stream, objects, out byte[] basePixels)) {
+            return false;
+        }
         int expectedBaseLength = width * height * baseColors;
         if (basePixels.Length < expectedBaseLength) {
             return false;
@@ -179,7 +183,9 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        byte[] indexedPixels = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
+        if (!TryDecodeImageStream(stream, objects, out byte[] indexedPixels)) {
+            return false;
+        }
         int expectedSampleCount = width * height;
         bool hasSoftMask = stream.Dictionary.Items.ContainsKey("SMask");
         byte[]? alphaPixels = null;
@@ -321,12 +327,17 @@ internal static partial class ResourceResolver {
                 lookupBytes = lookupString.RawBytes;
                 return lookupBytes.Length > 0;
             case PdfStream lookupStream:
-                lookupBytes = Filters.StreamDecoder.Decode(lookupStream.Dictionary, lookupStream.Data, objects);
-                return lookupBytes.Length > 0;
+                return TryDecodeImageStream(lookupStream, objects, out lookupBytes) && lookupBytes.Length > 0;
             default:
                 return false;
         }
     }
+
+    private static bool TryDecodeImageStream(
+        PdfStream stream,
+        Dictionary<int, PdfIndirectObject> objects,
+        out byte[] decoded) =>
+        PdfImageStreamDecoder.TryDecode(stream, objects, out decoded);
 
     private static bool TryReadIndexedSample(byte[] pixels, int width, int sampleIndex, int bitsPerComponent, out int sample) {
         sample = 0;

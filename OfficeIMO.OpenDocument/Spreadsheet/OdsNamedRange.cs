@@ -1,5 +1,25 @@
 namespace OfficeIMO.OpenDocument;
 
+/// <summary>Severity shown when an ODF spreadsheet validation fails.</summary>
+public enum OdsValidationMessageType {
+    /// <summary>Reject the value.</summary>
+    Stop,
+    /// <summary>Warn before accepting the value.</summary>
+    Warning,
+    /// <summary>Show an informational message.</summary>
+    Information
+}
+
+/// <summary>Controls how a validation list is displayed by spreadsheet applications.</summary>
+public enum OdsValidationDisplayList {
+    /// <summary>Do not display a list selector.</summary>
+    None,
+    /// <summary>Display values in their authored order.</summary>
+    Unsorted,
+    /// <summary>Display values in ascending order.</summary>
+    SortAscending
+}
+
 /// <summary>An XML-backed workbook named range.</summary>
 public sealed class OdsNamedRange {
     private readonly OdsDocument _document;
@@ -37,11 +57,143 @@ public sealed class OdsValidation {
         get => (string?)_element.Attribute(OdfNamespaces.Table + "condition") ?? string.Empty;
         set { _element.SetAttributeValue(OdfNamespaces.Table + "condition", value); Dirty(); }
     }
+    /// <summary>Typed interoperable condition, or null when the preserved expression is implementation-specific.</summary>
+    public OdsValidationConditionSyntax? ParsedCondition {
+        get => OdsValidationConditionSyntax.TryParse(Condition, out OdsValidationConditionSyntax? condition) ? condition : null;
+        set => Condition = value?.ToString() ?? throw new ArgumentNullException(nameof(value));
+    }
     /// <summary>Whether empty cells satisfy the rule.</summary>
     public bool AllowEmptyCell {
-        get => (string?)_element.Attribute(OdfNamespaces.Table + "allow-empty-cell") != "false";
+        get => OdfBoolean.ReadCompatible(
+            (string?)_element.Attribute(OdfNamespaces.Table + "allow-empty-cell"), fallback: true);
         set { _element.SetAttributeValue(OdfNamespaces.Table + "allow-empty-cell", value ? "true" : "false"); Dirty(); }
     }
+    /// <summary>How list-validation values are displayed. ODF defaults to <see cref="OdsValidationDisplayList.Unsorted"/>.</summary>
+    public OdsValidationDisplayList DisplayList {
+        get {
+            string? value = (string?)_element.Attribute(OdfNamespaces.Table + "display-list");
+            if (string.Equals(value, "none", StringComparison.OrdinalIgnoreCase)) return OdsValidationDisplayList.None;
+            if (string.Equals(value, "sort-ascending", StringComparison.OrdinalIgnoreCase)) return OdsValidationDisplayList.SortAscending;
+            return OdsValidationDisplayList.Unsorted;
+        }
+        set {
+            string lexical = value switch {
+                OdsValidationDisplayList.None => "none",
+                OdsValidationDisplayList.Unsorted => "unsorted",
+                OdsValidationDisplayList.SortAscending => "sort-ascending",
+                _ => throw new ArgumentOutOfRangeException(nameof(value))
+            };
+            _element.SetAttributeValue(OdfNamespaces.Table + "display-list", lexical);
+            Dirty();
+        }
+    }
+
+    /// <summary>Sets the optional input help shown when a validated cell is selected.</summary>
+    public void SetHelpMessage(string? title, string? text, bool display = true) {
+        SetMessage(OdfNamespaces.Table + "help-message", title, text, display, null, preserveEmpty: false);
+    }
+
+    /// <summary>Ensures an input-help element exists even when it has no title or body.</summary>
+    public void EnsureHelpMessage(bool display = true) {
+        SetMessage(OdfNamespaces.Table + "help-message", null, null, display, null, preserveEmpty: true);
+    }
+
+    /// <summary>Sets the optional error shown when the entered value fails validation.</summary>
+    public void SetErrorMessage(
+        string? title,
+        string? text,
+        OdsValidationMessageType messageType = OdsValidationMessageType.Stop,
+        bool display = true) {
+        SetMessage(OdfNamespaces.Table + "error-message", title, text, display, FormatMessageType(messageType), preserveEmpty: false);
+    }
+
+    /// <summary>Ensures an error-message element exists even when it has no title or body.</summary>
+    public void EnsureErrorMessage(
+        OdsValidationMessageType messageType = OdsValidationMessageType.Stop,
+        bool display = true) {
+        SetMessage(OdfNamespaces.Table + "error-message", null, null, display,
+            FormatMessageType(messageType), preserveEmpty: true);
+    }
+
+    /// <summary>Input-help title, if present.</summary>
+    public string? HelpTitle => (string?)_element.Element(OdfNamespaces.Table + "help-message")?
+        .Attribute(OdfNamespaces.Table + "title");
+    /// <summary>Whether an input-help element is present.</summary>
+    public bool HasHelpMessage => _element.Element(OdfNamespaces.Table + "help-message") != null;
+    /// <summary>Input-help text, if present.</summary>
+    public string? HelpText => ReadMessageText(OdfNamespaces.Table + "help-message");
+    /// <summary>Whether input help is displayed.</summary>
+    public bool ShowHelpMessage => ReadDisplay(OdfNamespaces.Table + "help-message");
+    /// <summary>Validation-error title, if present.</summary>
+    public string? ErrorTitle => (string?)_element.Element(OdfNamespaces.Table + "error-message")?
+        .Attribute(OdfNamespaces.Table + "title");
+    /// <summary>Whether a validation-error element is present.</summary>
+    public bool HasErrorMessage => _element.Element(OdfNamespaces.Table + "error-message") != null;
+    /// <summary>Validation-error text, if present.</summary>
+    public string? ErrorText => ReadMessageText(OdfNamespaces.Table + "error-message");
+    /// <summary>Whether validation errors are displayed.</summary>
+    public bool ShowErrorMessage => ReadDisplay(OdfNamespaces.Table + "error-message");
+    /// <summary>Validation-error severity.</summary>
+    public OdsValidationMessageType ErrorMessageType {
+        get {
+            string? value = (string?)_element.Element(OdfNamespaces.Table + "error-message")?
+                .Attribute(OdfNamespaces.Table + "message-type");
+            if (string.Equals(value, "warning", StringComparison.OrdinalIgnoreCase)) return OdsValidationMessageType.Warning;
+            if (string.Equals(value, "information", StringComparison.OrdinalIgnoreCase)) return OdsValidationMessageType.Information;
+            return OdsValidationMessageType.Stop;
+        }
+    }
+
+    private void SetMessage(XName name, string? title, string? text, bool display,
+        string? messageType, bool preserveEmpty) {
+        XElement? message = _element.Element(name);
+        if (!preserveEmpty && title == null && text == null) {
+            message?.Remove();
+            Dirty();
+            return;
+        }
+        if (message == null) {
+            message = new XElement(name);
+            XElement? error = _element.Element(OdfNamespaces.Table + "error-message");
+            if (name == OdfNamespaces.Table + "help-message" && error != null) error.AddBeforeSelf(message);
+            else _element.Add(message);
+        }
+        EnsureMessageOrder();
+        message.SetAttributeValue(OdfNamespaces.Table + "display", display ? "true" : "false");
+        message.SetAttributeValue(OdfNamespaces.Table + "title", title);
+        message.SetAttributeValue(OdfNamespaces.Table + "message-type", messageType);
+        message.RemoveNodes();
+        if (text != null) {
+            var paragraph = new XElement(OdfNamespaces.Text + "p");
+            OdfTextCodec.Append(paragraph, text);
+            message.Add(paragraph);
+        }
+        Dirty();
+    }
+
+    private void EnsureMessageOrder() {
+        XElement? help = _element.Element(OdfNamespaces.Table + "help-message");
+        XElement? error = _element.Element(OdfNamespaces.Table + "error-message");
+        if (help == null || error == null || ReferenceEquals(help.NextNode, error)) return;
+        help.Remove();
+        error.AddBeforeSelf(help);
+    }
+
+    private string? ReadMessageText(XName name) {
+        XElement? message = _element.Element(name);
+        if (message == null) return null;
+        return string.Join("\n", message.Elements(OdfNamespaces.Text + "p").Select(OdfTextCodec.Read));
+    }
+
+    private bool ReadDisplay(XName name) => OdfBoolean.ReadCompatible(
+        (string?)_element.Element(name)?.Attribute(OdfNamespaces.Table + "display"), fallback: false);
+
+    private static string FormatMessageType(OdsValidationMessageType value) => value switch {
+        OdsValidationMessageType.Stop => "stop",
+        OdsValidationMessageType.Warning => "warning",
+        OdsValidationMessageType.Information => "information",
+        _ => throw new ArgumentOutOfRangeException(nameof(value))
+    };
 
     private void Dirty() => _document.MarkPartDirty("content.xml");
 }

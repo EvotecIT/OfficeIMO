@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
@@ -77,6 +78,31 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("ExportPdfReport", exception.Message);
                 Assert.Contains("Custom XML parts", exception.Message);
             }
+        }
+
+        [Fact]
+        public void FeatureReport_Preflight_TreatsOfficeImoPivotMetadataAsEditable() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.PivotMetadata.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AddWorksheet("Metadata").CellValue(1, 1, "Resource");
+                document.AddWorkbookSlicerCache(new ExcelSlicerCacheOptions {
+                    Name = "RegionSlicer",
+                    SourceName = "Region",
+                    PivotTableName = "SalesPivot"
+                });
+                document.Save();
+            }
+
+            using ExcelDocument inspected = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            ExcelFeatureReport report = inspected.InspectFeatures();
+
+            Assert.Empty(report.FindFeatures("Custom XML parts"));
+            Assert.Equal(OfficeFeatureSupportLevel.Editable,
+                Assert.Single(report.FindFeatures("Slicer binding metadata")).SupportLevel);
+            Assert.True(report.Can(ExcelPreflightCapability.EditWorkbookStructure));
+            Assert.True(report.Can(ExcelPreflightCapability.BindTemplate));
+            Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
         }
 
         [Fact]
@@ -512,7 +538,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FeatureReport_Preflight_BlocksPdfExportForMixedChartTypes() {
+        public void FeatureReport_Preflight_AllowsSupportedMixedChartTypes() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.ComboChart.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
@@ -531,17 +557,16 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
-                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+                Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
 
                 string diagnostics = string.Join(Environment.NewLine,
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
-                Assert.Contains("PDF-unsupported charts", diagnostics);
-                Assert.Contains("mixed per-series chart types", diagnostics);
+                Assert.DoesNotContain("PDF-unsupported charts", diagnostics);
             }
         }
 
         [Fact]
-        public void FeatureReport_Preflight_BlocksPdfExportForSameFamilyMixedChartTypes() {
+        public void FeatureReport_Preflight_AllowsSupportedSameFamilyMixedChartTypes() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.SameFamilyComboChart.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
@@ -560,13 +585,42 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
-                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+                Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
 
                 string diagnostics = string.Join(Environment.NewLine,
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
-                Assert.Contains("PDF-unsupported charts", diagnostics);
-                Assert.Contains("mixed per-series chart types", diagnostics);
+                Assert.DoesNotContain("PDF-unsupported charts", diagnostics);
             }
+        }
+
+        [Fact]
+        public void FeatureReport_Preflight_ClassifiesMultipleUnsupportedSeriesWithinOneChart() {
+            var snapshot = new ExcelChartSnapshot(
+                "UnsupportedCombo",
+                "Unsupported Combo Count",
+                ExcelChartType.ColumnClustered,
+                new ExcelChartData(
+                    new[] { "Q1", "Q2", "Q3" },
+                    new[] {
+                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, ExcelChartType.ColumnClustered),
+                        new ExcelChartSeries("Share", new[] { 12d, 18d, 28d }, ExcelChartType.Pie),
+                        new ExcelChartSeries("Ratio", new[] { 8d, 15d, 25d }, ExcelChartType.Doughnut)
+                    }),
+                rowIndex: 1,
+                columnIndex: 5,
+                offsetXPixels: 0,
+                offsetYPixels: 0,
+                widthPixels: 360,
+                heightPixels: 220);
+            MethodInfo method = typeof(ExcelDocument).GetMethod(
+                "GetPdfUnsupportedComboChartDetails",
+                BindingFlags.NonPublic | BindingFlags.Static)!;
+
+            var details = Assert.IsType<List<string>>(method.Invoke(null, new object[] { snapshot, "Charts" }));
+
+            Assert.Equal(2, details.Count);
+            Assert.Contains(details, detail => detail.Contains("Share", StringComparison.Ordinal));
+            Assert.Contains(details, detail => detail.Contains("Ratio", StringComparison.Ordinal));
         }
 
         [Fact]

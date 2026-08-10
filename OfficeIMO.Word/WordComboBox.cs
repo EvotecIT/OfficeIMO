@@ -52,7 +52,7 @@ namespace OfficeIMO.Word {
                 ?? throw new InvalidOperationException("Combo box properties are missing from the structured document tag.");
             var selectedItem = WordContentControlListItems.SetImportedItems(
                 combo, _sdtRun, items, selectedIndex);
-            combo.LastValue = selectedItem.Value;
+            combo.LastValue = selectedItem?.Value;
         }
 
         /// <summary>

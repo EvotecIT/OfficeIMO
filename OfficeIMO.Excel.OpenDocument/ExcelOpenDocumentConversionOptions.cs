@@ -1,7 +1,11 @@
+using OfficeIMO.OpenDocument;
+
 namespace OfficeIMO.Excel.OpenDocument;
 
 /// <summary>Controls bounded content transfer by the Excel/OpenDocument adapter.</summary>
 public sealed class ExcelOpenDocumentConversionOptions {
+    /// <summary>Controls whether reported conversion loss is returned or rejected.</summary>
+    public OdfConversionLossPolicy LossPolicy { get; set; } = OdfConversionLossPolicy.ReportOnly;
     /// <summary>Copy the basic font, fill, and number-format subset exposed by both typed models.</summary>
     public bool IncludeBasicStyles { get; set; } = true;
     /// <summary>Maximum number of cells that conversion may materialize, including covered cells created by merges.</summary>

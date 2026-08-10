@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
@@ -159,25 +158,17 @@ namespace OfficeIMO.Excel {
             if (rowMap.Count == 0 || string.IsNullOrEmpty(formula)) {
                 return formula;
             }
-
-            return Regex.Replace(
-                formula,
-                @"(?<![A-Za-z0-9_\.!])(\$?)([A-Za-z]{1,3})(\$?)(\d{1,7})(?=[:),+\-*/^&=<> \t\r\n]|$)",
-                match => {
-                    bool rowAbsolute = match.Groups[3].Value == "$";
-                    if (rowAbsolute || !int.TryParse(match.Groups[4].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int row)) {
-                        return match.Value;
-                    }
-
-                    var cell = A1.ParseCellRef(match.Groups[2].Value + row.ToString(CultureInfo.InvariantCulture));
-                    if (cell.Col < firstColumn || cell.Col > lastColumn || !rowMap.TryGetValue(row, out int targetRow)) {
-                        return match.Value;
-                    }
-
-                    return match.Groups[1].Value + match.Groups[2].Value + match.Groups[3].Value + targetRow.ToString(CultureInfo.InvariantCulture);
-                },
-                RegexOptions.CultureInvariant,
-                TimeSpan.FromMilliseconds(200));
+            return ExcelFormulaReferenceRewriter.RewriteReferences(formula, match => {
+                ExcelReference reference = match.Reference;
+                if (reference.IsQualified || reference.Kind is not (ExcelReferenceKind.Cell or ExcelReferenceKind.Range)) {
+                    return match.Text;
+                }
+                int startRow = MapSortedRow(reference.Start, rowMap, firstColumn, lastColumn, out bool startChanged);
+                int endRow = MapSortedRow(reference.End, rowMap, firstColumn, lastColumn, out bool endChanged);
+                return startChanged || endChanged
+                    ? FormatFormulaReference(match, startRow, endRow)
+                    : match.Text;
+            });
         }
 
         private string RewriteCopiedFormulaReferences(string formula, int rowOffset, string? sheetName) {
@@ -185,18 +176,15 @@ namespace OfficeIMO.Excel {
                 return formula;
             }
 
-            return RewriteFormulaReferencesOutsideStrings(formula, segment => ReplaceFormulaReferences(segment, match => {
-                if (!CanRewriteFormulaReference(match, sheetName, allowAbsoluteRows: false, allowOtherSheets: true, out int row)) {
-                    return match.Value;
-                }
-
-                int targetRow = row + rowOffset;
-                if (targetRow <= 0 || targetRow > A1.MaxRows) {
-                    return match.Value;
-                }
-
-                return BuildFormulaReference(match, targetRow);
-            }));
+            return ExcelFormulaReferenceRewriter.RewriteReferences(formula, match => {
+                if (IsFormulaFunctionReferenceToken(formula, match)
+                    || match.Reference.Kind is not (ExcelReferenceKind.Cell or ExcelReferenceKind.Range)) return match.Text;
+                int startRow = CopyRow(match.Reference.Start, rowOffset, out bool startChanged);
+                int endRow = CopyRow(match.Reference.End, rowOffset, out bool endChanged);
+                return startChanged || endChanged
+                    ? FormatFormulaReference(match, startRow, endRow)
+                    : match.Text;
+            });
         }
 
         private string RewriteShiftedFormulaReferences(
@@ -209,64 +197,20 @@ namespace OfficeIMO.Excel {
                 return formula;
             }
 
-            return RewriteFormulaReferencesOutsideStrings(formula, segment => {
-                var protectedRanges = new List<string>();
-                string rewrittenRanges = ReplaceFormulaRanges(segment, match => {
-                    string replacement = RewriteShiftedFormulaRangeReference(
-                        match,
-                        firstAffectedRow,
-                        rowDelta,
-                        sheetName,
-                        rewriteUnqualifiedReferences);
-                    if (string.Equals(replacement, match.Value, StringComparison.Ordinal)) {
-                        return match.Value;
-                    }
-
-                    string placeholder = "\u0001R" + protectedRanges.Count.ToString(CultureInfo.InvariantCulture) + "\u0002";
-                    protectedRanges.Add(replacement);
-                    return placeholder;
-                });
-                rewrittenRanges = ReplaceFormulaRowRanges(rewrittenRanges, match => {
-                    string replacement = RewriteShiftedFormulaRowRangeReference(
-                        match,
-                        firstAffectedRow,
-                        rowDelta,
-                        sheetName,
-                        rewriteUnqualifiedReferences);
-                    if (string.Equals(replacement, match.Value, StringComparison.Ordinal)) {
-                        return match.Value;
-                    }
-
-                    string placeholder = "\u0001R" + protectedRanges.Count.ToString(CultureInfo.InvariantCulture) + "\u0002";
-                    protectedRanges.Add(replacement);
-                    return placeholder;
-                });
-
-                string rewritten = ReplaceFormulaReferences(rewrittenRanges, match => {
-                    if (!CanRewriteFormulaReference(
-                            match,
-                            sheetName,
-                            allowAbsoluteRows: true,
-                            allowOtherSheets: false,
-                            out int row,
-                            rewriteUnqualifiedReferences: rewriteUnqualifiedReferences)
-                        || row < firstAffectedRow) {
-                        return match.Value;
-                    }
-
-                    int targetRow = row + rowDelta;
-                    if (targetRow <= 0 || targetRow > A1.MaxRows) {
-                        return "#REF!";
-                    }
-
-                    return BuildFormulaReference(match, targetRow);
-                });
-
-                for (int i = 0; i < protectedRanges.Count; i++) {
-                    rewritten = rewritten.Replace("\u0001R" + i.ToString(CultureInfo.InvariantCulture) + "\u0002", protectedRanges[i]);
+            return ExcelFormulaReferenceRewriter.RewriteReferences(formula, match => {
+                if (IsFormulaFunctionReferenceToken(formula, match)
+                    || !CanRewriteFormulaReference(match.Reference, sheetName, rewriteUnqualifiedReferences)) return match.Text;
+                if (match.Reference.Kind == ExcelReferenceKind.Cell) {
+                    if (match.Reference.Start.Row < firstAffectedRow) return match.Text;
+                    int targetRow = match.Reference.Start.Row + rowDelta;
+                    return targetRow <= 0 || targetRow > A1.MaxRows
+                        ? "#REF!"
+                        : FormatFormulaReference(match, targetRow, targetRow);
                 }
-
-                return rewritten;
+                if (match.Reference.Kind is ExcelReferenceKind.Range or ExcelReferenceKind.WholeRow) {
+                    return RewriteShiftedFormulaRangeReference(match, firstAffectedRow, rowDelta);
+                }
+                return match.Text;
             });
         }
 
@@ -281,73 +225,22 @@ namespace OfficeIMO.Excel {
                 return formula;
             }
 
-            return RewriteFormulaReferencesOutsideStrings(formula, segment => {
-                var protectedRanges = new List<string>();
-                string rewrittenRanges = ReplaceFormulaRanges(segment, match => {
-                    string replacement = RewriteDeletedFormulaRangeReference(
-                        match,
-                        firstDeletedRow,
-                        lastDeletedRow,
-                        rowDelta,
-                        sheetName,
-                        rewriteUnqualifiedReferences);
-                    if (string.Equals(replacement, match.Value, StringComparison.Ordinal)) {
-                        return match.Value;
-                    }
-
-                    string placeholder = "\u0001R" + protectedRanges.Count.ToString(CultureInfo.InvariantCulture) + "\u0002";
-                    protectedRanges.Add(replacement);
-                    return placeholder;
-                });
-                rewrittenRanges = ReplaceFormulaRowRanges(rewrittenRanges, match => {
-                    string replacement = RewriteDeletedFormulaRowRangeReference(
-                        match,
-                        firstDeletedRow,
-                        lastDeletedRow,
-                        rowDelta,
-                        sheetName,
-                        rewriteUnqualifiedReferences);
-                    if (string.Equals(replacement, match.Value, StringComparison.Ordinal)) {
-                        return match.Value;
-                    }
-
-                    string placeholder = "\u0001R" + protectedRanges.Count.ToString(CultureInfo.InvariantCulture) + "\u0002";
-                    protectedRanges.Add(replacement);
-                    return placeholder;
-                });
-
-                string rewritten = ReplaceFormulaReferences(rewrittenRanges, match => {
-                    if (!CanRewriteFormulaReference(
-                            match,
-                            sheetName,
-                            allowAbsoluteRows: true,
-                            allowOtherSheets: false,
-                            out int row,
-                            rewriteUnqualifiedReferences: rewriteUnqualifiedReferences)) {
-                        return match.Value;
-                    }
-
-                    if (row >= firstDeletedRow && row <= lastDeletedRow) {
-                        return "#REF!";
-                    }
-
-                    if (row <= lastDeletedRow) {
-                        return match.Value;
-                    }
-
+            return ExcelFormulaReferenceRewriter.RewriteReferences(formula, match => {
+                if (IsFormulaFunctionReferenceToken(formula, match)
+                    || !CanRewriteFormulaReference(match.Reference, sheetName, rewriteUnqualifiedReferences)) return match.Text;
+                if (match.Reference.Kind == ExcelReferenceKind.Cell) {
+                    int row = match.Reference.Start.Row;
+                    if (row >= firstDeletedRow && row <= lastDeletedRow) return "#REF!";
+                    if (row <= lastDeletedRow) return match.Text;
                     int targetRow = row + rowDelta;
-                    if (targetRow <= 0 || targetRow > A1.MaxRows) {
-                        return match.Value;
-                    }
-
-                    return BuildFormulaReference(match, targetRow);
-                });
-
-                for (int i = 0; i < protectedRanges.Count; i++) {
-                    rewritten = rewritten.Replace("\u0001R" + i.ToString(CultureInfo.InvariantCulture) + "\u0002", protectedRanges[i]);
+                    return targetRow <= 0 || targetRow > A1.MaxRows
+                        ? match.Text
+                        : FormatFormulaReference(match, targetRow, targetRow);
                 }
-
-                return rewritten;
+                if (match.Reference.Kind is ExcelReferenceKind.Range or ExcelReferenceKind.WholeRow) {
+                    return RewriteDeletedFormulaRangeReference(match, firstDeletedRow, lastDeletedRow, rowDelta);
+                }
+                return match.Text;
             });
         }
 
@@ -359,35 +252,12 @@ namespace OfficeIMO.Excel {
             return ExcelFormulaReferenceRewriter.RewriteOutsideStrings(formula, rewriteSegment);
         }
 
-        private string ReplaceFormulaReferences(string segment, MatchEvaluator evaluator) {
-            return ExcelFormulaReferenceRewriter.CellReferenceRegex.Replace(
-                segment,
-                match => IsInsideFormulaStructuredReference(segment, match.Index)
-                    || IsFormulaFunctionReferenceToken(segment, match)
-                    ? match.Value
-                    : evaluator(match));
-        }
-
-        private string ReplaceFormulaRanges(string segment, MatchEvaluator evaluator) {
-            return ExcelFormulaReferenceRewriter.RangeReferenceRegex.Replace(
-                segment,
-                match => IsInsideFormulaStructuredReference(segment, match.Index)
-                    ? match.Value
-                    : evaluator(match));
-        }
-
-        private string ReplaceFormulaRowRanges(string segment, MatchEvaluator evaluator) {
-            return ExcelFormulaReferenceRewriter.RowRangeReferenceRegex.Replace(
-                segment,
-                match => IsInsideFormulaStructuredReference(segment, match.Index)
-                    ? match.Value
-                    : evaluator(match));
-        }
-
-        private bool IsFormulaFunctionReferenceToken(string formula, Match match) {
-            if (match.Groups["sheet"].Success
-                || match.Groups["colAbs"].Value.Length > 0
-                || match.Groups["rowAbs"].Value.Length > 0) {
+        private bool IsFormulaFunctionReferenceToken(string formula, ExcelFormulaReferenceCandidate match) {
+            if (match.Reference.IsQualified
+                || match.Reference.Kind != ExcelReferenceKind.Cell
+                || match.Reference.Start.ColumnAbsolute
+                || match.Reference.Start.RowAbsolute
+                || match.HasSpill) {
                 return false;
             }
 
@@ -401,32 +271,24 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string token = match.Groups["col"].Value + match.Groups["row"].Value;
+            string token = match.Text;
             return ExcelFormulaCapabilities.IsBuiltInFunction(token)
                 || _excelDocument.Calculation.TryGetCustomFunction(token, out _);
         }
 
         private static string RewriteDeletedFormulaRangeReference(
-            Match match,
+            ExcelFormulaReferenceCandidate match,
             int firstDeletedRow,
             int lastDeletedRow,
-            int rowDelta,
-            string? sheetName,
-            bool rewriteUnqualifiedReferences) {
-            if (!CanRewriteFormulaRangeQualifier(match, sheetName, rewriteUnqualifiedReferences)) {
-                return match.Value;
-            }
-
-            if (!int.TryParse(match.Groups["startRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int startRow)
-                || !int.TryParse(match.Groups["endRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int endRow)) {
-                return match.Value;
-            }
+            int rowDelta) {
+            int startRow = match.Reference.Start.Row;
+            int endRow = match.Reference.End.Row;
 
             bool reversed = startRow > endRow;
             int lowRow = Math.Min(startRow, endRow);
             int highRow = Math.Max(startRow, endRow);
             if (highRow < firstDeletedRow) {
-                return match.Value;
+                return match.Text;
             }
 
             if (lowRow >= firstDeletedRow && highRow <= lastDeletedRow) {
@@ -453,43 +315,21 @@ namespace OfficeIMO.Excel {
             int targetStart = reversed ? targetHigh : targetLow;
             int targetEnd = reversed ? targetLow : targetHigh;
 
-            string sheetQualifier = match.Groups["sheet"].Value;
-            string endSheetQualifier = match.Groups["endSheet"].Value;
-            return sheetQualifier
-                + (sheetQualifier.Length > 0 ? "!" : string.Empty)
-                + match.Groups["startColAbs"].Value
-                + match.Groups["startCol"].Value
-                + match.Groups["startRowAbs"].Value
-                + targetStart.ToString(CultureInfo.InvariantCulture)
-                + ":"
-                + endSheetQualifier
-                + (endSheetQualifier.Length > 0 ? "!" : string.Empty)
-                + match.Groups["endColAbs"].Value
-                + match.Groups["endCol"].Value
-                + match.Groups["endRowAbs"].Value
-                + targetEnd.ToString(CultureInfo.InvariantCulture);
+            return FormatFormulaReference(match, targetStart, targetEnd);
         }
 
         private static string RewriteShiftedFormulaRangeReference(
-            Match match,
+            ExcelFormulaReferenceCandidate match,
             int firstAffectedRow,
-            int rowDelta,
-            string? sheetName,
-            bool rewriteUnqualifiedReferences) {
-            if (!CanRewriteFormulaRangeQualifier(match, sheetName, rewriteUnqualifiedReferences)) {
-                return match.Value;
-            }
-
-            if (!int.TryParse(match.Groups["startRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int startRow)
-                || !int.TryParse(match.Groups["endRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int endRow)) {
-                return match.Value;
-            }
+            int rowDelta) {
+            int startRow = match.Reference.Start.Row;
+            int endRow = match.Reference.End.Row;
 
             bool reversed = startRow > endRow;
             int lowRow = Math.Min(startRow, endRow);
             int highRow = Math.Max(startRow, endRow);
             if (highRow < firstAffectedRow) {
-                return match.Value;
+                return match.Text;
             }
             int targetLow = lowRow < firstAffectedRow ? lowRow : lowRow + rowDelta;
             int targetHigh = highRow + rowDelta;
@@ -499,171 +339,72 @@ namespace OfficeIMO.Excel {
             int targetStart = reversed ? targetHigh : targetLow;
             int targetEnd = reversed ? targetLow : targetHigh;
 
-            string sheetQualifier = match.Groups["sheet"].Value;
-            string endSheetQualifier = match.Groups["endSheet"].Value;
-            return sheetQualifier
-                + (sheetQualifier.Length > 0 ? "!" : string.Empty)
-                + match.Groups["startColAbs"].Value
-                + match.Groups["startCol"].Value
-                + match.Groups["startRowAbs"].Value
-                + targetStart.ToString(CultureInfo.InvariantCulture)
-                + ":"
-                + endSheetQualifier
-                + (endSheetQualifier.Length > 0 ? "!" : string.Empty)
-                + match.Groups["endColAbs"].Value
-                + match.Groups["endCol"].Value
-                + match.Groups["endRowAbs"].Value
-                + targetEnd.ToString(CultureInfo.InvariantCulture);
-        }
-
-        private static string RewriteDeletedFormulaRowRangeReference(
-            Match match,
-            int firstDeletedRow,
-            int lastDeletedRow,
-            int rowDelta,
-            string? sheetName,
-            bool rewriteUnqualifiedReferences) {
-            if (!CanRewriteFormulaRangeQualifier(match, sheetName, rewriteUnqualifiedReferences)
-                || !int.TryParse(match.Groups["startRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int startRow)
-                || !int.TryParse(match.Groups["endRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int endRow)) {
-                return match.Value;
-            }
-
-            bool reversed = startRow > endRow;
-            int lowRow = Math.Min(startRow, endRow);
-            int highRow = Math.Max(startRow, endRow);
-            if (highRow < firstDeletedRow) {
-                return match.Value;
-            }
-            if (lowRow >= firstDeletedRow && highRow <= lastDeletedRow) {
-                return "#REF!";
-            }
-
-            int targetLow = lowRow > lastDeletedRow
-                ? lowRow + rowDelta
-                : lowRow >= firstDeletedRow ? firstDeletedRow : lowRow;
-            int targetHigh = highRow > lastDeletedRow
-                ? highRow + rowDelta
-                : highRow >= firstDeletedRow ? firstDeletedRow - 1 : highRow;
-            if (targetLow <= 0 || targetHigh <= 0 || targetHigh < targetLow || targetHigh > A1.MaxRows) {
-                return "#REF!";
-            }
-            int targetStart = reversed ? targetHigh : targetLow;
-            int targetEnd = reversed ? targetLow : targetHigh;
-
-            return BuildFormulaRowRange(match, targetStart, targetEnd);
-        }
-
-        private static string RewriteShiftedFormulaRowRangeReference(
-            Match match,
-            int firstAffectedRow,
-            int rowDelta,
-            string? sheetName,
-            bool rewriteUnqualifiedReferences) {
-            if (!CanRewriteFormulaRangeQualifier(match, sheetName, rewriteUnqualifiedReferences)
-                || !int.TryParse(match.Groups["startRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int startRow)
-                || !int.TryParse(match.Groups["endRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int endRow)) {
-                return match.Value;
-            }
-
-            bool reversed = startRow > endRow;
-            int lowRow = Math.Min(startRow, endRow);
-            int highRow = Math.Max(startRow, endRow);
-            if (highRow < firstAffectedRow) {
-                return match.Value;
-            }
-            int targetLow = lowRow < firstAffectedRow ? lowRow : lowRow + rowDelta;
-            int targetHigh = highRow + rowDelta;
-            if (targetLow <= 0 || targetHigh <= 0 || targetHigh < targetLow || targetHigh > A1.MaxRows) {
-                return "#REF!";
-            }
-            return BuildFormulaRowRange(
-                match,
-                reversed ? targetHigh : targetLow,
-                reversed ? targetLow : targetHigh);
-        }
-
-        private static bool CanRewriteFormulaRangeQualifier(
-            Match match,
-            string? sheetName,
-            bool rewriteUnqualifiedReferences) {
-            string qualifier = match.Groups["sheet"].Value;
-            string endQualifier = match.Groups["endSheet"].Value;
-            if (match.Groups["startCol"].Success
-                && (!IsValidFormulaColumn(match.Groups["startCol"].Value)
-                    || !IsValidFormulaColumn(match.Groups["endCol"].Value))) {
-                return false;
-            }
-            if (!IsValidFormulaRow(match.Groups["startRow"].Value)
-                || !IsValidFormulaRow(match.Groups["endRow"].Value)) {
-                return false;
-            }
-            bool startMatches = qualifier.Length > 0
-                ? IsCurrentSheetQualifier(qualifier, sheetName)
-                : rewriteUnqualifiedReferences;
-            bool endMatches = endQualifier.Length == 0 || IsCurrentSheetQualifier(endQualifier, sheetName);
-            return startMatches && endMatches;
-        }
-
-        private static string BuildFormulaRowRange(Match match, int firstRow, int lastRow) {
-            string qualifier = match.Groups["sheet"].Value;
-            string endQualifier = match.Groups["endSheet"].Value;
-            return qualifier
-                + (qualifier.Length > 0 ? "!" : string.Empty)
-                + match.Groups["startRowAbs"].Value
-                + firstRow.ToString(CultureInfo.InvariantCulture)
-                + ":"
-                + endQualifier
-                + (endQualifier.Length > 0 ? "!" : string.Empty)
-                + match.Groups["endRowAbs"].Value
-                + lastRow.ToString(CultureInfo.InvariantCulture);
+            return FormatFormulaReference(match, targetStart, targetEnd);
         }
 
         private static bool CanRewriteFormulaReference(
-            Match match,
+            ExcelReference reference,
             string? sheetName,
-            bool allowAbsoluteRows,
-            bool allowOtherSheets,
-            out int row,
             bool rewriteUnqualifiedReferences = true) {
-            row = 0;
-            string sheetQualifier = match.Groups["sheet"].Value;
-            if (sheetQualifier.Length > 0 && !allowOtherSheets && !IsCurrentSheetQualifier(sheetQualifier, sheetName)) {
-                return false;
-            }
-            if (sheetQualifier.Length == 0 && !rewriteUnqualifiedReferences) {
-                return false;
-            }
-
-            if (!allowAbsoluteRows && match.Groups["rowAbs"].Value == "$") {
-                return false;
-            }
-
-            return IsValidFormulaColumn(match.Groups["col"].Value)
-                && int.TryParse(match.Groups["row"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out row)
-                && row > 0
-                && row <= A1.MaxRows;
+            return reference.IsQualified
+                ? IsCurrentSheetQualifier(reference.Qualifier!, sheetName)
+                : rewriteUnqualifiedReferences;
         }
 
-        private static bool IsValidFormulaColumn(string column) {
-            int index = A1.ColumnLettersToIndex(column);
-            return index > 0 && index <= A1.MaxColumns;
+        private static int MapSortedRow(
+            ExcelReferencePoint point,
+            IReadOnlyDictionary<int, int> rowMap,
+            int firstColumn,
+            int lastColumn,
+            out bool changed) {
+            changed = !point.RowAbsolute
+                && point.Column >= firstColumn
+                && point.Column <= lastColumn
+                && rowMap.TryGetValue(point.Row, out int targetRow)
+                && targetRow != point.Row;
+            return changed ? rowMap[point.Row] : point.Row;
         }
 
-        private static bool IsValidFormulaRow(string row) {
-            return int.TryParse(row, NumberStyles.None, CultureInfo.InvariantCulture, out int index)
-                && index > 0
-                && index <= A1.MaxRows;
+        private static int CopyRow(ExcelReferencePoint point, int rowOffset, out bool changed) {
+            changed = false;
+            if (point.RowAbsolute) return point.Row;
+            int target = point.Row + rowOffset;
+            if (target <= 0 || target > A1.MaxRows) return point.Row;
+            changed = target != point.Row;
+            return target;
         }
 
-        private static string BuildFormulaReference(Match match, int targetRow) {
-            string sheetQualifier = match.Groups["sheet"].Value;
-            return sheetQualifier
-                + (sheetQualifier.Length > 0 ? "!" : string.Empty)
-                + match.Groups["colAbs"].Value
-                + match.Groups["col"].Value
-                + match.Groups["rowAbs"].Value
-                + targetRow.ToString(CultureInfo.InvariantCulture);
+        private static string FormatFormulaReference(ExcelFormulaReferenceCandidate match, int startRow, int endRow) =>
+            FormatFormulaReference(
+                match.Reference,
+                startRow,
+                endRow,
+                match.HasSpill,
+                match.Text.LastIndexOf('!') > match.Text.LastIndexOf(':'));
+
+        private static string FormatFormulaReference(
+            ExcelReference reference,
+            int startRow,
+            int endRow,
+            bool spill,
+            bool repeatEndQualifier = false) {
+            string qualifier = reference.IsQualified ? reference.Qualifier + "!" : string.Empty;
+            string start = FormatFormulaReferencePoint(reference.Start, reference.Kind, startRow);
+            string result = qualifier + start;
+            if (reference.Kind != ExcelReferenceKind.Cell) {
+                result += ":" + (repeatEndQualifier ? qualifier : string.Empty)
+                    + FormatFormulaReferencePoint(reference.End, reference.Kind, endRow);
+            }
+            return spill ? result + "#" : result;
+        }
+
+        private static string FormatFormulaReferencePoint(ExcelReferencePoint point, ExcelReferenceKind kind, int row) {
+            if (kind == ExcelReferenceKind.WholeRow) {
+                return (point.RowAbsolute ? "$" : string.Empty) + row.ToString(CultureInfo.InvariantCulture);
+            }
+            string column = (point.ColumnAbsolute ? "$" : string.Empty) + A1.ColumnIndexToLetters(point.Column);
+            if (kind == ExcelReferenceKind.WholeColumn) return column;
+            return column + (point.RowAbsolute ? "$" : string.Empty) + row.ToString(CultureInfo.InvariantCulture);
         }
 
         private static bool IsCurrentSheetQualifier(string qualifier, string? sheetName) {

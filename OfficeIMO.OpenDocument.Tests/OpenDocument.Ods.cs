@@ -1,11 +1,59 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;
 
 public class OpenDocumentOdsTests {
+    [Fact]
+    public void CellAnnotationsPreserveTextAuthorDateAndIdentity() {
+        OdsDocument document = OdsDocument.Create();
+        OdsCell cell = document.AddSheet("Data").Cell(3, 2);
+        DateTimeOffset timestamp = new DateTimeOffset(2026, 8, 9, 10, 30, 0, TimeSpan.FromHours(2));
+
+        OdsAnnotation authored = cell.AddAnnotation(
+            "Review  this\tvalue\nbefore release", date: timestamp,
+            name: "note-17");
+        authored.Creator = "Alice";
+        authored.Creator = null;
+        authored.Creator = "Alice";
+
+        XElement raw = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Office + "annotation").Single();
+        Assert.Equal(new[] {
+            OdfNamespaces.Dc + "creator",
+            OdfNamespaces.Dc + "date",
+            OdfNamespaces.Text + "p"
+        }, raw.Elements().Select(element => element.Name));
+        Assert.True(document.Validate().IsValid);
+
+        Assert.Equal(new OdsUsedRange(3, 2, 3, 2), document.Sheets.Single().UsedRange);
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(document.ToBytes()));
+        OdsAnnotation annotation = Assert.Single(reopened.Sheets.Single().Cell(3, 2).Annotations);
+        Assert.Equal("note-17", annotation.Name);
+        Assert.Equal("Alice", annotation.Creator);
+        Assert.Equal(timestamp, annotation.Date);
+        Assert.Equal("Review  this\tvalue\nbefore release", annotation.Text);
+    }
+
+    [Fact]
+    public void CellAnnotationPrecedesTextContentAndRejectsASecondAnnotation() {
+        OdsDocument document = OdsDocument.Create();
+        OdsCell cell = document.AddSheet("Data").Cell(0, 0);
+        cell.SetString("Visible");
+
+        OdsAnnotation annotation = cell.AddAnnotation("Review", "Alice");
+
+        Assert.Equal(annotation.Text, cell.Annotation!.Text);
+        Assert.Throws<InvalidOperationException>(() => cell.AddAnnotation("Second"));
+        XElement rawCell = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table-cell").Single();
+        Assert.Equal(new[] { OdfNamespaces.Office + "annotation", OdfNamespaces.Text + "p" },
+            rawCell.Elements().Select(element => element.Name));
+    }
+
     [Fact]
     public void MergeRejectsMaterializationBeyondTheConfiguredBoundWithoutMutation() {
         OdsDocument document = OdsDocument.Create();

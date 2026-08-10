@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples.Pdf {
                 CellPaddingY = 13.5
             };
 
-            PdfDocument.Create(opts)
+            PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Table Debug — Offset -1.0", PdfAlign.Left)
                 .Table(rows, PdfAlign.Left, new PdfTableStyle {
                     HeaderFill = styleBase.HeaderFill,
@@ -60,7 +60,7 @@ namespace OfficeIMO.Examples.Pdf {
                     CellPaddingX = styleBase.CellPaddingX,
                     CellPaddingY = styleBase.CellPaddingY,
                     RowBaselineOffset = 1.0
-                })
+                })), opts)
                 .Save(path);
 
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });

@@ -148,7 +148,7 @@ internal static partial class PdfRedactionPlanner {
                 findings.Add(new PdfDiagnosticFinding(
                     PdfDiagnosticSeverity.Warning,
                     "RedactionPlanImageIntersection",
-                    "Redaction area intersects an image placement. The current redaction applier can paint the rectangle, but image pixel/resource rewriting must be handled by a safe image-redaction flow before treating the image content as removed.",
+                    "Redaction area intersects an image placement. Applying the plan rewrites supported image pixels and otherwise follows the configured fail-closed, whole-placement removal, or explicit visual-overlay policy.",
                     placement.ObjectNumber == 0 ? null : placement.ObjectNumber,
                     placement.PageNumber));
             }

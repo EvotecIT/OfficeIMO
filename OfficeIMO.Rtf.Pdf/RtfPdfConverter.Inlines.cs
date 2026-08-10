@@ -126,6 +126,8 @@ internal static partial class RtfPdfConverter {
             return;
         }
 
+        ReportUnsupportedRunFormatting(run, options);
+
         string text = run.Text ?? string.Empty;
         if (collectNotes && run.Note != null) {
             state.AddNote(run.Note, text);
@@ -157,6 +159,41 @@ internal static partial class RtfPdfConverter {
             baseline: RtfPdfMapping.ToPdfBaseline(run.VerticalPosition),
             linkDestinationName: linkDestinationName,
             backgroundColor: background));
+    }
+
+    private static void ReportUnsupportedRunFormatting(RtfRun run, RtfPdfSaveOptions options) {
+        var features = new List<string>();
+        if (run.Hidden && options.IncludeHiddenText) features.Add("hidden-visibility");
+        if ((run.UnderlineStyle != RtfUnderlineStyle.None && run.UnderlineStyle != RtfUnderlineStyle.Single)
+            || run.UnderlineColorIndex.HasValue) features.Add("underline-style-or-color");
+        if (run.DoubleStrike) features.Add("double-strike");
+        if (run.Outline || run.Shadow || run.Emboss || run.Imprint || run.CapsStyle != RtfCapsStyle.None) {
+            features.Add("text-effects");
+        }
+        if (run.HighlightColorIndex.HasValue && run.CharacterBackgroundColorIndex.HasValue) {
+            features.Add("overlapping-background-colors");
+        }
+        if (run.CharacterShadingForegroundColorIndex.HasValue || run.CharacterShadingPatternPercent.HasValue
+            || run.CharacterShadingPattern != RtfShadingPattern.None) features.Add("character-shading");
+        if (run.CharacterBorder.HasAnyValue) features.Add("character-border");
+        if (run.CharacterSpacingTwips.HasValue || run.CharacterScalePercent.HasValue || run.KerningHalfPoints.HasValue
+            || run.CharacterOffsetHalfPoints.HasValue) features.Add("character-metrics");
+        if (run.StyleId.HasValue || run.Direction.HasValue || run.LanguageId.HasValue) {
+            features.Add("style-direction-or-language");
+        }
+        if (run.RevisionKind != RtfRevisionKind.None || run.RevisionAuthorIndex.HasValue
+            || run.RevisionTimestampValue.HasValue || run.CharacterRevisionSaveId.HasValue
+            || run.InsertionRevisionSaveId.HasValue || run.DeletionRevisionSaveId.HasValue) {
+            features.Add("revision-metadata");
+        }
+        if (features.Count == 0) return;
+        AddConversionWarning(
+            options,
+            "RunFormattingFlattened",
+            "Run",
+            "RTF run formatting outside the PDF text-run subset was flattened.",
+            RtfConversionAction.Flattened,
+            new Dictionary<string, string> { ["Features"] = string.Join(",", features) });
     }
 
     private static string? GetFieldLinkDestinationName(RtfField field) {

@@ -2,6 +2,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.OneNote.Html;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 using OfficeIMO.Word;
@@ -104,7 +105,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
     }
 
     [Fact]
-    public void ExcelHtml_GenericMalformedImageConsumesTheSharedImageBudgetBeforeDecode() {
+    public void ExcelHtml_GenericMalformedImageDoesNotConsumeTheSharedImageBudget() {
         const string html = """
             <img src="data:image/png;base64,!!!!" alt="Malformed">
             <img src="data:image/png;base64,AQID" alt="Would otherwise be accepted">
@@ -117,30 +118,50 @@ public sealed class HtmlOfficeAdapterLimitTests {
             new HtmlToExcelOptions { Limits = limits, Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
-        Assert.Equal(0, result.Images);
-        Assert.Empty(Assert.Single(workbook.Sheets).Images);
+        Assert.Equal(1, result.Images);
+        Assert.Single(Assert.Single(workbook.Sheets).Images);
         Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ResourceDecodeFailed);
-        Assert.Contains(result.Report.Diagnostics,
+        Assert.DoesNotContain(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
     }
 
     [Fact]
-    public void PowerPointHtml_GenericMalformedImageConsumesTheSharedShapeBudgetBeforeDecode() {
+    public void PowerPointHtml_GenericMalformedImageDoesNotConsumeTheSharedShapeBudget() {
         const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEAQH/69DjmQAAAABJRU5ErkJggg==";
         string html = "<img src='data:image/png;base64,!!!!' alt='Malformed'>"
             + "<img src='data:image/png;base64," + png + "' alt='Would otherwise be accepted'>";
         HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
         limits.MaxImages = 1;
-        limits.MaxShapes = 1;
+        limits.MaxShapes = 2;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(
             new HtmlToPowerPointOptions { Limits = limits, Mode = HtmlImportMode.Generic });
         using var presentation = result.Value;
 
-        Assert.Equal(0, result.Pictures);
-        Assert.Empty(Assert.Single(presentation.Slides).Pictures);
+        Assert.Equal(1, result.Pictures);
+        Assert.Single(Assert.Single(presentation.Slides).Pictures);
         Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ResourceDecodeFailed);
+        Assert.DoesNotContain(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    [Fact]
+    public void OneNoteHtml_MalformedImageDoesNotConsumeTheSharedImageBudget() {
+        const string html = "<img src='data:image/png;base64,!!!!' alt='Malformed'>"
+            + "<img src='data:image/png;base64,AQID' alt='Accepted'>";
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxImages = 1;
+        limits.MaxShapes = 1;
+
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html)
+            .ToOneNoteSectionResult(new HtmlToOneNoteOptions { Limits = limits });
+
+        Assert.Equal(1, result.Images);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ResourceDecodeFailed);
+        Assert.DoesNotContain(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
     }
 

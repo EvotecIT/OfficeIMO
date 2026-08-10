@@ -742,11 +742,35 @@ byte[] tiff = sheet.Range("A1:F20").ToTiff(new ExcelImageExportOptions {
 
 document.ToImages()
     .ForSheets("Summary", "Data")
+    .FitWithin(1600, 1200)
     .AsWebp()
     .Save("preview-images");
+
+sheet.ToImages()
+    .UsePrintArea()
+    .SplitByManualPageBreaks()
+    .WithGridlines(false)
+    .AsPng()
+    .Save("print-area-pages");
 ```
 
-Excel layout, print-title, page-setup, and header/footer composition stays in `OfficeIMO.Excel`; final raster encoding is delegated once to `OfficeIMO.Drawing`.
+Excel layout, print-title, page-setup, and header/footer composition stays in `OfficeIMO.Excel`; final sizing and encoding are delegated once to `OfficeIMO.Drawing`. Worksheet batches can use print-area segments or manual page breaks without routing through a workbook export.
+
+Charts use the same managed image contract and preserve their anchored dimensions:
+
+```csharp
+ExcelChart chart = sheet.ChartFromTable("RevenueTable")
+    .RevenueTrend("Revenue trend")
+    .Size(640, 320)
+    .At(row: 1, column: 5);
+
+chart.ToImage()
+    .WithBackground(OfficeColor.White)
+    .AsPng()
+    .Save("revenue-chart.png");
+
+chart.SaveAsSvg("revenue-chart.svg");
+```
 
 ## Adjacent packages
 

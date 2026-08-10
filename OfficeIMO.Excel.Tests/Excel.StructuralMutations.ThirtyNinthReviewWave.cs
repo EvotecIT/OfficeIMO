@@ -83,5 +83,45 @@ namespace OfficeIMO.Tests {
             Assert.Single(sheet.WorksheetPart.TableDefinitionParts);
             Assert.Empty(document.ValidateOpenXml());
         }
+
+        [Fact]
+        public async Task Test_SheetBatch_DoesNotExposeItsUnlockedFastPathToAnotherThread() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            ReaderWriterLockSlim workbookLock = document.EnsureLock();
+            using var batchEntered = new ManualResetEventSlim(false);
+            using var releaseBatch = new ManualResetEventSlim(false);
+
+            Task batch = Task.Factory.StartNew(
+                () => sheet.Batch(_ => {
+                    batchEntered.Set();
+                    releaseBatch.Wait();
+                }),
+                CancellationToken.None,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
+            Assert.True(batchEntered.Wait(TimeSpan.FromSeconds(10)));
+
+            Task write = Task.Factory.StartNew(
+                () => sheet.CellValue(1, 1, "Serialized"),
+                CancellationToken.None,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
+            try {
+                Assert.True(
+                    SpinWait.SpinUntil(
+                        () => workbookLock.WaitingWriteCount > 0 || write.IsCompleted,
+                        TimeSpan.FromSeconds(10)),
+                    $"Cell write did not reach the workbook lock (status: {write.Status}).");
+                Assert.False(write.IsCompleted);
+            } finally {
+                releaseBatch.Set();
+            }
+
+            await batch;
+            await write;
+            Assert.Equal("Serialized", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Empty(document.ValidateOpenXml());
+        }
     }
 }

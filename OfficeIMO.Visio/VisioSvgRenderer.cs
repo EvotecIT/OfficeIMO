@@ -13,6 +13,7 @@ namespace OfficeIMO.Visio {
         private const string SvgNamespace = "http://www.w3.org/2000/svg";
 
         public static string Render(VisioPage page, VisioSvgSaveOptions options) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (options.PixelsPerInch <= 0D || double.IsNaN(options.PixelsPerInch) || double.IsInfinity(options.PixelsPerInch)) {
                 throw new ArgumentOutOfRangeException(nameof(options), "PixelsPerInch must be a finite positive number.");
             }
@@ -37,7 +38,7 @@ namespace OfficeIMO.Visio {
                 writer.WriteViewBoxAttribute(0D, 0D, logicalWidth, logicalHeight);
                 writer.WriteAttributeString("role", "img");
                 writer.WriteAttributeString("aria-label", string.IsNullOrWhiteSpace(page.Name) ? "OfficeIMO Visio page" : page.Name);
-                WriteEmbeddedFonts(writer, options.Fonts);
+                WriteEmbeddedFonts(writer, options.Fonts, options.CancellationToken);
 
                 if (options.BackgroundColor.HasValue && options.BackgroundColor.Value.A > 0) {
                     writer.WriteStartElement("rect", SvgNamespace);
@@ -53,6 +54,7 @@ namespace OfficeIMO.Visio {
                 writer.WriteAttributeString("data-officeimo-visio-page", page.Name);
 
                 foreach (VisioShape shape in page.Shapes) {
+                    options.CancellationToken.ThrowIfCancellationRequested();
                     WriteShape(writer, page, shape, options, scale);
                 }
 
@@ -60,6 +62,7 @@ namespace OfficeIMO.Visio {
                     ? VisioRenderLabelLayout.Create(page)
                     : null;
                 foreach (VisioConnector connector in page.Connectors) {
+                    options.CancellationToken.ThrowIfCancellationRequested();
                     WriteConnector(writer, page, connector, options, scale, labelLayout);
                 }
 
@@ -68,13 +71,18 @@ namespace OfficeIMO.Visio {
                 writer.WriteEndDocument();
             }
 
+            options.CancellationToken.ThrowIfCancellationRequested();
             return builder.ToString();
         }
 
-        private static void WriteEmbeddedFonts(XmlWriter writer, OfficeFontFaceCollection fonts) {
+        private static void WriteEmbeddedFonts(
+            XmlWriter writer,
+            OfficeFontFaceCollection fonts,
+            System.Threading.CancellationToken cancellationToken) {
             if (fonts == null || fonts.Faces.Count == 0) return;
             var css = new StringBuilder();
             foreach (OfficeFontFace face in fonts.Faces) {
+                cancellationToken.ThrowIfCancellationRequested();
                 css.Append("@font-face{font-family:\"")
                     .Append(EscapeCssString(face.FamilyName))
                     .Append("\";src:url(data:font/ttf;base64,")
@@ -105,6 +113,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static void WriteShape(XmlWriter writer, VisioPage page, VisioShape shape, VisioSvgSaveOptions options, double scale) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             writer.WriteStartElement("g", SvgNamespace);
             writer.WriteAttributeString("data-visio-shape-id", shape.Id);
             if (!string.IsNullOrWhiteSpace(shape.NameU)) {
@@ -124,6 +133,7 @@ namespace OfficeIMO.Visio {
             }
 
             foreach (VisioShape child in shape.Children) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 WriteShape(writer, page, child, options, scale);
             }
 

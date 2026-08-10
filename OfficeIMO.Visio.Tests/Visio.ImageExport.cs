@@ -11,6 +11,24 @@ namespace OfficeIMO.Tests;
 
 public class VisioImageExport {
     [Fact]
+    public async System.Threading.Tasks.Task SaveAsSvgAsync_CancellationDoesNotMutateCallerOptions() {
+        using MemoryStream package = new();
+        VisioDocument document = VisioDocument.Create(package);
+        VisioPage page = document.AddPage("Reusable options").Size(2, 1);
+        page.AddRectangle(1, 0.5, 1.5, 0.6, "Reusable");
+        var options = new VisioSvgSaveOptions();
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+        using var output = new MemoryStream();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            page.SaveAsSvgAsync(output, options, cancellation.Token));
+
+        string svg = page.ToSvg(options);
+        Assert.Contains("Reusable", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DirectImageExportEnforcesRenderTimeout() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
@@ -44,6 +62,30 @@ public class VisioImageExport {
         } else {
             Assert.Equal(format.GetMimeType(), OfficeImageReader.Identify(result.Bytes).MimeType);
         }
+    }
+
+    [Fact]
+    public void PageFitWithinAndConnectorOptionsApplyToRasterAndSvg() {
+        using MemoryStream package = new();
+        VisioDocument document = VisioDocument.Create(package);
+        VisioPage page = document.AddPage("Bounded").Size(4, 2);
+        page.AddRectangle(2, 1, 2, 1, "Bounded");
+
+        OfficeImageExportResult png = page.ToImage()
+            .WithScale(2D)
+            .FitWithin(240, 240)
+            .IncludeConnectorLabels(false)
+            .AsPng()
+            .Export();
+        OfficeImageExportResult svg = page.ToImage()
+            .WithScale(2D)
+            .FitWithin(240, 240)
+            .ResolveConnectorLabelOverlaps(false)
+            .AsSvg()
+            .Export();
+
+        Assert.Equal((240, 120), (png.Width, png.Height));
+        Assert.Equal((png.Width, png.Height), (svg.Width, svg.Height));
     }
 
     [Fact]

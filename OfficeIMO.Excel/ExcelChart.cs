@@ -437,6 +437,13 @@ namespace OfficeIMO.Excel {
                 return (hasWidth ? widthPixels : 480, hasHeight ? heightPixels : 320);
             }
 
+            Xdr.Extent? absoluteExtent = _frame.Ancestors<Xdr.AbsoluteAnchor>().FirstOrDefault()?.Extent;
+            if (absoluteExtent != null) {
+                return (
+                    EmuToPixels(absoluteExtent.Cx?.Value, 480),
+                    EmuToPixels(absoluteExtent.Cy?.Value, 320));
+            }
+
             Xdr.Extent? extent = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.Extent;
             return (EmuToPixels(extent?.Cx?.Value, 480), EmuToPixels(extent?.Cy?.Value, 320));
         }

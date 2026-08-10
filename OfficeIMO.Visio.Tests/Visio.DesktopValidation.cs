@@ -149,8 +149,8 @@ namespace OfficeIMO.Tests {
                     validSvg, out string validSvgIssue), validSvgIssue);
 
                 string validPdf = Path.Combine(directory, "valid.pdf");
-                byte[] pdf = PdfCore.PdfDocument.Create()
-                    .Paragraph(paragraph => paragraph.Text("Desktop proof"))
+                byte[] pdf = PdfCore.PdfDocument.Create(document => document
+                    .Content(content => content.Paragraph(paragraph => paragraph.Text("Desktop proof"))))
                     .ToBytes();
                 File.WriteAllBytes(validPdf, pdf);
                 Assert.True(VisioDesktopBaselineValidator.ValidateOutputFile(
@@ -162,10 +162,10 @@ namespace OfficeIMO.Tests {
                     StringComparison.OrdinalIgnoreCase);
 
                 string blankPdf = Path.Combine(directory, "blank.pdf");
-                File.WriteAllBytes(blankPdf, PdfCore.PdfDocument.Create()
-                    .Paragraph(paragraph => paragraph
+                File.WriteAllBytes(blankPdf, PdfCore.PdfDocument.Create(document => document
+                    .Content(content => content.Paragraph(paragraph => paragraph
                         .Color(PdfCore.PdfColor.White)
-                        .Text("Invisible"))
+                        .Text("Invisible"))))
                     .ToBytes());
                 Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
                     blankPdf, out string blankPdfIssue));

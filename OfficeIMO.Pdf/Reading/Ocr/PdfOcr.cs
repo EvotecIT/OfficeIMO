@@ -37,17 +37,19 @@ internal static class PdfOcr {
             cancellationToken.ThrowIfCancellationRequested();
             PdfPageRenderResult render = rendered[i];
             PdfLogicalPage nativePage = logical.Pages.First(page => page.PageNumber == render.PageNumber);
+            PdfReadPage readPage = readDocument.Pages[render.PageNumber - 1];
+            (double visualWidth, double visualHeight) = readPage.GetInteractionPageSize();
             double scale = effectiveOptions.Dpi / 72D;
-            var request = new PdfOcrRequest(render.PageNumber, render.Bytes!, render.Width, render.Height, nativePage.Width, nativePage.Height, scale);
+            var request = new PdfOcrRequest(render.PageNumber, render.Bytes!, render.Width, render.Height, visualWidth, visualHeight, scale);
             PdfOcrResponse response = await provider.RecognizeAsync(request, cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("OCR provider returned a null response.");
-            pages.Add(MergePage(nativePage, response, request, effectiveOptions, cancellationToken));
+            pages.Add(MergePage(nativePage, readPage, response, request, effectiveOptions, cancellationToken));
         }
 
         return new PdfOcrMergeResult(logical, pages.AsReadOnly());
     }
 
-    private static PdfOcrPageMergeResult MergePage(PdfLogicalPage nativePage, PdfOcrResponse response, PdfOcrRequest request, PdfOcrMergeOptions options, CancellationToken cancellationToken) {
+    private static PdfOcrPageMergeResult MergePage(PdfLogicalPage nativePage, PdfReadPage readPage, PdfOcrResponse response, PdfOcrRequest request, PdfOcrMergeOptions options, CancellationToken cancellationToken) {
         ValidateProviderResponse(nativePage, response, options);
         var diagnostics = new List<string>(response.Diagnostics);
         var accepted = new List<PdfRecognizedWord>();
@@ -71,7 +73,7 @@ internal static class PdfOcr {
             if (OverlapsNativeText(
                     normalized,
                     nativePage.TextBlocks,
-                    nativePage.Height,
+                    readPage,
                     options.NativeTextOverlapThreshold,
                     options.MaxNativeTextOverlapComparisonsPerPage,
                     ref overlapComparisons,
@@ -87,7 +89,7 @@ internal static class PdfOcr {
             int y = left.Y.CompareTo(right.Y);
             return y != 0 ? y : left.X.CompareTo(right.X);
         });
-        string text = BuildMergedText(nativePage, accepted, options.MaxMergedTextCharactersPerPage);
+        string text = BuildMergedText(nativePage, readPage, accepted, options.MaxMergedTextCharactersPerPage);
         return new PdfOcrPageMergeResult(nativePage.PageNumber, accepted.AsReadOnly(), lowConfidence, nativeOverlap, diagnostics.AsReadOnly(), text);
     }
 
@@ -99,7 +101,7 @@ internal static class PdfOcr {
     private static bool OverlapsNativeText(
         PdfRecognizedWord word,
         IReadOnlyList<PdfLogicalTextBlock> blocks,
-        double pageHeight,
+        PdfReadPage readPage,
         double threshold,
         long maximumComparisons,
         ref long comparisons,
@@ -113,20 +115,30 @@ internal static class PdfOcr {
             if ((i & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             PdfLogicalTextBlock block = blocks[i];
             double blockHeight = Math.Max(block.FontSize * 1.2D, 1D);
-            double blockTop = pageHeight - block.BaselineY - blockHeight;
-            double overlapWidth = Math.Max(0D, Math.Min(word.X + word.Width, block.XEnd) - Math.Max(word.X, block.XStart));
-            double overlapHeight = Math.Max(0D, Math.Min(word.Y + word.Height, blockTop + blockHeight) - Math.Max(word.Y, blockTop));
+            PdfVisualBounds bounds = readPage.TransformBoundsToVisual(
+                Math.Min(block.XStart, block.XEnd),
+                block.BaselineY,
+                Math.Max(block.XStart, block.XEnd),
+                block.BaselineY + blockHeight);
+            double overlapWidth = Math.Max(0D, Math.Min(word.X + word.Width, bounds.Right) - Math.Max(word.X, bounds.Left));
+            double overlapHeight = Math.Max(0D, Math.Min(word.Y + word.Height, bounds.Bottom) - Math.Max(word.Y, bounds.Top));
             if ((overlapWidth * overlapHeight) / wordArea >= threshold) return true;
         }
 
         return false;
     }
 
-    private static string BuildMergedText(PdfLogicalPage page, List<PdfRecognizedWord> words, int maximumCharacters) {
+    private static string BuildMergedText(PdfLogicalPage page, PdfReadPage readPage, List<PdfRecognizedWord> words, int maximumCharacters) {
         var items = new List<(double Y, double X, string Text)>(page.TextBlocks.Count + words.Count);
         for (int i = 0; i < page.TextBlocks.Count; i++) {
             PdfLogicalTextBlock block = page.TextBlocks[i];
-            items.Add((page.Height - block.BaselineY - block.FontSize, block.XStart, block.Text));
+            double blockHeight = Math.Max(block.FontSize, 1D);
+            PdfVisualBounds bounds = readPage.TransformBoundsToVisual(
+                Math.Min(block.XStart, block.XEnd),
+                block.BaselineY,
+                Math.Max(block.XStart, block.XEnd),
+                block.BaselineY + blockHeight);
+            items.Add((bounds.Top, bounds.Left, block.Text));
         }
 
         for (int i = 0; i < words.Count; i++) items.Add((words[i].Y, words[i].X, words[i].Text));

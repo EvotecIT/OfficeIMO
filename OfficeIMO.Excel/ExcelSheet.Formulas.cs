@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -36,31 +35,6 @@ namespace OfficeIMO.Excel {
                 DependencyGuardBlocked = true;
             }
         }
-
-        private static readonly Regex SimpleFunctionFormulaRegex = new Regex(
-            @"^\s*=?\s*(SUM|AVERAGE|AVERAGEA|MIN|MINA|MAX|MAXA|COUNT|COUNTA|COUNTBLANK|SUBTOTAL|COUNTIF|SUMIF|AVERAGEIF|COUNTIFS|SUMIFS|AVERAGEIFS|MINIFS|MAXIFS|PRODUCT|MEDIAN|LARGE|SMALL|MODE\.SNGL|MODE|GEOMEAN|HARMEAN|AVEDEV|DEVSQ|SUMXMY2|SUMX2MY2|SUMX2PY2|SUMSQ|SUMPRODUCT|STDEV\.S|STDEV\.P|VAR\.S|VAR\.P|PERCENTILE\.INC|PERCENTILE\.EXC|QUARTILE\.INC|QUARTILE\.EXC|PERCENTRANK\.INC|PERCENTRANK\.EXC|RANK\.EQ|RANK\.AVG|COVAR|COVARIANCE\.P|COVARIANCE\.S|CORREL|SLOPE|INTERCEPT|RSQ|FORECAST\.LINEAR|PMT|PV|FV|NPER|NPV|VLOOKUP|HLOOKUP|XLOOKUP|INDEX|MATCH|XMATCH|ABS|SIGN|ROUND|ROUNDUP|ROUNDDOWN|MROUND|TRUNC|INT|CEILING\.MATH|FLOOR\.MATH|CEILING|FLOOR|POWER|SQRT|LN|LOG10|EXP|PI|RADIANS|DEGREES|MOD|ROW|COLUMN|ROWS|COLUMNS|DATE|TIME|DATEVALUE|TIMEVALUE|TODAY|NOW|YEAR|MONTH|DAY|HOUR|MINUTE|SECOND|DATEDIF|YEARFRAC|EDATE|EOMONTH|DAYS|DAYS360|WEEKDAY|WEEKNUM|ISOWEEKNUM|NETWORKDAYS|WORKDAY\.INTL|WORKDAY|IF|IFS|SWITCH|CHOOSE|ISBLANK|ISNUMBER|ISTEXT|ISERROR|ISERR|ISNA|ISFORMULA|AND|OR|NOT|IFERROR|IFNA|CONCAT|CONCATENATE|TEXT|TEXTJOIN|TEXTBEFORE|TEXTAFTER|FORMULATEXT|LEFT|RIGHT|MID|LEN|TRIM|UPPER|LOWER|PROPER|SUBSTITUTE|FIND|SEARCH|VALUE|EXACT|REPT)\s*\((.*)\)\s*$",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled,
-            FormulaRegexTimeout);
-
-        private static readonly Regex FunctionNameFormulaRegex = new Regex(
-            @"^\s*=?\s*([A-Za-z_][A-Za-z0-9_.]*)\s*\(",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled,
-            FormulaRegexTimeout);
-
-        private static readonly Regex AnyFunctionFormulaRegex = new Regex(
-            @"^\s*=?\s*([A-Za-z_][A-Za-z0-9_.]*)\s*\((.*)\)\s*$",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled,
-            FormulaRegexTimeout);
-
-        private static readonly Regex SimpleBinaryFormulaRegex = new Regex(
-            @"^\s*=?\s*((?:'(?:[^']|'')+'|[A-Za-z_][^!+\-*/<>=,\(\)]*)!(?:\$?[A-Z]+\$?[0-9]+|[A-Za-z_][A-Za-z0-9_.]*(?:\[[^+\-*/<>=\(\)]*\])*)|\$?[A-Z]+\$?[0-9]+|[A-Za-z_][A-Za-z0-9_.]*(?:\[[^+\-*/<>=\(\)]*\])*|\[[^+\-*/<>=\(\)]*\]|-?\d+(?:\.\d+)?)\s*([+\-*/])\s*((?:'(?:[^']|'')+'|[A-Za-z_][^!+\-*/<>=,\(\)]*)!(?:\$?[A-Z]+\$?[0-9]+|[A-Za-z_][A-Za-z0-9_.]*(?:\[[^+\-*/<>=\(\)]*\])*)|\$?[A-Z]+\$?[0-9]+|[A-Za-z_][A-Za-z0-9_.]*(?:\[[^+\-*/<>=\(\)]*\])*|\[[^+\-*/<>=\(\)]*\]|-?\d+(?:\.\d+)?)\s*$",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled,
-            FormulaRegexTimeout);
-
-        private static readonly Regex SimpleComparisonFormulaRegex = new Regex(
-            @"^\s*((?:'(?:[^']|'')+'|[A-Za-z_][^!+\-*/<>=,\(\)]*)!(?:\$?[A-Z]+\$?[0-9]+|[A-Za-z_][A-Za-z0-9_.]*(?:\[[^+\-*/<>=\(\)]*\])*)|\$?[A-Z]+\$?[0-9]+|[A-Za-z_][A-Za-z0-9_.]*(?:\[[^+\-*/<>=\(\)]*\])*|\[[^+\-*/<>=\(\)]*\]|-?\d+(?:\.\d+)?)\s*(>=|<=|<>|=|>|<)\s*((?:'(?:[^']|'')+'|[A-Za-z_][^!+\-*/<>=,\(\)]*)!(?:\$?[A-Z]+\$?[0-9]+|[A-Za-z_][A-Za-z0-9_.]*(?:\[[^+\-*/<>=\(\)]*\])*)|\$?[A-Z]+\$?[0-9]+|[A-Za-z_][A-Za-z0-9_.]*(?:\[[^+\-*/<>=\(\)]*\])*|\[[^+\-*/<>=\(\)]*\]|-?\d+(?:\.\d+)?)\s*$",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled,
-            FormulaRegexTimeout);
 
         /// <summary>
         /// Marks all formula cells on this sheet dirty.
@@ -315,7 +289,7 @@ namespace OfficeIMO.Excel {
         /// Returns formula cells on this sheet without changing workbook contents.
         /// </summary>
         public IReadOnlyList<ExcelFormulaCellInfo> GetFormulaCells() {
-            return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
+            return _excelDocument.ExecuteReadAfterMaterializing(() => {
                 var formulas = new List<ExcelFormulaCellInfo>();
                 FormulaDependencyAliasCatalog dependencyAliases = GetFormulaDependencyAliases();
                 FormulaDependencyTableCatalog dependencyTables = GetFormulaDependencyTables();
@@ -617,11 +591,10 @@ namespace OfficeIMO.Excel {
             }
 
             formula = NormalizeSupportedFunctionPrefix(formula);
-            try {
-                var functionMatch = SimpleFunctionFormulaRegex.Match(formula);
-                if (functionMatch.Success) {
-                    string function = functionMatch.Groups[1].Value.ToUpperInvariant();
-                    string args = functionMatch.Groups[2].Value;
+            ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? functionCall);
+            if (functionCall != null) {
+                    string function = functionCall.Name.ToUpperInvariant();
+                    string args = functionCall.Arguments;
                     if (function == "IFERROR" && TryEvaluateIfErrorValue(args, out result)) {
                         return true;
                     }
@@ -665,11 +638,8 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                if (!functionMatch.Success && TryEvaluateCustomFormulaFunction(formula, out result)) {
-                    return true;
-                }
-            } catch (RegexMatchTimeoutException) {
-                return false;
+            if (functionCall == null && TryEvaluateCustomFormulaFunction(formula, out result)) {
+                return true;
             }
 
             if (TryEvaluateSingleReferenceFormulaValue(formula, out result)) {
@@ -691,11 +661,10 @@ namespace OfficeIMO.Excel {
             }
 
             formula = NormalizeSupportedFunctionPrefix(formula);
-            try {
-                var functionMatch = SimpleFunctionFormulaRegex.Match(formula);
-                if (functionMatch.Success) {
-                    string function = functionMatch.Groups[1].Value.ToUpperInvariant();
-                    string args = functionMatch.Groups[2].Value;
+            ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? functionCall);
+            if (functionCall != null) {
+                    string function = functionCall.Name.ToUpperInvariant();
+                    string args = functionCall.Arguments;
                     if (function == "IFERROR" || function == "IFNA") {
                         if (!TryEvaluateErrorFallback(function, args, out result)) {
                             return false;
@@ -1067,14 +1036,13 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
-                var binaryMatch = SimpleBinaryFormulaRegex.Match(formula);
-                if (binaryMatch.Success) {
-                    if (!TryResolveNumericOperand(binaryMatch.Groups[1].Value, out double left)
-                        || !TryResolveNumericOperand(binaryMatch.Groups[3].Value, out double right)) {
+                if (ExcelFormulaExpressionParser.TryParseArithmetic(formula, out ExcelFormulaBinaryExpressionSyntax? binary)) {
+                    if (!TryResolveNumericOperand(binary!.Left, out double left)
+                        || !TryResolveNumericOperand(binary.Right, out double right)) {
                         return false;
                     }
 
-                    switch (binaryMatch.Groups[2].Value) {
+                    switch (binary.Operator) {
                         case "+":
                             result = left + right;
                             return true;
@@ -1089,9 +1057,6 @@ namespace OfficeIMO.Excel {
                             result = left / right;
                             return true;
                     }
-                }
-            } catch (RegexMatchTimeoutException) {
-                return false;
             }
 
             return false;

@@ -1,5 +1,21 @@
 namespace OfficeIMO.OpenDocument;
 
+/// <summary>Horizontal alignment for an ODT paragraph.</summary>
+public enum OdtParagraphAlignment {
+    /// <summary>Aligns content to the logical start edge.</summary>
+    Start = 0,
+    /// <summary>Centers content.</summary>
+    Center = 1,
+    /// <summary>Aligns content to the logical end edge.</summary>
+    End = 2,
+    /// <summary>Justifies content on both edges.</summary>
+    Justify = 3,
+    /// <summary>Aligns content to the physical left edge.</summary>
+    Left = 4,
+    /// <summary>Aligns content to the physical right edge.</summary>
+    Right = 5
+}
+
 /// <summary>An XML-backed ODT paragraph or heading.</summary>
 public sealed class OdtParagraph {
     private readonly OdtDocument _document;
@@ -57,6 +73,12 @@ public sealed class OdtParagraph {
     public IReadOnlyList<OdtHyperlink> Hyperlinks => _element.Descendants(OdfNamespaces.Text + "a")
         .Select(element => new OdtHyperlink(_document, element, _partPath)).ToList();
 
+    /// <summary>
+    /// Direct inline nodes in document order. Use this syntax view when mixed plain text,
+    /// spans, links, images, or bookmark markers must be processed without flattening.
+    /// </summary>
+    public IReadOnlyList<OdtInlineNode> InlineNodes => OdtInlineNode.Read(_document, _element, _partPath);
+
     /// <summary>Embedded image frames in this paragraph.</summary>
     public IReadOnlyList<OdtImage> Images => _element.Descendants(OdfNamespaces.Draw + "frame")
         .Where(element => element.Element(OdfNamespaces.Draw + "image") != null)
@@ -83,6 +105,24 @@ public sealed class OdtParagraph {
         set => EnsureStyle().Italic = value;
     }
 
+    /// <summary>Explicit or inherited underline state.</summary>
+    public bool? Underline {
+        get => ResolveStyleValue(style => style.Underline);
+        set => EnsureStyle().Underline = value;
+    }
+    /// <summary>Whether the effective underline uses a non-solid ODF decoration style.</summary>
+    public bool UsesNonSolidUnderlineStyle =>
+        ResolveStyleValue(style => style.UsesNonSolidUnderlineStyle) == true;
+
+    /// <summary>Explicit or inherited strike-through state.</summary>
+    public bool? StrikeThrough {
+        get => ResolveStyleValue(style => style.StrikeThrough);
+        set => EnsureStyle().StrikeThrough = value;
+    }
+    /// <summary>Whether the effective line-through uses a non-solid ODF decoration style.</summary>
+    public bool UsesNonSolidLineThroughStyle =>
+        ResolveStyleValue(style => style.UsesNonSolidLineThroughStyle) == true;
+
     /// <summary>Explicit or inherited font size.</summary>
     public OdfLength? FontSize {
         get => ResolveStyleValue(style => style.FontSize);
@@ -93,6 +133,84 @@ public sealed class OdtParagraph {
     public OdfColor? Color {
         get => ResolveStyleValue(style => style.Color);
         set => EnsureStyle().Color = value;
+    }
+
+    /// <summary>Explicit or inherited text background color.</summary>
+    public OdfColor? TextBackgroundColor {
+        get {
+            OdfStyle? style = StyleName == null ? null : _document.Styles.FindInPart(
+                OdfStyleFamily.Paragraph, StyleName, _partPath);
+            return _document.Styles.ResolveTextBackgroundColor(style);
+        }
+        set => EnsureStyle().TextBackgroundColor = value;
+    }
+
+    /// <summary>Explicit or inherited font family.</summary>
+    public string? FontFamily {
+        get => ResolveStyleValue(style => style.FontFamily);
+        set => EnsureStyle().FontFamily = value;
+    }
+
+    /// <summary>Explicit or inherited paragraph background color.</summary>
+    public OdfColor? BackgroundColor {
+        get {
+            OdfStyle? style = StyleName == null ? null : _document.Styles.FindInPart(
+                OdfStyleFamily.Paragraph, StyleName, _partPath);
+            return _document.Styles.ResolveBackgroundColor(style);
+        }
+        set => EnsureStyle().BackgroundColor = value;
+    }
+
+    /// <summary>Explicit or inherited horizontal paragraph alignment.</summary>
+    public OdtParagraphAlignment? Alignment {
+        get => ParseAlignment(ResolveStyleValue(style => style.TextAlign));
+        set => EnsureStyle().TextAlign = FormatAlignment(value);
+    }
+
+    /// <summary>Effective ODF writing-mode token, such as <c>lr-tb</c> or <c>rl-tb</c>.</summary>
+    public string? WritingMode {
+        get => ResolveStyleValue(style => style.WritingMode);
+        set => EnsureStyle().WritingMode = value;
+    }
+
+    /// <summary>Whether the effective horizontal paragraph writing mode is right-to-left.</summary>
+    public bool IsRightToLeft => string.Equals(WritingMode, "rl", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(WritingMode, "rl-tb", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Effective paragraph line height, including absolute and percentage values.</summary>
+    public OdfLength? LineHeight {
+        get => ResolveStyleValue(style => style.LineHeight);
+        set => EnsureStyle().LineHeight = value;
+    }
+
+    /// <summary>Explicit or inherited paragraph start indentation.</summary>
+    public OdfLength? IndentStart {
+        get => ResolveStyleValue(style => style.MarginLeft);
+        set => EnsureStyle().MarginLeft = value;
+    }
+
+    /// <summary>Explicit or inherited paragraph end indentation.</summary>
+    public OdfLength? IndentEnd {
+        get => ResolveStyleValue(style => style.MarginRight);
+        set => EnsureStyle().MarginRight = value;
+    }
+
+    /// <summary>Explicit or inherited first-line indentation.</summary>
+    public OdfLength? FirstLineIndent {
+        get => ResolveStyleValue(style => style.TextIndent);
+        set => EnsureStyle().TextIndent = value;
+    }
+
+    /// <summary>Explicit or inherited spacing above the paragraph.</summary>
+    public OdfLength? SpaceAbove {
+        get => ResolveStyleValue(style => style.MarginTop);
+        set => EnsureStyle().MarginTop = value;
+    }
+
+    /// <summary>Explicit or inherited spacing below the paragraph.</summary>
+    public OdfLength? SpaceBelow {
+        get => ResolveStyleValue(style => style.MarginBottom);
+        set => EnsureStyle().MarginBottom = value;
     }
 
     /// <summary>Appends plain text while encoding ODF whitespace semantics.</summary>
@@ -183,6 +301,30 @@ public sealed class OdtParagraph {
 
     private static void ValidateBookmarkName(string name) {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Bookmark name cannot be empty.", nameof(name));
+    }
+
+    private static OdtParagraphAlignment? ParseAlignment(string? value) {
+        switch (value?.ToLowerInvariant()) {
+            case "start": return OdtParagraphAlignment.Start;
+            case "left": return OdtParagraphAlignment.Left;
+            case "center": return OdtParagraphAlignment.Center;
+            case "right": return OdtParagraphAlignment.Right;
+            case "end": return OdtParagraphAlignment.End;
+            case "justify": return OdtParagraphAlignment.Justify;
+            default: return null;
+        }
+    }
+
+    private static string? FormatAlignment(OdtParagraphAlignment? value) {
+        switch (value) {
+            case OdtParagraphAlignment.Start: return "start";
+            case OdtParagraphAlignment.Left: return "left";
+            case OdtParagraphAlignment.Center: return "center";
+            case OdtParagraphAlignment.Right: return "right";
+            case OdtParagraphAlignment.End: return "end";
+            case OdtParagraphAlignment.Justify: return "justify";
+            default: return null;
+        }
     }
 
     private void Dirty() => _document.MarkPartDirty(_partPath);

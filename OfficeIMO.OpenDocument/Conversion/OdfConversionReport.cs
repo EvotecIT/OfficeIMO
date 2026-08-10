@@ -22,12 +22,33 @@ public sealed class OdfConversionReport : IOfficeConversionReport {
     public IReadOnlyList<OdfConversionMapping> Mappings => _mappings;
     /// <summary>True when at least one feature was approximated, skipped, or unsupported.</summary>
     public bool HasLoss => _mappings.Any(mapping => mapping.Status != OdfConversionMappingStatus.Converted);
+    /// <summary>True when at least one feature was skipped or unsupported.</summary>
+    public bool HasSkippedOrUnsupported => _mappings.Any(mapping =>
+        mapping.Status == OdfConversionMappingStatus.Skipped || mapping.Status == OdfConversionMappingStatus.Unsupported);
 
     /// <summary>Throws when any feature was approximated, skipped, or unsupported.</summary>
     public void RequireNoLoss() {
         if (HasLoss) {
-            throw new InvalidOperationException(
-                $"Conversion from {SourceFormat} to {TargetFormat} was lossy. Inspect the conversion report for details.");
+            throw new OdfConversionLossException(this,
+                $"Conversion from {SourceFormat} to {TargetFormat} was lossy. Inspect the attached conversion report for details.");
+        }
+    }
+
+    /// <summary>Throws when any feature was skipped or unsupported; approximations are accepted.</summary>
+    public void RequireNoSkippedOrUnsupported() {
+        if (HasSkippedOrUnsupported) {
+            throw new OdfConversionLossException(this,
+                $"Conversion from {SourceFormat} to {TargetFormat} skipped or did not support source features. Inspect the attached conversion report for details.");
+        }
+    }
+
+    /// <summary>Applies an explicit conversion loss policy.</summary>
+    public void ApplyPolicy(OdfConversionLossPolicy policy) {
+        switch (policy) {
+            case OdfConversionLossPolicy.ReportOnly: return;
+            case OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported: RequireNoSkippedOrUnsupported(); return;
+            case OdfConversionLossPolicy.ThrowOnAnyLoss: RequireNoLoss(); return;
+            default: throw new ArgumentOutOfRangeException(nameof(policy));
         }
     }
 

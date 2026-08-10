@@ -12,15 +12,15 @@ internal static partial class PdfAnnotationEditor {
         if (catalog == 0) throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
         List<int> pages = GetPageObjectNumbersInDocumentOrder(objects);
         if (options.PageNumber > pages.Count) throw new ArgumentOutOfRangeException(nameof(options), "Annotation page number exceeds the PDF page count.");
-        int pageObjectNumber = pages[options.PageNumber - 1]; PdfDictionary page = (PdfDictionary)objects[pageObjectNumber].Value;
+        int pageObjectNumber = pages[options.PageNumber - 1]; PdfIndirectObject pageIndirect = objects[pageObjectNumber]; PdfDictionary page = (PdfDictionary)pageIndirect.Value;
         int annotationObjectNumber = NextAnnotationObjectNumber(objects);
-        var annotation = new PdfDictionary(); annotation.Items["Type"] = new PdfName("Annot"); annotation.Items["Subtype"] = new PdfName(options.Subtype); annotation.Items["P"] = new PdfReference(pageObjectNumber, 0);
+        var annotation = new PdfDictionary(); annotation.Items["Type"] = new PdfName("Annot"); annotation.Items["Subtype"] = new PdfName(options.Subtype); annotation.Items["P"] = new PdfReference(pageObjectNumber, pageIndirect.Generation);
         objects[annotationObjectNumber] = new PdfIndirectObject(annotationObjectNumber, 0, annotation);
 
         int? popupObjectNumber = null;
         if (options.CreatePopup) {
             popupObjectNumber = annotationObjectNumber + 1;
-            var popup = new PdfDictionary(); popup.Items["Type"] = new PdfName("Annot"); popup.Items["Subtype"] = new PdfName("Popup"); popup.Items["Parent"] = new PdfReference(annotationObjectNumber, 0); popup.Items["P"] = new PdfReference(pageObjectNumber, 0);
+            var popup = new PdfDictionary(); popup.Items["Type"] = new PdfName("Annot"); popup.Items["Subtype"] = new PdfName("Popup"); popup.Items["Parent"] = new PdfReference(annotationObjectNumber, 0); popup.Items["P"] = new PdfReference(pageObjectNumber, pageIndirect.Generation);
             popup.Items["Rect"] = CreateNumberArray(options.PopupRectangle ?? DefaultPopupRectangle(options.Rectangle)); popup.Items["Open"] = new PdfBoolean(options.PopupOpen);
             objects[popupObjectNumber.Value] = new PdfIndirectObject(popupObjectNumber.Value, 0, popup); annotation.Items["Popup"] = new PdfReference(popupObjectNumber.Value, 0);
         }

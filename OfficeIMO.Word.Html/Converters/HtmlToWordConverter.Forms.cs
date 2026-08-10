@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using OfficeIMO.Html;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -35,12 +36,12 @@ namespace OfficeIMO.Word.Html {
             if (IsCheckboxInput(element)) {
                 currentParagraph.AddCheckBox(IsCheckedInput(element), alias, tag);
             } else if (IsDateInput(element)) {
-                var date = TryParseDateInput(element.GetAttribute("value"));
+                var date = TryParseDateInput(HtmlFormControlSemantics.GetValues(element).FirstOrDefault());
                 var datePicker = currentParagraph.AddDatePicker(date, alias, tag);
                 datePicker.Date = date;
             } else if (TryGetDataListOptions(element, out var dataListOptions)) {
                 var hasValueAttribute = element.HasAttribute("value");
-                var value = element.GetAttribute("value") ?? string.Empty;
+                var value = HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty;
                 string? selectedInternalValue = element.GetAttribute("data-word-value");
                 int selectedIndex = selectedInternalValue == null
                     ? dataListOptions.FindIndex(option =>
@@ -64,7 +65,8 @@ namespace OfficeIMO.Word.Html {
                     dataListOptions[selectedIndex].DisplayText);
                 comboBox.SetImportedItems(dataListOptions, selectedIndex);
             } else {
-                currentParagraph.AddStructuredDocumentTag(element.GetAttribute("value") ?? string.Empty, alias, tag);
+                string value = HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty;
+                currentParagraph.AddStructuredDocumentTag(value, alias, tag);
             }
 
             if (ShouldAddSpaceAfterInput(element)) {
@@ -114,9 +116,9 @@ namespace OfficeIMO.Word.Html {
         private void ProcessSelect(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
             var optionsList = element.QuerySelectorAll("option")
                 .Select(option => new {
+                    Element = option,
                     Value = GetOptionValue(option),
-                    DisplayText = NormalizeFormText(option.TextContent),
-                    Selected = option.HasAttribute("selected")
+                    DisplayText = HtmlFormControlSemantics.GetOptionLabel(option)
                 })
                 .ToList();
 
@@ -127,9 +129,8 @@ namespace OfficeIMO.Word.Html {
             currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
             var (alias, tag) = GetInputMetadata(element);
             if (element.HasAttribute("multiple")) {
-                var selectedValues = optionsList
-                    .Where(option => option.Selected)
-                    .Select(option => option.Value)
+                var selectedValues = HtmlFormControlSemantics.GetEffectiveSelectedOptions(element)
+                    .Select(GetOptionValue)
                     .ToList();
                 currentParagraph.AddStructuredDocumentTag(string.Join("\n", selectedValues), alias, tag);
                 if (ShouldAddSpaceAfterInput(element)) {
@@ -139,8 +140,8 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            int selectedIndex = optionsList.FindIndex(option => option.Selected);
-            if (selectedIndex < 0) selectedIndex = 0;
+            IElement? selectedOption = HtmlFormControlSemantics.GetEffectiveSelectedOptions(element).SingleOrDefault();
+            int selectedIndex = optionsList.FindIndex(option => ReferenceEquals(option.Element, selectedOption));
             var importedItems = optionsList
                 .Select(option => (option.Value, option.DisplayText))
                 .ToList();
@@ -174,37 +175,30 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool IsCheckboxInput(IElement element) {
-            var type = element.GetAttribute("type");
-            return string.Equals(type, "checkbox", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(GetEffectiveInputType(element), "checkbox", StringComparison.Ordinal);
         }
 
         private static bool IsRadioInput(IElement element) {
-            var type = element.GetAttribute("type");
-            return string.Equals(type, "radio", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(GetEffectiveInputType(element), "radio", StringComparison.Ordinal);
         }
 
         private static bool IsCheckedInput(IElement element) =>
-            element.HasAttribute("checked") ||
-            string.Equals(element.GetAttribute("aria-checked"), "true", StringComparison.OrdinalIgnoreCase);
+            HtmlFormControlSemantics.IsEffectivelyChecked(element);
 
         private static bool IsDateInput(IElement element) {
-            var type = element.GetAttribute("type");
-            return string.Equals(type, "date", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(GetEffectiveInputType(element), "date", StringComparison.Ordinal);
         }
 
         private static bool IsTextInput(IElement element) {
-            var type = element.GetAttribute("type");
-            if (string.IsNullOrWhiteSpace(type)) {
-                return true;
-            }
-
-            var normalizedType = type!.ToLowerInvariant();
-            return normalizedType switch {
+            return GetEffectiveInputType(element) switch {
                 "text" or "search" or "email" or "url" or "tel" or "password" or
                 "number" or "time" or "datetime-local" or "month" or "week" or "color" or "range" => true,
                 _ => false,
             };
         }
+
+        private static string GetEffectiveInputType(IElement element) =>
+            HtmlFormControlSemantics.GetEffectiveType("input", element.GetAttribute("type"));
 
         private static (string? Alias, string? Tag) GetInputMetadata(IElement element) {
             var id = element.GetAttribute("id");
@@ -241,46 +235,22 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static string GetOptionValue(IElement option) =>
-            NormalizeFormText(option.GetAttribute("value") ?? option.TextContent);
+            option.GetAttribute("value")
+            ?? HtmlFormControlSemantics.GetDefaultValue("option", null, option.TextContent ?? string.Empty);
 
         private static List<IElement> GetRadioGroup(IElement element) {
             var name = element.GetAttribute("name");
-            if (string.IsNullOrWhiteSpace(name)) {
+            if (string.IsNullOrEmpty(name)) {
                 return new List<IElement> { element };
             }
 
             var root = GetRootElement(element);
-            var formOwner = ResolveRadioFormOwner(element, root);
+            var formOwner = HtmlFormControlSemantics.ResolveFormOwner(element);
             return root.QuerySelectorAll("input")
                 .Where(IsRadioInput)
                 .Where(input => string.Equals(input.GetAttribute("name"), name, StringComparison.Ordinal))
-                .Where(input => ReferenceEquals(ResolveRadioFormOwner(input, root), formOwner))
+                .Where(input => ReferenceEquals(HtmlFormControlSemantics.ResolveFormOwner(input), formOwner))
                 .ToList();
-        }
-
-        private static IElement? ResolveRadioFormOwner(IElement element, IElement root) {
-            var explicitFormOwner = element.GetAttribute("form");
-            if (!string.IsNullOrWhiteSpace(explicitFormOwner)) {
-                var explicitOwner = FindElementById(root, explicitFormOwner!);
-                return explicitOwner != null && string.Equals(explicitOwner.TagName, "form", StringComparison.OrdinalIgnoreCase)
-                    ? explicitOwner
-                    : null;
-            }
-
-            return FindAncestorForm(element);
-        }
-
-        private static IElement? FindAncestorForm(IElement element) {
-            var current = element.ParentElement;
-            while (current != null) {
-                if (string.Equals(current.TagName, "form", StringComparison.OrdinalIgnoreCase)) {
-                    return current;
-                }
-
-                current = current.ParentElement;
-            }
-
-            return null;
         }
 
         private static string GetRadioOptionText(IElement element) {

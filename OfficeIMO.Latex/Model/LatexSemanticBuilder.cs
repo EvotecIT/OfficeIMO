@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Latex;
 
 internal sealed class LatexSemanticModel {
@@ -49,12 +51,15 @@ internal static class LatexSemanticBuilder {
     internal static LatexSemanticModel Build(
         LatexSourceText source,
         LatexSyntaxTree syntaxTree,
-        LatexDocumentProfile profile) {
+        LatexDocumentProfile profile,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         LatexSyntaxNode[] commandSyntax = syntaxTree.Root.DescendantsAndSelf()
             .Where(static node => node.Kind == LatexSyntaxKind.Command)
             .ToArray();
         var commandMap = new Dictionary<LatexSyntaxNode, LatexCommand>();
         for (int index = 0; index < commandSyntax.Length; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             commandMap[commandSyntax[index]] = new LatexCommand(commandSyntax[index], source);
         }
 
@@ -63,6 +68,7 @@ internal static class LatexSemanticBuilder {
             .ToArray();
         var environments = new List<LatexEnvironment>(environmentSyntax.Length);
         for (int index = 0; index < environmentSyntax.Length; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             LatexSyntaxNode syntax = environmentSyntax[index];
             LatexSyntaxNode beginSyntax = syntax.Children.First(static child => child.Kind == LatexSyntaxKind.Command);
             LatexSyntaxNode? endSyntax = syntax.Children.LastOrDefault(child =>
@@ -102,23 +108,30 @@ internal static class LatexSemanticBuilder {
 
         var headings = new List<LatexHeading>();
         foreach (LatexCommand command in commands) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (TryGetHeadingLevel(command.Name, out int level) && command.GetRequiredArgument(0) != null) {
                 headings.Add(new LatexHeading(command, level));
             }
         }
 
         LatexEnvironment? body = environments.FirstOrDefault(static environment => string.Equals(environment.Name, "document", StringComparison.Ordinal));
+        cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<LatexParagraph> paragraphs = body == null
             ? Array.Empty<LatexParagraph>()
             : BuildParagraphs(source, body, headings, orderedEnvironments, orderedMath, commands);
+        cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<LatexList> lists = BuildLists(source, orderedEnvironments, commands);
+        cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<LatexFigure> figures = BuildFigures(orderedEnvironments, commands);
+        cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<LatexTable> tables = BuildTables(source, orderedEnvironments);
+        cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<LatexCitation> citations = BuildCitations(commands);
         IReadOnlyList<LatexReference> references = BuildReferences(commands);
         IReadOnlyList<LatexLabel> labels = BuildLabels(commands);
         IReadOnlyList<LatexTheorem> theorems = BuildTheorems(orderedEnvironments, commands);
         IReadOnlyList<LatexMacroDefinition> macros = BuildMacroDefinitions(commands);
+        cancellationToken.ThrowIfCancellationRequested();
         return new LatexSemanticModel(
             commands,
             orderedEnvironments,
@@ -199,35 +212,32 @@ internal static class LatexSemanticBuilder {
         var rows = new List<LatexTableRow>();
         var currentCells = new List<LatexTableCell>();
         int cellStart = environment.ContentSpan.Start.Offset;
-        int braceDepth = 0;
-        int index = cellStart;
-        while (index < environment.ContentSpan.End.Offset) {
-            char current = source.Text[index];
-            if (current == '%') {
-                while (index < environment.ContentSpan.End.Offset && source.Text[index] != '\r' && source.Text[index] != '\n') index++;
+        int ignoreUntil = cellStart;
+        foreach (LatexSyntaxNode node in environment.Syntax.Children) {
+            int nodeStart = node.Span.Start.Offset;
+            if (nodeStart < environment.ContentSpan.Start.Offset || nodeStart >= environment.ContentSpan.End.Offset ||
+                nodeStart < ignoreUntil) continue;
+
+            if (node.Kind == LatexSyntaxKind.Text && string.Equals(node.OriginalText, "&", StringComparison.Ordinal)) {
+                AddTableCell(source, cellStart, nodeStart, rows.Count, currentCells.Count, currentCells);
+                cellStart = node.Span.End.Offset;
                 continue;
             }
-            if (current == '\\') {
-                if (index + 1 < environment.ContentSpan.End.Offset && source.Text[index + 1] == '\\' && braceDepth == 0) {
-                    AddTableCell(source, cellStart, index, rows.Count, currentCells.Count, currentCells);
-                    if (currentCells.Count > 0 && !IsRuleOnlyRow(currentCells)) rows.Add(new LatexTableRow(rows.Count, currentCells.ToArray()));
-                    currentCells = new List<LatexTableCell>();
-                    index += 2;
-                    while (index < environment.ContentSpan.End.Offset && source.Text[index] == '*') index++;
-                    if (index < environment.ContentSpan.End.Offset && source.Text[index] == '[') SkipBalanced(source.Text, ref index, '[', ']', environment.ContentSpan.End.Offset);
-                    cellStart = index;
-                    continue;
+
+            if (node.Kind == LatexSyntaxKind.Command && string.Equals(node.Value, "\\", StringComparison.Ordinal)) {
+                AddTableCell(source, cellStart, nodeStart, rows.Count, currentCells.Count, currentCells);
+                if (currentCells.Count > 0 && !IsRuleOnlyRow(currentCells)) {
+                    rows.Add(new LatexTableRow(rows.Count, currentCells.ToArray()));
                 }
-                index += Math.Min(2, environment.ContentSpan.End.Offset - index);
-                continue;
+                currentCells = new List<LatexTableCell>();
+                int rowContentStart = node.Span.End.Offset;
+                while (rowContentStart < environment.ContentSpan.End.Offset && source.Text[rowContentStart] == '*') rowContentStart++;
+                if (rowContentStart < environment.ContentSpan.End.Offset && source.Text[rowContentStart] == '[') {
+                    SkipBalanced(source.Text, ref rowContentStart, '[', ']', environment.ContentSpan.End.Offset);
+                }
+                cellStart = rowContentStart;
+                ignoreUntil = rowContentStart;
             }
-            if (current == '{') braceDepth++;
-            else if (current == '}' && braceDepth > 0) braceDepth--;
-            else if (current == '&' && braceDepth == 0) {
-                AddTableCell(source, cellStart, index, rows.Count, currentCells.Count, currentCells);
-                cellStart = index + 1;
-            }
-            index++;
         }
         AddTableCell(source, cellStart, environment.ContentSpan.End.Offset, rows.Count, currentCells.Count, currentCells);
         if (currentCells.Count > 0 && !IsRuleOnlyRow(currentCells)) rows.Add(new LatexTableRow(rows.Count, currentCells.ToArray()));
@@ -481,6 +491,10 @@ internal static class LatexSemanticBuilder {
         }
         blocked.AddRange(body.Syntax.DescendantsAndSelf()
             .Where(static node => node.Kind == LatexSyntaxKind.Command && string.Equals(node.Value, "maketitle", StringComparison.Ordinal))
+            .Select(static node => node.Span));
+        blocked.AddRange(body.Syntax.DescendantsAndSelf()
+            .Where(static node => node.Kind == LatexSyntaxKind.Verbatim &&
+                !string.Equals(node.Value, "verb", StringComparison.Ordinal))
             .Select(static node => node.Span));
         blocked.AddRange(environments.Where(environment => !ReferenceEquals(environment, body) &&
             environment.Syntax.Span.Start.Offset >= body.ContentSpan.Start.Offset &&

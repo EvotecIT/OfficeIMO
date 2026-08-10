@@ -85,6 +85,8 @@ namespace OfficeIMO.Word {
         public int? LineSpacingValue { get; internal set; }
         public string? LineSpacingRule { get; internal set; }
         public string? ShadingFillColorHex { get; internal set; }
+        /// <summary>Paragraph shading pattern, when explicitly authored.</summary>
+        public WordShadingPattern? ShadingPattern { get; internal set; }
         public WordParagraphBorderSnapshot? LeftBorder { get; internal set; }
         public WordParagraphBorderSnapshot? RightBorder { get; internal set; }
         public WordParagraphBorderSnapshot? TopBorder { get; internal set; }
@@ -115,11 +117,19 @@ namespace OfficeIMO.Word {
         public bool Bold { get; internal set; }
         public bool Italic { get; internal set; }
         public bool Underline { get; internal set; }
+        public WordUnderlineStyle? UnderlineStyle { get; internal set; }
         public bool Strike { get; internal set; }
+        public bool DoubleStrike { get; internal set; }
         public int? FontSize { get; internal set; }
+        /// <summary>Run font size in points with Word's native half-point precision.</summary>
+        public double? FontSizePoints { get; internal set; }
         public string? FontFamily { get; internal set; }
         public string? ColorHex { get; internal set; }
         public string? HighlightColor { get; internal set; }
+        /// <summary>Exact run shading fill color, when present.</summary>
+        public string? RunShadingFillColorHex { get; internal set; }
+        /// <summary>Run shading pattern, when explicitly authored.</summary>
+        public WordShadingPattern? RunShadingPattern { get; internal set; }
         public string? VerticalTextAlignment { get; internal set; }
         public string? CapsStyle { get; internal set; }
         public bool IsHyperlink { get; internal set; }

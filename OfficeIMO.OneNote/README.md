@@ -167,12 +167,14 @@ page.ToImage()
 
 notebook.ToImages()
     .AllPages()
+    .IncludeAttachmentPlaceholders()
+    .FitWithin(1600, 1200)
     .AtDpi(144)
     .AsTiff()
     .Save("Notebook pages");
 ```
 
-The canvas includes positioned outlines, styled text, lists and tags, tables, images and printouts, ink, structured math, plus placeholders for attachments and recordings. Page and element RTL state flows into body, table, and inline-math alignment. `OneNotePageRenderingOptions` controls automatic page bounds, source-payload limits, the inherited `MaximumRasterPixels` output allocation ceiling, fonts, background color, ink/math settings, and feature inclusion. The shared pre-allocation planner either reduces oversized PNG/JPEG/TIFF/WebP exports with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. Drawing decodes bounded PNG, JPEG, baseline TIFF, uncompressed BMP, first-frame GIF, and OfficeIMO literal-lossless WebP source pictures directly; set `ImageCodec` (or use `WithImageCodec(...)`) for additional variants or formats. Caller-codec use and visible decode fallbacks report the shared `IMAGE_SOURCE_*` diagnostic codes. Visual HTML can collect these warnings through `OneNoteVisualHtmlOptions.DiagnosticSink`. Section and notebook batch exports use `OneNotePageTraversal` so page selection and names follow native table-of-contents order.
+The canvas includes positioned outlines, styled text, lists and tags, tables, images and printouts, ink, structured math, plus placeholders for attachments and recordings. Page and element RTL state flows into body, table, and inline-math alignment. `OneNotePageRenderingOptions` controls automatic page bounds, source-payload limits, the inherited `MaximumRasterPixels` output allocation ceiling, fonts, background color, ink/math settings, and feature inclusion. The fluent page and batch builders expose title, image, ink, math, and attachment-placeholder controls. The shared pre-allocation planner either reduces oversized PNG/JPEG/TIFF/WebP exports with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. Drawing decodes bounded PNG, JPEG, baseline TIFF, uncompressed BMP, first-frame GIF, and OfficeIMO literal-lossless WebP source pictures directly; set `ImageCodec` (or use `WithImageCodec(...)`) for additional variants or formats. Caller-codec use and visible decode fallbacks report the shared `IMAGE_SOURCE_*` diagnostic codes. Visual HTML can collect these warnings through `OneNoteVisualHtmlOptions.DiagnosticSink`. Section and notebook batch exports use `OneNotePageTraversal` so page selection and names follow native table-of-contents order.
 
 ## Conversion and Reader packages
 

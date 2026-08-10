@@ -20,4 +20,16 @@ if ($null -ne $PublishGitHub) { $invokeParams.PublishGitHub = $PublishGitHub }
 if ($null -ne $Plan) { $invokeParams.Plan = $Plan }
 if ($PlanPath) { $invokeParams.PlanPath = $PlanPath }
 
-Invoke-ProjectBuild @invokeParams
+$result = Invoke-ProjectBuild @invokeParams
+$result
+
+if ($null -ne $result -and
+    $result.PSObject.Properties.Name -contains 'Success' -and
+    -not $result.Success) {
+    $message = if ([string]::IsNullOrWhiteSpace([string] $result.ErrorMessage)) {
+        'Project build failed without an error message.'
+    } else {
+        [string] $result.ErrorMessage
+    }
+    throw $message
+}

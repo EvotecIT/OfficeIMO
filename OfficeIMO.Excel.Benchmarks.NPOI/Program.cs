@@ -428,9 +428,12 @@ static void WriteNpoiRows(ISheet sheet, IReadOnlyList<SalesRecord> records) {
 }
 
 static int ReadOfficeImoXlsx(byte[] workbookBytes, int rowCount) {
-    using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
-        workbookBytes,
-        new ExcelReadOptions { HasHeaderRow = false });
+    using var reader = ExcelDocument.OpenDataReader(workbookBytes, new ExcelReadOptions {
+        SheetName = "Data",
+        A1Range = $"A1:E{rowCount + 1}",
+        HasHeaderRow = false,
+        InferSchema = false
+    });
     int metric = 0;
     int actualRows = 0;
     while (reader.Read()) {

@@ -14,6 +14,40 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlFitWithinBoundsHighRequestedScaleBeforeSurfaceValidation() {
+        OfficeImageExportResult result = HtmlConversionDocument
+            .Parse("<h1>Bounded</h1><p>High requested scale, small final surface.</p>")
+            .ToImage()
+            .WithScale(100D)
+            .FitWithin(360, 360)
+            .AsPng()
+            .Export();
+
+        Assert.True(result.Width <= 360);
+        Assert.True(result.Height <= 360);
+    }
+
+    [Fact]
+    public async Task HtmlAsyncBatchPopulatesKnownSequenceCountBeforeEmission() {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<h1>First</h1><section style='break-before:page'><h2>Second</h2></section>");
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 3D)
+        };
+
+        IReadOnlyList<OfficeImageExportResult> results = await document.ExportImagesAsync(
+            OfficeImageExportFormat.Svg,
+            options);
+
+        Assert.True(results.Count >= 2);
+        Assert.Equal(
+            Enumerable.Range(0, results.Count).Select(index => (int?)index),
+            results.Select(result => result.SequenceIndex));
+        Assert.All(results, result => Assert.Equal(results.Count, result.SequenceCount));
+    }
+
+    [Fact]
     public async Task HtmlRenderAsync_UsesCallerResolverForPolicyApprovedExternalImages() {
         byte[] imageBytes = PdfPngTestImages.CreateRgbPng(10, 6);
         int calls = 0;
@@ -138,6 +172,32 @@ public sealed partial class HtmlRenderingTests {
             && diagnostic.Source == "https://assets.example.test/second.css");
         Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("First", StringComparison.Ordinal) && text.Color == OfficeColor.FromRgb(255, 0, 0));
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Second", StringComparison.Ordinal) && text.Color == OfficeColor.FromRgb(0, 0, 255));
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_ChargesEncodedBytesForResolvedStylesheets() {
+        const string css = ".target { color:red; }";
+        byte[] encodedCss = System.Text.Encoding.Unicode.GetPreamble()
+            .Concat(System.Text.Encoding.Unicode.GetBytes(css))
+            .ToArray();
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssBytes = System.Text.Encoding.UTF8.GetByteCount(css);
+        limits.MaxTotalCssBytes = 128;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://assets.example.test/utf16.css'><p class='target'>Text</p>",
+            new HtmlConversionDocumentOptions { Limits = limits });
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(encodedCss, "text/css; charset=utf-16"))
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
+
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.CssSizeLimitExceeded
+            && diagnostic.Source == "https://assets.example.test/utf16.css");
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text =>
+            text.Text.Contains("Text", StringComparison.Ordinal) && text.Color == OfficeColor.FromRgb(255, 0, 0));
     }
 
     [Fact]

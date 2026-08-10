@@ -9,7 +9,8 @@ public sealed partial class RtfReadResult {
     /// </summary>
     public Task SaveLosslessAsync(string path, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        return RtfBytePreservingEncoding.WriteAllTextAsync(path, ToRtfLossless(), cancellationToken);
+        return OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytesAsync(
+            path, ToBytesLossless(), cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -17,6 +18,7 @@ public sealed partial class RtfReadResult {
     /// </summary>
     public Task SaveLosslessAsync(Stream stream, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
-        return RtfBytePreservingEncoding.WriteToAsync(stream, ToRtfLossless(), cancellationToken);
+        return OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytesAsync(
+            stream, ToBytesLossless(), cancellationToken);
     }
 }

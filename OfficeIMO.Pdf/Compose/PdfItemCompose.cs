@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Builder for individual flow items (headings, paragraphs, tables, images).</summary>
-public class PdfItemCompose {
+public sealed class PdfItemCompose {
     private readonly PdfDocument _doc;
     internal PdfItemCompose(PdfDocument doc) { _doc = doc; }
     /// <summary>Adds a reusable typed component through the canonical flow engine.</summary>
@@ -26,22 +26,34 @@ public class PdfItemCompose {
     public PdfItemCompose ColumnBreak() { _doc.AddColumnBreak(); return this; }
     /// <summary>Groups common flow blocks inside a padded, styled container.</summary>
     public PdfItemCompose Container(System.Action<PdfItemCompose> build, PanelStyle? style = null) { _doc.Container(build, style); return this; }
+    /// <summary>Adds a row with percentage-based columns.</summary>
+    public PdfItemCompose Row(System.Action<PdfRowCompose> build) { _doc.Row(build); return this; }
+    /// <summary>Adds a deferred simple-text table whose rows are materialized in bounded batches.</summary>
+    public PdfItemCompose TableDeferred(System.Func<System.Collections.Generic.IEnumerable<string[]>> rowFactory, int batchSize = 256, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) { _doc.TableDeferred(rowFactory, batchSize, align, style); return this; }
+    /// <summary>Adds a deferred explicit-cell table whose rows are materialized in bounded batches.</summary>
+    public PdfItemCompose TableDeferred(System.Func<System.Collections.Generic.IEnumerable<PdfTableCell[]>> rowFactory, int batchSize = 256, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) { _doc.TableDeferred(rowFactory, batchSize, align, style); return this; }
+    /// <summary>Adds a two-column key/value table.</summary>
+    public PdfItemCompose KeyValueTable(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, string?>> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") { _doc.KeyValueTable(rows, align, style, includeHeader, keyHeader, valueHeader); return this; }
+    /// <summary>Adds a two-column key/value table with rich row values.</summary>
+    public PdfItemCompose KeyValueTable(System.Collections.Generic.IEnumerable<PdfKeyValueRow> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") { _doc.KeyValueTable(rows, align, style, includeHeader, keyHeader, valueHeader); return this; }
+    /// <summary>Adds page-canvas drawing commands to the current flow.</summary>
+    public PdfItemCompose Canvas(System.Action<PdfPageCanvas> build) { _doc.Canvas(build); return this; }
     /// <summary>Starts a new page.</summary>
     public PdfItemCompose PageBreak() { _doc.PageBreak(); return this; }
     /// <summary>Adds invisible vertical space to the current flow.</summary>
     public PdfItemCompose Spacer(double height) { _doc.Spacer(height); return this; }
     /// <summary>Adds an H1 heading.</summary>
-    public PdfItemCompose H1(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.H1(text, style: style, linkUri: linkUri, linkContents: linkContents); return this; }
+    public PdfItemCompose H1(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H1(text, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
     /// <summary>Adds an H1 heading with explicit alignment and color.</summary>
-    public PdfItemCompose H1(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null) { _doc.H1(text, align, color, linkUri, style, linkContents); return this; }
+    public PdfItemCompose H1(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H1(text, align, color, linkUri, style, linkContents, linkDestinationName); return this; }
     /// <summary>Adds an H2 heading.</summary>
-    public PdfItemCompose H2(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.H2(text, style: style, linkUri: linkUri, linkContents: linkContents); return this; }
+    public PdfItemCompose H2(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H2(text, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
     /// <summary>Adds an H2 heading with explicit alignment and color.</summary>
-    public PdfItemCompose H2(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null) { _doc.H2(text, align, color, linkUri, style, linkContents); return this; }
+    public PdfItemCompose H2(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H2(text, align, color, linkUri, style, linkContents, linkDestinationName); return this; }
     /// <summary>Adds an H3 heading.</summary>
-    public PdfItemCompose H3(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.H3(text, style: style, linkUri: linkUri, linkContents: linkContents); return this; }
+    public PdfItemCompose H3(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H3(text, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
     /// <summary>Adds an H3 heading with explicit alignment and color.</summary>
-    public PdfItemCompose H3(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null) { _doc.H3(text, align, color, linkUri, style, linkContents); return this; }
+    public PdfItemCompose H3(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H3(text, align, color, linkUri, style, linkContents, linkDestinationName); return this; }
     /// <summary>Adds a paragraph built from styled text runs.</summary>
     /// <param name="build">Paragraph content builder.</param>
     /// <param name="align">Paragraph alignment.</param>

@@ -1,3 +1,5 @@
+using OfficeIMO.Spreadsheet;
+
 namespace OfficeIMO.OpenDocument;
 
 /// <summary>Native OpenDocument Spreadsheet document.</summary>
@@ -90,6 +92,23 @@ public sealed partial class OdsDocument : OdfDocument {
     public OdsNamedRange AddNamedRange(string name, string cellRangeAddress, string? baseCellAddress = null) {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Named range name cannot be empty.", nameof(name));
         if (string.IsNullOrWhiteSpace(cellRangeAddress)) throw new ArgumentException("Cell range address cannot be empty.", nameof(cellRangeAddress));
+        if (!SpreadsheetRangeReference.TryParse(cellRangeAddress, SpreadsheetAddressDialect.OpenDocument,
+                out SpreadsheetRangeReference? range)) {
+            throw new ArgumentException("Cell range address must use valid OpenDocument address syntax.", nameof(cellRangeAddress));
+        }
+        string effectiveBaseCellAddress;
+        if (baseCellAddress == null) {
+            if (!range!.Start.IsCell) {
+                throw new ArgumentException("A whole-row or whole-column named range requires an explicit base cell address.", nameof(baseCellAddress));
+            }
+            effectiveBaseCellAddress = range.FormatBaseCell(SpreadsheetAddressDialect.OpenDocument);
+        } else {
+            if (!SpreadsheetRangeReference.TryParse(baseCellAddress, SpreadsheetAddressDialect.OpenDocument,
+                    out SpreadsheetRangeReference? parsedBase) || parsedBase!.IsRange || !parsedBase.Start.IsCell) {
+                throw new ArgumentException("Base cell address must identify one OpenDocument cell.", nameof(baseCellAddress));
+            }
+            effectiveBaseCellAddress = parsedBase.FormatBaseCell(SpreadsheetAddressDialect.OpenDocument);
+        }
         XElement container = GetNamedExpressions(create: true)!;
         if (container.Elements(OdfNamespaces.Table + "named-range").Any(element =>
                 string.Equals((string?)element.Attribute(OdfNamespaces.Table + "name"), name, StringComparison.Ordinal))) {
@@ -98,7 +117,7 @@ public sealed partial class OdsDocument : OdfDocument {
         var element = new XElement(OdfNamespaces.Table + "named-range",
             new XAttribute(OdfNamespaces.Table + "name", name),
             new XAttribute(OdfNamespaces.Table + "cell-range-address", cellRangeAddress),
-            new XAttribute(OdfNamespaces.Table + "base-cell-address", baseCellAddress ?? cellRangeAddress.Split(':')[0]));
+            new XAttribute(OdfNamespaces.Table + "base-cell-address", effectiveBaseCellAddress));
         container.Add(element);
         MarkPartDirty("content.xml");
         return new OdsNamedRange(this, element);
@@ -120,6 +139,12 @@ public sealed partial class OdsDocument : OdfDocument {
         container.Add(element);
         MarkPartDirty("content.xml");
         return new OdsValidation(this, element);
+    }
+
+    /// <summary>Adds a validation rule from typed interoperable condition syntax.</summary>
+    public OdsValidation AddValidation(string name, OdsValidationConditionSyntax condition, bool allowEmptyCell = true) {
+        if (condition == null) throw new ArgumentNullException(nameof(condition));
+        return AddValidation(name, condition.ToString(), allowEmptyCell);
     }
 
     private XElement? GetNamedExpressions(bool create) {

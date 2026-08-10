@@ -104,19 +104,24 @@ public class OpenDocumentOdpTests {
         table.Cell(0, 0).Text = "Same";
         XElement cell = table.Element.Descendants(OdfNamespaces.Table + "table-cell").Single();
         cell.SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);
+        XElement row = table.Element.Descendants(OdfNamespaces.Table + "table-row").Single();
+        row.SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 2);
         presentation.MarkPartDirty("content.xml");
 
         OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(presentation.ToBytes()));
         OdpTable actual = reopened.Slides.Single().Shapes.OfType<OdpTable>().Single();
 
-        Assert.Equal(3, actual.Rows.Single().Cells.Count);
-        Assert.Equal(new[] { "Same", "Same", "Same" }, actual.Rows.Single().Cells.Select(item => item.Text));
-        actual.Cell(0, 1).Text = "Changed";
-        Assert.Equal(new[] { "Same", "Changed", "Same" }, actual.Rows.Single().Cells.Select(item => item.Text));
+        Assert.Equal(2, actual.Rows.Count);
+        Assert.All(actual.Rows, item => Assert.Equal(3, item.Cells.Count));
+        Assert.All(actual.Rows, item => Assert.Equal(new[] { "Same", "Same", "Same" }, item.Cells.Select(cell => cell.Text)));
+        actual.Cell(1, 1).Paragraphs.Single().Text = "Changed";
+        Assert.Equal(new[] { "Same", "Same", "Same" }, actual.Rows[0].Cells.Select(item => item.Text));
+        Assert.Equal(new[] { "Same", "Changed", "Same" }, actual.Rows[1].Cells.Select(item => item.Text));
         Assert.True(reopened.Validate().IsValid);
 
         OdpPresentation roundTrip = OdpPresentation.Load(new MemoryStream(reopened.ToBytes()));
         OdpTable persisted = roundTrip.Slides.Single().Shapes.OfType<OdpTable>().Single();
-        Assert.Equal(new[] { "Same", "Changed", "Same" }, persisted.Rows.Single().Cells.Select(item => item.Text));
+        Assert.Equal(new[] { "Same", "Same", "Same" }, persisted.Rows[0].Cells.Select(item => item.Text));
+        Assert.Equal(new[] { "Same", "Changed", "Same" }, persisted.Rows[1].Cells.Select(item => item.Text));
     }
 }

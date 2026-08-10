@@ -62,6 +62,48 @@ public class PdfRedactionImageCoverageTests {
     }
 
     [Fact]
+    public void Apply_RoutesMalformedImagePredictorThroughUnsupportedImagePolicy() {
+        byte[] malformedPredictorRows = Enumerable.Range(1, 26).Select(value => (byte)value).ToArray();
+        malformedPredictorRows[0] = 9;
+        byte[] encoded = Compress(malformedPredictorRows);
+        Assert.True(encoded.Length >= CreateRgbPixels().Length);
+        byte[] source = BuildImagePdf(
+            "q\n40 0 0 20 20 30 cm\n/ImTarget Do\nQ\n",
+            "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /DecodeParms << /Predictor 12 /Columns 12 >>",
+            encoded);
+        PdfRedactionArea area = LeftHalfArea(source);
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfRedactionApplier.Apply(source, new[] { area }));
+        byte[] removed = PdfRedactionApplier.Apply(
+            source,
+            new[] { area },
+            new PdfRedactionApplyOptions {
+                UnsupportedImagePolicy = PdfRedactionUnsupportedImagePolicy.RemoveWholePlacement
+            });
+
+        Assert.Contains("intersects image placement", exception.Message, StringComparison.Ordinal);
+        Assert.Empty(PdfImageExtractor.ExtractImages(removed));
+    }
+
+    [Fact]
+    public void Apply_RoutesMalformedSoftMaskPredictorThroughUnsupportedImagePolicy() {
+        byte[] malformedPredictorRows = Enumerable.Range(1, 10).Select(value => (byte)value).ToArray();
+        malformedPredictorRows[0] = 9;
+        byte[] source = BuildImagePdf(
+            "q\n40 0 0 20 20 30 cm\n/ImTarget Do\nQ\n",
+            "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /SMask 6 0 R",
+            Compress(CreateRgbPixels()),
+            "/ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /DecodeParms << /Predictor 12 /Columns 4 >>",
+            Compress(malformedPredictorRows));
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfRedactionApplier.Apply(source, new[] { LeftHalfArea(source) }));
+
+        Assert.Contains("intersects image placement", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_NormalizesIndexedAndColorKeyImagesBeforePartialRewrite() {
         byte[] indexed = BuildImagePdf(
             "q\n40 0 0 20 20 30 cm\n/ImTarget Do\nQ\n",

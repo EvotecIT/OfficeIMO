@@ -55,10 +55,11 @@ internal sealed class HtmlImportBudget {
     internal bool TryReserveAnnotation(out string detail) =>
         TryIncrement(ref _annotations, _limits.MaxAnnotations, nameof(HtmlImportLimits.MaxAnnotations), out detail);
 
-    internal bool IsImageWithinLimit(HtmlImageDataUri dataUri, out string detail) =>
-        TryGetImageByteCount(dataUri, out _, out detail);
-
-    internal bool TryReserveImageWithShape(HtmlImageDataUri dataUri, out string detail) {
+    internal bool TryReserveImageWithShape(
+        HtmlImageDataUri dataUri,
+        out HtmlImportBudgetReservation reservation,
+        out string detail) {
+        reservation = null!;
         if (!TryGetImageByteCount(dataUri, out long bytes, out detail)
             || !CanIncrement(_shapes, _limits.MaxShapes, nameof(HtmlImportLimits.MaxShapes), out detail)) {
             return false;
@@ -67,8 +68,15 @@ internal sealed class HtmlImportBudget {
         _images++;
         _imageBytes += bytes;
         _shapes++;
+        reservation = new HtmlImportBudgetReservation(() => ReleaseImageWithShape(bytes));
         detail = string.Empty;
         return true;
+    }
+
+    private void ReleaseImageWithShape(long bytes) {
+        _images--;
+        _imageBytes -= bytes;
+        _shapes--;
     }
 
     internal bool TryReserveChartWithShape(

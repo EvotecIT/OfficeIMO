@@ -20,7 +20,15 @@ public class OpenDocumentSchemaArtifactTests {
             {
                 OdtDocument text = OdtDocument.Create();
                 text.AddHeading("Schema proof", 1);
-                text.AddParagraph("Native ODT").AddSpan(" with formatting").Bold = true;
+                OdtParagraph richText = text.AddParagraph("Native ODT ");
+                richText.Alignment = OdtParagraphAlignment.Center;
+                richText.IndentStart = OdfLength.Points(12);
+                OdtSpan richSpan = richText.AddSpan("with formatting");
+                richSpan.Bold = true;
+                richSpan.Underline = true;
+                richSpan.BackgroundColor = OdfColor.Parse("#FFF200");
+                richText.AddText(" and ");
+                richText.AddHyperlink("a link", "https://example.com").Italic = true;
                 text.AddList().AddItem("One");
                 text.AddTable(2, 2, "Proof").Cell(0, 0).Text = "Value";
                 text.PageLayout.Header.AddParagraph("OfficeIMO");
@@ -39,6 +47,12 @@ public class OpenDocumentSchemaArtifactTests {
                 formula.Formula = "of:=SUM([.A1:.A1])";
                 formula.SetDecimal(1m);
                 formula.NumberFormatName = spreadsheet.AddNumberStyle("Amount", 2).Name;
+                formula.AddAnnotation("Calculated value", "OfficeIMO");
+                OdsValidation validation = spreadsheet.AddValidation("PositiveWholeNumber",
+                    OdsValidationConditionSyntax.Create(OdsValidationValueKind.WholeNumber,
+                        OdsValidationComparison.GreaterThan, "0"));
+                validation.SetHelpMessage("Input", "Enter a positive whole number.");
+                formula.ValidationName = validation.Name;
                 spreadsheet.Save(Path.Combine(output, "schema-proof-1.4.ods"));
                 spreadsheet.SaveFlatXml(Path.Combine(output, "schema-proof-1.4.fods"));
                 spreadsheet.Save(Path.Combine(output, "schema-proof-1.3.ods"), new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });
@@ -47,7 +61,15 @@ public class OpenDocumentSchemaArtifactTests {
             {
                 OdpPresentation presentation = OdpPresentation.Create();
                 OdpSlide slide = presentation.AddSlide("Schema proof");
-                slide.AddTextBox(OdfRect.FromCentimeters(1, 1, 12, 2), "Native ODP");
+                OdpParagraph presentationText = slide.AddTextBox(
+                    OdfRect.FromCentimeters(1, 1, 12, 2), null).AddParagraph();
+                presentationText.AddText("Native ODP ");
+                OdpRun presentationRun = presentationText.AddRun("with formatting");
+                presentationRun.Bold = true;
+                presentationRun.StrikeThrough = true;
+                presentationRun.BackgroundColor = OdfColor.Parse("#FFF200");
+                presentationText.AddText(" and ");
+                presentationText.AddHyperlink("a link", "https://example.com").Underline = true;
                 OdpRectangle rectangle = slide.AddRectangle(OdfRect.FromCentimeters(1, 4, 4, 2));
                 rectangle.FillColor = OdfColor.Parse("#D1E9FF");
                 slide.AddFadeInAnimation(rectangle, TimeSpan.FromSeconds(1));
@@ -83,11 +105,25 @@ public class OpenDocumentSchemaArtifactTests {
             Assert.True(validation.IsValid, string.Join(Environment.NewLine, validation.Diagnostics.Select(item => item.Id + ": " + item.Message)));
             if (document is OdtDocument text) {
                 Assert.Contains(text.ContentBlocks, block => block.Paragraph?.Text.IndexOf("Schema proof", StringComparison.Ordinal) >= 0);
+                OdtParagraph rich = text.Paragraphs.Single(paragraph => paragraph.Text.IndexOf("Native ODT", StringComparison.Ordinal) >= 0);
+                Assert.Contains(rich.InlineNodes, node => node.Kind == OdtInlineNodeKind.Span && node.Span!.Underline == true);
+                Assert.Contains(rich.InlineNodes, node => node.Kind == OdtInlineNodeKind.Hyperlink &&
+                    Uri.Compare(new Uri(node.Hyperlink!.Href), new Uri("https://example.com"),
+                        UriComponents.AbsoluteUri, UriFormat.SafeUnescaped, StringComparison.OrdinalIgnoreCase) == 0);
             } else if (document is OdsDocument spreadsheet) {
-                Assert.Equal("Value", spreadsheet.GetSheet("Data")!.GetValue(0, 0).DisplayText);
+                OdsSheet sheet = spreadsheet.GetSheet("Data")!;
+                Assert.Equal("Value", sheet.GetValue(0, 0).DisplayText);
+                OdsCell formula = sheet.Cell(1, 0);
+                Assert.Contains(formula.Annotations, annotation => annotation.Text == "Calculated value" && annotation.Creator == "OfficeIMO");
+                Assert.False(string.IsNullOrWhiteSpace(formula.ValidationName));
+                Assert.Contains(spreadsheet.Validations, item => item.ParsedCondition?.ValueKind == OdsValidationValueKind.WholeNumber);
             } else if (document is OdpPresentation presentation) {
-                Assert.Contains(presentation.Slides.SelectMany(slide => slide.Shapes).OfType<OdpTextBox>(),
-                    box => box.Paragraphs.Any(paragraph => paragraph.Text.IndexOf("Native ODP", StringComparison.Ordinal) >= 0));
+                OdpParagraph rich = presentation.Slides.SelectMany(slide => slide.Shapes).OfType<OdpTextBox>()
+                    .SelectMany(box => box.Paragraphs).Single(paragraph => paragraph.Text.IndexOf("Native ODP", StringComparison.Ordinal) >= 0);
+                Assert.Contains(rich.InlineNodes, node => node.Kind == OdpInlineNodeKind.Run && node.Run!.StrikeThrough == true);
+                Assert.Contains(rich.InlineNodes, node => node.Kind == OdpInlineNodeKind.Hyperlink &&
+                    Uri.Compare(new Uri(node.Hyperlink!.Href), new Uri("https://example.com"),
+                        UriComponents.AbsoluteUri, UriFormat.SafeUnescaped, StringComparison.OrdinalIgnoreCase) == 0);
             }
         }
     }

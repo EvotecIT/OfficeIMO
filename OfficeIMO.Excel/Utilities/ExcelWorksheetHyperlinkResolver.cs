@@ -68,6 +68,7 @@ namespace OfficeIMO.Excel.Utilities {
             return new ExcelHyperlinkSnapshot {
                 IsExternal = isExternal,
                 Target = target!,
+                Tooltip = string.IsNullOrWhiteSpace(hyperlink.Tooltip?.Value) ? null : hyperlink.Tooltip!.Value,
             };
         }
 

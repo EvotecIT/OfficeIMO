@@ -67,6 +67,15 @@ jobs:
       - name: Build solution
         run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
+      - name: Build public examples
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $project = 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'
+          dotnet restore $project
+          dotnet build $project --configuration $env:BUILD_CONFIGURATION --no-restore
+
   email-package-consumers:
     name: 'OfficeIMO email platform packed consumers'
     runs-on: windows-latest
@@ -1469,7 +1478,9 @@ jobs:
   aot-trim-analyzers:
     name: 'AOT/Trim analyzers'
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    # Analyzer builds plus isolated NativeAOT publishes now exceed the former
+    # 35-minute budget on a cold runner; retain room for evidence upload/cleanup.
+    timeout-minutes: 50
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -1511,7 +1522,8 @@ jobs:
   aot-windows:
     name: 'NativeAOT Windows'
     runs-on: windows-latest
-    timeout-minutes: 35
+    # The production matrix can finish near 35 minutes before cache post-actions.
+    timeout-minutes: 50
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

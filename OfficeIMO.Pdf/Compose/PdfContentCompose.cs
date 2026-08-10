@@ -1,11 +1,9 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Top-level container for page content (columns, rows, items).</summary>
-public class PdfContentCompose {
+public sealed class PdfContentCompose {
     private readonly PdfDocument _doc;
     internal PdfContentCompose(PdfDocument doc) { _doc = doc; }
-    /// <summary>Sets extra bottom padding (reserved for future).</summary>
-    public PdfContentCompose PaddingBottom(double points) { /* reserved for future */ return this; }
     /// <summary>Adds one or more flow items directly to the page content.</summary>
     public PdfContentCompose Item(System.Action<PdfItemCompose> build) {
         Guard.NotNull(build, nameof(build));

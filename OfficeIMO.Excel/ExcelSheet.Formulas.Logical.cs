@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
@@ -285,19 +284,17 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            Match functionMatch = SimpleFunctionFormulaRegex.Match(trimmed);
-            if (functionMatch.Success) {
-                string function = functionMatch.Groups[1].Value.ToUpperInvariant();
+            if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(trimmed, out ExcelFormulaFunctionCallSyntax? functionCall)) {
+                string function = functionCall!.Name.ToUpperInvariant();
                 errorCode = function == "MATCH" || function == "XMATCH" || function == "XLOOKUP" || function == "VLOOKUP" || function == "HLOOKUP"
                     ? "#N/A"
                     : "#VALUE!";
                 return true;
             }
 
-            var binaryMatch = SimpleBinaryFormulaRegex.Match(trimmed);
-            if (binaryMatch.Success
-                && string.Equals(binaryMatch.Groups[2].Value, "/", StringComparison.Ordinal)
-                && TryResolveNumericOperand(binaryMatch.Groups[3].Value, out double divisor)
+            if (ExcelFormulaExpressionParser.TryParseArithmetic(trimmed, out ExcelFormulaBinaryExpressionSyntax? binary)
+                && string.Equals(binary!.Operator, "/", StringComparison.Ordinal)
+                && TryResolveNumericOperand(binary.Right, out double divisor)
                 && Math.Abs(divisor) < double.Epsilon) {
                 errorCode = "#DIV/0!";
                 return true;

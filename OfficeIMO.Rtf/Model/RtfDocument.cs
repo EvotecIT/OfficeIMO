@@ -127,7 +127,7 @@ public sealed partial class RtfDocument {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
         new RtfReadLimitGuard(readOptions, CancellationToken.None).CheckInputBytes(bytes.LongLength);
-        return Read(RtfBytePreservingEncoding.GetString(bytes), readOptions);
+        return Read(RtfBytePreservingEncoding.GetString(bytes), readOptions).AttachOriginalBytes(bytes);
     }
 
     /// <summary>Loads RTF from a stream.</summary>
@@ -136,7 +136,7 @@ public sealed partial class RtfDocument {
         RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
         byte[] bytes = RtfBytePreservingEncoding.ReadBytesToEnd(stream, readOptions.MaxInputBytes, CancellationToken.None);
         string rtf = DecodeInput(bytes, encoding);
-        return Read(rtf, readOptions);
+        return Read(rtf, readOptions).AttachOriginalBytes(bytes);
     }
 
     private static string DecodeInput(byte[] bytes, Encoding? encoding) {

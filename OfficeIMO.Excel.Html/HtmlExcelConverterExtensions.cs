@@ -400,7 +400,7 @@ public static partial class HtmlExcelConverterExtensions {
         }
         if (!IsSupportedExcelImage(dataUri, result, image.GetAttribute("src"))) return;
 
-        if (!budget.IsImageWithinLimit(dataUri, out string imageLimit)) {
+        if (!budget.TryReserveImageWithShape(dataUri, out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An embedded worksheet image was omitted because the shared import limit was reached.",
                 lossKind: OfficeConversionLossKind.Omission,
@@ -408,14 +408,7 @@ public static partial class HtmlExcelConverterExtensions {
             return;
         }
 
-        if (!budget.TryReserveImageWithShape(dataUri, out imageLimit)) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                "An embedded worksheet image was omitted because the shared import limit was reached.",
-                lossKind: OfficeConversionLossKind.Omission,
-                detail: imageLimit);
-            return;
-        }
-
+        using HtmlImportBudgetReservation imageReservationScope = imageReservation;
         if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
                 "Image inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.", lossKind: OfficeConversionLossKind.Omission);
@@ -447,6 +440,7 @@ public static partial class HtmlExcelConverterExtensions {
 
         ApplyImageTransforms(item, importedImage, budget, result);
         result.Images++;
+        imageReservation.Commit();
     }
 
     private static ExcelImage AddTwoCellImage(

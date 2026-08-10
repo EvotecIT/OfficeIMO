@@ -50,7 +50,7 @@ namespace OfficeIMO.Word {
                 ?? throw new InvalidOperationException("Dropdown list properties are missing from the structured document tag.");
             var selectedItem = WordContentControlListItems.SetImportedItems(
                 dropDown, _sdtRun, items, selectedIndex);
-            dropDown.LastValue = selectedItem.Value;
+            dropDown.LastValue = selectedItem?.Value;
         }
 
         /// <summary>
@@ -176,17 +176,19 @@ namespace OfficeIMO.Word {
                     item.DisplayText?.Value ?? item.Value?.Value ?? string.Empty))
                 .ToList();
 
-        internal static (string Value, string DisplayText) SetImportedItems(
+        internal static (string Value, string DisplayText)? SetImportedItems(
             OpenXmlCompositeElement listContainer,
             SdtRun sdtRun,
             IReadOnlyList<(string Value, string DisplayText)> items,
             int selectedIndex) {
+            if (selectedIndex < -1 || selectedIndex >= items.Count) {
+                throw new ArgumentOutOfRangeException(nameof(selectedIndex));
+            }
             listContainer.RemoveAllChildren<ListItem>();
             foreach ((string value, string displayText) in items) {
                 listContainer.Append(new ListItem { Value = value, DisplayText = displayText });
             }
 
-            (string selectedValue, string selectedDisplayText) = items[selectedIndex];
             var content = sdtRun.SdtContentRun ?? (sdtRun.SdtContentRun = new SdtContentRun());
             var run = content.Elements<Run>().FirstOrDefault();
             if (run == null) {
@@ -198,6 +200,13 @@ namespace OfficeIMO.Word {
                 text = new Text();
                 run.Append(text);
             }
+            if (selectedIndex < 0) {
+                text.Text = string.Empty;
+                text.Space = SpaceProcessingModeValues.Preserve;
+                return null;
+            }
+
+            (string selectedValue, string selectedDisplayText) = items[selectedIndex];
             text.Text = selectedDisplayText;
             text.Space = SpaceProcessingModeValues.Preserve;
             return (selectedValue, selectedDisplayText);

@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>Adds a paragraph inside a simple panel (background + optional border).</summary>
-    public PdfDocument PanelParagraph(System.Action<PdfParagraphBuilder> compose, PanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) {
+    internal PdfDocument PanelParagraph(System.Action<PdfParagraphBuilder> compose, PanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) {
         Guard.NotNull(compose, nameof(compose));
         Guard.ParagraphAlign(align, nameof(align), "Panel paragraph");
         var builder = new PdfParagraphBuilder(align, defaultColor);
@@ -16,7 +16,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Adds a styled panel from common flow blocks such as paragraphs, headings, lists, simple tables, rules, and nested panel paragraphs.
     /// </summary>
-    public PdfDocument Panel(System.Action<PdfItemCompose> compose, PanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) {
+    internal PdfDocument Panel(System.Action<PdfItemCompose> compose, PanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) {
         Guard.NotNull(compose, nameof(compose));
         Guard.ParagraphAlign(align, nameof(align), "Panel");
         var blocks = new System.Collections.Generic.List<IPdfBlock>();

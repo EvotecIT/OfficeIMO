@@ -334,8 +334,8 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void HtmlToWord_ListItemValue_ResetsNumbering() {
-            string html = "<ol><li>One</li><li value=\"5\">Five</li><li>Six</li></ol>";
+        public void HtmlToWord_HtmlIntegerPrefixesResetNumbering() {
+            string html = "<ol start=\"3x\"><li>Three</li><li value=\"5junk\">Five</li><li>Six</li></ol>";
 
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
 
@@ -351,7 +351,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(firstInfo.HasValue);
             Assert.True(secondInfo.HasValue);
-            Assert.Equal(1, firstInfo.Value.Start);
+            Assert.Equal(3, firstInfo.Value.Start);
             Assert.Equal(5, secondInfo.Value.Start);
         }
 

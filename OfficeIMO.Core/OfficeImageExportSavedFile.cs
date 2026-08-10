@@ -20,7 +20,24 @@ public sealed class OfficeImageExportSavedFile {
         EncodedLength = result.EncodedLength;
         Name = result.Name;
         Source = result.Source;
+        SequenceIndex = result.SequenceIndex;
+        SequenceCount = result.SequenceCount;
         _diagnostics = Array.AsReadOnly(new List<OfficeImageExportDiagnostic>(result.Diagnostics).ToArray());
+    }
+
+    private OfficeImageExportSavedFile(OfficeImageExportSavedFile source, int sequenceIndex, int sequenceCount) {
+        Path = source.Path;
+        Format = source.Format;
+        Width = source.Width;
+        Height = source.Height;
+        DpiX = source.DpiX;
+        DpiY = source.DpiY;
+        EncodedLength = source.EncodedLength;
+        Name = source.Name;
+        Source = source.Source;
+        SequenceIndex = sequenceIndex;
+        SequenceCount = sequenceCount;
+        _diagnostics = source._diagnostics;
     }
 
     /// <summary>Normalized committed file path.</summary>
@@ -50,6 +67,15 @@ public sealed class OfficeImageExportSavedFile {
     /// <summary>Optional source reference.</summary>
     public string? Source { get; }
 
+    /// <summary>Zero-based position in the saved batch.</summary>
+    public int? SequenceIndex { get; }
+
+    /// <summary>Total number of files in the materialized saved batch.</summary>
+    public int? SequenceCount { get; }
+
     /// <summary>Diagnostics emitted while rendering this file.</summary>
     public IReadOnlyList<OfficeImageExportDiagnostic> Diagnostics => _diagnostics;
+
+    internal OfficeImageExportSavedFile WithSequence(int sequenceIndex, int sequenceCount) =>
+        new OfficeImageExportSavedFile(this, sequenceIndex, sequenceCount);
 }

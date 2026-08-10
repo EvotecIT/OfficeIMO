@@ -86,6 +86,31 @@ namespace OfficeIMO.Tests {
             Assert.Equal("ABCDEF", run.ColorHex);
         }
 
+        [Fact]
+        public async Task HtmlToWord_RemoteStylesheet_HonorsContentTypeCharset() {
+            byte[] prefix = Encoding.ASCII.GetBytes(".caf");
+            byte[] suffix = Encoding.ASCII.GetBytes(" { color:#123456; }");
+            byte[] stylesheet = prefix.Concat(new byte[] { 0xE9 }).Concat(suffix).ToArray();
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
+                var content = new ByteArrayContent(stylesheet);
+                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/css") {
+                    CharSet = "windows-1252"
+                };
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
+            }));
+            var options = new HtmlToWordOptions {
+                AllowDocumentStylesheetLinks = true,
+                HttpClient = httpClient
+            };
+
+            HtmlToWordResult conversion = await OfficeIMO.Html.HtmlConversionDocument
+                .Parse("<link rel='stylesheet' href='https://styles.example.test/site.css'><p class='café'>Legacy CSS</p>")
+                .ToWordDocumentResultAsync(options);
+            using WordDocument document = conversion.Value;
+
+            Assert.Equal("123456", document.Paragraphs[0].GetRuns().First().ColorHex);
+        }
+
         [Theory]
         [InlineData("body")]
         [InlineData("header")]
@@ -247,6 +272,36 @@ namespace OfficeIMO.Tests {
             Assert.Equal("https://styles.example.test/total.css", exception.LimitSource);
             Assert.Equal(options.MaxTotalCssBytes, exception.Limit);
             Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
+        public async Task HtmlToWord_RemoteStylesheet_ChargesEncodedBytesToTheTotalCssBudget() {
+            const string externalCss = "p { color:#123456; }";
+            byte[] stylesheet = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(externalCss)).ToArray();
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
+                var content = new ByteArrayContent(stylesheet);
+                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/css") {
+                    CharSet = "utf-16"
+                };
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
+            }));
+            string seededCss = "body { color:#111111; }";
+            var options = new HtmlToWordOptions {
+                AllowDocumentStylesheetLinks = true,
+                HttpClient = httpClient,
+                MaxTotalCssBytes = Encoding.UTF8.GetByteCount(seededCss) + Encoding.UTF8.GetByteCount(externalCss)
+            };
+            options.StylesheetContents.Add(seededCss);
+
+            HtmlConversionLimitException exception = await Assert.ThrowsAsync<HtmlConversionLimitException>(() =>
+                OfficeIMO.Html.HtmlConversionDocument
+                    .Parse("<link rel='stylesheet' href='https://styles.example.test/utf16.css'><p>Remote CSS</p>")
+                    .ToWordDocumentAsync(options));
+
+            Assert.Equal("CssTotalSizeLimitExceeded", exception.Code);
+            Assert.Equal("https://styles.example.test/utf16.css", exception.LimitSource);
+            Assert.Equal(options.MaxTotalCssBytes, exception.Limit);
+            Assert.Equal(Encoding.UTF8.GetByteCount(seededCss) + stylesheet.LongLength, exception.Actual);
         }
 
         [Fact]
@@ -433,6 +488,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_FileStylesheet_InvalidEncodingEmitsDiagnosticAndIsSkipped() {
+            var path = Path.GetTempFileName();
+            File.WriteAllBytes(path, new byte[] { 0xC3, 0x28 });
+            string html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>Local CSS</p>";
+            try {
+                var options = new HtmlToWordOptions { AllowDocumentStylesheetLinks = true };
+
+                HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+
+                Assert.Equal("Local CSS", conversion.Value.Paragraphs[0].Text);
+                var diagnostic = Assert.Single(conversion.Report.Diagnostics, item => item.Code == "StylesheetEncodingFailed");
+                Assert.Equal(path, diagnostic.Source);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void HtmlToWord_FileStylesheet_MaxTotalCssBytes_StopsBeforeParsingSecondStylesheet() {
             var path = Path.GetTempFileName();
             File.WriteAllText(path, "p { color:#abcdef; }");
@@ -451,6 +524,33 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(path, exception.LimitSource);
                 Assert.Equal(options.MaxTotalCssBytes, exception.Limit);
                 Assert.True(exception.Actual > exception.Limit);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void HtmlToWord_FileStylesheet_ChargesEncodedBytesToTheTotalCssBudget() {
+            const string externalCss = "p { color:#abcdef; }";
+            byte[] stylesheet = Encoding.BigEndianUnicode.GetPreamble().Concat(Encoding.BigEndianUnicode.GetBytes(externalCss)).ToArray();
+            var path = Path.GetTempFileName();
+            File.WriteAllBytes(path, stylesheet);
+            string seededCss = "body { color:#111111; }";
+            string html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>Local CSS</p>";
+            try {
+                var options = new HtmlToWordOptions {
+                    AllowDocumentStylesheetLinks = true,
+                    MaxTotalCssBytes = Encoding.UTF8.GetByteCount(seededCss) + Encoding.UTF8.GetByteCount(externalCss)
+                };
+                options.StylesheetContents.Add(seededCss);
+
+                HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                    OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(options));
+
+                Assert.Equal("CssTotalSizeLimitExceeded", exception.Code);
+                Assert.Equal(path, exception.LimitSource);
+                Assert.Equal(options.MaxTotalCssBytes, exception.Limit);
+                Assert.Equal(Encoding.UTF8.GetByteCount(seededCss) + stylesheet.LongLength, exception.Actual);
             } finally {
                 File.Delete(path);
             }

@@ -13,12 +13,24 @@ internal static class OdfFeatureInspector {
 
     internal static OdfFeatureReport Inspect(OdfPackage package) {
         var findings = new List<OdfFeatureFinding>();
+        var diagnostics = new List<OdfFeatureDiagnostic>();
         foreach (OdfPackageEntry entry in package.Entries.Where(entry => entry.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))) {
             XDocument document;
-            try { document = package.GetXml(entry.Name); } catch { continue; }
+            try {
+                document = package.GetXml(entry.Name);
+            } catch (Exception exception) when (exception is InvalidDataException || exception is System.Xml.XmlException) {
+                diagnostics.Add(new OdfFeatureDiagnostic(
+                    "ODF_FEATURE_XML_UNREADABLE",
+                    entry.Name,
+                    "The XML part could not be parsed and its features were not classified: " + exception.Message));
+                continue;
+            }
             if (document.Root == null) continue;
 
-            AddElementFinding(document, OdfNamespaces.Office + "scripts", "scripts", OdfFeatureSupport.Preserved, entry.Name, findings);
+            int scripts = document.Descendants(OdfNamespaces.Office + "scripts")
+                .Sum(element => element.Elements().Count());
+            if (scripts > 0) findings.Add(new OdfFeatureFinding(
+                "scripts", OdfFeatureSupport.Preserved, entry.Name, scripts));
             AddElementFinding(document, OdfNamespaces.Office + "annotation", "annotations", OdfFeatureSupport.Inspected, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Text + "tracked-changes", "tracked-changes", OdfFeatureSupport.Editable, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Draw + "object", "embedded-objects", OdfFeatureSupport.Preserved, entry.Name, findings);
@@ -28,6 +40,22 @@ internal static class OdfFeatureInspector {
                 .Count(attribute => IsExternalHref(attribute.Value));
             if (externalLinks > 0) findings.Add(new OdfFeatureFinding("external-links", OdfFeatureSupport.Preserved, entry.Name, externalLinks));
             AddElementFinding(document, OdfNamespaces.Table + "content-validation", "spreadsheet-validations", OdfFeatureSupport.Editable, entry.Name, findings);
+            AddElementFinding(document, OdfNamespaces.Table + "database-range", "spreadsheet-database-ranges", OdfFeatureSupport.Inspected, entry.Name, findings);
+            AddElementFinding(document, OdfNamespaces.Table + "filter", "spreadsheet-filters", OdfFeatureSupport.Inspected, entry.Name, findings);
+            AddElementFinding(document, OdfNamespaces.Table + "named-range", "spreadsheet-named-ranges", OdfFeatureSupport.Editable, entry.Name, findings);
+            AddElementFinding(document, OdfNamespaces.Table + "named-expression", "spreadsheet-named-expressions", OdfFeatureSupport.Inspected, entry.Name, findings);
+            AddElementFinding(document, OdfNamespaces.Table + "scenario", "spreadsheet-scenarios", OdfFeatureSupport.Preserved, entry.Name, findings);
+            AddElementFinding(document, OdfNamespaces.Table + "detective", "spreadsheet-detective", OdfFeatureSupport.Preserved, entry.Name, findings);
+            AddElementFinding(document, OdfNamespaces.Text + "note", "text-notes", OdfFeatureSupport.Inspected, entry.Name, findings);
+            int bookmarks = document.Descendants(OdfNamespaces.Text + "bookmark").Count()
+                + document.Descendants(OdfNamespaces.Text + "bookmark-start").Count();
+            if (bookmarks > 0) findings.Add(new OdfFeatureFinding("text-bookmarks", OdfFeatureSupport.Editable, entry.Name, bookmarks));
+            AddElementFinding(document, OdfNamespaces.Text + "section", "text-sections", OdfFeatureSupport.Inspected, entry.Name, findings);
+            AddElementFinding(document, OdfNamespaces.Text + "table-of-content", "text-tables-of-content", OdfFeatureSupport.Inspected, entry.Name, findings);
+            AddElementFinding(document, OdfNamespaces.Presentation + "notes", "presentation-notes", OdfFeatureSupport.Editable, entry.Name, findings);
+            AddElementFinding(document, OdfNamespaces.Style + "master-page", "master-pages", OdfFeatureSupport.Editable, entry.Name, findings);
+            AddElementFinding(document, OdfNamespaces.Draw + "plugin", "embedded-media", OdfFeatureSupport.Preserved, entry.Name, findings);
+            AddElementFinding(document, OdfNamespaces.Draw + "object-ole", "embedded-ole-objects", OdfFeatureSupport.Preserved, entry.Name, findings);
             int formulas = document.Descendants(OdfNamespaces.Table + "table-cell")
                 .Count(element => element.Attribute(OdfNamespaces.Table + "formula") != null);
             if (formulas > 0) findings.Add(new OdfFeatureFinding("spreadsheet-formulas", OdfFeatureSupport.Editable, entry.Name, formulas));
@@ -47,7 +75,7 @@ internal static class OdfFeatureInspector {
             }
         }
         if (package.IsSigned) findings.Add(new OdfFeatureFinding("digital-signatures", OdfFeatureSupport.Preserved, "META-INF"));
-        return new OdfFeatureReport(findings);
+        return new OdfFeatureReport(findings, diagnostics);
     }
 
     private static void AddElementFinding(XDocument document, XName elementName, string featureName, OdfFeatureSupport support,

@@ -18,7 +18,7 @@ public sealed partial class RtfDocument {
         RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
         byte[] bytes = await RtfBytePreservingEncoding.ReadBytesToEndAsync(stream, readOptions.MaxInputBytes, cancellationToken).ConfigureAwait(false);
         string rtf = DecodeInput(bytes, encoding);
-        return Read(rtf, readOptions, cancellationToken);
+        return Read(rtf, readOptions, cancellationToken).AttachOriginalBytes(bytes);
     }
 
     /// <summary>Saves the document to an RTF file.</summary>

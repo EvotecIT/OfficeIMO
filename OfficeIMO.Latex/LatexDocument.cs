@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Latex;
 
 /// <summary>Parsed LaTeX document with lossless syntax and bounded profile semantics.</summary>
@@ -24,7 +26,8 @@ public sealed partial class LatexDocument {
         LatexSyntaxTree syntaxTree,
         IReadOnlyList<LatexToken> tokens,
         IReadOnlyList<LatexDiagnostic> diagnostics,
-        LatexParseOptions options) {
+        LatexParseOptions options,
+        CancellationToken cancellationToken) {
         Source = source;
         SyntaxTree = syntaxTree;
         _tokens = tokens;
@@ -32,7 +35,7 @@ public sealed partial class LatexDocument {
         Profile = options.Profile;
         _options = options;
 
-        LatexSemanticModel model = LatexSemanticBuilder.Build(source, syntaxTree, options.Profile);
+        LatexSemanticModel model = LatexSemanticBuilder.Build(source, syntaxTree, options.Profile, cancellationToken);
         _commands = model.Commands;
         _environments = model.Environments;
         _math = model.Math;
@@ -101,12 +104,20 @@ public sealed partial class LatexDocument {
     public bool IsModified => GetSourceEdits().Any(static edit => edit.IsModified);
 
     /// <summary>Parses LaTeX source without executing it.</summary>
-    public static LatexParseResult Parse(string source, LatexParseOptions? options = null) => LatexParser.Parse(source, options);
+    public static LatexParseResult Parse(string source, LatexParseOptions? options = null) =>
+        LatexParser.Parse(source, options);
 
-    /// <summary>Loads decoded text using runtime UTF-8 BOM detection.</summary>
+    /// <summary>Parses LaTeX source without executing it and cooperatively observes cancellation.</summary>
+    public static LatexParseResult Parse(
+        string source,
+        LatexParseOptions? options,
+        CancellationToken cancellationToken) => LatexParser.Parse(source, options, cancellationToken);
+
+    /// <summary>Loads decoded text using Unicode BOM detection when no encoding is specified.</summary>
     public static LatexParseResult Load(string path, LatexParseOptions? options = null, Encoding? encoding = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        return Parse(File.ReadAllText(path, encoding ?? Utf8WithoutBom), options);
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return Load(stream, options, encoding);
     }
 
     /// <summary>Writes in preserve mode.</summary>
@@ -118,7 +129,9 @@ public sealed partial class LatexDocument {
         if (_options.MacroExpansion != LatexMacroExpansion.SafeSimpleDefinitions) {
             throw new InvalidOperationException("Safe simple macro expansion was not enabled in LatexParseOptions.");
         }
-        return LatexSimpleMacroExpander.Expand(value, MacroDefinitions, _options.MaximumExpansionDepth, _options.MaximumExpansionLength);
+        return LatexSimpleMacroExpander.Expand(value, MacroDefinitions, _options.MaximumExpansionDepth,
+            _options.MaximumExpansionLength, _options.MaximumExpansionInputLength,
+            _options.MaximumExpansionTokenCount, _options.VerbatimEnvironmentNames);
     }
 
     internal IEnumerable<ILatexSourceEdit> GetSourceEdits() {

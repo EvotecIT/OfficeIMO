@@ -60,10 +60,13 @@ namespace OfficeIMO.Excel {
             cancellationToken.ThrowIfCancellationRequested();
             List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
             if (format == OfficeImageExportFormat.Svg) {
-                rasterState = new ExcelRasterRenderState(options.Scale, options.RasterEncoding);
-                string svg = RenderSvg(snapshot, options, diagnostics);
+                ExcelImageExportOptions svgOptions = options.Clone();
+                svgOptions.Scale = options.GetEffectiveScale(snapshot.Width, snapshot.Height);
+                svgOptions.TargetDpi = null;
+                rasterState = new ExcelRasterRenderState(svgOptions.Scale, svgOptions.RasterEncoding);
+                string svg = RenderSvg(snapshot, svgOptions, diagnostics, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
-                return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(snapshot, options), ScaledHeight(snapshot, options), Encoding.UTF8.GetBytes(svg), snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly()));
+                return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(snapshot, svgOptions), ScaledHeight(snapshot, svgOptions), Encoding.UTF8.GetBytes(svg), snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly()));
             }
             if (!rasterPlanningFormat.IsRaster()) {
                 throw new ArgumentException("A raster planning format is required.", nameof(rasterPlanningFormat));
@@ -151,7 +154,12 @@ namespace OfficeIMO.Excel {
             return image;
         }
 
-        internal static string RenderSvg(ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics = null) {
+        internal static string RenderSvg(
+            ExcelRangeVisualSnapshot snapshot,
+            ExcelImageExportOptions options,
+            List<OfficeImageExportDiagnostic>? diagnostics = null,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             int width = ScaledWidth(snapshot, options);
             int height = ScaledHeight(snapshot, options);
             double scale = options.Scale;
@@ -170,6 +178,7 @@ namespace OfficeIMO.Excel {
             Dictionary<string, ExcelVisualCell> cellsByAddress = BuildCellMap(snapshot.Cells);
 
             foreach (ExcelVisualCell cell in snapshot.Cells) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (cell.CoveredByMerge) {
                     continue;
                 }
@@ -196,6 +205,7 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (ExcelVisualCell cell in snapshot.Cells) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (cell.CoveredByMerge) {
                     continue;
                 }
@@ -203,12 +213,13 @@ namespace OfficeIMO.Excel {
                 AppendSvgCellText(builder, cell, snapshot, options, textMeasurer, cellsByAddress, dataBars, conditionalIcons, diagnostics);
             }
 
-            AppendSvgConditionalIcons(builder, snapshot, options);
-            AppendSvgSparklines(builder, snapshot, options);
-            AppendSvgCommentIndicators(builder, snapshot, options);
-            AppendSvgDrawingLayers(builder, snapshot, options, diagnostics, textMeasurer);
+            AppendSvgConditionalIcons(builder, snapshot, options, cancellationToken);
+            AppendSvgSparklines(builder, snapshot, options, cancellationToken);
+            AppendSvgCommentIndicators(builder, snapshot, options, cancellationToken);
+            AppendSvgDrawingLayers(builder, snapshot, options, diagnostics, textMeasurer, cancellationToken);
 
             builder.Append("</svg>");
+            cancellationToken.ThrowIfCancellationRequested();
             return builder.ToString();
         }
 
@@ -313,7 +324,14 @@ namespace OfficeIMO.Excel {
             canvas.DrawImage(chartImage, chart.X * scale, chart.Y * scale, chart.Width * scale, chart.Height * scale);
         }
 
-        private static void AppendSvgChart(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelVisualChart chart, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void AppendSvgChart(
+            StringBuilder builder,
+            ExcelRangeVisualSnapshot snapshot,
+            ExcelVisualChart chart,
+            ExcelImageExportOptions options,
+            List<OfficeImageExportDiagnostic>? diagnostics,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             double scale = options.Scale;
             if (!TryCreateOfficeChartSnapshot(chart.Snapshot, chart.Width, chart.Height, diagnostics, snapshot.SheetName, out OfficeChartSnapshot? officeSnapshot) || officeSnapshot == null) {
                 return;
@@ -324,7 +342,13 @@ namespace OfficeIMO.Excel {
             drawing.AppendFontDiagnostics(
                 diagnostics ?? new List<OfficeImageExportDiagnostic>(),
                 snapshot.SheetName + "!" + chart.Snapshot.Name);
-            string chartSvg = OfficeDrawingSvgExporter.ToSvg(drawing);
+            string chartSvg = OfficeDrawingSvgExporter.ToSvg(
+                drawing,
+                1D,
+                OfficeSvgSizeUnit.Point,
+                imageCodec: null,
+                resourceIdPrefix: null,
+                cancellationToken);
             builder.AppendNestedSvg(
                 chart.X * scale,
                 chart.Y * scale,
@@ -335,7 +359,7 @@ namespace OfficeIMO.Excel {
                 OfficeSvgFormatting.ExtractSvgInner(chartSvg));
         }
 
-        private static bool TryCreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, double width, double height, List<OfficeImageExportDiagnostic>? diagnostics, string sheetName, out OfficeChartSnapshot? officeSnapshot) {
+        internal static bool TryCreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, double width, double height, List<OfficeImageExportDiagnostic>? diagnostics, string sheetName, out OfficeChartSnapshot? officeSnapshot) {
             officeSnapshot = null;
             if (!TryMapChartKind(snapshot.ChartType, out OfficeChartKind kind, out string? approximation)) {
                 diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
@@ -352,6 +376,25 @@ namespace OfficeIMO.Excel {
                     ExcelImageExportDiagnosticCodes.ChartKindApproximated,
                     approximation,
                     sheetName + "!" + snapshot.Name));
+            }
+
+            foreach (ExcelChartSeries series in snapshot.Data.Series.Where(series =>
+                series.ChartType.HasValue && series.ChartType.Value != snapshot.ChartType)) {
+                if (TryMapCompatibleComboSeriesRenderKind(
+                        snapshot.ChartType,
+                        series.ChartType!.Value,
+                        out _,
+                        out _,
+                        out string? unsupportedReason)) {
+                    continue;
+                }
+
+                diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.ChartKindUnsupported,
+                    "Excel combo-chart series '" + series.Name + "' cannot be rendered: " + unsupportedReason,
+                    sheetName + "!" + snapshot.Name));
+                return false;
             }
 
             if (snapshot.Data.Series.Any(series => series.ChartType.HasValue &&
@@ -388,7 +431,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool TryMapSeriesRenderKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
+        internal static bool TryMapSeriesRenderKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
             if (!TryMapChartKind(type, out kind, out approximation)) {
                 return false;
             }
@@ -407,6 +450,47 @@ namespace OfficeIMO.Excel {
                 kind == OfficeChartKind.AreaStacked100 ||
                 kind == OfficeChartKind.Scatter;
         }
+
+        internal static bool TryMapCompatibleComboSeriesRenderKind(
+            ExcelChartType baseType,
+            ExcelChartType seriesType,
+            out OfficeChartKind seriesKind,
+            out string? approximation,
+            out string? unsupportedReason) {
+            seriesKind = default;
+            approximation = null;
+            unsupportedReason = null;
+
+            if (!TryMapSeriesRenderKind(baseType, out OfficeChartKind baseKind, out _)) {
+                unsupportedReason = "combo-chart base type '" + baseType + "' is not supported by the shared Cartesian chart renderer.";
+                return false;
+            }
+
+            if (!TryMapSeriesRenderKind(seriesType, out seriesKind, out approximation)) {
+                unsupportedReason = "combo-chart series type '" + seriesType + "' is not supported by the shared Cartesian chart renderer.";
+                return false;
+            }
+
+            if (IsBarChartKind(baseKind) != IsBarChartKind(seriesKind)) {
+                unsupportedReason = "combo-chart types '" + baseType + "' and '" + seriesType + "' use incompatible horizontal and vertical category-axis orientations.";
+                return false;
+            }
+
+            if (IsScatterAxisChartKind(baseKind) != IsScatterAxisChartKind(seriesKind)) {
+                unsupportedReason = "combo-chart types '" + baseType + "' and '" + seriesType + "' use incompatible category and scatter axis models.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsScatterAxisChartKind(OfficeChartKind kind) =>
+            kind == OfficeChartKind.Scatter;
+
+        private static bool IsBarChartKind(OfficeChartKind kind) =>
+            kind == OfficeChartKind.BarClustered ||
+            kind == OfficeChartKind.BarStacked ||
+            kind == OfficeChartKind.BarStacked100;
 
         private static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
             approximation = null;
@@ -726,7 +810,7 @@ namespace OfficeIMO.Excel {
             return fontStyle;
         }
 
-        private static OfficeColor? ResolveArgb(string? argb) {
+        internal static OfficeColor? ResolveArgb(string? argb) {
             if (string.IsNullOrWhiteSpace(argb)) {
                 return null;
             }
@@ -740,7 +824,7 @@ namespace OfficeIMO.Excel {
             return OfficeColor.TryParseHex(value, out OfficeColor rgbColor) ? rgbColor : null;
         }
 
-        private static IReadOnlyList<OfficeColor?>? ResolvePointColors(IReadOnlyList<string?>? colors) {
+        internal static IReadOnlyList<OfficeColor?>? ResolvePointColors(IReadOnlyList<string?>? colors) {
             if (colors == null) {
                 return null;
             }

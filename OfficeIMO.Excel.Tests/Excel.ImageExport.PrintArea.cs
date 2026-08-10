@@ -8,6 +8,24 @@ using X = DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Tests {
     public class ExcelImageExportPrintAreaTests {
         [Fact]
+        public void ExcelWorkbookRejectsPredictableOutputCountBeforeConsumerSideEffects() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            document.AddWorksheet("One").CellValue(1, 1, "one");
+            document.AddWorksheet("Two").CellValue(1, 1, "two");
+            int consumed = 0;
+
+            OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                document.ExportImages(
+                    OfficeImageExportFormat.Png,
+                    _ => consumed++,
+                    new ExcelWorkbookImageExportOptions { MaximumOutputCount = 1 }));
+
+            Assert.Equal(0, consumed);
+            Assert.Equal(2, exception.Actual);
+            Assert.Equal(1, exception.Maximum);
+        }
+
+        [Fact]
         public void ExcelWorksheet_ImageExportUsesPrintAreaWhenRequested() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -121,8 +139,16 @@ namespace OfficeIMO.Tests {
                 UsePrintArea = true,
                 ShowGridlines = false
             });
+            IReadOnlyList<OfficeImageExportResult> fluentResults = loadedSheet.ToImages()
+                .UsePrintArea()
+                .WithGridlines(false)
+                .AsPng()
+                .Export();
 
             Assert.Equal(2, results.Count);
+            Assert.Equal(results.Select(result => result.Source), fluentResults.Select(result => result.Source));
+            Assert.Equal(new int?[] { 0, 1 }, fluentResults.Select(result => result.SequenceIndex));
+            Assert.All(fluentResults, result => Assert.Equal(2, result.SequenceCount));
             Assert.Equal("Report!B2:B2", results[0].Source);
             Assert.Equal("Report!D2:D2", results[1].Source);
             Assert.All(results, result => {
@@ -624,6 +650,38 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, results.Count);
             Assert.Equal("Report!A3:D4", results[1].Source);
             Assert.DoesNotContain(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.PrintTitlesUnsupported);
+            string svg = Encoding.UTF8.GetString(results[1].Bytes);
+            Assert.Contains(">A1<", svg);
+            Assert.Contains(">A3<", svg);
+        }
+
+        [Fact]
+        public void ExcelWorksheet_PageSlicedSvgFitAppliesAfterPrintTitlesAndPageCanvasComposition() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Report");
+            FillPageBreakGrid(sheet);
+            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
+            sheet.AddManualRowPageBreak(2, save: false);
+            sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.Letter);
+
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(
+                OfficeImageExportFormat.Svg,
+                new ExcelWorksheetImageExportOptions {
+                    Range = "A1:D4",
+                    SplitByManualPageBreaks = true,
+                    ShowGridlines = false,
+                    MaximumOutputWidth = 180,
+                    MaximumOutputHeight = 180
+                });
+
+            Assert.Equal(2, results.Count);
+            Assert.All(results, result => {
+                Assert.True(result.Width <= 180);
+                Assert.True(result.Height <= 180);
+                OfficeImageInfo info = OfficeImageReader.Identify(result.Bytes);
+                Assert.Equal(result.Width, info.Width);
+                Assert.Equal(result.Height, info.Height);
+            });
             string svg = Encoding.UTF8.GetString(results[1].Bytes);
             Assert.Contains(">A1<", svg);
             Assert.Contains(">A3<", svg);
