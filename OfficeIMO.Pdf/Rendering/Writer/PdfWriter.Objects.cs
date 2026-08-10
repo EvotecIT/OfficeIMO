@@ -316,6 +316,8 @@ internal static partial class PdfWriter {
         public string? GraphicsStateName { get; set; }
         public string Name { get; set; } = string.Empty;
         public int ObjectId { get; set; }
+        public int? StructParentIndex { get; set; }
+        public System.Collections.Generic.List<int> MarkedContentIds { get; } = new();
     }
 
     private sealed class OutlineNode {
@@ -335,6 +337,10 @@ internal static partial class PdfWriter {
         public double Y { get; set; }
         public double W { get; set; }
         public double H { get; set; }
+        public double? EffectiveX { get; set; }
+        public double? EffectiveY { get; set; }
+        public double? EffectiveW { get; set; }
+        public double? EffectiveH { get; set; }
         public OfficeClipPath? ClipPath { get; set; }
         public double ClipX { get; set; }
         public double ClipY { get; set; }

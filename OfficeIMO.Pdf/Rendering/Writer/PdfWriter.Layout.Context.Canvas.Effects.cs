@@ -15,6 +15,7 @@ internal static partial class PdfWriter {
             int textAnnotationStart = currentPage.TextAnnotations.Count;
             int freeTextAnnotationStart = currentPage.FreeTextAnnotations.Count;
             int highlightAnnotationStart = currentPage.HighlightAnnotations.Count;
+            int imageStart = currentPage.Images.Count;
             int formFieldStart = currentPage.FormFields.Count;
             string? opacityState = EnsureGraphicsState(opacity, opacity);
             int contentStart = sb.Length;
@@ -39,8 +40,38 @@ internal static partial class PdfWriter {
             TransformCanvasRectangles(currentPage.TextAnnotations, textAnnotationStart, transform);
             TransformCanvasRectangles(currentPage.FreeTextAnnotations, freeTextAnnotationStart, transform);
             TransformCanvasRectangles(currentPage.HighlightAnnotations, highlightAnnotationStart, transform);
+            TransformCanvasPageImageBounds(currentPage.Images, imageStart, transform);
             TransformCanvasRectangles(currentPage.FormFields, formFieldStart, transform);
             pageDirty = true;
+        }
+
+        private static void TransformCanvasPageImageBounds(System.Collections.Generic.List<PageImage> images, int startIndex, OfficeTransform transform) {
+            for (int index = startIndex; index < images.Count; index++) {
+                PageImage image = images[index];
+                (double x, double y, double width, double height) = EffectivePageImageBounds(image);
+                (double left, double bottom, double right, double top) = TransformRectangle(x, y, x + width, y + height, transform);
+                image.EffectiveX = left;
+                image.EffectiveY = bottom;
+                image.EffectiveW = right - left;
+                image.EffectiveH = top - bottom;
+            }
+        }
+
+        private static (double X, double Y, double Width, double Height) EffectivePageImageBounds(PageImage image) {
+            if (image.EffectiveX.HasValue && image.EffectiveY.HasValue && image.EffectiveW.HasValue && image.EffectiveH.HasValue) {
+                return (image.EffectiveX.Value, image.EffectiveY.Value, image.EffectiveW.Value, image.EffectiveH.Value);
+            }
+
+            OfficeTransform imageTransform = new OfficeImageProjection(
+                new OfficeImagePlacement(image.X, image.Y, image.W, image.H),
+                rotationDegrees: image.RotationAngle,
+                rotationCenterX: image.RotationCenterX,
+                rotationCenterY: image.RotationCenterY,
+                flipHorizontal: image.HorizontalFlip,
+                flipVertical: image.VerticalFlip)
+                .CreateUnitSquareTransform();
+            (double left, double bottom, double right, double top) = imageTransform.TransformRectangleBounds(0D, 0D, 1D, 1D);
+            return (left, bottom, right - left, top - bottom);
         }
 
         private static OfficeTransform ConvertTopLeftCanvasTransform(OfficeTransform transform, double pageHeight) =>

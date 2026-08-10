@@ -219,6 +219,26 @@ public partial class PdfDocumentComplianceAssessmentTests {
     }
 
     [Fact]
+    public void TaggedEffectDrawing_AssignsNestedImageMarkedContentToItsFormXObject() {
+        var projection = new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 24D, 12D));
+        OfficeDrawing source = new OfficeDrawing(24D, 12D)
+            .AddImage(PdfPngTestImages.CreateRgbPng(1, 1), "image/png", projection, "Nested image alternative text");
+        OfficeDrawing drawing = new OfficeDrawing(48D, 24D)
+            .AddEffectDrawing(source, OfficeTransform.Scale(2D, 2D));
+
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Drawing(drawing)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+        Assert.Equal(1, CountOccurrences(content, "/StructParents"));
+        Assert.Contains("/StructParents 0 /Length", content, StringComparison.Ordinal);
+        Assert.Matches(@"/Type /StructElem /S /Figure[\s\S]+?/K << /Type /MCR /Pg \d+ 0 R /Stm (?<form>\d+) 0 R /MCID 0 >>", content);
+        Assert.Matches(@"/Nums \[0 \[(?<figure>\d+) 0 R\]\]", content);
+    }
+
+    [Fact]
     public void DecorativeDrawingSuppressesNestedImageSemanticsWithoutTaggedStructure() {
         var projection = new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 24D, 12D));
         OfficeDrawing drawing = new OfficeDrawing(24D, 12D)
