@@ -117,12 +117,19 @@ public sealed class OdpTableCell {
     /// <summary>Number of columns spanned by a merged-cell anchor.</summary>
     public int ColumnSpan => ReadSpan(OdfNamespaces.Table + "number-columns-spanned");
     /// <summary>Paragraphs directly stored in this cell.</summary>
-    public IReadOnlyList<OdpParagraph> Paragraphs => _element.Elements()
-        .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
-        .Select(element => new OdpParagraph(_presentation, element)).ToList();
+    public IReadOnlyList<OdpParagraph> Paragraphs {
+        get {
+            EnsureMaterialized();
+            return _element.Elements()
+                .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
+                .Select(element => new OdpParagraph(_presentation, element)).ToList();
+        }
+    }
     /// <summary>Decoded cell text.</summary>
     public string Text {
-        get => string.Join("\n", Paragraphs.Select(paragraph => paragraph.Text));
+        get => string.Join("\n", _element.Elements()
+            .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
+            .Select(OdfTextCodec.Read));
         set {
             if (IsCovered) throw new InvalidOperationException("Covered table cells cannot contain text.");
             EnsureMaterialized();

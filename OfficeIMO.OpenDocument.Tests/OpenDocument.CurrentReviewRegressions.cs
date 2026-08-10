@@ -91,6 +91,35 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
     }
 
     [Fact]
+    public void SpreadsheetValidationMessagesRemainInSchemaOrderRegardlessOfSetterOrder() {
+        OdsDocument source = OdsDocument.Create();
+        OdsValidation validation = source.AddValidation("OrderedMessages", "cell-content()>0");
+        validation.SetErrorMessage("Error", "Invalid value", display: true);
+        validation.SetHelpMessage("Help", "Enter a positive value", display: true);
+
+        XElement validationElement = source.ToFlatXml()
+            .Descendants(OdfNamespaces.Table + "content-validation")
+            .Single();
+        XName[] messageOrder = validationElement.Elements()
+            .Where(element => element.Name == OdfNamespaces.Table + "help-message"
+                || element.Name == OdfNamespaces.Table + "error-message")
+            .Select(element => element.Name)
+            .ToArray();
+
+        Assert.Equal(new[] {
+            OdfNamespaces.Table + "help-message",
+            OdfNamespaces.Table + "error-message"
+        }, messageOrder);
+        Assert.True(source.Validate().IsValid);
+
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
+        OdsValidation actual = Assert.Single(reopened.Validations);
+        Assert.Equal("Enter a positive value", actual.HelpText);
+        Assert.Equal("Invalid value", actual.ErrorText);
+        Assert.True(reopened.Validate().IsValid);
+    }
+
+    [Fact]
     public void TextAndPresentationTablesIncludeHeaderRowsInSourceOrder() {
         OdtDocument text = OdtDocument.Create();
         OdtTable textTable = text.AddTable(2, 1, "TextTable");

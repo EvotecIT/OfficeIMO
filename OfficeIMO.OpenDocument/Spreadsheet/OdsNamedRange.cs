@@ -140,8 +140,11 @@ public sealed class OdsValidation {
         }
         if (message == null) {
             message = new XElement(name);
-            _element.Add(message);
+            XElement? error = _element.Element(OdfNamespaces.Table + "error-message");
+            if (name == OdfNamespaces.Table + "help-message" && error != null) error.AddBeforeSelf(message);
+            else _element.Add(message);
         }
+        EnsureMessageOrder();
         message.SetAttributeValue(OdfNamespaces.Table + "display", display ? "true" : "false");
         message.SetAttributeValue(OdfNamespaces.Table + "title", title);
         message.SetAttributeValue(OdfNamespaces.Table + "message-type", messageType);
@@ -152,6 +155,14 @@ public sealed class OdsValidation {
             message.Add(paragraph);
         }
         Dirty();
+    }
+
+    private void EnsureMessageOrder() {
+        XElement? help = _element.Element(OdfNamespaces.Table + "help-message");
+        XElement? error = _element.Element(OdfNamespaces.Table + "error-message");
+        if (help == null || error == null || ReferenceEquals(help.NextNode, error)) return;
+        help.Remove();
+        error.AddBeforeSelf(help);
     }
 
     private string? ReadMessageText(XName name) {

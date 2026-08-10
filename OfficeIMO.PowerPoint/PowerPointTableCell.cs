@@ -249,7 +249,7 @@ namespace OfficeIMO.PowerPoint {
             }
             set {
                 var props = EnsureRunProperties();
-                props.FontSize = value != null ? value * 100 : null;
+                props.FontSize = PowerPointTextDefaults.ToDrawingFontSize(value, nameof(value));
             }
         }
 
