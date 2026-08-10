@@ -235,12 +235,12 @@ Person[] people = reader.RowsAsParallel<Person>(
 The automatic, explicit `RowMapper<T>`, and `Func<IDataRecord, T>` projection
 shapes all have parallel overloads. Automatic and explicit mapping snapshot
 ordinary readers on the calling thread and map those bounded snapshots on
-workers. A factory runs concurrently only when the reader can supply
-independent batch readers; otherwise it stays on the calling thread so
-provider-specific `IDataRecord` conversions and metadata are preserved. A
-degree of one always uses the corresponding sequential mapping contract.
-Concurrent factories must not mutate unprotected shared state or retain the
-transient `IDataRecord`.
+workers. Factory mapping also snapshots ordinary readers when their field
+types are safe to copy, so its factory can run concurrently; readers with
+provider-owned or mutable field values keep their native calling-thread
+behavior. A degree of one always uses the corresponding sequential mapping
+contract. Concurrent factories must not mutate unprotected shared state or
+retain the transient `IDataRecord`.
 
 On .NET 8 and later, decoded text can use the lower-overhead transient-record
 API. The builder resolves headers once; its returned factory receives

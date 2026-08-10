@@ -44,6 +44,10 @@ public class CsvMappingTests
                     }
                 };
             },
+            loadOptions: new CsvLoadOptions {
+                // Progress reporting intentionally selects the scalar batch producer.
+                ProgressCallback = _ => { }
+            },
             parallelOptions: new ParallelRowMappingOptions {
                 MaxDegreeOfParallelism = 2,
                 BatchSize = 64

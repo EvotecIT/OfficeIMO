@@ -256,7 +256,7 @@ namespace OfficeIMO.Excel {
                 if (_opt.TreatDatesUsingNumberFormat &&
                     value is DateTime dateValue &&
                     IsNumericBindingDestination(binding.BindingKind)) {
-                    value = dateValue.ToOADate();
+                    value = ExcelDateSystemConverter.ToSerial(dateValue, _dateSystem);
                 }
 
                 object? converted = TryChangeType(value, binding, _opt.Culture);

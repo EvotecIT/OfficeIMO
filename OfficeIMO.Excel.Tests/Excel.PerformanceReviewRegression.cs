@@ -7181,6 +7181,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertDataReader_TreatsUnimplementedSchemaMetadataAsOptional() {
+            using var memory = new MemoryStream();
+            var table = new DataTable("ReaderData");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Score", typeof(int));
+            table.Rows.Add("Alpha", 10);
+
+            using var reader = new CountingDataReader(
+                table.CreateDataReader(),
+                throwOnGetSchemaTable: true);
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.InsertDataReader(reader, tableName: "ReaderTable");
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("10", cells["B2"].CellValue!.Text);
+        }
+
+        [Fact]
         public void PerformanceReview_InsertDataReader_FailedReadDoesNotPartiallyAppendRows() {
             var table = new DataTable("ReaderData");
             table.Columns.Add("Name", typeof(string));
@@ -7318,13 +7345,19 @@ namespace OfficeIMO.Tests {
         private sealed class CountingDataReader : IDataReader {
             private readonly IDataReader _inner;
             private readonly bool _throwOnGetValues;
+            private readonly bool _throwOnGetSchemaTable;
             private readonly int _throwOnReadAfterRows;
             private int _successfulReads;
 
-            internal CountingDataReader(IDataReader inner, bool throwOnGetValues = false, int throwOnReadAfterRows = -1) {
+            internal CountingDataReader(
+                IDataReader inner,
+                bool throwOnGetValues = false,
+                int throwOnReadAfterRows = -1,
+                bool throwOnGetSchemaTable = false) {
                 _inner = inner;
                 _throwOnGetValues = throwOnGetValues;
                 _throwOnReadAfterRows = throwOnReadAfterRows;
+                _throwOnGetSchemaTable = throwOnGetSchemaTable;
             }
 
             internal int GetValuesCalls { get; private set; }
@@ -7385,7 +7418,9 @@ namespace OfficeIMO.Tests {
 
             public int GetOrdinal(string name) => _inner.GetOrdinal(name);
 
-            public DataTable? GetSchemaTable() => _inner.GetSchemaTable();
+            public DataTable? GetSchemaTable() => _throwOnGetSchemaTable
+                ? throw new NotImplementedException()
+                : _inner.GetSchemaTable();
 
             public string GetString(int i) => _inner.GetString(i);
 

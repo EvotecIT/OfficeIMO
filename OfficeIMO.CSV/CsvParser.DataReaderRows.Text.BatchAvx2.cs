@@ -33,7 +33,8 @@ internal static partial class CsvParser
         CsvTextDataReaderBatch batch,
         CancellationToken cancellationToken = default)
     {
-        if (state.RecordsToSkip != 0 ||
+        if (!CanUseTextDataReaderBatchAvx2(options, batch.SourceColumnCount) ||
+            state.RecordsToSkip != 0 ||
             !state.UseAvx2UnquotedFastPath ||
             state.Position >= text.Length)
         {

@@ -2038,12 +2038,13 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Reader_TypedObjects_ParallelKeepsDateStyledNumericTargetsNumeric() {
+        public void Reader_TypedObjects_ParallelKeepsDateStyledNumericTargetsNumericIn1904Workbook() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderDateStyledNumericTypedHeaders.xlsx");
             const double serialValue = 1.5d;
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
+                    document.DateSystem = ExcelDateSystem.NineteenFour;
                     var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "NumericValue");
                     sheet.CellValue(1, 2, "DateValue");
@@ -2061,8 +2062,9 @@ namespace OfficeIMO.Tests {
                 var row = Assert.Single(reader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:C2", ExcelExecutionMode.Parallel));
 
                 Assert.Equal(serialValue, row.NumericValue);
-                Assert.Equal(DateTime.FromOADate(serialValue), row.DateValue);
-                Assert.Equal(DateTime.FromOADate(serialValue).ToString(CultureInfo.InvariantCulture), row.TextValue);
+                DateTime expectedDate = ExcelDateSystemConverter.FromSerial(serialValue, ExcelDateSystem.NineteenFour);
+                Assert.Equal(expectedDate, row.DateValue);
+                Assert.Equal(expectedDate.ToString(CultureInfo.InvariantCulture), row.TextValue);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

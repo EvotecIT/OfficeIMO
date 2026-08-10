@@ -30,7 +30,7 @@ internal static partial class CsvParser
             _options = options;
             _state = CreateTextFieldSpanReadState(text.AsSpan(), options, recordsToSkip);
             _visitor = new CsvDataReaderTextRowVisitor(text, sourceColumnCount);
-            _batch = CanUseTextDataReaderBatchAvx2(options, sourceColumnCount)
+            _batch = sourceColumnCount is > 0 and <= TextQuoteAwareFieldSpanCapacity
                 ? new CsvTextDataReaderBatch(
                     text,
                     sourceColumnCount,
@@ -104,6 +104,12 @@ internal static partial class CsvParser
 
             if (!TryFillTextDataReaderBatchAvx2(
                     _text.AsSpan(),
+                    _options,
+                    ref _state,
+                    _batch,
+                    cancellationToken) &&
+                !TryFillTextDataReaderBatchScalar(
+                    _text,
                     _options,
                     ref _state,
                     _batch,

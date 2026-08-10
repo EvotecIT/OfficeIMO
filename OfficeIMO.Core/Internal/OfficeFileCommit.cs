@@ -612,6 +612,16 @@ namespace OfficeIMO.Core.Internal {
         private static string CreateClaimPath(string targetPath) {
             string? directory = Path.GetDirectoryName(targetPath);
             if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
+            string legacyClaimName = "." + Path.GetFileName(targetPath) + ".officeimo-commit";
+            string legacyClaimPath = Path.Combine(directory, legacyClaimName);
+            if (Encoding.UTF8.GetByteCount(legacyClaimName) <= 255 &&
+                (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || legacyClaimPath.Length < 260)) {
+                // Preserve coordination with OfficeIMO versions that use the destination-derived
+                // claim name. Fall back to the compact hash only when that legacy path is not
+                // portable enough to create.
+                return legacyClaimPath;
+            }
+
             string fullTargetPath = Path.GetFullPath(targetPath);
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 fullTargetPath = fullTargetPath.ToUpperInvariant();

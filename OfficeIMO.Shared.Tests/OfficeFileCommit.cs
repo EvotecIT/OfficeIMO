@@ -81,6 +81,27 @@ namespace OfficeIMO.Shared.Tests {
         }
 
         [Fact]
+        public void LongDestinationNameUsesCompactClaimPath() {
+#if NETFRAMEWORK
+            // .NET Framework does not opt into Windows long-path handling for this test host.
+            return;
+#else
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string destination = Path.Combine(root, new string('a', 240) + ".bin");
+            byte[] payload = { 1, 2, 3, 4 };
+
+            try {
+                string stagingPath = OfficeFileCommit.StageAllBytes(destination, payload);
+
+                Assert.True(OfficeFileCommit.TryCommitTemporaryFileIfAbsent(stagingPath, destination));
+                Assert.Equal(payload, File.ReadAllBytes(destination));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
+#endif
+        }
+
+        [Fact]
         public void StagedBytesCanRetryAfterDestinationCollisionWithoutBeingRewritten() {
             string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
             string occupiedPath = Path.Combine(root, "artifact.bin");

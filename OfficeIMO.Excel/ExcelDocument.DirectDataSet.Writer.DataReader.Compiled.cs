@@ -189,6 +189,9 @@ namespace OfficeIMO.Excel {
                     }
                 } catch (NotSupportedException) {
                     // Optional provider metadata; conservative null checks remain enabled.
+                } catch (NotImplementedException) {
+                    // Some valid IDataReader providers expose the API but do not implement
+                    // optional schema metadata. Keep conservative null checks enabled.
                 }
 
                 return nullableColumns;

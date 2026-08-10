@@ -260,9 +260,10 @@ public sealed partial class CsvDocument
     /// </summary>
     /// <remarks>
     /// Header ordinals are resolved once by <paramref name="factoryBuilder"/>. The returned factory can
-    /// run concurrently and must not mutate shared state. The AVX2 text parser supplies span-backed record
-    /// batches when the selected load options support that path; unsupported records continue correctly on
-    /// the calling thread. Enumeration owns and disposes the underlying reader.
+    /// run concurrently and must not mutate shared state. Eligible text is supplied as span-backed record
+    /// batches by the AVX2 producer when available and by the scalar producer on other architectures.
+    /// Unsupported records continue correctly on the calling thread. Enumeration owns and disposes the
+    /// underlying reader.
     /// </remarks>
     /// <typeparam name="T">Result row type.</typeparam>
     /// <param name="text">Decoded CSV text.</param>
