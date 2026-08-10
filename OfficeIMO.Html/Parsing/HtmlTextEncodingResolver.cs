@@ -90,6 +90,9 @@ internal static class HtmlTextEncodingResolver {
         } catch (ArgumentException) {
             css = string.Empty;
             return false;
+        } catch (FormatException) {
+            css = string.Empty;
+            return false;
         } catch (NotSupportedException) {
             css = string.Empty;
             return false;
@@ -342,11 +345,18 @@ internal static class HtmlTextEncodingResolver {
             if (position < source.Length && source[position] == '"') {
                 position++;
                 var value = new StringBuilder();
+                bool closedQuote = false;
                 while (position < source.Length) {
                     char current = source[position++];
-                    if (current == '"') break;
+                    if (current == '"') {
+                        closedQuote = true;
+                        break;
+                    }
                     if (current == '\\' && position < source.Length) current = source[position++];
                     value.Append(current);
+                }
+                if (!closedQuote) {
+                    throw new FormatException("Unterminated quoted Content-Type parameter.");
                 }
                 if (isCharset && value.Length > 0) return value.ToString();
                 while (position < source.Length && source[position] != ';') position++;

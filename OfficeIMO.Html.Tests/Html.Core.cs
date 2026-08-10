@@ -221,6 +221,16 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public void HtmlDataUri_TryDecodeTextRejectsUnterminatedQuotedCharset() {
+        Assert.True(HtmlDataUri.TryParse(
+            "data:text/plain;charset=\"windows-1252,%C3%A9",
+            out HtmlDataUri dataUri));
+
+        Assert.False(dataUri.TryDecodeText(out string text));
+        Assert.Equal(string.Empty, text);
+    }
+
+    [Fact]
     public void HtmlStylesheetDecoderRejectsSingleQuotedCharsetToken() {
         byte[] stylesheet = Encoding.UTF8.GetBytes(".label::before{content:'café';}");
 
@@ -228,6 +238,16 @@ public sealed class HtmlCoreTests {
             stylesheet,
             "text/css; charset='windows-1252'",
             out string css));
+        Assert.Equal(string.Empty, css);
+    }
+
+    [Theory]
+    [InlineData("text/css; charset=\"windows-1252")]
+    [InlineData("text/css; title=\"unterminated; charset=windows-1252")]
+    public void HtmlStylesheetDecoderRejectsUnterminatedQuotedContentTypeParameter(string contentType) {
+        byte[] stylesheet = Encoding.UTF8.GetBytes(".café{color:red}");
+
+        Assert.False(HtmlRenderStylesheetText.TryDecode(stylesheet, contentType, out string css));
         Assert.Equal(string.Empty, css);
     }
 

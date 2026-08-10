@@ -169,7 +169,13 @@ Reuse the same document for analysis too: `HtmlComputedStyleEngine.Compute(conve
 ## Semantic IR and target preflight
 
 ```csharp
-HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+const string semanticHtml = """
+    <h1>Quarterly checklist</h1>
+    <ol start="3"><li>Publish report</li></ol>
+    <input name="owner" value="Finance">
+    """;
+
+HtmlConversionDocument source = HtmlConversionDocument.Parse(semanticHtml);
 HtmlSemanticDocument semantics = source.SemanticDocument;
 HtmlConversionPreflight excel = source.AnalyzeFor(HtmlConversionTarget.Excel);
 
@@ -180,7 +186,6 @@ Console.WriteLine($"{list.List!.Kind}: start={list.List.Start}, reversed={list.L
 
 HtmlSemanticFormControl control = semantics.Sections
     .SelectMany(section => section.Blocks)
-    .SelectMany(block => block.Children)
     .First(block => block.FormControl != null)
     .FormControl!;
 foreach (string value in control.Values) Console.WriteLine(value);
