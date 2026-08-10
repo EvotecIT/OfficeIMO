@@ -41,8 +41,15 @@ namespace OfficeIMO.PowerPoint {
             if (format == OfficeImageExportFormat.Svg) {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
                 var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, "PowerPoint slide");
-                byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale, OfficeSvgSizeUnit.Pixel, fallbackCodec);
-                return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(drawing, options), ScaledHeight(drawing, options), svg, "Slide", "PowerPoint slide", diagnostics));
+                double scale = options.GetEffectiveScale(drawing.Width, drawing.Height);
+                byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(
+                    drawing,
+                    scale,
+                    OfficeSvgSizeUnit.Pixel,
+                    fallbackCodec,
+                    resourceIdPrefix: null,
+                    cancellationToken);
+                return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(drawing, scale), ScaledHeight(drawing, scale), svg, "Slide", "PowerPoint slide", diagnostics));
             }
 
             if (format.IsRaster()) {
@@ -1205,11 +1212,11 @@ namespace OfficeIMO.PowerPoint {
             return (PowerPointUnits.ToPoints(widthEmus), PowerPointUnits.ToPoints(heightEmus));
         }
 
-        private static int ScaledWidth(OfficeDrawing drawing, PowerPointImageExportOptions options) =>
-            Math.Max(1, (int)Math.Ceiling(drawing.Width * options.Scale));
+        private static int ScaledWidth(OfficeDrawing drawing, double scale) =>
+            Math.Max(1, (int)Math.Ceiling(drawing.Width * scale));
 
-        private static int ScaledHeight(OfficeDrawing drawing, PowerPointImageExportOptions options) =>
-            Math.Max(1, (int)Math.Ceiling(drawing.Height * options.Scale));
+        private static int ScaledHeight(OfficeDrawing drawing, double scale) =>
+            Math.Max(1, (int)Math.Ceiling(drawing.Height * scale));
 
         private static int UnscaledWidth(OfficeDrawing drawing) =>
             Math.Max(1, (int)Math.Ceiling(drawing.Width));

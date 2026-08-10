@@ -79,6 +79,20 @@ LatexParseResult result = LatexDocument.Load(
 
 Keep the default for uploads and other untrusted input. Set `MaximumInputBytes` to a larger finite value when the application has a known document-size ceiling; use `null` only for a trusted source with a separate resource policy.
 
+### PDF OCR provider coordinates
+
+`PdfOcrRequest.PageWidth` and `PageHeight` now describe the rendered visual page
+after applying the crop box and page rotation. In earlier versions they exposed
+the unrotated logical dimensions even though `Png`, `PixelWidth`, and
+`PixelHeight` represented the rendered page. For pages rotated 90 or 270
+degrees, the point dimensions are therefore swapped.
+
+Existing `IPdfOcrProvider` implementations should map their pixel-space
+`PdfOcrWord` results against these visual dimensions. Providers that cached or
+recomputed unrotated media-box dimensions should instead use the request's
+`PageWidth`, `PageHeight`, and `Scale`, which now describe the same visual
+coordinate space as the supplied PNG.
+
 ## OfficeIMO 3.2: neutral conversion model
 
 Direct format conversion no longer uses Reader as its intermediate ownership

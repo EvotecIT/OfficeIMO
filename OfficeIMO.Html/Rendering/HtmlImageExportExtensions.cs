@@ -17,14 +17,25 @@ public static partial class HtmlImageExportExtensions {
 
     internal static IReadOnlyList<OfficeImageExportResult> ExportImages(this IHtmlDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null) {
         HtmlRenderOptions resolved = Normalize(options, 0);
-        return HtmlRenderEngine.ExecuteWithDeadline(resolved, CancellationToken.None, operationCancellationToken => {
-            HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, resolved, operationCancellationToken);
-            var results = new List<OfficeImageExportResult>(rendered.Pages.Count);
-            foreach (HtmlRenderPage page in rendered.Pages) {
-                results.Add(RenderPage(page, format, resolved, rendered.DiagnosticReport, operationCancellationToken));
-            }
-            return results.AsReadOnly();
-        });
+        var results = new List<OfficeImageExportResult>();
+        OfficeImageExportBatchProcessor.Run(
+            resolved,
+            (accept, operationCancellationToken) => {
+                HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, resolved, operationCancellationToken);
+                if (rendered.Pages.Count > resolved.MaximumOutputCount) {
+                    throw new OfficeImageExportBatchLimitException(
+                        nameof(OfficeImageExportOptions.MaximumOutputCount),
+                        rendered.Pages.Count,
+                        resolved.MaximumOutputCount);
+                }
+                foreach (HtmlRenderPage page in rendered.Pages) {
+                    operationCancellationToken.ThrowIfCancellationRequested();
+                    accept(RenderPage(page, format, resolved, rendered.DiagnosticReport, operationCancellationToken));
+                }
+            },
+            results.Add,
+            expectedOutputCount: null);
+        return results.AsReadOnly();
     }
 
     internal static async Task<OfficeImageExportResult> ExportImageAsync(this IHtmlDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) {
@@ -39,15 +50,30 @@ public static partial class HtmlImageExportExtensions {
 
     internal static async Task<IReadOnlyList<OfficeImageExportResult>> ExportImagesAsync(this IHtmlDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
         HtmlRenderOptions resolved = Normalize(options, 0);
-        return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
-            HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, operationCancellationToken).ConfigureAwait(false);
-            var results = new List<OfficeImageExportResult>(rendered.Pages.Count);
-            foreach (HtmlRenderPage page in rendered.Pages) {
-                operationCancellationToken.ThrowIfCancellationRequested();
-                results.Add(RenderPage(page, format, resolved, rendered.DiagnosticReport, operationCancellationToken));
-            }
-            return (IReadOnlyList<OfficeImageExportResult>)results.AsReadOnly();
-        }).ConfigureAwait(false);
+        var results = new List<OfficeImageExportResult>();
+        await OfficeImageExportBatchProcessor.RunAsync(
+            resolved,
+            async (accept, operationCancellationToken) => {
+                HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, operationCancellationToken).ConfigureAwait(false);
+                if (rendered.Pages.Count > resolved.MaximumOutputCount) {
+                    throw new OfficeImageExportBatchLimitException(
+                        nameof(OfficeImageExportOptions.MaximumOutputCount),
+                        rendered.Pages.Count,
+                        resolved.MaximumOutputCount);
+                }
+                foreach (HtmlRenderPage page in rendered.Pages) {
+                    operationCancellationToken.ThrowIfCancellationRequested();
+                    await accept(
+                        RenderPage(page, format, resolved, rendered.DiagnosticReport, operationCancellationToken),
+                        operationCancellationToken).ConfigureAwait(false);
+                }
+            },
+            (result, _) => {
+                results.Add(result);
+                return Task.CompletedTask;
+            },
+            cancellationToken).ConfigureAwait(false);
+        return results.AsReadOnly();
     }
 
     private static OfficeImageExportResult RenderPage(HtmlRenderPage page, OfficeImageExportFormat format, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) {
@@ -61,15 +87,16 @@ public static partial class HtmlImageExportExtensions {
         int width;
         int height;
         if (format == OfficeImageExportFormat.Svg) {
+            double scale = options.GetEffectiveScale(drawing.Width, drawing.Height);
             bytes = OfficeDrawingSvgExporter.ToSvgBytes(
                 drawing,
-                options.Scale,
+                scale,
                 OfficeSvgSizeUnit.Pixel,
                 fallbackCodec,
                 resourceIdPrefix: null,
                 cancellationToken: cancellationToken);
-            width = Math.Max(1, (int)Math.Ceiling(page.Width * options.Scale));
-            height = Math.Max(1, (int)Math.Ceiling(page.Height * options.Scale));
+            width = Math.Max(1, (int)Math.Ceiling(page.Width * scale));
+            height = Math.Max(1, (int)Math.Ceiling(page.Height * scale));
         } else if (format.IsRaster()) {
             OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
                 drawing.Width,

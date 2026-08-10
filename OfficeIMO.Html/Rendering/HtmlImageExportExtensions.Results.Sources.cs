@@ -80,20 +80,32 @@ public static partial class HtmlImageExportExtensions {
         CancellationToken cancellationToken = default) {
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         HtmlRenderOptions resolved = Normalize(options, 0);
-        await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
-            HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, operationCancellationToken).ConfigureAwait(false);
-            OfficeImageExportAsyncConsumer accept =
-                OfficeImageExportBatchProcessor.CreateGuardedAsyncConsumer(
+        HtmlRenderDocument? rendered = null;
+        await OfficeImageExportBatchProcessor.RunAsyncWithPreflight(
+            resolved,
+            async operationCancellationToken => {
+                rendered = await HtmlRenderEngine.RenderAsync(
+                    document,
                     resolved,
-                    consumer,
-                    operationCancellationToken);
-            foreach (HtmlRenderPage page in rendered.Pages) {
+                    operationCancellationToken).ConfigureAwait(false);
                 operationCancellationToken.ThrowIfCancellationRequested();
-                OfficeImageExportResult result = RenderPage(page, format, resolved, rendered.DiagnosticReport, operationCancellationToken);
-                await accept(result, operationCancellationToken).ConfigureAwait(false);
-            }
-            return true;
-        }).ConfigureAwait(false);
+                return rendered.Pages.Count;
+            },
+            async (accept, operationCancellationToken) => {
+                HtmlRenderDocument completed = rendered!;
+                foreach (HtmlRenderPage page in completed.Pages) {
+                    operationCancellationToken.ThrowIfCancellationRequested();
+                    OfficeImageExportResult result = RenderPage(
+                        page,
+                        format,
+                        resolved,
+                        completed.DiagnosticReport,
+                        operationCancellationToken);
+                    await accept(result, operationCancellationToken).ConfigureAwait(false);
+                }
+            },
+            consumer,
+            cancellationToken).ConfigureAwait(false);
     }
 
 }

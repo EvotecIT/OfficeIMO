@@ -25,10 +25,15 @@ namespace OfficeIMO.Excel {
                 CreateSparklineStyle(sparkline, scale));
         }
 
-        private static void AppendSvgSparklines(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options) {
+        private static void AppendSvgSparklines(
+            StringBuilder builder,
+            ExcelRangeVisualSnapshot snapshot,
+            ExcelImageExportOptions options,
+            System.Threading.CancellationToken cancellationToken) {
             double scale = options.Scale;
             int index = 0;
             foreach (ExcelVisualSparkline sparkline in snapshot.Sparklines) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string clipId = "officeimo-sparkline-clip-" + index.ToString(CultureInfo.InvariantCulture);
                 builder.AppendRectClipPathDefinition(clipId, sparkline.X * scale, sparkline.Y * scale, sparkline.Width * scale, sparkline.Height * scale, wrapInDefs: true);
                 builder.Append("<g").AppendClipPathReference(clipId).Append(">");

@@ -249,12 +249,16 @@ document.SaveAsPng("pipeline.png", new VisioPngSaveOptions {
 OfficeImageExportResult webp = document
     .ToImage()
     .AtDpi(144)
+    .FitWithin(1600, 1200)
+    .ResolveConnectorLabelOverlaps()
     .AsWebp()
     .Save("pipeline.webp");
 
 IReadOnlyList<OfficeImageExportResult> pages = document
     .ToImages()
     .AllPages()
+    .IncludeStencilArtwork()
+    .IncludeConnectorLabels()
     .AsJpeg()
     .Save("pipeline-pages");
 ```

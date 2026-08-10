@@ -377,6 +377,8 @@ public partial class DrawingTests {
 
             Assert.Equal(2, saved.Files.Count);
             Assert.Equal(2, saved.Report.ResultCount);
+            Assert.Equal(new int?[] { 0, 1 }, saved.Files.Select(file => file.SequenceIndex));
+            Assert.All(saved.Files, file => Assert.Equal(2, file.SequenceCount));
             Assert.All(saved.Files, file => {
                 Assert.True(File.Exists(file.Path));
                 Assert.True(file.EncodedLength > 0);
@@ -412,6 +414,10 @@ public partial class DrawingTests {
             OfficeImageExportBatchSaveResult saved = await builder.SaveFilesAsync(folder);
 
             Assert.Equal(names.Length, saved.Files.Count);
+            Assert.Equal(
+                Enumerable.Range(0, names.Length).Select(index => (int?)index),
+                saved.Files.Select(file => file.SequenceIndex));
+            Assert.All(saved.Files, file => Assert.Equal(names.Length, file.SequenceCount));
             Assert.InRange(producedWhenSavingStarted, 1, 3);
             Assert.True(producedWhenSavingStarted < names.Length);
         } finally {
@@ -508,6 +514,46 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void DirectStreamingBatchProcessorEnforcesOneOperationWideRenderTimeout() {
+        var timeout = TimeSpan.FromTicks(1);
+        var options = new TestImageExportOptions { RenderTimeout = timeout };
+
+        OfficeImageExportTimeoutException exception = Assert.Throws<OfficeImageExportTimeoutException>(() =>
+            OfficeImageExportBatchProcessor.Run(
+                options,
+                (accept, _) => accept(new OfficeImageExportResult(
+                    OfficeImageExportFormat.Png,
+                    1,
+                    1,
+                    OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White)))),
+                static _ => { },
+                expectedOutputCount: 1));
+
+        Assert.Equal(timeout, exception.Timeout);
+    }
+
+    [Fact]
+    public async Task DirectAsyncStreamingBatchProcessorEnforcesOneOperationWideRenderTimeout() {
+        var timeout = TimeSpan.FromTicks(1);
+        var options = new TestImageExportOptions { RenderTimeout = timeout };
+
+        OfficeImageExportTimeoutException exception = await Assert.ThrowsAsync<OfficeImageExportTimeoutException>(() =>
+            OfficeImageExportBatchProcessor.RunAsync(
+                options,
+                async (accept, token) => {
+                    await accept(new OfficeImageExportResult(
+                        OfficeImageExportFormat.Png,
+                        1,
+                        1,
+                        OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White))), token);
+                },
+                static (_, _) => Task.CompletedTask,
+                expectedOutputCount: 1));
+
+        Assert.Equal(timeout, exception.Timeout);
+    }
+
+    [Fact]
     public async Task BatchRenderTimeoutIsCheckedAfterCancellationUnawareDelegatesReturn() {
         var timeout = TimeSpan.FromTicks(1);
         var builder = new UncooperativeTimeoutImageExportBatchBuilder(new TestImageExportOptions())
@@ -598,6 +644,84 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void SharedFitWithinContractPreservesAspectRatioAcrossRasterPlanning() {
+        var options = new TestImageExportOptions {
+            Scale = 2D,
+            MaximumOutputWidth = 300,
+            MaximumOutputHeight = 300
+        };
+
+        OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
+            400D,
+            200D,
+            OfficeImageExportFormat.Png,
+            options);
+
+        Assert.Equal(0.75D, plan.Limit.Scale, 8);
+        Assert.Equal(300, plan.Limit.PixelWidth);
+        Assert.Equal(150, plan.Limit.PixelHeight);
+        Assert.Null(plan.Diagnostic);
+    }
+
+    [Fact]
+    public void SharedFitWithinContractDoesNotEnlargeSmallerOutput() {
+        var options = new TestImageExportOptions {
+            Scale = 1D,
+            MaximumOutputWidth = 500,
+            MaximumOutputHeight = 500
+        };
+
+        Assert.Equal(1D, options.GetEffectiveScale(100D, 80D));
+    }
+
+    [Fact]
+    public void SharedFitWithinContractIsCeilingSafeForNonIntegralDimensions() {
+        var options = new TestImageExportOptions {
+            Scale = 100D,
+            MaximumOutputWidth = 300,
+            MaximumOutputHeight = 240
+        };
+        const double width = 16.309D;
+        const double height = 9.173D;
+
+        double scale = options.GetEffectiveScale(width, height);
+        OfficeRasterExportPlan raster = OfficeRasterExportPlanner.Resolve(
+            width,
+            height,
+            OfficeImageExportFormat.Png,
+            options);
+        byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(
+            new OfficeDrawing(width, height),
+            scale,
+            OfficeSvgSizeUnit.Pixel);
+        OfficeImageInfo svgInfo = OfficeImageReader.Identify(svg, ".svg");
+
+        Assert.True(raster.Limit.PixelWidth <= 300);
+        Assert.True(raster.Limit.PixelHeight <= 240);
+        Assert.True(svgInfo.Width <= 300);
+        Assert.True(svgInfo.Height <= 240);
+    }
+
+    [Fact]
+    public void DirectStreamingBatchProcessorRejectsKnownCountBeforeProducingOutput() {
+        var options = new TestImageExportOptions { MaximumOutputCount = 1 };
+        int produced = 0;
+        int consumed = 0;
+
+        OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            OfficeImageExportBatchProcessor.Run(
+                options,
+                (_, _) => produced++,
+                _ => consumed++,
+                expectedOutputCount: 2));
+
+        Assert.Equal(0, produced);
+        Assert.Equal(0, consumed);
+        Assert.Equal(2, exception.Actual);
+        Assert.Equal(1, exception.Maximum);
+    }
+
+    [Fact]
     public void DiagnosticPolicyAggregatesLossAndRejectsConfiguredCodes() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         var diagnostics = new[] {
@@ -648,6 +772,43 @@ public partial class DrawingTests {
             result => names.Add(result.Name!));
 
         Assert.Equal(items.Select(item => item.ToString()), names);
+    }
+
+    [Fact]
+    public void BatchProcessorAddsStructuredSequenceMetadataWithoutParsingNames() {
+        int[] items = { 10, 20, 30 };
+        var results = new List<OfficeImageExportResult>();
+
+        OfficeImageExportBatchProcessor.ForEachOrdered(
+            items,
+            maximumDegreeOfParallelism: 2,
+            (item, _, _) => new OfficeImageExportResult(
+                OfficeImageExportFormat.Png,
+                1,
+                1,
+                OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White)),
+                name: "arbitrary-" + item),
+            results.Add,
+            options: new TestImageExportOptions());
+
+        Assert.Equal(new int?[] { 0, 1, 2 }, results.Select(result => result.SequenceIndex));
+        Assert.All(results, result => Assert.Equal(3, result.SequenceCount));
+    }
+
+    [Fact]
+    public void MaterializedBatchSaveBackfillsFinalSequenceCount() {
+        string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N"));
+        try {
+            IReadOnlyList<OfficeImageExportResult> results =
+                new TestImageExportBatchBuilder(new TestImageExportOptions(), "one", "two")
+                    .AsPng()
+                    .Save(folder);
+
+            Assert.Equal(new int?[] { 0, 1 }, results.Select(result => result.SequenceIndex));
+            Assert.All(results, result => Assert.Equal(2, result.SequenceCount));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
     }
 
     [Theory]

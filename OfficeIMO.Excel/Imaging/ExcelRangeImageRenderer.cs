@@ -60,10 +60,13 @@ namespace OfficeIMO.Excel {
             cancellationToken.ThrowIfCancellationRequested();
             List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
             if (format == OfficeImageExportFormat.Svg) {
-                rasterState = new ExcelRasterRenderState(options.Scale, options.RasterEncoding);
-                string svg = RenderSvg(snapshot, options, diagnostics);
+                ExcelImageExportOptions svgOptions = options.Clone();
+                svgOptions.Scale = options.GetEffectiveScale(snapshot.Width, snapshot.Height);
+                svgOptions.TargetDpi = null;
+                rasterState = new ExcelRasterRenderState(svgOptions.Scale, svgOptions.RasterEncoding);
+                string svg = RenderSvg(snapshot, svgOptions, diagnostics, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
-                return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(snapshot, options), ScaledHeight(snapshot, options), Encoding.UTF8.GetBytes(svg), snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly()));
+                return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(snapshot, svgOptions), ScaledHeight(snapshot, svgOptions), Encoding.UTF8.GetBytes(svg), snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly()));
             }
             if (!rasterPlanningFormat.IsRaster()) {
                 throw new ArgumentException("A raster planning format is required.", nameof(rasterPlanningFormat));
@@ -151,7 +154,12 @@ namespace OfficeIMO.Excel {
             return image;
         }
 
-        internal static string RenderSvg(ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics = null) {
+        internal static string RenderSvg(
+            ExcelRangeVisualSnapshot snapshot,
+            ExcelImageExportOptions options,
+            List<OfficeImageExportDiagnostic>? diagnostics = null,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             int width = ScaledWidth(snapshot, options);
             int height = ScaledHeight(snapshot, options);
             double scale = options.Scale;
@@ -170,6 +178,7 @@ namespace OfficeIMO.Excel {
             Dictionary<string, ExcelVisualCell> cellsByAddress = BuildCellMap(snapshot.Cells);
 
             foreach (ExcelVisualCell cell in snapshot.Cells) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (cell.CoveredByMerge) {
                     continue;
                 }
@@ -196,6 +205,7 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (ExcelVisualCell cell in snapshot.Cells) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (cell.CoveredByMerge) {
                     continue;
                 }
@@ -203,12 +213,13 @@ namespace OfficeIMO.Excel {
                 AppendSvgCellText(builder, cell, snapshot, options, textMeasurer, cellsByAddress, dataBars, conditionalIcons, diagnostics);
             }
 
-            AppendSvgConditionalIcons(builder, snapshot, options);
-            AppendSvgSparklines(builder, snapshot, options);
-            AppendSvgCommentIndicators(builder, snapshot, options);
-            AppendSvgDrawingLayers(builder, snapshot, options, diagnostics, textMeasurer);
+            AppendSvgConditionalIcons(builder, snapshot, options, cancellationToken);
+            AppendSvgSparklines(builder, snapshot, options, cancellationToken);
+            AppendSvgCommentIndicators(builder, snapshot, options, cancellationToken);
+            AppendSvgDrawingLayers(builder, snapshot, options, diagnostics, textMeasurer, cancellationToken);
 
             builder.Append("</svg>");
+            cancellationToken.ThrowIfCancellationRequested();
             return builder.ToString();
         }
 
@@ -313,7 +324,14 @@ namespace OfficeIMO.Excel {
             canvas.DrawImage(chartImage, chart.X * scale, chart.Y * scale, chart.Width * scale, chart.Height * scale);
         }
 
-        private static void AppendSvgChart(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelVisualChart chart, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void AppendSvgChart(
+            StringBuilder builder,
+            ExcelRangeVisualSnapshot snapshot,
+            ExcelVisualChart chart,
+            ExcelImageExportOptions options,
+            List<OfficeImageExportDiagnostic>? diagnostics,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             double scale = options.Scale;
             if (!TryCreateOfficeChartSnapshot(chart.Snapshot, chart.Width, chart.Height, diagnostics, snapshot.SheetName, out OfficeChartSnapshot? officeSnapshot) || officeSnapshot == null) {
                 return;
@@ -324,7 +342,13 @@ namespace OfficeIMO.Excel {
             drawing.AppendFontDiagnostics(
                 diagnostics ?? new List<OfficeImageExportDiagnostic>(),
                 snapshot.SheetName + "!" + chart.Snapshot.Name);
-            string chartSvg = OfficeDrawingSvgExporter.ToSvg(drawing);
+            string chartSvg = OfficeDrawingSvgExporter.ToSvg(
+                drawing,
+                1D,
+                OfficeSvgSizeUnit.Point,
+                imageCodec: null,
+                resourceIdPrefix: null,
+                cancellationToken);
             builder.AppendNestedSvg(
                 chart.X * scale,
                 chart.Y * scale,
@@ -335,7 +359,7 @@ namespace OfficeIMO.Excel {
                 OfficeSvgFormatting.ExtractSvgInner(chartSvg));
         }
 
-        private static bool TryCreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, double width, double height, List<OfficeImageExportDiagnostic>? diagnostics, string sheetName, out OfficeChartSnapshot? officeSnapshot) {
+        internal static bool TryCreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, double width, double height, List<OfficeImageExportDiagnostic>? diagnostics, string sheetName, out OfficeChartSnapshot? officeSnapshot) {
             officeSnapshot = null;
             if (!TryMapChartKind(snapshot.ChartType, out OfficeChartKind kind, out string? approximation)) {
                 diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(

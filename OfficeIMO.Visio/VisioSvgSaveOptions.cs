@@ -55,5 +55,25 @@ namespace OfficeIMO.Visio {
         internal ICollection<OfficeImageExportDiagnostic>? ImageDiagnostics { get; set; }
 
         internal string? ImageDiagnosticSource { get; set; }
+
+        internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+        internal VisioSvgSaveOptions Clone() {
+            return new VisioSvgSaveOptions {
+                PageIndex = PageIndex,
+                PixelsPerInch = PixelsPerInch,
+                BackgroundColor = BackgroundColor,
+                RenderText = RenderText,
+                Fonts = Fonts?.Clone() ?? new OfficeFontFaceCollection(),
+                RenderStencilArtwork = RenderStencilArtwork,
+                RenderConnectorLabels = RenderConnectorLabels,
+                ResolveConnectorLabelOverlaps = ResolveConnectorLabelOverlaps,
+                IncludeXmlDeclaration = IncludeXmlDeclaration,
+                ImageCodec = ImageCodec,
+                ImageDiagnostics = ImageDiagnostics,
+                ImageDiagnosticSource = ImageDiagnosticSource,
+                CancellationToken = CancellationToken
+            };
+        }
     }
 }

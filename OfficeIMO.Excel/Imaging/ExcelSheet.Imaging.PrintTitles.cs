@@ -57,6 +57,10 @@ namespace OfficeIMO.Excel {
                     ref rasterState);
             }
 
+            if (workingFormat == OfficeImageExportFormat.Svg) {
+                result = ApplyFinalSvgOutputBounds(result, options);
+            }
+
             if (format == workingFormat) return result;
             cancellationToken.ThrowIfCancellationRequested();
             if (!OfficeRasterImageDecoder.TryDecode(result.Bytes, out OfficeRasterImage? image) || image == null) {
@@ -71,6 +75,38 @@ namespace OfficeIMO.Excel {
                 result.Name,
                 result.Source,
                 result.Diagnostics));
+        }
+
+        private static OfficeImageExportResult ApplyFinalSvgOutputBounds(
+            OfficeImageExportResult result,
+            ExcelWorksheetImageExportOptions options) {
+            ExcelWorksheetImageExportOptions fitOptions = options.CloneWorksheet();
+            fitOptions.Scale = 1D;
+            fitOptions.TargetDpi = null;
+            double scale = fitOptions.GetEffectiveScale(result.Width, result.Height);
+            if (scale >= 1D) {
+                return result;
+            }
+
+            int width = Math.Max(1, (int)Math.Ceiling(result.Width * scale));
+            int height = Math.Max(1, (int)Math.Ceiling(result.Height * scale));
+            string inner = OfficeSvgFormatting.ExtractSvgInner(
+                System.Text.Encoding.UTF8.GetString(result.Bytes));
+            string scaledInner = "<g transform=\"scale(" +
+                OfficeSvgFormatting.FormatNumber(scale) +
+                ")\">" + inner + "</g>";
+            return new OfficeImageExportResult(
+                result.Format,
+                width,
+                height,
+                OfficeImageComposer.ComposeSvgBytes(
+                    width,
+                    height,
+                    options.BackgroundColor,
+                    new[] { OfficeImageLayer.FromSvgInner(scaledInner, 0D, 0D, width, height) }),
+                result.Name,
+                result.Source,
+                result.Diagnostics);
         }
 
         private OfficeImageExportResult RenderPrintTitleLayout(

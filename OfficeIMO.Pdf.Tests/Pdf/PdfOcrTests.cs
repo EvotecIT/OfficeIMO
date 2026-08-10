@@ -96,6 +96,37 @@ public class PdfOcrTests {
         Assert.Equal(1, exception.Limit);
     }
 
+    [Theory]
+    [InlineData(90)]
+    [InlineData(270)]
+    public async Task RecognizeAndMergeAsync_UsesVisualCoordinatesForRotatedCroppedPages(int rotation) {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Native rotation"))
+            .ToBytes();
+        pdf = PdfPageEditor.SetCropBox(pdf, 0, 200, 595, 842);
+        pdf = PdfPageEditor.RotatePages(pdf, rotation);
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(pdf, 1);
+        Assert.NotEmpty(map.TextRegions);
+        PdfSelectionQuad nativeGlyph = map.TextRegions[0].Quad;
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            new PdfOcrWord(
+                "duplicate",
+                nativeGlyph.Left * request.Scale,
+                nativeGlyph.Top * request.Scale,
+                nativeGlyph.Width * request.Scale,
+                nativeGlyph.Height * request.Scale,
+                0.99)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Open(pdf).Read.OcrAsync(provider);
+        PdfOcrPageMergeResult page = Assert.Single(result.Pages);
+
+        Assert.Equal(map.Width, provider.LastRequest!.PageWidth, 3);
+        Assert.Equal(map.Height, provider.LastRequest.PageHeight, 3);
+        Assert.Empty(page.Words);
+        Assert.Equal(1, page.RejectedNativeOverlapCount);
+    }
+
     [Fact]
     public void PdfReadLimitKind_PreservesExistingInteractionRegionsValue() {
         Assert.Equal(20, (int)PdfReadLimitKind.InteractionRegions);

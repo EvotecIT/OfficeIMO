@@ -72,11 +72,6 @@ internal static class FlateDecoder {
             }
         }
 
-        if (data.Length <= maxOutputBytes) {
-            output = data;
-            return true;
-        }
-
         output = Array.Empty<byte>();
         return false;
     }
@@ -136,4 +131,3 @@ internal static class FlateDecoder {
         return deflate && mod;
     }
 }
-

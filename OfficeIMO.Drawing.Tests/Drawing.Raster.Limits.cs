@@ -196,6 +196,25 @@ public sealed class DrawingRasterLimitTests {
     }
 
     [Fact]
+    public void RasterExportPlannerRejectsFitScaleWhoseDensityCannotBeEncoded() {
+        var options = new OfficeImageExportOptions {
+            MaximumOutputWidth = 1,
+            MaximumOutputHeight = 1
+        };
+
+        OfficeImageExportLimitException exception = Assert.Throws<OfficeImageExportLimitException>(() =>
+            OfficeRasterExportPlanner.Resolve(
+                1_000D,
+                1_000D,
+                OfficeImageExportFormat.Jpeg,
+                options));
+
+        Assert.Equal(OfficeImageExportFormat.Jpeg, exception.Format);
+        Assert.True(exception.EffectiveDpiX < exception.MinimumDpi);
+        Assert.Contains("minimum representable", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RasterExportPlannerCanRejectOversizedRequestsWithTypedEvidence() {
         var options = new OfficeImageExportOptions {
             Scale = 10D,

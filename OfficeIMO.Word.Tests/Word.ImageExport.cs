@@ -89,6 +89,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_FitWithinAppliesIdenticallyToRasterAndSvg() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.AddParagraph("Bounded preview");
+
+            OfficeImageExportResult png = document.ToImage().WithScale(4D).FitWithin(300, 300).AsPng().Export();
+            OfficeImageExportResult svg = document.ToImage().WithScale(4D).FitWithin(300, 300).AsSvg().Export();
+
+            Assert.Equal(png.Width, svg.Width);
+            Assert.Equal(png.Height, svg.Height);
+            Assert.True(png.Width <= 300);
+            Assert.True(png.Height <= 300);
+        }
+
+        [Fact]
         public void WordDocument_ToImageUsesConfiguredFormatForBytes() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);

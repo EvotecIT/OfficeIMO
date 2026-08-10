@@ -61,22 +61,52 @@ namespace OfficeIMO.Excel {
             CancellationToken cancellationToken = default) {
             if (consumer == null) throw new ArgumentNullException(nameof(consumer));
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
-            IReadOnlyList<WorksheetImageRangeResolution> ranges = ResolveWorksheetImageRanges(resolved, allowMultipleResults: true);
-            ExcelHeaderFooterSnapshot? headerFooterSnapshot = resolved.SplitByManualPageBreaks
-                ? GetHeaderFooter(resolved.MaximumTotalSourceImageBytes)
-                : null;
-            long headerFooterSourceImageBytes = headerFooterSnapshot?.SourceImageByteCount ?? 0L;
-            OfficeImageExportConsumer accept =
-                OfficeImageExportBatchProcessor.CreateGuardedConsumer(
-                    resolved,
-                    consumer,
-                    cancellationToken);
-            for (int index = 0; index < ranges.Count; index++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                var sourceImageBudget = new ExcelSourceImageBudget(resolved.MaximumTotalSourceImageBytes);
-                sourceImageBudget.Consume(headerFooterSourceImageBytes);
-                accept(RenderWorksheetImageResult(format, ranges[index], resolved, headerFooterSnapshot, sourceImageBudget, index + 1, ranges.Count, cancellationToken));
-            }
+            IReadOnlyList<WorksheetImageRangeResolution>? ranges = null;
+            ExcelHeaderFooterSnapshot? headerFooterSnapshot = null;
+            long headerFooterSourceImageBytes = 0L;
+            OfficeImageExportBatchProcessor.RunWithPreflight(
+                resolved,
+                operationCancellationToken => {
+                    ranges = ResolveWorksheetImageRanges(
+                        resolved,
+                        allowMultipleResults: true,
+                        operationCancellationToken);
+                    operationCancellationToken.ThrowIfCancellationRequested();
+                    headerFooterSnapshot = resolved.SplitByManualPageBreaks
+                        ? GetHeaderFooter(resolved.MaximumTotalSourceImageBytes)
+                        : null;
+                    operationCancellationToken.ThrowIfCancellationRequested();
+                    headerFooterSourceImageBytes = headerFooterSnapshot?.SourceImageByteCount ?? 0L;
+                    return ranges.Count;
+                },
+                (accept, operationCancellationToken) => {
+                    IReadOnlyList<WorksheetImageRangeResolution> resolvedRanges = ranges!;
+                    for (int index = 0; index < resolvedRanges.Count; index++) {
+                        operationCancellationToken.ThrowIfCancellationRequested();
+                        var sourceImageBudget = new ExcelSourceImageBudget(resolved.MaximumTotalSourceImageBytes);
+                        sourceImageBudget.Consume(headerFooterSourceImageBytes);
+                        accept(RenderWorksheetImageResult(
+                            format,
+                            resolvedRanges[index],
+                            resolved,
+                            headerFooterSnapshot,
+                            sourceImageBudget,
+                            index + 1,
+                            resolvedRanges.Count,
+                            operationCancellationToken));
+                    }
+                },
+                consumer,
+                cancellationToken);
+        }
+
+        internal int GetImageExportResultCount(
+            ExcelWorksheetImageExportOptions options,
+            CancellationToken cancellationToken = default) {
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            options.Validate();
+            cancellationToken.ThrowIfCancellationRequested();
+            return ResolveWorksheetImageRanges(options, allowMultipleResults: true, cancellationToken).Count;
         }
 
         /// <summary>
@@ -152,13 +182,18 @@ namespace OfficeIMO.Excel {
             return resolved;
         }
 
-        private IReadOnlyList<WorksheetImageRangeResolution> ResolveWorksheetImageRanges(ExcelWorksheetImageExportOptions options, bool allowMultipleResults) {
+        private IReadOnlyList<WorksheetImageRangeResolution> ResolveWorksheetImageRanges(
+            ExcelWorksheetImageExportOptions options,
+            bool allowMultipleResults,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrWhiteSpace(options.Range)) {
                 if (TryNormalizeWorksheetImageRange(options.Range!, out string? normalizedRange)) {
                     return ApplyManualPageBreakSplits(
                         SingleImageRange(normalizedRange!, Array.Empty<OfficeImageExportDiagnostic>()),
                         options,
-                        allowMultipleResults);
+                        allowMultipleResults,
+                        cancellationToken);
                 }
 
                 throw new ArgumentException("Worksheet image export range must be a supported A1 cell or range reference.", nameof(options));
@@ -167,6 +202,7 @@ namespace OfficeIMO.Excel {
             var diagnostics = new List<OfficeImageExportDiagnostic>();
             if (options.UsePrintArea) {
                 string? printArea = GetPrintArea();
+                cancellationToken.ThrowIfCancellationRequested();
                 string source = Name + "!_xlnm.Print_Area";
                 if (string.IsNullOrWhiteSpace(printArea)) {
                     diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
@@ -205,7 +241,8 @@ namespace OfficeIMO.Excel {
                                 .ToList()
                                 .AsReadOnly(),
                                 options,
-                                allowMultipleResults);
+                                allowMultipleResults,
+                                cancellationToken);
                         }
 
                         diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
@@ -214,7 +251,7 @@ namespace OfficeIMO.Excel {
                             "Multi-area worksheet print areas are not supported by single-image export; exporting the worksheet used range instead.",
                             source));
                     } else if (TryNormalizeWorksheetImageRange(printArea!, out string? normalizedPrintArea)) {
-                        return ApplyManualPageBreakSplits(SingleImageRange(normalizedPrintArea!, diagnostics), options, allowMultipleResults);
+                        return ApplyManualPageBreakSplits(SingleImageRange(normalizedPrintArea!, diagnostics), options, allowMultipleResults, cancellationToken);
                     } else {
                         diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Warning,
@@ -225,7 +262,11 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            return ApplyManualPageBreakSplits(SingleImageRange(ResolveWorksheetUsedImageRange(options), diagnostics), options, allowMultipleResults);
+            return ApplyManualPageBreakSplits(
+                SingleImageRange(ResolveWorksheetUsedImageRange(options, cancellationToken), diagnostics),
+                options,
+                allowMultipleResults,
+                cancellationToken);
         }
 
         private static IReadOnlyList<WorksheetImageRangeResolution> SingleImageRange(string range, IReadOnlyList<OfficeImageExportDiagnostic> diagnostics) =>
@@ -234,7 +275,9 @@ namespace OfficeIMO.Excel {
         private IReadOnlyList<WorksheetImageRangeResolution> ApplyManualPageBreakSplits(
             IReadOnlyList<WorksheetImageRangeResolution> ranges,
             ExcelWorksheetImageExportOptions options,
-            bool allowMultipleResults) {
+            bool allowMultipleResults,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!options.SplitByManualPageBreaks) {
                 return ranges;
             }
@@ -260,7 +303,8 @@ namespace OfficeIMO.Excel {
             var splitRanges = new List<WorksheetImageRangeResolution>();
             int remainingPageResults = options.MaximumPageBreakImages;
             foreach (WorksheetImageRangeResolution range in ranges) {
-                IReadOnlyList<string> pages = SplitRangeByManualPageBreaks(range.Range, remainingPageResults);
+                cancellationToken.ThrowIfCancellationRequested();
+                IReadOnlyList<string> pages = SplitRangeByManualPageBreaks(range.Range, remainingPageResults, cancellationToken);
                 remainingPageResults -= pages.Count;
                 if (pages.Count <= 1) {
                     splitRanges.Add(range.WithDiagnostics(pageDiagnostics));
@@ -330,7 +374,11 @@ namespace OfficeIMO.Excel {
 
         private static bool HasText(string? text) => !string.IsNullOrWhiteSpace(text);
 
-        private IReadOnlyList<string> SplitRangeByManualPageBreaks(string range, int maximumPageCount) {
+        private IReadOnlyList<string> SplitRangeByManualPageBreaks(
+            string range,
+            int maximumPageCount,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (maximumPageCount <= 0) {
                 throw new InvalidOperationException(
                     "Manual page-break image output exceeds the configured aggregate result limit.");
@@ -344,12 +392,14 @@ namespace OfficeIMO.Excel {
                 firstRow,
                 lastRow,
                 WorksheetRoot.GetFirstChild<RowBreaks>(),
-                maximumPageCount);
+                maximumPageCount,
+                cancellationToken);
             IReadOnlyList<PageBreakSegment> columnSegments = BuildBoundedPageBreakSegments(
                 firstColumn,
                 lastColumn,
                 WorksheetRoot.GetFirstChild<ColumnBreaks>(),
-                maximumPageCount / rowSegments.Count);
+                maximumPageCount / rowSegments.Count,
+                cancellationToken);
             if (rowSegments.Count == 1 && columnSegments.Count == 1) {
                 return new[] { range };
             }
@@ -366,12 +416,14 @@ namespace OfficeIMO.Excel {
             if (pageOrder == ExcelPageOrder.OverThenDown) {
                 foreach (PageBreakSegment row in rowSegments) {
                     foreach (PageBreakSegment column in columnSegments) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         ranges.Add(ToRange(row.Start, column.Start, row.End, column.End));
                     }
                 }
             } else {
                 foreach (PageBreakSegment column in columnSegments) {
                     foreach (PageBreakSegment row in rowSegments) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         ranges.Add(ToRange(row.Start, column.Start, row.End, column.End));
                     }
                 }
@@ -384,7 +436,9 @@ namespace OfficeIMO.Excel {
             int first,
             int last,
             OpenXmlCompositeElement? breaks,
-            int maximumSegments) {
+            int maximumSegments,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (maximumSegments <= 0) {
                 throw new InvalidOperationException(
                     "Manual page-break image output exceeds the configured aggregate result limit.");
@@ -399,6 +453,7 @@ namespace OfficeIMO.Excel {
             long inspectedRecords = 0L;
             var distinctBreaks = new HashSet<int>();
             foreach (OpenXmlElement element in breaks.ChildElements) {
+                cancellationToken.ThrowIfCancellationRequested();
                 inspectedRecords++;
                 if (inspectedRecords > maximumRecords) {
                     throw new InvalidOperationException(
@@ -467,17 +522,23 @@ namespace OfficeIMO.Excel {
             return normalized.Count > 0;
         }
 
-        private string ResolveWorksheetUsedImageRange(ExcelWorksheetImageExportOptions options) {
+        private string ResolveWorksheetUsedImageRange(
+            ExcelWorksheetImageExportOptions options,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             string range = GetUsedRangeA1();
+            cancellationToken.ThrowIfCancellationRequested();
             if (!A1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 return range;
             }
 
             IReadOnlyList<ExcelColumnSnapshot> columns = GetColumnDefinitions();
             Dictionary<int, ExcelRowSnapshot> rows = GetRowDefinitions().ToDictionary(row => row.Index);
+            cancellationToken.ThrowIfCancellationRequested();
             bool defaultRowsHidden = DefaultRowsHidden;
             if (options.IncludeImages) {
                 foreach (ExcelImage image in Images) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (image.TryGetAbsoluteAnchorBounds(out int absoluteX, out int absoluteY, out int absoluteWidth, out int absoluteHeight)) {
                         ExpandAbsoluteVisualAnchor(absoluteX, absoluteY, absoluteWidth, absoluteHeight, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
                     } else if (options.IncludeHidden || !IsHiddenAnchor(image.RowIndex, image.ColumnIndex, rows, defaultRowsHidden, columns)) {
@@ -500,6 +561,7 @@ namespace OfficeIMO.Excel {
 
             if (options.IncludeCharts) {
                 foreach (ExcelChart chart in Charts) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) {
                         if (chart.TryGetAbsoluteAnchorBounds(out int absoluteX, out int absoluteY, out int absoluteWidth, out int absoluteHeight)) {
                             ExpandAbsoluteVisualAnchor(absoluteX, absoluteY, absoluteWidth, absoluteHeight, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
@@ -524,6 +586,7 @@ namespace OfficeIMO.Excel {
 
             if (options.IncludeDrawingObjects) {
                 foreach (ExcelWorksheetDrawingObjectInfo drawing in ExcelWorksheetDrawingObjectResolver.FindDrawingObjects(WorksheetPart)) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (drawing.IsRenderable && (options.IncludeHidden || !IsHiddenAnchor(drawing.Row, drawing.Column, rows, defaultRowsHidden, columns))) {
                         ExpandVisualAnchor(
                             drawing.Row,

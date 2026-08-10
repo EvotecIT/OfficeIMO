@@ -171,10 +171,11 @@ public class PdfRedactionVerificationTests {
         Assert.Equal(placement.ResourceName, match.ResourceName);
         Assert.Equal(placement.ObjectNumber, match.ObjectNumber);
         Assert.Null(match.Text);
-        Assert.Contains(plan.Findings, finding =>
+        PdfDiagnosticFinding finding = Assert.Single(plan.Findings, finding =>
             finding.Code == "RedactionPlanImageIntersection" &&
             finding.Severity == PdfDiagnosticSeverity.Warning &&
             finding.PageNumber == image.PageNumber);
+        Assert.Contains("rewrites supported image pixels", finding.Message, StringComparison.Ordinal);
     }
 
     [Fact]

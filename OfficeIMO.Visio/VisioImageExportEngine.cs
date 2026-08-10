@@ -33,7 +33,9 @@ internal static class VisioImageExportEngine {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
 
-        double pixelsPerInch = ResolvePixelsPerInch(options.Scale);
+        double logicalWidth = Math.Max(page.Width * DefaultPixelsPerInch, 0.01D);
+        double logicalHeight = Math.Max(page.Height * DefaultPixelsPerInch, 0.01D);
+        double pixelsPerInch = ResolvePixelsPerInch(options.GetEffectiveScale(logicalWidth, logicalHeight));
         string resultName = string.IsNullOrWhiteSpace(name) ? page.Name : name!;
         string resultSource = string.IsNullOrWhiteSpace(source) ? "Visio page" : source!;
         var diagnostics = new List<OfficeImageExportDiagnostic>();
@@ -43,7 +45,9 @@ internal static class VisioImageExportEngine {
         if (format == OfficeImageExportFormat.Svg) {
             int width = Scaled(page.Width, pixelsPerInch);
             int height = Scaled(page.Height, pixelsPerInch);
-            byte[] bytes = Encoding.UTF8.GetBytes(VisioSvgRenderer.Render(page, CreateSvgOptions(options, pixelsPerInch, diagnostics, resultSource)));
+            byte[] bytes = Encoding.UTF8.GetBytes(VisioSvgRenderer.Render(
+                page,
+                CreateSvgOptions(options, pixelsPerInch, diagnostics, resultSource, cancellationToken)));
             cancellationToken.ThrowIfCancellationRequested();
             return options.EnsureAccepted(new OfficeImageExportResult(
                 format,
@@ -61,8 +65,8 @@ internal static class VisioImageExportEngine {
 
         long workingPixelLimit = Math.Max(1L, MaximumSupersampledPixels / ((long)options.Supersampling * options.Supersampling));
         OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
-            Math.Max(page.Width * DefaultPixelsPerInch, 0.01D),
-            Math.Max(page.Height * DefaultPixelsPerInch, 0.01D),
+            logicalWidth,
+            logicalHeight,
             format,
             options,
             workingPixelLimit,
@@ -118,7 +122,8 @@ internal static class VisioImageExportEngine {
         VisioImageExportOptions options,
         double pixelsPerInch,
         ICollection<OfficeImageExportDiagnostic> diagnostics,
-        string source) =>
+        string source,
+        CancellationToken cancellationToken) =>
         new VisioSvgSaveOptions {
             PixelsPerInch = pixelsPerInch,
             BackgroundColor = options.BackgroundColor,
@@ -130,7 +135,8 @@ internal static class VisioImageExportEngine {
             IncludeXmlDeclaration = options.IncludeSvgXmlDeclaration,
             ImageCodec = options.ImageCodec,
             ImageDiagnostics = diagnostics,
-            ImageDiagnosticSource = source
+            ImageDiagnosticSource = source,
+            CancellationToken = cancellationToken
         };
 
     private static int Scaled(double inches, double pixelsPerInch) {
