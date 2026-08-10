@@ -422,7 +422,13 @@ public sealed partial class PdfReadPage {
         fillGradient = null;
         fillRadialGradient = null;
         if (!selection.HasValue || !image.IsImageMask) return Type3PatternImageMaskDrawingResult.Unsupported;
-        if (!TryCreateImageProjection(placement, pageHeight, pageWidth, pageHeight, out projection)) {
+        if (!TryCreateImageProjection(
+                placement,
+                pageHeight,
+                pageWidth,
+                pageHeight,
+                out projection,
+                allowAxisAlignedFallback: false)) {
             return IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight)
                 ? Type3PatternImageMaskDrawingResult.Invisible
                 : Type3PatternImageMaskDrawingResult.Unsupported;

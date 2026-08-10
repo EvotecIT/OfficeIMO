@@ -11,6 +11,19 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPageImageRendererTests {
     [Fact]
+    public void RenderPage_PreservesAxisAlignedFallbackForShearedOrdinaryImage() {
+        string image = BuildStreamObject(5, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8", "x");
+        byte[] pdf = BuildSingleStreamPdf(
+            "q 100 20 0 100 10 10 cm /Im1 Do Q",
+            "<< /XObject << /Im1 5 0 R >> >>",
+            image);
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Single(drawing.Images);
+    }
+
+    [Fact]
     public void RenderPage_ProjectsGeneratedPdfContentToSharedDrawingAndImages() {
         byte[] pdf = PdfDocument.Create()
             .Paragraph(p => p.Text("Managed raster page"))

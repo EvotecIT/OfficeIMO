@@ -497,19 +497,15 @@ public sealed partial class PdfReadPage {
                          tilingPatterns: tilingPatterns,
                 shadingPatterns: shadingPatterns)) {
                 if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
-                    if (requireImageMask &&
-                        initialFillPattern?.ShadingPattern is PdfPageShadingPatternResource inheritedShading &&
-                        !PdfPageContentVisualParser.IsSupportedShadingTransform(inheritedShading, initialFillPattern.Value.PaintTransform)) {
-                        AddRenderDiagnostic(
-                            diagnostics,
-                            seen,
-                            PdfRenderCapabilities.UnsupportedShadingId,
-                            initialFillPattern.Value.Name);
-                        supported = false;
-                        continue;
-                    }
-                    if ((initialFillPattern.HasValue && !HasUsableInheritedPattern(initialFillPattern)) ||
-                        !CanProjectType3ImageInvocation(invocation, resources, requireImageMask, initialFillPattern, diagnostics, seen)) supported = false;
+                    bool canProjectImage = CanProjectType3ImageInvocation(
+                        invocation,
+                        resources,
+                        requireImageMask,
+                        initialFillPattern,
+                        diagnostics,
+                        seen);
+                    if ((!requireImageMask && initialFillPattern.HasValue && !HasUsableInheritedPattern(initialFillPattern)) ||
+                        !canProjectImage) supported = false;
                     continue;
                 }
                 if (!TryGetFormStream(resources, invocation.Name, out PdfStream form)) {

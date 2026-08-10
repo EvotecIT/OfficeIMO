@@ -1985,9 +1985,18 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static bool TryCreateImageProjection(PdfImagePlacement placement, double pageHeight, double drawingWidth, double drawingHeight, out OfficeImageProjection projection) {
+    private static bool TryCreateImageProjection(
+        PdfImagePlacement placement,
+        double pageHeight,
+        double drawingWidth,
+        double drawingHeight,
+        out OfficeImageProjection projection,
+        bool allowAxisAlignedFallback = true) {
         if (!IsPlainAxisAlignedImagePlacement(placement)) {
-            return TryCreateTransformedImageProjection(placement, pageHeight, drawingWidth, drawingHeight, out projection);
+            if (TryCreateTransformedImageProjection(placement, pageHeight, drawingWidth, drawingHeight, out projection)) {
+                return true;
+            }
+            if (!allowAxisAlignedFallback) return false;
         }
 
         double imageX = placement.X;
