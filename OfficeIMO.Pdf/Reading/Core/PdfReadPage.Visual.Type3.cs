@@ -36,7 +36,7 @@ public sealed partial class PdfReadPage {
         var glyphImages = new List<(PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect)>();
         var glyphGroups = new List<(OfficeDrawing Drawing, OfficeTransform Transform, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)>();
         var extractedImageCache = new Dictionary<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor), PdfExtractedImage>();
-        var validatedSoftMaskGroups = new HashSet<PdfStream>();
+        var validatedSoftMaskGroups = new Dictionary<PdfStream, int>();
         var softMaskValidationBudget = new PageContentBudget(this);
         double nextPaintOrder = invocation.PaintOrder;
         double paintOrderLimit = invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.5D);
@@ -120,6 +120,7 @@ public sealed partial class PdfReadPage {
                         localEffects,
                         new HashSet<PdfStream>(),
                         PdfPageDrawingEffect.Default,
+                        contentNestingDepth: contentNestingDepth + 1,
                         pageContentBudget: pageContentBudget,
                         contentOrderPrefix: glyphOrderPrefix,
                         skipTransparencyGroupForms: true);
@@ -131,7 +132,9 @@ public sealed partial class PdfReadPage {
                     if (!CanDecodeType3SoftMask(
                             localEffects[effectIndex].Effect.SoftMask,
                             softMaskValidationBudget,
-                            validatedSoftMaskGroups)) {
+                            validatedSoftMaskGroups,
+                            type3GlyphBudget,
+                            localEffects[effectIndex].ContentNestingDepth + 1)) {
                         return false;
                     }
                 }

@@ -94,26 +94,41 @@ public sealed partial class PdfReadPage {
     private bool CanDecodeType3SoftMask(
         PdfPageSoftMaskResource? resource,
         PageContentBudget pageContentBudget,
-        HashSet<PdfStream> validatedGroups) {
+        Dictionary<PdfStream, int> validatedGroups,
+        Type3GlyphBudget type3GlyphBudget,
+        int contentNestingDepth) {
+        var nestingDepth = new SoftMaskNestingDepth(contentNestingDepth);
         return CanDecodeType3SoftMask(
             resource,
             pageContentBudget,
             validatedGroups,
+            type3GlyphBudget,
             new HashSet<PdfStream>(),
             new HashSet<PdfStream>(),
-            0);
+            new HashSet<PdfStream>(),
+            contentNestingDepth,
+            nestingDepth);
     }
 
     private bool CanDecodeType3SoftMask(
         PdfPageSoftMaskResource? resource,
         PageContentBudget pageContentBudget,
-        HashSet<PdfStream> validatedGroups,
+        Dictionary<PdfStream, int> validatedGroups,
+        Type3GlyphBudget type3GlyphBudget,
         HashSet<PdfStream> activeGroups,
         HashSet<PdfStream> activeForms,
-        int contentNestingDepth) {
+        HashSet<PdfStream> activeType3Glyphs,
+        int contentNestingDepth,
+        SoftMaskNestingDepth nestingDepth) {
         if (resource == null) return true;
-        if (validatedGroups.Contains(resource.Group)) return true;
         EnsureContentNestingBudget(contentNestingDepth);
+        nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
+        if (validatedGroups.TryGetValue(resource.Group, out int cachedNestingSpan)) {
+            int cachedMaximumDepth = contentNestingDepth + cachedNestingSpan;
+            EnsureContentNestingBudget(cachedMaximumDepth);
+            nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, cachedMaximumDepth);
+            return true;
+        }
         if (!activeGroups.Add(resource.Group)) return false;
         try {
             if (Filters.StreamDecoder.GetUnsupportedFilters(resource.Group.Dictionary, _objects).Count != 0) return false;
@@ -123,16 +138,21 @@ public sealed partial class PdfReadPage {
                 resource.Group.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject)
                     ? resourceObject
                     : null) ?? pageResources;
+            var groupNestingDepth = new SoftMaskNestingDepth(contentNestingDepth);
             bool supported = CanDecodeType3SoftMasksInContent(
                 content,
                 resources,
                 Matrix2D.Identity,
                 pageContentBudget,
                 validatedGroups,
+                type3GlyphBudget,
                 activeGroups,
                 activeForms,
-                contentNestingDepth);
-            if (supported) validatedGroups.Add(resource.Group);
+                activeType3Glyphs,
+                contentNestingDepth,
+                groupNestingDepth);
+            nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, groupNestingDepth.Maximum);
+            if (supported) validatedGroups[resource.Group] = groupNestingDepth.Maximum - contentNestingDepth;
             return supported;
         } catch (PdfReadLimitException) {
             throw;
@@ -152,12 +172,20 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources,
         Matrix2D baseTransform,
         PageContentBudget pageContentBudget,
-        HashSet<PdfStream> validatedGroups,
+        Dictionary<PdfStream, int> validatedGroups,
+        Type3GlyphBudget type3GlyphBudget,
         HashSet<PdfStream> activeGroups,
         HashSet<PdfStream> activeForms,
-        int contentNestingDepth) {
+        HashSet<PdfStream> activeType3Glyphs,
+        int contentNestingDepth,
+        SoftMaskNestingDepth nestingDepth) {
         EnsureContentNestingBudget(contentNestingDepth);
+        nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
         bool supported = true;
+        Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
+        Dictionary<string, Func<byte[], double>> widthProviders = resources == null
+            ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
+            : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
         IReadOnlyList<PdfPageXObjectInvocation> invocations = PdfPageXObjectInvocationParser.Parse(
             content,
             baseTransform,
@@ -168,15 +196,53 @@ public sealed partial class PdfReadPage {
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
+            fonts: fonts,
+            fontWidthProviders: widthProviders,
+            type3TextVisitor: invocation => {
+                for (int glyphIndex = 0; glyphIndex < invocation.Glyphs.Count; glyphIndex++) {
+                    PdfPageType3GlyphInvocation glyph = invocation.Glyphs[glyphIndex];
+                    if (glyph.Font.Type3 is not PdfType3FontResource type3 ||
+                        !type3.TryGetGlyph(glyph.CharacterCode, out PdfStream glyphStream) ||
+                        Filters.StreamDecoder.GetUnsupportedFilters(glyphStream.Dictionary, _objects).Count != 0 ||
+                        !activeType3Glyphs.Add(glyphStream)) {
+                        supported = false;
+                        continue;
+                    }
+                    try {
+                        string glyphContent = PdfEncoding.Latin1GetString(pageContentBudget.Decode(glyphStream));
+                        if (!CanDecodeType3SoftMasksInContent(
+                                glyphContent,
+                                type3.Resources,
+                                Matrix2D.Multiply(glyph.Transform, type3.FontMatrix),
+                                pageContentBudget,
+                                validatedGroups,
+                                type3GlyphBudget,
+                                activeGroups,
+                                activeForms,
+                                activeType3Glyphs,
+                                contentNestingDepth + 1,
+                                nestingDepth)) {
+                            supported = false;
+                        }
+                    } finally {
+                        activeType3Glyphs.Remove(glyphStream);
+                    }
+                }
+                return supported;
+            },
+            type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
             unsupportedGraphicsEffectVisitor: () => supported = false,
             graphicsStateVisitor: state => {
                 if (!CanDecodeType3SoftMask(
                         state.SoftMask,
                         pageContentBudget,
                         validatedGroups,
+                        type3GlyphBudget,
                         activeGroups,
                         activeForms,
-                        contentNestingDepth + 1)) {
+                        activeType3Glyphs,
+                        contentNestingDepth + 1,
+                        nestingDepth)) {
                     supported = false;
                 }
             },
@@ -189,6 +255,7 @@ public sealed partial class PdfReadPage {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream form) || !activeForms.Add(form)) return false;
             try {
                 if (Filters.StreamDecoder.GetUnsupportedFilters(form.Dictionary, _objects).Count != 0) return false;
+                if (form.Dictionary.Items.ContainsKey("Group") && !IsSupportedType3TransparencyGroup(form.Dictionary)) return false;
                 string formContent = PdfEncoding.Latin1GetString(pageContentBudget.Decode(form));
                 PdfDictionary? formResources = ResolveDictionary(
                     form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceObject)
@@ -200,9 +267,12 @@ public sealed partial class PdfReadPage {
                         ApplyFormMatrix(invocation.Transform, form.Dictionary),
                         pageContentBudget,
                         validatedGroups,
+                        type3GlyphBudget,
                         activeGroups,
                         activeForms,
-                        contentNestingDepth + 1)) {
+                        activeType3Glyphs,
+                        contentNestingDepth + 1,
+                        nestingDepth)) {
                     return false;
                 }
             } finally {
@@ -210,6 +280,14 @@ public sealed partial class PdfReadPage {
             }
         }
         return true;
+    }
+
+    private sealed class SoftMaskNestingDepth {
+        internal SoftMaskNestingDepth(int maximum) {
+            Maximum = maximum;
+        }
+
+        internal int Maximum { get; set; }
     }
 
     private IReadOnlyList<PdfPageDrawingEffectTransition> GetGraphicsEffectTransitions(Matrix2D pageTransform, double pageHeight, PageContentBudget? pageContentBudget = null) {
@@ -280,7 +358,11 @@ public sealed partial class PdfReadPage {
             PdfPageDrawingEffect effect = transition.Effect.SoftMask != null && !transition.Effect.SoftMaskTransform.HasValue
                 ? transition.Effect.WithSoftMaskTransform(baseTransform)
                 : transition.Effect;
-            var resolvedTransition = new PdfPageDrawingEffectTransition(transition.PaintOrder, effect, transition.ContentOrderKey);
+            var resolvedTransition = new PdfPageDrawingEffectTransition(
+                transition.PaintOrder,
+                effect,
+                transition.ContentOrderKey,
+                contentNestingDepth);
             local.Add(resolvedTransition);
             transitions.Add(resolvedTransition);
         }
@@ -348,7 +430,8 @@ public sealed partial class PdfReadPage {
                 transitions.Add(new PdfPageDrawingEffectTransition(
                     invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.25D),
                     inherited,
-                    formOrderPrefix?.Append(int.MaxValue)));
+                    formOrderPrefix?.Append(int.MaxValue),
+                    contentNestingDepth));
             } finally {
                 activeForms.Remove(formStream);
             }
