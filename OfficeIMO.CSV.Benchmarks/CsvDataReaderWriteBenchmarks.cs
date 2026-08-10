@@ -32,7 +32,11 @@ public class CsvDataReaderWriteBenchmarks
     private bool _captureOutput;
     private string? _capturedOutput;
 
-    [Params(25000)]
+    public int ParallelDegree { get; set; } = 4;
+
+    public int ParallelBatchSize { get; set; } = 4096;
+
+    [Params(25000, 100000)]
     public int RowCount { get; set; }
 
     [Params(CsvBenchmarkShape.Mixed, CsvBenchmarkShape.Quoted, CsvBenchmarkShape.Multiline)]
@@ -42,12 +46,22 @@ public class CsvDataReaderWriteBenchmarks
     {
         Initialize();
         ValidateOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader);
+        ValidateOutput(nameof(OfficeIMO_WriteDataReaderParallel), OfficeIMO_WriteDataReaderParallel);
         ValidateOutput(nameof(Sylvan_WriteDataReader), Sylvan_WriteDataReader);
     }
 
     public void SetupOfficeIMOAndSylvan()
     {
-        Setup();
+        Initialize();
+        ValidateOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader);
+        ValidateOutput(nameof(Sylvan_WriteDataReader), Sylvan_WriteDataReader);
+    }
+
+    public void SetupOfficeIMOSequentialAndParallel()
+    {
+        Initialize();
+        ValidateOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader);
+        ValidateOutput(nameof(OfficeIMO_WriteDataReaderParallel), OfficeIMO_WriteDataReaderParallel);
     }
 
     [GlobalSetup(Target = nameof(OfficeIMO_WriteDataReader))]
@@ -62,6 +76,13 @@ public class CsvDataReaderWriteBenchmarks
     {
         Initialize();
         ValidateOutput(nameof(Sylvan_WriteDataReader), Sylvan_WriteDataReader);
+    }
+
+    [GlobalSetup(Target = nameof(OfficeIMO_WriteDataReaderParallel))]
+    public void SetupOfficeIMOParallel()
+    {
+        Initialize();
+        ValidateOutput(nameof(OfficeIMO_WriteDataReaderParallel), OfficeIMO_WriteDataReaderParallel);
     }
 
     private void Initialize()
@@ -100,6 +121,23 @@ public class CsvDataReaderWriteBenchmarks
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         using var reader = new BenchmarkArrayDataReader(Headers, _rows, FieldTypes);
         CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n" });
+        return CompleteWrite(writer);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_WriteDataReaderParallel()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var reader = new BenchmarkArrayDataReader(Headers, _rows, FieldTypes);
+        CsvDocument.WriteDataReaderParallel(
+            writer,
+            reader,
+            new CsvSaveOptions { NewLine = "\n" },
+            new CsvWriteParallelOptions
+            {
+                MaxDegreeOfParallelism = ParallelDegree,
+                BatchSize = ParallelBatchSize
+            });
         return CompleteWrite(writer);
     }
 

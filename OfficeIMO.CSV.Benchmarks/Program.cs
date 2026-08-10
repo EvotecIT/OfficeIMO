@@ -49,6 +49,93 @@ bool compareTypedParallelPaired = args.Length > 0 &&
     string.Equals(args[0], "--compare-typed-parallel-paired", StringComparison.OrdinalIgnoreCase);
 bool compareDataReaderWritePaired = args.Length > 0 &&
     string.Equals(args[0], "--compare-datareader-write-paired", StringComparison.OrdinalIgnoreCase);
+bool compareDataReaderParallelWritePaired = args.Length > 0 &&
+    string.Equals(args[0], "--compare-datareader-parallel-write-paired", StringComparison.OrdinalIgnoreCase);
+
+if (compareDataReaderParallelWritePaired) {
+    int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
+        ? parsedIterations
+        : 30;
+    string affinity = ApplyProcessAffinity(args, argumentIndex: 2);
+    string priority = ApplyProcessPriority(args, argumentIndex: 3);
+    int rowCount = args.Length > 4 && int.TryParse(args[4], out int parsedRowCount)
+        ? parsedRowCount
+        : 100_000;
+    int parallelDegree = args.Length > 5 && int.TryParse(args[5], out int parsedDegree)
+        ? parsedDegree
+        : 4;
+    int parallelBatchSize = args.Length > 6 && int.TryParse(args[6], out int parsedBatchSize)
+        ? parsedBatchSize
+        : 4096;
+    int invocationsPerLeg = args.Length > 7 && int.TryParse(args[7], out int parsedInvocations)
+        ? parsedInvocations
+        : 4;
+    if (iterations <= 0) throw new ArgumentOutOfRangeException(nameof(iterations));
+    if (rowCount <= 0) throw new ArgumentOutOfRangeException(nameof(rowCount));
+    if (parallelDegree <= 0) throw new ArgumentOutOfRangeException(nameof(parallelDegree));
+    if (parallelBatchSize <= 0) throw new ArgumentOutOfRangeException(nameof(parallelBatchSize));
+    if (invocationsPerLeg <= 0) throw new ArgumentOutOfRangeException(nameof(invocationsPerLeg));
+    const int warmupIterations = 8;
+
+    using var measuredProcess = System.Diagnostics.Process.GetCurrentProcess();
+    foreach (CsvBenchmarkShape shape in Enum.GetValues<CsvBenchmarkShape>()) {
+        var benchmark = new CsvDataReaderWriteBenchmarks {
+            RowCount = rowCount,
+            Shape = shape,
+            ParallelDegree = parallelDegree,
+            ParallelBatchSize = parallelBatchSize
+        };
+        benchmark.SetupOfficeIMOSequentialAndParallel();
+        for (int index = 0; index < warmupIterations; index++) {
+            benchmark.OfficeIMO_WriteDataReader();
+            benchmark.OfficeIMO_WriteDataReaderParallel();
+        }
+
+        var sequentialSamples = new double[iterations];
+        var parallelSamples = new double[iterations];
+        var wallRatios = new double[iterations];
+        var sequentialCpuSamples = new double[iterations];
+        var parallelCpuSamples = new double[iterations];
+        var cpuRatios = new double[iterations];
+        for (int index = 0; index < iterations; index++) {
+            (double WallMilliseconds, double CpuMilliseconds) sequentialFirst;
+            (double WallMilliseconds, double CpuMilliseconds) sequentialSecond;
+            (double WallMilliseconds, double CpuMilliseconds) parallelFirst;
+            (double WallMilliseconds, double CpuMilliseconds) parallelSecond;
+            int sequentialResult;
+            int parallelResult;
+            if ((index & 1) == 0) {
+                sequentialFirst = MeasureBatchValue(benchmark.OfficeIMO_WriteDataReader, invocationsPerLeg, measuredProcess, out sequentialResult);
+                parallelFirst = MeasureBatchValue(benchmark.OfficeIMO_WriteDataReaderParallel, invocationsPerLeg, measuredProcess, out parallelResult);
+                parallelSecond = MeasureBatchValue(benchmark.OfficeIMO_WriteDataReaderParallel, invocationsPerLeg, measuredProcess, out parallelResult);
+                sequentialSecond = MeasureBatchValue(benchmark.OfficeIMO_WriteDataReader, invocationsPerLeg, measuredProcess, out sequentialResult);
+            } else {
+                parallelFirst = MeasureBatchValue(benchmark.OfficeIMO_WriteDataReaderParallel, invocationsPerLeg, measuredProcess, out parallelResult);
+                sequentialFirst = MeasureBatchValue(benchmark.OfficeIMO_WriteDataReader, invocationsPerLeg, measuredProcess, out sequentialResult);
+                sequentialSecond = MeasureBatchValue(benchmark.OfficeIMO_WriteDataReader, invocationsPerLeg, measuredProcess, out sequentialResult);
+                parallelSecond = MeasureBatchValue(benchmark.OfficeIMO_WriteDataReaderParallel, invocationsPerLeg, measuredProcess, out parallelResult);
+            }
+            if (sequentialResult != parallelResult) {
+                throw new InvalidDataException($"Paired DataReader write sample {index} produced different lengths: sequential={sequentialResult}; parallel={parallelResult}.");
+            }
+
+            sequentialSamples[index] = (sequentialFirst.WallMilliseconds + sequentialSecond.WallMilliseconds) / 2d;
+            parallelSamples[index] = (parallelFirst.WallMilliseconds + parallelSecond.WallMilliseconds) / 2d;
+            sequentialCpuSamples[index] = (sequentialFirst.CpuMilliseconds + sequentialSecond.CpuMilliseconds) / 2d;
+            parallelCpuSamples[index] = (parallelFirst.CpuMilliseconds + parallelSecond.CpuMilliseconds) / 2d;
+            wallRatios[index] = parallelSamples[index] / sequentialSamples[index];
+            cpuRatios[index] = parallelCpuSamples[index] / sequentialCpuSamples[index];
+        }
+
+        Console.WriteLine(
+            $"Paired CSV DataReader sequential/parallel write ({shape}, {rowCount} rows, {warmupIterations} warmups, {iterations} ABBA samples, {invocationsPerLeg} invocations per leg, affinity {affinity}, priority {priority}, DOP {parallelDegree}, batch {parallelBatchSize}): " +
+            $"sequential wall median {Median(sequentialSamples):F3} ms, parallel wall median {Median(parallelSamples):F3} ms, " +
+            $"parallel/sequential paired wall ratio {Median(wallRatios):F4} (P25 {Percentile(wallRatios, 0.25d):F4}, P75 {Percentile(wallRatios, 0.75d):F4}); " +
+            $"sequential CPU median {Median(sequentialCpuSamples):F3} ms, parallel CPU median {Median(parallelCpuSamples):F3} ms, " +
+            $"CPU ratio {Median(cpuRatios):F4} (P25 {Percentile(cpuRatios, 0.25d):F4}, P75 {Percentile(cpuRatios, 0.75d):F4}).");
+    }
+    return;
+}
 
 if (compareDataReaderWritePaired) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
@@ -586,6 +673,22 @@ static double MeasureMillisecondsBatchValue<T>(
         result = operation();
     }
     return System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds / invocationCount;
+}
+
+static (double WallMilliseconds, double CpuMilliseconds) MeasureBatchValue<T>(
+    Func<T> operation,
+    int invocationCount,
+    System.Diagnostics.Process process,
+    out T result) {
+    TimeSpan cpuStarted = process.TotalProcessorTime;
+    long started = System.Diagnostics.Stopwatch.GetTimestamp();
+    result = default!;
+    for (int index = 0; index < invocationCount; index++) {
+        result = operation();
+    }
+    double wallMilliseconds = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds / invocationCount;
+    double cpuMilliseconds = (process.TotalProcessorTime - cpuStarted).TotalMilliseconds / invocationCount;
+    return (wallMilliseconds, cpuMilliseconds);
 }
 
 static (double WallMilliseconds, double CpuMilliseconds) MeasureValue<T>(

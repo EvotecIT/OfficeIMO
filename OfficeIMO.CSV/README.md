@@ -526,6 +526,30 @@ CsvDocument.WriteDataReader("summary.csv.gz", reader, new CsvSaveOptions {
 });
 ```
 
+For large database exports with CPU-heavy quoting or value formatting, opt in
+to ordered parallel formatting. The source reader is still consumed by one
+thread; detached row batches are formatted concurrently and committed in the
+original order:
+
+```csharp
+using var reader = command.ExecuteReader();
+CsvDocument.WriteDataReaderParallel(
+    "summary.csv.gz",
+    reader,
+    new CsvSaveOptions { CompressionType = CsvCompressionType.Auto },
+    new CsvWriteParallelOptions {
+        MaxDegreeOfParallelism = 4,
+        BatchSize = 4096
+    },
+    cancellationToken);
+```
+
+The parallel writer keeps at most two batches in memory. Custom values and
+format providers used during formatting must support concurrent read-only
+access. For small or simply formatted exports, `WriteDataReader` avoids the
+thread-pool and batch-buffering overhead and may be faster; measure the real
+row shape on the target machine before choosing the parallel path.
+
 When the caller already has projected arrays, pass the shared schema once. The
 writer validates every row width without repeating column-name validation:
 

@@ -115,6 +115,49 @@ Quoted values were more sensitive: domain 0 was a tie at 1.0014 (P25-P75
 SQL-shaped workload in the isolated suite and clearly leads two of three
 shapes in paired execution; it is not a universal CSV-writer ranking.
 
+### Dated parallel DataReader write snapshot (2026-08-10)
+
+The opt-in parallel writer consumes each `IDataReader` on one thread, formats
+detached 4,096-row batches with four workers, and commits buffers in source
+order. This keeps provider access safe while exposing parallel formatting for
+sustained SQL-shaped exports. The sequential method remains the benchmark
+baseline and the product default.
+
+The isolated runs used the same runtime, GC, power plan, affinity jobs,
+priority, warmup count, iteration count, and output validation described
+above, with eight fixed invocations per iteration. The table shows the
+100,000-row crossover; allocation is managed memory per operation.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -- --filter "*CsvDataReaderWriteBenchmarks.OfficeIMO*" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 8 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj --no-build -- --filter "*CsvDataReaderWriteBenchmarks.Sylvan*" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 8 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
+
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj --no-build -- --compare-datareader-parallel-write-paired 30 0xFFFF High 100000 4 4096 4
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj --no-build -- --compare-datareader-parallel-write-paired 30 0xFFFF0000 High 100000 4 4096 4
+```
+
+| Shape | L3 domain | OfficeIMO sequential | OfficeIMO parallel | Sylvan | Allocation: sequential / parallel / Sylvan |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Mixed | `0xFFFF` | 18.912 ms | 13.291 ms | 19.161 ms | 21.71 / 24.50 / 21.81 MB |
+| Mixed | `0xFFFF0000` | 14.568 ms | 13.629 ms | 17.053 ms | 21.71 / 24.50 / 21.81 MB |
+| Quoted | `0xFFFF` | 24.427 ms | 16.492 ms | 22.763 ms | 28.03 / 31.09 / 28.15 MB |
+| Quoted | `0xFFFF0000` | 20.529 ms | 14.144 ms | 19.489 ms | 28.03 / 31.08 / 28.15 MB |
+| Multiline | `0xFFFF` | 16.610 ms | 13.613 ms | 21.668 ms | 25.37 / 28.17 / 25.47 MB |
+| Multiline | `0xFFFF0000` | 14.449 ms | 13.830 ms | 20.698 ms | 25.37 / 28.17 / 25.47 MB |
+
+The isolated parallel mean is 4-32% lower than OfficeIMO sequential in all
+six rows. Four of six 99.9% confidence intervals are wholly separated; mixed
+and multiline on `0xFFFF0000` overlap. Against Sylvan, every parallel mean and
+confidence interval is lower. Managed allocation rises by about 10-13%.
+
+Repeated alternating-order runs confirm clear elapsed-time wins for quoted
+and multiline rows on both domains. Mixed rows improve at the median but are
+more topology- and run-sensitive: one run's interquartile range crossed parity
+and a repeat did not, so mixed formatting should not be treated as a universal
+parallel win. Parallel processing also uses roughly 1.5-2.2 times the total process CPU.
+At 25,000 rows, isolated results are mixed and quoted rows can be slower.
+These results support an explicit large-export option, not a universal default.
+
 ### Dated typed parallel DataReader snapshot (2026-08-10)
 
 This read lane uses the same generated 100,000-row UTF-8 file for every
