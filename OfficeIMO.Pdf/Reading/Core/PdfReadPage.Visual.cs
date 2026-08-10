@@ -719,6 +719,7 @@ public sealed partial class PdfReadPage {
                               paintOrderScale,
                               includeTilingPatterns,
                               retainPrimitiveData,
+                              requireNestedType3Uncolored,
                               tilingPatternResourceCache,
                             textOutputBudget,
                             pageContentBudget,

@@ -34,6 +34,7 @@ public sealed partial class PdfReadPage {
         double paintOrderScale,
         bool includeTilingPatterns,
         bool retainPrimitiveData,
+        bool requireNestedType3Uncolored,
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache,
         TextContentParser.TextOutputBudget? textOutputBudget,
         PageContentBudget pageContentBudget,
@@ -58,9 +59,13 @@ public sealed partial class PdfReadPage {
             initialClipPath: invocation.ClipPath,
             initialFillColor: invocation.FillColor,
             initialFillColorSpace: invocation.FillColorSpace,
+            initialFillPattern: invocation.FillPattern,
+            initialFillPatternBaseColorSpace: invocation.FillPatternBaseColorSpace,
             initialFillOpacity: invocation.FillOpacity,
             initialStrokeColor: invocation.StrokeColor,
             initialStrokeColorSpace: invocation.StrokeColorSpace,
+            initialStrokePattern: invocation.StrokePattern,
+            initialStrokePatternBaseColorSpace: invocation.StrokePatternBaseColorSpace,
             initialStrokeOpacity: invocation.StrokeOpacity,
             initialStrokeWidth: invocation.StrokeWidth,
             initialStrokeDashStyle: invocation.StrokeDashStyle,
@@ -70,8 +75,9 @@ public sealed partial class PdfReadPage {
             includeTilingPatterns: includeTilingPatterns,
             retainPrimitiveData: retainPrimitiveData,
             requireSupportedType3Content: true,
-            allowSupportedType3Patterns: true,
+            allowSupportedType3Patterns: !requireNestedType3Uncolored,
             allowSupportedType3TransparencyGroups: true,
+            requireNestedType3Uncolored: requireNestedType3Uncolored,
             type3ImageVisitor: (placement, image, effect) => elements.Add(
                 PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
             type3PrimitiveVisitor: (primitive, effect) => elements.Add(
@@ -85,6 +91,27 @@ public sealed partial class PdfReadPage {
         if (type3GlyphBudget.FailureVersion != failureVersion) {
             groupDrawing = null!;
             return false;
+        }
+
+        if (requireNestedType3Uncolored) {
+            for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
+                PdfPageDrawingElement element = elements[elementIndex];
+                if (element.Kind != PdfPageDrawingElementKind.Primitive) continue;
+                if (!TryApplyInheritedType3PatternPaint(
+                        element.Primitive,
+                        invocation.FillColor,
+                        invocation.FillPattern,
+                        invocation.StrokeColor,
+                        invocation.StrokePattern,
+                        pageHeight,
+                        out PdfPageVisualPrimitive paintedPrimitive)) {
+                    groupDrawing = null!;
+                    return false;
+                }
+                elements[elementIndex] = PdfPageDrawingElement
+                    .FromPrimitive(paintedPrimitive, element.Sequence)
+                    .WithEffect(element.Effect);
+            }
         }
 
         var placements = new List<PdfImagePlacement>();
@@ -114,7 +141,31 @@ public sealed partial class PdfReadPage {
                     groupDrawing = null!;
                     return false;
                 }
-                elements.Add(PdfPageDrawingElement.FromImage(placements[i], image, elements.Count));
+                if (requireNestedType3Uncolored && !image.IsImageMask) {
+                    groupDrawing = null!;
+                    return false;
+                }
+                if (requireNestedType3Uncolored && invocation.FillPattern.HasValue) {
+                    if (!TryCreateInheritedPatternImageMaskDrawing(
+                            invocation.FillPattern,
+                            placements[i],
+                            image,
+                            pageWidth,
+                            pageHeight,
+                            out OfficeDrawing? maskedPattern,
+                            out OfficeTransform maskedPatternTransform)) {
+                        groupDrawing = null!;
+                        return false;
+                    }
+                    elements.Add(PdfPageDrawingElement.FromGroup(
+                        maskedPattern,
+                        maskedPatternTransform,
+                        placements[i].PaintOrder,
+                        placements[i].ContentOrderKey,
+                        elements.Count));
+                } else {
+                    elements.Add(PdfPageDrawingElement.FromImage(placements[i], image, elements.Count));
+                }
             }
         }
 

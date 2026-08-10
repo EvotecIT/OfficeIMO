@@ -95,7 +95,7 @@ public sealed partial class PdfReadPage {
                         retainPrimitiveData: retainPrimitiveData,
                         requireSupportedType3Content: true,
                         allowSupportedType3Patterns: !type3.IsUncolored,
-                        allowSupportedType3TransparencyGroups: !type3.IsUncolored,
+                        allowSupportedType3TransparencyGroups: true,
                         requireNestedType3Uncolored: type3.IsUncolored,
                         type3ImageVisitor: (placement, image, effect) => localImages.Add((placement, image, effect)),
                         type3PrimitiveVisitor: (primitive, effect) => localPrimitives.Add((primitive, effect)),
@@ -173,13 +173,7 @@ public sealed partial class PdfReadPage {
                         localImages.Count > 0 || localImagePlacements.Count > 0;
                     bool paintsStroke = localPrimitives.Any(item => item.Primitive.HasStrokePaint);
                     if ((paintsFill && !IsUsableInheritedPattern(glyph.FillPattern)) ||
-                        (paintsStroke && !IsUsableInheritedPattern(glyph.StrokePattern)) ||
-                        (localGroups.Count > 0 &&
-                         (!IsUsableInheritedPattern(glyph.FillPattern) ||
-                          !IsUsableInheritedPattern(glyph.StrokePattern)))) {
-                        return false;
-                    }
-                    if ((glyph.FillPattern.HasValue || glyph.StrokePattern.HasValue) && localGroups.Count > 0) {
+                        (paintsStroke && !IsUsableInheritedPattern(glyph.StrokePattern))) {
                         return false;
                     }
                     for (int imageIndex = 0; imageIndex < localImages.Count; imageIndex++) {
@@ -189,47 +183,15 @@ public sealed partial class PdfReadPage {
                     }
                     for (int primitiveIndex = 0; primitiveIndex < localPrimitives.Count; primitiveIndex++) {
                         (PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect) item = localPrimitives[primitiveIndex];
-                        if (!TryCreateInheritedTilingPatternPaint(
-                                item.Primitive.HasFillPaint ? glyph.FillPattern : null,
-                                pageHeight,
-                                item.Primitive.FillOpacity,
-                                out PdfPageTilingPatternPaint? fillPatternPaint) ||
-                            !TryCreateInheritedTilingPatternPaint(
-                                item.Primitive.HasStrokePaint ? glyph.StrokePattern : null,
-                                pageHeight,
-                                item.Primitive.StrokeOpacity,
-                                out PdfPageTilingPatternPaint? strokePatternPaint)) {
-                            return false;
-                        }
-                        if (!CreateInheritedShadingGradients(
-                            item.Primitive.HasFillPaint ? glyph.FillPattern : null,
-                            item.Primitive,
-                            pageHeight,
-                            out OfficeLinearGradient? fillGradient,
-                            out OfficeRadialGradient? fillRadialGradient) ||
-                            !CreateInheritedShadingGradients(
-                            item.Primitive.HasStrokePaint ? glyph.StrokePattern : null,
-                            item.Primitive,
-                            pageHeight,
-                            out OfficeLinearGradient? strokeGradient,
-                            out OfficeRadialGradient? strokeRadialGradient)) {
-                            return false;
-                        }
-                        if (item.Primitive.HasStrokePaint &&
-                            glyph.StrokePattern?.ShadingPattern.HasValue == true) {
-                            return false;
-                        }
-                        localPrimitives[primitiveIndex] = (
-                            item.Primitive.WithPaints(
+                        if (!TryApplyInheritedType3PatternPaint(
+                                item.Primitive,
                                 glyph.FillColor,
-                                fillPatternPaint,
-                                fillGradient,
-                                fillRadialGradient,
+                                glyph.FillPattern,
                                 glyph.StrokeColor,
-                                strokePatternPaint,
-                                strokeGradient,
-                                strokeRadialGradient),
-                            item.Effect);
+                                glyph.StrokePattern,
+                                pageHeight,
+                                out PdfPageVisualPrimitive paintedPrimitive)) return false;
+                        localPrimitives[primitiveIndex] = (paintedPrimitive, item.Effect);
                     }
                     for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
                         localImagePlacements[imageIndex] = localImagePlacements[imageIndex].WithImageMaskColor(glyph.FillColor);
@@ -548,6 +510,60 @@ public sealed partial class PdfReadPage {
         if (selection.Value.ShadingPattern.HasValue) return selection.Value.ShadingPattern.Value.SupportsExactType3Projection;
         PdfPageTilingPatternResource? pattern = selection.Value.TilingPattern;
         return pattern != null && (!pattern.Uncolored || selection.Value.Tint.HasValue);
+    }
+
+    private static bool TryApplyInheritedType3PatternPaint(
+        PdfPageVisualPrimitive primitive,
+        OfficeColor fillColor,
+        PdfPagePatternSelection? fillPattern,
+        OfficeColor strokeColor,
+        PdfPagePatternSelection? strokePattern,
+        double pageHeight,
+        out PdfPageVisualPrimitive paintedPrimitive) {
+        paintedPrimitive = primitive;
+        PdfPagePatternSelection? applicableFillPattern = primitive.HasFillPaint ? fillPattern : null;
+        PdfPagePatternSelection? applicableStrokePattern = primitive.HasStrokePaint ? strokePattern : null;
+        if (!IsUsableInheritedPattern(applicableFillPattern) ||
+            !IsUsableInheritedPattern(applicableStrokePattern) ||
+            !TryCreateInheritedTilingPatternPaint(
+                applicableFillPattern,
+                pageHeight,
+                primitive.FillOpacity,
+                out PdfPageTilingPatternPaint? fillPatternPaint) ||
+            !TryCreateInheritedTilingPatternPaint(
+                applicableStrokePattern,
+                pageHeight,
+                primitive.StrokeOpacity,
+                out PdfPageTilingPatternPaint? strokePatternPaint)) {
+            return false;
+        }
+        if (!CreateInheritedShadingGradients(
+            applicableFillPattern,
+            primitive,
+            pageHeight,
+            out OfficeLinearGradient? fillGradient,
+            out OfficeRadialGradient? fillRadialGradient) ||
+            !CreateInheritedShadingGradients(
+            applicableStrokePattern,
+            primitive,
+            pageHeight,
+            out OfficeLinearGradient? strokeGradient,
+            out OfficeRadialGradient? strokeRadialGradient)) {
+            return false;
+        }
+        if (applicableStrokePattern?.ShadingPattern.HasValue == true) {
+            return false;
+        }
+        paintedPrimitive = primitive.WithPaints(
+            fillColor,
+            fillPatternPaint,
+            fillGradient,
+            fillRadialGradient,
+            strokeColor,
+            strokePatternPaint,
+            strokeGradient,
+            strokeRadialGradient);
+        return true;
     }
 
     private static bool CreateInheritedShadingGradients(

@@ -533,7 +533,7 @@ public sealed partial class PdfReadPage {
                     continue;
                 }
                 if (form.Dictionary.Items.ContainsKey("Group") &&
-                    (requireImageMask || !IsSupportedType3TransparencyGroup(form.Dictionary))) {
+                    !IsSupportedType3TransparencyGroup(form.Dictionary)) {
                     supported = false;
                     continue;
                 }
