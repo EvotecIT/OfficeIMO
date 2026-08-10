@@ -5,7 +5,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public class PdfType3UncoloredPatternTests {
+public partial class PdfType3UncoloredPatternTests {
     [Fact]
     public void RenderPage_UsesOuterColoredTilingPatternForUncoloredType3Glyph() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
