@@ -477,7 +477,7 @@ internal static class StreamDecoder {
 
                 DecodeFilterKind filterKind = GetFilterKind(filterNames[filterIndex]);
                 if (filterKind != DecodeFilterKind.Flate && filterKind != DecodeFilterKind.Lzw) {
-                    if (decodeParms.Items.Count != 0) {
+                    if (HasResolvedNonNullEntry(decodeParms, objects)) {
                         return false;
                     }
 
@@ -497,7 +497,7 @@ internal static class StreamDecoder {
                 }
 
                 if (filterKind == DecodeFilterKind.Flate) {
-                    if (decodeParms.Items.ContainsKey("EarlyChange")) {
+                    if (HasResolvedNonNullParameter(decodeParms, "EarlyChange", objects)) {
                         return false;
                     }
 
@@ -514,6 +514,26 @@ internal static class StreamDecoder {
         } catch {
             return false;
         }
+    }
+
+    private static bool HasResolvedNonNullEntry(
+        PdfDictionary dictionary,
+        Dictionary<int, PdfIndirectObject>? objects) {
+        foreach (PdfObject value in dictionary.Items.Values) {
+            if (ResolveObject(value, objects) is not PdfNull) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasResolvedNonNullParameter(
+        PdfDictionary dictionary,
+        string name,
+        Dictionary<int, PdfIndirectObject>? objects) {
+        return dictionary.Items.TryGetValue(name, out PdfObject? value) &&
+            ResolveObject(value, objects) is not PdfNull;
     }
 
     private static bool TryGetFilterNames(
@@ -569,7 +589,12 @@ internal static class StreamDecoder {
             return defaultValue;
         }
 
-        if (ResolveObject(parameter, objects) is not PdfNumber number ||
+        PdfObject? resolvedParameter = ResolveObject(parameter, objects);
+        if (resolvedParameter is PdfNull) {
+            return defaultValue;
+        }
+
+        if (resolvedParameter is not PdfNumber number ||
             double.IsNaN(number.Value) ||
             double.IsInfinity(number.Value) ||
             number.Value != Math.Truncate(number.Value) ||

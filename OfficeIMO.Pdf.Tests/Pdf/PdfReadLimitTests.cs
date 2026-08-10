@@ -596,6 +596,63 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void TryDecodeTreatsNullNumericDecodeParametersAsAbsent() {
+        var flateDictionary = new PdfDictionary();
+        flateDictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var flateParameters = new PdfDictionary();
+        flateParameters.Items["Predictor"] = PdfNull.Instance;
+        flateParameters.Items["Columns"] = PdfNull.Instance;
+        flateParameters.Items["Colors"] = PdfNull.Instance;
+        flateParameters.Items["BitsPerComponent"] = PdfNull.Instance;
+        flateParameters.Items["EarlyChange"] = PdfNull.Instance;
+        flateDictionary.Items["DecodeParms"] = flateParameters;
+
+        bool flateDecoded = StreamDecoder.TryDecode(
+            flateDictionary,
+            CompressForDecoderTest(new byte[] { 65, 66, 67, 68 }),
+            4,
+            out byte[] flateOutput);
+
+        var lzwDictionary = new PdfDictionary();
+        lzwDictionary.Items["Filter"] = new PdfName("LZWDecode");
+        var lzwParameters = new PdfDictionary();
+        lzwParameters.Items["EarlyChange"] = new PdfReference(1, 0);
+        lzwDictionary.Items["DecodeParms"] = lzwParameters;
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [1] = new PdfIndirectObject(1, 0, PdfNull.Instance)
+        };
+        bool lzwDecoded = StreamDecoder.TryDecode(
+            lzwDictionary,
+            PackNineBitCodes(new[] { 256, 65, 257 }),
+            1,
+            out byte[] lzwOutput,
+            objects);
+
+        Assert.True(flateDecoded);
+        Assert.True(lzwDecoded);
+        Assert.Equal(new byte[] { 65, 66, 67, 68 }, flateOutput);
+        Assert.Equal(new byte[] { 65 }, lzwOutput);
+    }
+
+    [Fact]
+    public void TryDecodeAllowsOnlyNullParametersOnFiltersWithoutParameters() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("RunLengthDecode");
+        var decodeParameters = new PdfDictionary();
+        decodeParameters.Items["Predictor"] = PdfNull.Instance;
+        dictionary.Items["DecodeParms"] = decodeParameters;
+
+        bool decoded = StreamDecoder.TryDecode(
+            dictionary,
+            new byte[] { 0, 65, 128 },
+            1,
+            out byte[] output);
+
+        Assert.True(decoded);
+        Assert.Equal(new byte[] { 65 }, output);
+    }
+
+    [Fact]
     public void TryDecodeResolvesIndirectPredictorParameters() {
         var dictionary = new PdfDictionary();
         dictionary.Items["Filter"] = new PdfName("FlateDecode");
