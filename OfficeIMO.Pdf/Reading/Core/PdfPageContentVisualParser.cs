@@ -112,8 +112,7 @@ internal static class PdfPageContentVisualParser {
             Math.Max(Math.Abs(transform.A), Math.Abs(transform.B)),
             Math.Max(Math.Abs(transform.C), Math.Abs(transform.D)));
         double componentTolerance = componentScale * 0.000000001D;
-        return (Math.Abs(transform.B) <= componentTolerance && Math.Abs(transform.C) <= componentTolerance) ||
-               (Math.Abs(transform.A) <= componentTolerance && Math.Abs(transform.D) <= componentTolerance);
+        return Math.Abs(transform.B) <= componentTolerance && Math.Abs(transform.C) <= componentTolerance;
     }
 
     private static double ResolveStrokeWidth(double value) {
@@ -646,6 +645,7 @@ internal static class PdfPageContentVisualParser {
 
                 if (stroke && _state.StrokePattern.HasValue) {
                     CreateShadingGradients(_state.StrokePattern.Value, x, y, width, height, out strokeGradient, out strokeRadialGradient);
+                    RejectUnsupportedDashedShadingStroke(ref strokeGradient, ref strokeRadialGradient);
                 }
 
                 AddPrimitive(PdfPageVisualPrimitive.Rectangle(
@@ -686,6 +686,7 @@ internal static class PdfPageContentVisualParser {
                     _state.StrokePattern.HasValue &&
                     TryGetPathBounds(out double strokePathX, out double strokePathY, out double strokePathWidth, out double strokePathHeight)) {
                     CreateShadingGradients(_state.StrokePattern.Value, strokePathX, strokePathY, strokePathWidth, strokePathHeight, out strokeGradient, out strokeRadialGradient);
+                    RejectUnsupportedDashedShadingStroke(ref strokeGradient, ref strokeRadialGradient);
                 }
 
                 IReadOnlyList<OfficePathCommand> pathCommands = fill && _retainPrimitiveData
@@ -1151,6 +1152,7 @@ internal static class PdfPageContentVisualParser {
                 double lineWidth = Math.Abs(x2 - x1);
                 double lineHeight = Math.Abs(y2 - y1);
                 CreateShadingGradients(_state.StrokePattern.Value, lineX, lineY, lineWidth, lineHeight, out strokeGradient, out strokeRadialGradient);
+                RejectUnsupportedDashedShadingStroke(ref strokeGradient, ref strokeRadialGradient);
             }
 
             AddPrimitive(PdfPageVisualPrimitive.Line(
@@ -1169,6 +1171,16 @@ internal static class PdfPageContentVisualParser {
                 _state.ClipPath,
                 paintOrder,
                 _state.StrokeWidth > 0D ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _state.StrokeOpacity) : null));
+        }
+
+        private void RejectUnsupportedDashedShadingStroke(
+            ref OfficeLinearGradient? strokeGradient,
+            ref OfficeRadialGradient? strokeRadialGradient) {
+            if (_state.StrokeDashStyle == OfficeStrokeDashStyle.Solid ||
+                (strokeGradient == null && strokeRadialGradient == null)) return;
+            strokeGradient = null;
+            strokeRadialGradient = null;
+            _unsupportedShadingTransformVisitor?.Invoke();
         }
 
         private double GetRenderedStrokeWidth() {

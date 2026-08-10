@@ -554,7 +554,10 @@ public sealed partial class PdfReadPage {
             maxOperands: _limits.MaxContentOperands,
             primitiveVisitor: currentPrimitiveVisitor,
             retainPrimitiveData: retainPrimitiveData,
-            scaleStrokeWidthWithTransform: requireSupportedType3Content);
+            scaleStrokeWidthWithTransform: requireSupportedType3Content,
+            unsupportedShadingTransformVisitor: requireSupportedType3Content
+                ? type3GlyphBudget.RecordFailure
+                : null);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -789,6 +792,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary? dictionary = ResolveDictionary(value);
         if (dictionary == null ||
             TryReadInteger(dictionary.Items.TryGetValue("PatternType", out PdfObject? patternTypeObject) ? patternTypeObject : null) != 2 ||
+            HasUnsupportedShadingPatternGraphicsState(dictionary) ||
             !dictionary.Items.TryGetValue("Shading", out PdfObject? shadingObject) ||
             !TryReadShading(shadingObject, out PdfPageShadingResource shading)) {
             return false;
@@ -799,6 +803,12 @@ public sealed partial class PdfReadPage {
             : Matrix2D.Identity;
         pattern = new PdfPageShadingPatternResource(shading, matrix);
         return true;
+    }
+
+    private bool HasUnsupportedShadingPatternGraphicsState(PdfDictionary pattern) {
+        if (!pattern.Items.TryGetValue("ExtGState", out PdfObject? value)) return false;
+        PdfObject? resolved = ResolveEffectObject(value);
+        return resolved is not PdfNull && resolved is not PdfDictionary { Items.Count: 0 };
     }
 
     private Matrix2D ReadPatternMatrix(PdfObject? matrixObject) {
@@ -833,6 +843,9 @@ public sealed partial class PdfReadPage {
 
         if (!dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) ||
             !TryReadColorSpaceResource(colorSpaceObject, out PdfPageColorSpace colorSpace)) return false;
+
+        if (dictionary.Items.TryGetValue("Domain", out PdfObject? shadingDomainObject) &&
+            !IsCanonicalUnitIntervals(ReadNumberArray(shadingDomainObject), 1)) return false;
 
         PdfArray? extend = ResolveArray(dictionary.Items.TryGetValue("Extend", out PdfObject? extendObject) ? extendObject : null);
         if (extend == null || extend.Items.Count != 2 ||
@@ -883,15 +896,15 @@ public sealed partial class PdfReadPage {
         IReadOnlyList<double> domain = function.Items.TryGetValue("Domain", out PdfObject? domainObject)
             ? ReadNumberArray(domainObject)
             : Array.Empty<double>();
-        if (!HasValidFunctionIntervals(domain, 1)) return false;
+        if (!IsCanonicalUnitIntervals(domain, 1)) return false;
         double domainStart = domain[0];
         double domainEnd = domain[1];
         IReadOnlyList<double> encode = function.Items.TryGetValue("Encode", out PdfObject? encodeObject)
             ? ReadNumberArray(encodeObject)
             : Array.Empty<double>();
-        if (!HasFiniteFunctionPairs(encode, functions.Items.Count)) return false;
+        if (!HasCanonicalFunctionEncode(encode, functions.Items.Count)) return false;
         if (function.Items.TryGetValue("Range", out PdfObject? rangeObject) &&
-            !HasValidFunctionIntervals(ReadNumberArray(rangeObject), colorSpace.ComponentCount)) return false;
+            !IsCanonicalUnitIntervals(ReadNumberArray(rangeObject), colorSpace.ComponentCount)) return false;
         if (bounds.Any(value => !IsFinite(value) || value <= domainStart || value >= domainEnd)) return false;
         for (int index = 1; index < bounds.Count; index++) if (bounds[index] <= bounds[index - 1]) return false;
 
@@ -923,7 +936,7 @@ public sealed partial class PdfReadPage {
         IReadOnlyList<double> domain = function.Items.TryGetValue("Domain", out PdfObject? domainObject)
             ? ReadNumberArray(domainObject)
             : Array.Empty<double>();
-        if (!HasValidFunctionIntervals(domain, 1) ||
+        if (!IsCanonicalUnitIntervals(domain, 1) ||
             !function.Items.TryGetValue("N", out PdfObject? exponentObject) ||
             ResolveObject(exponentObject) is not PdfNumber exponent ||
             !IsFinite(exponent.Value) || Math.Abs(exponent.Value - 1D) > 0.000000001D) return false;
@@ -937,7 +950,7 @@ public sealed partial class PdfReadPage {
             !colorSpace.TryConvertColor(c0, out OfficeColor c0Color) ||
             !colorSpace.TryConvertColor(c1, out OfficeColor c1Color)) return false;
         if (function.Items.TryGetValue("Range", out PdfObject? rangeObject) &&
-            !HasValidFunctionIntervals(ReadNumberArray(rangeObject), colorSpace.ComponentCount)) return false;
+            !IsCanonicalUnitIntervals(ReadNumberArray(rangeObject), colorSpace.ComponentCount)) return false;
         start = reversed ? c1Color : c0Color;
         end = reversed ? c0Color : c1Color;
         return true;
@@ -949,6 +962,27 @@ public sealed partial class PdfReadPage {
             double minimum = values[index * 2];
             double maximum = values[index * 2 + 1];
             if (!IsFinite(minimum) || !IsFinite(maximum) || maximum <= minimum) return false;
+        }
+        return true;
+    }
+
+    private static bool IsCanonicalUnitIntervals(IReadOnlyList<double> values, int count) {
+        if (!HasValidFunctionIntervals(values, count)) return false;
+        for (int index = 0; index < count; index++) {
+            if (Math.Abs(values[index * 2]) > 0.000000001D ||
+                Math.Abs(values[(index * 2) + 1] - 1D) > 0.000000001D) return false;
+        }
+        return true;
+    }
+
+    private static bool HasCanonicalFunctionEncode(IReadOnlyList<double> values, int count) {
+        if (!HasFiniteFunctionPairs(values, count)) return false;
+        for (int index = 0; index < count; index++) {
+            double first = values[index * 2];
+            double second = values[(index * 2) + 1];
+            bool forward = Math.Abs(first) <= 0.000000001D && Math.Abs(second - 1D) <= 0.000000001D;
+            bool reverse = Math.Abs(first - 1D) <= 0.000000001D && Math.Abs(second) <= 0.000000001D;
+            if (!forward && !reverse) return false;
         }
         return true;
     }
