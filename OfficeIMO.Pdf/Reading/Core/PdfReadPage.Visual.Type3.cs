@@ -384,6 +384,110 @@ public sealed partial class PdfReadPage {
         Image,
         Group
     }
+
+    private PdfType3PaintChannels ResolveType3PaintChannels(
+        PdfFontResource font,
+        byte[] bytes,
+        Dictionary<PdfStream, PdfType3PaintChannels> cache,
+        HashSet<PdfStream> activeStreams) {
+        if (font.Type3 is not PdfType3FontResource type3) return PdfType3PaintChannels.Both;
+        PdfType3PaintChannels channels = PdfType3PaintChannels.None;
+        var seenCodes = new HashSet<byte>();
+        for (int index = 0; index < bytes.Length; index++) {
+            byte code = bytes[index];
+            if (!seenCodes.Add(code) || !type3.TryGetGlyph(code, out PdfStream stream)) continue;
+            channels |= ResolveType3PaintChannels(stream, type3.Resources, cache, activeStreams, 0);
+            if (channels == PdfType3PaintChannels.Both) break;
+        }
+        return channels;
+    }
+
+    private PdfType3PaintChannels ResolveType3PaintChannels(
+        PdfStream stream,
+        PdfDictionary resources,
+        Dictionary<PdfStream, PdfType3PaintChannels> cache,
+        HashSet<PdfStream> activeStreams,
+        int depth) {
+        EnsureContentNestingBudget(depth);
+        if (cache.TryGetValue(stream, out PdfType3PaintChannels cached)) return cached;
+        if (!activeStreams.Add(stream)) return PdfType3PaintChannels.Both;
+        try {
+            string content = PdfEncoding.Latin1GetString(new PageContentBudget(this).Decode(stream));
+            PdfType3PaintChannels channels = PdfType3PaintChannels.None;
+            Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
+            Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
+            Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
+            _ = PdfPageContentVisualParser.Parse(
+                content,
+                GetPageSize().Width,
+                GetPageSize().Height,
+                GetGraphicsStateResources(resources),
+                colorSpaces,
+                GetShadingResources(resources),
+                GetShadingPatternResources(resources),
+                null,
+                GetOptionalContentVisibility(resources),
+                maxOperations: _limits.MaxContentOperations,
+                patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
+                maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxOperands: _limits.MaxContentOperands,
+                primitiveVisitor: primitive => {
+                    if (primitive.HasFillPaint) channels |= PdfType3PaintChannels.Fill;
+                    if (primitive.HasStrokePaint) channels |= PdfType3PaintChannels.Stroke;
+                },
+                retainPrimitiveData: false);
+
+            foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
+                         content,
+                         Matrix2D.Identity,
+                         GetPageSize().Height,
+                         GetGraphicsStateResources(resources),
+                         colorSpaces,
+                         GetOptionalContentVisibility(resources),
+                         maxOperations: _limits.MaxContentOperations,
+                         maxNestingDepth: _limits.MaxContentNestingDepth,
+                         maxOperands: _limits.MaxContentOperands,
+                         fonts: fonts,
+                         fontWidthProviders: widthProviders,
+                         type3TextVisitor: nested => {
+                             for (int glyphIndex = 0; glyphIndex < nested.Glyphs.Count; glyphIndex++) {
+                                 PdfPageType3GlyphInvocation glyph = nested.Glyphs[glyphIndex];
+                                 if (glyph.Font.Type3 is not PdfType3FontResource nestedType3 ||
+                                     !nestedType3.TryGetGlyph(glyph.CharacterCode, out PdfStream nestedStream)) {
+                                     channels = PdfType3PaintChannels.Both;
+                                     return true;
+                                 }
+                                 channels |= ResolveType3PaintChannels(
+                                     nestedStream,
+                                     nestedType3.Resources,
+                                     cache,
+                                     activeStreams,
+                                     depth + 1);
+                             }
+                             return true;
+                         },
+                         unsupportedTextVisitor: () => channels = PdfType3PaintChannels.Both)) {
+                if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
+                    channels |= PdfType3PaintChannels.Fill;
+                    continue;
+                }
+                if (!TryGetFormStream(resources, invocation.Name, out PdfStream form)) {
+                    channels = PdfType3PaintChannels.Both;
+                    continue;
+                }
+                PdfDictionary formResources = ResolveDictionary(
+                    form.Dictionary.Items.TryGetValue("Resources", out PdfObject? value) ? value : null) ?? resources;
+                channels |= ResolveType3PaintChannels(form, formResources, cache, activeStreams, depth + 1);
+            }
+            cache[stream] = channels;
+            return channels;
+        } catch (Exception exception) when (IsRecoverableType3ProjectionFailure(exception)) {
+            return PdfType3PaintChannels.Both;
+        } finally {
+            activeStreams.Remove(stream);
+        }
+    }
+
     private sealed class Type3GlyphBudget {
         private readonly int _maximum;
         private int _count;

@@ -115,6 +115,41 @@ public class PdfType3UncoloredPatternTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(22, 96));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RenderPage_ChargesOnlyTheInheritedPatternChannelPaintedByType3Glyph(bool stroke) {
+        const string fillPatternContent = "1 0 0 rg 0 0 5 5 re f";
+        string strokePatternContent = "0 0 1 rg 0 0 5 5 re f" + new string(' ', 512);
+        string glyphContent = stroke
+            ? "500 0 d0 60 w 30 30 440 640 re S"
+            : "500 0 d0 0 0 500 700 re f";
+        const string pageContent = "/OC /Hidden BDC /Pattern cs /P1 scn /Pattern CS /P2 SCN EMC BT /FType3 18 Tf 20 100 Td (A) Tj ET";
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: pageContent,
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: fillPatternContent,
+            glyphContent: glyphContent,
+            catalogEntries: "/OCProperties << /OCGs [9 0 R] /D << /OFF [9 0 R] >> >>",
+            pageResourceEntries: "/Properties << /Hidden 9 0 R >>",
+            patternResourceEntries: "/P1 7 0 R /P2 10 0 R",
+            extraObjects: new[] {
+                "9 0 obj\n<< /Type /OCG /Name (Hidden) >>\nendobj",
+                StreamObject(10, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>", strokePatternContent)
+            });
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits {
+                MaxPageContentBytes = pageContent.Length + glyphContent.Length +
+                    (stroke ? strokePatternContent.Length : fillPatternContent.Length)
+            }
+        };
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf, readOptions: readOptions));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     [Fact]
     public void RenderPage_UsesOuterStrokeTilingPatternForUncoloredType3Glyph() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
@@ -371,10 +406,11 @@ public class PdfType3UncoloredPatternTests {
         string formDictionaryEntries = "",
         string catalogEntries = "",
         string pageResourceEntries = "",
+        string patternResourceEntries = "/P1 7 0 R",
         IReadOnlyList<string>? extraObjects = null) {
         string pageResources = invokeThroughForm
-            ? "<< /Pattern << /P1 7 0 R >> /XObject << /Fm1 8 0 R >> " + pageColorSpaceResources + " " + pageResourceEntries + " >>"
-            : "<< /Font << /FType3 5 0 R >> /Pattern << /P1 7 0 R >> " + pageColorSpaceResources + " " + pageResourceEntries + " >>";
+            ? "<< /Pattern << " + patternResourceEntries + " >> /XObject << /Fm1 8 0 R >> " + pageColorSpaceResources + " " + pageResourceEntries + " >>"
+            : "<< /Font << /FType3 5 0 R >> /Pattern << " + patternResourceEntries + " >> " + pageColorSpaceResources + " " + pageResourceEntries + " >>";
         var objects = new List<string> {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R " + catalogEntries + " >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj",

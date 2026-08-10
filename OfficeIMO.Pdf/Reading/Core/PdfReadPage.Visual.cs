@@ -476,6 +476,8 @@ public sealed partial class PdfReadPage {
         Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources);
         var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
         if (includeTilingPatterns) {
+            var type3PaintChannelCache = new Dictionary<PdfStream, PdfType3PaintChannels>();
+            var activeType3PaintChannelStreams = new HashSet<PdfStream>();
             _ = PdfPageXObjectInvocationParser.Parse(
                 content,
                 baseTransform,
@@ -507,7 +509,12 @@ public sealed partial class PdfReadPage {
                 initialFillPattern: initialFillPattern,
                 initialFillPatternBaseColorSpace: initialFillPatternBaseColorSpace,
                 initialStrokePattern: initialStrokePattern,
-                initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace);
+                initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
+                type3PaintChannelResolver: (font, bytes) => ResolveType3PaintChannels(
+                    font,
+                    bytes,
+                    type3PaintChannelCache,
+                    activeType3PaintChannelStreams));
         }
         Dictionary<string, PdfPageShadingPatternResource> shadingPatternResources = GetShadingPatternResources(resources);
         Dictionary<string, PdfPageTilingPatternResource>? tilingPatternResources = includeTilingPatterns
