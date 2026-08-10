@@ -325,7 +325,7 @@ public class PdfPageImageRendererTests {
     public void RenderPage_DecodesFilteredType3GlyphProgramAndHonorsPageClip() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
         string glyphProgram = "500 0 d0 0 0 500 700 re f";
-        string encodedGlyph = Convert.ToHexString(Encoding.ASCII.GetBytes(glyphProgram)) + ">";
+        string encodedGlyph = BitConverter.ToString(Encoding.ASCII.GetBytes(glyphProgram)).Replace("-", string.Empty) + ">";
         string glyphA = BuildStreamObject(6, "<< /Filter /ASCIIHexDecode", encodedGlyph);
         byte[] pdf = BuildSingleStreamPdf("20 100 5 7 re W n BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA);
 
