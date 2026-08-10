@@ -74,8 +74,8 @@ public static class OfficeVisioVisualConversionExtensions {
         OfficeVisioVisualOptions options,
         OfficeVisioVisualConversionReport report,
         bool flow) {
-        List<VisioGraphNodeRecord> nodes = envelope.Nodes.Select(node => MapGraphNode(node, options, flow)).ToList();
-        List<VisioGraphEdgeRecord> edges = envelope.Edges.Select(edge => MapGraphEdge(edge, options, flow)).ToList();
+        List<VisioGraphNodeRecord> nodes = envelope.Nodes.Select(node => MapGraphNode(node, options, report, flow)).ToList();
+        List<VisioGraphEdgeRecord> edges = envelope.Edges.Select(edge => MapGraphEdge(edge, options, report, flow)).ToList();
         List<VisioGraphClusterRecord> groups = options.IncludeGroups
             ? MapGraphGroups(envelope, options, report)
             : new List<VisioGraphClusterRecord>();
@@ -111,6 +111,7 @@ public static class OfficeVisioVisualConversionExtensions {
     private static VisioGraphNodeRecord MapGraphNode(
         VisualArtifactInterchangeNode node,
         OfficeVisioVisualOptions options,
+        OfficeVisioVisualConversionReport report,
         bool flow) {
         var record = new VisioGraphNodeRecord(node.Id, CombineLabel(node.Label, node.Subtitle)) {
             Kind = MapNodeKind(node.Kind, flow),
@@ -118,7 +119,7 @@ public static class OfficeVisioVisualConversionExtensions {
             HyperlinkDescription = options.IncludeHyperlinks ? node.Tooltip : null
         };
         if (options.IncludeShapeData) {
-            AddCommonShapeData(record.ShapeData, node.Kind, node.Status, node.GroupId, node.Metadata);
+            AddCommonShapeData(record.ShapeData, node.Kind, node.Status, node.GroupId, node.Metadata, report, "node '" + node.Id + "'");
             AddValue(record.ShapeData, "CFX.Icon", node.IconId);
             AddValue(record.ShapeData, "CFX.Symbol", node.Symbol);
             AddValue(record.ShapeData, "CFX.Badge", node.Badge);
@@ -140,16 +141,17 @@ public static class OfficeVisioVisualConversionExtensions {
     private static VisioGraphEdgeRecord MapGraphEdge(
         VisualArtifactInterchangeEdge edge,
         OfficeVisioVisualOptions options,
+        OfficeVisioVisualConversionReport report,
         bool flow) {
         var record = new VisioGraphEdgeRecord(edge.Id, edge.SourceId, edge.TargetId) {
             Kind = MapEdgeKind(edge.Kind, edge.Status, flow),
             Label = CombineEdgeLabel(edge),
-            Directed = !string.Equals(edge.Direction, "None", StringComparison.OrdinalIgnoreCase),
             HyperlinkAddress = options.IncludeHyperlinks ? edge.Href : null,
             HyperlinkDescription = options.IncludeHyperlinks ? edge.Tooltip : null
         };
+        ApplyGraphEdgeDirection(record, edge.Direction, edge.Id, report);
         if (options.IncludeShapeData) {
-            AddCommonShapeData(record.ShapeData, edge.Kind, edge.Status, null, edge.Metadata);
+            AddCommonShapeData(record.ShapeData, edge.Kind, edge.Status, null, edge.Metadata, report, "edge '" + edge.Id + "'");
             AddValue(record.ShapeData, "CFX.Direction", edge.Direction);
             AddValue(record.ShapeData, "CFX.LineStyle", edge.LineStyle);
             AddValue(record.ShapeData, "CFX.SourcePort", edge.SourcePortId ?? edge.SourcePort);
@@ -175,7 +177,7 @@ public static class OfficeVisioVisualConversionExtensions {
                 HyperlinkDescription = options.IncludeHyperlinks ? group.Tooltip : null
             };
             if (options.IncludeShapeData) {
-                AddCommonShapeData(record.ShapeData, group.Kind, group.Status, null, group.Metadata);
+                AddCommonShapeData(record.ShapeData, group.Kind, group.Status, null, group.Metadata, report, "group '" + group.Id + "'");
                 AddValue(record.ShapeData, "CFX.Color", group.Color);
             }
             groups.Add(record);
@@ -193,9 +195,9 @@ public static class OfficeVisioVisualConversionExtensions {
             .ThenBy(node => node.Id, StringComparer.Ordinal)
             .ToList();
         List<VisualArtifactInterchangeEdge> messages = envelope.Edges.OrderBy(edge => edge.Order).ThenBy(edge => edge.Id, StringComparer.Ordinal).ToList();
+        (double width, double height) = ResolveSequenceLayoutPageSize(envelope, options);
 
         document.SequenceDiagram(options.PageName, builder => {
-            (double width, double height) = ResolvePageSize(envelope, options);
             builder.PageSize(width, height);
             if (options.IncludeTitle && !string.IsNullOrWhiteSpace(envelope.Title)) {
                 builder.Title(envelope.Title, UniqueTitleId(envelope));
@@ -214,6 +216,14 @@ public static class OfficeVisioVisualConversionExtensions {
             AddSequenceActivations(builder, messages);
             report.AnnotationCount = AddSequenceAnnotations(builder, envelope, messages.Count, report);
         });
+
+        VisioPage page = document.Pages[document.Pages.Count - 1];
+        if (options.UseNaturalPageSize) {
+            page.Width = Math.Max(page.Width, width);
+            page.Height = Math.Max(page.Height, height);
+        } else {
+            page.FitToContent(0.5D);
+        }
 
         if (options.IncludeShapeData && (envelope.Metadata.Count > 0 || envelope.Nodes.Any(node => node.Metadata.Count > 2))) {
             report.Warn("Sequence-level and participant metadata is retained in the CFX envelope but is not duplicated into Visio Shape Data by the sequence builder.");
@@ -286,6 +296,38 @@ public static class OfficeVisioVisualConversionExtensions {
         return (Math.Max(4D, width), Math.Max(3D, height));
     }
 
+    private static (double Width, double Height) ResolveSequenceLayoutPageSize(VisualArtifactInterchangeEnvelope envelope, OfficeVisioVisualOptions options) {
+        double width = envelope.Width.HasValue ? envelope.Width.Value / options.PixelsPerInch : 11D;
+        double height = envelope.Height.HasValue ? envelope.Height.Value / options.PixelsPerInch : 8.5D;
+        return (Math.Max(11D, width), Math.Max(8.5D, height));
+    }
+
+    private static void ApplyGraphEdgeDirection(
+        VisioGraphEdgeRecord record,
+        string? direction,
+        string edgeId,
+        OfficeVisioVisualConversionReport report) {
+        record.Directed = true;
+        record.BeginArrow = EndArrow.None;
+        record.EndArrow = EndArrow.Triangle;
+        if (string.IsNullOrWhiteSpace(direction) || string.Equals(direction, "Forward", StringComparison.OrdinalIgnoreCase)) return;
+        if (string.Equals(direction, "None", StringComparison.OrdinalIgnoreCase)) {
+            record.Directed = false;
+            record.EndArrow = EndArrow.None;
+            return;
+        }
+        if (string.Equals(direction, "Backward", StringComparison.OrdinalIgnoreCase)) {
+            record.BeginArrow = EndArrow.Triangle;
+            record.EndArrow = EndArrow.None;
+            return;
+        }
+        if (string.Equals(direction, "Bidirectional", StringComparison.OrdinalIgnoreCase)) {
+            record.BeginArrow = EndArrow.Triangle;
+            return;
+        }
+        report.Warn($"Edge '{edgeId}' direction '{direction}' was normalized to a forward Visio connector.");
+    }
+
     private static VisioGraphLayout MapLayout(string layout) {
         if (string.Equals(layout, "Dense", StringComparison.OrdinalIgnoreCase) || string.Equals(layout, "Grid", StringComparison.OrdinalIgnoreCase)) return VisioGraphLayout.Grid;
         if (string.Equals(layout, "Force", StringComparison.OrdinalIgnoreCase) || string.Equals(layout, "Radial", StringComparison.OrdinalIgnoreCase)) return VisioGraphLayout.Radial;
@@ -351,12 +393,24 @@ public static class OfficeVisioVisualConversionExtensions {
         string kind,
         string? status,
         string? groupId,
-        IEnumerable<KeyValuePair<string, string>> metadata) {
+        IEnumerable<KeyValuePair<string, string>> metadata,
+        OfficeVisioVisualConversionReport report,
+        string context) {
         AddValue(target, "CFX.Kind", kind);
         AddValue(target, "CFX.Status", status);
         AddValue(target, "CFX.GroupId", groupId);
         foreach (KeyValuePair<string, string> item in metadata.OrderBy(pair => pair.Key, StringComparer.Ordinal)) {
-            AddValue(target, "Metadata." + item.Key, item.Value);
+            string requested = "Metadata." + item.Key;
+            string resolved = requested;
+            int suffix = 2;
+            while (target.Keys.Any(key => string.Equals(key, resolved, StringComparison.OrdinalIgnoreCase))) {
+                resolved = requested + " [" + suffix.ToString(CultureInfo.InvariantCulture) + "]";
+                suffix++;
+            }
+            if (!string.Equals(requested, resolved, StringComparison.Ordinal)) {
+                report.Warn($"Metadata key '{item.Key}' on {context} was projected as '{resolved}' because Visio Shape Data names are case-insensitive.");
+            }
+            AddValue(target, resolved, item.Value);
         }
     }
 

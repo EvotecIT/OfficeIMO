@@ -30,6 +30,8 @@ public sealed class OfficeVisioVisualIntegrationTests {
         var api = result.Page.Shapes.Single(shape => shape.Id == "api");
         Assert.Equal("TopologyNode", api.GetShapeDataValue("CFX.Kind"));
         Assert.Equal("Platform", api.GetShapeDataValue("Metadata.Owner"));
+        Assert.Equal("Secondary", api.GetShapeDataValue("Metadata.owner [2]"));
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("case-insensitive"));
         Assert.Equal("443", api.GetShapeDataValue("Detail.1.Port"));
         Assert.Contains(api.Hyperlinks, link => link.Address == "https://example.test/api");
 
@@ -87,6 +89,30 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Contains(result.Page.Connectors, connector => connector.Id == "request");
         Assert.Contains(result.Page.Connectors, connector => connector.Id == "response" && connector.LinePattern == 2);
         Assert.Equal(2, result.Report.AnnotationCount);
+        VisioShape api = result.Page.Shapes.Single(shape => shape.Id == "api");
+        VisioShape retryNote = result.Page.Shapes.Single(shape => shape.Id == "retry-note");
+        Assert.True(retryNote.PinX - retryNote.Width / 2D > api.PinX + api.Width / 2D);
+    }
+
+    [Fact]
+    public void GraphProjectionPreservesForwardBackwardAndBidirectionalArrows() {
+        VisualArtifactInterchangeEnvelope envelope = CreateTopologyEnvelope();
+        envelope.Edges.Clear();
+        envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "forward", SourceId = "api", TargetId = "database", Direction = "Forward" });
+        envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "backward", SourceId = "api", TargetId = "database", Direction = "Backward" });
+        envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "both", SourceId = "api", TargetId = "database", Direction = "Bidirectional" });
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
+
+        VisioConnector forward = result.Page.Connectors.Single(connector => connector.Id == "forward");
+        VisioConnector backward = result.Page.Connectors.Single(connector => connector.Id == "backward");
+        VisioConnector both = result.Page.Connectors.Single(connector => connector.Id == "both");
+        Assert.Equal(EndArrow.None, forward.BeginArrow);
+        Assert.Equal(EndArrow.Triangle, forward.EndArrow);
+        Assert.Equal(EndArrow.Triangle, backward.BeginArrow);
+        Assert.Equal(EndArrow.None, backward.EndArrow);
+        Assert.Equal(EndArrow.Triangle, both.BeginArrow);
+        Assert.Equal(EndArrow.Triangle, both.EndArrow);
     }
 
     [Fact]
@@ -158,6 +184,7 @@ public sealed class OfficeVisioVisualIntegrationTests {
             Tooltip = "API runbook"
         };
         api.Metadata["Owner"] = "Platform";
+        api.Metadata["owner"] = "Secondary";
         api.Details.Add(new VisualArtifactInterchangeDetail { Label = "Port", Value = "443" });
         api.Ports.Add(new VisualArtifactInterchangePort { Id = "out", Side = "Right", Offset = 0.5D });
         envelope.Nodes.Add(api);

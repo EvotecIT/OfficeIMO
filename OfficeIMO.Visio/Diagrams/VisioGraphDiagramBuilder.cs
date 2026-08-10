@@ -548,6 +548,12 @@ namespace OfficeIMO.Visio.Diagrams {
                 ? CreateStableEdgeId(record.FromId, record.ToId, record.Kind, reservedExplicitIds)
                 : RequireId(record.Id!, nameof(record.Id), "Edge id");
             Edge(edgeId, record.FromId, record.ToId, record.Kind, record.Label, record.Directed);
+            if (record.BeginArrow.HasValue || record.EndArrow.HasValue) {
+                EdgeStyle(edgeId, style => {
+                    if (record.BeginArrow.HasValue) style.BeginArrow = record.BeginArrow;
+                    if (record.EndArrow.HasValue) style.EndArrow = record.EndArrow;
+                });
+            }
             foreach (KeyValuePair<string, string?> item in record.ShapeData) {
                 EdgeShapeData(edgeId, item.Key, item.Value);
             }

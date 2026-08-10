@@ -89,6 +89,12 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Whether the generated edge should be directed.</summary>
         public bool Directed { get; set; } = true;
 
+        /// <summary>Optional arrow style at the source end. Null keeps the theme-derived style.</summary>
+        public EndArrow? BeginArrow { get; set; }
+
+        /// <summary>Optional arrow style at the target end. Null keeps the theme-derived style.</summary>
+        public EndArrow? EndArrow { get; set; }
+
         /// <summary>Shape Data rows to apply to the generated connector.</summary>
         public IDictionary<string, string?> ShapeData { get; } = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
 
