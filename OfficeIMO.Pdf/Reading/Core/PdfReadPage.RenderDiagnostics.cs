@@ -648,6 +648,7 @@ public sealed partial class PdfReadPage {
                              pageContentBudget,
                              type3GlyphBudget,
                              depth + 1),
+                         invalidPatternSelectionVisitor: () => supported = false,
                          pageWidth: surfaceWidth)) {
                 PdfPageDrawingEffect invocationEffect = ResolveDrawingEffect(
                     drawingEffects,

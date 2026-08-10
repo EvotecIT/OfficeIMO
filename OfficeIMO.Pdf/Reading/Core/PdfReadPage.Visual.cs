@@ -569,7 +569,7 @@ public sealed partial class PdfReadPage {
         }
         Dictionary<string, PdfPageShadingPatternResource> shadingPatternResources = GetShadingPatternResources(resources);
         Dictionary<string, PdfPageTilingPatternResource>? tilingPatternResources = includeTilingPatterns
-            ? GetTilingPatternResources(resources, invokedPatternNames, tilingPatternResourceCache, textOutputBudget, pageContentBudget, type3GlyphBudget, requireSupportedType3Content)
+            ? GetTilingPatternResources(resources, invokedPatternNames, tilingPatternResourceCache, textOutputBudget, pageContentBudget, type3GlyphBudget, requireSupportedType3Content, contentNestingDepth)
             : null;
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         Action<PdfPageVisualPrimitive> currentPrimitiveVisitor = contentOrderPrefix == null
@@ -729,6 +729,9 @@ public sealed partial class PdfReadPage {
                           pageContentBudget,
                           type3GlyphBudget,
                           contentNestingDepth + 1),
+                      invalidPatternSelectionVisitor: requireSupportedType3Content
+                          ? type3GlyphBudget.RecordFailure
+                          : null,
                       pageWidth: pageWidth)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {
