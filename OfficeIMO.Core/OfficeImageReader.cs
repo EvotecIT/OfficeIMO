@@ -142,7 +142,11 @@ public static partial class OfficeImageReader {
     /// validates every ICO entry so structurally plausible but incomplete image bodies are rejected.
     /// </summary>
     public static bool TryValidateContent(byte[]? data, string? fileName, out OfficeImageInfo info) {
-        if (!TryIdentifyCore(data, fileName, allowExtensionFallback: false, out info) || data == null) return false;
+        if (data == null || !OfficeRasterGuards.IsEncodedPayloadWithinLimits(data.Length)) {
+            info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+            return false;
+        }
+        if (!TryIdentifyCore(data, fileName, allowExtensionFallback: false, out info)) return false;
         switch (info.Format) {
             case OfficeImageFormat.Png:
                 return OfficePngReader.TryValidateDecodedPayload(data);

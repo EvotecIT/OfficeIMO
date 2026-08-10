@@ -255,7 +255,7 @@ public static partial class WordRtfConverterExtensions {
 
         int omittedImageCount = 0;
         int normalizedImageCount = 0;
-        foreach (WordParagraph paragraph in EnumerateConvertibleWordImages(elements)) {
+        foreach (WordParagraph paragraph in EnumerateConvertibleWordImages(document)) {
             RtfImage? converted = CreateRtfImage(paragraph, out OfficeImageFormat sourceFormat);
             if (converted == null) {
                 omittedImageCount++;
@@ -307,16 +307,40 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static IEnumerable<WordParagraph> EnumerateConvertibleWordImages(IEnumerable<WordElement> elements) {
+    private static IEnumerable<WordParagraph> EnumerateConvertibleWordImages(WordDocument document) {
         var visitedParagraphs = new HashSet<Paragraph>();
         var visitedRuns = new HashSet<Run>();
-        foreach (WordParagraph paragraph in elements.OfType<WordParagraph>()) {
-            if (!visitedParagraphs.Add(paragraph._paragraph)) continue;
-            foreach (Run run in EnumerateConvertibleWordRuns(paragraph._paragraph)) {
-                if (!visitedRuns.Add(run)) continue;
-                var candidate = new WordParagraph(paragraph._document, paragraph._paragraph, run);
-                if (candidate.IsImage) yield return candidate;
+        foreach (OpenXmlElement storyRoot in EnumerateConvertibleWordStoryRoots(document)) {
+            foreach (Paragraph paragraph in storyRoot.Descendants<Paragraph>()) {
+                if (!visitedParagraphs.Add(paragraph)) continue;
+                foreach (Run run in EnumerateConvertibleWordRuns(paragraph)) {
+                    if (!visitedRuns.Add(run)) continue;
+                    var candidate = new WordParagraph(document, paragraph, run);
+                    if (candidate.IsImage) yield return candidate;
+                }
             }
+        }
+    }
+
+    private static IEnumerable<OpenXmlElement> EnumerateConvertibleWordStoryRoots(WordDocument document) {
+        DocumentFormat.OpenXml.Packaging.MainDocumentPart? mainPart = document.OpenXmlDocument.MainDocumentPart;
+        if (mainPart?.Document != null) yield return mainPart.Document;
+        if (mainPart == null) yield break;
+
+        foreach (DocumentFormat.OpenXml.Packaging.HeaderPart part in mainPart.HeaderParts) {
+            if (part.Header != null) yield return part.Header;
+        }
+        foreach (DocumentFormat.OpenXml.Packaging.FooterPart part in mainPart.FooterParts) {
+            if (part.Footer != null) yield return part.Footer;
+        }
+        if (mainPart.FootnotesPart?.Footnotes != null) {
+            yield return mainPart.FootnotesPart.Footnotes;
+        }
+        if (mainPart.EndnotesPart?.Endnotes != null) {
+            yield return mainPart.EndnotesPart.Endnotes;
+        }
+        if (mainPart.WordprocessingCommentsPart?.Comments != null) {
+            yield return mainPart.WordprocessingCommentsPart.Comments;
         }
     }
 
@@ -326,14 +350,13 @@ public static partial class WordRtfConverterExtensions {
                 case Run run:
                     yield return run;
                     break;
-                case DeletedRun:
-                case MoveFromRun:
-                    break;
                 case SimpleField simpleField:
                     foreach (Run fieldRun in simpleField.Elements<Run>()) yield return fieldRun;
                     break;
                 case InsertedRun:
+                case DeletedRun:
                 case MoveToRun:
+                case MoveFromRun:
                 case Hyperlink:
                 case SdtRun:
                 case SdtContentRun:

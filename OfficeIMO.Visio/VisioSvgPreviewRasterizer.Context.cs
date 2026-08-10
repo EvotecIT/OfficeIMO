@@ -52,11 +52,21 @@ namespace OfficeIMO.Visio {
             internal void ExitUse(string id) => _activeUseIds.Remove(id);
 
             internal bool TryEnterRenderElement() {
-                if (_renderDepth >= MaximumRenderDepth || _renderedElements >= MaximumRenderedElements) {
+                if (_renderDepth >= MaximumRenderDepth) {
                     RenderBudgetExceeded = true;
                     return false;
                 }
+                if (!TryCountRenderedElement()) return false;
                 _renderDepth++;
+                return true;
+            }
+
+            internal bool TryCountRenderedElement() {
+                if (_renderedElements >= MaximumRenderedElements) {
+                    RenderBudgetExceeded = true;
+                    return false;
+                }
+
                 _renderedElements++;
                 return true;
             }

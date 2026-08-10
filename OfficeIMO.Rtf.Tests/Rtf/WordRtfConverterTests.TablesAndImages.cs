@@ -329,6 +329,30 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_Rtf_Image_Diagnostics_Include_Deleted_And_MoveFrom_Image_Runs() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph deletedParagraph = word.AddParagraph();
+        WordParagraph deletedImage = deletedParagraph.AddImage(new Uri("https://example.test/deleted.png"), 16, 16);
+        Run deletedRun = deletedImage._run!;
+        deletedRun.Remove();
+        deletedParagraph._paragraph.Append(new DeletedRun(deletedRun) { Author = "Reviewer" });
+
+        WordParagraph movedParagraph = word.AddParagraph();
+        WordParagraph movedImage = movedParagraph.AddImage(new Uri("https://example.test/moved.png"), 16, 16);
+        Run movedRun = movedImage._run!;
+        movedRun.Remove();
+        movedParagraph._paragraph.Append(new MoveFromRun(movedRun) { Author = "Reviewer" });
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        RtfConversionDiagnostic diagnostic = Assert.Single(
+            conversion.Report.Diagnostics,
+            item => item.Code == "WordRtfImagesOmitted");
+        Assert.Equal(2, diagnostic.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+    }
+
+    [Fact]
     public void Word_Rtf_Image_Diagnostics_Include_Comment_Stories() {
         using WordDocument word = WordDocument.Create();
         word.AddParagraph("target").AddComment("Reviewer", "RV", "comment");

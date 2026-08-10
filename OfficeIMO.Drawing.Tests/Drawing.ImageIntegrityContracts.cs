@@ -366,6 +366,13 @@ public partial class DrawingTests {
         Assert.Equal(0L, stream.Position);
     }
 
+    [Fact]
+    public void ContentValidationUsesTheCanonicalEncodedPayloadLimit() {
+        Assert.True(OfficeRasterGuards.IsEncodedPayloadWithinLimits(OfficeRasterGuards.MaximumEncodedBytes));
+        Assert.False(OfficeRasterGuards.IsEncodedPayloadWithinLimits(OfficeRasterGuards.MaximumEncodedBytes + 1));
+        Assert.False(OfficeRasterGuards.IsEncodedPayloadWithinLimits(0));
+    }
+
     private static int FindPngChunk(byte[] bytes, string expectedType, int offset = 8) {
         while (offset + 12 <= bytes.Length) {
             int length = ReadBigEndianInt32(bytes, offset);

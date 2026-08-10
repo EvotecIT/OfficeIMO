@@ -105,6 +105,71 @@ public class VisioImageExport {
     }
 
     [Theory]
+    [InlineData("style='filter:url(#blur)'")]
+    [InlineData("mask='url(#mask)'")]
+    [InlineData("class='blur'")]
+    public void EmbeddedSvgPreviewReportsTextSpanVisualEffects(string textSpanAttributes) {
+        string style = textSpanAttributes.Contains("class=", StringComparison.Ordinal)
+            ? "<style>.blur { filter:url(#blur); }</style>"
+            : string.Empty;
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" + style +
+                     "<text x='1' y='5'><tspan " + textSpanAttributes + ">x</tspan></text></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "tspan-effect.svg", default, out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        Assert.Contains(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
+    [Fact]
+    public void EmbeddedSvgPreviewCountsSiblingTextSpansAgainstTheElementBudget() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><text x='1' y='5'>");
+        for (int index = 0; index < 100001; index++) svg.Append("<tspan>x</tspan>");
+        svg.Append("</text></svg>");
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.False(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg.ToString()), null, null, null, null, null,
+            diagnostics, "wide-text.svg", default, out OfficeRasterImage? image));
+        Assert.Null(image);
+        Assert.Contains(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
+    public void EmbeddedSvgPreviewReportsUnsupportedTextChildren() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                           "<text><textPath href='#path'>unsupported</textPath></text></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.False(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "text-path.svg", default, out _));
+        Assert.Contains(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
+    [Fact]
+    public void EmbeddedSvgPreviewTreatsTextAnchorsAsSupportedContainers() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                           "<text x='1' y='5'><a href='https://example.test/'><tspan>x</tspan></a></text></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "text-anchor.svg", default, out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        Assert.DoesNotContain(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss);
+    }
+
+    [Theory]
     [InlineData("", "style='mask:url(#mask)'")]
     [InlineData("<style>.blur { filter: url(#blur); }</style>", "class='blur'")]
     [InlineData("<style>svg rect { filter: url(#blur); }</style>", "")]
