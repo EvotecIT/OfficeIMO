@@ -382,14 +382,14 @@ public sealed partial class PdfReadDocument {
     private IReadOnlyList<PdfFormWidgetAction> ReadWidgetActions(PdfDictionary widget, PdfFormWidgetActionReadBudget budget) {
         var actions = new List<PdfFormWidgetAction>();
         if (widget.Items.TryGetValue("A", out PdfObject? primaryAction)) {
-            AddWidgetAction("A", primaryAction, actions, budget);
+            AddWidgetAction("A", primaryAction, actions, budget, new HashSet<int>(), depth: 0);
         }
 
         if (widget.Items.TryGetValue("AA", out PdfObject? additionalActionsObject) &&
             ResolveObject(additionalActionsObject) is PdfDictionary additionalActions) {
             foreach (KeyValuePair<string, PdfObject> item in additionalActions.Items) {
                 if (!string.IsNullOrEmpty(item.Key)) {
-                    AddWidgetAction(item.Key, item.Value, actions, budget);
+                    AddWidgetAction(item.Key, item.Value, actions, budget, new HashSet<int>(), depth: 0);
                 }
             }
         }
@@ -397,7 +397,17 @@ public sealed partial class PdfReadDocument {
         return actions.Count == 0 ? Array.Empty<PdfFormWidgetAction>() : actions.AsReadOnly();
     }
 
-    private void AddWidgetAction(string triggerName, PdfObject actionObject, List<PdfFormWidgetAction> actions, PdfFormWidgetActionReadBudget budget) {
+    private void AddWidgetAction(string triggerName, PdfObject actionObject, List<PdfFormWidgetAction> actions, PdfFormWidgetActionReadBudget budget, HashSet<int> visitedReferences, int depth) {
+        if (depth > _options.Limits.MaxObjectNestingDepth) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectNestingDepth, _options.Limits.MaxObjectNestingDepth, depth);
+        }
+
+        HashSet<int> pathReferences = visitedReferences;
+        if (actionObject is PdfReference reference) {
+            if (!visitedReferences.Add(reference.ObjectNumber)) return;
+            pathReferences = new HashSet<int>(visitedReferences);
+        }
+
         if (ResolveObject(actionObject) is not PdfDictionary action ||
             TryReadName(action, "S") is not string actionType ||
             string.IsNullOrEmpty(actionType)) {
@@ -420,6 +430,36 @@ public sealed partial class PdfReadDocument {
         }
 
         actions.Add(new PdfFormWidgetAction(triggerName, actionType, javaScript));
+        if (action.Items.TryGetValue("Next", out PdfObject? nextAction)) {
+            AddWidgetNextActions(triggerName + ".Next", nextAction, actions, budget, pathReferences, depth + 1);
+        }
+    }
+
+    private void AddWidgetNextActions(string actionPath, PdfObject actionObject, List<PdfFormWidgetAction> actions, PdfFormWidgetActionReadBudget budget, HashSet<int> visitedReferences, int depth) {
+        if (depth > _options.Limits.MaxObjectNestingDepth) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectNestingDepth, _options.Limits.MaxObjectNestingDepth, depth);
+        }
+
+        HashSet<int> pathReferences = visitedReferences;
+        if (actionObject is PdfReference reference) {
+            if (!visitedReferences.Add(reference.ObjectNumber)) return;
+            pathReferences = new HashSet<int>(visitedReferences);
+        }
+
+        PdfObject? resolved = ResolveObject(actionObject);
+        if (resolved is PdfArray actionArray) {
+            for (int index = 0; index < actionArray.Items.Count; index++) {
+                AddWidgetAction(
+                    actionPath + "." + index.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    actionArray.Items[index],
+                    actions,
+                    budget,
+                    new HashSet<int>(pathReferences),
+                    depth + 1);
+            }
+        } else if (resolved is PdfDictionary) {
+            AddWidgetAction(actionPath, actionObject, actions, budget, pathReferences, depth + 1);
+        }
     }
 
     private bool TryReadWidgetJavaScript(PdfDictionary action, out string? javaScript, out long sourceBytes) {

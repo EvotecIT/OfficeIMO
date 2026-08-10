@@ -317,6 +317,7 @@ internal static partial class PdfFormFiller {
             objects.Remove(objectNumber);
         }
 
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
     }
 
@@ -393,6 +394,7 @@ internal static partial class PdfFormFiller {
         }
 
         foreach (int objectNumber in removableObjects) objects.Remove(objectNumber);
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
     }
 

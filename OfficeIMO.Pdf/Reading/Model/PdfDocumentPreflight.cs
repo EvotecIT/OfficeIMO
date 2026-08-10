@@ -173,11 +173,11 @@ public sealed partial class PdfDocumentPreflight {
             case PdfPreflightCapability.PrepareExternalSignatureRevision:
                 return GetAppendOnlyCapabilityDiagnostics("SignaturePrepare", "PDF append-only external-signature preparation is not available for this PDF.");
             case PdfPreflightCapability.FillSimpleFormFields:
-                return GetSimpleFormCapabilityDiagnostics(requireFillableField: true, requireFlattenableWidget: false);
+                return GetSimpleFormCapabilityDiagnostics(PdfMutationOperation.FillFormFields, requireFillableField: true, requireFlattenableWidget: false);
             case PdfPreflightCapability.FlattenSimpleFormFields:
-                return GetSimpleFormCapabilityDiagnostics(requireFillableField: false, requireFlattenableWidget: true);
+                return GetSimpleFormCapabilityDiagnostics(PdfMutationOperation.FlattenFormFields, requireFillableField: false, requireFlattenableWidget: true);
             case PdfPreflightCapability.FillAndFlattenSimpleFormFields:
-                return GetSimpleFormCapabilityDiagnostics(requireFillableField: true, requireFlattenableWidget: true);
+                return GetSimpleFormCapabilityDiagnostics(PdfMutationOperation.FillAndFlattenFormFields, requireFillableField: true, requireFlattenableWidget: true);
             default:
                 throw new ArgumentOutOfRangeException(nameof(capability), capability, "Unsupported PDF preflight capability.");
         }
@@ -186,7 +186,21 @@ public sealed partial class PdfDocumentPreflight {
     private bool HasFormMutationBlocker(PdfMutationOperation operation) {
         return Probe.HasSignatures ||
             _documentInfo?.AcroFormSignaturesExist == true ||
+            HasOperationSpecificFormRewriteBlocker(operation) ||
             !PdfPermissionAuthorization.CanRewriteFormFields(Probe.Security, PermissionPolicy, operation);
+    }
+
+    private bool HasOperationSpecificFormRewriteBlocker(PdfMutationOperation operation) {
+        for (int i = 0; i < RewriteBlockers.Count; i++) {
+            PdfRewriteBlockerKind kind = RewriteBlockers[i].Kind;
+            if (kind != PdfRewriteBlockerKind.Encryption &&
+                kind != PdfRewriteBlockerKind.Signatures &&
+                PdfMutationPlanner.IsFullRewriteBlockerForOperation(kind, operation)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private bool HasImageExtractionBlocker() {
@@ -376,7 +390,7 @@ public sealed partial class PdfDocumentPreflight {
         return messages.AsReadOnly();
     }
 
-    private System.Collections.ObjectModel.ReadOnlyCollection<string> GetSimpleFormCapabilityDiagnostics(bool requireFillableField, bool requireFlattenableWidget) {
+    private System.Collections.ObjectModel.ReadOnlyCollection<string> GetSimpleFormCapabilityDiagnostics(PdfMutationOperation operation, bool requireFillableField, bool requireFlattenableWidget) {
         var messages = new List<string>();
         if (!CanRead) {
             AddRange(messages, GetReadCapabilityDiagnostics("PDF form operations are not available because OfficeIMO.Pdf cannot read this PDF."));
@@ -393,6 +407,15 @@ public sealed partial class PdfDocumentPreflight {
         if (Probe.HasSignatures || _documentInfo?.AcroFormSignaturesExist == true) {
             AddDistinct(messages, "Signed PDF files are not supported for form filling or flattening by OfficeIMO.Pdf yet.");
             AddRange(messages, SignatureMutationDiagnostics);
+        }
+
+        for (int i = 0; i < RewriteBlockers.Count; i++) {
+            PdfRewriteBlocker blocker = RewriteBlockers[i];
+            if (blocker.Kind != PdfRewriteBlockerKind.Encryption &&
+                blocker.Kind != PdfRewriteBlockerKind.Signatures &&
+                PdfMutationPlanner.IsFullRewriteBlockerForOperation(blocker.Kind, operation)) {
+                AddDistinct(messages, blocker.Message);
+            }
         }
 
         if (HasRewriteBlocker(PdfRewriteBlockerKind.Encryption)) {

@@ -935,7 +935,7 @@ internal static class PdfMutationPlanner {
         return true;
     }
 
-    private static bool IsFullRewriteBlockerForOperation(PdfRewriteBlockerKind blocker, PdfMutationOperation operation) {
+    internal static bool IsFullRewriteBlockerForOperation(PdfRewriteBlockerKind blocker, PdfMutationOperation operation) {
         if (operation == PdfMutationOperation.SynchronizeMetadata) {
             return blocker != PdfRewriteBlockerKind.XmpMetadata;
         }

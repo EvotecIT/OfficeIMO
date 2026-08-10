@@ -64,7 +64,7 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
-    public void ActiveContentBlocksAppendOnlyMetadataButFormFillUsesPreservingFullRewrite() {
+    public void ActiveContentBlocksMetadataAndFormFillUntilItCanBePreservedSafely() {
         byte[] metadataSource = WithCatalogAction(
             PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Active metadata source")).ToBytes());
         byte[] formSource = WithCatalogAction(
@@ -84,14 +84,12 @@ public class PdfMutationPlannerTests {
 
         Assert.False(metadataPlan.CanExecute);
         Assert.False(metadataPlan.AppendOnlyAvailable);
-        Assert.True(formPlan.CanExecute);
-        Assert.Equal(PdfMutationExecutionMode.FullRewrite, formPlan.ExecutionMode);
+        Assert.False(formPlan.CanExecute);
+        Assert.Equal(PdfMutationExecutionMode.Blocked, formPlan.ExecutionMode);
         Assert.False(formPlan.AppendOnlyAvailable);
         Assert.False(metadataResult.Succeeded);
-        Assert.True(formResult.Succeeded);
-        PdfDocumentInfo filled = formResult.RequireValue().Inspect();
-        Assert.Equal("after", filled.FormFieldsByName["Account"].Value);
-        Assert.Contains(filled.CatalogActions, static action => action.ActionType == "JavaScript");
+        Assert.False(formResult.Succeeded);
+        Assert.Contains(formPlan.BlockerCodes, static code => code == "FullRewrite.OpenActions");
     }
 
     [Fact]
