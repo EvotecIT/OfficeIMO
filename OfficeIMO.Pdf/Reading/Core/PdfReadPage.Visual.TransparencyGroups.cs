@@ -22,6 +22,7 @@ public sealed partial class PdfReadPage {
 
     private bool TryCreateType3TransparencyGroupDrawing(
         string content,
+        PdfDictionary formDictionary,
         PdfDictionary? resources,
         Matrix2D transform,
         double pageWidth,
@@ -40,15 +41,50 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         int contentNestingDepth,
         PdfContentOrderKey? contentOrderPrefix,
-        out OfficeDrawing groupDrawing) {
+        out OfficeDrawing groupDrawing,
+        out OfficeTransform groupTransform) {
+        groupDrawing = null!;
+        groupTransform = OfficeTransform.Identity;
+        if (!TryGetVisibleType3TransparencyGroupBounds(
+                formDictionary,
+                transform,
+                invocation.ClipPath,
+                pageWidth,
+                pageHeight,
+                out PdfPageClipPath fittedBounds)) {
+            return false;
+        }
+
+        double localPageWidth = fittedBounds.Width;
+        double localPageHeight = fittedBounds.Height;
+        Matrix2D localTransform = Matrix2D.Multiply(
+            Matrix2D.Translation(
+                -fittedBounds.X,
+                localPageHeight - pageHeight + fittedBounds.Y),
+            transform);
+        PdfPageClipPath? localClipPath = fittedBounds.IsRectangle
+            ? null
+            : fittedBounds.Translate(fittedBounds.X, fittedBounds.Y);
+        PdfPagePatternSelection? localFillPattern = invocation.FillPattern?.Translate(
+            fittedBounds.X,
+            fittedBounds.Y,
+            pageHeight,
+            localPageHeight);
+        PdfPagePatternSelection? localStrokePattern = invocation.StrokePattern?.Translate(
+            fittedBounds.X,
+            fittedBounds.Y,
+            pageHeight,
+            localPageHeight);
+        groupTransform = OfficeTransform.Translate(fittedBounds.X, fittedBounds.Y);
+
         int failureVersion = type3GlyphBudget.FailureVersion;
         var elements = new List<PdfPageDrawingElement>();
         CollectVisualPrimitivesAndForms(
             content,
             resources,
-            transform,
-            pageWidth,
-            pageHeight,
+            localTransform,
+            localPageWidth,
+            localPageHeight,
             primitive => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count)),
             activeForms,
             activeType3Glyphs,
@@ -56,17 +92,17 @@ public sealed partial class PdfReadPage {
             type3GlyphBudget,
             invocation.PaintOrder,
             paintOrderScale * 0.000000001D,
-            initialClipPath: invocation.ClipPath,
+            initialClipPath: localClipPath,
             initialFillColor: invocation.FillColor,
             initialFillColorSpace: invocation.FillColorSpace,
-            initialFillPattern: invocation.FillPattern,
+            initialFillPattern: localFillPattern,
             initialFillPatternBaseColorSpace: invocation.FillPatternBaseColorSpace,
-            initialFillOpacity: invocation.FillOpacity,
+            initialFillOpacity: 1D,
             initialStrokeColor: invocation.StrokeColor,
             initialStrokeColorSpace: invocation.StrokeColorSpace,
-            initialStrokePattern: invocation.StrokePattern,
+            initialStrokePattern: localStrokePattern,
             initialStrokePatternBaseColorSpace: invocation.StrokePatternBaseColorSpace,
-            initialStrokeOpacity: invocation.StrokeOpacity,
+            initialStrokeOpacity: 1D,
             initialStrokeWidth: invocation.StrokeWidth,
             initialStrokeDashStyle: invocation.StrokeDashStyle,
             initialStrokeLineCap: invocation.StrokeLineCap,
@@ -100,10 +136,10 @@ public sealed partial class PdfReadPage {
                 if (!TryApplyInheritedType3PatternPaint(
                         element.Primitive,
                         invocation.FillColor,
-                        invocation.FillPattern,
+                        localFillPattern,
                         invocation.StrokeColor,
-                        invocation.StrokePattern,
-                        pageHeight,
+                        localStrokePattern,
+                        localPageHeight,
                         out PdfPageVisualPrimitive paintedPrimitive)) {
                     groupDrawing = null!;
                     return false;
@@ -119,16 +155,16 @@ public sealed partial class PdfReadPage {
             content,
             resources,
             0,
-            transform,
-            pageHeight,
+            localTransform,
+            localPageHeight,
             placements,
             activeForms,
             invocation.FillColor,
             invocation.FillColorSpace,
-            invocation.FillOpacity,
+            1D,
             invocation.PaintOrder,
             paintOrderScale * 0.000000001D,
-            initialClipPath: invocation.ClipPath,
+            initialClipPath: localClipPath,
             contentNestingDepth: contentNestingDepth + 1,
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: contentOrderPrefix,
@@ -145,18 +181,20 @@ public sealed partial class PdfReadPage {
                     groupDrawing = null!;
                     return false;
                 }
-                if (requireNestedType3Uncolored && invocation.FillPattern.HasValue) {
-                    if (!TryCreateInheritedPatternImageMaskDrawing(
-                            invocation.FillPattern,
+                if (requireNestedType3Uncolored && localFillPattern.HasValue) {
+                    Type3PatternImageMaskDrawingResult result = TryCreateInheritedPatternImageMaskDrawing(
+                            localFillPattern,
                             placements[i],
                             image,
-                            pageWidth,
-                            pageHeight,
+                            localPageWidth,
+                            localPageHeight,
                             out OfficeDrawing? maskedPattern,
-                            out OfficeTransform maskedPatternTransform)) {
+                            out OfficeTransform maskedPatternTransform);
+                    if (result == Type3PatternImageMaskDrawingResult.Unsupported) {
                         groupDrawing = null!;
                         return false;
                     }
+                    if (result == Type3PatternImageMaskDrawingResult.Invisible) continue;
                     elements.Add(PdfPageDrawingElement.FromGroup(
                         maskedPattern,
                         maskedPatternTransform,
@@ -173,20 +211,20 @@ public sealed partial class PdfReadPage {
         CollectGraphicsEffectTransitions(
             content,
             resources,
-            transform,
-            pageHeight,
+            localTransform,
+            localPageHeight,
             effects,
             new HashSet<PdfStream>(),
             PdfPageDrawingEffect.Default,
             invocation.PaintOrder,
             paintOrderScale * 0.000000001D,
-            initialClipPath: invocation.ClipPath,
+            initialClipPath: localClipPath,
             initialFillColor: invocation.FillColor,
             initialFillColorSpace: invocation.FillColorSpace,
-            initialFillOpacity: invocation.FillOpacity,
+            initialFillOpacity: 1D,
             initialStrokeColor: invocation.StrokeColor,
             initialStrokeColorSpace: invocation.StrokeColorSpace,
-            initialStrokeOpacity: invocation.StrokeOpacity,
+            initialStrokeOpacity: 1D,
             initialStrokeWidth: invocation.StrokeWidth,
             initialStrokeDashStyle: invocation.StrokeDashStyle,
             initialStrokeLineCap: invocation.StrokeLineCap,
@@ -198,12 +236,69 @@ public sealed partial class PdfReadPage {
         OverlayDrawingEffects(elements, effects);
         SortDrawingElements(elements);
 
-        groupDrawing = new OfficeDrawing(pageWidth, pageHeight);
+        var contentDrawing = new OfficeDrawing(localPageWidth, localPageHeight);
         var softMasks = new Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
         var activeSoftMasks = new HashSet<PdfStream>();
         TextContentParser.TextOutputBudget outputBudget = textOutputBudget ?? CreateTextOutputBudget();
         for (int i = 0; i < elements.Count; i++) {
-            AddDrawingElement(groupDrawing, pageHeight, transform, elements[i], softMasks, activeSoftMasks, outputBudget, pageContentBudget, type3GlyphBudget);
+            AddDrawingElement(contentDrawing, localPageHeight, localTransform, elements[i], softMasks, activeSoftMasks, outputBudget, pageContentBudget, type3GlyphBudget);
+        }
+        double groupOpacity = invocation.FillOpacity ?? 1D;
+        if (groupOpacity < 1D) {
+            groupDrawing = new OfficeDrawing(localPageWidth, localPageHeight);
+            groupDrawing.AddEffectDrawing(contentDrawing, OfficeTransform.Identity, groupOpacity);
+        } else {
+            groupDrawing = contentDrawing;
+        }
+        return true;
+    }
+
+    private bool TryGetVisibleType3TransparencyGroupBounds(
+        PdfDictionary formDictionary,
+        Matrix2D transform,
+        PdfPageClipPath? activeClip,
+        double pageWidth,
+        double pageHeight,
+        out PdfPageClipPath bounds) {
+        bounds = default;
+        if (!TryReadBox(
+                formDictionary.Items.TryGetValue("BBox", out PdfObject? bboxObject) ? bboxObject : null,
+                out (double X1, double Y1, double X2, double Y2) bbox) ||
+            bbox.X2 <= bbox.X1 ||
+            bbox.Y2 <= bbox.Y1) {
+            return false;
+        }
+
+        (double X, double Y) transformedTopLeft = transform.Transform(bbox.X1, bbox.Y1);
+        (double X, double Y) transformedTopRight = transform.Transform(bbox.X2, bbox.Y1);
+        (double X, double Y) transformedBottomLeft = transform.Transform(bbox.X1, bbox.Y2);
+        (double X, double Y) transformedBottomRight = transform.Transform(bbox.X2, bbox.Y2);
+        (double X, double Y) topLeft = (transformedTopLeft.X, pageHeight - transformedTopLeft.Y);
+        (double X, double Y) topRight = (transformedTopRight.X, pageHeight - transformedTopRight.Y);
+        (double X, double Y) bottomLeft = (transformedBottomLeft.X, pageHeight - transformedBottomLeft.Y);
+        (double X, double Y) bottomRight = (transformedBottomRight.X, pageHeight - transformedBottomRight.Y);
+        double left = Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomLeft.X, bottomRight.X));
+        double top = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomLeft.Y, bottomRight.Y));
+        double right = Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomLeft.X, bottomRight.X));
+        double bottom = Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomLeft.Y, bottomRight.Y));
+        var projectedBounds = PdfPageClipPath.Rectangle(left, top, right - left, bottom - top);
+        if (activeClip.HasValue) {
+            projectedBounds = PdfPageClipPath.ResolveActiveClip(projectedBounds, activeClip.Value);
+        }
+        if (!TryFitClipToDrawing(projectedBounds, pageWidth, pageHeight, out bounds)) {
+            return false;
+        }
+        if (bounds.IsRectangle) {
+            const double localSurfaceTolerance = 0.000000001D;
+            double leftWithTolerance = Math.Max(0D, bounds.X - localSurfaceTolerance);
+            double topWithTolerance = Math.Max(0D, bounds.Y - localSurfaceTolerance);
+            double rightWithTolerance = Math.Min(pageWidth, bounds.X + bounds.Width + localSurfaceTolerance);
+            double bottomWithTolerance = Math.Min(pageHeight, bounds.Y + bounds.Height + localSurfaceTolerance);
+            bounds = PdfPageClipPath.Rectangle(
+                leftWithTolerance,
+                topWithTolerance,
+                rightWithTolerance - leftWithTolerance,
+                bottomWithTolerance - topWithTolerance);
         }
         return true;
     }
