@@ -404,10 +404,10 @@
     "js-yaml": "4.3.1"
   },
   "devDependencies": {
-    "@types/node": "^24.13.2",
-    "@types/vscode": "1.107.0",
+    "@types/node": "^26.1.2",
+    "@types/vscode": "1.125.0",
     "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.28.1",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   }
 }
