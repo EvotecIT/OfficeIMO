@@ -64,12 +64,13 @@ internal static class PdfPageXObjectInvocationParser {
         PdfPageColorSpace? initialFillPatternBaseColorSpace = null,
         PdfPagePatternSelection? initialStrokePattern = null,
         PdfPageColorSpace? initialStrokePatternBaseColorSpace = null,
-        IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns = null) {
+        IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns = null,
+        Func<PdfFontResource, byte[], PdfType3PaintChannels>? type3PaintChannelResolver = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns);
+        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, type3PaintChannelResolver);
         return parser.Parse();
     }
 
@@ -125,6 +126,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Action? _unsupportedColorVisitor;
         private readonly Action<string>? _visibleFontVisitor;
         private readonly Action<string>? _patternInvocationVisitor;
+        private readonly Func<PdfFontResource, byte[], PdfType3PaintChannels>? _type3PaintChannelResolver;
         private readonly Action<PdfPageGraphicsStateResource>? _graphicsStateVisitor;
         private readonly bool _allowSupportedGraphicsEffects;
         private string _textFont = string.Empty;
@@ -173,7 +175,8 @@ internal static class PdfPageXObjectInvocationParser {
             PdfPageColorSpace? initialFillPatternBaseColorSpace,
             PdfPagePatternSelection? initialStrokePattern,
             PdfPageColorSpace? initialStrokePatternBaseColorSpace,
-            IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns) {
+            IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns,
+            Func<PdfFontResource, byte[], PdfType3PaintChannels>? type3PaintChannelResolver) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -207,6 +210,7 @@ internal static class PdfPageXObjectInvocationParser {
             _unsupportedColorVisitor = unsupportedColorVisitor;
             _visibleFontVisitor = visibleFontVisitor;
             _patternInvocationVisitor = patternInvocationVisitor;
+            _type3PaintChannelResolver = type3PaintChannelResolver;
             _graphicsStateVisitor = graphicsStateVisitor;
             _allowSupportedGraphicsEffects = allowSupportedGraphicsEffects;
         }
@@ -284,8 +288,7 @@ internal static class PdfPageXObjectInvocationParser {
             bool isVisible = !HasHiddenContent();
             if (isVisible) _visibleFontVisitor?.Invoke(_textFont);
             if (isVisible && usesType3GlyphProgram) {
-                if (_patternState.Fill.HasValue) _patternInvocationVisitor?.Invoke(_patternState.Fill.Value.Name);
-                if (_patternState.Stroke.HasValue) _patternInvocationVisitor?.Invoke(_patternState.Stroke.Value.Name);
+                AdvertiseInheritedType3Patterns(bytes);
             }
             List<PdfPageType3GlyphInvocation>? glyphs = CreateType3GlyphBatch(usesType3GlyphProgram, isVisible, bytes.Length);
             (double X, double Y) advance = ProcessShownText(bytes, glyphs);
@@ -389,8 +392,11 @@ internal static class PdfPageXObjectInvocationParser {
             List<PdfPageType3GlyphInvocation>? glyphs = CreateType3GlyphBatch(usesType3GlyphProgram, isVisible, (int)glyphCount);
             if (isVisible && glyphCount > 0) _visibleFontVisitor?.Invoke(_textFont);
             if (isVisible && usesType3GlyphProgram && glyphCount > 0) {
-                if (_patternState.Fill.HasValue) _patternInvocationVisitor?.Invoke(_patternState.Fill.Value.Name);
-                if (_patternState.Stroke.HasValue) _patternInvocationVisitor?.Invoke(_patternState.Stroke.Value.Name);
+                PdfType3PaintChannels channels = PdfType3PaintChannels.None;
+                for (int i = 0; i < items.Count; i++) {
+                    if (items[i] is byte[] bytes) channels |= ResolveType3PaintChannels(bytes);
+                }
+                AdvertiseInheritedType3Patterns(channels);
             }
             for (int i = 0; i < items.Count; i++) {
                 if (items[i] is byte[] bytes) {
@@ -404,6 +410,28 @@ internal static class PdfPageXObjectInvocationParser {
             }
             PublishType3GlyphBatch(glyphs);
             if (isVisible && glyphCount > 0 && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
+        }
+
+        private void AdvertiseInheritedType3Patterns(byte[] bytes) =>
+            AdvertiseInheritedType3Patterns(ResolveType3PaintChannels(bytes));
+
+        private void AdvertiseInheritedType3Patterns(PdfType3PaintChannels channels) {
+            if ((channels & PdfType3PaintChannels.Fill) != 0 && _patternState.Fill.HasValue) {
+                _patternInvocationVisitor?.Invoke(_patternState.Fill.Value.Name);
+            }
+            if ((channels & PdfType3PaintChannels.Stroke) != 0 && _patternState.Stroke.HasValue) {
+                _patternInvocationVisitor?.Invoke(_patternState.Stroke.Value.Name);
+            }
+        }
+
+        private PdfType3PaintChannels ResolveType3PaintChannels(byte[] bytes) {
+            if (_type3PaintChannelResolver == null ||
+                _fonts == null ||
+                !_fonts.TryGetValue(_textFont, out PdfFontResource? font) ||
+                font.Type3 == null) {
+                return PdfType3PaintChannels.Both;
+            }
+            return _type3PaintChannelResolver(font, bytes);
         }
 
         private double EstimateTextAdvance(byte[] bytes) {

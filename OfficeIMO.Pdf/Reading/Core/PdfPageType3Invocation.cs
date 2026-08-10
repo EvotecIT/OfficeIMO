@@ -2,6 +2,14 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
+[Flags]
+internal enum PdfType3PaintChannels {
+    None = 0,
+    Fill = 1,
+    Stroke = 2,
+    Both = Fill | Stroke
+}
+
 internal readonly struct PdfPagePatternSelection {
     internal PdfPagePatternSelection(
         string name,
