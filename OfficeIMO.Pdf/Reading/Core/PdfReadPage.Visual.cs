@@ -18,10 +18,15 @@ public sealed partial class PdfReadPage {
 
         List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget);
         IReadOnlyList<PdfPageDrawingEffectTransition> effects = GetGraphicsEffectTransitions(pageTransform, size.Height, pageContentBudget);
-        var softMasks = new Dictionary<PdfPageSoftMaskResource, OfficeDrawingSoftMask>();
+        var softMasks = new Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
+        var activeSoftMasks = new HashSet<PdfStream>();
         for (int i = 0; i < pageElements.Count; i++) {
-            PdfPageDrawingElement element = pageElements[i].WithEffect(ResolveDrawingEffect(effects, pageElements[i].PaintOrder));
-            AddDrawingElement(drawing, size.Height, pageTransform, element, softMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);
+            PdfPageDrawingElement element = pageElements[i].WithEffect(
+                pageElements[i].Effect.OverlayOn(ResolveDrawingEffect(
+                    effects,
+                    pageElements[i].PaintOrder,
+                    contentOrderKey: pageElements[i].ContentOrderKey)));
+            AddDrawingElement(drawing, size.Height, pageTransform, element, softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);
         }
 
         AddAnnotationAppearances(drawing, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget);
@@ -71,7 +76,8 @@ public sealed partial class PdfReadPage {
             pageContentBudget,
             renderedType3PaintOrders,
             type3GlyphBudget,
-            (placement, image) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count)));
+            (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
+            (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)));
         for (int i = 0; i < primitives.Count; i++) {
             elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
         }
@@ -110,7 +116,8 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         Matrix2D pageTransform,
         PdfPageDrawingElement element,
-        Dictionary<PdfPageSoftMaskResource, OfficeDrawingSoftMask> softMasks,
+        Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask> softMasks,
+        HashSet<PdfStream> activeSoftMasks,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget) {
@@ -124,7 +131,16 @@ public sealed partial class PdfReadPage {
         if (isolated.Elements.Count == 0) return;
         OfficeDrawingSoftMask? softMask = element.Effect.SoftMask == null
             ? null
-            : GetOrCreateSoftMask(element.Effect.SoftMask, drawing.Width, drawing.Height, pageTransform, softMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);
+            : GetOrCreateSoftMask(
+                element.Effect.SoftMask,
+                drawing.Width,
+                drawing.Height,
+                element.Effect.SoftMaskTransform ?? pageTransform,
+                softMasks,
+                activeSoftMasks,
+                textOutputBudget,
+                pageContentBudget,
+                type3GlyphBudget);
         drawing.AddEffectDrawing(isolated, OfficeTransform.Identity, element.Effect.BlendMode, softMask);
     }
 
@@ -356,7 +372,8 @@ public sealed partial class PdfReadPage {
         PageContentBudget? pageContentBudget = null,
         HashSet<double>? renderedType3PaintOrders = null,
         Type3GlyphBudget? type3GlyphBudget = null,
-        Action<PdfImagePlacement, PdfExtractedImage>? type3ImageVisitor = null) {
+        Action<PdfImagePlacement, PdfExtractedImage, PdfPageDrawingEffect>? type3ImageVisitor = null,
+        Action<PdfPageVisualPrimitive, PdfPageDrawingEffect>? type3PrimitiveVisitor = null) {
         textOutputBudget ??= CreateTextOutputBudget();
         pageContentBudget ??= new PageContentBudget(this);
         var primitives = new List<PdfPageVisualPrimitive>();
@@ -381,9 +398,11 @@ public sealed partial class PdfReadPage {
                 renderedType3PaintOrders: renderedType3PaintOrders,
                 type3GlyphBudget: type3GlyphBudget,
                 type3ImageVisitor: type3ImageVisitor,
+                type3PrimitiveVisitor: type3PrimitiveVisitor,
                 tilingPatternResourceCache: tilingPatternResourceCache,
                 textOutputBudget: textOutputBudget,
-                pageContentBudget: pageContentBudget);
+                pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root);
         }
 
         return primitives.Count == 0 ? Array.Empty<PdfPageVisualPrimitive>() : primitives.AsReadOnly();
@@ -421,14 +440,12 @@ public sealed partial class PdfReadPage {
         bool allowSupportedType3Patterns = false,
         bool requireNestedType3Uncolored = false,
         Action<string>? unrenderedPatternVisitor = null,
-        Action<PdfImagePlacement, PdfExtractedImage>? type3ImageVisitor = null,
-        Action<PdfImagePlacement>? type3ImagePlacementVisitor = null,
+        Action<PdfImagePlacement, PdfExtractedImage, PdfPageDrawingEffect>? type3ImageVisitor = null,
+        Action<PdfPageVisualPrimitive, PdfPageDrawingEffect>? type3PrimitiveVisitor = null,
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
-        PdfContentOrderKey? contentOrderPrefix = null,
-        OfficeColor? uncoloredType3PaintColor = null,
-        bool rejectShadingContent = false) {
+        PdfContentOrderKey? contentOrderPrefix = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         activeType3Glyphs ??= new HashSet<PdfStream>();
@@ -468,7 +485,7 @@ public sealed partial class PdfReadPage {
         }
         Dictionary<string, PdfPageShadingPatternResource> shadingPatternResources = GetShadingPatternResources(resources);
         Dictionary<string, PdfPageTilingPatternResource>? tilingPatternResources = includeTilingPatterns
-            ? GetTilingPatternResources(resources, invokedPatternNames, tilingPatternResourceCache, textOutputBudget, pageContentBudget, type3GlyphBudget, requireSupportedType3Content, activeType3Glyphs: activeType3Glyphs)
+            ? GetTilingPatternResources(resources, invokedPatternNames, tilingPatternResourceCache, textOutputBudget, pageContentBudget, type3GlyphBudget, requireSupportedType3Content)
             : null;
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         Action<PdfPageVisualPrimitive> currentPrimitiveVisitor = contentOrderPrefix == null
@@ -504,14 +521,7 @@ public sealed partial class PdfReadPage {
             maxOperands: _limits.MaxContentOperands,
             primitiveVisitor: currentPrimitiveVisitor,
             retainPrimitiveData: retainPrimitiveData,
-            scaleStrokeWidthWithTransform: requireSupportedType3Content,
-            unrenderedShadingVisitor: requireSupportedType3Content ? _ => type3GlyphBudget.RecordFailure() : null,
-            shadingInvocationVisitor: requireSupportedType3Content
-                ? name => {
-                    if (rejectShadingContent || !IsSupportedType3DirectShading(resources, name)) type3GlyphBudget.RecordFailure();
-                }
-                : null,
-            unsupportedOperatorVisitor: requireSupportedType3Content ? _ => type3GlyphBudget.RecordFailure() : null);
+            scaleStrokeWidthWithTransform: requireSupportedType3Content);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -565,8 +575,8 @@ public sealed partial class PdfReadPage {
                               pageContentBudget,
                               contentNestingDepth,
                               type3ImageVisitor,
-                              contentOrderPrefix?.Append(invocation.SourceOperatorIndex),
-                              uncoloredType3PaintColor);
+                              type3PrimitiveVisitor,
+                              contentOrderPrefix?.Append(invocation.SourceOperatorIndex));
                           if (!rendered) type3GlyphBudget.RecordFailure();
                           return rendered;
                       },
@@ -579,61 +589,14 @@ public sealed partial class PdfReadPage {
                           ? name => {
                               unrenderedPatternVisitor?.Invoke(name);
                               if (!allowSupportedType3Patterns ||
-                                  !(shadingPatternResources.ContainsKey(name) && IsSupportedType3ShadingPattern(resources, name) ||
-                                    tilingPatternResources?.ContainsKey(name) == true)) {
+                                  !(shadingPatternResources.ContainsKey(name) || tilingPatternResources?.ContainsKey(name) == true)) {
                                   if (requireSupportedType3Content) type3GlyphBudget.RecordFailure();
                               }
                           }
                           : null,
-                      patternSelectionVisitor: requireSupportedType3Content
-                          ? selection => {
-                              if (!IsSupportedType3PatternSelection(selection, resources, shadingPatternResources, tilingPatternResources)) {
-                                  type3GlyphBudget.RecordFailure();
-                              }
-                          }
-                          : null)) {
-            PdfContentOrderKey? invocationOrder = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
-            if (requireSupportedType3Content &&
-                (invocation.FillPatternName != null || invocation.StrokePatternName != null)) {
-                type3GlyphBudget.RecordFailure();
-                continue;
-            }
-            if (requireSupportedType3Content && invocation.InlineImage != null) {
-                PdfImagePlacement placement = BuildImagePlacement(
-                    0,
-                    invocation.InlineImage.ResourceName,
-                    0,
-                    invocation.InlineImage.DirectStreamIdentity,
-                    invocation.Transform,
-                    invocation.ClipPath,
-                    invocation.FillColor,
-                    invocation.FillOpacity,
-                    invocation.InlineImage.Stream,
-                    resources,
-                    invocation.PaintOrder,
-                    resources);
-                type3ImagePlacementVisitor?.Invoke(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
-                if (type3ImagePlacementVisitor == null) type3GlyphBudget.RecordFailure();
-                continue;
-            }
-            if (requireSupportedType3Content && TryGetImageXObject(resources, invocation.Name, out int imageObjectNumber, out int directStreamIdentity)) {
-                PdfImagePlacement placement = BuildImagePlacement(
-                    0,
-                    invocation.Name,
-                    imageObjectNumber,
-                    directStreamIdentity,
-                    invocation.Transform,
-                    invocation.ClipPath,
-                    invocation.FillColor,
-                    invocation.FillOpacity,
-                    paintOrder: invocation.PaintOrder,
-                    effectiveResources: resources);
-                type3ImagePlacementVisitor?.Invoke(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
-                if (type3ImagePlacementVisitor == null) type3GlyphBudget.RecordFailure();
-                continue;
-            }
+                      allowSupportedGraphicsEffects: requireSupportedType3Content)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
-                if (requireSupportedType3Content) {
+                if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     type3GlyphBudget.RecordFailure();
                 }
                 continue;
@@ -652,6 +615,7 @@ public sealed partial class PdfReadPage {
                 }
                 PdfDictionary? formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
+                PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
                 string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDictionary);
                 CollectVisualPrimitivesAndForms(
                     formContent,
@@ -685,13 +649,11 @@ public sealed partial class PdfReadPage {
                     requireNestedType3Uncolored: requireNestedType3Uncolored,
                     unrenderedPatternVisitor: unrenderedPatternVisitor,
                     type3ImageVisitor: type3ImageVisitor,
-                    type3ImagePlacementVisitor: type3ImagePlacementVisitor,
+                    type3PrimitiveVisitor: type3PrimitiveVisitor,
                     tilingPatternResourceCache: tilingPatternResourceCache,
                     textOutputBudget: textOutputBudget,
                     pageContentBudget: pageContentBudget,
-                    contentOrderPrefix: invocationOrder,
-                    uncoloredType3PaintColor: uncoloredType3PaintColor,
-                    rejectShadingContent: rejectShadingContent);
+                    contentOrderPrefix: formOrderPrefix);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -700,116 +662,6 @@ public sealed partial class PdfReadPage {
 
     private static bool HasUnsupportedType3FormGroup(PdfDictionary formDictionary) =>
         formDictionary.Items.ContainsKey("Group");
-
-    private bool IsSupportedType3PatternSelection(
-        PdfPagePatternSelection selection,
-        PdfDictionary? resources,
-        Dictionary<string, PdfPageShadingPatternResource> shadingPatterns,
-        Dictionary<string, PdfPageTilingPatternResource>? tilingPatterns) {
-        if (!selection.HasValidComponents || selection.ColorSpace.Kind != PdfPageColorSpaceKind.Pattern) return false;
-        if (tilingPatterns?.TryGetValue(selection.Name, out PdfPageTilingPatternResource? tilingPattern) == true) {
-            return tilingPattern.Uncolored
-                ? selection.ColorSpace.HasPatternBaseColorSpace && selection.ComponentCount == selection.ColorSpace.ComponentCount
-                : !selection.ColorSpace.HasPatternBaseColorSpace && selection.ComponentCount == 0;
-        }
-        return shadingPatterns.ContainsKey(selection.Name) &&
-            IsSupportedType3ShadingPattern(resources, selection.Name) &&
-            !selection.ColorSpace.HasPatternBaseColorSpace &&
-            selection.ComponentCount == 0;
-    }
-
-    private bool IsSupportedType3ShadingPattern(PdfDictionary? resources, string name) {
-        if (resources == null ||
-            ResolveDictionary(resources.Items.TryGetValue("Pattern", out PdfObject? patternObject) ? patternObject : null) is not PdfDictionary patterns ||
-            !patterns.Items.TryGetValue(name, out PdfObject? value) ||
-            ResolveDictionary(value) is not PdfDictionary pattern) return false;
-        if (pattern.Items.ContainsKey("ExtGState") ||
-            (pattern.Items.TryGetValue("Matrix", out PdfObject? matrixObject) && !TryReadStrictPatternMatrix(matrixObject, out _)) ||
-            !pattern.Items.TryGetValue("Shading", out PdfObject? shadingObject) ||
-            ResolveDictionary(shadingObject) is not PdfDictionary shading) return false;
-        return IsSupportedType3ShadingDictionary(shading);
-    }
-
-    private bool IsSupportedType3DirectShading(PdfDictionary? resources, string name) {
-        if (resources == null ||
-            ResolveDictionary(resources.Items.TryGetValue("Shading", out PdfObject? shadingResourcesObject) ? shadingResourcesObject : null) is not PdfDictionary shadings ||
-            !shadings.Items.TryGetValue(name, out PdfObject? shadingObject) ||
-            ResolveDictionary(shadingObject) is not PdfDictionary shading) return false;
-        return IsSupportedType3ShadingDictionary(shading);
-    }
-
-    private bool IsSupportedType3ShadingDictionary(PdfDictionary shading) {
-        int? shadingType = TryReadInteger(shading.Items.TryGetValue("ShadingType", out PdfObject? shadingTypeObject) ? shadingTypeObject : null);
-        if (shadingType is not (2 or 3) ||
-            (shading.Items.TryGetValue("BBox", out PdfObject? boundingBoxObject) && ResolveObject(boundingBoxObject) is not null and not PdfNull) ||
-            (shading.Items.TryGetValue("Background", out PdfObject? backgroundObject) && ResolveObject(backgroundObject) is not null and not PdfNull) ||
-            (shading.Items.TryGetValue("AntiAlias", out PdfObject? antiAliasObject) && ResolveObject(antiAliasObject) is PdfBoolean { Value: true }) ||
-            !HasDefaultType3ShadingDomain(shading) ||
-            !HasSupportedType3ShadingCoordinates(shading, shadingType.Value) ||
-            !shading.Items.TryGetValue("Function", out PdfObject? functionObject) ||
-            !IsSupportedType3ShadingFunction(functionObject) ||
-            !shading.Items.TryGetValue("Extend", out PdfObject? extendObject) ||
-            ResolveArray(extendObject) is not PdfArray { Items.Count: 2 } extend) return false;
-
-        return ResolveObject(extend.Items[0]) is PdfBoolean { Value: true } &&
-            ResolveObject(extend.Items[1]) is PdfBoolean { Value: true };
-    }
-
-    private bool HasDefaultType3ShadingDomain(PdfDictionary shading) {
-        if (!shading.Items.TryGetValue("Domain", out PdfObject? domainObject) || ResolveObject(domainObject) is PdfNull) return true;
-        IReadOnlyList<double> domain = ReadNumberArray(domainObject);
-        return domain.Count == 2 && domain[0] == 0D && domain[1] == 1D;
-    }
-
-    private bool HasSupportedType3ShadingCoordinates(PdfDictionary shading, int shadingType) {
-        if (!shading.Items.TryGetValue("Coords", out PdfObject? coordinatesObject)) return false;
-        IReadOnlyList<double> coordinates = ReadNumberArray(coordinatesObject);
-        if (coordinates.Count != (shadingType == 2 ? 4 : 6) || coordinates.Any(value => !IsFinite(value))) return false;
-        return shadingType != 3 || (coordinates[2] >= 0D && coordinates[5] >= 0D);
-    }
-
-    private bool IsSupportedType3ShadingFunction(PdfObject? value) {
-        PdfObject? resolved = ResolveObject(value);
-        if (resolved is PdfArray array) {
-            return array.Items.Count == 1 && IsSupportedType3ShadingFunction(array.Items[0]);
-        }
-        if (resolved is not PdfDictionary function) return false;
-        int? type = TryReadInteger(function.Items.TryGetValue("FunctionType", out PdfObject? typeObject) ? typeObject : null);
-        if (type == 2) {
-            IReadOnlyList<double> domain = function.Items.TryGetValue("Domain", out PdfObject? domainObject)
-                ? ReadNumberArray(domainObject)
-                : Array.Empty<double>();
-            bool hasRepresentableRange = !function.Items.TryGetValue("Range", out PdfObject? rangeObject) ||
-                ResolveObject(rangeObject) is PdfNull;
-            return domain.Count == 2 && domain[0] == 0D && domain[1] == 1D &&
-                hasRepresentableRange &&
-                function.Items.TryGetValue("N", out PdfObject? exponentObject) &&
-                ResolveObject(exponentObject) is PdfNumber { Value: 1D };
-        }
-        if (type != 3 ||
-            !function.Items.TryGetValue("Functions", out PdfObject? functionsObject) ||
-            ResolveArray(functionsObject) is not PdfArray functions ||
-            functions.Items.Count < 2 || functions.Items.Count > 32) return false;
-        IReadOnlyList<double> stitchedDomain = function.Items.TryGetValue("Domain", out PdfObject? stitchedDomainObject)
-            ? ReadNumberArray(stitchedDomainObject)
-            : Array.Empty<double>();
-        if (stitchedDomain.Count != 2 || stitchedDomain[0] != 0D || stitchedDomain[1] != 1D) return false;
-        if (function.Items.TryGetValue("Range", out PdfObject? stitchedRangeObject) &&
-            ResolveObject(stitchedRangeObject) is not PdfNull) return false;
-        IReadOnlyList<double> encode = function.Items.TryGetValue("Encode", out PdfObject? encodeObject)
-            ? ReadNumberArray(encodeObject)
-            : Array.Empty<double>();
-        if (encode.Count != functions.Items.Count * 2) return false;
-        for (int index = 0; index < functions.Items.Count; index++) {
-            double start = encode[index * 2];
-            double end = encode[index * 2 + 1];
-            if (!((start == 0D && end == 1D) || (start == 1D && end == 0D))) return false;
-        }
-        for (int index = 0; index < functions.Items.Count; index++) {
-            if (!IsSupportedType3ShadingFunction(functions.Items[index])) return false;
-        }
-        return true;
-    }
 
     private Dictionary<string, PdfPageShadingResource> GetShadingResources(PdfDictionary? resources) {
         var result = new Dictionary<string, PdfPageShadingResource>(StringComparer.Ordinal);
@@ -883,19 +735,6 @@ public sealed partial class PdfReadPage {
             ReadMatrixNumber(matrix, 3, 1D),
             ReadMatrixNumber(matrix, 4, 0D),
             ReadMatrixNumber(matrix, 5, 0D));
-    }
-
-    private bool TryReadStrictPatternMatrix(PdfObject? matrixObject, out Matrix2D matrix) {
-        matrix = Matrix2D.Identity;
-        PdfArray? values = ResolveArray(matrixObject);
-        if (values == null || values.Items.Count != 6) return false;
-        var components = new double[6];
-        for (int index = 0; index < components.Length; index++) {
-            if (ResolveObject(values.Items[index]) is not PdfNumber number || !IsFinite(number.Value)) return false;
-            components[index] = number.Value;
-        }
-        matrix = new Matrix2D(components[0], components[1], components[2], components[3], components[4], components[5]);
-        return true;
     }
 
     private bool TryReadShading(PdfObject? value, out PdfPageShadingResource shading) {
@@ -1086,7 +925,7 @@ public sealed partial class PdfReadPage {
             PdfPageSoftMaskResource? softMask = hasSoftMask ? ReadSoftMask(state) : null;
             bool clearsSoftMask = hasSoftMask &&
                 state.Items.TryGetValue("SMask", out PdfObject? authoredSoftMask) &&
-                ResolveObject(authoredSoftMask) is PdfName { Name: "None" };
+                ResolveEffectObject(authoredSoftMask) is PdfName { Name: "None" };
             if (fillOpacity.HasValue ||
                 strokeOpacity.HasValue ||
                 strokeWidth.HasValue ||
@@ -1340,9 +1179,11 @@ public sealed partial class PdfReadPage {
                 activeForms,
                 renderedType3PaintOrders: renderedType3PaintOrders,
                 type3GlyphBudget: type3GlyphBudget,
-                type3ImageVisitor: (placement, image) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count)),
+                type3ImageVisitor: (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
+                type3PrimitiveVisitor: (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
                 textOutputBudget: textOutputBudget,
-                pageContentBudget: pageContentBudget);
+                pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root);
             for (int primitiveIndex = 0; primitiveIndex < primitives.Count; primitiveIndex++) {
                 elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[primitiveIndex], elements.Count));
             }
@@ -1384,10 +1225,25 @@ public sealed partial class PdfReadPage {
                     }
                 }
             }
+            var appearanceEffects = new List<PdfPageDrawingEffectTransition>();
+            CollectGraphicsEffectTransitions(
+                appearanceContent,
+                appearanceResources,
+                appearanceTransform,
+                pageHeight,
+                appearanceEffects,
+                new HashSet<PdfStream>(),
+                PdfPageDrawingEffect.Default,
+                pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root);
+            SortGraphicsEffectTransitions(appearanceEffects);
+            OverlayDrawingEffects(elements, appearanceEffects);
 
             SortDrawingElements(elements);
+            var appearanceSoftMasks = new Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
+            var activeAppearanceSoftMasks = new HashSet<PdfStream>();
             for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
-                AddDrawingElementCore(drawing, pageHeight, elements[elementIndex]);
+                AddDrawingElement(drawing, pageHeight, appearanceTransform, elements[elementIndex], appearanceSoftMasks, activeAppearanceSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);
             }
         }
     }
@@ -2161,6 +2017,12 @@ public sealed partial class PdfReadPage {
         public PdfExtractedImage? Image { get; }
 
         public PdfPageDrawingEffect Effect { get; }
+
+        internal PdfContentOrderKey? ContentOrderKey => Kind switch {
+            PdfPageDrawingElementKind.Primitive => Primitive.ContentOrderKey,
+            PdfPageDrawingElementKind.Image => ImagePlacement?.ContentOrderKey,
+            _ => null
+        };
 
         public PdfPageDrawingElement WithEffect(PdfPageDrawingEffect effect) =>
             new PdfPageDrawingElement(Kind, PaintOrder, Sequence, Primitive, TextSpan, ImagePlacement, Image, effect);

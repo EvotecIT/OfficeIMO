@@ -5,7 +5,18 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadPage {
     private static void AddTilingPatternFill(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
         PdfPageTilingPatternPaint paint = primitive.FillTilingPattern!;
-        if (!TryGetTilingPatternFillBounds(primitive, drawing.Width, drawing.Height, out PdfPageClipPath fitted)) return;
+        if (primitive.Width <= 0D || primitive.Height <= 0D) return;
+        PdfPageClipPath shapeClip;
+        if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
+            shapeClip = PdfPageClipPath.Rectangle(primitive.X, primitive.Y, primitive.Width, primitive.Height);
+        } else if (!PdfPageClipPath.TryCreatePath(primitive.PathCommands, primitive.FillRule, out shapeClip)) {
+            return;
+        }
+
+        if (primitive.ClipPath.HasValue) {
+            shapeClip = PdfPageClipPath.ResolveActiveClip(shapeClip, primitive.ClipPath.Value);
+        }
+        if (!TryFitClipToDrawing(shapeClip, drawing.Width, drawing.Height, out PdfPageClipPath fitted)) return;
         OfficeClipPath? clip = fitted.ToOfficeClipPath(fitted.X, fitted.Y);
         if (clip == null) return;
 
@@ -19,91 +30,13 @@ public sealed partial class PdfReadPage {
             paint.Resource.HorizontalStep,
             paint.Resource.VerticalStep,
             localTransform,
-            maximumTileCount: MaximumPatternVisibilityTiles,
+            maximumTileCount: 16384,
             opacity: paint.Opacity);
         drawing.AddClippedDrawing(patternDrawing, fitted.X, fitted.Y, clip);
     }
 
     private static void AddTilingPatternStroke(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
         PdfPageTilingPatternPaint paint = primitive.StrokeTilingPattern!;
-        if (!TryGetTilingPatternStrokeBounds(primitive, drawing.Width, drawing.Height, out PdfPageClipPath fitted)) return;
-
-        OfficeDrawing tile = paint.Resource.Tile.Clone();
-        if (paint.Tint.HasValue) tile.ApplyColorTint(paint.Tint.Value);
-        var patternDrawing = new OfficeDrawing(fitted.Width, fitted.Height);
-        OfficeTransform localTransform = paint.Transform.Then(OfficeTransform.Translate(-fitted.X, -fitted.Y));
-        patternDrawing.AddTilingPattern(
-            tile,
-            new OfficeImagePlacement(0D, 0D, fitted.Width, fitted.Height),
-            paint.Resource.HorizontalStep,
-            paint.Resource.VerticalStep,
-            localTransform,
-            maximumTileCount: MaximumPatternVisibilityTiles,
-            opacity: paint.Opacity);
-
-        OfficeDrawing strokeMask = CreatePatternStrokeMask(primitive, fitted);
-        if (strokeMask.Elements.Count == 0) return;
-        drawing.AddEffectDrawing(
-            patternDrawing,
-            OfficeTransform.Translate(fitted.X, fitted.Y),
-            OfficeBlendMode.Normal,
-            new OfficeDrawingSoftMask(strokeMask));
-    }
-
-    private static bool CanRenderTilingPatterns(PdfPageVisualPrimitive primitive, double drawingWidth, double drawingHeight) {
-        if (primitive.FillTilingPattern != null &&
-            TryGetTilingPatternFillBounds(primitive, drawingWidth, drawingHeight, out PdfPageClipPath fillBounds) &&
-            !IsWithinTilingPatternLimit(primitive.FillTilingPattern, fillBounds)) {
-            return false;
-        }
-        if (primitive.StrokeTilingPattern != null && primitive.StrokeWidth > 0D &&
-            TryGetTilingPatternStrokeBounds(primitive, drawingWidth, drawingHeight, out PdfPageClipPath strokeBounds) &&
-            !IsWithinTilingPatternLimit(primitive.StrokeTilingPattern, strokeBounds)) {
-            return false;
-        }
-        return true;
-    }
-
-    private static PdfPageTilingPatternPaint CreateTilingPatternPaint(
-        PdfPageTilingPatternResource resource,
-        Matrix2D stateTransform,
-        double pageHeight) {
-        var localToPattern = new Matrix2D(1D, 0D, 0D, -1D, resource.BoundingBoxX, resource.BoundingBoxTop);
-        Matrix2D combined = Matrix2D.Multiply(
-            new Matrix2D(1D, 0D, 0D, -1D, 0D, pageHeight),
-            Matrix2D.Multiply(stateTransform, Matrix2D.Multiply(resource.Matrix, localToPattern)));
-        return new PdfPageTilingPatternPaint(
-            resource,
-            new OfficeTransform(combined.A, combined.B, combined.C, combined.D, combined.E, combined.F),
-            null,
-            1D);
-    }
-
-    private static bool TryGetTilingPatternFillBounds(
-        PdfPageVisualPrimitive primitive,
-        double drawingWidth,
-        double drawingHeight,
-        out PdfPageClipPath fitted) {
-        fitted = default;
-        if (primitive.Width <= 0D || primitive.Height <= 0D) return false;
-        PdfPageClipPath shapeClip;
-        if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
-            shapeClip = PdfPageClipPath.Rectangle(primitive.X, primitive.Y, primitive.Width, primitive.Height);
-        } else if (!PdfPageClipPath.TryCreatePath(primitive.PathCommands, primitive.FillRule, out shapeClip)) {
-            return false;
-        }
-        if (primitive.ClipPath.HasValue) {
-            shapeClip = PdfPageClipPath.ResolveActiveClip(shapeClip, primitive.ClipPath.Value);
-        }
-        return TryFitClipToDrawing(shapeClip, drawingWidth, drawingHeight, out fitted);
-    }
-
-    private static bool TryGetTilingPatternStrokeBounds(
-        PdfPageVisualPrimitive primitive,
-        double drawingWidth,
-        double drawingHeight,
-        out PdfPageClipPath fitted) {
-        fitted = default;
         double strokeHalf = primitive.StrokeWidth / 2D;
         double left = primitive.X - strokeHalf;
         double top = primitive.Y - strokeHalf;
@@ -115,36 +48,34 @@ public sealed partial class PdfReadPage {
             width = Math.Abs(primitive.X2 - primitive.X1) + primitive.StrokeWidth;
             height = Math.Abs(primitive.Y2 - primitive.Y1) + primitive.StrokeWidth;
         }
-        if (width <= 0D || height <= 0D) return false;
+        if (width <= 0D || height <= 0D) return;
+
         PdfPageClipPath strokeBounds = PdfPageClipPath.Rectangle(left, top, width, height);
         if (primitive.ClipPath.HasValue) {
             strokeBounds = PdfPageClipPath.ResolveActiveClip(strokeBounds, primitive.ClipPath.Value);
         }
-        return TryFitClipToDrawing(strokeBounds, drawingWidth, drawingHeight, out fitted);
-    }
+        if (!TryFitClipToDrawing(strokeBounds, drawing.Width, drawing.Height, out PdfPageClipPath fitted)) return;
 
-    private static bool IsWithinTilingPatternLimit(PdfPageTilingPatternPaint paint, PdfPageClipPath fitted) {
-        OfficeTransform transform = paint.Transform.Then(OfficeTransform.Translate(-fitted.X, -fitted.Y));
-        if (!transform.TryInvert(out OfficeTransform inverse)) return false;
-        OfficePoint topLeft = inverse.TransformPoint(new OfficePoint(0D, 0D));
-        OfficePoint topRight = inverse.TransformPoint(new OfficePoint(fitted.Width, 0D));
-        OfficePoint bottomRight = inverse.TransformPoint(new OfficePoint(fitted.Width, fitted.Height));
-        OfficePoint bottomLeft = inverse.TransformPoint(new OfficePoint(0D, fitted.Height));
-        double minX = Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomRight.X, bottomLeft.X));
-        double maxX = Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomRight.X, bottomLeft.X));
-        double minY = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomRight.Y, bottomLeft.Y));
-        double maxY = Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomRight.Y, bottomLeft.Y));
-        if (!TryGetTileRange(minX, maxX, 0D, paint.Resource.Tile.Width, paint.Resource.HorizontalStep, out long firstColumn, out long lastColumn) ||
-            !TryGetTileRange(minY, maxY, 0D, paint.Resource.Tile.Height, paint.Resource.VerticalStep, out long firstRow, out long lastRow)) {
-            return false;
-        }
-        double columns = (double)lastColumn - firstColumn + 1D;
-        double rows = (double)lastRow - firstRow + 1D;
-        return columns <= 0D || rows <= 0D ||
-            IsFinite(columns) && IsFinite(rows) &&
-            columns <= MaximumPatternVisibilityTiles &&
-            rows <= MaximumPatternVisibilityTiles &&
-            columns * rows <= MaximumPatternVisibilityTiles;
+        OfficeDrawing tile = paint.Resource.Tile.Clone();
+        if (paint.Tint.HasValue) tile.ApplyColorTint(paint.Tint.Value);
+        var patternDrawing = new OfficeDrawing(fitted.Width, fitted.Height);
+        OfficeTransform localTransform = paint.Transform.Then(OfficeTransform.Translate(-fitted.X, -fitted.Y));
+        patternDrawing.AddTilingPattern(
+            tile,
+            new OfficeImagePlacement(0D, 0D, fitted.Width, fitted.Height),
+            paint.Resource.HorizontalStep,
+            paint.Resource.VerticalStep,
+            localTransform,
+            maximumTileCount: 16384,
+            opacity: paint.Opacity);
+
+        OfficeDrawing strokeMask = CreatePatternStrokeMask(primitive, fitted);
+        if (strokeMask.Elements.Count == 0) return;
+        drawing.AddEffectDrawing(
+            patternDrawing,
+            OfficeTransform.Translate(fitted.X, fitted.Y),
+            OfficeBlendMode.Normal,
+            new OfficeDrawingSoftMask(strokeMask));
     }
 
     private static OfficeDrawing CreatePatternStrokeMask(PdfPageVisualPrimitive primitive, PdfPageClipPath fitted) {
@@ -189,9 +120,7 @@ public sealed partial class PdfReadPage {
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
         Type3GlyphBudget? type3GlyphBudget = null,
-        bool requireSupportedType3Content = false,
-        Action<PdfStream, PdfDictionary, string>? materializedPatternVisitor = null,
-        HashSet<PdfStream>? activeType3Glyphs = null) {
+        bool requireSupportedType3Content = false) {
         pageContentBudget ??= new PageContentBudget(this);
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var result = new Dictionary<string, PdfPageTilingPatternResource>(StringComparer.Ordinal);
@@ -220,8 +149,6 @@ public sealed partial class PdfReadPage {
                 pageContentBudget,
                 type3GlyphBudget,
                 requireSupportedType3Content,
-                materializedPatternVisitor,
-                activeType3Glyphs,
                 out PdfPageTilingPatternResource? parsed)
                 ? parsed
                 : null;
@@ -242,8 +169,6 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
         bool requireSupportedType3Content,
-        Action<PdfStream, PdfDictionary, string>? materializedPatternVisitor,
-        HashSet<PdfStream>? activeType3Glyphs,
         out PdfPageTilingPatternResource pattern) {
         pattern = null!;
         int? paintType;
@@ -260,24 +185,15 @@ public sealed partial class PdfReadPage {
         double width = box.X2 - box.X1;
         double height = box.Y2 - box.Y1;
         if (width <= 0D || height <= 0D) return false;
-        PdfDictionary resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
+        PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
         int failureVersion = type3GlyphBudget.FailureVersion;
-        string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
-        bool uncolored = paintType == 2;
-        OfficeDrawing tile = CreatePatternTileDrawing(stream, content, resources, box, width, height, textOutputBudget ?? CreateTextOutputBudget(), pageContentBudget, type3GlyphBudget, requireSupportedType3Content, activeType3Glyphs, rejectImageContent: requireSupportedType3Content && uncolored);
-        if (requireSupportedType3Content && type3GlyphBudget.FailureVersion != failureVersion) return false;
-        Matrix2D matrix;
-        if (stream.Dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) {
-            if (requireSupportedType3Content) {
-                if (!TryReadStrictPatternMatrix(matrixObject, out matrix)) return false;
-            } else {
-                matrix = ReadPatternMatrix(matrixObject);
-            }
-        } else {
-            matrix = Matrix2D.Identity;
-        }
+        OfficeDrawing tile = CreatePatternTileDrawing(stream, resources, box, width, height, textOutputBudget ?? CreateTextOutputBudget(), pageContentBudget, type3GlyphBudget, requireSupportedType3Content);
+        if (type3GlyphBudget.FailureVersion != failureVersion) return false;
+        Matrix2D matrix = stream.Dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)
+            ? ReadPatternMatrix(matrixObject)
+            : Matrix2D.Identity;
         if (!IsUsableTilingPatternMatrix(matrix)) return false;
-        materializedPatternVisitor?.Invoke(stream, resources, content);
+        bool uncolored = paintType == 2;
         pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored);
         return true;
     }
@@ -289,7 +205,6 @@ public sealed partial class PdfReadPage {
 
     private OfficeDrawing CreatePatternTileDrawing(
         PdfStream stream,
-        string content,
         PdfDictionary? resources,
         (double X1, double Y1, double X2, double Y2) box,
         double width,
@@ -297,17 +212,15 @@ public sealed partial class PdfReadPage {
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
-        bool requireSupportedType3Content,
-        HashSet<PdfStream>? activeType3Glyphs,
-        bool rejectImageContent) {
+        bool requireSupportedType3Content) {
         var drawing = new OfficeDrawing(width, height);
         RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
+        string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
         if (content.Length == 0) return drawing;
         Matrix2D transform = Matrix2D.Translation(-box.X1, -box.Y1);
         var activeForms = new HashSet<PdfStream>();
         var elements = new List<PdfPageDrawingElement>();
         var primitives = new List<PdfPageVisualPrimitive>();
-        var placements = new List<PdfImagePlacement>();
         var renderedType3PaintOrders = new HashSet<double>();
         CollectVisualPrimitivesAndForms(
             content,
@@ -317,23 +230,16 @@ public sealed partial class PdfReadPage {
             height,
             primitives.Add,
             activeForms,
-            activeType3Glyphs,
             renderedType3PaintOrders: renderedType3PaintOrders,
             type3GlyphBudget: type3GlyphBudget,
             includeTilingPatterns: false,
             requireSupportedType3Content: requireSupportedType3Content,
-            rejectShadingContent: requireSupportedType3Content && rejectImageContent,
-            unrenderedPatternVisitor: requireSupportedType3Content ? _ => type3GlyphBudget.RecordFailure() : null,
-            type3ImageVisitor: (placement, image) => {
-                if (rejectImageContent) {
-                    type3GlyphBudget.RecordFailure();
-                } else {
-                    elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count));
-                }
-            },
-            type3ImagePlacementVisitor: requireSupportedType3Content ? placements.Add : null,
+            unrenderedPatternVisitor: _ => type3GlyphBudget.RecordFailure(),
+            type3ImageVisitor: (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
+            type3PrimitiveVisitor: (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
             textOutputBudget: textOutputBudget,
-            pageContentBudget: pageContentBudget);
+            pageContentBudget: pageContentBudget,
+            contentOrderPrefix: PdfContentOrderKey.Root);
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
 
         var spans = new List<PdfTextSpan>();
@@ -359,23 +265,34 @@ public sealed partial class PdfReadPage {
             elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
         }
 
-        if (!requireSupportedType3Content) {
-            CollectImagePlacementsAndForms(content, resources, 0, transform, height, placements, activeForms, pageContentBudget: pageContentBudget);
-        }
+        var placements = new List<PdfImagePlacement>();
+        CollectImagePlacementsAndForms(content, resources, 0, transform, height, placements, activeForms, pageContentBudget: pageContentBudget);
         if (placements.Count > 0) {
             IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(resources, 0, placements, colorizeImageMasks: true);
             for (int i = 0; i < placements.Count; i++) {
                 PdfExtractedImage? image = FindImage(images, placements[i]);
-                if (requireSupportedType3Content &&
-                    (rejectImageContent || image == null || !IsSupportedType3Image(placements[i], image) || image.HasUnresolvedTransparencyMask)) {
-                    type3GlyphBudget.RecordFailure();
-                    continue;
-                }
                 if (image != null) elements.Add(PdfPageDrawingElement.FromImage(placements[i], image, elements.Count));
             }
         }
+        var enclosingEffects = new List<PdfPageDrawingEffectTransition>();
+        CollectGraphicsEffectTransitions(
+            content,
+            resources,
+            transform,
+            height,
+            enclosingEffects,
+            new HashSet<PdfStream>(),
+            PdfPageDrawingEffect.Default,
+            pageContentBudget: pageContentBudget,
+            contentOrderPrefix: PdfContentOrderKey.Root);
+        SortGraphicsEffectTransitions(enclosingEffects);
+        OverlayDrawingEffects(elements, enclosingEffects);
         SortDrawingElements(elements);
-        for (int i = 0; i < elements.Count; i++) AddDrawingElementCore(drawing, height, elements[i]);
+        var softMasks = new Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
+        var activeSoftMasks = new HashSet<PdfStream>();
+        for (int i = 0; i < elements.Count; i++) {
+            AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);
+        }
         return drawing;
     }
 }
