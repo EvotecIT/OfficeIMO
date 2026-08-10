@@ -18,15 +18,18 @@ namespace OfficeIMO.Visio {
             private readonly Dictionary<XElement, Dictionary<string, string>> _styleCache = new();
             private readonly Dictionary<XElement, bool> _visualEffectCache = new();
             private readonly bool _parseBudgetExceeded;
+            private readonly bool _unsupportedConditionalRule;
             private int _selectorEvaluations;
 
             private SvgStyleSheet(
                 List<SvgStyleRule> rules,
                 List<SvgVisualEffectRule> visualEffectRules,
-                bool parseBudgetExceeded) {
+                bool parseBudgetExceeded,
+                bool unsupportedConditionalRule) {
                 _rules = rules;
                 _visualEffectRules = visualEffectRules;
                 _parseBudgetExceeded = parseBudgetExceeded;
+                _unsupportedConditionalRule = unsupportedConditionalRule;
             }
 
             internal static SvgStyleSheet Parse(XElement root, CancellationToken cancellationToken) {
@@ -39,6 +42,7 @@ namespace OfficeIMO.Visio {
                 int selectorCount = 0;
                 int ruleDeclarationCopies = 0;
                 bool parseBudgetExceeded = false;
+                bool unsupportedConditionalRule = false;
                 foreach (XElement styleElement in root.Descendants()) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!string.Equals(styleElement.Name.LocalName, "style", StringComparison.OrdinalIgnoreCase)) {
@@ -61,16 +65,19 @@ namespace OfficeIMO.Visio {
                         ref selectorCount,
                         ref ruleDeclarationCopies,
                         cancellationToken,
-                        ref parseBudgetExceeded);
+                        ref parseBudgetExceeded,
+                        ref unsupportedConditionalRule);
                     if (parseBudgetExceeded) break;
                 }
 
-                return new SvgStyleSheet(rules, visualEffectRules, parseBudgetExceeded);
+                return new SvgStyleSheet(rules, visualEffectRules, parseBudgetExceeded, unsupportedConditionalRule);
             }
 
             internal bool SelectorBudgetExceeded { get; private set; }
 
             internal bool BudgetExceeded => _parseBudgetExceeded || SelectorBudgetExceeded;
+
+            internal bool HasUnsupportedConditionalRules => _unsupportedConditionalRule;
 
             internal Dictionary<string, string> CreateStyle(XElement element) {
                 if (_styleCache.TryGetValue(element, out Dictionary<string, string>? cached)) return cached;
@@ -111,7 +118,8 @@ namespace OfficeIMO.Visio {
                 ref int selectorCount,
                 ref int ruleDeclarationCopies,
                 CancellationToken cancellationToken,
-                ref bool budgetExceeded) {
+                ref bool budgetExceeded,
+                ref bool unsupportedConditionalRule) {
                 if (string.IsNullOrWhiteSpace(css)) {
                     return;
                 }
@@ -137,18 +145,23 @@ namespace OfficeIMO.Visio {
                     ruleCount++;
                     string selectorList = normalized.Substring(index, open - index).Trim();
                     string declarationText = normalized.Substring(open + 1, close - open - 1);
-                    if (IsNestedRuleAtRule(selectorList)) {
-                        ReadRules(
-                            declarationText,
-                            rules,
-                            visualEffectRules,
-                            ref sourceOrder,
-                            ref ruleCount,
-                            ref declarationCount,
-                            ref selectorCount,
-                            ref ruleDeclarationCopies,
-                            cancellationToken,
-                            ref budgetExceeded);
+                    if (TryClassifyNestedRule(selectorList, out bool applies, out bool canEvaluate)) {
+                        if (applies) {
+                            ReadRules(
+                                declarationText,
+                                rules,
+                                visualEffectRules,
+                                ref sourceOrder,
+                                ref ruleCount,
+                                ref declarationCount,
+                                ref selectorCount,
+                                ref ruleDeclarationCopies,
+                                cancellationToken,
+                                ref budgetExceeded,
+                                ref unsupportedConditionalRule);
+                        } else if (!canEvaluate) {
+                            unsupportedConditionalRule = true;
+                        }
                         if (budgetExceeded) break;
                         index = close + 1;
                         continue;
@@ -218,18 +231,60 @@ namespace OfficeIMO.Visio {
                 return -1;
             }
 
-            private static bool IsNestedRuleAtRule(string prelude) {
+            private static bool TryClassifyNestedRule(string prelude, out bool applies, out bool canEvaluate) {
+                applies = false;
+                canEvaluate = true;
                 if (prelude.Length == 0 || prelude[0] != '@') return false;
                 int end = 1;
                 while (end < prelude.Length && (char.IsLetter(prelude[end]) || prelude[end] == '-')) end++;
                 string name = prelude.Substring(1, end - 1);
-                return string.Equals(name, "media", StringComparison.OrdinalIgnoreCase) ||
-                       string.Equals(name, "supports", StringComparison.OrdinalIgnoreCase) ||
-                       string.Equals(name, "layer", StringComparison.OrdinalIgnoreCase) ||
-                       string.Equals(name, "container", StringComparison.OrdinalIgnoreCase) ||
-                       string.Equals(name, "scope", StringComparison.OrdinalIgnoreCase) ||
-                       string.Equals(name, "document", StringComparison.OrdinalIgnoreCase) ||
-                       string.Equals(name, "starting-style", StringComparison.OrdinalIgnoreCase);
+                if (string.Equals(name, "layer", StringComparison.OrdinalIgnoreCase)) {
+                    applies = true;
+                    return true;
+                }
+                if (string.Equals(name, "media", StringComparison.OrdinalIgnoreCase)) {
+                    string condition = prelude.Substring(end).Trim();
+                    applies = IsScreenMediaCondition(condition);
+                    canEvaluate = applies || IsKnownInactiveMediaCondition(condition);
+                    return true;
+                }
+                if (string.Equals(name, "starting-style", StringComparison.OrdinalIgnoreCase)) {
+                    return true;
+                }
+                if (string.Equals(name, "supports", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, "container", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, "scope", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, "document", StringComparison.OrdinalIgnoreCase)) {
+                    canEvaluate = false;
+                    return true;
+                }
+                return false;
+            }
+
+            private static bool IsScreenMediaCondition(string condition) {
+                if (condition.Length == 0) return true;
+                string[] queries = condition.Split(',');
+                for (int index = 0; index < queries.Length; index++) {
+                    string query = queries[index].Trim();
+                    if (query.Equals("all", StringComparison.OrdinalIgnoreCase) ||
+                        query.Equals("screen", StringComparison.OrdinalIgnoreCase) ||
+                        query.Equals("only screen", StringComparison.OrdinalIgnoreCase)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            private static bool IsKnownInactiveMediaCondition(string condition) {
+                string[] queries = condition.Split(',');
+                for (int index = 0; index < queries.Length; index++) {
+                    string query = queries[index].Trim();
+                    if (!(query.Equals("print", StringComparison.OrdinalIgnoreCase) ||
+                          query.Equals("only print", StringComparison.OrdinalIgnoreCase))) {
+                        return false;
+                    }
+                }
+                return queries.Length > 0;
             }
 
             private static int CountListItems(string value, char separator) {

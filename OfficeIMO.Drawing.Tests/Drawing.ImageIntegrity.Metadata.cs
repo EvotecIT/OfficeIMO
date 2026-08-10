@@ -97,6 +97,29 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void PngContainerRequiresOneStructurallyValidExifTiffPayload() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] exif = {
+            (byte)'I', (byte)'I', 42, 0, 8, 0, 0, 0,
+            0, 0,
+            0, 0, 0, 0
+        };
+        byte[] withExif = InsertPngChunkBefore(png, "IDAT", "eXIf", exif);
+        byte[] duplicate = InsertPngChunkBefore(withExif, "IEND", "eXIf", exif);
+        byte[] badOffset = (byte[])exif.Clone();
+        badOffset[4] = 0x40;
+        byte[] malformed = InsertPngChunkBefore(png, "IDAT", "eXIf", badOffset);
+
+        Assert.True(OfficeImageReader.TryValidateContent(withExif, "exif.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(duplicate, "duplicate-exif.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(malformed, "malformed-exif.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "eXIf", Array.Empty<byte>()),
+            "empty-exif.png",
+            out _));
+    }
+
+    [Fact]
     public void CompleteContentValidationRejectsOutOfRangeOptionalTiffIfdValues() {
         byte[] tiff = OfficeTiffCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         int resolutionEntry = FindClassicTiffEntry(tiff, 282);

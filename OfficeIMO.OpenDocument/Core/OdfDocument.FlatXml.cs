@@ -132,8 +132,10 @@ public abstract partial class OdfDocument {
             if (data.LongLength > options.MaxEntryUncompressedBytes) throw new InvalidDataException("Flat OpenDocument image exceeds MaxEntryUncompressedBytes.");
             string? mediaType = (string?)image.Attribute(OdfNamespaces.Draw + "mime-type");
             string extension;
-            if (OfficeImageReader.TryIdentifyByContent(data, fileName: null, out OfficeImageInfo imageInfo) &&
-                OdfImageFormats.TryGetExtension(imageInfo.Format, out string detectedExtension)) {
+            if (OfficeImageReader.TryIdentifyByContent(data, fileName: null, out OfficeImageInfo imageInfo)) {
+                if (!OdfImageFormats.TryGetExtension(imageInfo.Format, out string detectedExtension)) {
+                    throw new InvalidDataException("Flat OpenDocument image content uses unsupported detected format '" + imageInfo.Format + "'.");
+                }
                 extension = detectedExtension;
             } else if (OdfImageFormats.TryGetFormat(mediaType, out OfficeImageFormat declaredFormat) &&
                        OdfImageFormats.TryGetExtension(declaredFormat, out string declaredExtension)) {

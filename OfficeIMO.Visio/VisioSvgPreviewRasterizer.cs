@@ -79,6 +79,12 @@ namespace OfficeIMO.Visio {
                 new SvgPaintBounds(viewLeft, viewTop, viewWidth, viewHeight),
                 imageResolver,
                 cancellationToken);
+            if (context.StyleSheet.HasUnsupportedConditionalRules) {
+                context.ReportUnsupportedFeature();
+            }
+            if (IsElementDisplayNone(root, context)) {
+                return false;
+            }
             double rootOpacity = SvgPaint.ReadOwnOpacity(root, context);
             if (rootOpacity <= 0D) {
                 return false;
@@ -92,6 +98,7 @@ namespace OfficeIMO.Visio {
             SvgTransform transform = CreateViewBoxTransform(viewLeft, viewTop, viewWidth, viewHeight, 0D, 0D, width, height, root.Attribute("preserveAspectRatio")?.Value);
             using IDisposable rootTextStyle = context.PushTextStyle(SvgTextStyle.Resolve(root, SvgTextStyle.Default, context));
             using IDisposable rootFillRule = context.PushFillRule(ResolveFillRule(root, context));
+            using IDisposable rootVisibilityScope = context.PushVisibility(ReadVisibilityOverride(root, context));
             OfficeRasterCanvas targetCanvas = canvas;
             OfficeRasterImage? rootLayer = null;
             if (useRootOpacityLayer) {

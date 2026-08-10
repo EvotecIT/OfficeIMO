@@ -192,6 +192,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PlainTextExtensionsConsumePendingGraphicControlState() {
+            byte[] valid = CreateIndexedGif(
+                1,
+                1,
+                new[] { OfficeColor.Red, OfficeColor.Lime },
+                new byte[] { 0 });
+            int imageDescriptorOffset = Array.IndexOf(valid, (byte)0x2C);
+            var withPlainText = valid.ToList();
+            withPlainText.InsertRange(
+                imageDescriptorOffset,
+                new byte[] {
+                    0x21, 0xF9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00,
+                    0x21, 0x01, 0x0C,
+                    0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x01, 0x00, 0x01,
+                    0x00
+                });
+
+            Assert.True(OfficeGifReader.TryDecodeFrame(withPlainText.ToArray(), 0, out OfficeRasterImage? image, out _));
+            Assert.Equal(OfficeColor.Red, Assert.IsType<OfficeRasterImage>(image).GetPixel(0, 0));
+            Assert.True(OfficeImageReader.TryValidateContent(withPlainText.ToArray(), "plain-text.gif", out _));
+        }
+
+        [Fact]
+        public void CompleteContentValidationBoundsPlainTextTransparencyAgainstTheGlobalTable() {
+            byte[] valid = CreateIndexedGif(
+                1,
+                1,
+                new[] { OfficeColor.Red, OfficeColor.Lime },
+                new byte[] { 0 });
+            int imageDescriptorOffset = Array.IndexOf(valid, (byte)0x2C);
+            var malformed = valid.ToList();
+            malformed.InsertRange(
+                imageDescriptorOffset,
+                new byte[] {
+                    0x21, 0xF9, 0x04, 0x01, 0x00, 0x00, 0x02, 0x00,
+                    0x21, 0x01, 0x0C,
+                    0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x01, 0x00, 0x01,
+                    0x00
+                });
+
+            Assert.True(OfficeGifReader.TryDecodeFrame(malformed.ToArray(), 0, out _, out _));
+            Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "plain-text-transparency.gif", out _));
+        }
+
+        [Fact]
         public void CompleteContentValidationRejectsTransparencyIndexesOutsideTheActiveColorTable() {
             byte[] valid = CreateSinglePixelGif();
             int imageDescriptorOffset = Array.IndexOf(valid, (byte)0x2C);

@@ -33,6 +33,7 @@ internal static class OfficePngContainerValidator {
             bool seenSignificantBits = false;
             bool seenStandardRgb = false;
             bool seenIccProfile = false;
+            bool seenExif = false;
             int bitDepth = 0;
             int colorType = 0;
             int paletteEntries = 0;
@@ -186,6 +187,15 @@ internal static class OfficePngContainerValidator {
                             return false;
                         }
                         seenIccProfile = true;
+                        break;
+                    case "eXIf":
+                        if (!seenHeader || seenExif ||
+                            !OfficeTiffStructureValidator.TryValidateExif(bytes, dataOffset, length)) {
+                            failureReason = "PNG bytes contain an invalid or repeated eXIf chunk.";
+                            return false;
+                        }
+                        seenExif = true;
+                        if (seenImageData) imageDataEnded = true;
                         break;
                     case "IDAT":
                         if (!seenHeader || imageDataEnded || (colorType == 3 && !seenPalette)) {

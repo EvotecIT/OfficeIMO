@@ -105,8 +105,16 @@ public static class OfficeGifReader {
                         }
                     } else if (validateAllFrames && label == 0xFF) {
                         if (!TryReadFixedHeaderExtension(bytes, ref offset, expectedHeaderLength: 11)) return false;
-                    } else if (validateAllFrames && label == 0x01) {
-                        if (!TryReadFixedHeaderExtension(bytes, ref offset, expectedHeaderLength: 12)) return false;
+                    } else if (label == 0x01) {
+                        if (validateAllFrames) {
+                            if (transparentIndex >= 0 &&
+                                (globalColorTable == null || transparentIndex >= globalColorTable.Length)) return false;
+                            if (!TryReadFixedHeaderExtension(bytes, ref offset, expectedHeaderLength: 12)) return false;
+                        } else if (!SkipSubBlocks(bytes, ref offset)) {
+                            return false;
+                        }
+                        transparentIndex = -1;
+                        disposalMethod = 0;
                     } else if (!SkipSubBlocks(bytes, ref offset)) {
                         return false;
                     }

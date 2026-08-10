@@ -288,6 +288,55 @@ public class VisioImageExport {
     }
 
     [Theory]
+    [InlineData("@media print")]
+    [InlineData("@starting-style")]
+    public void EmbeddedSvgPreviewDoesNotApplyKnownInactiveConditionalRules(string conditionalRule) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><style>" +
+                     conditionalRule + " { rect { display:none; } }</style>" +
+                     "<rect width='10' height='10' fill='red'/></svg>";
+
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            null, "inactive-conditional.svg", default, out OfficeRasterImage? image));
+        Assert.Equal(OfficeColor.Red, Assert.IsType<OfficeRasterImage>(image).GetPixel(5, 5));
+    }
+
+    [Fact]
+    public void EmbeddedSvgPreviewSkipsUnevaluatedConditionalRulesAndReportsLoss() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                           "<style>@supports (display: grid) { rect { display:none; } }</style>" +
+                           "<rect width='10' height='10' fill='red'/></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "conditional.svg", default, out OfficeRasterImage? image));
+        Assert.Equal(OfficeColor.Red, Assert.IsType<OfficeRasterImage>(image).GetPixel(5, 5));
+        Assert.Contains(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
+    [Theory]
+    [InlineData("display='none'", false)]
+    [InlineData("visibility='hidden'", false)]
+    [InlineData("visibility='hidden'", true)]
+    public void EmbeddedSvgPreviewAppliesRootDisplayAndVisibility(
+        string rootAttribute,
+        bool childOverridesVisibility) {
+        string childAttribute = childOverridesVisibility ? "visibility='visible'" : string.Empty;
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' " + rootAttribute + ">" +
+                     "<rect width='10' height='10' fill='red' " + childAttribute + "/></svg>";
+
+        bool rendered = VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            null, "root-visibility.svg", default, out OfficeRasterImage? image);
+
+        Assert.Equal(childOverridesVisibility, rendered);
+        Assert.Equal(childOverridesVisibility, image != null);
+    }
+
+    [Theory]
     [InlineData(".blur", "class='Blur'")]
     [InlineData("RECT", "")]
     [InlineData("[DATA-effect]", "data-effect='true'")]

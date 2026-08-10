@@ -124,6 +124,21 @@ public sealed class DrawingPremiumTiffDecodingTests {
         Assert.False(OfficeImageReader.TryValidateContent(tiff, "trailing-raw-deflate.tiff", out _));
     }
 
+    [Fact]
+    public void TiffDecoder_RejectsRawDeflateStoredUnderAdobeDeflateTag() {
+        byte[] tiff = CreateTiff(
+            width: 2,
+            height: 1,
+            photometric: 1,
+            samples: 1,
+            pixels: new byte[] { 0, 255 },
+            rawDeflate: true);
+        WriteUInt32(tiff, FindEntryValueOffset(tiff, 259), (int)OfficeTiffCompression.Deflate);
+
+        Assert.False(OfficeTiffCodec.TryDecode(tiff, out _));
+        Assert.False(OfficeImageReader.TryValidateContent(tiff, "raw-adobe-deflate.tiff", out _));
+    }
+
     private static byte[] CreateTiff(
         int width,
         int height,

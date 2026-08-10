@@ -249,6 +249,36 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
     }
 
     [Fact]
+    public void FlatImageExtractionRejectsDetectedFormatsWithoutAnOpenDocumentMapping() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] icon = new byte[22 + png.Length];
+        icon[2] = 1;
+        icon[4] = 1;
+        icon[6] = 1;
+        icon[7] = 1;
+        icon[10] = 1;
+        icon[12] = 32;
+        WriteUInt32LittleEndian(icon, 14, png.Length);
+        WriteUInt32LittleEndian(icon, 18, 22);
+        Buffer.BlockCopy(png, 0, icon, 22, png.Length);
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph().AddImage(
+            png,
+            "pixel.png",
+            OdfLength.Centimeters(1),
+            OdfLength.Centimeters(1));
+        XDocument flat = source.ToFlatXml();
+        XElement imageElement = Assert.Single(flat.Descendants(OdfNamespaces.Draw + "image"));
+        imageElement.SetAttributeValue(OdfNamespaces.Draw + "mime-type", "image/png");
+        imageElement.Element(OdfNamespaces.Office + "binary-data")!.Value = Convert.ToBase64String(icon);
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        Assert.Throws<InvalidDataException>(() => OdtDocument.LoadFlatXml(stream));
+    }
+
+    [Fact]
     public void FlatSvgBinaryDataIsParsedAndReserializedBeforePackaging() {
         const string safeSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><rect width='10' height='10' fill='red'/></svg>";
         const string activeSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><script>alert(1)</script><rect width='10' height='10' fill='red' onclick='alert(2)'/></svg>";
@@ -684,6 +714,13 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         XElement secondRow = firstRow.ElementsAfterSelf(OdfNamespaces.Table + "table-row").First();
         firstRow.Remove();
         secondRow.AddBeforeSelf(new XElement(OdfNamespaces.Table + "table-header-rows", firstRow));
+    }
+
+    private static void WriteUInt32LittleEndian(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+        bytes[offset + 2] = (byte)(value >> 16);
+        bytes[offset + 3] = (byte)(value >> 24);
     }
 
     private static byte[] RewriteWithoutManifestVersion(byte[] sourceBytes, string partVersion) {
