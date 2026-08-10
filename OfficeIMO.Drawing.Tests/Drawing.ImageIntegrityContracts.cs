@@ -122,6 +122,51 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void PngContainerRequiresOneWellFormedPhysicalDimensionsChunkBeforeImageData() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] physicalDimensions = { 0, 0, 0x0E, 0xC4, 0, 0, 0x0E, 0xC4, 1 };
+        byte[] withPhysicalDimensions = InsertPngChunkBefore(png, "IDAT", "pHYs", physicalDimensions);
+        byte[] wrongLength = InsertPngChunkBefore(png, "IDAT", "pHYs", new byte[8]);
+        byte[] duplicate = InsertPngChunkBefore(withPhysicalDimensions, "IDAT", "pHYs", physicalDimensions);
+        byte[] misplaced = InsertPngChunkBefore(png, "IEND", "pHYs", physicalDimensions);
+        byte[] invalidUnit = InsertPngChunkBefore(
+            png, "IDAT", "pHYs", new byte[] { 0, 0, 0x0E, 0xC4, 0, 0, 0x0E, 0xC4, 2 });
+
+        Assert.True(OfficeImageReader.TryValidateContent(png, "valid-phys.png", out _));
+        Assert.True(OfficeImageReader.TryValidateContent(withPhysicalDimensions, "valid-phys.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(wrongLength, "wrong-length-phys.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(duplicate, "duplicate-phys.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(misplaced, "misplaced-phys.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(invalidUnit, "invalid-unit-phys.png", out _));
+    }
+
+    [Fact]
+    public void CompleteContentValidationHonorsBmpDeclaredFileSizeAndReservedFields() {
+        byte[] bmp = new byte[58];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        WriteInt32LittleEndian(bmp, 2, bmp.Length);
+        WriteInt32LittleEndian(bmp, 10, 54);
+        WriteInt32LittleEndian(bmp, 14, 40);
+        WriteInt32LittleEndian(bmp, 18, 1);
+        WriteInt32LittleEndian(bmp, 22, 1);
+        WriteUInt16LittleEndian(bmp, 26, 1);
+        WriteUInt16LittleEndian(bmp, 28, 24);
+        bmp[56] = 255;
+        byte[] oversizedDeclaration = (byte[])bmp.Clone();
+        WriteInt32LittleEndian(oversizedDeclaration, 2, bmp.Length + 1);
+        byte[] undersizedDeclaration = (byte[])bmp.Clone();
+        WriteInt32LittleEndian(undersizedDeclaration, 2, bmp.Length - 1);
+        byte[] reservedField = (byte[])bmp.Clone();
+        reservedField[6] = 1;
+
+        Assert.True(OfficeImageReader.TryValidateContent(bmp, "valid.bmp", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(oversizedDeclaration, "truncated.bmp", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(undersizedDeclaration, "trailing.bmp", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(reservedField, "reserved.bmp", out _));
+    }
+
+    [Fact]
     public void CompleteContentValidationRejectsTruncatedGifCorruptPngAndMarkerOnlyJpeg() {
         byte[] truncatedGif = { (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a', 1, 0, 1, 0, 0, 0, 0 };
         byte[] markerOnlyJpeg = {

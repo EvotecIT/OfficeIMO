@@ -22,6 +22,8 @@ public static partial class OfficeImageReader {
         int imageHeight = 0;
         bool extended = false;
         bool hasImage = false;
+        bool seenAnimationControl = false;
+        bool hasAnimationFrame = false;
         byte extendedFlags = 0;
         int exifOffset = 0;
         int exifLength = 0;
@@ -56,29 +58,26 @@ public static partial class OfficeImageReader {
                 width = 1 + ReadUInt24LittleEndian(data, chunkDataOffset + 4);
                 height = 1 + ReadUInt24LittleEndian(data, chunkDataOffset + 7);
             } else if (chunkType == "VP8L") {
-                if (hasImage ||
-                    chunkSize < 5 ||
-                    data[chunkDataOffset] != 0x2F) {
+                if (hasImage || !TryReadWebpImageHeader(
+                        data, chunkDataOffset, chunkSize, "VP8L", out imageWidth, out imageHeight)) {
                     return false;
                 }
-
-                imageWidth = 1 + data[chunkDataOffset + 1] + ((data[chunkDataOffset + 2] & 0x3F) << 8);
-                imageHeight = 1 + ((data[chunkDataOffset + 2] & 0xC0) >> 6) +
-                              (data[chunkDataOffset + 3] << 2) +
-                              ((data[chunkDataOffset + 4] & 0x0F) << 10);
                 hasImage = true;
             } else if (chunkType == "VP8 ") {
-                if (hasImage ||
-                    chunkSize < 10 ||
-                    data[chunkDataOffset + 3] != 0x9D ||
-                    data[chunkDataOffset + 4] != 0x01 ||
-                    data[chunkDataOffset + 5] != 0x2A) {
+                if (hasImage || !TryReadWebpImageHeader(
+                        data, chunkDataOffset, chunkSize, "VP8 ", out imageWidth, out imageHeight)) {
                     return false;
                 }
-
-                imageWidth = ReadUInt16LittleEndian(data, chunkDataOffset + 6) & 0x3FFF;
-                imageHeight = ReadUInt16LittleEndian(data, chunkDataOffset + 8) & 0x3FFF;
                 hasImage = true;
+            } else if (chunkType == "ANIM") {
+                if (!extended || seenAnimationControl || hasImage || chunkSize != 6) return false;
+                seenAnimationControl = true;
+            } else if (chunkType == "ANMF") {
+                if (!extended || !seenAnimationControl || hasImage ||
+                    !TryReadWebpAnimationFrame(data, chunkDataOffset, chunkSize, width, height)) {
+                    return false;
+                }
+                hasAnimationFrame = true;
             } else if (chunkType == "EXIF" && exifOffset == 0) {
                 exifOffset = chunkDataOffset;
                 exifLength = chunkSize;
@@ -87,14 +86,20 @@ public static partial class OfficeImageReader {
             offset = (int)paddedChunkEnd;
         }
 
-        if (offset != data.Length || !hasImage) return false;
+        if (offset != data.Length) return false;
         if (extended) {
-            if (width != imageWidth ||
-                height != imageHeight ||
-                ((extendedFlags & 0x08) != 0) != (exifOffset != 0)) {
+            bool declaresAnimation = (extendedFlags & 0x02) != 0;
+            if (declaresAnimation) {
+                if (hasImage || !seenAnimationControl || !hasAnimationFrame) return false;
+            } else if (!hasImage || seenAnimationControl || hasAnimationFrame ||
+                       width != imageWidth || height != imageHeight) {
+                return false;
+            }
+            if (((extendedFlags & 0x08) != 0) != (exifOffset != 0)) {
                 return false;
             }
         } else {
+            if (!hasImage) return false;
             width = imageWidth;
             height = imageHeight;
         }
@@ -108,6 +113,88 @@ public static partial class OfficeImageReader {
         }
 
         info = new OfficeImageInfo(OfficeImageFormat.Webp, width, height, dpiX, dpiY);
+        return width > 0 && height > 0;
+    }
+
+    private static bool TryReadWebpAnimationFrame(
+        byte[] data,
+        int offset,
+        int length,
+        int canvasWidth,
+        int canvasHeight) {
+        if (length < 24) return false;
+
+        int frameX = checked(ReadUInt24LittleEndian(data, offset) * 2);
+        int frameY = checked(ReadUInt24LittleEndian(data, offset + 3) * 2);
+        int frameWidth = checked(ReadUInt24LittleEndian(data, offset + 6) + 1);
+        int frameHeight = checked(ReadUInt24LittleEndian(data, offset + 9) + 1);
+        if ((data[offset + 15] & 0xFC) != 0 ||
+            (long)frameX + frameWidth > canvasWidth ||
+            (long)frameY + frameHeight > canvasHeight) {
+            return false;
+        }
+
+        bool seenAlpha = false;
+        bool seenImage = false;
+        int frameEnd = checked(offset + length);
+        int chunkOffset = offset + 16;
+        while (chunkOffset < frameEnd) {
+            if (chunkOffset > frameEnd - 8) return false;
+            string chunkType = GetAscii(data, chunkOffset, 4);
+            uint declaredChunkSize = ReadUInt32LittleEndian(data, chunkOffset + 4);
+            if (declaredChunkSize > int.MaxValue) return false;
+
+            int chunkSize = (int)declaredChunkSize;
+            int chunkDataOffset = checked(chunkOffset + 8);
+            long chunkDataEnd = (long)chunkDataOffset + chunkSize;
+            long paddedChunkEnd = chunkDataEnd + (chunkSize & 1);
+            if (chunkDataEnd > frameEnd || paddedChunkEnd > frameEnd ||
+                (chunkSize & 1) != 0 && data[(int)chunkDataEnd] != 0) {
+                return false;
+            }
+
+            if (chunkType == "ALPH") {
+                if (seenAlpha || seenImage || chunkSize == 0) return false;
+                seenAlpha = true;
+            } else if (chunkType == "VP8 " || chunkType == "VP8L") {
+                if (seenImage || seenAlpha && chunkType == "VP8L" || !TryReadWebpImageHeader(
+                        data, chunkDataOffset, chunkSize, chunkType, out int imageWidth, out int imageHeight) ||
+                    imageWidth != frameWidth || imageHeight != frameHeight) {
+                    return false;
+                }
+                seenImage = true;
+            }
+
+            chunkOffset = (int)paddedChunkEnd;
+        }
+
+        return chunkOffset == frameEnd && seenImage;
+    }
+
+    private static bool TryReadWebpImageHeader(
+        byte[] data,
+        int offset,
+        int length,
+        string chunkType,
+        out int width,
+        out int height) {
+        width = 0;
+        height = 0;
+        if (chunkType == "VP8L") {
+            if (length < 5 || data[offset] != 0x2F) return false;
+            width = 1 + data[offset + 1] + ((data[offset + 2] & 0x3F) << 8);
+            height = 1 + ((data[offset + 2] & 0xC0) >> 6) +
+                     (data[offset + 3] << 2) +
+                     ((data[offset + 4] & 0x0F) << 10);
+            return true;
+        }
+
+        if (chunkType != "VP8 " || length < 10 ||
+            data[offset + 3] != 0x9D || data[offset + 4] != 0x01 || data[offset + 5] != 0x2A) {
+            return false;
+        }
+        width = ReadUInt16LittleEndian(data, offset + 6) & 0x3FFF;
+        height = ReadUInt16LittleEndian(data, offset + 8) & 0x3FFF;
         return width > 0 && height > 0;
     }
 

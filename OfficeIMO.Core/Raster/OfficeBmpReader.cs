@@ -25,6 +25,13 @@ public static class OfficeBmpReader {
                 return false;
             }
 
+            uint declaredFileSize = ReadUInt32LittleEndian(bytes, 2);
+            if (declaredFileSize != bytes.Length ||
+                ReadUInt16LittleEndian(bytes, 6) != 0 ||
+                ReadUInt16LittleEndian(bytes, 8) != 0) {
+                return false;
+            }
+
             int pixelOffset = ReadInt32LittleEndian(bytes, 10);
             int dibHeaderSize = ReadInt32LittleEndian(bytes, 14);
             if (dibHeaderSize < BitmapInfoHeaderSize || pixelOffset < BitmapFileHeaderSize + dibHeaderSize || pixelOffset >= bytes.Length) {
@@ -78,6 +85,9 @@ public static class OfficeBmpReader {
 
     private static int ReadUInt16LittleEndian(byte[] bytes, int offset) =>
         bytes[offset] | (bytes[offset + 1] << 8);
+
+    private static uint ReadUInt32LittleEndian(byte[] bytes, int offset) =>
+        (uint)(bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24));
 
     private static bool HasNonZeroAlpha(byte[] bytes, int pixelOffset, int width, int height, int rowStride) {
         for (int y = 0; y < height; y++) {

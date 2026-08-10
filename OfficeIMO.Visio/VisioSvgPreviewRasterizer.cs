@@ -94,6 +94,7 @@ namespace OfficeIMO.Visio {
                 targetCanvas = CreateLayerCanvas(canvas, rootLayer);
             }
 
+            using IDisposable? rootClipScope = PushClipPath(targetCanvas, root, transform, context);
             bool rendered = RenderChildren(targetCanvas, root, inherited, transform, context);
             if (context.RenderBudgetExceeded) {
                 AddSvgLossDiagnostic(

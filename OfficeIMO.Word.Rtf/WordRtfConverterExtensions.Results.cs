@@ -223,21 +223,18 @@ public static partial class WordRtfConverterExtensions {
 
     private static void AddWordToRtfDiagnostics(WordDocument document, RtfConversionReport report) {
         List<OpenXmlElement> storyRoots = EnumerateConvertibleWordStoryRoots(document).ToList();
-        HashSet<long> footnoteIds = storyRoots
+        var footnoteIds = new HashSet<long>(storyRoots
             .OfType<Footnote>()
             .Where(note => note.Id?.Value != null)
-            .Select(note => note.Id!.Value)
-            .ToHashSet();
-        HashSet<long> endnoteIds = storyRoots
+            .Select(note => note.Id!.Value));
+        var endnoteIds = new HashSet<long>(storyRoots
             .OfType<Endnote>()
             .Where(note => note.Id?.Value != null)
-            .Select(note => note.Id!.Value)
-            .ToHashSet();
-        HashSet<string> commentIds = storyRoots
+            .Select(note => note.Id!.Value));
+        var commentIds = new HashSet<string>(storyRoots
             .OfType<Comment>()
             .Where(comment => !string.IsNullOrWhiteSpace(comment.Id?.Value))
-            .Select(comment => comment.Id!.Value!)
-            .ToHashSet(StringComparer.Ordinal);
+            .Select(comment => comment.Id!.Value!), StringComparer.Ordinal);
         List<WordElement> elements = EnumerateWordElements(document.Elements)
             .Concat(EnumerateHeaderFooterElements(document))
             .Concat(EnumerateNoteElements(document, footnoteIds, endnoteIds))
@@ -364,16 +361,14 @@ public static partial class WordRtfConverterExtensions {
         do {
             added = false;
             HashSet<string> referencedCommentIds = CollectReferencedCommentIds(contentRoots);
-            HashSet<long> referencedFootnoteIds = contentRoots
+            var referencedFootnoteIds = new HashSet<long>(contentRoots
                 .SelectMany(root => root.Descendants<FootnoteReference>())
                 .Where(reference => reference.Id?.Value != null)
-                .Select(reference => reference.Id!.Value)
-                .ToHashSet();
-            HashSet<long> referencedEndnoteIds = contentRoots
+                .Select(reference => reference.Id!.Value));
+            var referencedEndnoteIds = new HashSet<long>(contentRoots
                 .SelectMany(root => root.Descendants<EndnoteReference>())
                 .Where(reference => reference.Id?.Value != null)
-                .Select(reference => reference.Id!.Value)
-                .ToHashSet();
+                .Select(reference => reference.Id!.Value));
 
             if (mainPart.WordprocessingCommentsPart?.Comments != null) {
                 foreach (Comment comment in mainPart.WordprocessingCommentsPart.Comments.Elements<Comment>()) {

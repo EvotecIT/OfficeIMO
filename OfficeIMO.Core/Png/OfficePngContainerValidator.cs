@@ -23,6 +23,7 @@ internal static class OfficePngContainerValidator {
             bool seenAnimationControl = false;
             bool seenPalette = false;
             bool seenTransparency = false;
+            bool seenPhysicalDimensions = false;
             int bitDepth = 0;
             int colorType = 0;
             int paletteEntries = 0;
@@ -112,6 +113,14 @@ internal static class OfficePngContainerValidator {
                         }
                         declaredFrameCount = candidate;
                         seenAnimationControl = true;
+                        break;
+                    case "pHYs":
+                        if (!seenHeader || seenImageData || seenPhysicalDimensions || length != 9 ||
+                            bytes[dataOffset + 8] > 1) {
+                            failureReason = "PNG bytes contain an invalid or misplaced pHYs chunk.";
+                            return false;
+                        }
+                        seenPhysicalDimensions = true;
                         break;
                     case "IDAT":
                         if (!seenHeader || imageDataEnded || (colorType == 3 && !seenPalette)) {

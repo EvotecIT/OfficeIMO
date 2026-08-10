@@ -304,10 +304,11 @@ public sealed class OpenDocumentConversionLossReportTests {
             mapping.Status == OdfConversionMappingStatus.Unsupported);
     }
 
-    [Fact]
-    public void GeneralWebpImagesRemainPreservableAcrossOfficeToOpenDocumentBridges() {
-        byte[] webp = Convert.FromBase64String(
-            "UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoCAAIAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=");
+    [Theory]
+    [InlineData("UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoCAAIAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=")]
+    [InlineData("UklGRoQAAABXRUJQVlA4WAoAAAACAAAAAQAAAQAAQU5JTQYAAAAAAAAAAABBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAAJWUDhMDwAAAC8BQAAABxD9j/4HIqL/AQBBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAABWUDhMDwAAAC8BQAAABxDR//4HIqL/AQA=")]
+    public void GeneralWebpImagesRemainPreservableAcrossOfficeToOpenDocumentBridges(string encodedWebp) {
+        byte[] webp = Convert.FromBase64String(encodedWebp);
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         Assert.False(OfficeWebpCodec.TryDecode(webp, out _));
 

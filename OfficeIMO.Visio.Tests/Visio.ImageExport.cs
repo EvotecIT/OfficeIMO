@@ -10,6 +10,25 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class VisioImageExport {
+    [Theory]
+    [InlineData("clip-path='url(#left)'", "")]
+    [InlineData("style='clip-path:url(#left)'", "")]
+    [InlineData("class='clipped'", ".clipped{clip-path:url(#left)}")]
+    public void EmbeddedSvgPreviewAppliesRootClipPaths(string rootAttributes, string styleSheet) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' " + rootAttributes + ">" +
+                     "<style>" + styleSheet + "</style><defs><clipPath id='left'><rect width='5' height='10'/></clipPath></defs>" +
+                     "<rect width='10' height='10' fill='red'/></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "root-clip.svg", default, out OfficeRasterImage? image));
+        OfficeRasterImage raster = Assert.IsType<OfficeRasterImage>(image);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(2, 5));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(8, 5));
+        Assert.Empty(diagnostics);
+    }
+
     [Fact]
     public void EmbeddedSvgPreviewRejectsExcessiveNestingWithoutRecursingToTheProcessStack() {
         const int depth = 512;
