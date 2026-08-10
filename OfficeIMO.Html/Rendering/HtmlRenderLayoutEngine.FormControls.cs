@@ -134,8 +134,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int rows = ParsePositiveInteger(element.GetAttribute("rows"), 2, 1, 100);
             return Math.Max(style.LineHeight, rows * style.LineHeight);
         }
-        if (tag == "select" && (element.HasAttribute("multiple") || ParsePositiveInteger(element.GetAttribute("size"), 1, 1, 100) > 1)) {
-            int rows = ParsePositiveInteger(element.GetAttribute("size"), 4, 2, 20);
+        int selectDisplaySize = tag == "select" ? HtmlFormControlSemantics.GetSelectDisplaySize(element) : 1;
+        if (tag == "select" && (element.HasAttribute("multiple") || selectDisplaySize > 1)) {
+            int rows = Math.Max(2, Math.Min(20, selectDisplaySize));
             return Math.Max(style.LineHeight, rows * style.LineHeight);
         }
         return Math.Max(style.LineHeight, 20D);
@@ -398,8 +399,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         HtmlRenderBoxStyle style,
         string source) {
-        bool multiple = element.HasAttribute("multiple");
-        bool listBox = multiple || ParsePositiveInteger(element.GetAttribute("size"), 1, 1, 100) > 1;
+        bool listBox = element.HasAttribute("multiple")
+            || HtmlFormControlSemantics.GetSelectDisplaySize(element) > 1;
         if (listBox) {
             string[] values = HtmlFormControlSemantics.GetEffectiveSelectedOptions(element)
                 .Select(HtmlFormControlSemantics.GetOptionLabel)

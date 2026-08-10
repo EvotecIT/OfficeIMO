@@ -209,6 +209,42 @@ public partial class Html {
         Assert.Empty(control.Values);
     }
 
+    [Fact]
+    public void SemanticDocument_SizedSingleSelectWithoutSelectionHasNoImplicitValue() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse(
+            "<select size='2'><option>First</option><option>Second</option></select>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Empty(control.Values);
+
+        HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(
+            "<main><select size='2'><option>First</option><option>Second</option></select></main>",
+            "<main><select size='2'><option selected>First</option><option>Second</option></select></main>");
+        Assert.True(score.Metrics["form-state"] < 1D);
+    }
+
+    [Fact]
+    public void SemanticDocument_PreservesEmptyScalarValuesButNotValuelessControls() {
+        HtmlSemanticBlock form = Assert.Single(HtmlConversionDocument.Parse("""
+            <form>
+              <input name="text">
+              <textarea name="notes"></textarea>
+              <button name="save">Save</button>
+              <input name="attachment" type="file" value="ignored.txt">
+              <select name="choice" size="2"><option>First</option><option>Second</option></select>
+            </form>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks));
+        Dictionary<string, HtmlSemanticFormControl> controls = form.Children
+            .Select(block => block.FormControl!)
+            .ToDictionary(control => control.Name, StringComparer.Ordinal);
+
+        Assert.Equal(new[] { string.Empty }, controls["text"].Values);
+        Assert.Equal(new[] { string.Empty }, controls["notes"].Values);
+        Assert.Equal(new[] { string.Empty }, controls["save"].Values);
+        Assert.Empty(controls["attachment"].Values);
+        Assert.Empty(controls["choice"].Values);
+    }
+
     [Theory]
     [InlineData("<input type='range'>", "50")]
     [InlineData("<input type='range' value='invalid'>", "50")]

@@ -177,6 +177,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_SizedSingleSelectWithoutSelectionHasNoSelectedValue() {
+            const string html = "<select size='2'><option>First</option><option>Second</option></select>";
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            WordDropDownList dropDown = Assert.Single(doc.DropDownLists);
+            Assert.Equal(string.Empty, dropDown.SelectedValue);
+        }
+
+        [Fact]
         public void HtmlToWord_Select_PreservesDistinctOptionValueAndDisplayText() {
             const string html = "<p>Status <select data-tag=\"status\"><option value=\"internal-id\" selected>Visible label</option><option value=\"other-id\">Other label</option></select></p>";
 

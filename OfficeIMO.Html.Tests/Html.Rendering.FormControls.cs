@@ -91,12 +91,12 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRendering_SizedSingleSelectDefaultsToFirstOption() {
+    public void HtmlRendering_SizedSingleSelectWithoutSelectionRendersBlank() {
         const string html = "<select size='2'><option>First choice</option><option>Second choice</option></select>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
 
-        Assert.Contains("First choice", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("First choice", rendered.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Second choice", rendered.Text, StringComparison.Ordinal);
     }
 

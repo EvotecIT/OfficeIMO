@@ -171,18 +171,12 @@ internal static class HtmlFormControlSemantics {
                     element.GetAttribute("max"),
                     element.GetAttribute("step")) };
             }
-            if (element.HasAttribute("value")) {
-                return new[] { SanitizeInputValue(
-                    effectiveType,
-                    element.GetAttribute("value") ?? string.Empty,
-                    element.HasAttribute("multiple")) };
-            }
+            string value = element.GetAttribute("value")
+                ?? GetDefaultValue(name, element.GetAttribute("type"), element.TextContent ?? string.Empty);
+            return new[] { SanitizeInputValue(effectiveType, value, element.HasAttribute("multiple")) };
         }
-
-        string? authored = element.GetAttribute("value");
-        if (authored != null) return new[] { authored };
-        string defaultValue = GetDefaultValue(name, element.GetAttribute("type"), element.TextContent ?? string.Empty);
-        return defaultValue.Length == 0 ? Array.Empty<string>() : new[] { defaultValue };
+        if (name == "button") return new[] { element.GetAttribute("value") ?? string.Empty };
+        return Array.Empty<string>();
     }
 
     internal static string GetDefaultValue(string elementName, string? type, string textContent) {
@@ -260,9 +254,19 @@ internal static class HtmlFormControlSemantics {
         IElement[] options = select.QuerySelectorAll("option").ToArray();
         IElement[] selected = options.Where(option => option.HasAttribute("selected")).ToArray();
         if (select.HasAttribute("multiple")) return selected;
-        IElement? effective = selected.LastOrDefault()
-            ?? options.FirstOrDefault(option => !IsOptionEffectivelyDisabled(option));
+        IElement? effective = selected.LastOrDefault();
+        if (effective == null && GetSelectDisplaySize(select) == 1) {
+            effective = options.FirstOrDefault(option => !IsOptionEffectivelyDisabled(option));
+        }
         return effective == null ? Array.Empty<IElement>() : new[] { effective };
+    }
+
+    internal static int GetSelectDisplaySize(IElement select) {
+        if (select.HasAttribute("size")
+            && HtmlIntegerSemantics.TryParseNonNegativeInteger(select.GetAttribute("size"), out int size)) {
+            return size;
+        }
+        return select.HasAttribute("multiple") ? 4 : 1;
     }
 
     internal static bool IsOptionEffectivelyDisabled(IElement option) {
