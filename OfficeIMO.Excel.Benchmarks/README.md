@@ -280,7 +280,7 @@ These suites compare library methods within each CPU job, so method baselines
 and absolute per-job results are the appropriate shape. Do not combine those
 method baselines with an `--apples` job-baseline comparison.
 
-### Dated 65K XLSX snapshot (2026-08-07)
+### Dated 65K XLSX snapshot (2026-08-10)
 
 The fixed-work command above was run locally on .NET 10 with workstation GC,
 the Windows High performance power plan, and an AMD Ryzen 9 9950X3D2. CPU 0
@@ -288,21 +288,29 @@ and CPU 16 are the first logical processor in each measured L3 domain. Every
 method read the same hash-pinned workbook and passed the row, cell, and payload
 observation before measurement.
 
-| Library | CPU 0 mean | CPU 16 mean | Managed allocation |
+| Library | CPU 0 mean (median) | CPU 16 mean (median) | Managed allocation |
 | --- | ---: | ---: | ---: |
-| OfficeIMO.Excel | 450.1 ms | 481.4 ms | 366.88 KB |
-| Sylvan.Data.Excel | 586.2 ms | 484.5 ms | 649 KB |
-| ExcelDataReader | 478.6 ms | 457.3 ms | 207,509 KB |
-| ClosedXML | 1,288.1 ms | 1,251.5 ms | 725,535-725,691 KB |
-| EPPlus | 1,174.5 ms | 888.2 ms | 864,333-864,334 KB |
-| MiniExcel | 561.6 ms | 435.3 ms | 666,371 KB |
+| OfficeIMO.Excel | 151.1 ms (147.2 ms) | 164.8 ms (171.0 ms) | 366.73-366.95 KB |
+| Sylvan.Data.Excel | 459.0 ms (208.0 ms) | 428.7 ms (199.0 ms) | 649.63 KB |
+| ExcelDataReader | 686.2 ms (558.0 ms) | 739.0 ms (543.4 ms) | 207,509.23-207,509.47 KB |
+| ClosedXML | 1,240.6 ms (1,208.4 ms) | 1,098.0 ms (1,086.9 ms) | 725,534.69 KB |
+| EPPlus | 875.7 ms (869.2 ms) | 847.2 ms (888.2 ms) | 864,352.27-864,364.36 KB |
+| MiniExcel | 568.7 ms (470.3 ms) | 648.6 ms (468.7 ms) | 666,370.99-666,371.07 KB |
 
-OfficeIMO has the lowest mean on CPU 0. MiniExcel has the lowest mean on CPU
-16, but their 99.9% confidence intervals overlap, so this run does not resolve
-a difference on that domain; overlap is not proof of equivalence. OfficeIMO
-has the lowest managed allocation on both domains
-by a wide margin. Several methods were bimodal or changed performance phase;
-the full distributions matter more than selecting one favorable cluster.
+OfficeIMO has the lowest mean and median and BenchmarkDotNet rank 1 on both
+domains. It also has the lowest managed allocation by a wide margin. Sylvan,
+ExcelDataReader, and MiniExcel changed performance phase during their isolated
+processes. Sylvan's broad 99.9% confidence intervals overlap OfficeIMO on both
+domains; the run therefore establishes the observed rank and allocation lead,
+not a universal statistical separation from every reader. Outliers were
+retained, and the full distributions matter more than selecting one favorable
+cluster.
+
+The measured assemblies were SHA-256
+`B4AF8D8EB9C21AD0689D19B105FF5CD04E7F21339DF00167336848AD97A56AAB`
+for `OfficeIMO.Excel.Benchmarks.dll` and
+`AA7C4DE4881C95124EA527FB4B4571AB3A6481BEF988623D222CD98ABA29EC92`
+for `OfficeIMO.Excel.dll`.
 
 ### Dated 65K XLS and XLSB snapshot (2026-08-09)
 
