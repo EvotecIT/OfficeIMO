@@ -255,6 +255,7 @@ public class VisioImageExport {
     [InlineData("<style>@media all { .target { filter: url(#blur); } }</style>", "class='target'")]
     [InlineData("<style>rect:last-child { filter: url(#blur); }</style>", "")]
     [InlineData("<style>.maybe:nth-child(2) { filter: url(#blur); }</style>", "class='maybe'")]
+    [InlineData("<style>.maybe:nth-child(2) { clip-path:url(#clip); }</style>", "class='maybe'")]
     [InlineData("<style>#target { filter:url(#blur); } .c.c.c.c.c.c.c.c.c.c { filter:none; }</style>", "id='target' class='c'")]
     public void EmbeddedSvgPreviewReportsCssVisualEffects(string styleDefinition, string rectangleAttributes) {
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +

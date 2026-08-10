@@ -226,6 +226,29 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
     }
 
     [Fact]
+    public void FlatImageExtractionNormalizesDeclaredMediaToDetectedContent() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph().AddImage(
+            png,
+            "pixel.png",
+            OdfLength.Centimeters(1),
+            OdfLength.Centimeters(1));
+        XDocument flat = source.ToFlatXml();
+        XElement imageElement = Assert.Single(flat.Descendants(OdfNamespaces.Draw + "image"));
+        imageElement.SetAttributeValue(OdfNamespaces.Draw + "mime-type", "image/tiff");
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        OdtDocument reopened = OdtDocument.LoadFlatXml(stream);
+
+        OdtImage image = reopened.Paragraphs.Single().Images.Single();
+        Assert.EndsWith(".png", image.Path, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(png, image.GetImageBytes());
+    }
+
+    [Fact]
     public void FlatSvgBinaryDataIsParsedAndReserializedBeforePackaging() {
         const string safeSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><rect width='10' height='10' fill='red'/></svg>";
         const string activeSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><script>alert(1)</script><rect width='10' height='10' fill='red' onclick='alert(2)'/></svg>";

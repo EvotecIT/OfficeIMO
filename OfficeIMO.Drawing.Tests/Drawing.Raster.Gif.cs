@@ -191,6 +191,19 @@ namespace OfficeIMO.Tests {
             Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "reserved-gce.gif", out _));
         }
 
+        [Fact]
+        public void CompleteContentValidationRejectsTransparencyIndexesOutsideTheActiveColorTable() {
+            byte[] valid = CreateSinglePixelGif();
+            int imageDescriptorOffset = Array.IndexOf(valid, (byte)0x2C);
+            var malformed = valid.ToList();
+            malformed.InsertRange(
+                imageDescriptorOffset,
+                new byte[] { 0x21, 0xF9, 0x04, 0x01, 0x00, 0x00, 0x02, 0x00 });
+
+            Assert.True(OfficeGifReader.TryDecodeFrame(malformed.ToArray(), 0, out _, out _));
+            Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "transparency-index.gif", out _));
+        }
+
         [Theory]
         [InlineData(0x08)]
         [InlineData(0x10)]

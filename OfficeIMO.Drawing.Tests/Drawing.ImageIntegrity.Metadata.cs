@@ -24,6 +24,42 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void PngContainerRequiresOneCompleteChromaticitiesChunkBeforePaletteAndImageData() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] chromaticities = new byte[32];
+        byte[] withChromaticities = InsertPngChunkBefore(png, "IDAT", "cHRM", chromaticities);
+        byte[] duplicate = InsertPngChunkBefore(withChromaticities, "IDAT", "cHRM", chromaticities);
+        byte[] misplaced = InsertPngChunkBefore(png, "IEND", "cHRM", chromaticities);
+        byte[] wrongLength = InsertPngChunkBefore(png, "IDAT", "cHRM", new byte[31]);
+
+        Assert.True(OfficeImageReader.TryValidateContent(withChromaticities, "chromaticities.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(duplicate, "duplicate-chromaticities.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(misplaced, "misplaced-chromaticities.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(wrongLength, "short-chromaticities.png", out _));
+    }
+
+    [Fact]
+    public void PngContainerValidatesSignificantBitsBackgroundAndPaletteHistogramMetadata() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] withSignificantBits = InsertPngChunkBefore(
+            png, "IDAT", "sBIT", new byte[] { 8, 8, 8, 8 });
+        byte[] invalidSignificantBits = InsertPngChunkBefore(
+            png, "IDAT", "sBIT", new byte[] { 9, 8, 8, 8 });
+        byte[] withBackground = InsertPngChunkBefore(
+            png, "IDAT", "bKGD", new byte[] { 0, 0xFF, 0, 0xFF, 0, 0xFF });
+        byte[] invalidBackground = InsertPngChunkBefore(
+            png, "IDAT", "bKGD", new byte[] { 0, 0xFF });
+        byte[] histogramWithoutPalette = InsertPngChunkBefore(
+            png, "IDAT", "hIST", new byte[] { 0, 1 });
+
+        Assert.True(OfficeImageReader.TryValidateContent(withSignificantBits, "significant-bits.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(invalidSignificantBits, "invalid-significant-bits.png", out _));
+        Assert.True(OfficeImageReader.TryValidateContent(withBackground, "background.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(invalidBackground, "invalid-background.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(histogramWithoutPalette, "histogram.png", out _));
+    }
+
+    [Fact]
     public void PngContainerRequiresOneWellFormedIccProfileBeforePaletteAndImageData() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] compressedProfile = {

@@ -595,6 +595,51 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_Rtf_Image_Diagnostics_Report_Images_Discarded_From_Complex_Field_Instructions() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        paragraph._paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }));
+        WordParagraph image = paragraph.AddImage(
+            new Uri("https://example.test/field-instruction.png"), 16, 16);
+        Run imageRun = image._run!;
+        imageRun.Remove();
+        paragraph._paragraph.Append(imageRun);
+        paragraph._paragraph.Append(
+            new Run(new FieldCode(" REF target ")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            new Run(new Text("visible result")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        Assert.Empty(conversion.Value.Paragraphs.SelectMany(item => item.Inlines).OfType<RtfImage>());
+        RtfConversionDiagnostic diagnostic = Assert.Single(
+            conversion.Report.Diagnostics,
+            item => item.Code == "WordRtfImagesOmitted");
+        Assert.Equal(1, diagnostic.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+    }
+
+    [Fact]
+    public void Word_Rtf_Image_Diagnostics_Report_Images_Discarded_From_Unterminated_Complex_Field_Results() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        paragraph._paragraph.Append(
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new Run(new FieldCode(" REF target ")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }));
+        paragraph.AddImage(new Uri("https://example.test/unterminated-field.png"), 16, 16);
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        RtfConversionDiagnostic diagnostic = Assert.Single(
+            conversion.Report.Diagnostics,
+            item => item.Code == "WordRtfImagesOmitted");
+        Assert.Equal(1, diagnostic.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+    }
+
+    [Fact]
     public void Rtf_Word_Image_Diagnostics_Include_Referenced_Note_Stories() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         int idatOffset = FindRtfTestPngChunk(png, "IDAT");

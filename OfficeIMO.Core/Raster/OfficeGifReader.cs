@@ -216,7 +216,9 @@ public static class OfficeGifReader {
             }
         }
 
-        if (colorTable == null || colorTable.Length == 0 || offset >= bytes.Length) {
+        if (colorTable == null || colorTable.Length == 0 ||
+            requireCompleteLzw && transparentIndex >= colorTable.Length ||
+            offset >= bytes.Length) {
             return false;
         }
 

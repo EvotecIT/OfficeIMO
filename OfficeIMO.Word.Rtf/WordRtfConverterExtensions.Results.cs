@@ -338,7 +338,7 @@ public static partial class WordRtfConverterExtensions {
                 if (!visitedParagraphs.Add(paragraph)) continue;
                 bool paragraphOmitted = storyRoot.OmittedByConverter ||
                                         !IsParagraphConvertedFromStoryRoot(storyRoot.Root, paragraph);
-                foreach ((Run Run, bool OmittedByConverter) runCandidate in EnumerateConvertibleWordRuns(paragraph)) {
+                foreach ((Run Run, bool OmittedByConverter) runCandidate in EnumerateConvertibleWordRunsWithFieldState(paragraph)) {
                     if (!visitedRuns.Add(runCandidate.Run)) continue;
                     var candidate = new WordParagraph(document, paragraph, runCandidate.Run);
                     foreach (WordImage image in candidate.EnumerateImages()) {
@@ -511,6 +511,49 @@ public static partial class WordRtfConverterExtensions {
                     }
                     break;
             }
+        }
+    }
+
+    private static IEnumerable<(Run Run, bool OmittedByConverter)> EnumerateConvertibleWordRunsWithFieldState(
+        OpenXmlElement container) {
+        List<(Run Run, bool OmittedByConverter)> candidates = EnumerateConvertibleWordRuns(container).ToList();
+        var omittedByFieldState = new bool[candidates.Count];
+        var complexFieldResults = new List<bool>();
+        var complexFieldStarts = new List<int>();
+        for (int index = 0; index < candidates.Count; index++) {
+            (Run Run, bool OmittedByConverter) candidate = candidates[index];
+            Run run = candidate.Run;
+            FieldChar? marker = run.Elements<FieldChar>().FirstOrDefault();
+            FieldCharValues? markerType = marker?.FieldCharType?.Value;
+            bool omitted = candidate.OmittedByConverter;
+            if (markerType == FieldCharValues.Begin) {
+                omitted = true;
+                complexFieldResults.Add(false);
+                complexFieldStarts.Add(index);
+            } else if (complexFieldResults.Count > 0) {
+                omitted |= complexFieldResults.Any(capturingResult => !capturingResult);
+                if (markerType == FieldCharValues.Separate) {
+                    omitted = true;
+                    complexFieldResults[complexFieldResults.Count - 1] = true;
+                } else if (markerType == FieldCharValues.End) {
+                    omitted = true;
+                    complexFieldResults.RemoveAt(complexFieldResults.Count - 1);
+                    complexFieldStarts.RemoveAt(complexFieldStarts.Count - 1);
+                }
+            }
+            omittedByFieldState[index] = omitted;
+        }
+
+        // Unterminated complex fields are never completed into the RTF paragraph, so their
+        // accumulated result runs are omitted even when a Separate marker was present.
+        for (int frame = 0; frame < complexFieldStarts.Count; frame++) {
+            for (int index = complexFieldStarts[frame]; index < omittedByFieldState.Length; index++) {
+                omittedByFieldState[index] = true;
+            }
+        }
+
+        for (int index = 0; index < candidates.Count; index++) {
+            yield return (candidates[index].Run, omittedByFieldState[index]);
         }
     }
 

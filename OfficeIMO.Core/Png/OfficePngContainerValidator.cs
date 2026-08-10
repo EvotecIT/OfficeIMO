@@ -25,8 +25,12 @@ internal static class OfficePngContainerValidator {
             bool seenAnimationControl = false;
             bool seenPalette = false;
             bool seenTransparency = false;
+            bool seenBackground = false;
+            bool seenHistogram = false;
             bool seenPhysicalDimensions = false;
             bool seenGamma = false;
+            bool seenChromaticities = false;
+            bool seenSignificantBits = false;
             bool seenStandardRgb = false;
             bool seenIccProfile = false;
             int bitDepth = 0;
@@ -82,6 +86,7 @@ internal static class OfficePngContainerValidator {
                         break;
                     case "PLTE":
                         if (!seenHeader || seenImageData || seenPalette || seenTransparency ||
+                            seenBackground || seenHistogram ||
                             length < 3 || length > 768 || length % 3 != 0 ||
                             colorType == 0 || colorType == 4) {
                             failureReason = "PNG bytes contain an invalid or misplaced PLTE chunk.";
@@ -105,6 +110,22 @@ internal static class OfficePngContainerValidator {
                             return false;
                         }
                         seenTransparency = true;
+                        break;
+                    case "bKGD":
+                        if (!seenHeader || seenImageData || seenBackground ||
+                            !HasValidBackground(bytes, dataOffset, length, colorType, bitDepth, seenPalette, paletteEntries)) {
+                            failureReason = "PNG bytes contain an invalid or misplaced bKGD chunk.";
+                            return false;
+                        }
+                        seenBackground = true;
+                        break;
+                    case "hIST":
+                        if (!seenHeader || seenImageData || seenHistogram || colorType != 3 ||
+                            !seenPalette || length != paletteEntries * 2) {
+                            failureReason = "PNG bytes contain an invalid or misplaced hIST chunk.";
+                            return false;
+                        }
+                        seenHistogram = true;
                         break;
                     case "acTL":
                         if (!seenHeader || seenImageData || seenAnimationControl || length != 8) {
@@ -134,6 +155,21 @@ internal static class OfficePngContainerValidator {
                             return false;
                         }
                         seenGamma = true;
+                        break;
+                    case "cHRM":
+                        if (!seenHeader || seenPalette || seenImageData || seenChromaticities || length != 32) {
+                            failureReason = "PNG bytes contain an invalid or misplaced cHRM chunk.";
+                            return false;
+                        }
+                        seenChromaticities = true;
+                        break;
+                    case "sBIT":
+                        if (!seenHeader || seenPalette || seenImageData || seenSignificantBits ||
+                            !HasValidSignificantBits(bytes, dataOffset, length, colorType, bitDepth)) {
+                            failureReason = "PNG bytes contain an invalid or misplaced sBIT chunk.";
+                            return false;
+                        }
+                        seenSignificantBits = true;
                         break;
                     case "sRGB":
                         if (!seenHeader || seenPalette || seenImageData || seenStandardRgb || seenIccProfile || length != 1 ||
@@ -198,6 +234,51 @@ internal static class OfficePngContainerValidator {
             int sampleOffset = offset + index * 2;
             int sample = bytes[sampleOffset] << 8 | bytes[sampleOffset + 1];
             if (sample > maximumSample) return false;
+        }
+        return true;
+    }
+
+    private static bool HasValidBackground(
+        byte[] bytes,
+        int offset,
+        int length,
+        int colorType,
+        int bitDepth,
+        bool seenPalette,
+        int paletteEntries) {
+        if (colorType == 3) {
+            return seenPalette && length == 1 && bytes[offset] < paletteEntries;
+        }
+        int expectedSamples = colorType == 0 || colorType == 4 ? 1 : 3;
+        if (length != expectedSamples * 2 || bitDepth == 16) return length == expectedSamples * 2;
+        int maximumSample = (1 << bitDepth) - 1;
+        for (int index = 0; index < expectedSamples; index++) {
+            int sampleOffset = offset + index * 2;
+            int sample = bytes[sampleOffset] << 8 | bytes[sampleOffset + 1];
+            if (sample > maximumSample) return false;
+        }
+        return true;
+    }
+
+    private static bool HasValidSignificantBits(
+        byte[] bytes,
+        int offset,
+        int length,
+        int colorType,
+        int bitDepth) {
+        int expectedLength;
+        switch (colorType) {
+            case 0: expectedLength = 1; break;
+            case 2:
+            case 3: expectedLength = 3; break;
+            case 4: expectedLength = 2; break;
+            case 6: expectedLength = 4; break;
+            default: return false;
+        }
+        if (length != expectedLength) return false;
+        int maximum = colorType == 3 ? 8 : bitDepth;
+        for (int index = 0; index < length; index++) {
+            if (bytes[offset + index] == 0 || bytes[offset + index] > maximum) return false;
         }
         return true;
     }

@@ -171,7 +171,9 @@ namespace OfficeIMO.Visio {
                         string[] selectors = selectorList.Split(',');
                         for (int i = 0; i < selectors.Length; i++) {
                             cancellationToken.ThrowIfCancellationRequested();
-                            if ((declarations.ContainsKey("filter") || declarations.ContainsKey("mask")) &&
+                            if ((declarations.ContainsKey("filter") ||
+                                 declarations.ContainsKey("mask") ||
+                                 declarations.ContainsKey("clip-path")) &&
                                 !string.IsNullOrWhiteSpace(selectors[i])) {
                                 visualEffectRules.Add(new SvgVisualEffectRule(
                                     selectors[i].Trim(),
@@ -241,12 +243,17 @@ namespace OfficeIMO.Visio {
 
             internal bool HasActiveVisualEffect(XElement element) {
                 if (_visualEffectCache.TryGetValue(element, out bool cached)) return cached;
-                bool active = HasActiveVisualEffect(element, "filter") || HasActiveVisualEffect(element, "mask");
+                bool active = HasActiveVisualEffect(element, "filter") ||
+                              HasActiveVisualEffect(element, "mask") ||
+                              HasActiveVisualEffect(element, "clip-path", onlyUnsupportedSelector: true);
                 _visualEffectCache[element] = active;
                 return active;
             }
 
-            private bool HasActiveVisualEffect(XElement element, string propertyName) {
+            private bool HasActiveVisualEffect(
+                XElement element,
+                string propertyName,
+                bool onlyUnsupportedSelector = false) {
                 EffectCandidate candidate = default;
                 string? presentationValue = element.Attribute(propertyName)?.Value;
                 if (TryParseEffectValue(presentationValue, out string? normalizedPresentation, out bool presentationImportant)) {
@@ -290,7 +297,11 @@ namespace OfficeIMO.Visio {
                     if (!candidate.HasValue || inline.HasHigherPriorityThan(candidate)) candidate = inline;
                 }
 
-                if (candidate.HasValue && IsActiveEffectValue(element, propertyName, candidate.Value!)) return true;
+                if (!onlyUnsupportedSelector &&
+                    candidate.HasValue &&
+                    IsActiveEffectValue(element, propertyName, candidate.Value!)) {
+                    return true;
+                }
                 return uncertainActiveCandidate.HasValue &&
                        (!candidate.HasValue || uncertainActiveCandidate.HasHigherPriorityThan(candidate));
             }
