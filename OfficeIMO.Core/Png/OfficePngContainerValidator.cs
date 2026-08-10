@@ -43,6 +43,8 @@ internal static class OfficePngContainerValidator {
             int colorType = 0;
             int paletteEntries = 0;
             int declaredFrameCount = 1;
+            uint gammaValue = 0;
+            bool hasStandardRgbChromaticities = false;
             long decodedTextBytes = 0;
             int offset = Signature.Length;
             while (offset + 12 <= bytes.Length) {
@@ -156,19 +158,24 @@ internal static class OfficePngContainerValidator {
                         seenPhysicalDimensions = true;
                         break;
                     case "gAMA":
+                        uint candidateGamma = length == 4 ? ReadBigEndianUInt32(bytes, dataOffset) : 0;
                         if (!seenHeader || seenPalette || seenImageData || seenGamma || length != 4 ||
-                            ReadBigEndianUInt32(bytes, dataOffset) is 0 or > int.MaxValue) {
+                            candidateGamma is 0 or > int.MaxValue ||
+                            seenStandardRgb && candidateGamma != 45455U) {
                             failureReason = "PNG bytes contain an invalid or misplaced gAMA chunk.";
                             return false;
                         }
+                        gammaValue = candidateGamma;
                         seenGamma = true;
                         break;
                     case "cHRM":
                         if (!seenHeader || seenPalette || seenImageData || seenChromaticities || length != 32 ||
-                            !HasValidChromaticities(bytes, dataOffset)) {
+                            !HasValidChromaticities(bytes, dataOffset) ||
+                            seenStandardRgb && !HasStandardRgbChromaticities(bytes, dataOffset)) {
                             failureReason = "PNG bytes contain an invalid or misplaced cHRM chunk.";
                             return false;
                         }
+                        hasStandardRgbChromaticities = HasStandardRgbChromaticities(bytes, dataOffset);
                         seenChromaticities = true;
                         break;
                     case "sBIT":
@@ -181,7 +188,9 @@ internal static class OfficePngContainerValidator {
                         break;
                     case "sRGB":
                         if (!seenHeader || seenPalette || seenImageData || seenStandardRgb || seenIccProfile || length != 1 ||
-                            bytes[dataOffset] > 3) {
+                            bytes[dataOffset] > 3 ||
+                            seenGamma && gammaValue != 45455U ||
+                            seenChromaticities && !hasStandardRgbChromaticities) {
                             failureReason = "PNG bytes contain an invalid or misplaced sRGB chunk.";
                             return false;
                         }
@@ -354,6 +363,14 @@ internal static class OfficePngContainerValidator {
             uint x = coordinates[index];
             uint y = coordinates[index + 1];
             if (x > 100000U || y > 100000U - x) return false;
+        }
+        return true;
+    }
+
+    private static bool HasStandardRgbChromaticities(byte[] bytes, int offset) {
+        int[] expected = { 31270, 32900, 64000, 33000, 30000, 60000, 15000, 6000 };
+        for (int index = 0; index < expected.Length; index++) {
+            if (ReadBigEndianUInt32(bytes, offset + index * 4) != expected[index]) return false;
         }
         return true;
     }

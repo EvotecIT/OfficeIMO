@@ -109,9 +109,9 @@ public static partial class OfficeImageReader {
         long maskStride = (((long)width + 31L) / 32L) * 4L;
         long xorBytes = xorStride * height;
         long maskBytes = maskStride * height;
-        long remaining = payload.LongLength - pixelOffset;
-        bool hasMask = remaining == xorBytes + maskBytes;
-        bool hasOmittedMask = bitsPerPixel == 32 && remaining == xorBytes;
+        bool hasMask = HasExactIconDibLayout(payload, headerSize, pixelOffset, xorBytes + maskBytes);
+        bool hasOmittedMask = bitsPerPixel == 32 &&
+                              HasExactIconDibLayout(payload, headerSize, pixelOffset, xorBytes);
         if ((!hasMask && !hasOmittedMask) || imageSize < 0 ||
             (imageSize != 0 && imageSize != xorBytes && !(hasMask && imageSize == xorBytes + maskBytes))) {
             return false;
@@ -124,6 +124,30 @@ public static partial class OfficeImageReader {
                    bitsPerPixel,
                    (int)xorStride,
                    (int)paletteEntries);
+    }
+
+    private static bool HasExactIconDibLayout(
+        byte[] payload,
+        int headerSize,
+        long pixelOffset,
+        long pixelLength) {
+        long pixelEnd = pixelOffset + pixelLength;
+        if (pixelEnd > payload.LongLength) return false;
+        if (!OfficeBitmapV5ProfileValidator.TryValidate(
+                payload,
+                0,
+                headerSize,
+                pixelOffset,
+                pixelLength,
+                payload.Length,
+                out int profileOffset,
+                out int profileSize)) return false;
+        if (profileSize == 0) return pixelEnd == payload.LongLength;
+        if (profileOffset < pixelEnd || profileOffset + profileSize != payload.Length) return false;
+        for (long offset = pixelEnd; offset < profileOffset; offset++) {
+            if (payload[(int)offset] != 0) return false;
+        }
+        return true;
     }
 
     private static bool HasValidIconBitfieldMasks(

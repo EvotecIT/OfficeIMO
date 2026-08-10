@@ -159,7 +159,9 @@ public static partial class OfficeImageReader {
             case OfficeImageFormat.Tiff:
                 return OfficeTiffCodec.TryDecode(data, out _);
             case OfficeImageFormat.Webp:
-                return OfficeWebpCodec.TryDecode(data, out _);
+                return OfficeWebpCodec.TryDecode(data, out OfficeRasterImage? webpImage) &&
+                       webpImage != null &&
+                       TryReadWebp(data, out _, validateDecodedAlpha: true, decodedImage: webpImage);
             case OfficeImageFormat.Icon:
                 return HasCompleteIconPayload(data);
             default:

@@ -40,6 +40,47 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void CompleteContentValidationChecksBitmapV5ProfilesInsideIcons() {
+        byte[] validDib = CreateIconBitmapV5WithEmbeddedProfile();
+        byte[] outOfRange = (byte[])validDib.Clone();
+        WriteInt32LittleEndian(outOfRange, 116, outOfRange.Length + 1);
+        byte[] overlapsPixels = (byte[])validDib.Clone();
+        WriteInt32LittleEndian(overlapsPixels, 112, 124);
+        byte[] malformedProfile = (byte[])validDib.Clone();
+        int profileOffset = malformedProfile[112] |
+                            malformedProfile[113] << 8 |
+                            malformedProfile[114] << 16 |
+                            malformedProfile[115] << 24;
+        malformedProfile[profileOffset + 36] = (byte)'X';
+        byte[] validLinkedDib = CreateIconBitmapV5WithProfile(
+            Encoding.ASCII.GetBytes("profile.icc\0"),
+            0x4C494E4B);
+        byte[] malformedLinkedDib = (byte[])validLinkedDib.Clone();
+        malformedLinkedDib[malformedLinkedDib.Length - 1] = (byte)'X';
+
+        Assert.True(OfficeImageReader.TryValidateContent(CreateIcon(validDib), "profile.ico", out _));
+        Assert.True(OfficeImageReader.TryValidateContent(CreateIcon(validLinkedDib), "linked-profile.ico", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(CreateIcon(outOfRange), "out-of-range-profile.ico", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(CreateIcon(overlapsPixels), "overlapping-profile.ico", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(CreateIcon(malformedProfile), "malformed-profile.ico", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(CreateIcon(malformedLinkedDib), "malformed-linked-profile.ico", out _));
+    }
+
+    [Fact]
+    public void CompleteContentValidationRejectsGif87aControlExtensions() {
+        byte[] gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+        gif[4] = (byte)'7';
+        int imageDescriptor = Array.IndexOf(gif, (byte)0x2C, 13);
+        var withControl = new List<byte>(gif.Length + 8);
+        withControl.AddRange(gif.Take(imageDescriptor));
+        withControl.AddRange(new byte[] { 0x21, 0xF9, 0x04, 0, 0, 0, 0, 0 });
+        withControl.AddRange(gif.Skip(imageDescriptor));
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(withControl.ToArray(), "gif87a.gif", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(withControl.ToArray(), "gif87a.gif", out _));
+    }
+
+    [Fact]
     public void CompleteContentValidationChecksRecognizableJfifHeaders() {
         byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         int jfifOffset = FindAsciiSequence(jpeg, "JFIF\0");
@@ -183,7 +224,8 @@ public partial class DrawingTests {
         byte[] incorrectContainerFlag = (byte[])conservativeHint.Clone();
         int vp8xOffset = FindWebpChunk(incorrectContainerFlag, "VP8X");
         incorrectContainerFlag[vp8xOffset + 8] |= 0x10;
-        Assert.False(OfficeImageReader.TryIdentifyByContent(incorrectContainerFlag, "wrong-alpha-flag.webp", out _));
+        Assert.True(OfficeImageReader.TryIdentifyByContent(incorrectContainerFlag, "wrong-alpha-flag.webp", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(incorrectContainerFlag, "wrong-alpha-flag.webp", out _));
     }
 
     [Fact]
@@ -319,6 +361,30 @@ public partial class DrawingTests {
         WriteInt32LittleEndian(dib, 20, 4);
         dib[headerSize] = 0xFF;
         dib[headerSize + 3] = 0xFF;
+        return dib;
+    }
+
+    private static byte[] CreateIconBitmapV5WithEmbeddedProfile() {
+        return CreateIconBitmapV5WithProfile(CreateMinimalIccProfile(), 0x4D424544);
+    }
+
+    private static byte[] CreateIconBitmapV5WithProfile(byte[] profile, uint colorSpaceType) {
+        const int headerSize = 124;
+        const int xorBytes = 4;
+        const int maskBytes = 4;
+        const int profileOffset = headerSize + xorBytes + maskBytes;
+        var dib = new byte[profileOffset + profile.Length];
+        WriteInt32LittleEndian(dib, 0, headerSize);
+        WriteInt32LittleEndian(dib, 4, 1);
+        WriteInt32LittleEndian(dib, 8, 2);
+        WriteUInt16LittleEndian(dib, 12, 1);
+        WriteUInt16LittleEndian(dib, 14, 32);
+        WriteInt32LittleEndian(dib, 20, xorBytes + maskBytes);
+        WriteInt32LittleEndian(dib, 56, unchecked((int)colorSpaceType));
+        WriteInt32LittleEndian(dib, 112, profileOffset);
+        WriteInt32LittleEndian(dib, 116, profile.Length);
+        dib[headerSize + 3] = 0xFF;
+        Buffer.BlockCopy(profile, 0, dib, profileOffset, profile.Length);
         return dib;
     }
 

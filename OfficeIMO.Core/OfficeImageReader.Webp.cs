@@ -6,7 +6,11 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeImageReader {
     private const int MaximumWebpExifBytes = 1024 * 1024;
 
-    private static bool TryReadWebp(byte[] data, out OfficeImageInfo info) {
+    private static bool TryReadWebp(
+        byte[] data,
+        out OfficeImageInfo info,
+        bool validateDecodedAlpha = false,
+        OfficeRasterImage? decodedImage = null) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         if (data.Length < 20 ||
             GetAscii(data, 0, 4) != "RIFF" ||
@@ -73,8 +77,8 @@ public static partial class OfficeImageReader {
                 }
                 hasImage = true;
                 hasAlpha = imageHasAlpha;
-                if (extended && OfficeWebpCodec.TryDecode(data, out OfficeRasterImage? decoded) && decoded != null) {
-                    hasAlpha = HasWebpPixelTransparency(decoded.PixelBuffer);
+                if (extended && validateDecodedAlpha && decodedImage != null) {
+                    hasAlpha = HasWebpPixelTransparency(decodedImage.PixelBuffer);
                     alphaSemanticsKnown = true;
                 }
             } else if (chunkType == "VP8 ") {
@@ -107,6 +111,7 @@ public static partial class OfficeImageReader {
                 if (!extended || !seenAnimationControl || hasImage || exifOffset != 0 || seenXmp ||
                     !TryReadWebpAnimationFrame(
                         data, chunkDataOffset, chunkSize, width, height,
+                        validateDecodedAlpha,
                         out bool frameHasAlpha,
                         out bool frameAlphaSemanticsKnown)) {
                     return false;
@@ -171,6 +176,7 @@ public static partial class OfficeImageReader {
         int length,
         int canvasWidth,
         int canvasHeight,
+        bool validateDecodedAlpha,
         out bool hasAlpha,
         out bool alphaSemanticsKnown) {
         hasAlpha = false;
@@ -220,7 +226,7 @@ public static partial class OfficeImageReader {
                 if (chunkType == "VP8 ") {
                     hasAlpha = seenAlpha;
                     alphaSemanticsKnown = true;
-                } else if (TryDecodeStandaloneWebpChunk(
+                } else if (validateDecodedAlpha && TryDecodeStandaloneWebpChunk(
                                data,
                                chunkOffset,
                                (int)paddedChunkEnd - chunkOffset,

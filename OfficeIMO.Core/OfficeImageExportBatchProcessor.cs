@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -363,11 +364,19 @@ public static class OfficeImageExportBatchProcessor {
                 }
                 throw;
             }
+            ExceptionDispatchInfo? callbackFailure = null;
             try {
                 await callback.ConfigureAwait(false);
-            } finally {
-                await scope.AwaitNestedInvocationsAsync().ConfigureAwait(false);
+            } catch (Exception exception) {
+                callbackFailure = ExceptionDispatchInfo.Capture(exception);
             }
+            try {
+                await scope.AwaitNestedInvocationsAsync().ConfigureAwait(false);
+            } catch when (callbackFailure != null) {
+                // The callback is the primary operation. Drain and observe nested failures without
+                // replacing its exception; nested failures still surface when the callback succeeds.
+            }
+            callbackFailure?.Throw();
         } finally {
             if (ownsGate) gate.Release();
         }

@@ -247,6 +247,30 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
     }
 
     [Fact]
+    public void FlatImageExtractionRejectsMalformedRecognizableTiffContent() {
+        byte[] tiff = OfficeRasterImageEncoder.Encode(
+            new OfficeRasterImage(1, 1, OfficeColor.White),
+            OfficeImageExportFormat.Tiff);
+        Array.Resize(ref tiff, tiff.Length - 1);
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph().AddImage(
+            png,
+            "pixel.png",
+            OdfLength.Centimeters(1),
+            OdfLength.Centimeters(1));
+        XDocument flat = source.ToFlatXml();
+        XElement imageElement = Assert.Single(flat.Descendants(OdfNamespaces.Draw + "image"));
+        imageElement.SetAttributeValue(OdfNamespaces.Draw + "mime-type", "image/tiff");
+        imageElement.Element(OdfNamespaces.Office + "binary-data")!.Value = Convert.ToBase64String(tiff);
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        Assert.Throws<InvalidDataException>(() => OdtDocument.LoadFlatXml(stream));
+    }
+
+    [Fact]
     public void FlatImageExtractionNormalizesDeclaredMediaToDetectedContent() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         OdtDocument source = OdtDocument.Create();

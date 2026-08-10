@@ -92,6 +92,7 @@ public static class OfficeGifReader {
                     if (offset >= bytes.Length) {
                         return false;
                     }
+                    if (validateAllFrames && signature != "GIF89a") return false;
 
                     byte label = bytes[offset++];
                     if (label == 0xF9) {

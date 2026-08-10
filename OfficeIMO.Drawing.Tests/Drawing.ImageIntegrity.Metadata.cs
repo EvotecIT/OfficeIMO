@@ -68,6 +68,36 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void PngStandardRgbRequiresCanonicalGammaAndChromaticitiesInEitherOrder() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] standardGamma = { 0, 0, 0xB1, 0x8F };
+        byte[] otherGamma = { 0, 0, 0xB1, 0x90 };
+        byte[] standardChromaticities = new byte[32];
+        int[] coordinates = { 31270, 32900, 64000, 33000, 30000, 60000, 15000, 6000 };
+        for (int index = 0; index < coordinates.Length; index++) {
+            WriteBigEndianInt32(standardChromaticities, index * 4, coordinates[index]);
+        }
+        byte[] otherChromaticities = (byte[])standardChromaticities.Clone();
+        WriteBigEndianInt32(otherChromaticities, 0, coordinates[0] + 1);
+
+        byte[] canonical = InsertPngChunkBefore(
+            InsertPngChunkBefore(
+                InsertPngChunkBefore(png, "IDAT", "gAMA", standardGamma),
+                "IDAT", "cHRM", standardChromaticities),
+            "IDAT", "sRGB", new byte[] { 0 });
+        byte[] nonCanonicalBefore = InsertPngChunkBefore(
+            InsertPngChunkBefore(png, "IDAT", "gAMA", otherGamma),
+            "IDAT", "sRGB", new byte[] { 0 });
+        byte[] nonCanonicalAfter = InsertPngChunkBefore(
+            InsertPngChunkBefore(png, "IDAT", "sRGB", new byte[] { 0 }),
+            "IDAT", "cHRM", otherChromaticities);
+
+        Assert.True(OfficeImageReader.TryValidateContent(canonical, "canonical-srgb.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(nonCanonicalBefore, "noncanonical-gamma.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(nonCanonicalAfter, "noncanonical-chromaticities.png", out _));
+    }
+
+    [Fact]
     public void PngContainerValidatesSignificantBitsBackgroundAndPaletteHistogramMetadata() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] withSignificantBits = InsertPngChunkBefore(

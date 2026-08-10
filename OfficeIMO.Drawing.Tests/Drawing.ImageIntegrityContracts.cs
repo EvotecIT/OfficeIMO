@@ -572,6 +572,28 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public async Task GuardedAsyncConsumerPreservesAsyncCallbackFailureAfterNestedFailure() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        OfficeImageExportAsyncConsumer? accept = null;
+        accept = OfficeImageExportBatchProcessor.CreateGuardedAsyncConsumer(
+            new OfficeImageExportOptions { MaximumOutputCount = 3 },
+            async (result, token) => {
+                if (result.Name == "outer") {
+                    _ = accept!(CreateResult("inner", png), token);
+                    await Task.Yield();
+                    throw new InvalidOperationException("outer async failed");
+                }
+                if (result.Name == "inner") throw new ArgumentException("inner failed");
+            });
+
+        InvalidOperationException failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            accept(CreateResult("outer", png), default));
+        Assert.Equal("outer async failed", failure.Message);
+
+        await accept(CreateResult("later", png), default);
+    }
+
+    [Fact]
     public async Task GuardedAsyncConsumerRejectsForkedReentryWithoutConcurrentAdmission() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         var observed = new ConcurrentQueue<int>();

@@ -344,8 +344,14 @@ public sealed class OpenDocumentConversionLossReportTests {
     public void OdtToWordPreservesRelativeLinksAndSkipsUnsupportedImages() {
         OdtDocument source = OdtDocument.Create();
         source.AddParagraph().AddHyperlink("Relative", "docs/page.html");
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] webp = { 0x52, 0x49, 0x46, 0x46, 0x04, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50 };
-        source.AddParagraph("Image").AddImage(webp, "pixel.webp", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+        OdtImage image = source.AddParagraph("Image").AddImage(
+            png,
+            "pixel.png",
+            OdfLength.Centimeters(1),
+            OdfLength.Centimeters(1));
+        source.Package.AddOrReplaceEntry(image.Path, webp, "image/webp");
 
         OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
