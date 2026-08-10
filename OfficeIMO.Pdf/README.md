@@ -580,6 +580,38 @@ shapes, drawings, clipping, and effects are supported. Interactive links and
 annotations, named destinations, forms, and document outlines use their
 dedicated editors so their behavior is not silently flattened or discarded.
 
+### Search and edit existing page text
+
+Text editing coordinates use PDF points from the page bottom-left. Inspect a
+region when the UI needs the existing text and its detected style, then replace
+or move it through the same text-removal and stamping owners used by redaction
+and existing-page stamps:
+
+```csharp
+PdfDocument document = PdfDocument.Open("contract.pdf");
+var region = new PdfPageRegion(pageNumber: 1, x: 72, y: 640, width: 260, height: 28);
+
+PdfRegionText current = document.Text.Inspect(region);
+Console.WriteLine($"{current.Text} ({current.SourceFont}, {current.FontSize} pt)");
+
+PdfTextEditResult edited = document.Text.Replace(region, "Approved", new PdfTextEditOptions {
+    Color = PdfColor.FromRgb(25, 110, 55)
+});
+
+edited.Document.Text.Add(
+        new PdfPageRegion(1, 72, 600, 240, 24),
+        "Reviewed by Legal",
+        new PdfTextEditOptions { Font = PdfStandardFont.HelveticaBold, FontSize = 11 })
+    .Document
+    .Save("contract-edited.pdf");
+```
+
+`Text.Find(...)` supports case and whole-word filters, while
+`Text.ReplaceAll(...)` preserves unmatched text in each decoded visual line.
+Replacement uses the closest standard PDF font unless the caller selects one;
+`PdfTextEditResult.Warnings` reports source-font substitutions that can change
+metrics or letterforms.
+
 ### Fill and flatten a PDF form
 
 ```csharp
