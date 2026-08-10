@@ -8,6 +8,7 @@ public sealed class SpreadsheetFormulaSyntaxTests {
     [InlineData("LOG10(100)", "of:=LOG10(100)")]
     [InlineData("LOG10 (100)", "of:=LOG10 (100)")]
     [InlineData("=LOG10(A1)", "of:=LOG10([.A1])")]
+    [InlineData("=LOG10 (A1)", "of:=LOG10 ([.A1])")]
     [InlineData("=SUM(A1,B1)", "of:=SUM([.A1];[.B1])")]
     [InlineData("={1,2;3,4}", "of:={1;2|3;4}")]
     [InlineData("=IF(A1=\"B2\",1,0)", "of:=IF([.A1]=\"B2\";1;0)")]
@@ -298,7 +299,22 @@ public sealed class SpreadsheetNumberFormatSyntaxTests {
         Assert.Equal(format, string.Concat(syntax.Tokens.Select(token => token.Text)));
         Assert.Equal(2, syntax.SectionCount);
         Assert.Equal("EUR", syntax.CurrencySymbol);
+        Assert.Equal("407", syntax.Tokens.First(token =>
+            token.Kind == SpreadsheetNumberFormatTokenKind.Currency).LocaleCode);
         Assert.True(syntax.UsesGrouping);
+    }
+
+    [Fact]
+    public void Parser_Preserves_Locale_Only_Directives_As_Typed_Currency_Tokens() {
+        const string format = "[$-409]0.00";
+
+        SpreadsheetNumberFormatSyntax syntax = SpreadsheetNumberFormatSyntax.Parse(format);
+        SpreadsheetNumberFormatToken locale = Assert.Single(syntax.Tokens,
+            token => token.Kind == SpreadsheetNumberFormatTokenKind.Currency);
+
+        Assert.Equal(string.Empty, locale.Value);
+        Assert.Equal("409", locale.LocaleCode);
+        Assert.Equal(format, string.Concat(syntax.Tokens.Select(token => token.Text)));
     }
 
     [Fact]

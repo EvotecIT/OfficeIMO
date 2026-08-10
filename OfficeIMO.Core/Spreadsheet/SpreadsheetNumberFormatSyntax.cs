@@ -35,11 +35,17 @@ public enum SpreadsheetNumberFormatTokenKind {
 
 /// <summary>One lossless token in a spreadsheet number format.</summary>
 public sealed class SpreadsheetNumberFormatToken {
-    internal SpreadsheetNumberFormatToken(SpreadsheetNumberFormatTokenKind kind, string text, string value, int position) {
+    internal SpreadsheetNumberFormatToken(
+        SpreadsheetNumberFormatTokenKind kind,
+        string text,
+        string value,
+        int position,
+        string? localeCode = null) {
         Kind = kind;
         Text = text;
         Value = value;
         Position = position;
+        LocaleCode = localeCode;
     }
 
     /// <summary>Token role.</summary>
@@ -50,6 +56,8 @@ public sealed class SpreadsheetNumberFormatToken {
     public string Value { get; }
     /// <summary>Zero-based source position.</summary>
     public int Position { get; }
+    /// <summary>Authored locale code from a bracketed currency or locale directive, without the leading hyphen.</summary>
+    public string? LocaleCode { get; }
 }
 
 /// <summary>
@@ -137,9 +145,13 @@ public sealed class SpreadsheetNumberFormatSyntax {
                 string value = format.Substring(start + 1, Math.Max(0, index - start - (terminated ? 2 : 1)));
                 if (value.StartsWith("$", StringComparison.Ordinal)) {
                     string currency = value.Substring(1);
-                    int locale = currency.IndexOf('-');
-                    if (locale >= 0) currency = currency.Substring(0, locale);
-                    Add(tokens, SpreadsheetNumberFormatTokenKind.Currency, format, start, index, currency);
+                    string? localeCode = null;
+                    int locale = currency.LastIndexOf('-');
+                    if (locale >= 0) {
+                        localeCode = currency.Substring(locale + 1);
+                        currency = currency.Substring(0, locale);
+                    }
+                    Add(tokens, SpreadsheetNumberFormatTokenKind.Currency, format, start, index, currency, localeCode);
                 } else {
                     Add(tokens, SpreadsheetNumberFormatTokenKind.BracketedDirective, format, start, index, value);
                 }
@@ -215,6 +227,11 @@ public sealed class SpreadsheetNumberFormatSyntax {
     }
 
     private static void Add(List<SpreadsheetNumberFormatToken> tokens, SpreadsheetNumberFormatTokenKind kind,
-        string source, int start, int end, string value) =>
-        tokens.Add(new SpreadsheetNumberFormatToken(kind, source.Substring(start, end - start), value, start));
+        string source, int start, int end, string value, string? localeCode = null) =>
+        tokens.Add(new SpreadsheetNumberFormatToken(
+            kind,
+            source.Substring(start, end - start),
+            value,
+            start,
+            localeCode));
 }

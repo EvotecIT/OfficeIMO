@@ -110,6 +110,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         }
         return !format.IsValid || format.SectionCount > 1 || HasUnsupportedPlaceholderSemantics(format) ||
             format.Tokens.Any(token =>
+                token.LocaleCode != null ||
                 token.Kind == SpreadsheetNumberFormatTokenKind.BracketedDirective ||
                 token.Kind == SpreadsheetNumberFormatTokenKind.ScalingSeparator ||
                 token.Kind == SpreadsheetNumberFormatTokenKind.TextPlaceholder ||

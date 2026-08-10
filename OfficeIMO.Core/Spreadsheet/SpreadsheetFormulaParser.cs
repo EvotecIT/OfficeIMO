@@ -7,6 +7,10 @@ namespace OfficeIMO.Spreadsheet;
 
 internal static class SpreadsheetFormulaParser {
     private const int MaximumNestingDepth = 128;
+    // LOG10 is an Excel built-in whose name is also a legal A1 cell token.
+    private static readonly HashSet<string> KnownCellShapedExcelFunctions = new HashSet<string>(
+        new[] { "LOG10" },
+        StringComparer.OrdinalIgnoreCase);
     private static readonly string[] KnownErrorLiterals = {
         "#GETTING_DATA", "#BLOCKED!", "#CONNECT!", "#UNKNOWN!", "#PYTHON!",
         "#SPILL!", "#CALC!", "#FIELD!", "#VALUE!", "#DIV/0!", "#NULL!",
@@ -169,6 +173,7 @@ internal static class SpreadsheetFormulaParser {
         if (open >= text.Length || text[open] != '(') return false;
         if (dialect == SpreadsheetFormulaDialect.ExcelA1 && open > nameEnd &&
             IsParenthesizedReferenceLikeAt(text, open) &&
+            !KnownCellShapedExcelFunctions.Contains(text.Substring(nameStart, nameEnd - nameStart)) &&
             SpreadsheetRangeReference.TryParse(
                 text.Substring(nameStart, nameEnd - nameStart),
                 SpreadsheetAddressDialect.ExcelA1,

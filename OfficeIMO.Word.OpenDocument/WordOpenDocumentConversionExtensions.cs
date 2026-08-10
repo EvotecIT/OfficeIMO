@@ -421,10 +421,10 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static bool TryMapWordAlignment(string value, out OdtParagraphAlignment alignment) {
         switch (value.ToLowerInvariant()) {
-            case "left":
+            case "left": alignment = OdtParagraphAlignment.Left; return true;
             case "start": alignment = OdtParagraphAlignment.Start; return true;
             case "center": alignment = OdtParagraphAlignment.Center; return true;
-            case "right":
+            case "right": alignment = OdtParagraphAlignment.Right; return true;
             case "end": alignment = OdtParagraphAlignment.End; return true;
             case "both": alignment = OdtParagraphAlignment.Justify; return true;
             default: alignment = default; return false;

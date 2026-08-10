@@ -401,6 +401,8 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [InlineData("hhmm")]
     [InlineData("00000")]
     [InlineData("???.??")]
+    [InlineData("[$€-407]0.00")]
+    [InlineData("[$-409]0.00")]
     public void ExcelFormatsFlattenedByOdfProjectionAreReportedUnsupported(string numberFormat) {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelCell cell = source.AddWorksheet("Data").CellAt(1, 1);

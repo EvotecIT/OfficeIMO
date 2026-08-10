@@ -23,7 +23,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         int unsupported = 0;
         switch (source.Alignment) {
             case OdtParagraphAlignment.Start: target.ParagraphAlignment = WordParagraphAlignment.Start; break;
+            case OdtParagraphAlignment.Left: target.ParagraphAlignment = WordParagraphAlignment.Left; break;
             case OdtParagraphAlignment.Center: target.ParagraphAlignment = WordParagraphAlignment.Center; break;
+            case OdtParagraphAlignment.Right: target.ParagraphAlignment = WordParagraphAlignment.Right; break;
             case OdtParagraphAlignment.End: target.ParagraphAlignment = WordParagraphAlignment.End; break;
             case OdtParagraphAlignment.Justify: target.ParagraphAlignment = WordParagraphAlignment.Both; break;
         }

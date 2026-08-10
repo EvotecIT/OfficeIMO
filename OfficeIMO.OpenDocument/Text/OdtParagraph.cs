@@ -3,13 +3,17 @@ namespace OfficeIMO.OpenDocument;
 /// <summary>Horizontal alignment for an ODT paragraph.</summary>
 public enum OdtParagraphAlignment {
     /// <summary>Aligns content to the logical start edge.</summary>
-    Start,
+    Start = 0,
     /// <summary>Centers content.</summary>
-    Center,
+    Center = 1,
     /// <summary>Aligns content to the logical end edge.</summary>
-    End,
+    End = 2,
     /// <summary>Justifies content on both edges.</summary>
-    Justify
+    Justify = 3,
+    /// <summary>Aligns content to the physical left edge.</summary>
+    Left = 4,
+    /// <summary>Aligns content to the physical right edge.</summary>
+    Right = 5
 }
 
 /// <summary>An XML-backed ODT paragraph or heading.</summary>
@@ -301,11 +305,11 @@ public sealed class OdtParagraph {
 
     private static OdtParagraphAlignment? ParseAlignment(string? value) {
         switch (value?.ToLowerInvariant()) {
-            case "start":
-            case "left": return OdtParagraphAlignment.Start;
+            case "start": return OdtParagraphAlignment.Start;
+            case "left": return OdtParagraphAlignment.Left;
             case "center": return OdtParagraphAlignment.Center;
-            case "end":
-            case "right": return OdtParagraphAlignment.End;
+            case "right": return OdtParagraphAlignment.Right;
+            case "end": return OdtParagraphAlignment.End;
             case "justify": return OdtParagraphAlignment.Justify;
             default: return null;
         }
@@ -314,7 +318,9 @@ public sealed class OdtParagraph {
     private static string? FormatAlignment(OdtParagraphAlignment? value) {
         switch (value) {
             case OdtParagraphAlignment.Start: return "start";
+            case OdtParagraphAlignment.Left: return "left";
             case OdtParagraphAlignment.Center: return "center";
+            case OdtParagraphAlignment.Right: return "right";
             case OdtParagraphAlignment.End: return "end";
             case OdtParagraphAlignment.Justify: return "justify";
             default: return null;
