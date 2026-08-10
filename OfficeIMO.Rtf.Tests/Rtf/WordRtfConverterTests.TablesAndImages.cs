@@ -200,6 +200,58 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_Rtf_Bridge_Accounts_For_Every_Image_In_One_Run() {
+        byte[] png = CreateOnePixelPng();
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        paragraph.AddText("Before ");
+        using (var stream = new MemoryStream(png, writable: false)) {
+            paragraph.AddImage(stream, "first.png", 16, 16, description: "First image");
+        }
+        using (var stream = new MemoryStream(png, writable: false)) {
+            paragraph.AddImage(stream, "second.png", 16, 16, description: "Second image");
+        }
+        paragraph.AddImage(
+            new Uri("https://example.test/external.png"),
+            16,
+            16,
+            description: "External image");
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfParagraph converted = Assert.Single(conversion.Value.Paragraphs);
+        Assert.Collection(
+            converted.Inlines,
+            inline => Assert.Equal("Before ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal("First image", Assert.IsType<RtfImage>(inline).Description),
+            inline => Assert.Equal("Second image", Assert.IsType<RtfImage>(inline).Description));
+        RtfConversionDiagnostic omitted = Assert.Single(
+            conversion.Report.Diagnostics,
+            diagnostic => diagnostic.Code == "WordRtfImagesOmitted");
+        Assert.Equal(1, omitted.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+    }
+
+    [Fact]
+    public void Word_Rtf_Bridge_Copies_Every_Image_In_Pure_Image_Run() {
+        byte[] png = CreateOnePixelPng();
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        using (var stream = new MemoryStream(png, writable: false)) {
+            paragraph.AddImage(stream, "first.png", 16, 16, description: "First image");
+        }
+        using (var stream = new MemoryStream(png, writable: false)) {
+            paragraph.AddImage(stream, "second.png", 16, 16, description: "Second image");
+        }
+
+        RtfDocument converted = word.ToRtfDocument();
+
+        Assert.Collection(
+            converted.Blocks,
+            block => Assert.Equal("First image", Assert.IsType<RtfImage>(block).Description),
+            block => Assert.Equal("Second image", Assert.IsType<RtfImage>(block).Description));
+    }
+
+    [Fact]
     public void Rtf_Word_Bridge_Normalizes_Raw_Dib_To_Png() {
         RtfDocument rtf = RtfDocument.Create();
         rtf.AddImage(RtfImageFormat.Dib, CreateOnePixelDib());

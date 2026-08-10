@@ -479,6 +479,27 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeArtBlipStoreEntryReader_RejectsTrailingCompressedMetafilePayload() {
+        byte[] emf = BuildMinimalEmf();
+        byte[] blip = OfficeArtBlipStoreEntryWriter.CreateBlipRecord(
+            emf, "image/x-emf");
+        byte[] fbse = OfficeArtBlipStoreEntryWriter.CreateDelayed(
+            emf, "image/x-emf", delayedStreamOffset: 0);
+        uint storedSize = ReadOfficeArtUInt32(blip, 8 + 16 + 28);
+        Array.Resize(ref blip, blip.Length + 1);
+        blip[blip.Length - 1] = 0x5A;
+        WriteOfficeArtUInt32(blip, 4, checked((uint)blip.Length - 8));
+        WriteOfficeArtUInt32(blip, 8 + 16 + 28, checked(storedSize + 1));
+        WriteOfficeArtUInt32(fbse, 8 + 20, checked((uint)blip.Length));
+
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(fbse, 8,
+            checked((int)ReadOfficeArtUInt32(fbse, 4)), 0x0002,
+            blip, out OfficeArtBlipStoreEntry? entry));
+        Assert.NotNull(entry);
+        Assert.Empty(entry!.ImageBytes);
+    }
+
+    [Fact]
     public void OfficeArtBlipStoreEntryWriter_CreatesCompressedPlaceableWmfBlip() {
         byte[] wmf = BuildMinimalPlaceableWmf();
         byte[] blip = OfficeArtBlipStoreEntryWriter.CreateBlipRecord(

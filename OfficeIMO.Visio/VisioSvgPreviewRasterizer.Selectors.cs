@@ -54,7 +54,7 @@ namespace OfficeIMO.Visio {
                     if (!string.Equals(
                             element.Name.LocalName,
                             compound.Substring(start, index - start),
-                            StringComparison.OrdinalIgnoreCase)) {
+                            StringComparison.Ordinal)) {
                         return SelectorMatch.NoMatch;
                     }
                 }
@@ -101,7 +101,7 @@ namespace OfficeIMO.Visio {
                 string name = (equals < 0 ? trimmed : trimmed.Substring(0, equals)).Trim();
                 if (name.Length == 0 || name.Any(character => !IsNameCharacter(character))) return SelectorMatch.Unsupported;
                 XAttribute? attribute = element.Attributes().FirstOrDefault(candidate =>
-                    string.Equals(candidate.Name.LocalName, name, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(candidate.Name.LocalName, name, StringComparison.Ordinal));
                 if (attribute == null) return SelectorMatch.NoMatch;
                 if (equals < 0) return SelectorMatch.Match;
                 string expected = trimmed.Substring(equals + 1).Trim().Trim('"', '\'');
@@ -114,7 +114,7 @@ namespace OfficeIMO.Visio {
                 string? value = element.Attribute("class")?.Value;
                 return value != null && value
                     .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-                    .Any(item => string.Equals(item, expected, StringComparison.OrdinalIgnoreCase));
+                    .Any(item => string.Equals(item, expected, StringComparison.Ordinal));
             }
 
             private static bool TryTokenize(string selector, out List<SelectorPart> parts) {

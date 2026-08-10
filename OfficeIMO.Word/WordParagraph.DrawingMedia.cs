@@ -26,43 +26,30 @@ namespace OfficeIMO.Word {
         /// Gets the first image associated with this run, if any.
         /// </summary>
         public WordImage? Image {
-            get {
-                if (_run != null) {
-                    // DrawingML pictures
-                    var drawing = _run.ChildElements.OfType<WordDrawing>().FirstOrDefault();
-                    if (drawing != null) {
-                        if (drawing.Inline != null) {
-                            if (drawing.Inline.Graphic != null && drawing.Inline.Graphic.GraphicData != null) {
-                                var picture = drawing.Inline.Graphic.GraphicData.ChildElements
-                                    .OfType<DocumentFormat.OpenXml.Drawing.Pictures.Picture>()
-                                    .FirstOrDefault();
-                                if (picture != null) {
-                                    return new WordImage(_document, drawing);
-                                }
-                            }
-                        } else if (drawing.Anchor != null) {
-                            var anchorGraphic = drawing.Anchor.OfType<Graphic>().FirstOrDefault();
-                            if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
-                                var picture = anchorGraphic.GraphicData
-                                    .ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Pictures.Picture>()
-                                    .FirstOrDefault();
-                                if (picture != null) {
-                                    return new WordImage(_document, drawing);
-                                }
-                            }
-                        }
-                    }
+            get => EnumerateImages().FirstOrDefault();
+        }
 
-                    // VML pictures
-                    var vmlImage = _run.Descendants<V.ImageData>().FirstOrDefault();
-                    if (vmlImage != null) {
-                        var shape = vmlImage.Ancestors<V.Shape>().FirstOrDefault();
-                        if (shape != null) {
-                            return new WordImage(_document, _paragraph, _run, shape);
-                        }
-                    }
+        /// <summary>Enumerates every DrawingML or VML image represented by this run.</summary>
+        internal IEnumerable<WordImage> EnumerateImages() {
+            if (_run == null) yield break;
+
+            foreach (WordDrawing drawing in _run.ChildElements.OfType<WordDrawing>()) {
+                bool inlinePicture = drawing.Inline?.Graphic?.GraphicData?.ChildElements
+                    .OfType<DocumentFormat.OpenXml.Drawing.Pictures.Picture>()
+                    .Any() == true;
+                bool anchoredPicture = drawing.Anchor?.Elements<Graphic>()
+                    .Any(graphic => graphic.GraphicData?.ChildElements
+                        .OfType<DocumentFormat.OpenXml.Drawing.Pictures.Picture>()
+                        .Any() == true) == true;
+                if (inlinePicture || anchoredPicture) {
+                    yield return new WordImage(_document, drawing);
                 }
-                return null;
+            }
+
+            foreach (V.Shape shape in _run.Descendants<V.Shape>()) {
+                if (shape.GetFirstChild<V.ImageData>() != null) {
+                    yield return new WordImage(_document, _paragraph, _run, shape);
+                }
             }
         }
 

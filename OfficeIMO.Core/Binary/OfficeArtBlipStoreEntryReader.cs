@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing.Binary;
 
@@ -283,27 +283,15 @@ public static class OfficeArtBlipStoreEntryReader {
         if (compression != 0x00 || storedLength < 6) return Array.Empty<byte>();
 
         try {
-            using var input = new MemoryStream(source, dataOffset + 2, storedLength - 6, writable: false);
-            using var inflater = new DeflateStream(input, CompressionMode.Decompress);
-            using var output = new MemoryStream(uncompressedSize <= int.MaxValue
-                ? unchecked((int)uncompressedSize)
-                : 0);
-            var buffer = new byte[8192];
-            int total = 0;
-            int read;
-            while ((read = inflater.Read(buffer, 0, buffer.Length)) > 0) {
-                total = checked(total + read);
-                if (total > maximumDecodedImageBytes) {
-                    wasRejectedBySizeLimit = true;
-                    return Array.Empty<byte>();
-                }
-                output.Write(buffer, 0, read);
-            }
-            return uncompressedSize == 0 || output.Length == uncompressedSize
-                ? output.ToArray()
-                : Array.Empty<byte>();
+            var storedData = new byte[storedLength];
+            Buffer.BlockCopy(source, dataOffset, storedData, 0, storedLength);
+            return OfficeZlibCodec.Decompress(
+                storedData,
+                maximumDecodedImageBytes,
+                uncompressedSize == 0 ? null : unchecked((int)uncompressedSize));
         } catch (Exception exception) when (exception is InvalidDataException
                                             || exception is IOException
+                                            || exception is NotSupportedException
                                             || exception is OverflowException) {
             return Array.Empty<byte>();
         }

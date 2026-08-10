@@ -775,14 +775,15 @@ public static partial class WordRtfConverterExtensions {
             return previousRun == null;
         }
 
-        if (wordRun.IsImage && wordRun.Image != null) {
-            RtfImage? image = CreateRtfImage(wordRun);
-            if (image == null) {
-                return false;
-            }
-
-            RtfImage copy = paragraph.AddImage(image.Format, image.Data);
-            CopyImage(image, copy);
+        bool appendedImage = false;
+        foreach (WordImage wordImage in wordRun.EnumerateImages()) {
+            RtfImage? image = CreateRtfImage(wordImage, out _);
+            if (image == null) continue;
+            CopyImage(image, paragraph.AddImage(image.Format, image.Data));
+            appendedImage = true;
+        }
+        if (wordRun.IsImage) {
+            if (!appendedImage) return false;
             previousRun = null;
             return true;
         }

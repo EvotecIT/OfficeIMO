@@ -255,8 +255,8 @@ public static partial class WordRtfConverterExtensions {
 
         int omittedImageCount = 0;
         int normalizedImageCount = 0;
-        foreach (WordParagraph paragraph in EnumerateConvertibleWordImages(document)) {
-            RtfImage? converted = CreateRtfImage(paragraph, out OfficeImageFormat sourceFormat);
+        foreach (WordImage image in EnumerateConvertibleWordImages(document)) {
+            RtfImage? converted = CreateRtfImage(image, out OfficeImageFormat sourceFormat);
             if (converted == null) {
                 omittedImageCount++;
             } else if (converted.Format == RtfImageFormat.Png &&
@@ -307,7 +307,7 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static IEnumerable<WordParagraph> EnumerateConvertibleWordImages(WordDocument document) {
+    private static IEnumerable<WordImage> EnumerateConvertibleWordImages(WordDocument document) {
         var visitedParagraphs = new HashSet<Paragraph>();
         var visitedRuns = new HashSet<Run>();
         foreach (OpenXmlElement storyRoot in EnumerateConvertibleWordStoryRoots(document)) {
@@ -316,7 +316,7 @@ public static partial class WordRtfConverterExtensions {
                 foreach (Run run in EnumerateConvertibleWordRuns(paragraph)) {
                     if (!visitedRuns.Add(run)) continue;
                     var candidate = new WordParagraph(document, paragraph, run);
-                    if (candidate.IsImage) yield return candidate;
+                    foreach (WordImage image in candidate.EnumerateImages()) yield return image;
                 }
             }
         }

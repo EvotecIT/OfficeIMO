@@ -8,36 +8,34 @@ public static partial class WordRtfConverterExtensions {
 
     private static bool TryCopyImageBlock(WordParagraph source, RtfDocument destination) {
         if (!string.IsNullOrEmpty(source.Text)) return false;
-
-        RtfImage? image = CreateRtfImage(source);
-        if (image == null) return false;
-
-        CopyImage(image, destination.AddImage(image.Format, image.Data));
-        return true;
+        return TryCopyImageBlocks(source, image => destination.AddImage(image.Format, image.Data));
     }
 
     private static bool TryCopyImageBlock(WordParagraph source, RtfSection destination) {
         if (!string.IsNullOrEmpty(source.Text)) return false;
-
-        RtfImage? image = CreateRtfImage(source);
-        if (image == null) return false;
-
-        CopyImage(image, destination.AddImage(image.Format, image.Data));
-        return true;
+        return TryCopyImageBlocks(source, image => destination.AddImage(image.Format, image.Data));
     }
 
-    private static RtfImage? CreateRtfImage(WordParagraph source) =>
-        CreateRtfImage(source, out _);
+    private static bool TryCopyImageBlocks(WordParagraph source, Func<RtfImage, RtfImage> addImage) {
+        bool copied = false;
+        foreach (WordImage wordImage in source.EnumerateImages()) {
+            RtfImage? image = CreateRtfImage(wordImage, out _);
+            if (image == null) continue;
+            CopyImage(image, addImage(image));
+            copied = true;
+        }
+        return copied;
+    }
 
-    private static RtfImage? CreateRtfImage(WordParagraph source, out OfficeImageFormat sourceFormat) {
+    private static RtfImage? CreateRtfImage(WordImage source, out OfficeImageFormat sourceFormat) {
         sourceFormat = OfficeImageFormat.Unknown;
-        if (!source.IsImage || source.Image == null || source.Image.IsExternal) {
+        if (source.IsExternal) {
             return null;
         }
 
         byte[] bytes;
         try {
-            bytes = source.Image.ToBytes();
+            bytes = source.ToBytes();
         } catch (InvalidOperationException) {
             return null;
         }
@@ -48,7 +46,7 @@ public static partial class WordRtfConverterExtensions {
 
         if (!TryCreateRtfImagePayload(
                 bytes,
-                source.Image.FileName,
+                source.FileName,
                 out RtfImageFormat format,
                 out byte[] payload,
                 out sourceFormat)) {
@@ -56,11 +54,11 @@ public static partial class WordRtfConverterExtensions {
         }
 
         var image = new RtfImage(format, payload) {
-            SourceWidth = ToNullableInt(source.Image.Width),
-            SourceHeight = ToNullableInt(source.Image.Height),
-            DesiredWidthTwips = ToTwips(source.Image.Width),
-            DesiredHeightTwips = ToTwips(source.Image.Height),
-            Description = source.Image.Description
+            SourceWidth = ToNullableInt(source.Width),
+            SourceHeight = ToNullableInt(source.Height),
+            DesiredWidthTwips = ToTwips(source.Width),
+            DesiredHeightTwips = ToTwips(source.Height),
+            Description = source.Description
         };
         return image;
     }

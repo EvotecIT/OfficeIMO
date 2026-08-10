@@ -49,6 +49,10 @@ public static partial class OfficeTiffCodec {
             return false;
         }
 
+        if (!OfficeDeflateStreamValidator.TryValidateExact(compressed, 0, compressed.Length)) {
+            return false;
+        }
+
         try {
             using var source = new MemoryStream(compressed, writable: false);
             using var deflate = new DeflateStream(source, CompressionMode.Decompress);
