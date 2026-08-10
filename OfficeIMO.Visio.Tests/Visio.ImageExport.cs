@@ -215,6 +215,7 @@ public class VisioImageExport {
     [InlineData("<style>* { filter: url(#blur); }</style>", "")]
     [InlineData("<style>[data-effect] { mask: url(#mask); }</style>", "data-effect='true'")]
     [InlineData("<style>rect:last-child { filter: url(#blur); }</style>", "")]
+    [InlineData("<style>.maybe:nth-child(2) { filter: url(#blur); }</style>", "class='maybe'")]
     public void EmbeddedSvgPreviewReportsCssVisualEffects(string styleDefinition, string rectangleAttributes) {
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
                      styleDefinition + "<rect width='10' height='10' fill='red' " + rectangleAttributes + "/></svg>";
@@ -276,6 +277,7 @@ public class VisioImageExport {
     [InlineData("", "style='filter:revert'")]
     [InlineData("", "style='mask:revert-layer'")]
     [InlineData("", "style='filter:inherit'")]
+    [InlineData("<style>.maybe:nth-child(2) { filter:url(#blur); } #target { filter:none; }</style>", "id='target' class='maybe'")]
     public void EmbeddedSvgPreviewHonorsCssEffectOverrides(string styleDefinition, string rectangleAttributes) {
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
                      styleDefinition + "<rect width='10' height='10' fill='red' " + rectangleAttributes + "/></svg>";
@@ -307,6 +309,27 @@ public class VisioImageExport {
         Assert.Contains(diagnostics, diagnostic =>
             diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
+    [Theory]
+    [InlineData("", false)]
+    [InlineData("visibility='visible'", true)]
+    public void EmbeddedSvgPreviewReportsHiddenContainerEffectsOnlyWhenDescendantsRender(
+        string childAttributes,
+        bool expectsDiagnostic) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                     "<rect width='1' height='1' fill='blue'/>" +
+                     "<g visibility='hidden' filter='url(#blur)'>" +
+                     "<rect width='10' height='10' fill='red' " + childAttributes + "/></g></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "hidden-container-effect.svg", default, out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        Assert.Equal(expectsDiagnostic, diagnostics.Any(diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation));
     }
 
     [Fact]

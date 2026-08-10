@@ -11,7 +11,7 @@ OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIM
 
 ## OfficeIMO 3.2: complete image validation at ingestion boundaries
 
-Excel file and URL image methods now validate the complete bounded payload instead of trusting a filename extension or image header. They throw `ArgumentException` for truncated, corrupt, mismatched, or unsupported content that older versions could package.
+Excel file and URL image methods now validate the complete bounded payload instead of trusting a filename extension or image header. They throw `ArgumentException` for truncated, corrupt, or unsupported content that older versions could package. When a valid image has a misleading filename extension or remote content type, OfficeIMO uses the format detected from its payload.
 
 Applications that intentionally import opaque package bytes can keep using the byte-array `AddImage(...)` overload with an explicit content type. That is the low-level package path; it does not turn invalid content into a renderable image. Use `OfficeImageReader.TryValidateContent(...)` before ingestion when the application needs to report validation failures itself.
 

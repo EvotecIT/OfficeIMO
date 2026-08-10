@@ -116,8 +116,7 @@ namespace OfficeIMO.Visio {
                     candidate = new EffectCandidate(normalizedPresentation!, presentationImportant, specificity: 0, order: -1);
                 }
 
-                bool unknownNormalActive = false;
-                bool unknownImportantActive = false;
+                EffectCandidate uncertainActiveCandidate = default;
                 for (int i = 0; i < _visualEffectRules.Count; i++) {
                     SvgVisualEffectRule rule = _visualEffectRules[i];
                     if (!rule.Declarations.TryGetValue(propertyName, out string? rawValue) ||
@@ -134,8 +133,10 @@ namespace OfficeIMO.Visio {
                     if (match == SvgCssSelectorMatcher.SelectorMatch.NoMatch) continue;
                     if (match == SvgCssSelectorMatcher.SelectorMatch.Unsupported) {
                         if (IsActiveEffectValue(element, propertyName, value!)) {
-                            if (important) unknownImportantActive = true;
-                            else unknownNormalActive = true;
+                            var uncertain = new EffectCandidate(value!, important, specificity, rule.Order);
+                            if (!uncertainActiveCandidate.HasValue || uncertain.HasHigherPriorityThan(uncertainActiveCandidate)) {
+                                uncertainActiveCandidate = uncertain;
+                            }
                         }
                         continue;
                     }
@@ -153,10 +154,8 @@ namespace OfficeIMO.Visio {
                 }
 
                 if (candidate.HasValue && IsActiveEffectValue(element, propertyName, candidate.Value!)) return true;
-                if (unknownImportantActive && (!inline.HasValue || !inline.Important)) return true;
-                return unknownNormalActive &&
-                       !inline.HasValue &&
-                       !(candidate.HasValue && candidate.Important && !IsActiveEffectValue(element, propertyName, candidate.Value!));
+                return uncertainActiveCandidate.HasValue &&
+                       (!candidate.HasValue || uncertainActiveCandidate.HasHigherPriorityThan(candidate));
             }
 
             private bool TryConsumeSelectorEvaluation() {

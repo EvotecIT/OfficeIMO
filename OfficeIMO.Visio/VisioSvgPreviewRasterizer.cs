@@ -165,14 +165,14 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            if (context.IsVisible && context.StyleSheet.HasActiveVisualEffect(element)) {
-                context.ReportUnsupportedFeature();
-            }
-
             bool useElementOpacityLayer = appliesElementOpacity && elementOpacity < 1D;
             SvgPaint paint = SvgPaint.Resolve(element, inherited, context, applyOwnOpacity: !useElementOpacityLayer);
             if (!context.IsVisible && !CanHiddenElementHaveVisibleDescendants(name)) {
                 return false;
+            }
+            bool hasActiveVisualEffect = context.StyleSheet.HasActiveVisualEffect(element);
+            if (context.IsVisible && hasActiveVisualEffect) {
+                context.ReportUnsupportedFeature();
             }
 
             if (useElementOpacityLayer) {
@@ -182,6 +182,9 @@ namespace OfficeIMO.Visio {
                 if (!rendered) {
                     return false;
                 }
+                if (!context.IsVisible && hasActiveVisualEffect) {
+                    context.ReportUnsupportedFeature();
+                }
 
                 using IDisposable? groupClipScope = PushClipPath(canvas, element, localTransform, context);
                 canvas.DrawImage(ApplyImageOpacity(layer, elementOpacity), 0D, 0D, canvas.Width, canvas.Height);
@@ -189,7 +192,11 @@ namespace OfficeIMO.Visio {
             }
 
             using IDisposable? clipScope = PushClipPath(canvas, element, localTransform, context);
-            return RenderElementCore(canvas, element, name, paint, localTransform, context);
+            bool renderedWithoutLayer = RenderElementCore(canvas, element, name, paint, localTransform, context);
+            if (renderedWithoutLayer && !context.IsVisible && hasActiveVisualEffect) {
+                context.ReportUnsupportedFeature();
+            }
+            return renderedWithoutLayer;
         }
 
         private static OfficeRasterCanvas CreateLayerCanvas(

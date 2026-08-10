@@ -463,6 +463,58 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_Rtf_Image_Diagnostics_Ignore_Unreferenced_Comment_Stories() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph target = word.AddParagraph("target");
+        target.AddComment("Reviewer", "RV", "orphaned comment");
+        WordComment comment = Assert.Single(word.Comments);
+        comment.Paragraphs[0].AddImage(new Uri("https://example.test/orphaned-comment.png"), 16, 16);
+        foreach (CommentRangeStart marker in target._paragraph.Descendants<CommentRangeStart>().ToList()) marker.Remove();
+        foreach (CommentRangeEnd marker in target._paragraph.Descendants<CommentRangeEnd>().ToList()) marker.Remove();
+        foreach (CommentReference marker in target._paragraph.Descendants<CommentReference>().ToList()) marker.Remove();
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "WordRtfImagesOmitted");
+    }
+
+    [Fact]
+    public void Word_Rtf_Bridge_Preserves_Images_In_Supported_SimpleField_Containers() {
+        byte[] png = CreateOnePixelPng();
+        using WordDocument word = WordDocument.Create();
+        WordParagraph linkedParagraph = word.AddParagraph();
+        using (var stream = new MemoryStream(png, writable: false)) {
+            linkedParagraph.AddImage(stream, "linked-field.png", 16, 16);
+        }
+        Run linkedRun = linkedParagraph._run!;
+        linkedRun.Remove();
+        linkedParagraph._paragraph.Append(new SimpleField(
+            new Hyperlink(linkedRun) { Anchor = "field-link" }) { Instruction = " REF linked " });
+
+        WordParagraph controlledParagraph = word.AddParagraph();
+        using (var stream = new MemoryStream(png, writable: false)) {
+            controlledParagraph.AddImage(stream, "controlled-field.png", 16, 16);
+        }
+        Run controlledRun = controlledParagraph._run!;
+        controlledRun.Remove();
+        controlledParagraph._paragraph.Append(new SimpleField(
+            new SdtRun(
+                new SdtProperties(new SdtId { Val = 2201 }),
+                new SdtContentRun(controlledRun))) { Instruction = " REF controlled " });
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        RtfField linkedField = Assert.Single(conversion.Value.Paragraphs[0].Inlines.OfType<RtfField>());
+        RtfField hyperlink = Assert.Single(linkedField.Result.Inlines.OfType<RtfField>());
+        Assert.Single(hyperlink.Result.Inlines.OfType<RtfImage>());
+        RtfField controlledField = Assert.Single(conversion.Value.Paragraphs[1].Inlines.OfType<RtfField>());
+        Assert.Single(controlledField.Result.Inlines.OfType<RtfImage>());
+        Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "WordRtfImagesOmitted");
+    }
+
+    [Fact]
     public void Rtf_Word_Image_Diagnostics_Include_Referenced_Note_Stories() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         int idatOffset = FindRtfTestPngChunk(png, "IDAT");

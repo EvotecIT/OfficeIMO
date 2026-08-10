@@ -331,23 +331,32 @@ public static partial class WordRtfConverterExtensions {
 
     private static IEnumerable<OpenXmlElement> EnumerateConvertibleWordStoryRoots(WordDocument document) {
         DocumentFormat.OpenXml.Packaging.MainDocumentPart? mainPart = document.OpenXmlDocument.MainDocumentPart;
-        if (mainPart?.Document != null) yield return mainPart.Document;
+        var contentRoots = new List<OpenXmlElement>();
+        if (mainPart?.Document != null) contentRoots.Add(mainPart.Document);
         if (mainPart == null) yield break;
 
         foreach (DocumentFormat.OpenXml.Packaging.HeaderPart part in mainPart.HeaderParts) {
-            if (part.Header != null) yield return part.Header;
+            if (part.Header != null) contentRoots.Add(part.Header);
         }
         foreach (DocumentFormat.OpenXml.Packaging.FooterPart part in mainPart.FooterParts) {
-            if (part.Footer != null) yield return part.Footer;
+            if (part.Footer != null) contentRoots.Add(part.Footer);
         }
         if (mainPart.FootnotesPart?.Footnotes != null) {
-            yield return mainPart.FootnotesPart.Footnotes;
+            contentRoots.Add(mainPart.FootnotesPart.Footnotes);
         }
         if (mainPart.EndnotesPart?.Endnotes != null) {
-            yield return mainPart.EndnotesPart.Endnotes;
+            contentRoots.Add(mainPart.EndnotesPart.Endnotes);
+        }
+        foreach (OpenXmlElement root in contentRoots) {
+            yield return root;
         }
         if (mainPart.WordprocessingCommentsPart?.Comments != null) {
-            yield return mainPart.WordprocessingCommentsPart.Comments;
+            HashSet<string> referencedCommentIds = CollectReferencedCommentIds(contentRoots);
+            foreach (Comment comment in mainPart.WordprocessingCommentsPart.Comments.Elements<Comment>()) {
+                if (comment.Id?.Value is string id && referencedCommentIds.Contains(id)) {
+                    yield return comment;
+                }
+            }
         }
     }
 
@@ -360,9 +369,12 @@ public static partial class WordRtfConverterExtensions {
                 case Run run:
                     yield return (run, omittedByConverter);
                     break;
-                case SimpleField simpleField:
-                    foreach (Run fieldRun in simpleField.Elements<Run>()) {
-                        yield return (fieldRun, omittedByConverter);
+                case SimpleField:
+                    foreach ((Run Run, bool OmittedByConverter) nested in EnumerateConvertibleWordRuns(
+                                 child,
+                                 nestedRevisionIsOmitted: true,
+                                 omittedByConverter: omittedByConverter)) {
+                        yield return nested;
                     }
                     break;
                 case InsertedRun:
@@ -391,6 +403,11 @@ public static partial class WordRtfConverterExtensions {
                                  nestedRevisionIsOmitted: true,
                                  omittedByConverter: omittedByConverter)) {
                         yield return nested;
+                    }
+                    break;
+                default:
+                    foreach (Run omittedRun in child.Descendants<Run>()) {
+                        yield return (omittedRun, true);
                     }
                     break;
             }

@@ -139,14 +139,19 @@ namespace OfficeIMO.Visio {
 
                     int start = index;
                     int bracketDepth = 0;
+                    int parenthesisDepth = 0;
                     while (index < selector.Length) {
                         char value = selector[index];
-                        if (value == '[') bracketDepth++;
-                        if (value == ']') bracketDepth--;
-                        if (bracketDepth == 0 && (char.IsWhiteSpace(value) || value == '>')) break;
+                        if (value == '[' && parenthesisDepth == 0) bracketDepth++;
+                        if (value == ']' && parenthesisDepth == 0) bracketDepth--;
+                        if (value == '(' && bracketDepth == 0) parenthesisDepth++;
+                        if (value == ')' && bracketDepth == 0) parenthesisDepth--;
+                        if (bracketDepth < 0 || parenthesisDepth < 0) return false;
+                        if (bracketDepth == 0 && parenthesisDepth == 0 &&
+                            (char.IsWhiteSpace(value) || value == '>')) break;
                         index++;
                     }
-                    if (bracketDepth != 0 || start == index) return false;
+                    if (bracketDepth != 0 || parenthesisDepth != 0 || start == index) return false;
                     parts.Add(new SelectorPart(selector.Substring(start, index - start), parts.Count == 0 ? '\0' : nextCombinator == '\0' ? ' ' : nextCombinator));
                     nextCombinator = '\0';
                 }
@@ -183,6 +188,16 @@ namespace OfficeIMO.Visio {
                             while (index < compound.Length && IsNameCharacter(compound[index])) index++;
                             if (start == index) return false;
                             specificity += 10;
+                            if (index < compound.Length && compound[index] == '(') {
+                                int depth = 1;
+                                index++;
+                                while (index < compound.Length && depth > 0) {
+                                    if (compound[index] == '(') depth++;
+                                    else if (compound[index] == ')') depth--;
+                                    index++;
+                                }
+                                if (depth != 0) return false;
+                            }
                         } else {
                             return false;
                         }
