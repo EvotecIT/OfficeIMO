@@ -568,6 +568,46 @@ internal readonly struct PdfPageClipPath {
             : Rectangle(bounds.X, bounds.Y, 0D, 0D);
     }
 
+    internal PdfPageClipPath Translate(double offsetX, double offsetY) {
+        if (IsRectangle) {
+            return Rectangle(X - offsetX, Y - offsetY, Width, Height);
+        }
+
+        var translated = new List<OfficePathCommand>(Commands.Count);
+        for (int i = 0; i < Commands.Count; i++) {
+            OfficePathCommand command = Commands[i];
+            switch (command.Kind) {
+                case OfficePathCommandKind.MoveTo:
+                    translated.Add(OfficePathCommand.MoveTo(command.Point.X - offsetX, command.Point.Y - offsetY));
+                    break;
+                case OfficePathCommandKind.LineTo:
+                    translated.Add(OfficePathCommand.LineTo(command.Point.X - offsetX, command.Point.Y - offsetY));
+                    break;
+                case OfficePathCommandKind.QuadraticBezierTo:
+                    translated.Add(OfficePathCommand.QuadraticBezierTo(
+                        command.ControlPoint1.X - offsetX,
+                        command.ControlPoint1.Y - offsetY,
+                        command.Point.X - offsetX,
+                        command.Point.Y - offsetY));
+                    break;
+                case OfficePathCommandKind.CubicBezierTo:
+                    translated.Add(OfficePathCommand.CubicBezierTo(
+                        command.ControlPoint1.X - offsetX,
+                        command.ControlPoint1.Y - offsetY,
+                        command.ControlPoint2.X - offsetX,
+                        command.ControlPoint2.Y - offsetY,
+                        command.Point.X - offsetX,
+                        command.Point.Y - offsetY));
+                    break;
+                case OfficePathCommandKind.Close:
+                    translated.Add(OfficePathCommand.Close());
+                    break;
+            }
+        }
+
+        return new PdfPageClipPath(X - offsetX, Y - offsetY, Width, Height, false, FillRule, translated);
+    }
+
     public OfficeClipPath? ToOfficeClipPath(double primitiveX, double primitiveY) {
         if (!NearlyEqual(X, primitiveX) || !NearlyEqual(Y, primitiveY) || Width <= 0D || Height <= 0D) {
             return null;

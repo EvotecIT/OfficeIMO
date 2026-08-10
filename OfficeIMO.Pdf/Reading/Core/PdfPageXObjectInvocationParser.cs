@@ -57,6 +57,7 @@ internal static class PdfPageXObjectInvocationParser {
         Action? unsupportedColorVisitor = null,
         Action<string>? visibleFontVisitor = null,
         Action<string>? patternInvocationVisitor = null,
+        Action<string>? authoredPatternInvocationVisitor = null,
         Action<PdfPageGraphicsStateResource>? graphicsStateVisitor = null,
         bool allowSupportedGraphicsEffects = false,
         IReadOnlyDictionary<string, PdfPageColorSpace>? patternBaseColorSpaces = null,
@@ -71,7 +72,7 @@ internal static class PdfPageXObjectInvocationParser {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver);
+        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver);
         return parser.Parse();
     }
 
@@ -128,6 +129,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Action? _unsupportedColorVisitor;
         private readonly Action<string>? _visibleFontVisitor;
         private readonly Action<string>? _patternInvocationVisitor;
+        private readonly Action<string>? _authoredPatternInvocationVisitor;
         private readonly Func<PdfFontResource, byte[], PdfType3PaintChannels>? _type3PaintChannelResolver;
         private readonly Action<PdfPageGraphicsStateResource>? _graphicsStateVisitor;
         private readonly bool _allowSupportedGraphicsEffects;
@@ -170,6 +172,7 @@ internal static class PdfPageXObjectInvocationParser {
             Action? unsupportedColorVisitor,
             Action<string>? visibleFontVisitor,
             Action<string>? patternInvocationVisitor,
+            Action<string>? authoredPatternInvocationVisitor,
             Action<PdfPageGraphicsStateResource>? graphicsStateVisitor,
             bool allowSupportedGraphicsEffects,
             IReadOnlyDictionary<string, PdfPageColorSpace>? patternBaseColorSpaces,
@@ -214,6 +217,7 @@ internal static class PdfPageXObjectInvocationParser {
             _unsupportedColorVisitor = unsupportedColorVisitor;
             _visibleFontVisitor = visibleFontVisitor;
             _patternInvocationVisitor = patternInvocationVisitor;
+            _authoredPatternInvocationVisitor = authoredPatternInvocationVisitor;
             _type3PaintChannelResolver = type3PaintChannelResolver;
             _graphicsStateVisitor = graphicsStateVisitor;
             _allowSupportedGraphicsEffects = allowSupportedGraphicsEffects;
@@ -654,6 +658,7 @@ internal static class PdfPageXObjectInvocationParser {
                 case "scn":
                     if (op == "scn" && _args.Count > 0 && _args[_args.Count - 1] is string fillPatternName) {
                         if (_state.FillColorSpace == PdfPageColorSpaceKind.Pattern) {
+                            _authoredPatternInvocationVisitor?.Invoke(fillPatternName);
                             if (!HasHiddenContent()) {
                                 _unsupportedPatternVisitor?.Invoke();
                                 _patternInvocationVisitor?.Invoke(fillPatternName);
@@ -688,6 +693,7 @@ internal static class PdfPageXObjectInvocationParser {
                 case "SCN":
                     if (op == "SCN" && _args.Count > 0 && _args[_args.Count - 1] is string strokePatternName) {
                         if (_state.StrokeColorSpace == PdfPageColorSpaceKind.Pattern) {
+                            _authoredPatternInvocationVisitor?.Invoke(strokePatternName);
                             if (!HasHiddenContent()) {
                                 _unsupportedPatternVisitor?.Invoke();
                                 _patternInvocationVisitor?.Invoke(strokePatternName);

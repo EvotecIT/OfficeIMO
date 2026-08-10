@@ -32,6 +32,23 @@ internal readonly struct PdfPagePatternSelection {
     internal PdfPageTilingPatternResource? TilingPattern { get; }
     internal PdfPageShadingPatternResource? ShadingPattern { get; }
     internal Matrix2D PaintTransform { get; }
+
+    internal PdfPagePatternSelection Translate(double offsetX, double offsetY, double sourceHeight, double targetHeight) {
+        var sourceFlip = new Matrix2D(1D, 0D, 0D, -1D, 0D, sourceHeight);
+        var targetFlip = new Matrix2D(1D, 0D, 0D, -1D, 0D, targetHeight);
+        Matrix2D translatedPaintTransform = Matrix2D.Multiply(
+            targetFlip,
+            Matrix2D.Multiply(
+                Matrix2D.Translation(-offsetX, -offsetY),
+                Matrix2D.Multiply(sourceFlip, PaintTransform)));
+        return new PdfPagePatternSelection(
+            Name,
+            Tint,
+            BaseColorSpace,
+            TilingPattern,
+            ShadingPattern,
+            translatedPaintTransform);
+    }
 }
 
 internal readonly struct PdfPageType3TextInvocation {

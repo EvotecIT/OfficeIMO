@@ -675,6 +675,9 @@ public sealed partial class PdfReadPage {
                               }
                           }
                           : null,
+                      authoredPatternInvocationVisitor: requireNestedType3Uncolored
+                          ? _ => type3GlyphBudget.RecordFailure()
+                          : null,
                       allowSupportedGraphicsEffects: requireSupportedType3Content,
                       patternBaseColorSpaces: patternBaseColorSpaces,
                       initialFillPattern: initialFillPattern,
@@ -700,13 +703,15 @@ public sealed partial class PdfReadPage {
                 PdfDictionary? formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
                 PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
-                string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDictionary);
+                string decodedFormContent = PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream));
+                string formContent = WrapFormContentWithBoundingBoxClip(decodedFormContent, formDictionary);
                 if (requireSupportedType3Content && formDictionary.Items.ContainsKey("Group")) {
                     if (!allowSupportedType3TransparencyGroups ||
                         type3GroupVisitor == null ||
                         !IsSupportedType3TransparencyGroup(formDictionary) ||
                         !TryCreateType3TransparencyGroupDrawing(
-                            formContent,
+                            decodedFormContent,
+                            formDictionary,
                             formResources,
                             formTransform,
                             pageWidth,
@@ -725,11 +730,12 @@ public sealed partial class PdfReadPage {
                             pageContentBudget,
                             contentNestingDepth,
                             formOrderPrefix,
-                            out OfficeDrawing? groupDrawing)) {
+                            out OfficeDrawing? groupDrawing,
+                            out OfficeTransform groupTransform)) {
                         type3GlyphBudget.RecordFailure();
                         continue;
                     }
-                    type3GroupVisitor(groupDrawing, OfficeTransform.Identity, invocation.PaintOrder, formOrderPrefix, PdfPageDrawingEffect.Default);
+                    type3GroupVisitor(groupDrawing, groupTransform, invocation.PaintOrder, formOrderPrefix, PdfPageDrawingEffect.Default);
                     continue;
                 }
                 CollectVisualPrimitivesAndForms(
