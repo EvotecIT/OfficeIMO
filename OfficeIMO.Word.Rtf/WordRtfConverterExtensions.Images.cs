@@ -37,7 +37,7 @@ public static partial class WordRtfConverterExtensions {
         foreach (DocumentFormat.OpenXml.Wordprocessing.Run sourceRun in runs) {
             var run = new WordParagraph(source._document, source._paragraph, sourceRun);
             foreach (WordImage wordImage in run.EnumerateImages()) {
-                RtfImage? image = CreateRtfImage(wordImage, out _);
+                RtfImage? image = CreateRtfImage(wordImage, out _, out _);
                 if (image == null) continue;
                 CopyImage(image, addImage(image));
                 copied = true;
@@ -46,8 +46,12 @@ public static partial class WordRtfConverterExtensions {
         return copied;
     }
 
-    private static RtfImage? CreateRtfImage(WordImage source, out OfficeImageFormat sourceFormat) {
+    private static RtfImage? CreateRtfImage(
+        WordImage source,
+        out OfficeImageFormat sourceFormat,
+        out bool animationDiscarded) {
         sourceFormat = OfficeImageFormat.Unknown;
+        animationDiscarded = false;
         if (source.IsExternal) {
             return null;
         }
@@ -68,7 +72,8 @@ public static partial class WordRtfConverterExtensions {
                 source.FileName,
                 out RtfImageFormat format,
                 out byte[] payload,
-                out sourceFormat)) {
+                out sourceFormat,
+                out animationDiscarded)) {
             return null;
         }
 
@@ -123,10 +128,12 @@ public static partial class WordRtfConverterExtensions {
         string? fileName,
         out RtfImageFormat format,
         out byte[] payload,
-        out OfficeImageFormat sourceFormat) {
+        out OfficeImageFormat sourceFormat,
+        out bool animationDiscarded) {
         format = RtfImageFormat.Unknown;
         payload = Array.Empty<byte>();
         sourceFormat = OfficeImageFormat.Unknown;
+        animationDiscarded = false;
         if (OfficeImageReader.TryValidateContent(bytes, fileName, out OfficeImageInfo info)) {
             sourceFormat = info.Format;
             switch (info.Format) {
@@ -147,9 +154,14 @@ public static partial class WordRtfConverterExtensions {
                     payload = bytes;
                     return true;
                 default:
-                    if (OfficeImagePngConverter.TryConvertToPng(bytes, out byte[] normalized)) {
+                    if (OfficeImagePngConverter.TryConvertToPng(
+                            bytes,
+                            options: null,
+                            out byte[] normalized,
+                            out OfficeRasterDecodeInfo decodeInfo)) {
                         format = RtfImageFormat.Png;
                         payload = normalized;
+                        animationDiscarded = decodeInfo.AnimationDiscarded;
                         return true;
                     }
                     break;

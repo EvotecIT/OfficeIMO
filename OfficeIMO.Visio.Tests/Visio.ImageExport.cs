@@ -302,6 +302,23 @@ public class VisioImageExport {
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }
 
+    [Fact]
+    public void EmbeddedSvgPreviewDoesNotMatchNamespacedAttributesWithUnprefixedSelectors() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' " +
+                           "xmlns:xlink='http://www.w3.org/1999/xlink' width='10' height='10'>" +
+                           "<style>[href] { filter: url(#blur); }</style>" +
+                           "<rect xlink:href='#source' width='10' height='10' fill='red'/></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "namespaced-attribute.svg", default, out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        Assert.DoesNotContain(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
     [Theory]
     [InlineData("@media print")]
     [InlineData("@starting-style")]

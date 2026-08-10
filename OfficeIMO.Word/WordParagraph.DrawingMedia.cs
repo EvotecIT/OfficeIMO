@@ -33,7 +33,10 @@ namespace OfficeIMO.Word {
         internal IEnumerable<WordImage> EnumerateImages() {
             if (_run == null) yield break;
 
-            foreach (WordDrawing drawing in _run.ChildElements.OfType<WordDrawing>()) {
+            foreach (WordDrawing drawing in EnumerateEffectiveRunContent().SelectMany(
+                         element => element is WordDrawing direct
+                             ? new[] { direct }
+                             : element.Descendants<WordDrawing>())) {
                 bool inlinePicture = drawing.Inline?.Graphic?.GraphicData?.ChildElements
                     .OfType<DocumentFormat.OpenXml.Drawing.Pictures.Picture>()
                     .Any() == true;
@@ -46,9 +49,33 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            foreach (V.Shape shape in _run.Descendants<V.Shape>()) {
+            foreach (V.Shape shape in EnumerateEffectiveRunContent().SelectMany(
+                         element => element is V.Shape direct
+                             ? new[] { direct }
+                             : element.Descendants<V.Shape>())) {
                 if (shape.GetFirstChild<V.ImageData>() != null) {
                     yield return new WordImage(_document, _paragraph, _run, shape);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Enumerates direct run content while selecting the active markup-compatibility branch.
+        /// </summary>
+        private IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> EnumerateEffectiveRunContent() {
+            foreach (DocumentFormat.OpenXml.OpenXmlElement child in _run!.ChildElements) {
+                if (child is not AlternateContent alternateContent) {
+                    yield return child;
+                    continue;
+                }
+
+                DocumentFormat.OpenXml.OpenXmlCompositeElement? branch = alternateContent
+                    .ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
+                branch ??= alternateContent.ChildElements
+                    .OfType<AlternateContentFallback>().FirstOrDefault();
+                if (branch == null) continue;
+                foreach (DocumentFormat.OpenXml.OpenXmlElement branchChild in branch.ChildElements) {
+                    yield return branchChild;
                 }
             }
         }

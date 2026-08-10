@@ -537,6 +537,41 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public async Task GuardedAsyncConsumerDrainsReentryAfterSynchronousCallbackFailure() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        var innerStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseInner = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var laterStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        OfficeImageExportAsyncConsumer? accept = null;
+        accept = OfficeImageExportBatchProcessor.CreateGuardedAsyncConsumer(
+            new OfficeImageExportOptions { MaximumOutputCount = 3 },
+            (result, token) => {
+                if (result.Name == "outer") {
+                    _ = accept!(CreateResult("inner", png), token);
+                    throw new InvalidOperationException("outer failed");
+                }
+                if (result.Name == "inner") {
+                    innerStarted.TrySetResult(true);
+                    return releaseInner.Task;
+                }
+                laterStarted.TrySetResult(true);
+                return Task.CompletedTask;
+            });
+
+        Task outer = accept(CreateResult("outer", png), default);
+        await innerStarted.Task;
+        Assert.False(outer.IsCompleted);
+        Task later = accept(CreateResult("later", png), default);
+        Assert.False(laterStarted.Task.IsCompleted);
+
+        releaseInner.TrySetResult(true);
+        InvalidOperationException failure = await Assert.ThrowsAsync<InvalidOperationException>(() => outer);
+        Assert.Equal("outer failed", failure.Message);
+        await later;
+        Assert.Equal(TaskStatus.RanToCompletion, laterStarted.Task.Status);
+    }
+
+    [Fact]
     public async Task GuardedAsyncConsumerRejectsForkedReentryWithoutConcurrentAdmission() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         var observed = new ConcurrentQueue<int>();

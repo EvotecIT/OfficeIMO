@@ -348,11 +348,20 @@ public static class OfficeImageExportBatchProcessor {
             reentryScope.Value = scope;
             Task callback;
             try {
-                callback = consumer(result.WithSequence(sequenceIndex, expectedOutputCount), effectiveToken);
-                if (callback == null) throw new InvalidOperationException("The image export consumer returned a null task.");
-            } finally {
-                scope.EndSynchronousInvocation();
-                reentryScope.Value = previousScope;
+                try {
+                    callback = consumer(result.WithSequence(sequenceIndex, expectedOutputCount), effectiveToken);
+                    if (callback == null) throw new InvalidOperationException("The image export consumer returned a null task.");
+                } finally {
+                    scope.EndSynchronousInvocation();
+                    reentryScope.Value = previousScope;
+                }
+            } catch {
+                try {
+                    await scope.AwaitNestedInvocationsAsync().ConfigureAwait(false);
+                } catch {
+                    // Preserve the synchronous callback exception after observing and draining reentries.
+                }
+                throw;
             }
             try {
                 await callback.ConfigureAwait(false);

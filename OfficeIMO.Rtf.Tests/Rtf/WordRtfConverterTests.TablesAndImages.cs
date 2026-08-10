@@ -3,8 +3,10 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Rtf;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.CustomProperties;
 using DocumentFormat.OpenXml.Wordprocessing;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -252,6 +254,38 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_Rtf_Bridge_Accounts_For_Images_In_Alternate_Content() {
+        byte[] png = CreateOnePixelPng();
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        using (var stream = new MemoryStream(png, writable: false)) {
+            paragraph.AddImage(stream, "embedded.png", 16, 16, description: "Embedded image");
+        }
+        paragraph.AddImage(
+            new Uri("https://example.test/external.png"),
+            16,
+            16,
+            description: "External image");
+
+        Run run = Assert.IsType<Run>(paragraph._run);
+        List<WordDrawing> drawings = run.Elements<WordDrawing>().ToList();
+        Assert.Equal(2, drawings.Count);
+        foreach (WordDrawing drawing in drawings) drawing.Remove();
+        var choice = new AlternateContentChoice { Requires = "wps" };
+        choice.Append(drawings);
+        run.Append(new AlternateContent(choice));
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        Assert.Equal("Embedded image", Assert.IsType<RtfImage>(Assert.Single(conversion.Value.Blocks)).Description);
+        RtfConversionDiagnostic omitted = Assert.Single(
+            conversion.Report.Diagnostics,
+            diagnostic => diagnostic.Code == "WordRtfImagesOmitted");
+        Assert.Equal(1, omitted.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+    }
+
+    [Fact]
     public void Rtf_Word_Bridge_Normalizes_Raw_Dib_To_Png() {
         RtfDocument rtf = RtfDocument.Create();
         rtf.AddImage(RtfImageFormat.Dib, CreateOnePixelDib());
@@ -321,6 +355,27 @@ public partial class WordRtfConverterTests {
         Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
             diagnostic.Code == "WordRtfImagesNormalized" &&
             diagnostic.Action == RtfConversionAction.Substituted);
+    }
+
+    [Fact]
+    public void Word_Rtf_Bridge_Reports_Animated_Gif_Flattening() {
+        byte[] gif = CreateTwoFrameGifForRtfBridge();
+        Assert.True(OfficeImageReader.TryValidateContent(gif, "animated.gif", out _));
+        using WordDocument word = WordDocument.Create();
+        using (var stream = new MemoryStream(gif, writable: false)) {
+            word.AddParagraph().AddImage(stream, "animated.gif", 16, 16);
+        }
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfImage image = Assert.IsType<RtfImage>(Assert.Single(conversion.Value.Blocks));
+
+        Assert.Equal(RtfImageFormat.Png, image.Format);
+        RtfConversionDiagnostic flattened = Assert.Single(
+            conversion.Report.Diagnostics,
+            diagnostic => diagnostic.Code == "WordRtfImageAnimationFlattened");
+        Assert.Equal(RtfConversionAction.Flattened, flattened.Action);
+        Assert.Equal(1, flattened.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
     }
 
     [Fact]
@@ -722,6 +777,23 @@ public partial class WordRtfConverterTests {
         bytes[offset + 1] = (byte)(crc >> 16);
         bytes[offset + 2] = (byte)(crc >> 8);
         bytes[offset + 3] = (byte)crc;
+    }
+
+    private static byte[] CreateTwoFrameGifForRtfBridge() {
+        byte[] headerAndPalette = {
+            (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a',
+            1, 0, 1, 0, 0x91, 0, 0,
+            255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255
+        };
+        byte[] firstFrame = {
+            0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0,
+            2, 2, 0x44, 0x01, 0
+        };
+        byte[] secondFrame = {
+            0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0,
+            2, 2, 0x4C, 0x01, 0
+        };
+        return headerAndPalette.Concat(firstFrame).Concat(secondFrame).Append((byte)0x3B).ToArray();
     }
 
     [Fact]

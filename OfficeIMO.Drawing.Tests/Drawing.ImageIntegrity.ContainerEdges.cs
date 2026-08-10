@@ -80,6 +80,17 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void TiffDecodeValidatesNestedIfdPointers() {
+        byte[] valid = OfficeTiffCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] danglingNestedIfd = AddDanglingNestedTiffIfdPointer(valid);
+
+        Assert.True(OfficeTiffCodec.TryDecode(valid, out _));
+        Assert.False(OfficeTiffCodec.TryDecode(danglingNestedIfd, out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            danglingNestedIfd, "dangling-exif-pointer.tiff", out _));
+    }
+
+    [Fact]
     public void CompleteContentValidationChecksSuggestedPngPalettes() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] validPalette = { (byte)'p', 0, 8, 1, 2, 3, 4, 5, 0 };
@@ -320,6 +331,39 @@ public partial class DrawingTests {
         byte[] result = bytes.ToArray();
         WriteInt32LittleEndian(result, 4, result.Length - 8);
         return result;
+    }
+
+    private static byte[] AddDanglingNestedTiffIfdPointer(byte[] source) {
+        const int ifdOffset = 8;
+        int entryCount = source[ifdOffset] | source[ifdOffset + 1] << 8;
+        int oldNextIfdOffset = ifdOffset + 2 + entryCount * 12;
+        var output = new byte[source.Length + 12];
+        Buffer.BlockCopy(source, 0, output, 0, oldNextIfdOffset);
+        Buffer.BlockCopy(
+            source,
+            oldNextIfdOffset,
+            output,
+            oldNextIfdOffset + 12,
+            source.Length - oldNextIfdOffset);
+        WriteUInt16LittleEndian(output, ifdOffset, (ushort)(entryCount + 1));
+
+        for (int index = 0; index < entryCount; index++) {
+            int entry = ifdOffset + 2 + index * 12;
+            int tag = output[entry] | output[entry + 1] << 8;
+            if (tag == 258 || tag == 273 || tag == 282 || tag == 283) {
+                int valueOffset = output[entry + 8] |
+                    output[entry + 9] << 8 |
+                    output[entry + 10] << 16 |
+                    output[entry + 11] << 24;
+                WriteInt32LittleEndian(output, entry + 8, valueOffset + 12);
+            }
+        }
+
+        WriteUInt16LittleEndian(output, oldNextIfdOffset, 34665);
+        WriteUInt16LittleEndian(output, oldNextIfdOffset + 2, 4);
+        WriteInt32LittleEndian(output, oldNextIfdOffset + 4, 1);
+        WriteInt32LittleEndian(output, oldNextIfdOffset + 8, output.Length + 1);
+        return output;
     }
 
     private static byte[] CreateExtendedWebpWithXmp(byte[] simple, byte[] xmp) {

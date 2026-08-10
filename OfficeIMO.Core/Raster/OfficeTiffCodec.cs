@@ -105,7 +105,8 @@ public static partial class OfficeTiffCodec {
     public static bool TryDecode(byte[]? encodedBytes, out OfficeRasterImage? image) {
         image = null;
         if (!IsTiff(encodedBytes) || encodedBytes == null ||
-            encodedBytes.Length > OfficeRasterGuards.MaximumEncodedBytes) {
+            encodedBytes.Length > OfficeRasterGuards.MaximumEncodedBytes ||
+            !OfficeTiffStructureValidator.TryValidate(encodedBytes, 0, encodedBytes.Length)) {
             return false;
         }
 

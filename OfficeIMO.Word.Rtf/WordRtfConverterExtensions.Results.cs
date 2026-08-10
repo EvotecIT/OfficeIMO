@@ -271,19 +271,24 @@ public static partial class WordRtfConverterExtensions {
 
         int omittedImageCount = 0;
         int normalizedImageCount = 0;
+        int flattenedAnimationCount = 0;
         foreach ((WordImage Image, bool OmittedByConverter) candidate in EnumerateWordImageCandidates(document, storyRoots)) {
             if (candidate.OmittedByConverter) {
                 omittedImageCount++;
                 continue;
             }
             WordImage image = candidate.Image;
-            RtfImage? converted = CreateRtfImage(image, out OfficeImageFormat sourceFormat);
+            RtfImage? converted = CreateRtfImage(
+                image,
+                out OfficeImageFormat sourceFormat,
+                out bool animationDiscarded);
             if (converted == null) {
                 omittedImageCount++;
             } else if (converted.Format == RtfImageFormat.Png &&
                        sourceFormat != OfficeImageFormat.Png) {
                 normalizedImageCount++;
             }
+            if (animationDiscarded) flattenedAnimationCount++;
         }
 
         if (normalizedImageCount > 0) {
@@ -294,6 +299,15 @@ public static partial class WordRtfConverterExtensions {
                 RtfConversionAction.Substituted,
                 feature: "image",
                 count: normalizedImageCount);
+        }
+        if (flattenedAnimationCount > 0) {
+            report.Add(
+                RtfConversionSeverity.Warning,
+                "WordRtfImageAnimationFlattened",
+                "Animated Word images were flattened to a selected static frame during PNG normalization.",
+                RtfConversionAction.Flattened,
+                feature: "image",
+                count: flattenedAnimationCount);
         }
         if (omittedImageCount > 0) {
             report.Add(

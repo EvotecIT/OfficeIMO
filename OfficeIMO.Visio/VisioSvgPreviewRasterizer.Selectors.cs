@@ -100,8 +100,9 @@ namespace OfficeIMO.Visio {
                 int equals = trimmed.IndexOf('=');
                 string name = (equals < 0 ? trimmed : trimmed.Substring(0, equals)).Trim();
                 if (name.Length == 0 || name.Any(character => !IsNameCharacter(character))) return SelectorMatch.Unsupported;
-                XAttribute? attribute = element.Attributes().FirstOrDefault(candidate =>
-                    string.Equals(candidate.Name.LocalName, name, StringComparison.Ordinal));
+                // CSS unprefixed attribute selectors match only attributes in no namespace.
+                // A local-name scan would incorrectly make [href] match xlink:href.
+                XAttribute? attribute = element.Attribute(name);
                 if (attribute == null) return SelectorMatch.NoMatch;
                 if (equals < 0) return SelectorMatch.Match;
                 string rawExpected = trimmed.Substring(equals + 1).Trim();

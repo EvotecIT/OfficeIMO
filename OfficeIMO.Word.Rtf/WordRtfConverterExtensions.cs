@@ -777,7 +777,7 @@ public static partial class WordRtfConverterExtensions {
 
         bool appendedImage = false;
         foreach (WordImage wordImage in wordRun.EnumerateImages()) {
-            RtfImage? image = CreateRtfImage(wordImage, out _);
+            RtfImage? image = CreateRtfImage(wordImage, out _, out _);
             if (image == null) continue;
             CopyImage(image, paragraph.AddImage(image.Format, image.Data));
             appendedImage = true;
