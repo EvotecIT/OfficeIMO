@@ -97,8 +97,12 @@ public sealed class PdfJavaScriptEditResult {
         _readOptions = readOptions;
         MutationPlan = mutationPlan;
         PreservationReport = preservationReport;
-        JavaScripts = javaScripts;
-        Operations = operations;
+        JavaScripts = javaScripts.Count == 0
+            ? Array.Empty<PdfJavaScript>()
+            : Array.AsReadOnly(javaScripts.ToArray());
+        Operations = operations.Count == 0
+            ? Array.Empty<string>()
+            : Array.AsReadOnly(operations.ToArray());
     }
 
     /// <summary>Shared full-rewrite mutation plan.</summary>

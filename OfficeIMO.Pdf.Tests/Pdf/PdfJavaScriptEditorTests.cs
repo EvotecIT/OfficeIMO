@@ -161,6 +161,9 @@ public class PdfJavaScriptEditorTests {
         PdfJavaScript script = Assert.Single(PdfReadDocument.Open(source).JavaScripts);
         Assert.Equal("\u2022", script.Script);
 
+        PdfJavaScript controls = Assert.Single(PdfReadDocument.Open(BuildPdfDocControlEncodedJavaScriptPdf()).JavaScripts);
+        Assert.Equal("\0\f\u0017", controls.Script);
+
         var countOptions = new PdfReadOptions {
             Limits = new PdfReadLimits { MaxJavaScripts = 1 }
         };
@@ -237,6 +240,25 @@ public class PdfJavaScriptEditorTests {
 
         Assert.Throws<InvalidDataException>(() => PdfDocument.Open(BuildDuplicateJavaScriptNamePdf())
             .JavaScript.AddOrReplace("Duplicate", "app.alert('replacement');"));
+    }
+
+    [Fact]
+    public void EditResult_SnapshotsOperationsWhenTheCallbackRetainsItsSession() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Immutable JavaScript edit result"))
+            .ToBytes();
+        PdfJavaScriptEditSession? retained = null;
+
+        PdfJavaScriptEditResult result = PdfDocument.Open(source).JavaScript.Edit(session => {
+            retained = session;
+            session.AddOrReplace("Startup", "app.alert('saved');");
+        });
+        retained!.Clear();
+
+        Assert.Equal(new[] { "AddOrReplace:Startup" }, result.Operations);
+        PdfJavaScript saved = Assert.Single(result.JavaScripts);
+        Assert.Equal("Startup", saved.Name);
+        Assert.Equal("app.alert('saved');", saved.Script);
     }
 
     [Fact]
@@ -323,6 +345,26 @@ public class PdfJavaScriptEditorTests {
         "endobj",
         "5 0 obj",
         "<< /S /JavaScript /JS <80> >>",
+        "endobj",
+        "trailer",
+        "<< /Root 1 0 R /Size 6 >>",
+        "%%EOF",
+        string.Empty
+    }));
+
+    private static byte[] BuildPdfDocControlEncodedJavaScriptPdf() => Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+        "%PDF-1.7",
+        "1 0 obj",
+        "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Names [(Startup) 5 0 R] >> >> >>",
+        "endobj",
+        "2 0 obj",
+        "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+        "endobj",
+        "3 0 obj",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>",
+        "endobj",
+        "5 0 obj",
+        "<< /S /JavaScript /JS <000C17> >>",
         "endobj",
         "trailer",
         "<< /Root 1 0 R /Size 6 >>",

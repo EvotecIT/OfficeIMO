@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>PDFDocEncoding conversion for PDF text strings without a Unicode byte-order marker.</summary>
 internal static class PdfDocEncoding {
     private static readonly char[] Map = BuildMap();
+    private static readonly bool[] Defined = BuildDefinedMap();
 
     internal static bool TryDecode(byte[] bytes, out string value) {
         if (bytes.Length == 0) {
@@ -12,12 +13,12 @@ internal static class PdfDocEncoding {
 
         var characters = new char[bytes.Length];
         for (int i = 0; i < bytes.Length; i++) {
-            char character = Map[bytes[i]];
-            if (character == '\0') {
+            byte encoded = bytes[i];
+            if (!Defined[encoded]) {
                 value = string.Empty;
                 return false;
             }
-            characters[i] = character;
+            characters[i] = Map[encoded];
         }
         value = new string(characters);
         return true;
@@ -25,7 +26,7 @@ internal static class PdfDocEncoding {
 
     private static char[] BuildMap() {
         var map = new char[256];
-        map[9] = '\t'; map[10] = '\n'; map[13] = '\r';
+        for (int value = 0; value <= 23; value++) map[value] = (char)value;
         map[24] = '\u02D8'; map[25] = '\u02C7'; map[26] = '\u02C6'; map[27] = '\u02D9';
         map[28] = '\u02DD'; map[29] = '\u02DB'; map[30] = '\u02DA'; map[31] = '\u02DC';
         for (int value = 32; value <= 126; value++) map[value] = (char)value;
@@ -40,5 +41,15 @@ internal static class PdfDocEncoding {
         for (int value = 161; value <= 172; value++) map[value] = (char)value;
         for (int value = 174; value <= 255; value++) map[value] = (char)value;
         return map;
+    }
+
+    private static bool[] BuildDefinedMap() {
+        var defined = new bool[256];
+        for (int value = 0; value <= 126; value++) defined[value] = true;
+        for (int value = 128; value <= 158; value++) defined[value] = true;
+        defined[160] = true;
+        for (int value = 161; value <= 172; value++) defined[value] = true;
+        for (int value = 174; value <= 255; value++) defined[value] = true;
+        return defined;
     }
 }
