@@ -296,10 +296,10 @@ internal static partial class PdfWriter {
         }
 
         private double GetRadioButtonGroupLabelFontSize(RadioButtonGroupBlock block) =>
-            System.Math.Min(System.Math.Max(8D, currentOpts.DefaultFontSize), System.Math.Max(8D, block.Size));
+            PdfRadioButtonLayout.GetLabelFontSize(currentOpts.DefaultFontSize, block.Size);
 
         private static double GetRadioButtonGroupLabelGap(RadioButtonGroupBlock block) =>
-            System.Math.Max(4D, block.Size * 0.4D);
+            PdfRadioButtonLayout.GetLabelGap(block.Size);
 
         private double GetRadioButtonGroupWidth(RadioButtonGroupBlock block) {
             PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
@@ -326,4 +326,3 @@ internal static partial class PdfWriter {
 
     }
 }
-

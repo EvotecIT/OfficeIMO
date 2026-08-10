@@ -185,9 +185,7 @@ public sealed partial class PdfDocumentPreflight {
 
     private bool HasFormMutationBlocker(PdfMutationOperation operation) {
         return Probe.HasSignatures ||
-            Probe.HasActiveContent ||
             _documentInfo?.AcroFormSignaturesExist == true ||
-            _documentInfo?.HasActiveContent == true ||
             !PdfPermissionAuthorization.CanRewriteFormFields(Probe.Security, PermissionPolicy, operation);
     }
 
@@ -395,10 +393,6 @@ public sealed partial class PdfDocumentPreflight {
         if (Probe.HasSignatures || _documentInfo?.AcroFormSignaturesExist == true) {
             AddDistinct(messages, "Signed PDF files are not supported for form filling or flattening by OfficeIMO.Pdf yet.");
             AddRange(messages, SignatureMutationDiagnostics);
-        }
-
-        if (Probe.HasActiveContent || _documentInfo?.HasActiveContent == true) {
-            AddDistinct(messages, "PDF active content is not supported for form filling or flattening by OfficeIMO.Pdf yet.");
         }
 
         if (HasRewriteBlocker(PdfRewriteBlockerKind.Encryption)) {

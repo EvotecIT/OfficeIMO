@@ -199,6 +199,24 @@ internal static partial class PdfFormFiller {
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
+    internal static PdfStream CreateAuthoredTextWidgetAppearance(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary acroForm,
+        PdfDictionary page,
+        PdfDictionary widget,
+        string value,
+        double width,
+        double height,
+        PdfFormFieldStyle style,
+        double fontSize,
+        string fieldName,
+        ref int nextObjectNumber) {
+        PdfDictionary? defaultResources = ResolveDictionary(objects, acroForm.Items.TryGetValue("DR", out PdfObject? resourcesObject) ? resourcesObject : null);
+        PdfDictionary? pageResources = ResolveDictionary(objects, page.Items.TryGetValue("Resources", out PdfObject? pageResourcesObject) ? pageResourcesObject : null);
+        string? defaultAppearance = TryReadText(objects, widget, "DA");
+        return CreateTextAppearanceStream(objects, defaultResources, null, pageResources, value, width, height, style, defaultAppearance, fontSize, null, fieldName, ref nextObjectNumber);
+    }
+
     private static PdfStream CreateRichTextAppearanceStream(IReadOnlyList<PdfFreeTextRichTextRun> richRuns, double width, double height, PdfFormFieldStyle style, double fontSize) {
         string content = PdfAnnotationDictionaryBuilder.BuildFreeTextRichAppearanceContent(
             width,
@@ -247,6 +265,50 @@ internal static partial class PdfFormFiller {
         dictionary.Items["Type"] = new PdfName("XObject");
         dictionary.Items["Subtype"] = new PdfName("Form");
         dictionary.Items["BBox"] = CreateNumberArray(0D, 0D, width, height);
+        return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
+    }
+
+    internal static PdfStream CreateAuthoredLabeledRadioWidgetAppearance(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary acroForm,
+        PdfDictionary page,
+        PdfDictionary widget,
+        string label,
+        double width,
+        double buttonSize,
+        PdfFormFieldStyle style,
+        double requestedFontSize,
+        string fieldName,
+        bool selected,
+        ref int nextObjectNumber) {
+        double labelX = buttonSize + PdfRadioButtonLayout.GetLabelGap(buttonSize);
+        PdfFormFieldStyle labelStyle = style.Clone();
+        labelStyle.BackgroundColor = null;
+        labelStyle.BorderColor = null;
+        labelStyle.BorderWidth = 0D;
+        labelStyle.TextAlignment = PdfFormFieldTextAlignment.Left;
+        PdfStream labelAppearance = CreateAuthoredTextWidgetAppearance(
+            objects,
+            acroForm,
+            page,
+            widget,
+            label,
+            width - labelX,
+            buttonSize,
+            labelStyle,
+            PdfRadioButtonLayout.GetLabelFontSize(requestedFontSize, buttonSize),
+            fieldName,
+            ref nextObjectNumber);
+        string radioContent = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(buttonSize, buttonSize, selected, style);
+        string labelContent = PdfEncoding.Latin1GetString(labelAppearance.Data);
+        string content = radioContent + "\nq\n1 0 0 1 " +
+            labelX.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +
+            " 0 cm\n" + labelContent + "\nQ\n";
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Type"] = new PdfName("XObject");
+        dictionary.Items["Subtype"] = new PdfName("Form");
+        dictionary.Items["BBox"] = CreateNumberArray(0D, 0D, width, buttonSize);
+        if (labelAppearance.Dictionary.Items.TryGetValue("Resources", out PdfObject? resources)) dictionary.Items["Resources"] = resources;
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 

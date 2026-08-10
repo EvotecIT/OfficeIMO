@@ -103,6 +103,43 @@ returning it. Per-script, script-count, and aggregate-byte limits come from
 sanitizer removes it, and full-rewrite edits are blocked for encrypted or signed
 inputs rather than weakening their security or revision contracts.
 
+### Add interactive fields to an existing PDF
+
+```csharp
+PdfAcroFormEditResult edited = PdfDocument.Open("input.pdf").Forms.Edit(form => form
+    .Create(new PdfFormFieldCreateOptions {
+        Name = "customer.notes",
+        Kind = PdfFormFieldCreationKind.Text,
+        PageNumber = 1,
+        X = 72,
+        Y = 560,
+        Width = 240,
+        Height = 60,
+        Style = new PdfFormFieldStyle { IsMultiline = true }
+    })
+    .Create(new PdfFormFieldCreateOptions {
+        Name = "calculate",
+        Kind = PdfFormFieldCreationKind.PushButton,
+        PageNumber = 1,
+        X = 72,
+        Y = 520,
+        Width = 100,
+        Height = 24,
+        Caption = "Calculate",
+        JavaScript = "this.getField('total').value = 42;"
+    }));
+
+File.WriteAllBytes("form.pdf", edited.ToBytes());
+```
+
+The same transaction creates text fields, check boxes, combo or list choices,
+radio-button groups, push buttons, and empty signature fields. Generated widget
+appearances use `PdfFormFieldStyle`; widget JavaScript is returned as inert,
+typed `PdfFormWidgetAction` data and is never executed by OfficeIMO.Pdf. Form
+edits and fills preserve unrelated active actions. Flattening removes actions
+owned by the fields being flattened, while the sanitizer removes forbidden
+actions without discarding the remaining form tree.
+
 For a single health and capability view:
 
 ```csharp

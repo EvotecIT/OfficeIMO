@@ -171,10 +171,49 @@ internal static partial class PdfAcroFormEditor {
 
     private static void ValidateCreateOptions(PdfFormFieldCreateOptions options, int pageCount) {
         Guard.NotNullOrWhiteSpace(options.Name, nameof(options.Name));
+        if (options.Kind < PdfFormFieldCreationKind.Text || options.Kind > PdfFormFieldCreationKind.PushButton) throw new ArgumentOutOfRangeException(nameof(options), "Field kind is not supported.");
         if (options.PageNumber < 1 || options.PageNumber > pageCount) throw new ArgumentOutOfRangeException(nameof(options), "Page number is outside the document.");
         if (!IsFinite(options.X) || !IsFinite(options.Y) || !IsFinite(options.Width) || !IsFinite(options.Height) || options.Width <= 0D || options.Height <= 0D) throw new ArgumentOutOfRangeException(nameof(options), "Field rectangle must contain finite coordinates and positive dimensions.");
         if (options.Name[0] == '.' || options.Name[options.Name.Length - 1] == '.') throw new ArgumentException("Field name cannot start or end with a period.", nameof(options));
-        if (options.Kind == PdfFormFieldCreationKind.Choice && options.ChoiceOptions.Any(string.IsNullOrEmpty)) throw new ArgumentException("Choice options cannot be empty.", nameof(options));
+        if (!IsFinite(options.FontSize) || options.FontSize <= 0D) throw new ArgumentOutOfRangeException(nameof(options), "Field font size must be a positive finite number.");
+        if (options.JavaScript is not null && options.Kind == PdfFormFieldCreationKind.Signature) throw new ArgumentException("Signature fields do not support widget JavaScript authoring.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.PushButton && string.IsNullOrWhiteSpace(options.Caption)) throw new ArgumentException("Push-button caption cannot be empty.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.CheckBox) ValidateButtonStateName(options.CheckedValueName, "Check-box selected value");
+        if (options.Kind == PdfFormFieldCreationKind.Choice || options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
+            ValidateCreateOptionsList(options);
+        }
+        if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
+            if (!IsFinite(options.RadioButtonSize) || options.RadioButtonSize <= 0D) throw new ArgumentOutOfRangeException(nameof(options), "Radio-button size must be a positive finite number.");
+            if (!IsFinite(options.RadioButtonGap) || options.RadioButtonGap < 0D) throw new ArgumentOutOfRangeException(nameof(options), "Radio-button gap must be a non-negative finite number.");
+            if (options.Width <= options.RadioButtonSize + PdfRadioButtonLayout.GetLabelGap(options.RadioButtonSize)) throw new ArgumentException("Radio-button width must leave space for visible option labels.", nameof(options));
+            double requiredHeight = options.ChoiceOptions.Count * options.RadioButtonSize + Math.Max(0, options.ChoiceOptions.Count - 1) * options.RadioButtonGap;
+            if (requiredHeight > options.Height) throw new ArgumentException("Radio-button widgets do not fit inside the requested field rectangle.", nameof(options));
+            string selected = ResolveInitialValue(options);
+            if (!options.ChoiceOptions.Contains(selected, StringComparer.Ordinal)) throw new ArgumentException("Radio-button value must match one of the provided options.", nameof(options));
+            if (options.DefaultValue is not null && !options.ChoiceOptions.Contains(options.DefaultValue, StringComparer.Ordinal)) throw new ArgumentException("Radio-button default value must match one of the provided options.", nameof(options));
+        }
+        if (options.Kind == PdfFormFieldCreationKind.Choice) {
+            if (options.Style?.IsEditableChoice == true && !options.IsComboBox) throw new ArgumentException("Editable choice fields must be combo boxes.", nameof(options));
+            if (!string.IsNullOrEmpty(options.Value) && options.Style?.IsEditableChoice != true && !options.ChoiceOptions.Contains(options.Value, StringComparer.Ordinal)) throw new ArgumentException("Choice value must match one of the provided options.", nameof(options));
+            if (options.DefaultValue is not null && options.Style?.IsEditableChoice != true && !options.ChoiceOptions.Contains(options.DefaultValue, StringComparer.Ordinal)) throw new ArgumentException("Choice default value must match one of the provided options.", nameof(options));
+        }
+        if (options.Style?.IsComb == true && !options.Style.MaxLength.HasValue) throw new ArgumentException("Comb text fields require a maximum length.", nameof(options));
+    }
+
+    private static void ValidateCreateOptionsList(PdfFormFieldCreateOptions options) {
+        if (options.ChoiceOptions is null || options.ChoiceOptions.Count == 0) throw new ArgumentException("Choice and radio fields require at least one option.", nameof(options));
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < options.ChoiceOptions.Count; i++) {
+            string option = options.ChoiceOptions[i];
+            if (string.IsNullOrWhiteSpace(option) || !seen.Add(option)) throw new ArgumentException("Choice and radio options must be non-empty and unique.", nameof(options));
+            if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) ValidateButtonStateName(option, "Radio-button option");
+        }
+    }
+
+    private static void ValidateButtonStateName(string value, string description) {
+        Guard.NotNullOrWhiteSpace(value, nameof(value));
+        if (string.Equals(value, "Off", StringComparison.Ordinal)) throw new ArgumentException(description + " cannot be Off.", nameof(value));
+        for (int i = 0; i < value.Length; i++) if (value[i] < 0x21 || value[i] > 0x7E) throw new ArgumentException(description + " must contain only printable ASCII PDF name characters.", nameof(value));
     }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);

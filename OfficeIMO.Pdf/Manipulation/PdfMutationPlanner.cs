@@ -944,7 +944,8 @@ internal static class PdfMutationPlanner {
             return blocker != PdfRewriteBlockerKind.ActiveContent &&
                 blocker != PdfRewriteBlockerKind.EmbeddedFiles &&
                 blocker != PdfRewriteBlockerKind.CatalogNameTrees &&
-                blocker != PdfRewriteBlockerKind.CatalogUri;
+                blocker != PdfRewriteBlockerKind.CatalogUri &&
+                blocker != PdfRewriteBlockerKind.Forms;
         }
 
         if (operation == PdfMutationOperation.ModifyAttachments) {
@@ -968,7 +969,9 @@ internal static class PdfMutationPlanner {
         if (operation == PdfMutationOperation.FillFormFields ||
             operation == PdfMutationOperation.FlattenFormFields ||
             operation == PdfMutationOperation.FillAndFlattenFormFields) {
-            return blocker != PdfRewriteBlockerKind.Forms;
+            return blocker != PdfRewriteBlockerKind.Forms &&
+                blocker != PdfRewriteBlockerKind.ActiveContent &&
+                blocker != PdfRewriteBlockerKind.CatalogNameTrees;
         }
 
         return true;
