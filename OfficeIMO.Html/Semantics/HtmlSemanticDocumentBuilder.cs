@@ -26,7 +26,11 @@ internal static class HtmlSemanticDocumentBuilder {
             }
 
             HtmlSemanticSourceLocation? location = blocks.FirstOrDefault()?.SourceLocation;
-            sections.Add(new HtmlSemanticSection(projection.Title, blocks.AsReadOnly(), location));
+            sections.Add(new HtmlSemanticSection(
+                projection.Title,
+                projection.TitleSource,
+                blocks.AsReadOnly(),
+                location));
         }
         IReadOnlyList<HtmlSemanticResource> resourceOccurrences = resources.ToList().AsReadOnly();
 

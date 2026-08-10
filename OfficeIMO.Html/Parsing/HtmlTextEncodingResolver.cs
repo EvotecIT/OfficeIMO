@@ -374,7 +374,7 @@ internal static class HtmlTextEncodingResolver {
     }
 
     private static Encoding GetEncoding(string charset) {
-        string label = charset.Trim().Trim('\'', '"');
+        string label = charset.Trim();
         Encoding? encoding = ResolveHtmlLabel(label);
         if (encoding == null) throw new ArgumentException($"Unsupported character encoding label '{label}'.", nameof(charset));
         return Encoding.GetEncoding(

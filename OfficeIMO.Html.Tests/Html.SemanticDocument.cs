@@ -12,6 +12,17 @@ public partial class Html {
             HtmlConversionDocument.Parse("<h1>Only title</h1>").SemanticDocument.Sections);
 
         Assert.Equal("Only title", section.Title);
+        Assert.Equal(HtmlSemanticSectionTitleSource.Heading, section.TitleSource);
+        Assert.Empty(section.Blocks);
+    }
+
+    [Fact]
+    public void SemanticDocument_ReportsGeneratedTitlesForUnnamedEmptySections() {
+        HtmlSemanticSection section = Assert.Single(
+            HtmlConversionDocument.Parse("<section></section>").SemanticDocument.Sections);
+
+        Assert.Equal("Imported 1", section.Title);
+        Assert.Equal(HtmlSemanticSectionTitleSource.Generated, section.TitleSource);
         Assert.Empty(section.Blocks);
     }
 

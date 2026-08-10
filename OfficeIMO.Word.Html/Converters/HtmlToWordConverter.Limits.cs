@@ -58,7 +58,7 @@ namespace OfficeIMO.Word.Html {
             return (limit, limitedByTotalBudget);
         }
 
-        private void ValidateTableLimit(HtmlToWordOptions options, int rows, int columns) {
+        private void ValidateTableLimit(HtmlToWordOptions options, int rows, long columns) {
             if (!options.MaxTableCells.HasValue) {
                 return;
             }

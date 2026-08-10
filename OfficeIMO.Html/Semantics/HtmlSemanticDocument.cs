@@ -30,6 +30,20 @@ public enum HtmlSemanticBlockKind {
     Other
 }
 
+/// <summary>Source used to name a projected semantic section.</summary>
+public enum HtmlSemanticSectionTitleSource {
+    /// <summary>The title was synthesized because the source supplied no usable name.</summary>
+    Generated,
+    /// <summary>The title came from the HTML document title.</summary>
+    DocumentTitle,
+    /// <summary>The title came from a visible HTML heading.</summary>
+    Heading,
+    /// <summary>The title came from an ARIA label.</summary>
+    AriaLabel,
+    /// <summary>The title came from the section element ID.</summary>
+    Id
+}
+
 /// <summary>Canonical typed semantic representation shared by HTML target adapters.</summary>
 public sealed class HtmlSemanticDocument {
     internal HtmlSemanticDocument(
@@ -73,14 +87,22 @@ public sealed class HtmlSemanticDocument {
 
 /// <summary>One shared semantic section.</summary>
 public sealed class HtmlSemanticSection {
-    internal HtmlSemanticSection(string title, IReadOnlyList<HtmlSemanticBlock> blocks, HtmlSemanticSourceLocation? sourceLocation) {
+    internal HtmlSemanticSection(
+        string title,
+        HtmlSemanticSectionTitleSource titleSource,
+        IReadOnlyList<HtmlSemanticBlock> blocks,
+        HtmlSemanticSourceLocation? sourceLocation) {
         Title = title;
+        TitleSource = titleSource;
         Blocks = blocks;
         SourceLocation = sourceLocation;
     }
 
     /// <summary>Section title selected by shared heading, label, id, and document-title rules.</summary>
     public string Title { get; }
+
+    /// <summary>Source used to select <see cref="Title"/>.</summary>
+    public HtmlSemanticSectionTitleSource TitleSource { get; }
 
     /// <summary>Ordered blocks contained by this section.</summary>
     public IReadOnlyList<HtmlSemanticBlock> Blocks { get; }

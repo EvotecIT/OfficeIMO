@@ -80,6 +80,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_DefaultMaxTableCells_StopsSaturatedColumnSpanAfterEarlierCell() {
+            var options = new HtmlToWordOptions();
+            string html = "<table><tr><td>First</td><td colspan=\"999999999999\">Wide</td></tr></table>";
+
+            var exception = Assert.Throws<HtmlConversionLimitException>(() =>
+                OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(options));
+
+            Assert.Equal("TableSizeLimitExceeded", exception.Code);
+            Assert.Equal("MaxTableCells", exception.LimitSource);
+            Assert.Equal(50000, exception.Limit);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Fact]
         public void HtmlToWord_ColumnGroupSpan_DoesNotExpandBeyondResolvedColumns() {
             var options = new HtmlToWordOptions();
             string html = "<table><colgroup><col span=\"1000000\" style=\"width:10px\"></colgroup><tr><td>Cell</td></tr></table>";

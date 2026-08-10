@@ -103,7 +103,8 @@ public static partial class HtmlExcelConverterExtensions {
             && string.Equals(block.Text, section.Title, StringComparison.Ordinal));
 
     private static bool HasSectionNarrative(HtmlSemanticSection section) =>
-        section.Blocks.Count == 0 || section.Blocks.Any(block => IsSectionNarrativeBlock(section, block));
+        (section.Blocks.Count == 0 && section.TitleSource == HtmlSemanticSectionTitleSource.Heading)
+        || section.Blocks.Any(block => IsSectionNarrativeBlock(section, block));
 
     private static void ImportGenericImages(
         HtmlSemanticDocument document,

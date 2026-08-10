@@ -211,6 +211,27 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public void HtmlDataUri_TryDecodeTextRejectsSingleQuotedCharsetToken() {
+        Assert.True(HtmlDataUri.TryParse(
+            "data:text/plain;charset='windows-1252',caf%C3%A9",
+            out HtmlDataUri dataUri));
+
+        Assert.False(dataUri.TryDecodeText(out string text));
+        Assert.Equal(string.Empty, text);
+    }
+
+    [Fact]
+    public void HtmlStylesheetDecoderRejectsSingleQuotedCharsetToken() {
+        byte[] stylesheet = Encoding.UTF8.GetBytes(".label::before{content:'café';}");
+
+        Assert.False(HtmlRenderStylesheetText.TryDecode(
+            stylesheet,
+            "text/css; charset='windows-1252'",
+            out string css));
+        Assert.Equal(string.Empty, css);
+    }
+
+    [Fact]
     public void HtmlStylesheetDecoderHonorsContentTypeAndCssCharset() {
         byte[] body = Encoding.ASCII.GetBytes(".label::before{content:'");
         byte[] suffix = Encoding.ASCII.GetBytes("';}");
