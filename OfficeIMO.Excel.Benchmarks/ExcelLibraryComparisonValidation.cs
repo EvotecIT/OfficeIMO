@@ -43,7 +43,17 @@ internal static partial class ExcelLibraryComparisonRunner {
             snapshots.Add(CreateSemanticSnapshot(scenario, comparisonCase.Library, bytes));
         }
 
-        var expected = snapshots[0];
+        ValidateSemanticSnapshots(scenario, snapshots);
+    }
+
+    private static void ValidateSemanticSnapshots(
+        string scenario,
+        IReadOnlyList<WorkbookSemanticSnapshot> snapshots) {
+        if (snapshots.Count == 0) {
+            return;
+        }
+
+        WorkbookSemanticSnapshot expected = snapshots[0];
         foreach (var actual in snapshots.Skip(1)) {
             if (expected.Cells.SequenceEqual(actual.Cells, StringComparer.Ordinal)) {
                 continue;

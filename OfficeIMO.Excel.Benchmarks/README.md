@@ -253,6 +253,44 @@ Each scenario runs only libraries with a directly comparable public API. Legacy
 EPPlus runs in a separate process. NPOI comparisons are available through the
 opt-in [NPOI runner](../OfficeIMO.Excel.Benchmarks.NPOI/README.md).
 
+Write scenarios keep different capability contracts in separate lanes. The
+`write-insertobjects-flat-dictionaries-direct` lane measures editable worksheet
+imports, while `write-flat-dictionaries-direct-package` measures forward-only
+package writers starting from the same prepared dictionaries. The
+`append-plain-rows` lane measures coordinate-cell APIs and therefore excludes
+row-only streaming libraries. Input projection is prepared before the timed
+delegate unless projection is part of the named contract. Every implementation
+must pass an untimed Open XML and semantic-cell equivalence preflight before
+its measurements are accepted.
+
+`ExcelExecutionMode.Parallel` permits parallel compute; it does not require
+worker fan-out when a specialized single-pass path is faster. In particular,
+the rectangular `CellValues` package path snapshots values sequentially. A
+focused experiment on the 25,000-row four-column workload made the parallel
+snapshot slower, so the benchmark retains the faster production behavior.
+
+### Dated 25K dictionary-stream snapshot (2026-08-10)
+
+The forward-only dictionary lane was run in three independent processes per
+CPU domain on .NET 10, using twelve warmups, 31 retained measurements, High
+process priority, and the same 25,000 prepared dictionaries for both writers.
+Differences below 5% are classified as ties.
+
+| CPU domain | OfficeIMO medians | LargeXlsx medians | Launch outcomes |
+| --- | ---: | ---: | --- |
+| CPU 0 (`0x1`) | 24.60, 23.04, 23.26 ms | 24.68, 24.80, 25.17 ms | 2 OfficeIMO wins, 1 tie |
+| CPU 16 (`0x10000`) | 20.12, 20.11, 19.78 ms | 22.19, 21.27, 22.07 ms | 3 OfficeIMO wins |
+
+OfficeIMO allocated 7,149.1 KB per invocation and LargeXlsx allocated
+6,031.6 KB. The timing evidence therefore favors OfficeIMO in five launches
+and ties one, while LargeXlsx retains the allocation advantage. Reproduce one
+launch per domain with:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\dictionary-stream-cpu0.json --rows 25000 --scenario write-flat-dictionaries-direct-package --library OfficeIMO.Excel --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 31 --affinity 0x1 --priority High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj --no-build -- compare .\Ignore\Benchmarks\dictionary-stream-cpu16.json --rows 25000 --scenario write-flat-dictionaries-direct-package --library OfficeIMO.Excel --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 31 --affinity 0x10000 --priority High
+```
+
 The hash-pinned Mark Pflug 65K-record read comparisons are available as focused
 BenchmarkDotNet classes:
 

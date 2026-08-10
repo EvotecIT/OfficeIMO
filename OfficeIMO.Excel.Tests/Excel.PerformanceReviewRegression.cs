@@ -3196,6 +3196,9 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddWorksheet("Data");
                 sheet.InsertObjects(rows);
+                rows[0]["Name"] = "Changed after InsertObjects";
+                rows[1]["Score"] = 99;
+                rows[1]["Active"] = false;
 
                 document.Save(memory);
 
@@ -3218,6 +3221,99 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Beta", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
             Assert.Equal("20", cells["B3"].CellValue!.Text);
             Assert.Equal("1", cells["D3"].CellValue!.Text);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_StableFlatDictionaryRowsSnapshotValuesAtCallTime() {
+            using var memory = new MemoryStream();
+            var rows = new List<Dictionary<string, object?>> {
+                new Dictionary<string, object?> {
+                    ["Name"] = "Alpha",
+                    ["Score"] = 10
+                },
+                new Dictionary<string, object?> {
+                    ["Name"] = "Beta",
+                    ["Score"] = 20
+                }
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
+                document.AddWorksheet("Data").InsertObjects(rows);
+                rows[0]["Name"] = "Changed after InsertObjects";
+                rows[1]["Score"] = 99;
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("20", cells["B3"].CellValue!.Text);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_StableFlatDictionaryRowsPreserveMissingValues() {
+            using var memory = new MemoryStream();
+            var rows = new List<Dictionary<string, object?>> {
+                new Dictionary<string, object?> {
+                    ["Name"] = "Alpha",
+                    ["Score"] = 10,
+                    ["Active"] = true
+                },
+                new Dictionary<string, object?> {
+                    ["Name"] = "Beta",
+                    ["Active"] = false
+                }
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
+                document.AddWorksheet("Data").InsertObjects(rows);
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Beta", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
+            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["B3"]));
+            Assert.Equal("0", cells["C3"].CellValue!.Text);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_DictionaryComparerDriftDoesNotCollapseColumns() {
+            using var memory = new MemoryStream();
+            var rows = new List<Dictionary<string, object?>> {
+                new Dictionary<string, object?>(StringComparer.Ordinal) {
+                    ["Name"] = "Alpha"
+                },
+                new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) {
+                    ["name"] = "Beta"
+                }
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
+                document.AddWorksheet("Data").InsertObjects(rows);
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
+            Assert.Equal("name", GetSpreadsheetCellText(spreadsheet, cells["B1"]));
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["B2"]));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 

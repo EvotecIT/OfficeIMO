@@ -797,6 +797,7 @@ static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenar
         "write-insertobjects-autofitcolumnsfor-direct",
         "write-insertobjects-partial-autofitcolumnsfor-direct",
         "write-insertobjects-flat-dictionaries-direct",
+        "write-flat-dictionaries-direct-package",
         "write-insertobjects-legacy-dictionaries-direct",
         "write-powershell-mixed-objects-direct",
         "write-powershell-psobject-mixed-direct",
