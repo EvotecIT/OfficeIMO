@@ -326,52 +326,20 @@ public sealed partial class PdfReadPage {
         out OfficeTransform drawingTransform) {
         drawing = new OfficeDrawing(1D, 1D);
         drawingTransform = OfficeTransform.Identity;
-        if (!selection.HasValue || !image.IsImageMask) return Type3PatternImageMaskDrawingResult.Unsupported;
-        if (!TryCreateImageProjection(placement, pageHeight, pageWidth, pageHeight, out OfficeImageProjection projection)) {
-            return IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight)
-                ? Type3PatternImageMaskDrawingResult.Invisible
-                : Type3PatternImageMaskDrawingResult.Unsupported;
-        }
-
-        (double left, double top, double right, double bottom) = projection.GetDestinationBounds();
-        double width = right - left;
-        double height = bottom - top;
-        if (width <= 0D || height <= 0D) return Type3PatternImageMaskDrawingResult.Unsupported;
-
-        PdfPageClipPath projectedBounds = PdfPageClipPath.Rectangle(left, top, width, height);
-        if (placement.ClipPath.HasValue) {
-            projectedBounds = PdfPageClipPath.ResolveActiveClip(projectedBounds, placement.ClipPath.Value);
-        }
-        if (!TryFitClipToDrawing(projectedBounds, pageWidth, pageHeight, out PdfPageClipPath fitted)) {
-            return Type3PatternImageMaskDrawingResult.Invisible;
-        }
-        drawing = new OfficeDrawing(fitted.Width, fitted.Height);
-        drawingTransform = OfficeTransform.Translate(fitted.X, fitted.Y);
-
-        if (!TryCreateInheritedTilingPatternPaint(selection, pageHeight, null, out PdfPageTilingPatternPaint? tilingPaint)) {
-            return Type3PatternImageMaskDrawingResult.Unsupported;
-        }
-        var globalPaintBounds = PdfPageVisualPrimitive.Rectangle(
-            fitted.X,
-            fitted.Y,
-            fitted.Width,
-            fitted.Height,
-            OfficeColor.Black,
-            null,
-            0D,
-            OfficeStrokeDashStyle.Solid,
-            null,
-            null,
-            null,
-            null,
-            null,
-            placement.PaintOrder);
-        CreateInheritedShadingGradients(
+        Type3PatternImageMaskDrawingResult preparation = TryPrepareInheritedPatternImageMaskDrawing(
             selection,
-            globalPaintBounds,
+            placement,
+            image,
+            pageWidth,
             pageHeight,
+            out OfficeImageProjection projection,
+            out PdfPageClipPath fitted,
+            out PdfPageTilingPatternPaint? tilingPaint,
             out OfficeLinearGradient? fillGradient,
             out OfficeRadialGradient? fillRadialGradient);
+        if (preparation != Type3PatternImageMaskDrawingResult.Success) return preparation;
+        drawing = new OfficeDrawing(fitted.Width, fitted.Height);
+        drawingTransform = OfficeTransform.Translate(fitted.X, fitted.Y);
         PdfPageTilingPatternPaint? localTilingPaint = tilingPaint == null
             ? null
             : new PdfPageTilingPatternPaint(
@@ -434,6 +402,72 @@ public sealed partial class PdfReadPage {
             OfficeTransform.Identity,
             OfficeBlendMode.Normal,
             new OfficeDrawingSoftMask(maskDrawing));
+        return Type3PatternImageMaskDrawingResult.Success;
+    }
+
+    private static Type3PatternImageMaskDrawingResult TryPrepareInheritedPatternImageMaskDrawing(
+        PdfPagePatternSelection? selection,
+        PdfImagePlacement placement,
+        PdfExtractedImage image,
+        double pageWidth,
+        double pageHeight,
+        out OfficeImageProjection projection,
+        out PdfPageClipPath fitted,
+        out PdfPageTilingPatternPaint? tilingPaint,
+        out OfficeLinearGradient? fillGradient,
+        out OfficeRadialGradient? fillRadialGradient) {
+        projection = default;
+        fitted = default;
+        tilingPaint = null;
+        fillGradient = null;
+        fillRadialGradient = null;
+        if (!selection.HasValue || !image.IsImageMask) return Type3PatternImageMaskDrawingResult.Unsupported;
+        if (!TryCreateImageProjection(placement, pageHeight, pageWidth, pageHeight, out projection)) {
+            return IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight)
+                ? Type3PatternImageMaskDrawingResult.Invisible
+                : Type3PatternImageMaskDrawingResult.Unsupported;
+        }
+
+        (double left, double top, double right, double bottom) = projection.GetDestinationBounds();
+        double width = right - left;
+        double height = bottom - top;
+        if (width <= 0D || height <= 0D) return Type3PatternImageMaskDrawingResult.Unsupported;
+
+        PdfPageClipPath projectedBounds = PdfPageClipPath.Rectangle(left, top, width, height);
+        if (placement.ClipPath.HasValue) {
+            projectedBounds = PdfPageClipPath.ResolveActiveClip(projectedBounds, placement.ClipPath.Value);
+        }
+        if (!TryFitClipToDrawing(projectedBounds, pageWidth, pageHeight, out fitted)) {
+            return Type3PatternImageMaskDrawingResult.Invisible;
+        }
+        if (!TryCreateInheritedTilingPatternPaint(selection, pageHeight, null, out tilingPaint)) {
+            return Type3PatternImageMaskDrawingResult.Unsupported;
+        }
+
+        var globalPaintBounds = PdfPageVisualPrimitive.Rectangle(
+            fitted.X,
+            fitted.Y,
+            fitted.Width,
+            fitted.Height,
+            OfficeColor.Black,
+            null,
+            0D,
+            OfficeStrokeDashStyle.Solid,
+            null,
+            null,
+            null,
+            null,
+            null,
+            placement.PaintOrder);
+        CreateInheritedShadingGradients(
+            selection,
+            globalPaintBounds,
+            pageHeight,
+            out fillGradient,
+            out fillRadialGradient);
+        if (selection.Value.ShadingPattern.HasValue && fillGradient == null && fillRadialGradient == null) {
+            return Type3PatternImageMaskDrawingResult.Unsupported;
+        }
         return Type3PatternImageMaskDrawingResult.Success;
     }
 

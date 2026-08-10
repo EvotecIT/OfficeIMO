@@ -145,11 +145,18 @@ public sealed partial class PdfReadPage {
                     inverseGroupTransform.M22,
                     inverseGroupTransform.OffsetX,
                     inverseGroupTransform.OffsetY);
+                var parentDrawingFlip = new Matrix2D(1D, 0D, 0D, -1D, 0D, drawing.Height);
+                var groupDrawingFlip = new Matrix2D(1D, 0D, 0D, -1D, 0D, element.GroupDrawing.Height);
+                Matrix2D localSoftMaskTransform = Matrix2D.Multiply(
+                    groupDrawingFlip,
+                    Matrix2D.Multiply(
+                        inverseGroupMatrix,
+                        Matrix2D.Multiply(parentDrawingFlip, softMaskTransform)));
                 groupSoftMask = GetOrCreateSoftMask(
                     element.Effect.SoftMask,
                     element.GroupDrawing.Width,
                     element.GroupDrawing.Height,
-                    Matrix2D.Multiply(inverseGroupMatrix, softMaskTransform),
+                    localSoftMaskTransform,
                     softMasks,
                     activeSoftMasks,
                     textOutputBudget,
@@ -1979,9 +1986,8 @@ public sealed partial class PdfReadPage {
     }
 
     private static bool TryCreateImageProjection(PdfImagePlacement placement, double pageHeight, double drawingWidth, double drawingHeight, out OfficeImageProjection projection) {
-        if (!IsPlainAxisAlignedImagePlacement(placement) &&
-            TryCreateTransformedImageProjection(placement, pageHeight, drawingWidth, drawingHeight, out projection)) {
-            return true;
+        if (!IsPlainAxisAlignedImagePlacement(placement)) {
+            return TryCreateTransformedImageProjection(placement, pageHeight, drawingWidth, drawingHeight, out projection);
         }
 
         double imageX = placement.X;
