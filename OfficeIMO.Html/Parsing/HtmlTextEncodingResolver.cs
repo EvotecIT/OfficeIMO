@@ -103,8 +103,7 @@ internal static class HtmlTextEncodingResolver {
 
     private static Encoding? ResolveHtmlEncoding(byte[] prefix, int count) {
         Encoding? encoding = ResolveBomEncoding(prefix, count)
-            ?? PrescanHtmlEncoding(prefix, count)
-            ?? ResolveXmlDeclarationEncoding(prefix, count);
+            ?? PrescanHtmlEncoding(prefix, count);
         return encoding == null ? null : WithReplacementDecoderFallback(encoding);
     }
 
@@ -245,29 +244,6 @@ internal static class HtmlTextEncodingResolver {
         }
         value = valueBuilder.ToString();
         return name.Length > 0;
-    }
-
-    private static Encoding? ResolveXmlDeclarationEncoding(byte[] bytes, int count) {
-        if (!StartsWith(bytes, count, 0, 0x3C, 0x3F, 0x78, 0x6D, 0x6C)) return null;
-        int declarationEnd = Array.IndexOf(bytes, (byte)0x3E, 5, Math.Max(0, count - 5));
-        if (declarationEnd < 0) return null;
-        int encodingPosition = FindSequence(bytes, 5, declarationEnd, 0x65, 0x6E, 0x63, 0x6F, 0x64, 0x69, 0x6E, 0x67);
-        if (encodingPosition < 0) return null;
-        encodingPosition += 8;
-        while (encodingPosition < declarationEnd && bytes[encodingPosition] <= 0x20) encodingPosition++;
-        if (encodingPosition >= declarationEnd || bytes[encodingPosition] != 0x3D) return null;
-        encodingPosition++;
-        while (encodingPosition < declarationEnd && bytes[encodingPosition] <= 0x20) encodingPosition++;
-        if (encodingPosition >= declarationEnd || bytes[encodingPosition] != 0x22 && bytes[encodingPosition] != 0x27) return null;
-        byte quote = bytes[encodingPosition++];
-        int encodingEnd = Array.IndexOf(bytes, quote, encodingPosition, declarationEnd - encodingPosition);
-        if (encodingEnd < 0) return null;
-        for (int index = encodingPosition; index < encodingEnd; index++) {
-            if (bytes[index] <= 0x20) return null;
-        }
-        string label = Encoding.ASCII.GetString(bytes, encodingPosition, encodingEnd - encodingPosition);
-        Encoding? encoding = ResolveHtmlLabel(label);
-        return encoding == null ? null : NormalizeHtmlDeclaredEncoding(encoding);
     }
 
     private static Encoding? ResolveHtmlLabel(string label) {

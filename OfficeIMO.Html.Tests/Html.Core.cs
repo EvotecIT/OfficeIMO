@@ -99,6 +99,22 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public async Task HtmlConversionDocument_IgnoresXmlDeclarationEncoding() {
+        byte[] html = Encoding.UTF8.GetBytes(
+            "<?xml version='1.0' encoding='windows-1252'?><p>€</p>");
+
+        using var syncStream = new MemoryStream(html);
+        HtmlSemanticBlock syncParagraph = Assert.Single(HtmlConversionDocument.Load(syncStream)
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+        Assert.Equal("€", syncParagraph.Text);
+
+        using var asyncStream = new MemoryStream(html);
+        HtmlSemanticBlock asyncParagraph = Assert.Single((await HtmlConversionDocument.LoadAsync(asyncStream))
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+        Assert.Equal("€", asyncParagraph.Text);
+    }
+
+    [Fact]
     public async Task HtmlConversionDocument_MalformedBomDeclaredHtmlUsesReplacementCharacters() {
         byte[] utf8 = new byte[] { 0xEF, 0xBB, 0xBF }
             .Concat(Encoding.ASCII.GetBytes("<p>A"))

@@ -17,7 +17,7 @@ public static partial class OneNotePageRenderer {
             double contentWidth = Math.Max(renderWidth, MeasureElementWidthExtent(element, renderWidth));
             double contentHeight = Math.Max(1D, MeasureElementHeight(element, renderWidth));
             if (x + contentWidth <= 0D || y + contentHeight <= 0D) {
-                AdvanceListNumberingForCulledElement(element);
+                AdvanceListNumberingForElement(element);
                 return contentHeight;
             }
 
@@ -52,23 +52,23 @@ public static partial class OneNotePageRenderer {
             return used;
         }
 
-        private void AdvanceListNumberingForCulledElement(OneNoteElement element) {
+        private void AdvanceListNumberingForElement(OneNoteElement element) {
             if (element is OneNoteOutline outline) {
                 ResetListNumbering();
-                foreach (OneNoteElement child in outline.Children) AdvanceListNumberingForCulledElement(child);
+                foreach (OneNoteElement child in outline.Children) AdvanceListNumberingForElement(child);
                 return;
             }
 
             if (element is OneNoteParagraph paragraph) {
                 if (paragraph.List?.Ordered == true) ResolveListIndex(paragraph.List, advanceListState: true);
-                foreach (OneNoteElement child in paragraph.Children) AdvanceListNumberingForCulledElement(child);
+                foreach (OneNoteElement child in paragraph.Children) AdvanceListNumberingForElement(child);
                 return;
             }
 
             if (element is OneNoteTable table) {
                 foreach (OneNoteTableRow row in table.Rows) {
                     foreach (OneNoteTableCell cell in row.Cells) {
-                        foreach (OneNoteElement child in cell.Content) AdvanceListNumberingForCulledElement(child);
+                        foreach (OneNoteElement child in cell.Content) AdvanceListNumberingForElement(child);
                     }
                 }
             }
