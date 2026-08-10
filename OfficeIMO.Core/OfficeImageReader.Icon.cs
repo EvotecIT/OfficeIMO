@@ -110,7 +110,45 @@ public static partial class OfficeImageReader {
         if (imageSize < 0 || (imageSize != 0 && imageSize != xorBytes && imageSize != xorBytes + maskBytes)) {
             return false;
         }
-        return remaining == xorBytes + maskBytes || bitsPerPixel == 32 && remaining == xorBytes;
+        bool hasCompletePayload = remaining == xorBytes + maskBytes || bitsPerPixel == 32 && remaining == xorBytes;
+        return hasCompletePayload &&
+               (bitsPerPixel > 8 || HasValidIndexedIconPixels(
+                   payload,
+                   (int)pixelOffset,
+                   width,
+                   height,
+                   bitsPerPixel,
+                   (int)xorStride,
+                   (int)paletteEntries));
+    }
+
+    private static bool HasValidIndexedIconPixels(
+        byte[] payload,
+        int pixelOffset,
+        int width,
+        int height,
+        int bitsPerPixel,
+        int rowStride,
+        int paletteEntries) {
+        for (int y = 0; y < height; y++) {
+            int rowOffset = pixelOffset + y * rowStride;
+            for (int x = 0; x < width; x++) {
+                int paletteIndex;
+                if (bitsPerPixel == 8) {
+                    paletteIndex = payload[rowOffset + x];
+                } else if (bitsPerPixel == 4) {
+                    byte packed = payload[rowOffset + x / 2];
+                    paletteIndex = (x & 1) == 0 ? packed >> 4 : packed & 0x0F;
+                } else {
+                    byte packed = payload[rowOffset + x / 8];
+                    paletteIndex = packed >> (7 - (x & 7)) & 0x01;
+                }
+
+                if (paletteIndex >= paletteEntries) return false;
+            }
+        }
+
+        return true;
     }
 
     private readonly struct IconPayloadValidation {

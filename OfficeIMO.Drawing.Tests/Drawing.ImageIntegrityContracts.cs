@@ -337,10 +337,9 @@ public partial class DrawingTests {
 
     [Theory]
     [InlineData(0x20)]
-    [InlineData(0x10)]
     [InlineData(0x08)]
     [InlineData(0x04)]
-    public void AnimatedWebpRequiresEveryDeclaredVp8xFeature(int featureFlag) {
+    public void AnimatedWebpRequiresEveryDeclaredMetadataChunk(int featureFlag) {
         byte[] animated = Convert.FromBase64String(
             "UklGRoQAAABXRUJQVlA4WAoAAAACAAAAAQAAAQAAQU5JTQYAAAAAAAAAAABBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAAJWUDhMDwAAAC8BQAAABxD9j/4HIqL/AQBBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAABWUDhMDwAAAC8BQAAABxDR//4HIqL/AQA=");
         byte[] inconsistent = (byte[])animated.Clone();

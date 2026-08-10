@@ -23,6 +23,7 @@ public static partial class OfficeImageReader {
         bool extended = false;
         bool hasImage = false;
         bool hasAlpha = false;
+        bool alphaSemanticsKnown = false;
         bool seenAnimationControl = false;
         bool hasAnimationFrame = false;
         bool seenAlphaChunk = false;
@@ -71,6 +72,10 @@ public static partial class OfficeImageReader {
                 }
                 hasImage = true;
                 hasAlpha = imageHasAlpha;
+                if (extended && OfficeWebpCodec.TryDecode(data, out OfficeRasterImage? decoded) && decoded != null) {
+                    hasAlpha = HasWebpPixelTransparency(decoded.PixelBuffer);
+                    alphaSemanticsKnown = true;
+                }
             } else if (chunkType == "VP8 ") {
                 if (hasImage || seenAnimationControl || seenXmp || exifOffset != 0 || !TryReadWebpImageHeader(
                         data, chunkDataOffset, chunkSize, "VP8 ", out imageWidth, out imageHeight, out _)) {
@@ -78,6 +83,7 @@ public static partial class OfficeImageReader {
                 }
                 hasImage = true;
                 hasAlpha = seenAlphaChunk;
+                alphaSemanticsKnown = true;
             } else if (chunkType == "ICCP") {
                 if (!extended || seenIccProfile || hasImage || seenAnimationControl || hasAnimationFrame ||
                     seenAlphaChunk || exifOffset != 0 || seenXmp || chunkSize == 0) {
@@ -98,11 +104,16 @@ public static partial class OfficeImageReader {
             } else if (chunkType == "ANMF") {
                 if (!extended || !seenAnimationControl || hasImage || exifOffset != 0 || seenXmp ||
                     !TryReadWebpAnimationFrame(
-                        data, chunkDataOffset, chunkSize, width, height, out bool frameHasAlpha)) {
+                        data, chunkDataOffset, chunkSize, width, height,
+                        out bool frameHasAlpha,
+                        out bool frameAlphaSemanticsKnown)) {
                     return false;
                 }
-                hasAnimationFrame = true;
                 hasAlpha |= frameHasAlpha;
+                alphaSemanticsKnown = !hasAnimationFrame
+                    ? frameAlphaSemanticsKnown
+                    : alphaSemanticsKnown && frameAlphaSemanticsKnown;
+                hasAnimationFrame = true;
             } else if (chunkType == "EXIF") {
                 if (!extended || exifOffset != 0 || (!hasImage && !hasAnimationFrame) || seenXmp ||
                     !HasValidWebpExif(data, chunkDataOffset, chunkSize)) {
@@ -128,7 +139,7 @@ public static partial class OfficeImageReader {
                 return false;
             }
             if (((extendedFlags & 0x20) != 0) != seenIccProfile ||
-                ((extendedFlags & 0x10) != 0) != hasAlpha ||
+                alphaSemanticsKnown && ((extendedFlags & 0x10) != 0) != hasAlpha ||
                 ((extendedFlags & 0x08) != 0) != (exifOffset != 0) ||
                 ((extendedFlags & 0x04) != 0) != seenXmp) {
                 return false;
@@ -157,8 +168,10 @@ public static partial class OfficeImageReader {
         int length,
         int canvasWidth,
         int canvasHeight,
-        out bool hasAlpha) {
+        out bool hasAlpha,
+        out bool alphaSemanticsKnown) {
         hasAlpha = false;
+        alphaSemanticsKnown = false;
         if (length < 24) return false;
 
         int frameX = checked(ReadUInt24LittleEndian(data, offset) * 2);
@@ -196,18 +209,60 @@ public static partial class OfficeImageReader {
             } else if (chunkType == "VP8 " || chunkType == "VP8L") {
                 if (seenImage || seenAlpha && chunkType == "VP8L" || !TryReadWebpImageHeader(
                         data, chunkDataOffset, chunkSize, chunkType,
-                        out int imageWidth, out int imageHeight, out bool imageHasAlpha) ||
+                        out int imageWidth, out int imageHeight, out _) ||
                     imageWidth != frameWidth || imageHeight != frameHeight) {
                     return false;
                 }
                 seenImage = true;
-                hasAlpha = seenAlpha || imageHasAlpha;
+                if (chunkType == "VP8 ") {
+                    hasAlpha = seenAlpha;
+                    alphaSemanticsKnown = true;
+                } else if (TryDecodeStandaloneWebpChunk(
+                               data,
+                               chunkOffset,
+                               (int)paddedChunkEnd - chunkOffset,
+                               out OfficeRasterImage? decoded) &&
+                           decoded != null) {
+                    hasAlpha = HasWebpPixelTransparency(decoded.PixelBuffer);
+                    alphaSemanticsKnown = true;
+                }
             }
 
             chunkOffset = (int)paddedChunkEnd;
         }
 
         return chunkOffset == frameEnd && seenImage;
+    }
+
+    private static bool TryDecodeStandaloneWebpChunk(
+        byte[] source,
+        int chunkOffset,
+        int chunkLength,
+        out OfficeRasterImage? image) {
+        var wrapped = new byte[12 + chunkLength];
+        wrapped[0] = (byte)'R';
+        wrapped[1] = (byte)'I';
+        wrapped[2] = (byte)'F';
+        wrapped[3] = (byte)'F';
+        int riffLength = wrapped.Length - 8;
+        wrapped[4] = (byte)riffLength;
+        wrapped[5] = (byte)(riffLength >> 8);
+        wrapped[6] = (byte)(riffLength >> 16);
+        wrapped[7] = (byte)(riffLength >> 24);
+        wrapped[8] = (byte)'W';
+        wrapped[9] = (byte)'E';
+        wrapped[10] = (byte)'B';
+        wrapped[11] = (byte)'P';
+        Buffer.BlockCopy(source, chunkOffset, wrapped, 12, chunkLength);
+        return OfficeWebpCodec.TryDecode(wrapped, out image);
+    }
+
+    private static bool HasWebpPixelTransparency(byte[] pixels) {
+        for (int offset = 3; offset < pixels.Length; offset += 4) {
+            if (pixels[offset] != byte.MaxValue) return true;
+        }
+
+        return false;
     }
 
     private static bool HasValidWebpAlphaHeader(byte[] data, int offset, int length) {

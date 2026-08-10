@@ -8,11 +8,21 @@ namespace OfficeIMO.Visio {
         private static IDisposable? PushClipPath(OfficeRasterCanvas canvas, XElement element, SvgTransform transform, SvgRenderContext context) {
             Dictionary<string, string> style = context.StyleSheet.CreateStyle(element);
             string? rawClip = style.TryGetValue("clip-path", out string? styleClip) ? styleClip : element.Attribute("clip-path")?.Value;
-            if (!TryReadUrlId(rawClip, out string? id) ||
+            if (string.IsNullOrWhiteSpace(rawClip)) {
+                return null;
+            }
+            string clipValue = rawClip!;
+            if (string.Equals(clipValue.Trim(), "none", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(clipValue.Trim(), "initial", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(clipValue.Trim(), "unset", StringComparison.OrdinalIgnoreCase)) {
+                return null;
+            }
+            if (!TryReadUrlId(clipValue, out string? id) ||
                 id == null ||
                 !context.TryGetDefinition(id, out XElement? definition) ||
                 definition == null ||
                 !string.Equals(definition.Name.LocalName, "clipPath", StringComparison.OrdinalIgnoreCase)) {
+                context.ReportUnsupportedFeature();
                 return null;
             }
 
@@ -23,10 +33,14 @@ namespace OfficeIMO.Visio {
             }
 
             List<IReadOnlyList<OfficePoint>> contours = new();
+            bool fullyRepresented = true;
             foreach (XElement child in definition.Elements()) {
-                AddClipElementContours(child, clipTransform, contours, context, objectBoundingBox);
+                AddClipElementContours(child, clipTransform, contours, context, objectBoundingBox, ref fullyRepresented);
             }
 
+            if (!fullyRepresented || contours.Count == 0) {
+                context.ReportUnsupportedFeature();
+            }
             if (contours.Count == 0) {
                 return null;
             }
@@ -47,17 +61,35 @@ namespace OfficeIMO.Visio {
                 : canvas.PushClipPolygonsNonZero(contours);
         }
 
-        private static void AddClipElementContours(XElement element, SvgTransform parentTransform, List<IReadOnlyList<OfficePoint>> contours, SvgRenderContext context, bool objectBoundingBox) {
+        private static void AddClipElementContours(
+            XElement element,
+            SvgTransform parentTransform,
+            List<IReadOnlyList<OfficePoint>> contours,
+            SvgRenderContext context,
+            bool objectBoundingBox,
+            ref bool fullyRepresented) {
             if (!context.TryCountRenderedElement()) return;
             if (!context.TryEnterAuxiliaryRecursion()) return;
             try {
-                AddClipElementContoursWithinBudget(element, parentTransform, contours, context, objectBoundingBox);
+                AddClipElementContoursWithinBudget(
+                    element,
+                    parentTransform,
+                    contours,
+                    context,
+                    objectBoundingBox,
+                    ref fullyRepresented);
             } finally {
                 context.ExitAuxiliaryRecursion();
             }
         }
 
-        private static void AddClipElementContoursWithinBudget(XElement element, SvgTransform parentTransform, List<IReadOnlyList<OfficePoint>> contours, SvgRenderContext context, bool objectBoundingBox) {
+        private static void AddClipElementContoursWithinBudget(
+            XElement element,
+            SvgTransform parentTransform,
+            List<IReadOnlyList<OfficePoint>> contours,
+            SvgRenderContext context,
+            bool objectBoundingBox,
+            ref bool fullyRepresented) {
             string name = element.Name.LocalName;
             SvgTransform transform = parentTransform.Multiply(ReadTransform(element.Attribute("transform")?.Value));
             if (string.Equals(name, "rect", StringComparison.OrdinalIgnoreCase)) {
@@ -99,6 +131,8 @@ namespace OfficeIMO.Visio {
             if (string.Equals(name, "polygon", StringComparison.OrdinalIgnoreCase)) {
                 if (TryParsePoints(element.Attribute("points")?.Value, out List<(double X, double Y)> points) && points.Count >= 3) {
                     contours.Add(ProjectPoints(points, transform));
+                } else {
+                    fullyRepresented = false;
                 }
 
                 return;
@@ -111,13 +145,18 @@ namespace OfficeIMO.Visio {
                             contours.Add(ProjectPoints(pathContours[i].Points, transform));
                         }
                     }
+                } else {
+                    fullyRepresented = false;
                 }
 
                 return;
             }
 
+            if (!string.Equals(name, "g", StringComparison.OrdinalIgnoreCase)) {
+                fullyRepresented = false;
+            }
             foreach (XElement child in element.Elements()) {
-                AddClipElementContours(child, transform, contours, context, objectBoundingBox);
+                AddClipElementContours(child, transform, contours, context, objectBoundingBox, ref fullyRepresented);
             }
         }
 

@@ -36,6 +36,7 @@ internal static class OfficePngContainerValidator {
             bool seenStandardRgb = false;
             bool seenIccProfile = false;
             bool seenExif = false;
+            bool seenModificationTime = false;
             int bitDepth = 0;
             int colorType = 0;
             int paletteEntries = 0;
@@ -221,6 +222,15 @@ internal static class OfficePngContainerValidator {
                         seenExif = true;
                         if (seenImageData) imageDataEnded = true;
                         break;
+                    case "tIME":
+                        if (!seenHeader || seenModificationTime ||
+                            !HasValidModificationTime(bytes, dataOffset, length)) {
+                            failureReason = "PNG bytes contain an invalid or repeated tIME chunk.";
+                            return false;
+                        }
+                        seenModificationTime = true;
+                        if (seenImageData) imageDataEnded = true;
+                        break;
                     case "IDAT":
                         if (!seenHeader || imageDataEnded || (colorType == 3 && !seenPalette)) {
                             failureReason = "PNG image data is misplaced or its required palette is missing.";
@@ -270,6 +280,37 @@ internal static class OfficePngContainerValidator {
             if (sample > maximumSample) return false;
         }
         return true;
+    }
+
+    private static bool HasValidModificationTime(byte[] bytes, int offset, int length) {
+        if (length != 7) return false;
+        int year = bytes[offset] << 8 | bytes[offset + 1];
+        int month = bytes[offset + 2];
+        int day = bytes[offset + 3];
+        int hour = bytes[offset + 4];
+        int minute = bytes[offset + 5];
+        int second = bytes[offset + 6];
+        if (year == 0 || month < 1 || month > 12 || hour > 23 || minute > 59 || second > 60) {
+            return false;
+        }
+
+        int daysInMonth;
+        switch (month) {
+            case 2:
+                bool leapYear = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+                daysInMonth = leapYear ? 29 : 28;
+                break;
+            case 4:
+            case 6:
+            case 9:
+            case 11:
+                daysInMonth = 30;
+                break;
+            default:
+                daysInMonth = 31;
+                break;
+        }
+        return day >= 1 && day <= daysInMonth;
     }
 
     private static bool HasValidBackground(

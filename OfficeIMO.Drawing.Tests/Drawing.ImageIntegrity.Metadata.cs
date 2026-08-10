@@ -157,6 +157,27 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void PngContainerRequiresOneValidModificationTime() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] leapSecond = { 0x07, 0xE8, 2, 29, 23, 59, 60 };
+        byte[] beforeImageData = InsertPngChunkBefore(png, "IDAT", "tIME", leapSecond);
+        byte[] afterImageData = InsertPngChunkBefore(png, "IEND", "tIME", leapSecond);
+        byte[] duplicate = InsertPngChunkBefore(beforeImageData, "IEND", "tIME", leapSecond);
+        byte[] invalidCalendarDate = { 0x07, 0xE7, 2, 29, 12, 0, 0 };
+        byte[] invalidClock = { 0x07, 0xE8, 1, 1, 24, 0, 0 };
+
+        Assert.True(OfficeImageReader.TryValidateContent(beforeImageData, "modified.png", out _));
+        Assert.True(OfficeImageReader.TryValidateContent(afterImageData, "modified-after-data.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(duplicate, "duplicate-modified.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "tIME", Array.Empty<byte>()), "empty-modified.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "tIME", invalidCalendarDate), "invalid-date.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "tIME", invalidClock), "invalid-clock.png", out _));
+    }
+
+    [Fact]
     public void CompleteContentValidationRejectsOutOfRangeOptionalTiffIfdValues() {
         byte[] tiff = OfficeTiffCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         int resolutionEntry = FindClassicTiffEntry(tiff, 282);

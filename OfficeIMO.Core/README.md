@@ -43,7 +43,7 @@ badge.StrokeColor = accent;
 badge.Shadow = new OfficeShadow(OfficeColor.Black, 0.18, 3, 4);
 ```
 
-### Image metadata without decoding pixels
+### Image metadata and complete-content validation
 
 ```csharp
 using OfficeIMO.Drawing;
@@ -60,6 +60,23 @@ OfficeImageFit fit = OfficeImageFit.Contain;
 
 `TryIdentify(...)` retains the metadata reader's extension fallback. `TryIdentifyByContent(...)`
 may use a file name to select the SVG parser, but succeeds only when the bytes match a supported format.
+
+Use `TryValidateContent(...)` at ingestion and export boundaries that must reject incomplete or
+corrupt image bodies. It applies the shared encoded-payload limit, validates the complete known
+container, decodes supported raster bodies, and validates every ICO entry. Both byte-array and
+stream overloads return the validated metadata; seekable streams are restored to their original
+position.
+
+```csharp
+using System.IO;
+using OfficeIMO.Drawing;
+
+byte[] upload = File.ReadAllBytes("upload.png");
+bool validBytes = OfficeImageReader.TryValidateContent(upload, "upload.png", out OfficeImageInfo byteInfo);
+
+using Stream input = File.OpenRead("upload.png");
+bool validStream = OfficeImageReader.TryValidateContent(input, "upload.png", out OfficeImageInfo streamInfo);
+```
 
 ### Encode common raster formats
 
