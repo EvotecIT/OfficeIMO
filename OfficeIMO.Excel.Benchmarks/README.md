@@ -269,6 +269,57 @@ the rectangular `CellValues` package path snapshots values sequentially. A
 focused experiment on the 25,000-row four-column workload made the parallel
 snapshot slower, so the benchmark retains the faster production behavior.
 
+### Dated 25K compact DataReader package snapshot (2026-08-10)
+
+This lane writes the same prepared 25,000-row, eight-column `DbDataReader` to a
+new XLSX package through each library's forward-only typed-row API. OfficeIMO
+uses `ExcelDocument.WriteDataReader` with shared strings and explicit cell
+references disabled. The untimed preflight validates the complete semantic
+cell grid before any timings are accepted.
+
+The .NET 10 runner used High process priority, twelve warmups, 31 retained
+measurements, and three independent processes on each of two logical CPUs from
+separate L3 domains. Execution order was rotated within each process, and
+differences below 5% were classified as ties.
+
+| CPU | OfficeIMO medians | SpreadCheetah medians | Sylvan medians | LargeXlsx medians | OfficeIMO outcomes (9 comparisons) |
+| --- | ---: | ---: | ---: | ---: | --- |
+| CPU 0 (`0x1`) | 21.85, 19.16, 20.57 ms | 21.10, 20.97, 19.82 ms | 27.71, 29.41, 26.37 ms | 23.33, 24.29, 23.13 ms | 7 wins, 2 ties |
+| CPU 16 (`0x10000`) | 14.41, 15.30, 14.99 ms | 15.40, 15.39, 15.45 ms | 20.15, 21.44, 20.71 ms | 17.68, 18.72, 17.82 ms | 7 wins, 2 ties |
+
+OfficeIMO was fastest or within the 5% tie margin in every launch-library
+comparison: six wins against Sylvan, six against LargeXlsx, and two wins plus
+four ties against SpreadCheetah. It also produced the smallest package at
+907,354 bytes, compared with 934,903 for LargeXlsx, 978,999 for SpreadCheetah,
+and 997,938 for Sylvan. SpreadCheetah and LargeXlsx retained the managed
+allocation lead at approximately 5.62-5.67 MiB per export; OfficeIMO's median
+was 6.18 MiB and Sylvan's was 7.52 MiB.
+
+Use the measured compact contract for a plain SQL-style export:
+
+```csharp
+ExcelDocument.WriteDataReader(output, reader, new ExcelTabularWriteOptions {
+    IncludeCellReferences = false,
+    UseSharedStrings = false
+});
+```
+
+The default writer deliberately keeps shared strings and explicit references.
+It is a different fidelity contract, and options such as table creation or
+auto-fit also require richer processing. Reproduce one launch per CPU below;
+repeat each command in three independent processes for the table above.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\datareader-compact-cpu0.json --rows 25000 --scenario write-datareader-compact-package --library OfficeIMO.Excel --library Sylvan.Data.Excel --library SpreadCheetah --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 31 --affinity 0x1 --priority High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj --no-build -- compare .\Ignore\Benchmarks\datareader-compact-cpu16.json --rows 25000 --scenario write-datareader-compact-package --library OfficeIMO.Excel --library Sylvan.Data.Excel --library SpreadCheetah --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 31 --affinity 0x10000 --priority High
+```
+
+The measured binaries were
+`OfficeIMO.Excel.Benchmarks.dll` SHA-256
+`482816511FB81853B65B1C6A39767F81849ECFF132A2D597D921A5E6249CEEC4` and
+`OfficeIMO.Excel.dll` SHA-256
+`AD593FF46DFCB175635422C4B74AD42C7660D167F225F543F08BFA06234CA856`.
+
 ### Dated 25K CellValues rectangle snapshot (2026-08-10)
 
 This lane writes the same 25,000-row, eight-column sales rectangle and validates
