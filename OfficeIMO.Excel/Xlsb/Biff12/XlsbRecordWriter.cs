@@ -27,6 +27,31 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
             WriteVariableLengthValue(stream, payloadLength);
         }
 
+        internal static int EncodeHeader(int recordType, int payloadLength, byte[] destination) {
+            if (recordType < 0 || recordType > 0x3FFF) throw new ArgumentOutOfRangeException(nameof(recordType));
+            if (payloadLength < 0 || payloadLength > 0x0FFFFFFF) throw new ArgumentOutOfRangeException(nameof(payloadLength));
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (destination.Length < 6) throw new ArgumentException("The BIFF12 header buffer must contain at least 6 bytes.", nameof(destination));
+
+            int index = 0;
+            if (recordType < 0x80) {
+                destination[index++] = (byte)recordType;
+            } else {
+                destination[index++] = (byte)((recordType & 0x7F) | 0x80);
+                destination[index++] = (byte)(recordType >> 7);
+            }
+
+            int value = payloadLength;
+            do {
+                byte current = (byte)(value & 0x7F);
+                value >>= 7;
+                if (value != 0) current |= 0x80;
+                destination[index++] = current;
+            } while (value != 0);
+
+            return index;
+        }
+
         internal static byte[] Encode(int recordType, byte[]? payload = null) {
             using var stream = new MemoryStream();
             Write(stream, recordType, payload);

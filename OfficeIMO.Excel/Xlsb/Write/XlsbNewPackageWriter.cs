@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             if (!XlsbWorksheetPartWriter.TryCreateDirectTabular(
                 source,
                 cancellationToken,
-                out byte[] worksheetPart)) {
+                out ArraySegment<byte> worksheetPart)) {
                 return false;
             }
 
@@ -84,7 +84,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             Stream destination,
             string sheetName,
             byte[]? stylesPart,
-            byte[] worksheetPart) {
+            ArraySegment<byte> worksheetPart) {
             using var positionReportingDestination = destination.CanSeek
                 ? null
                 : new ExcelPositionReportingWriteStream(destination);
@@ -278,6 +278,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             entry.LastWriteTime = ReproducibleEntryTime;
             using Stream output = entry.Open();
             output.Write(content, 0, content.Length);
+        }
+
+        private static void WriteEntry(ZipArchive archive, string name, ArraySegment<byte> content) {
+            byte[] buffer = content.Array ?? throw new ArgumentException("The package part must have a backing buffer.", nameof(content));
+            ZipArchiveEntry entry = archive.CreateEntry(name, CompressionLevel.Optimal);
+            entry.LastWriteTime = ReproducibleEntryTime;
+            using Stream output = entry.Open();
+            output.Write(buffer, content.Offset, content.Count);
         }
 
         private const string RootRelationships =

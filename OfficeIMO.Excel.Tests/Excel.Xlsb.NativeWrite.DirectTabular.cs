@@ -1,4 +1,6 @@
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.Write;
 using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
@@ -180,6 +182,53 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("32,767", exception.Message, StringComparison.Ordinal);
                 Assert.Equal(sentinel, destination.ToArray());
                 Assert.Equal(sentinel.Length, destination.Position);
+            }
+        }
+
+        [Fact]
+        public void Xlsb_DirectTabularSave_PreservesMaximumLengthUtf16AcrossBufferBoundaries() {
+            string expected = new string('A', 2_047)
+                + char.ConvertFromUtf32(0x1F680)
+                + new string('Z', 32_767 - 2_049);
+            Assert.Equal(32_767, expected.Length);
+
+            var table = new DataTable("Data");
+            table.Columns.Add("Value", typeof(string));
+            table.Rows.Add(expected);
+            var dataSet = new DataSet();
+            dataSet.Tables.Add(table);
+            using ExcelDocument document = ExcelDocument.Create();
+            document.InsertDataSet(dataSet, createTables: false, includeAutoFilter: false);
+
+            byte[] workbook = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+            Assert.True(reader.Read());
+            Assert.Equal(expected, reader.GetString(0));
+            Assert.False(reader.Read());
+        }
+
+        [Fact]
+        public void Xlsb_DirectRecordWriter_UsesCanonicalHeadersAcrossVariableLengthBoundaries() {
+            (int RecordType, int PayloadLength)[] cases = [
+                (0, 0),
+                (0x7F, 0x7F),
+                (0x80, 0x80),
+                (0x3FFF, 0x3FFF),
+                (6, 65_546),
+                (0x3FFF, 0x0FFFFFFF)
+            ];
+
+            foreach ((int recordType, int payloadLength) in cases) {
+                using var expected = new MemoryStream();
+                XlsbRecordWriter.WriteHeader(expected, recordType, payloadLength);
+                using var actual = new MemoryStream();
+                using (var writer = new XlsbDirectRecordWriter(actual)) {
+                    writer.WriteHeader(recordType, payloadLength);
+                }
+
+                Assert.Equal(expected.ToArray(), actual.ToArray());
             }
         }
 
