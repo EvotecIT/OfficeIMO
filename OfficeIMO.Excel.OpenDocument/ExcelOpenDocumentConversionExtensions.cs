@@ -21,9 +21,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         OdsDocument target = OdsDocument.Create();
         var report = new OdfConversionReport(source.SourceFormat.ToString().ToUpperInvariant(), "ODS");
         target.Metadata.Title = snapshot.Title;
+        target.Metadata.Creator = snapshot.Author;
+        target.Metadata.Subject = snapshot.Subject;
         NamedRangeConversionPlan namedRangePlan = BuildNamedRangeConversionPlan(snapshot.NamedRanges);
 
-        int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, comments = 0, richComments = 0, threadedComments = 0, merges = 0;
+        int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, unsupportedHyperlinks = 0, hyperlinkTooltips = 0, comments = 0, richComments = 0, threadedComments = 0, merges = 0;
         int rows = 0, columns = 0, convertedValidations = 0, skippedValidations = 0, tables = 0, filters = 0, unsupportedStyles = 0, skippedStyles = 0;
         long materializedCells = 0, skippedCells = 0, skippedRows = 0, skippedColumns = 0, skippedMerges = 0;
         bool truncated = false;
@@ -78,11 +80,23 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 bool exactValue = SetOdsValue(converted, cell.Value);
                 if (!exactValue) unsupportedStyles++;
                 if (cell.Hyperlink != null && !string.IsNullOrWhiteSpace(cell.Hyperlink.Target)) {
-                    string href = cell.Hyperlink.IsExternal
-                        ? cell.Hyperlink.Target
-                        : "#" + SpreadsheetAddressConverter.ExcelRangeToOpenAddress(cell.Hyperlink.Target);
-                    converted.SetHyperlink(ValueText(cell.Value), href);
-                    hyperlinks++;
+                    string? href = null;
+                    if (cell.Hyperlink.IsExternal) {
+                        href = cell.Hyperlink.Target;
+                    } else if (namedRangePlan.TryResolveHyperlinkName(cell.Hyperlink.Target, worksheet.Name,
+                                   out string outputName)) {
+                        href = "#" + outputName;
+                    } else {
+                        string address = SpreadsheetAddressConverter.ExcelRangeToOpenAddress(cell.Hyperlink.Target);
+                        if (address.Length > 0) href = "#" + address;
+                    }
+                    if (href != null) {
+                        converted.SetHyperlink(ValueText(cell.Value), href);
+                        hyperlinks++;
+                    } else {
+                        unsupportedHyperlinks++;
+                    }
+                    if (!string.IsNullOrWhiteSpace(cell.Hyperlink.Tooltip)) hyperlinkTooltips++;
                 }
                 if (effective.IncludeBasicStyles && cell.Style != null) {
                     ApplyExcelStyle(target, converted, cell.Style, dataStyles, ref unsupportedStyles);
@@ -202,6 +216,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 }
                 if (assigned) {
                     OdsValidation convertedValidation = target.AddValidation(validationName, condition!, validation.AllowBlank);
+                    if (string.Equals(validation.Type, "list", StringComparison.OrdinalIgnoreCase)) {
+                        convertedValidation.DisplayList = validation.SuppressDropDown
+                            ? OdsValidationDisplayList.None
+                            : OdsValidationDisplayList.Unsorted;
+                    }
                     if (validation.PromptTitle != null || validation.Prompt != null) {
                         convertedValidation.SetHelpMessage(validation.PromptTitle, validation.Prompt, validation.ShowInputMessage);
                     }
@@ -269,6 +288,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         foreach (NamedRangeConversionEntry named in namedRangePlan.Entries) {
             target.AddNamedRange(named.OutputName, named.Address);
         }
+        if (snapshot.ActiveWorksheetIndex.GetValueOrDefault() > 0) {
+            report.Add("worksheet-views", OdfConversionMappingStatus.Unsupported, 1,
+                "The active Excel worksheet is not represented by the current ODS typed surface; ODS consumers will select their default sheet.");
+        }
         int namedRanges = namedRangePlan.Entries.Count;
         int builtInNames = namedRangePlan.BuiltInCount;
         int unsupportedNamedExpressions = namedRangePlan.UnsupportedExpressionCount;
@@ -281,9 +304,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             "Excel character-unit column widths are converted to approximate physical widths.");
         AddConverted(report, "merges", merges);
         AddConverted(report, "hyperlinks", hyperlinks);
+        AddUnsupported(report, "hyperlinks", unsupportedHyperlinks,
+            "Internal hyperlink targets that are neither cell addresses nor transferred named ranges were omitted.");
+        AddUnsupported(report, "hyperlink-tooltips", hyperlinkTooltips,
+            "Excel hyperlink ScreenTips have no equivalent in the current ODS hyperlink model.");
         AddConverted(report, "named-ranges", namedRanges);
         if (disambiguatedNames > 0) report.Add("sheet-local-named-ranges", OdfConversionMappingStatus.Approximated, disambiguatedNames,
-            "Excel names that collide after ODS workbook-scope projection were made unique, and affected formulas were rewritten to the converted names.");
+            "Excel names that collide after ODS workbook-scope projection were made unique, and affected formulas and internal hyperlinks were rewritten to the converted names.");
         if (formulas > 0) report.Add("formulas", OdfConversionMappingStatus.Approximated, formulas,
             "Formula syntax is parsed and translated to OpenFormula; cached values are retained.");
         if (formulaTranslationFailures > 0) report.Add("formulas", OdfConversionMappingStatus.Skipped, formulaTranslationFailures,
@@ -334,6 +361,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         ExcelDocument target = ExcelDocument.Create(new MemoryStream());
         var report = new OdfConversionReport("ODS", "XLSX");
         target.BuiltinDocumentProperties.Title = source.Metadata.Title;
+        target.BuiltinDocumentProperties.Creator = source.Metadata.Creator;
+        target.BuiltinDocumentProperties.Subject = source.Metadata.Subject;
         var dataStyles = source.DataStyles.GroupBy(style => style.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         var sourceValidations = source.Validations
@@ -343,7 +372,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
         long expandedCells = 0;
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, externalHyperlinks = 0, comments = 0, combinedComments = 0, metadataTranscriptComments = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
-        int invalidValues = 0, normalizedDateTimeOffsets = 0, validations = 0, convertedValidations = 0, unsupportedValidationAssignments = 0, unsupportedHyperlinks = 0, unsupportedMeasurements = 0, unsupportedDataStyleFormats = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
+        int invalidValues = 0, normalizedDateTimeOffsets = 0, validations = 0, convertedValidations = 0, unsupportedValidationAssignments = 0, sortedValidationLists = 0, unsupportedHyperlinks = 0, unsupportedMeasurements = 0, unsupportedDataStyleFormats = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
         int forcedVisibleWorksheets = 0;
         bool truncated = false;
         ExcelSheet? activeTarget = null;
@@ -498,6 +527,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     continue;
                 }
                 ApplyOdsValidationMessages(sheet, entry.Value[0], validation);
+                if (validation.ParsedCondition?.ValueKind == OdsValidationValueKind.List
+                    && validation.DisplayList == OdsValidationDisplayList.SortAscending) sortedValidationLists++;
                 convertedValidations++;
             }
         }
@@ -551,6 +582,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (unsupportedValidationAssignments > 0) report.Add("validations", OdfConversionMappingStatus.Unsupported,
             unsupportedValidationAssignments,
             "Only explicit lists and scalar whole-number, decimal, and text-length ODF validation conditions have an exact Excel mapping.");
+        AddUnsupported(report, "validation-display-lists", sortedValidationLists,
+            "Excel preserves the authored validation-list order but cannot request ODF's ascending display order.");
         AddUnsupported(report, "invalid-values", invalidValues, "Invalid typed lexemes were transferred as display text.");
         AddUnsupported(report, "date-time-offsets", normalizedDateTimeOffsets,
             "Offset-bearing ODF date/time values were normalized to their UTC instant before Excel serial storage; Excel cannot retain the authored offset.");

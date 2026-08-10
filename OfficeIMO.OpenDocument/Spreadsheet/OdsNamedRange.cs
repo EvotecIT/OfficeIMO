@@ -10,6 +10,16 @@ public enum OdsValidationMessageType {
     Information
 }
 
+/// <summary>Controls how a validation list is displayed by spreadsheet applications.</summary>
+public enum OdsValidationDisplayList {
+    /// <summary>Do not display a list selector.</summary>
+    None,
+    /// <summary>Display values in their authored order.</summary>
+    Unsorted,
+    /// <summary>Display values in ascending order.</summary>
+    SortAscending
+}
+
 /// <summary>An XML-backed workbook named range.</summary>
 public sealed class OdsNamedRange {
     private readonly OdsDocument _document;
@@ -57,6 +67,25 @@ public sealed class OdsValidation {
         get => OdfBoolean.ReadCompatible(
             (string?)_element.Attribute(OdfNamespaces.Table + "allow-empty-cell"), fallback: true);
         set { _element.SetAttributeValue(OdfNamespaces.Table + "allow-empty-cell", value ? "true" : "false"); Dirty(); }
+    }
+    /// <summary>How list-validation values are displayed. ODF defaults to <see cref="OdsValidationDisplayList.Unsorted"/>.</summary>
+    public OdsValidationDisplayList DisplayList {
+        get {
+            string? value = (string?)_element.Attribute(OdfNamespaces.Table + "display-list");
+            if (string.Equals(value, "none", StringComparison.OrdinalIgnoreCase)) return OdsValidationDisplayList.None;
+            if (string.Equals(value, "sort-ascending", StringComparison.OrdinalIgnoreCase)) return OdsValidationDisplayList.SortAscending;
+            return OdsValidationDisplayList.Unsorted;
+        }
+        set {
+            string lexical = value switch {
+                OdsValidationDisplayList.None => "none",
+                OdsValidationDisplayList.Unsorted => "unsorted",
+                OdsValidationDisplayList.SortAscending => "sort-ascending",
+                _ => throw new ArgumentOutOfRangeException(nameof(value))
+            };
+            _element.SetAttributeValue(OdfNamespaces.Table + "display-list", lexical);
+            Dirty();
+        }
     }
 
     /// <summary>Sets the optional input help shown when a validated cell is selected.</summary>

@@ -403,6 +403,11 @@ namespace OfficeIMO.Excel {
         public bool AllowBlank { get; internal set; }
 
         /// <summary>
+        /// Whether Excel hides the in-cell dropdown for a list validation.
+        /// </summary>
+        public bool SuppressDropDown { get; internal set; }
+
+        /// <summary>
         /// Formula1 text stored by Excel, when present.
         /// </summary>
         public string? Formula1 { get; internal set; }

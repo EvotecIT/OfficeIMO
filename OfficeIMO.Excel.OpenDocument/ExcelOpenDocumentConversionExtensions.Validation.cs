@@ -124,7 +124,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     }
 
     private static void ApplyOdsValidationMessages(ExcelSheet sheet, string address, OdsValidation validation) {
-        if (!validation.HasHelpMessage && !validation.HasErrorMessage) return;
+        if (!validation.HasHelpMessage && !validation.HasErrorMessage
+            && validation.DisplayList == OdsValidationDisplayList.Unsorted) return;
         sheet.SetDataValidationMessages(address, new ExcelDataValidationMessageOptions {
             PromptTitle = validation.HelpTitle,
             Prompt = validation.HelpText,
@@ -137,6 +138,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 OdsValidationMessageType.Information => ExcelDataValidationErrorStyle.Information,
                 _ => ExcelDataValidationErrorStyle.Stop
             },
+            SuppressDropDown = validation.DisplayList == OdsValidationDisplayList.None,
             PreserveShowMessageFlags = true
         });
     }

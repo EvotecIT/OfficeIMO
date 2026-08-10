@@ -43,6 +43,19 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             return syntax.RewriteNames(authoredName => ResolveName(authoredName, worksheetName));
         }
 
+        internal bool TryResolveHyperlinkName(string authoredName, string worksheetName, out string outputName) {
+            authoredName = authoredName.Trim();
+            if (TrySplitQualifiedName(authoredName, out string? qualifiedSheet, out string? localName)) {
+                if (_localNames.TryGetValue(qualifiedSheet!, out Dictionary<string, string>? qualifiedNames)
+                    && qualifiedNames.TryGetValue(localName!, out outputName!)) return true;
+                outputName = string.Empty;
+                return false;
+            }
+            if (_localNames.TryGetValue(worksheetName, out Dictionary<string, string>? localNames)
+                && localNames.TryGetValue(authoredName, out outputName!)) return true;
+            return _globalNames.TryGetValue(authoredName, out outputName!);
+        }
+
         private string ResolveName(string authoredName, string worksheetName) {
             if (TrySplitQualifiedName(authoredName, out string? qualifiedSheet, out string? localName)) {
                 return _localNames.TryGetValue(qualifiedSheet!, out Dictionary<string, string>? qualifiedNames)

@@ -42,6 +42,19 @@ public sealed class SpreadsheetFormulaSyntaxTests {
     }
 
     [Theory]
+    [InlineData("=OFFSET(A1,0,0) B1", "of:=OFFSET([.A1];0;0)![.B1]")]
+    [InlineData("=A1 INDEX(B1:C2,0,1)", "of:=[.A1]!INDEX([.B1:.C2];0;1)")]
+    [InlineData("=INDIRECT(\"A1\") B1", "of:=INDIRECT(\"A1\")![.B1]")]
+    public void ReferenceReturningFunctionsParticipateInExcelIntersections(string excel, string expected) {
+        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
+            .Parse(excel, SpreadsheetFormulaDialect.ExcelA1)
+            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
+
+        Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(expected, result.Formula);
+    }
+
+    [Theory]
     [InlineData("=(1+2) A1", "of:=(1+2) [.A1]")]
     public void ParenthesizedScalarExpressionsRemainTriviaInsteadOfBecomingIntersections(
         string excel,

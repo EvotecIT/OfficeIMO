@@ -11,6 +11,9 @@ internal static class SpreadsheetFormulaParser {
     private static readonly HashSet<string> KnownCellShapedExcelFunctions = new HashSet<string>(
         new[] { "LOG10" },
         StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> KnownReferenceReturningExcelFunctions = new HashSet<string>(
+        new[] { "INDEX", "INDIRECT", "OFFSET" },
+        StringComparer.OrdinalIgnoreCase);
     private static readonly string[] KnownErrorLiterals = {
         "#GETTING_DATA", "#BLOCKED!", "#CONNECT!", "#UNKNOWN!", "#PYTHON!",
         "#SPILL!", "#CALC!", "#FIELD!", "#VALUE!", "#DIV/0!", "#NULL!",
@@ -557,7 +560,8 @@ internal static class SpreadsheetFormulaParser {
         int identifierEnd = ScanIdentifier(text, cursor);
         int next = identifierEnd;
         while (next < text.Length && char.IsWhiteSpace(text[next])) next++;
-        return next >= text.Length || text[next] != '(';
+        if (next >= text.Length || text[next] != '(') return true;
+        return KnownReferenceReturningExcelFunctions.Contains(text.Substring(cursor, identifierEnd - cursor));
     }
 
     private static bool IsParenthesizedReferenceLikeAt(string text, int cursor) {
@@ -572,6 +576,9 @@ internal static class SpreadsheetFormulaParser {
     private static bool IsReferenceLikeNode(SpreadsheetFormulaSyntaxNode node) {
         if (node.TokenKind == SpreadsheetFormulaTokenKind.Reference ||
             node.TokenKind == SpreadsheetFormulaTokenKind.Identifier) return true;
+        if (node.Kind == SpreadsheetFormulaSyntaxKind.FunctionCall) {
+            return node.Name != null && KnownReferenceReturningExcelFunctions.Contains(node.Name);
+        }
         if (node.Kind != SpreadsheetFormulaSyntaxKind.ParenthesizedExpression) return false;
 
         bool expectOperand = true;
