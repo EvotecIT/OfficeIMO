@@ -37,7 +37,7 @@ internal static partial class PdfRedactionApplier {
                 continue;
             }
 
-            string content = PdfEncoding.Latin1GetString(StreamDecoder.Decode(stream.Dictionary, stream.Data, objects));
+            string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects));
             ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, resources, xObjects, content, targets, options, Matrix2D.Identity, referenceCounts, new HashSet<int>(), removedMatches, ref nextObjectNumber);
             if (!string.Equals(result.Content, content, StringComparison.Ordinal)) {
                 PdfReference targetReference = reference;
@@ -163,7 +163,7 @@ internal static partial class PdfRedactionApplier {
         PdfDictionary formResources = EnsureFormResources(objects, formStream);
         PdfDictionary formXObjects = EnsureResourceXObjects(objects, formResources);
         Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formStream.Dictionary);
-        string formContent = PdfEncoding.Latin1GetString(StreamDecoder.Decode(formStream.Dictionary, formStream.Data, objects));
+        string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects));
         ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, formResources, formXObjects, formContent, targets, options, formTransform, referenceCounts, activeForms, removedMatches, ref nextObjectNumber);
         if (!string.Equals(result.Content, formContent, StringComparison.Ordinal)) {
             objects[formReference.ObjectNumber] = new PdfIndirectObject(formReference.ObjectNumber, formReference.Generation, new PdfStream(CleanStreamDictionary(formStream.Dictionary), PdfEncoding.Latin1GetBytes(result.Content)));
@@ -352,7 +352,15 @@ internal static partial class PdfRedactionApplier {
             return false;
         }
 
-        byte[] pixels = StreamDecoder.Decode(imageStream.Dictionary, imageStream.Data, objects, options.MaximumDecodedImageBytes);
+        if (!StreamDecoder.TryDecode(
+            imageStream.Dictionary,
+            imageStream.Data,
+            options.MaximumDecodedImageBytes,
+            out byte[] pixels,
+            objects)) {
+            return false;
+        }
+
         if (pixels.Length < expectedLengthLong) return false;
 
         if (!TryGetRedactionPixelBounds(target.Match.Area, transform, width, height, out int x0, out int y0, out int x1, out int y1)) {
@@ -626,10 +634,18 @@ internal static partial class PdfRedactionApplier {
             return false;
         }
 
-        byte[] maskPixels = StreamDecoder.Decode(softMaskStream.Dictionary, softMaskStream.Data, objects, maximumDecodedImageBytes);
+        if (!StreamDecoder.TryDecode(
+            softMaskStream.Dictionary,
+            softMaskStream.Data,
+            maximumDecodedImageBytes,
+            out byte[] maskPixels,
+            objects)) {
+            return false;
+        }
+
         if (maskPixels.Length < expectedLengthLong) return false;
 
-        softMask = new ImageSoftMaskRewriteTarget(softMaskReference, softMaskStream, width, height, maskEncoder);
+        softMask = new ImageSoftMaskRewriteTarget(softMaskReference, softMaskStream, width, height, maskEncoder, maskPixels);
         return true;
     }
 
@@ -653,10 +669,9 @@ internal static partial class PdfRedactionApplier {
             return false;
         }
 
-        byte[] pixels = StreamDecoder.Decode(softMask.Stream.Dictionary, softMask.Stream.Data, objects, maximumDecodedImageBytes);
-        if (pixels.Length < expectedLengthLong) return false;
+        if (softMask.Pixels.Length < expectedLengthLong) return false;
 
-        byte[] rewritten = (byte[])pixels.Clone();
+        byte[] rewritten = (byte[])softMask.Pixels.Clone();
         for (int row = y0; row < y1; row++) {
             int rowOffset = row * softMask.Width;
             for (int column = x0; column < x1; column++) {
@@ -933,12 +948,19 @@ internal static partial class PdfRedactionApplier {
     }
 
     private readonly struct ImageSoftMaskRewriteTarget {
-        public ImageSoftMaskRewriteTarget(PdfReference reference, PdfStream stream, int width, int height, ImageSampleRewriteEncoder encoder) {
+        public ImageSoftMaskRewriteTarget(
+            PdfReference reference,
+            PdfStream stream,
+            int width,
+            int height,
+            ImageSampleRewriteEncoder encoder,
+            byte[] pixels) {
             Reference = reference;
             Stream = stream;
             Width = width;
             Height = height;
             Encoder = encoder;
+            Pixels = pixels;
             HasMask = true;
         }
 
@@ -953,5 +975,7 @@ internal static partial class PdfRedactionApplier {
         public int Height { get; }
 
         public ImageSampleRewriteEncoder Encoder { get; }
+
+        public byte[] Pixels { get; }
     }
 }

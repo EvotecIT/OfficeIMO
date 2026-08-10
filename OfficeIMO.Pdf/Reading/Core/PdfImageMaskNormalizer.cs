@@ -73,18 +73,7 @@ internal static class PdfImageMaskNormalizer {
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         out byte[] bytes) {
-        bytes = Array.Empty<byte>();
-        if (stream.Dictionary.Items.TryGetValue("Filter", out _)) {
-            if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) {
-                return false;
-            }
-
-            bytes = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
-        } else {
-            bytes = stream.Data;
-        }
-
-        return bytes.Length > 0;
+        return PdfImageStreamDecoder.TryDecode(stream, objects, out bytes) && bytes.Length > 0;
     }
 
     private static int ReadMaskSample(byte[] maskPixels, int rowOffset, int pixelIndex) {
