@@ -137,7 +137,9 @@ namespace OfficeIMO.Excel {
             using Stream? boundedOrStagedPackage = CreateBoundedPackageWriteStream(destination, options);
             Stream writeTarget = boundedOrStagedPackage ?? destination;
             PrepareDestinationStreamForWrite(writeTarget);
-            DirectDataSetWorkbookWriter.Write(writeTarget, packageModel, ct);
+            bool disableSharedStrings = packageModel.Sheets.Count == 1
+                && !packageModel.Sheets[0].IncludeCellReferences;
+            DirectDataSetWorkbookWriter.Write(writeTarget, packageModel, ct, disableSharedStrings);
             try { writeTarget.Flush(); } catch (NotSupportedException) { }
             if (boundedOrStagedPackage is FileStream stagedPackage) {
                 CommitStagedPackageToStream(stagedPackage, destination, options);

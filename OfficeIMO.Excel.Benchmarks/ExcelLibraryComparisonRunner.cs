@@ -258,7 +258,7 @@ internal static partial class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("ClosedXML", "Write the same complete A1 rectangle and save.", () => ClosedXmlWriteSalesRows(rows, includeAllColumns: true)),
             new LibraryComparisonCase("EPPlus", "Write the same complete A1 rectangle and save.", () => EpPlusWriteSalesRows(rows, includeAllColumns: true)),
             new LibraryComparisonCase("MiniExcel", "Streaming typed row export with the same columns and headers.", () => MiniExcelWriteSalesRows(rows)),
-            new LibraryComparisonCase("LargeXlsx", "Streaming typed row export with the same columns and headers.", () => LargeXlsxWriteSalesRows(rows, includeAllColumns: true))
+            new LibraryComparisonCase("LargeXlsx", "Stream the same typed rows with cell references disabled.", () => LargeXlsxWriteSalesRowsCompact(rows, includeAllColumns: true))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalues-sparse-rectangle-direct", warmupIterations, measuredIterations, [
@@ -852,7 +852,7 @@ internal static partial class ExcelLibraryComparisonRunner {
             new PackageProfileCase("ClosedXML", "Write the same complete A1 rectangle and save.", () => ClosedXmlWriteSalesRowsBytes(rows, includeAllColumns: true)),
             new PackageProfileCase("EPPlus", "Write the same complete A1 rectangle and save.", () => EpPlusWriteSalesRowsBytes(rows, includeAllColumns: true)),
             new PackageProfileCase("MiniExcel", "Streaming typed row export with the same columns and headers.", () => MiniExcelWriteSalesRowsBytes(rows)),
-            new PackageProfileCase("LargeXlsx", "Streaming typed row export with the same columns and headers.", () => LargeXlsxWriteSalesRowsBytes(rows, includeAllColumns: true))
+            new PackageProfileCase("LargeXlsx", "Stream the same typed rows with cell references disabled.", () => LargeXlsxWriteSalesRowsBytes(rows, includeAllColumns: true, requireCellReferences: false))
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalues-headerless-rectangle-direct", warmupIterations, measuredIterations, [

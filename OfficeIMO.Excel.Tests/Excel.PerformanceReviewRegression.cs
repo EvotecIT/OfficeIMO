@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -2249,6 +2250,247 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Item 100", GetSpreadsheetCellText(spreadsheet, savedCells["C100"]));
             Assert.Empty(worksheetPart.TableDefinitionParts);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_LargeCellValuesRectangle_OmitsOptionalDataReferencesAndRoundTrips() {
+            const int dataRowCount = 520;
+            var cells = new List<(int Row, int Column, object Value)>((dataRowCount + 1) * 8) {
+                (1, 1, "Id"),
+                (1, 2, "Region"),
+                (1, 3, "Owner"),
+                (1, 4, "CreatedOn"),
+                (1, 5, "Amount"),
+                (1, 6, "Units"),
+                (1, 7, "Active"),
+                (1, 8, "Notes")
+            };
+            var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
+            for (int row = 1; row <= dataRowCount; row++) {
+                int worksheetRow = row + 1;
+                cells.Add((worksheetRow, 1, (object)row));
+                cells.Add((worksheetRow, 2, (object)(row % 2 == 0 ? "North" : "South")));
+                cells.Add((worksheetRow, 3, (object)(row % 2 == 0 ? "Ava" : "Noah")));
+                cells.Add((worksheetRow, 4, (object)start.AddDays(row)));
+                cells.Add((worksheetRow, 5, (object)(row * 1.25d)));
+                cells.Add((worksheetRow, 6, (object)(row % 24 + 1)));
+                cells.Add((worksheetRow, 7, (object)(row % 3 != 0)));
+                cells.Add((worksheetRow, 8, (object)("Batch " + (row % 12).ToString(CultureInfo.InvariantCulture))));
+            }
+
+            byte[] package;
+            using (var output = new MemoryStream()) {
+                using (var document = ExcelDocument.Create(new MemoryStream())) {
+                    document.AddWorksheet("Data").CellValues(cells);
+                    document.Save(output);
+
+                    Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                }
+
+                package = output.ToArray();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false)) {
+                Row[] rows = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Row>().ToArray();
+                Assert.All(rows[0].Elements<Cell>(), cell => Assert.NotNull(cell.CellReference));
+                Assert.All(rows.Skip(1).SelectMany(row => row.Elements<Cell>()), cell => Assert.Null(cell.CellReference));
+                Assert.Null(spreadsheet.WorkbookPart.SharedStringTablePart);
+                Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+            }
+
+            using var reader = ExcelDocumentReader.Open(new MemoryStream(package, writable: false));
+            object?[,] values = reader.GetSheet("Data").ReadRange("A1:H521");
+            Assert.Equal("Id", values[0, 0]);
+            Assert.Equal(dataRowCount, Convert.ToInt32(values[dataRowCount, 0], CultureInfo.InvariantCulture));
+            Assert.Equal("North", values[dataRowCount, 1]);
+            Assert.Equal(dataRowCount * 1.25d, values[dataRowCount, 4]);
+            Assert.Equal("Batch 4", values[dataRowCount, 7]);
+        }
+
+        [Theory]
+        [InlineData(4095, true)]
+        [InlineData(4096, false)]
+        public void PerformanceReview_CellValuesCompactReferenceThreshold_IsStable(int cellCount, bool expectReferences) {
+            var cells = new (int Row, int Column, object Value)[cellCount];
+            for (int index = 0; index < cells.Length; index++) {
+                cells[index] = (index + 1, 1, index + 1);
+            }
+
+            using var output = new MemoryStream();
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
+                document.AddWorksheet("Data").CellValues(cells);
+                document.Save(output);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            using var spreadsheet = SpreadsheetDocument.Open(output, false);
+            Cell[] savedCells = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>().ToArray();
+            Assert.Equal(cellCount, savedCells.Length);
+            Assert.All(savedCells, cell => Assert.Equal(expectReferences, cell.CellReference != null));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+        }
+
+        [Fact]
+        public void PerformanceReview_LargeCellValuesAppend_OmitsOptionalDataReferencesAndRoundTrips() {
+            const int dataRowCount = 520;
+            var dataCells = new List<(int Row, int Column, object Value)>(dataRowCount * 8);
+            for (int row = 1; row <= dataRowCount; row++) {
+                int worksheetRow = row + 1;
+                dataCells.Add((worksheetRow, 1, (object)row));
+                dataCells.Add((worksheetRow, 2, (object)(row % 2 == 0 ? "North" : "South")));
+                dataCells.Add((worksheetRow, 3, (object)(row % 2 == 0 ? "Ava" : "Noah")));
+                dataCells.Add((worksheetRow, 4, (object)new DateTime(2026, 1, 1).AddDays(row)));
+                dataCells.Add((worksheetRow, 5, (object)(row * 1.25d)));
+                dataCells.Add((worksheetRow, 6, (object)(row % 24 + 1)));
+                dataCells.Add((worksheetRow, 7, (object)(row % 3 != 0)));
+                dataCells.Add((worksheetRow, 8, (object)("Batch " + (row % 12).ToString(CultureInfo.InvariantCulture))));
+            }
+
+            byte[] package;
+            using (var output = new MemoryStream()) {
+                using (var document = ExcelDocument.Create(new MemoryStream())) {
+                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    sheet.CellValues(new[] {
+                        (1, 1, (object)"Id"),
+                        (1, 2, (object)"Region"),
+                        (1, 3, (object)"Owner"),
+                        (1, 4, (object)"CreatedOn"),
+                        (1, 5, (object)"Amount"),
+                        (1, 6, (object)"Units"),
+                        (1, 7, (object)"Active"),
+                        (1, 8, (object)"Notes")
+                    }, ExcelExecutionMode.Sequential);
+                    sheet.CellValues(dataCells, ExcelExecutionMode.Parallel);
+                    document.Save(output);
+
+                    Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                }
+
+                package = output.ToArray();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false)) {
+                Row[] rows = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Row>().ToArray();
+                Assert.All(rows[0].Elements<Cell>(), cell => Assert.NotNull(cell.CellReference));
+                Assert.All(rows.Skip(1).SelectMany(row => row.Elements<Cell>()), cell => Assert.Null(cell.CellReference));
+                Assert.Null(spreadsheet.WorkbookPart.SharedStringTablePart);
+                Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+            }
+
+            using var reader = ExcelDocumentReader.Open(new MemoryStream(package, writable: false));
+            object?[,] values = reader.GetSheet("Data").ReadRange("A1:H521");
+            Assert.Equal("Id", values[0, 0]);
+            Assert.Equal(dataRowCount, Convert.ToInt32(values[dataRowCount, 0], CultureInfo.InvariantCulture));
+            Assert.Equal("Batch 4", values[dataRowCount, 7]);
+        }
+
+        [Fact]
+        public void PerformanceReview_CellValuesRowSnapshotBranch_PreservesSnapshotAndCompactReferences() {
+            const int columnCount = 64;
+            const int dataRowCount = 7813;
+            int totalCellCount = checked((dataRowCount + 1) * columnCount);
+            var cells = new (int Row, int Column, object Value)[totalCellCount];
+            int index = 0;
+            for (int column = 1; column <= columnCount; column++) {
+                cells[index++] = (1, column, "Column" + column.ToString(CultureInfo.InvariantCulture));
+            }
+
+            for (int row = 1; row <= dataRowCount; row++) {
+                int worksheetRow = row + 1;
+                for (int column = 1; column <= columnCount; column++) {
+                    cells[index++] = (worksheetRow, column, ((row - 1) * columnCount) + column);
+                }
+            }
+
+            int expectedLastValue = dataRowCount * columnCount;
+            byte[] package;
+            using (var output = new MemoryStream()) {
+                using (var document = ExcelDocument.Create(new MemoryStream())) {
+                    document.AddWorksheet("Data").CellValues(cells);
+                    cells[cells.Length - 1] = (dataRowCount + 1, columnCount, -1);
+                    document.Save(output);
+
+                    Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                }
+
+                package = output.ToArray();
+            }
+
+            using (var archive = new ZipArchive(new MemoryStream(package, writable: false), ZipArchiveMode.Read))
+            using (Stream worksheet = archive.GetEntry("xl/worksheets/sheet1.xml")!.Open())
+            using (XmlReader xml = XmlReader.Create(worksheet)) {
+                int rowCount = 0;
+                bool inspectedFirstDataCell = false;
+                while (xml.Read()) {
+                    if (xml.NodeType != XmlNodeType.Element) {
+                        continue;
+                    }
+
+                    if (xml.LocalName == "row") {
+                        rowCount++;
+                    } else if (rowCount == 2 && xml.LocalName == "c") {
+                        Assert.Null(xml.GetAttribute("r"));
+                        inspectedFirstDataCell = true;
+                        break;
+                    }
+                }
+
+                Assert.True(inspectedFirstDataCell);
+            }
+
+            using var reader = ExcelDocumentReader.Open(new MemoryStream(package, writable: false));
+            object?[,] values = reader.GetSheet("Data").ReadRange("BL7814:BL7814");
+            Assert.Equal(expectedLastValue, Convert.ToInt32(values[0, 0], CultureInfo.InvariantCulture));
+        }
+
+        [Fact]
+        public void PerformanceReview_NondeferredCellValuesRowsCandidate_ForwardsCompactReferences() {
+            const int columnCount = 64;
+            const int dataRowCount = 65;
+            var columnNames = Enumerable.Range(1, columnCount)
+                .Select(column => "Column" + column.ToString(CultureInfo.InvariantCulture))
+                .ToArray();
+            var columnTypes = Enumerable.Repeat(typeof(int), columnCount).ToArray();
+            var rows = new object?[dataRowCount][];
+            for (int row = 0; row < dataRowCount; row++) {
+                var values = new object?[columnCount];
+                for (int column = 0; column < columnCount; column++) {
+                    values[column] = (row * columnCount) + column + 1;
+                }
+
+                rows[row] = values;
+            }
+
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            Type candidateType = typeof(ExcelSheet).GetNestedType("DirectCellValuesSaveCandidate", BindingFlags.NonPublic)!;
+            object candidate = Activator.CreateInstance(
+                candidateType,
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                binder: null,
+                args: new object[] { columnNames, columnTypes, rows, true, "A1:BL66" },
+                culture: CultureInfo.InvariantCulture)!;
+            typeof(ExcelSheet)
+                .GetMethod("RegisterDirectCellValuesSaveCandidateIfPossible", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(sheet, new[] { candidate });
+
+            object registeredCandidate = typeof(ExcelDocument)
+                .GetField("_directDataSetSaveCandidate", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .GetValue(document)!;
+            Assert.False((bool)registeredCandidate.GetType()
+                .GetProperty("IsDeferred", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .GetValue(registeredCandidate)!);
+            object model = registeredCandidate.GetType()
+                .GetProperty("Model", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .GetValue(registeredCandidate)!;
+            IEnumerable registeredSheets = (IEnumerable)model.GetType()
+                .GetProperty("Sheets", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .GetValue(model)!;
+            object registeredSheet = registeredSheets.Cast<object>().Single();
+            Assert.False((bool)registeredSheet.GetType()
+                .GetProperty("IncludeCellReferences", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .GetValue(registeredSheet)!);
         }
 
         [Fact]

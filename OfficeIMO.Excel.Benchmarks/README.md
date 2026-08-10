@@ -269,6 +269,40 @@ the rectangular `CellValues` package path snapshots values sequentially. A
 focused experiment on the 25,000-row four-column workload made the parallel
 snapshot slower, so the benchmark retains the faster production behavior.
 
+### Dated 25K CellValues rectangle snapshot (2026-08-10)
+
+This lane writes the same 25,000-row, eight-column sales rectangle and validates
+the complete semantic cell grid before accepting either implementation. OfficeIMO
+receives prepared coordinate/value tuples through the editable `CellValues` API
+and takes its required defensive snapshot. LargeXlsx receives the corresponding
+typed rows through its forward-only writer with cell references disabled. This
+is an equivalent-output product comparison, not an identical-input
+microbenchmark.
+
+The .NET 10 runner used High process priority, twelve warmups, 31 retained
+measurements, and three independent processes for each 16-logical-processor L3
+domain. OfficeIMO's large contiguous rectangle path writes inline strings and
+standards-valid implicit data-cell coordinates; small rectangles retain explicit
+references and the existing shared-string policy. Differences below 5% are
+classified as ties.
+
+| CPU domain | OfficeIMO medians | LargeXlsx medians | Launch outcomes |
+| --- | ---: | ---: | --- |
+| Domain 0 (`0xFFFF`) | 15.18, 13.39, 12.24 ms | 15.16, 14.09, 11.91 ms | 1 OfficeIMO win, 2 ties |
+| Domain 1 (`0xFFFF0000`) | 10.91, 13.43, 13.78 ms | 11.14, 14.95, 15.00 ms | 2 OfficeIMO wins, 1 tie |
+
+The mean-time classification produced four OfficeIMO wins and two ties across
+the same launches; no launch favored LargeXlsx by 5% or more. OfficeIMO produced
+a 907,405-byte package versus LargeXlsx's 934,903-byte package. LargeXlsx kept
+the allocation advantage at 3,072.0 KB versus OfficeIMO's 5,543.0 KB because
+the editable `CellValues` contract snapshots caller-owned values while the
+LargeXlsx comparison streams typed rows. Reproduce one launch per domain with:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\cellvalues-domain0.json --rows 25000 --scenario write-cellvalues-rectangle-direct --library OfficeIMO.Excel --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 31 --affinity 0xFFFF --priority High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj --no-build -- compare .\Ignore\Benchmarks\cellvalues-domain1.json --rows 25000 --scenario write-cellvalues-rectangle-direct --library OfficeIMO.Excel --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 31 --affinity 0xFFFF0000 --priority High
+```
+
 ### Dated 25K dictionary-stream snapshot (2026-08-10)
 
 The forward-only dictionary lane was run in three independent processes per
