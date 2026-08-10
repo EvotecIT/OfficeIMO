@@ -129,6 +129,7 @@ internal static partial class PdfWriter {
             public System.Collections.Generic.HashSet<PdfNamedFontFace> UsedNamedFonts { get; } = new();
             public int? StructParentIndex { get; set; }
             public int NextMarkedContentId { get; set; }
+            public int NextInlineImageTokenId { get; set; }
             public bool UsedBold { get; set; }
             public bool UsedItalic { get; set; }
             public bool UsedBoldItalic { get; set; }
@@ -138,6 +139,9 @@ internal static partial class PdfWriter {
 
         public void Dispose() => _contentStore.Dispose();
     }
+
+    private static string AllocateInlineImageDrawToken(LayoutResult.Page page) =>
+        "\n%OIMO_INLINE_IMAGE_" + (++page.NextInlineImageTokenId).ToString("D6", System.Globalization.CultureInfo.InvariantCulture) + "\n";
 
     private sealed class LinkAnnotation {
         public double X1 { get; set; }

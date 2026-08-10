@@ -910,7 +910,12 @@ public class PdfDocumentCanvasTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("0 12 -12 0", raw, StringComparison.Ordinal);
+        int tableTransform = raw.IndexOf("0 1 -1 0", StringComparison.Ordinal);
+        int imageDraw = raw.IndexOf("/Im1 Do", StringComparison.Ordinal);
+        Assert.True(tableTransform >= 0, "Expected a rotation matrix around the declared table frame center.");
+        Assert.True(imageDraw > tableTransform, "Expected the cell image to render inside the rotated table frame.");
+        Assert.Contains("12 0 0 12", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 12 -12 0", raw, StringComparison.Ordinal);
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         Assert.Contains(info.FormFields, field => field.Name == "Canvas.Rotated" && field.IsCheckBox && field.Value == "Yes");
@@ -918,7 +923,7 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
-    public void CanvasClip_ClipsDeferredTableImagesAndFormControls() {
+    public void CanvasClip_ClipsInlineTableImagesAndFormControls() {
         var rows = new[] {
             new[] {
                 PdfTableCell.WithImages(
@@ -941,8 +946,11 @@ public class PdfDocumentCanvasTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
-        Assert.Contains("50 90 20 40 re W", raw, StringComparison.Ordinal);
+        int clip = raw.IndexOf("50 50 34 86 re W", StringComparison.Ordinal);
+        int imageDraw = raw.IndexOf("/Im1 Do", StringComparison.Ordinal);
+        Assert.True(clip >= 0, "Expected the canvas clip path in the page content stream.");
+        Assert.True(imageDraw > clip, "Expected the table-cell image to render inside the canvas clip state.");
+        Assert.DoesNotContain("50 90 20 40 re W", raw, StringComparison.Ordinal);
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         PdfFormField field = Assert.Single(info.FormFields, item => item.Name == "Canvas.ClippedOwner");

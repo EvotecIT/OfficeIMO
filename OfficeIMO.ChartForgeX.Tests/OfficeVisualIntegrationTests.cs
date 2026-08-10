@@ -216,6 +216,34 @@ public sealed class OfficeVisualIntegrationTests {
     }
 
     [Fact]
+    public void PowerPointPlacementSupportsOffSlideCoordinatesAndPreservesUniquePictureNames() {
+        OfficeVisualConversionResult visual = CreateArtifact().ToOfficeVisual(new OfficeVisualConversionOptions { WidthPoints = 300D });
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-placement-" + Guid.NewGuid().ToString("N") + ".pptx");
+        try {
+            using (var presentation = PowerPointPresentation.Create(path)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointPicture first = slide.AddVisualArtifact(visual, -24D, -12D);
+                PowerPointPicture second = slide.AddVisualArtifact(visual, 36D, 54D);
+
+                Assert.NotEqual(first.Name, second.Name);
+                Assert.Throws<ArgumentOutOfRangeException>(() => slide.AddVisualArtifact(visual, double.NaN, 0D));
+                presentation.Save();
+            }
+
+            using PowerPointPresentation loaded = PowerPointPresentation.Load(path);
+            PowerPointPicture[] pictures = loaded.Slides[0].Pictures.ToArray();
+            Assert.Equal(2, pictures.Length);
+            Assert.Equal(-24D, pictures[0].LeftPoints, 6);
+            Assert.Equal(-12D, pictures[0].TopPoints, 6);
+            Assert.False(string.IsNullOrWhiteSpace(pictures[0].Name));
+            Assert.False(string.IsNullOrWhiteSpace(pictures[1].Name));
+            Assert.NotEqual(pictures[0].Name, pictures[1].Name);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void PdfPlacementRasterizesUnsupportedEffectGroupsOrFailsClosed() {
         const string blendedSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='80' viewBox='0 0 120 80'><rect width='120' height='80' fill='#ffffff'/><g style='mix-blend-mode:multiply'><rect x='10' y='10' width='70' height='50' fill='#ef4444'/><rect x='40' y='20' width='70' height='50' fill='#2563eb'/></g></svg>";
         const string maskedSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='80' viewBox='0 0 120 80'><defs><mask id='fade' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='80'><rect width='60' height='80' fill='white'/></mask></defs><rect width='120' height='80' fill='#2563eb' mask='url(#fade)'/></svg>";

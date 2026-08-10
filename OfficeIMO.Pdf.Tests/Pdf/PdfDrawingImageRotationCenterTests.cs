@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using OfficeIMO.Drawing;
@@ -18,10 +19,21 @@ public sealed class PdfDrawingImageRotationCenterTests {
         Assert.NotEqual(centered, custom);
     }
 
-    private static string RenderImageTransform(double rotationCenterX, double rotationCenterY) {
+    [Fact]
+    public void DrawingImageClockwiseRotationIsConvertedToPdfCoordinates() {
+        string matrix = RenderImageTransform(rotationCenterX: 60D, rotationCenterY: 60D, rotationDegrees: 90D);
+        string[] values = matrix.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+        Assert.Equal(0D, double.Parse(values[0], CultureInfo.InvariantCulture), 6);
+        Assert.Equal(-40D, double.Parse(values[1], CultureInfo.InvariantCulture), 6);
+        Assert.Equal(40D, double.Parse(values[2], CultureInfo.InvariantCulture), 6);
+        Assert.Equal(0D, double.Parse(values[3], CultureInfo.InvariantCulture), 6);
+    }
+
+    private static string RenderImageTransform(double rotationCenterX, double rotationCenterY, double rotationDegrees = 30D) {
         var projection = new OfficeImageProjection(
             new OfficeImagePlacement(40D, 40D, 40D, 40D),
-            rotationDegrees: 30D,
+            rotationDegrees: rotationDegrees,
             rotationCenterX: rotationCenterX,
             rotationCenterY: rotationCenterY);
         var drawing = new OfficeDrawing(120D, 120D)

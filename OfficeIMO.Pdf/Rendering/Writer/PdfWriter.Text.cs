@@ -1612,7 +1612,7 @@ internal static partial class PdfWriter {
                 inlineElement.Height);
             pageImage.IsInlineDecoration = string.IsNullOrWhiteSpace(inlineElement.AlternativeText);
             page.Images.Add(pageImage);
-            pageImage.InlineDrawToken = "\n%OIMO_INLINE_IMAGE_" + page.Images.Count.ToString("D6", CultureInfo.InvariantCulture) + "\n";
+            pageImage.InlineDrawToken = AllocateInlineImageDrawToken(page);
             if (!string.IsNullOrWhiteSpace(inlineElement.AlternativeText)) {
                 pageImage.MarkedContentId = RegisterInlineFigureStructureElement(page, options, inlineElement.AlternativeText, parentElementIndex);
                 pageImage.StructElementIndex = FindStructElementIndex(page, pageImage.MarkedContentId, "Figure");

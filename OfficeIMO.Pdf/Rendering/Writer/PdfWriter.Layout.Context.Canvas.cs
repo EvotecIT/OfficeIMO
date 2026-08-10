@@ -327,6 +327,7 @@ internal static partial class PdfWriter {
             double topY = currentOpts.PageHeight - item.Y;
             double bottomY = topY - item.Height;
             int annotationStart = currentPage!.Annotations.Count;
+            int imageStart = currentPage.Images.Count;
             bool rotated = item.RotationAngle != 0D;
             if (rotated) {
                 BeginRotatedCanvasFrame(item.X, bottomY, item.Width, item.Height, item.RotationAngle);
@@ -368,6 +369,10 @@ internal static partial class PdfWriter {
             if (rotated) {
                 new ContentStreamBuilder(sb)
                     .RestoreState();
+                TransformCanvasPageImageBounds(
+                    currentPage.Images,
+                    imageStart,
+                    CreateCanvasRotationTransform(item.X, bottomY, item.Width, item.Height, item.RotationAngle));
             }
 
             RotateCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, bottomY, item.Width, item.Height, item.RotationAngle);
@@ -388,7 +393,7 @@ internal static partial class PdfWriter {
             pageImage.HorizontalFlip = item.HorizontalFlip;
             pageImage.VerticalFlip = item.VerticalFlip;
             currentPage!.Images.Add(pageImage);
-            pageImage.InlineDrawToken = "\n%OIMO_INLINE_IMAGE_" + currentPage.Images.Count.ToString("D6", CultureInfo.InvariantCulture) + "\n";
+            pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage);
             sb.Append(pageImage.InlineDrawToken);
             if (!_suppressCanvasAccessibilityWrappers && !string.IsNullOrWhiteSpace(pageImage.AlternativeText)) {
                 int? markedContentId = RegisterFigureStructureElement(pageImage.AlternativeText!, _canvasStructureParentElementIndex);
@@ -586,10 +591,7 @@ internal static partial class PdfWriter {
             double clipTop = clipBottomY + clipHeight;
             for (int i = images.Count - 1; i >= startIndex; i--) {
                 PageImage image = images[i];
-                double effectiveX = image.EffectiveX ?? image.X;
-                double effectiveY = image.EffectiveY ?? image.Y;
-                double effectiveW = image.EffectiveW ?? image.W;
-                double effectiveH = image.EffectiveH ?? image.H;
+                (double effectiveX, double effectiveY, double effectiveW, double effectiveH) = EffectivePageImageBounds(image);
                 double x1 = System.Math.Max(effectiveX, clipX);
                 double y1 = System.Math.Max(effectiveY, clipBottomY);
                 double x2 = System.Math.Min(effectiveX + effectiveW, clipRight);
@@ -667,6 +669,13 @@ internal static partial class PdfWriter {
         }
 
         private void BeginRotatedCanvasFrame(double x, double bottomY, double width, double height, double rotationAngle) {
+            OfficeTransform transform = CreateCanvasRotationTransform(x, bottomY, width, height, rotationAngle);
+            new ContentStreamBuilder(sb)
+                .SaveState()
+                .TransformMatrix(transform);
+        }
+
+        private static OfficeTransform CreateCanvasRotationTransform(double x, double bottomY, double width, double height, double rotationAngle) {
             double angle = rotationAngle * Math.PI / 180D;
             double cos = Math.Cos(angle);
             double sin = Math.Sin(angle);
@@ -674,10 +683,7 @@ internal static partial class PdfWriter {
             double centerY = bottomY + height / 2D;
             double e = centerX - cos * centerX + sin * centerY;
             double f = centerY - sin * centerX - cos * centerY;
-
-            new ContentStreamBuilder(sb)
-                .SaveState()
-                .TransformMatrix(cos, sin, -sin, cos, e, f);
+            return new OfficeTransform(cos, sin, -sin, cos, e, f);
         }
 
         private static void RotateCanvasLinkAnnotations(System.Collections.Generic.List<LinkAnnotation> annotations, double x, double bottomY, double width, double height, double rotationAngle) {
@@ -704,6 +710,8 @@ internal static partial class PdfWriter {
                 return;
             }
 
+            OfficeTransform transform = CreateCanvasRotationTransform(x, bottomY, width, height, rotationAngle);
+            TransformCanvasPageImageBounds(images, startIndex, transform);
             double angle = rotationAngle * Math.PI / 180D;
             double cos = Math.Cos(angle);
             double sin = Math.Sin(angle);
@@ -711,6 +719,10 @@ internal static partial class PdfWriter {
             double centerY = bottomY + height / 2D;
             for (int i = startIndex; i < images.Count; i++) {
                 PageImage image = images[i];
+                if (!string.IsNullOrEmpty(image.InlineDrawToken)) {
+                    continue;
+                }
+
                 double imageCenterX = image.X + image.W / 2D;
                 double imageCenterY = image.Y + image.H / 2D;
                 RotateCanvasPoint(imageCenterX, imageCenterY, centerX, centerY, cos, sin, out double rotatedCenterX, out double rotatedCenterY);
