@@ -101,6 +101,22 @@ public class VisioImageExport {
     }
 
     [Fact]
+    public void EmbeddedSvgPreviewCountsClipPathNodesAgainstTheElementBudget() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><defs><clipPath id='c'>");
+        for (int index = 0; index <= 100000; index++) svg.Append("<g/>");
+        svg.Append("</clipPath></defs><rect width='10' height='10' clip-path='url(#c)'/></svg>");
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.False(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg.ToString()), null, null, null, null, null,
+            diagnostics, "clip-budget.svg", default, out OfficeRasterImage? image));
+        Assert.Null(image);
+        Assert.Contains(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
     public void EmbeddedSvgPreviewReportsUnsupportedVisualEffects() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
                            "<rect width='10' height='10' fill='red' filter='url(#blur)'/>" +
@@ -270,6 +286,25 @@ public class VisioImageExport {
             diagnostics, "css-override.svg", default, out OfficeRasterImage? image));
         Assert.NotNull(image);
         Assert.DoesNotContain(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
+    [Theory]
+    [InlineData("<style>.blur { filter:url(#blur)!important;filter:none; }</style>", "class='blur'")]
+    [InlineData("", "style='filter:url(#blur)!important;filter:none'")]
+    public void EmbeddedSvgPreviewPreservesImportantEffectsAcrossDuplicateDeclarations(
+        string styleDefinition,
+        string rectangleAttributes) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                     styleDefinition + "<rect width='10' height='10' fill='red' " + rectangleAttributes + "/></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "css-important.svg", default, out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        Assert.Contains(diagnostics, diagnostic =>
             diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }

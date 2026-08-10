@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing;
 
@@ -8,21 +9,31 @@ public static partial class OfficeImageReader {
     private static bool HasCompleteIconPayload(byte[] data) {
         if (!TryReadIcon(data, out _)) return false;
         int count = ReadUInt16LittleEndian(data, 4);
+        var validatedPayloads = new Dictionary<(int Offset, int Length), IconPayloadValidation>();
+        long aggregateValidationBytes = 0;
         for (int index = 0; index < count; index++) {
             int entryOffset = 6 + index * 16;
             int declaredWidth = data[entryOffset] == 0 ? 256 : data[entryOffset];
             int declaredHeight = data[entryOffset + 1] == 0 ? 256 : data[entryOffset + 1];
             int imageLength = checked((int)ReadUInt32LittleEndian(data, entryOffset + 8));
             int imageOffset = checked((int)ReadUInt32LittleEndian(data, entryOffset + 12));
-            var payload = new byte[imageLength];
-            Buffer.BlockCopy(data, imageOffset, payload, 0, imageLength);
-            if (HasIconPngSignature(payload)) {
-                if (!TryReadPng(payload, out OfficeImageInfo pngInfo) ||
-                    pngInfo.Width != declaredWidth || pngInfo.Height != declaredHeight ||
-                    !OfficePngReader.TryValidateDecodedPayload(payload)) {
-                    return false;
+            var key = (imageOffset, imageLength);
+            if (!validatedPayloads.TryGetValue(key, out IconPayloadValidation validation)) {
+                if (aggregateValidationBytes > OfficeRasterGuards.MaximumEncodedBytes - imageLength) return false;
+                aggregateValidationBytes += imageLength;
+                var payload = new byte[imageLength];
+                Buffer.BlockCopy(data, imageOffset, payload, 0, imageLength);
+                if (HasIconPngSignature(payload)) {
+                    bool valid = TryReadPng(payload, out OfficeImageInfo pngInfo) &&
+                                 OfficePngReader.TryValidateDecodedPayload(payload);
+                    validation = new IconPayloadValidation(valid, pngInfo.Width, pngInfo.Height);
+                } else {
+                    bool valid = TryReadCompleteIconDibPayload(payload, out int width, out int height);
+                    validation = new IconPayloadValidation(valid, width, height);
                 }
-            } else if (!HasCompleteIconDibPayload(payload, declaredWidth, declaredHeight)) {
+                validatedPayloads.Add(key, validation);
+            }
+            if (!validation.IsValid || validation.Width != declaredWidth || validation.Height != declaredHeight) {
                 return false;
             }
         }
@@ -37,10 +48,11 @@ public static partial class OfficeImageReader {
         return true;
     }
 
-    private static bool HasCompleteIconDibPayload(byte[] payload, int declaredWidth, int declaredHeight) {
+    private static bool TryReadCompleteIconDibPayload(byte[] payload, out int width, out int height) {
+        width = 0;
+        height = 0;
         if (payload.Length < 12) return false;
         int headerSize = ReadInt32LittleEndian(payload, 0);
-        int width;
         int storedHeight;
         int planes;
         int bitsPerPixel;
@@ -84,9 +96,8 @@ public static partial class OfficeImageReader {
             return false;
         }
 
-        int height = storedHeight / 2;
-        if (width != declaredWidth || height != declaredHeight ||
-            !OfficeRasterGuards.TryEnsurePixelCount(width, height, out _) ||
+        height = storedHeight / 2;
+        if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out _) ||
             pixelOffset < headerSize || pixelOffset > payload.LongLength) {
             return false;
         }
@@ -100,5 +111,17 @@ public static partial class OfficeImageReader {
             return false;
         }
         return remaining == xorBytes + maskBytes || bitsPerPixel == 32 && remaining == xorBytes;
+    }
+
+    private readonly struct IconPayloadValidation {
+        internal IconPayloadValidation(bool isValid, int width, int height) {
+            IsValid = isValid;
+            Width = width;
+            Height = height;
+        }
+
+        internal bool IsValid { get; }
+        internal int Width { get; }
+        internal int Height { get; }
     }
 }

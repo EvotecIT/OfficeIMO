@@ -93,7 +93,8 @@ internal static class OfficePngContainerValidator {
                             (colorType == 0 && length != 2) ||
                             (colorType == 2 && length != 6) ||
                             (colorType == 3 && (!seenPalette || length == 0 || length > paletteEntries)) ||
-                            colorType == 4 || colorType == 6) {
+                            colorType == 4 || colorType == 6 ||
+                            !HasValidTransparencySamples(bytes, dataOffset, colorType, bitDepth)) {
                             failureReason = "PNG bytes contain an invalid or misplaced tRNS chunk.";
                             return false;
                         }
@@ -149,6 +150,18 @@ internal static class OfficePngContainerValidator {
 
         failureReason = "PNG bytes do not contain a complete IEND chunk.";
         return false;
+    }
+
+    private static bool HasValidTransparencySamples(byte[] bytes, int offset, int colorType, int bitDepth) {
+        if (colorType == 3 || bitDepth == 16) return true;
+        int maximumSample = (1 << bitDepth) - 1;
+        int sampleCount = colorType == 0 ? 1 : 3;
+        for (int index = 0; index < sampleCount; index++) {
+            int sampleOffset = offset + index * 2;
+            int sample = bytes[sampleOffset] << 8 | bytes[sampleOffset + 1];
+            if (sample > maximumSample) return false;
+        }
+        return true;
     }
 
     private static bool IsValidColorLayout(int colorType, int bitDepth) {

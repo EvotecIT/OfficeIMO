@@ -92,6 +92,10 @@ public static class OfficeGifReader {
                         if (validateAllFrames && disposalMethod > 3) {
                             return false;
                         }
+                    } else if (validateAllFrames && label == 0xFF) {
+                        if (!TryReadFixedHeaderExtension(bytes, ref offset, expectedHeaderLength: 11)) return false;
+                    } else if (validateAllFrames && label == 0x01) {
+                        if (!TryReadFixedHeaderExtension(bytes, ref offset, expectedHeaderLength: 12)) return false;
                     } else if (!SkipSubBlocks(bytes, ref offset)) {
                         return false;
                     }
@@ -150,6 +154,16 @@ public static class OfficeGifReader {
             frameCount = 0;
             return false;
         }
+    }
+
+    private static bool TryReadFixedHeaderExtension(byte[] bytes, ref int offset, int expectedHeaderLength) {
+        if (offset >= bytes.Length || bytes[offset++] != expectedHeaderLength ||
+            offset > bytes.Length - expectedHeaderLength) {
+            return false;
+        }
+
+        offset += expectedHeaderLength;
+        return SkipSubBlocks(bytes, ref offset);
     }
 
     private static bool TryReadImageFrame(

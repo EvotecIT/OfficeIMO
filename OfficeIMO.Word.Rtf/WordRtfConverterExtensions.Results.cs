@@ -255,7 +255,12 @@ public static partial class WordRtfConverterExtensions {
 
         int omittedImageCount = 0;
         int normalizedImageCount = 0;
-        foreach (WordImage image in EnumerateConvertibleWordImages(document)) {
+        foreach ((WordImage Image, bool OmittedByConverter) candidate in EnumerateWordImageCandidates(document)) {
+            if (candidate.OmittedByConverter) {
+                omittedImageCount++;
+                continue;
+            }
+            WordImage image = candidate.Image;
             RtfImage? converted = CreateRtfImage(image, out OfficeImageFormat sourceFormat);
             if (converted == null) {
                 omittedImageCount++;
@@ -307,16 +312,18 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static IEnumerable<WordImage> EnumerateConvertibleWordImages(WordDocument document) {
+    private static IEnumerable<(WordImage Image, bool OmittedByConverter)> EnumerateWordImageCandidates(WordDocument document) {
         var visitedParagraphs = new HashSet<Paragraph>();
         var visitedRuns = new HashSet<Run>();
         foreach (OpenXmlElement storyRoot in EnumerateConvertibleWordStoryRoots(document)) {
             foreach (Paragraph paragraph in storyRoot.Descendants<Paragraph>()) {
                 if (!visitedParagraphs.Add(paragraph)) continue;
-                foreach (Run run in EnumerateConvertibleWordRuns(paragraph)) {
-                    if (!visitedRuns.Add(run)) continue;
-                    var candidate = new WordParagraph(document, paragraph, run);
-                    foreach (WordImage image in candidate.EnumerateImages()) yield return image;
+                foreach ((Run Run, bool OmittedByConverter) runCandidate in EnumerateConvertibleWordRuns(paragraph)) {
+                    if (!visitedRuns.Add(runCandidate.Run)) continue;
+                    var candidate = new WordParagraph(document, paragraph, runCandidate.Run);
+                    foreach (WordImage image in candidate.EnumerateImages()) {
+                        yield return (image, runCandidate.OmittedByConverter);
+                    }
                 }
             }
         }
@@ -344,23 +351,47 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static IEnumerable<Run> EnumerateConvertibleWordRuns(OpenXmlElement container) {
+    private static IEnumerable<(Run Run, bool OmittedByConverter)> EnumerateConvertibleWordRuns(
+        OpenXmlElement container,
+        bool nestedRevisionIsOmitted = false,
+        bool omittedByConverter = false) {
         foreach (OpenXmlElement child in container.ChildElements) {
             switch (child) {
                 case Run run:
-                    yield return run;
+                    yield return (run, omittedByConverter);
                     break;
                 case SimpleField simpleField:
-                    foreach (Run fieldRun in simpleField.Elements<Run>()) yield return fieldRun;
+                    foreach (Run fieldRun in simpleField.Elements<Run>()) {
+                        yield return (fieldRun, omittedByConverter);
+                    }
                     break;
                 case InsertedRun:
-                case DeletedRun:
                 case MoveToRun:
+                    foreach ((Run Run, bool OmittedByConverter) nested in EnumerateConvertibleWordRuns(
+                                 child,
+                                 nestedRevisionIsOmitted: true,
+                                 omittedByConverter: omittedByConverter)) {
+                        yield return nested;
+                    }
+                    break;
+                case DeletedRun:
                 case MoveFromRun:
+                    foreach ((Run Run, bool OmittedByConverter) nested in EnumerateConvertibleWordRuns(
+                                 child,
+                                 nestedRevisionIsOmitted: true,
+                                 omittedByConverter: omittedByConverter || nestedRevisionIsOmitted)) {
+                        yield return nested;
+                    }
+                    break;
                 case Hyperlink:
                 case SdtRun:
                 case SdtContentRun:
-                    foreach (Run nestedRun in EnumerateConvertibleWordRuns(child)) yield return nestedRun;
+                    foreach ((Run Run, bool OmittedByConverter) nested in EnumerateConvertibleWordRuns(
+                                 child,
+                                 nestedRevisionIsOmitted: true,
+                                 omittedByConverter: omittedByConverter)) {
+                        yield return nested;
+                    }
                     break;
             }
         }

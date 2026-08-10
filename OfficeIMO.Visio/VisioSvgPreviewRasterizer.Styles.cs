@@ -38,7 +38,7 @@ namespace OfficeIMO.Visio {
             internal Dictionary<string, string> CreateStyle(XElement element) {
                 if (_styleCache.TryGetValue(element, out Dictionary<string, string>? cached)) return cached;
                 Dictionary<string, string> style = new(StringComparer.OrdinalIgnoreCase);
-                Dictionary<string, (int Specificity, int Order)> applied = new(StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, (bool Important, int Specificity, int Order)> applied = new(StringComparer.OrdinalIgnoreCase);
                 for (int i = 0; i < _rules.Count; i++) {
                     if (!TryConsumeSelectorEvaluation()) break;
                     SvgStyleRule rule = _rules[i];
@@ -220,23 +220,34 @@ namespace OfficeIMO.Visio {
                     string name = declarations[i].Substring(0, separator).Trim();
                     string value = declarations[i].Substring(separator + 1).Trim();
                     if (name.Length > 0 && value.Length > 0) {
+                        if (style.TryGetValue(name, out string? existing) &&
+                            IsImportantDeclaration(existing) &&
+                            !IsImportantDeclaration(value)) {
+                            continue;
+                        }
                         style[name] = value;
                     }
                 }
             }
 
+            private static bool IsImportantDeclaration(string value) =>
+                value.TrimEnd().EndsWith("!important", StringComparison.OrdinalIgnoreCase);
+
             private static void MergeRuleDeclarations(
                 Dictionary<string, string> style,
-                Dictionary<string, (int Specificity, int Order)> applied,
+                Dictionary<string, (bool Important, int Specificity, int Order)> applied,
                 Dictionary<string, string> declarations,
                 int specificity,
                 int order) {
                 foreach (KeyValuePair<string, string> declaration in declarations) {
-                    if (!applied.TryGetValue(declaration.Key, out (int Specificity, int Order) previous) ||
-                        specificity > previous.Specificity ||
-                        specificity == previous.Specificity && order >= previous.Order) {
+                    bool important = IsImportantDeclaration(declaration.Value);
+                    if (!applied.TryGetValue(declaration.Key, out (bool Important, int Specificity, int Order) previous) ||
+                        important && !previous.Important ||
+                        important == previous.Important &&
+                        (specificity > previous.Specificity ||
+                         specificity == previous.Specificity && order >= previous.Order)) {
                         style[declaration.Key] = declaration.Value;
-                        applied[declaration.Key] = (specificity, order);
+                        applied[declaration.Key] = (important, specificity, order);
                     }
                 }
             }

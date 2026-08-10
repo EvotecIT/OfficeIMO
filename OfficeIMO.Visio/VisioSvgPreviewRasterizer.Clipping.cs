@@ -34,6 +34,7 @@ namespace OfficeIMO.Visio {
             bool useEvenOddClip = UseEvenOddClip(definition, context.StyleSheet);
             if (!useEvenOddClip) {
                 foreach (XElement child in definition.Descendants()) {
+                    if (!context.TryCountRenderedElement()) break;
                     if (UseEvenOddClip(child, context.StyleSheet)) {
                         useEvenOddClip = true;
                         break;
@@ -47,6 +48,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static void AddClipElementContours(XElement element, SvgTransform parentTransform, List<IReadOnlyList<OfficePoint>> contours, SvgRenderContext context, bool objectBoundingBox) {
+            if (!context.TryCountRenderedElement()) return;
             if (!context.TryEnterAuxiliaryRecursion()) return;
             try {
                 AddClipElementContoursWithinBudget(element, parentTransform, contours, context, objectBoundingBox);

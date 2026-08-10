@@ -82,6 +82,22 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void PngContainerRejectsTransparencySamplesOutsideTheBitDepthRange() {
+        byte[] grayscale = OfficePngWriter.EncodeScanlines(
+            1, 1, 1, 0, new byte[] { 0, 0 });
+        byte[] validGrayscale = InsertPngChunkBefore(grayscale, "IDAT", "tRNS", new byte[] { 0, 1 });
+        byte[] invalidGrayscale = InsertPngChunkBefore(grayscale, "IDAT", "tRNS", new byte[] { 0, 2 });
+        byte[] truecolor = OfficePngWriter.EncodeScanlines(
+            1, 1, 8, 2, new byte[] { 0, 255, 0, 0 });
+        byte[] invalidTruecolor = InsertPngChunkBefore(
+            truecolor, "IDAT", "tRNS", new byte[] { 1, 0, 0, 0, 0, 0 });
+
+        Assert.True(OfficeImageReader.TryValidateContent(validGrayscale, "valid-trns.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(invalidGrayscale, "invalid-gray-trns.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(invalidTruecolor, "invalid-rgb-trns.png", out _));
+    }
+
+    [Fact]
     public void CompleteContentValidationRejectsTruncatedGifCorruptPngAndMarkerOnlyJpeg() {
         byte[] truncatedGif = { (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a', 1, 0, 1, 0, 0, 0, 0 };
         byte[] markerOnlyJpeg = {
@@ -174,6 +190,15 @@ public partial class DrawingTests {
         Assert.False(OfficeImageReader.TryValidateContent(iconWithInvalidOnlyEntry, "invalid.ico", out _));
         Assert.True(OfficeImageReader.TryIdentifyByContent(iconWithInvalidSecondEntry, "invalid.ico", out _));
         Assert.False(OfficeImageReader.TryValidateContent(iconWithInvalidSecondEntry, "invalid.ico", out _));
+    }
+
+    [Fact]
+    public void CompleteContentValidationCachesRepeatedIconPayloads() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] paddedPng = InsertPngChunkBefore(png, "IDAT", "vpAg", new byte[128 * 1024]);
+        byte[] icon = CreateIconWithSharedPayload(paddedPng, ushort.MaxValue);
+
+        Assert.True(OfficeImageReader.TryValidateContent(icon, "shared-payload.ico", out _));
     }
 
     [Fact]
@@ -532,6 +557,24 @@ public partial class DrawingTests {
             Buffer.BlockCopy(payloads[index], 0, icon, payloadOffset, payloads[index].Length);
             payloadOffset += payloads[index].Length;
         }
+        return icon;
+    }
+
+    private static byte[] CreateIconWithSharedPayload(byte[] payload, ushort count) {
+        int directoryLength = 6 + count * 16;
+        byte[] icon = new byte[directoryLength + payload.Length];
+        WriteUInt16LittleEndian(icon, 2, 1);
+        WriteUInt16LittleEndian(icon, 4, count);
+        for (int index = 0; index < count; index++) {
+            int entryOffset = 6 + index * 16;
+            icon[entryOffset] = 1;
+            icon[entryOffset + 1] = 1;
+            WriteUInt16LittleEndian(icon, entryOffset + 4, 1);
+            WriteUInt16LittleEndian(icon, entryOffset + 6, 32);
+            WriteInt32LittleEndian(icon, entryOffset + 8, payload.Length);
+            WriteInt32LittleEndian(icon, entryOffset + 12, directoryLength);
+        }
+        Buffer.BlockCopy(payload, 0, icon, directoryLength, payload.Length);
         return icon;
     }
 

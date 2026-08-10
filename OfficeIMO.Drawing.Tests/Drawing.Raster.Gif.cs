@@ -165,6 +165,19 @@ namespace OfficeIMO.Tests {
             Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "trailing-lzw.gif", out _));
         }
 
+        [Theory]
+        [InlineData(0xFF)]
+        [InlineData(0x01)]
+        public void CompleteContentValidationRejectsMalformedKnownGifExtensionHeaders(byte extensionLabel) {
+            byte[] valid = CreateSinglePixelGif();
+            int imageDescriptorOffset = Array.IndexOf(valid, (byte)0x2C);
+            var malformed = valid.ToList();
+            malformed.InsertRange(imageDescriptorOffset, new byte[] { 0x21, extensionLabel, 0x01, 0x41, 0x00 });
+
+            Assert.True(OfficeGifReader.TryDecodeFrame(malformed.ToArray(), 0, out _, out _));
+            Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "extension.gif", out _));
+        }
+
         private static byte[] CreateSinglePixelGif() =>
             Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
 

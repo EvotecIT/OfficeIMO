@@ -405,6 +405,48 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_Rtf_Image_Diagnostics_Report_Revisions_Skipped_Inside_Inline_Containers() {
+        byte[] png = CreateOnePixelPng();
+        using WordDocument word = WordDocument.Create();
+        WordParagraph linkedParagraph = word.AddParagraph();
+        using (var stream = new MemoryStream(png, writable: false)) {
+            linkedParagraph.AddImage(stream, "deleted.png", 16, 16);
+        }
+        Run deletedRun = linkedParagraph._run!;
+        deletedRun.Remove();
+        linkedParagraph._paragraph.Append(new Hyperlink(
+            new DeletedRun(deletedRun) { Author = "Reviewer" }) { Anchor = "deleted-image" });
+
+        WordParagraph controlParagraph = word.AddParagraph();
+        using (var stream = new MemoryStream(png, writable: false)) {
+            controlParagraph.AddImage(stream, "moved.png", 16, 16);
+        }
+        Run movedRun = controlParagraph._run!;
+        movedRun.Remove();
+        controlParagraph._paragraph.Append(new SdtRun(
+            new SdtProperties(new SdtId { Val = 2077 }),
+            new SdtContentRun(
+                new MoveFromRun(movedRun) { Author = "Reviewer" })));
+
+        WordParagraph topLevelParagraph = word.AddParagraph();
+        using (var stream = new MemoryStream(png, writable: false)) {
+            topLevelParagraph.AddImage(stream, "top-level-deleted.png", 16, 16);
+        }
+        Run topLevelDeletedRun = topLevelParagraph._run!;
+        topLevelDeletedRun.Remove();
+        topLevelParagraph._paragraph.Append(
+            new DeletedRun(topLevelDeletedRun) { Author = "Reviewer" });
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        RtfConversionDiagnostic diagnostic = Assert.Single(
+            conversion.Report.Diagnostics,
+            item => item.Code == "WordRtfImagesOmitted");
+        Assert.Equal(2, diagnostic.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+    }
+
+    [Fact]
     public void Word_Rtf_Image_Diagnostics_Include_Comment_Stories() {
         using WordDocument word = WordDocument.Create();
         word.AddParagraph("target").AddComment("Reviewer", "RV", "comment");
