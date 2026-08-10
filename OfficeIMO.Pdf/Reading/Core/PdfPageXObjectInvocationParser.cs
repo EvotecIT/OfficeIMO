@@ -576,8 +576,12 @@ internal static class PdfPageXObjectInvocationParser {
                 case "sc":
                 case "scn":
                     if (!HasHiddenContent() && op == "scn" && _args.Count > 0 && _args[_args.Count - 1] is string fillPatternName) {
-                        _unsupportedPatternVisitor?.Invoke();
-                        _patternInvocationVisitor?.Invoke(fillPatternName);
+                        if (_state.FillColorSpace == PdfPageColorSpaceKind.Pattern) {
+                            _unsupportedPatternVisitor?.Invoke();
+                            _patternInvocationVisitor?.Invoke(fillPatternName);
+                        } else {
+                            _unsupportedColorVisitor?.Invoke();
+                        }
                     }
                     if (TryReadColor(_state.FillColorSpace, out OfficeColor fillColor)) {
                         _state = _state.WithFillColor(fillColor);
@@ -589,8 +593,12 @@ internal static class PdfPageXObjectInvocationParser {
                 case "SC":
                 case "SCN":
                     if (!HasHiddenContent() && op == "SCN" && _args.Count > 0 && _args[_args.Count - 1] is string strokePatternName) {
-                        _unsupportedPatternVisitor?.Invoke();
-                        _patternInvocationVisitor?.Invoke(strokePatternName);
+                        if (_state.StrokeColorSpace == PdfPageColorSpaceKind.Pattern) {
+                            _unsupportedPatternVisitor?.Invoke();
+                            _patternInvocationVisitor?.Invoke(strokePatternName);
+                        } else {
+                            _unsupportedColorVisitor?.Invoke();
+                        }
                     }
                     if (TryReadColor(_state.StrokeColorSpace, out OfficeColor strokeColor)) {
                         _state = _state.WithStrokeColor(strokeColor);
@@ -1026,6 +1034,9 @@ internal static class PdfPageXObjectInvocationParser {
                     return true;
                 case "Lab":
                     colorSpace = PdfPageColorSpaceKind.Lab;
+                    return true;
+                case "Pattern":
+                    colorSpace = PdfPageColorSpaceKind.Pattern;
                     return true;
                 default:
                     if (_colorSpaces != null && _colorSpaces.TryGetValue(name, out colorSpace)) {

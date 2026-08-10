@@ -84,6 +84,7 @@ public sealed partial class PdfReadPage {
                         includeTilingPatterns: includeTilingPatterns,
                         retainPrimitiveData: retainPrimitiveData,
                         requireSupportedType3Content: true,
+                        allowSupportedType3Patterns: !type3.IsUncolored,
                         requireNestedType3Uncolored: type3.IsUncolored,
                         type3ImageVisitor: (placement, image) => localImages.Add((placement, image)),
                         tilingPatternResourceCache: tilingPatternResourceCache,

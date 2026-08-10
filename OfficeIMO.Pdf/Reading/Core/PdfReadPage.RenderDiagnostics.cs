@@ -169,6 +169,8 @@ public sealed partial class PdfReadPage {
 
             bool supported = true;
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
+            Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources);
+            var patternSupport = new Dictionary<string, bool>(StringComparer.Ordinal);
             foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                          content,
                          programTransform,
@@ -185,6 +187,7 @@ public sealed partial class PdfReadPage {
                              for (int index = 0; index < nested.Glyphs.Count; index++) {
                                  PdfPageType3GlyphInvocation glyph = nested.Glyphs[index];
                                  if (glyph.Font.Type3 is not PdfType3FontResource nestedType3 ||
+                                     requireImageMask && !nestedType3.IsUncolored ||
                                      !nestedType3.TryGetGlyph(glyph.CharacterCode, out PdfStream nestedStream) ||
                                      (requireImageMask && !nestedType3.IsUncolored) ||
                                      !CanProjectType3GlyphProgram(
@@ -206,8 +209,34 @@ public sealed partial class PdfReadPage {
                          type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
                          unsupportedTextVisitor: () => supported = false,
                          unsupportedGraphicsEffectVisitor: () => supported = false,
-                         unsupportedPatternVisitor: () => supported = false,
-                         unsupportedColorVisitor: () => supported = false)) {
+                         unsupportedColorVisitor: () => supported = false,
+                         patternInvocationVisitor: name => {
+                             if (!patternSupport.TryGetValue(name, out bool canProject)) {
+                                 canProject = false;
+                                 if (!requireImageMask && shadingPatterns.ContainsKey(name)) {
+                                     canProject = true;
+                                     CollectShadingCapabilityDiagnostics(
+                                         resources,
+                                         Array.Empty<string>(),
+                                         new[] { name },
+                                         diagnostics,
+                                         seen);
+                                 } else if (!requireImageMask) {
+                                     int failureVersion = type3GlyphBudget.FailureVersion;
+                                     canProject = GetTilingPatternResources(
+                                             resources,
+                                             new HashSet<string>(StringComparer.Ordinal) { name },
+                                             textOutputBudget: CreateTextOutputBudget(),
+                                             pageContentBudget: pageContentBudget,
+                                             type3GlyphBudget: type3GlyphBudget,
+                                             requireSupportedType3Content: true)
+                                         .ContainsKey(name) &&
+                                         type3GlyphBudget.FailureVersion == failureVersion;
+                                 }
+                                 patternSupport[name] = canProject;
+                             }
+                             if (!canProject) supported = false;
+                         })) {
                 if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     if (!CanProjectType3ImageInvocation(invocation, resources, requireImageMask, diagnostics, seen)) supported = false;
                     continue;

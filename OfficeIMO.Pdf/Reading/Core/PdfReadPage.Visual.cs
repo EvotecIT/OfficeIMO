@@ -418,7 +418,9 @@ public sealed partial class PdfReadPage {
         bool includeTilingPatterns = true,
         bool retainPrimitiveData = true,
         bool requireSupportedType3Content = false,
+        bool allowSupportedType3Patterns = false,
         bool requireNestedType3Uncolored = false,
+        Action<string>? unrenderedPatternVisitor = null,
         Action<PdfImagePlacement, PdfExtractedImage>? type3ImageVisitor = null,
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
@@ -461,6 +463,10 @@ public sealed partial class PdfReadPage {
                 maxOperands: _limits.MaxContentOperands,
                 patternInvocationVisitor: name => invokedPatternNames.Add(name));
         }
+        Dictionary<string, PdfPageShadingPatternResource> shadingPatternResources = GetShadingPatternResources(resources);
+        Dictionary<string, PdfPageTilingPatternResource>? tilingPatternResources = includeTilingPatterns
+            ? GetTilingPatternResources(resources, invokedPatternNames, tilingPatternResourceCache, textOutputBudget, pageContentBudget, type3GlyphBudget, requireSupportedType3Content)
+            : null;
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         Action<PdfPageVisualPrimitive> currentPrimitiveVisitor = contentOrderPrefix == null
             ? primitiveVisitor
@@ -472,10 +478,8 @@ public sealed partial class PdfReadPage {
             GetGraphicsStateResources(resources),
             GetColorSpaceResources(resources),
             GetShadingResources(resources),
-            GetShadingPatternResources(resources),
-            includeTilingPatterns
-                ? GetTilingPatternResources(resources, invokedPatternNames, tilingPatternResourceCache, textOutputBudget, pageContentBudget, type3GlyphBudget)
-                : null,
+            shadingPatternResources,
+            tilingPatternResources,
             GetOptionalContentVisibility(resources),
             paintOrderBase,
             paintOrderScale,
@@ -559,8 +563,16 @@ public sealed partial class PdfReadPage {
                       type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
                       unsupportedTextVisitor: requireSupportedType3Content ? type3GlyphBudget.RecordFailure : null,
                       unsupportedGraphicsEffectVisitor: requireSupportedType3Content ? type3GlyphBudget.RecordFailure : null,
-                      unsupportedPatternVisitor: requireSupportedType3Content ? type3GlyphBudget.RecordFailure : null,
-                      unsupportedColorVisitor: requireSupportedType3Content ? type3GlyphBudget.RecordFailure : null)) {
+                      unsupportedColorVisitor: requireSupportedType3Content ? type3GlyphBudget.RecordFailure : null,
+                      patternInvocationVisitor: requireSupportedType3Content || unrenderedPatternVisitor != null
+                          ? name => {
+                              unrenderedPatternVisitor?.Invoke(name);
+                              if (!allowSupportedType3Patterns ||
+                                  !(shadingPatternResources.ContainsKey(name) || tilingPatternResources?.ContainsKey(name) == true)) {
+                                  if (requireSupportedType3Content) type3GlyphBudget.RecordFailure();
+                              }
+                          }
+                          : null)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     type3GlyphBudget.RecordFailure();
@@ -611,7 +623,9 @@ public sealed partial class PdfReadPage {
                     includeTilingPatterns: includeTilingPatterns,
                     retainPrimitiveData: retainPrimitiveData,
                     requireSupportedType3Content: requireSupportedType3Content,
+                    allowSupportedType3Patterns: allowSupportedType3Patterns,
                     requireNestedType3Uncolored: requireNestedType3Uncolored,
+                    unrenderedPatternVisitor: unrenderedPatternVisitor,
                     type3ImageVisitor: type3ImageVisitor,
                     tilingPatternResourceCache: tilingPatternResourceCache,
                     textOutputBudget: textOutputBudget,

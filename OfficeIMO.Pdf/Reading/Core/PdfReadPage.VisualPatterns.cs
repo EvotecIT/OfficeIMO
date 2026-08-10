@@ -119,7 +119,8 @@ public sealed partial class PdfReadPage {
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? resourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
-        Type3GlyphBudget? type3GlyphBudget = null) {
+        Type3GlyphBudget? type3GlyphBudget = null,
+        bool requireSupportedType3Content = false) {
         pageContentBudget ??= new PageContentBudget(this);
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var result = new Dictionary<string, PdfPageTilingPatternResource>(StringComparer.Ordinal);
@@ -133,7 +134,7 @@ public sealed partial class PdfReadPage {
             }
 
             var cacheKey = (Stream: stream, Resources: resources);
-            if (resourceCache != null &&
+            if (!requireSupportedType3Content && resourceCache != null &&
                 resourceCache.TryGetValue(cacheKey, out PdfPageTilingPatternResource? cached)) {
                 if (cached != null) {
                     result[entry.Key] = cached;
@@ -147,10 +148,11 @@ public sealed partial class PdfReadPage {
                 textOutputBudget,
                 pageContentBudget,
                 type3GlyphBudget,
+                requireSupportedType3Content,
                 out PdfPageTilingPatternResource? parsed)
                 ? parsed
                 : null;
-            if (resourceCache != null) {
+            if (!requireSupportedType3Content && resourceCache != null) {
                 resourceCache[cacheKey] = pattern;
             }
             if (pattern != null) {
@@ -166,6 +168,7 @@ public sealed partial class PdfReadPage {
         TextContentParser.TextOutputBudget? textOutputBudget,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
+        bool requireSupportedType3Content,
         out PdfPageTilingPatternResource pattern) {
         pattern = null!;
         int? paintType;
@@ -183,7 +186,9 @@ public sealed partial class PdfReadPage {
         double height = box.Y2 - box.Y1;
         if (width <= 0D || height <= 0D) return false;
         PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
-        OfficeDrawing tile = CreatePatternTileDrawing(stream, resources, box, width, height, textOutputBudget ?? CreateTextOutputBudget(), pageContentBudget, type3GlyphBudget);
+        int failureVersion = type3GlyphBudget.FailureVersion;
+        OfficeDrawing tile = CreatePatternTileDrawing(stream, resources, box, width, height, textOutputBudget ?? CreateTextOutputBudget(), pageContentBudget, type3GlyphBudget, requireSupportedType3Content);
+        if (type3GlyphBudget.FailureVersion != failureVersion) return false;
         Matrix2D matrix = stream.Dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)
             ? ReadPatternMatrix(matrixObject)
             : Matrix2D.Identity;
@@ -206,7 +211,8 @@ public sealed partial class PdfReadPage {
         double height,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
-        Type3GlyphBudget type3GlyphBudget) {
+        Type3GlyphBudget type3GlyphBudget,
+        bool requireSupportedType3Content) {
         var drawing = new OfficeDrawing(width, height);
         RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
         string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
@@ -227,6 +233,8 @@ public sealed partial class PdfReadPage {
             renderedType3PaintOrders: renderedType3PaintOrders,
             type3GlyphBudget: type3GlyphBudget,
             includeTilingPatterns: false,
+            requireSupportedType3Content: requireSupportedType3Content,
+            unrenderedPatternVisitor: _ => type3GlyphBudget.RecordFailure(),
             type3ImageVisitor: (placement, image) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count)),
             textOutputBudget: textOutputBudget,
             pageContentBudget: pageContentBudget);
