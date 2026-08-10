@@ -479,7 +479,7 @@ public partial class DrawingTests {
         releaseInner.TrySetResult(true);
         await outer;
         await later;
-        Assert.True(laterStarted.Task.IsCompletedSuccessfully);
+        Assert.Equal(TaskStatus.RanToCompletion, laterStarted.Task.Status);
     }
 
     [Fact]
