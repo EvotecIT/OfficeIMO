@@ -583,9 +583,10 @@ namespace OfficeIMO.PowerPoint {
                 return size != null ? size / 100 : null;
             }
             set {
+                int? drawingSize = PowerPointTextDefaults.ToDrawingFontSize(value, nameof(value));
                 foreach (A.Run run in Runs) {
                     A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
-                    runProps.FontSize = value != null ? value * 100 : null;
+                    runProps.FontSize = drawingSize;
                 }
             }
         }

@@ -24,6 +24,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ComposerColumnSizingRejectsAQualifierThatWouldRetargetAnotherSheet() {
+            using ExcelDocument document = ExcelDocument.Create();
+            var composer = new SheetComposer(document, "Data");
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                composer.ApplyColumnSizing("'Other'!A1:B2", _ => { }));
+
+            Assert.Contains("must not qualify", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Composer_Callout_WritesTitleAndBody() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(filePath))

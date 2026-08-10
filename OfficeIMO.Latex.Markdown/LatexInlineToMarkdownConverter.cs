@@ -42,6 +42,10 @@ internal static class LatexInlineToMarkdownConverter {
         candidates.AddRange(document.Math
             .Where(math => math.Syntax.Span.Start.Offset >= start && math.Syntax.Span.End.Offset <= end && math.Kind != LatexMathKind.Environment)
             .Select(static math => new InlineCandidate(math.Syntax.Span, null, math)));
+        candidates.AddRange(document.SyntaxTree.Root.DescendantsAndSelf()
+            .Where(node => node.Kind == LatexSyntaxKind.Verbatim &&
+                node.Span.Start.Offset >= start && node.Span.End.Offset <= end)
+            .Select(static node => new InlineCandidate(node.Span, null, null, node)));
         InlineCandidate[] ordered = candidates.OrderBy(static candidate => candidate.Span.Start.Offset)
             .ThenByDescending(static candidate => candidate.Span.End.Offset)
             .ToArray();
@@ -53,6 +57,7 @@ internal static class LatexInlineToMarkdownConverter {
             AddPlain(target, document.Source.Text.Substring(cursor, candidate.Span.Start.Offset - cursor));
             if (candidate.Command != null) AddCommand(target, document, candidate.Command, diagnostics);
             else if (candidate.Math != null) AddMath(target, candidate.Math, diagnostics);
+            else if (candidate.Verbatim != null) AddVerbatim(target, candidate.Verbatim, diagnostics);
             cursor = candidate.Span.End.Offset;
         }
         if (cursor < end) AddPlain(target, document.Source.Text.Substring(cursor, end - cursor));
@@ -151,6 +156,76 @@ internal static class LatexInlineToMarkdownConverter {
             "LaTeX math source was transported in a code span; TeX layout was not evaluated.", math.Syntax.Span);
     }
 
+    private static void AddVerbatim(
+        InlineSequence target,
+        LatexSyntaxNode syntax,
+        List<LatexMarkdownConversionDiagnostic> diagnostics) {
+        if (string.Equals(syntax.Value, "comment", StringComparison.Ordinal)) {
+            Report(diagnostics, "LATEXMD110", LatexMarkdownConversionOutcome.Omitted, "comment-environment",
+                "The LaTeX comment environment was omitted and its body was not exposed as Markdown text.", syntax.Span);
+            return;
+        }
+        target.AddRaw(new CodeSpanInline(GetVerbatimContent(syntax)));
+        Report(diagnostics, "LATEXMD111", LatexMarkdownConversionOutcome.Simplified, "verbatim",
+            "Opaque LaTeX verbatim content was retained as code without TeX environment semantics.", syntax.Span);
+    }
+
+    internal static string GetVerbatimContent(LatexSyntaxNode syntax) {
+        string source = syntax.OriginalText;
+        if (string.Equals(syntax.Value, "verb", StringComparison.Ordinal)) {
+            int delimiter = source.StartsWith("\\verb*", StringComparison.Ordinal) ? 6 : 5;
+            if (source.Length <= delimiter) return string.Empty;
+            int contentStart = delimiter + 1;
+            bool terminated = source.Length > contentStart && source[source.Length - 1] == source[delimiter];
+            int inlineContentEnd = terminated ? source.Length - 1 : source.Length;
+            return inlineContentEnd > contentStart ? source.Substring(contentStart, inlineContentEnd - contentStart) : string.Empty;
+        }
+        if (!LatexVerbatimSyntax.TryReadEnvironmentOpening(
+                source, 0, out string environmentName, out int start)
+            || !string.Equals(environmentName, syntax.Value, StringComparison.Ordinal)) return source;
+        if (string.Equals(syntax.Value, "minted", StringComparison.Ordinal)) {
+            int argumentStart = start;
+            SkipInterArgumentWhitespace(source, ref argumentStart);
+            TrySkipDelimitedArgument(source, ref argumentStart, '[', ']');
+            SkipInterArgumentWhitespace(source, ref argumentStart);
+            if (TrySkipDelimitedArgument(source, ref argumentStart, '{', '}')) start = argumentStart;
+        } else if (string.Equals(syntax.Value, "lstlisting", StringComparison.Ordinal)
+            || string.Equals(syntax.Value, "Verbatim", StringComparison.Ordinal)) {
+            int argumentStart = start;
+            SkipInterArgumentWhitespace(source, ref argumentStart);
+            if (TrySkipDelimitedArgument(source, ref argumentStart, '[', ']')) start = argumentStart;
+        }
+        int contentEnd = LatexVerbatimSyntax.TryFindEnvironmentClosing(
+            source, start, environmentName, out int closingStart, out int closingEnd)
+            && closingEnd == source.Length
+                ? closingStart
+                : source.Length;
+        int length = contentEnd - start;
+        return length > 0 ? source.Substring(start, length) : string.Empty;
+    }
+
+    private static void SkipInterArgumentWhitespace(string source, ref int cursor) {
+        while (cursor < source.Length && char.IsWhiteSpace(source[cursor])) cursor++;
+    }
+
+    private static bool TrySkipDelimitedArgument(string source, ref int cursor, char open, char close) {
+        if (cursor >= source.Length || source[cursor] != open) return false;
+        int depth = 0;
+        for (int index = cursor; index < source.Length; index++) {
+            char current = source[index];
+            if (current == '\\' && index + 1 < source.Length) {
+                index++;
+                continue;
+            }
+            if (current == open) depth++;
+            else if (current == close && --depth == 0) {
+                cursor = index + 1;
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static void AddPlain(InlineSequence target, string value) {
         var text = new StringBuilder();
         for (int index = 0; index < value.Length; index++) {
@@ -191,13 +266,16 @@ internal static class LatexInlineToMarkdownConverter {
         diagnostics.Add(new LatexMarkdownConversionDiagnostic(code, outcome, feature, message, span));
 
     private sealed class InlineCandidate {
-        internal InlineCandidate(LatexSourceSpan span, LatexCommand? command, LatexMath? math) {
+        internal InlineCandidate(LatexSourceSpan span, LatexCommand? command, LatexMath? math,
+            LatexSyntaxNode? verbatim = null) {
             Span = span;
             Command = command;
             Math = math;
+            Verbatim = verbatim;
         }
         internal LatexSourceSpan Span { get; }
         internal LatexCommand? Command { get; }
         internal LatexMath? Math { get; }
+        internal LatexSyntaxNode? Verbatim { get; }
     }
 }

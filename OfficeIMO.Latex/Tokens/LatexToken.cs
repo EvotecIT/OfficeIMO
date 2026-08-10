@@ -31,16 +31,19 @@ public enum LatexTokenKind {
     /// <summary>Parameter marker.</summary>
     Parameter,
     /// <summary>Non-breaking-space marker.</summary>
-    NonBreakingSpace
+    NonBreakingSpace,
+    /// <summary>Opaque inline verbatim command or verbatim-like environment.</summary>
+    Verbatim
 }
 
 /// <summary>Exact token from decoded LaTeX source.</summary>
 public sealed class LatexToken {
-    internal LatexToken(LatexTokenKind kind, string text, string? value, LatexSourceSpan span) {
+    internal LatexToken(LatexTokenKind kind, string text, string? value, LatexSourceSpan span, bool isTerminated = true) {
         Kind = kind;
         Text = text;
         Value = value;
         Span = span;
+        IsTerminated = isTerminated;
     }
 
     /// <summary>Token kind.</summary>
@@ -51,4 +54,6 @@ public sealed class LatexToken {
     public string? Value { get; }
     /// <summary>Exact source span.</summary>
     public LatexSourceSpan Span { get; }
+    /// <summary>Whether an opaque verbatim region contained its expected closing delimiter.</summary>
+    public bool IsTerminated { get; }
 }

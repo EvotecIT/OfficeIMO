@@ -67,7 +67,7 @@ internal static class SheetNameLookup
 
         string trimmedValue = value!;
         trimmedValue = trimmedValue.Trim();
-        int bangIndex = trimmedValue.LastIndexOf('!');
+        int bangIndex = FindSheetSeparator(trimmedValue);
         if (bangIndex <= 0 || bangIndex >= trimmedValue.Length - 1)
         {
             return false;
@@ -156,5 +156,28 @@ internal static class SheetNameLookup
         }
 
         return trimmedToken;
+    }
+
+    private static int FindSheetSeparator(string value)
+    {
+        int separator = -1;
+        bool quoted = false;
+        for (int index = 0; index < value.Length; index++)
+        {
+            if (value[index] == '\'')
+            {
+                if (quoted && index + 1 < value.Length && value[index + 1] == '\'')
+                {
+                    index++;
+                    continue;
+                }
+                quoted = !quoted;
+            }
+            else if (!quoted && value[index] == '!')
+            {
+                separator = index;
+            }
+        }
+        return quoted ? -1 : separator;
     }
 }

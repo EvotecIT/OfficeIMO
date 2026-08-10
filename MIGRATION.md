@@ -53,6 +53,32 @@ keep their existing capability-object shape. The former static implementation
 engines remain internal; applications should not replace the removed root
 methods with calls to those engines.
 
+## OfficeIMO 3.2: bounded RTF reads by default
+
+`RtfReadOptions` now defaults to the bounded OfficeIMO profile. Embedded objects and file-table references are not materialized, hyperlink fields are restricted to web and mail schemes, and byte, character, token, group, payload, image, object, and semantic-block limits apply.
+
+Applications that intentionally rely on the former permissive behavior for trusted files must opt in:
+
+```csharp
+RtfReadResult result = RtfDocument.Load(
+    "trusted-legacy.rtf",
+    RtfReadOptions.CreateCompatibilityProfile());
+```
+
+Do not use the compatibility profile for uploads or other untrusted inputs. Lossless byte output from character-only reads now fails when the source cannot be represented exactly; use byte, stream, or file input when exact original bytes are required.
+
+## OfficeIMO 3.2: bounded LaTeX byte input by default
+
+LaTeX file and stream loading now rejects encoded input larger than 64 MiB before decoding, independently of the existing decoded-character limit. Applications that intentionally load larger trusted documents must raise or disable the byte limit explicitly:
+
+```csharp
+LatexParseResult result = LatexDocument.Load(
+    "trusted-large-document.tex",
+    new LatexParseOptions { MaximumInputBytes = null });
+```
+
+Keep the default for uploads and other untrusted input. Set `MaximumInputBytes` to a larger finite value when the application has a known document-size ceiling; use `null` only for a trusted source with a separate resource policy.
+
 ### PDF OCR provider coordinates
 
 `PdfOcrRequest.PageWidth` and `PageHeight` now describe the rendered visual page

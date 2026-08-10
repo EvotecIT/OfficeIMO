@@ -270,15 +270,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            string updated = text!;
-            foreach (var pair in definedNameMap) {
-                updated = Regex.Replace(
-                    updated,
-                    @"(?<![A-Za-z0-9_\.])" + Regex.Escape(pair.Key) + @"(?![A-Za-z0-9_\.])",
-                    pair.Value,
-                    RegexOptions.IgnoreCase,
-                    TimeSpan.FromMilliseconds(100));
-            }
+            string updated = ExcelFormulaSyntaxTree.Parse(text!).RewriteNames(name =>
+                definedNameMap.TryGetValue(name, out string? replacement) ? replacement : name);
 
             if (!string.Equals(updated, text, StringComparison.Ordinal)) {
                 formula.Text = updated;

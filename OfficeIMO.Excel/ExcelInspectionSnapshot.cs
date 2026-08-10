@@ -403,6 +403,11 @@ namespace OfficeIMO.Excel {
         public bool AllowBlank { get; internal set; }
 
         /// <summary>
+        /// Whether Excel hides the in-cell dropdown for a list validation.
+        /// </summary>
+        public bool SuppressDropDown { get; internal set; }
+
+        /// <summary>
         /// Formula1 text stored by Excel, when present.
         /// </summary>
         public string? Formula1 { get; internal set; }
@@ -411,6 +416,27 @@ namespace OfficeIMO.Excel {
         /// Formula2 text stored by Excel, when present.
         /// </summary>
         public string? Formula2 { get; internal set; }
+
+        /// <summary>Whether Excel displays the input prompt.</summary>
+        public bool ShowInputMessage { get; internal set; }
+
+        /// <summary>Input prompt title.</summary>
+        public string? PromptTitle { get; internal set; }
+
+        /// <summary>Input prompt text.</summary>
+        public string? Prompt { get; internal set; }
+
+        /// <summary>Whether Excel displays a validation error.</summary>
+        public bool ShowErrorMessage { get; internal set; }
+
+        /// <summary>Validation error title.</summary>
+        public string? ErrorTitle { get; internal set; }
+
+        /// <summary>Validation error text.</summary>
+        public string? Error { get; internal set; }
+
+        /// <summary>Validation error style token.</summary>
+        public string? ErrorStyle { get; internal set; }
 
         /// <summary>
         /// All A1 ranges targeted by the validation.

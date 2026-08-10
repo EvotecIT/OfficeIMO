@@ -1,14 +1,137 @@
+using OfficeIMO.OpenDocument.Testing;
 using System;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
-using OfficeIMO.OpenDocument.Testing;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentCurrentReviewRegressionTests {
+    [Fact]
+    public void FontFamilySyntaxPreservesQuotedCommasAndFallbackOrder() {
+        OdfFontFamilySyntax syntax = OdfFontFamilySyntax.Parse(
+            "'Liberation, Sans', Arial, sans-serif");
+
+        Assert.Equal(new[] { "Liberation, Sans", "Arial", "sans-serif" }, syntax.Families);
+        Assert.Equal("Liberation, Sans", syntax.PrimaryFamily);
+        Assert.True(syntax.HasFallbacks);
+        Assert.Equal("\"Liberation, Sans\", Arial, sans-serif", syntax.ToString());
+        Assert.False(OdfFontFamilySyntax.TryParse("'unterminated", out _));
+        Assert.False(OdfFontFamilySyntax.TryParse("Arial,,sans-serif", out _));
+    }
+
+    [Fact]
+    public void FontFacesAndParagraphLayoutResolveThroughStyleReferencesAndParents() {
+        OdtDocument document = OdtDocument.Create();
+        OdtParagraph paragraph = document.AddParagraph();
+        OdtSpan span = paragraph.AddSpan("Styled");
+        OdfStyle parent = document.Styles.CreateNamed("ParagraphParent", OdfStyleFamily.Paragraph);
+        parent.WritingMode = "rl-tb";
+        parent.LineHeight = OdfLength.Parse("175%");
+        document.Styles.CreateNamed("ParagraphChild", OdfStyleFamily.Paragraph, parent.Name);
+        paragraph.StyleName = "ParagraphChild";
+
+        OdfStyle textStyle = document.Styles.CreateNamed("ReferencedFont", OdfStyleFamily.Text);
+        span.StyleName = textStyle.Name;
+        XElement styleElement = document.Package.GetXml("styles.xml")
+            .Descendants(OdfNamespaces.Style + "style")
+            .Single(element => (string?)element.Attribute(OdfNamespaces.Style + "name") == textStyle.Name);
+        styleElement.Add(new XElement(OdfNamespaces.Style + "text-properties",
+            new XAttribute(OdfNamespaces.Style + "font-name", "BodyFace")));
+        document.Package.GetXml("styles.xml").Root!
+            .Element(OdfNamespaces.Office + "font-face-decls")!
+            .Add(new XElement(OdfNamespaces.Style + "font-face",
+                new XAttribute(OdfNamespaces.Style + "name", "BodyFace"),
+                new XAttribute(OdfNamespaces.Svg + "font-family", "'Liberation Sans'")));
+        document.Package.MarkXmlDirty("styles.xml");
+
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
+        OdtParagraph reopenedParagraph = reopened.Paragraphs.Single();
+
+        Assert.Equal("rl-tb", reopenedParagraph.WritingMode);
+        Assert.True(reopenedParagraph.IsRightToLeft);
+        Assert.Equal("175%", reopenedParagraph.LineHeight?.ToString());
+        Assert.Equal("Liberation Sans", Assert.Single(reopenedParagraph.Spans).FontFamily);
+    }
+
+    [Theory]
+    [InlineData("#Sales%20Data", "Sales Data")]
+    [InlineData("#Section%5F1", "Section_1")]
+    public void UriFragmentReferencesAreDecodedByOneCanonicalParser(string href, string expected) {
+        Assert.True(OdfUriReference.TryDecodeFragment(href, out string fragment));
+        Assert.Equal(expected, fragment);
+        Assert.False(OdfUriReference.TryDecodeFragment("relative/path", out _));
+        Assert.False(OdfUriReference.TryDecodeFragment("#broken%2", out _));
+    }
+
+    [Fact]
+    public void SpreadsheetBooleanLexicalsSupportXmlSchemaNumericForms() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        sheet.Cell(0, 0).SetBoolean(true);
+        sheet.Cell(0, 1).SetBoolean(false);
+        OdsValidation validation = source.AddValidation("NumericBoolean", "cell-content()>0");
+        validation.SetHelpMessage("Help", "Enter a value", display: true);
+        validation.SetErrorMessage("Error", "Invalid value", display: false);
+
+        XDocument flat = source.ToFlatXml();
+        XElement[] booleanCells = flat.Descendants(OdfNamespaces.Table + "table-cell")
+            .Where(element => (string?)element.Attribute(OdfNamespaces.Office + "value-type") == "boolean")
+            .ToArray();
+        booleanCells[0].SetAttributeValue(OdfNamespaces.Office + "boolean-value", "1");
+        booleanCells[1].SetAttributeValue(OdfNamespaces.Office + "boolean-value", "0");
+        XElement validationElement = flat.Descendants(OdfNamespaces.Table + "content-validation").Single();
+        validationElement.SetAttributeValue(OdfNamespaces.Table + "allow-empty-cell", "0");
+        validationElement.Element(OdfNamespaces.Table + "help-message")!
+            .SetAttributeValue(OdfNamespaces.Table + "display", "1");
+        validationElement.Element(OdfNamespaces.Table + "error-message")!
+            .SetAttributeValue(OdfNamespaces.Table + "display", "0");
+
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+        OdsDocument reopened = OdsDocument.LoadFlatXml(stream);
+
+        Assert.True(reopened.GetSheet("Data")!.GetValue(0, 0).AsBoolean());
+        Assert.False(reopened.GetSheet("Data")!.GetValue(0, 1).AsBoolean());
+        OdsValidation reopenedValidation = Assert.Single(reopened.Validations);
+        Assert.False(reopenedValidation.AllowEmptyCell);
+        Assert.True(reopenedValidation.ShowHelpMessage);
+        Assert.False(reopenedValidation.ShowErrorMessage);
+        Assert.DoesNotContain(reopened.Validate().Diagnostics, diagnostic => diagnostic.Id == "ODS103");
+    }
+
+    [Fact]
+    public void SpreadsheetValidationMessagesRemainInSchemaOrderRegardlessOfSetterOrder() {
+        OdsDocument source = OdsDocument.Create();
+        OdsValidation validation = source.AddValidation("OrderedMessages", "cell-content()>0");
+        validation.SetErrorMessage("Error", "Invalid value", display: true);
+        validation.SetHelpMessage("Help", "Enter a positive value", display: true);
+
+        XElement validationElement = source.ToFlatXml()
+            .Descendants(OdfNamespaces.Table + "content-validation")
+            .Single();
+        XName[] messageOrder = validationElement.Elements()
+            .Where(element => element.Name == OdfNamespaces.Table + "help-message"
+                || element.Name == OdfNamespaces.Table + "error-message")
+            .Select(element => element.Name)
+            .ToArray();
+
+        Assert.Equal(new[] {
+            OdfNamespaces.Table + "help-message",
+            OdfNamespaces.Table + "error-message"
+        }, messageOrder);
+        Assert.True(source.Validate().IsValid);
+
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
+        OdsValidation actual = Assert.Single(reopened.Validations);
+        Assert.Equal("Enter a positive value", actual.HelpText);
+        Assert.Equal("Invalid value", actual.ErrorText);
+        Assert.True(reopened.Validate().IsValid);
+    }
+
     [Fact]
     public void TextAndPresentationTablesIncludeHeaderRowsInSourceOrder() {
         OdtDocument text = OdtDocument.Create();
@@ -176,6 +299,83 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
     }
 
     [Fact]
+    public void SpreadsheetCurrencyProjectionPreservesSuffixSymbolOrder() {
+        OdsDocument document = OdsDocument.Create();
+        document.AddCurrencyStyle("SuffixCurrency", "EUR", 2);
+        XElement style = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Number + "currency-style")
+            .Single(element => (string?)element.Attribute(OdfNamespaces.Style + "name") == "SuffixCurrency");
+        XElement number = style.Element(OdfNamespaces.Number + "number")!;
+        XElement symbol = style.Element(OdfNamespaces.Number + "currency-symbol")!;
+        XElement separator = style.Element(OdfNamespaces.Number + "text")!;
+        number.Remove();
+        symbol.Remove();
+        separator.Remove();
+        style.Add(number, separator, symbol);
+
+        OdsDataStyle projected = document.DataStyles.Single(item => item.Name == "SuffixCurrency");
+
+        Assert.Equal("0.00 \"EUR\"", projected.ToExcelNumberFormatCode());
+    }
+
+    [Theory]
+    [InlineData("true")]
+    [InlineData("1")]
+    public void SpreadsheetDateProjectionPreservesTextualMonthStyle(string textual) {
+        OdsDocument document = OdsDocument.Create();
+        document.AddDateStyle("LongDate");
+        XElement style = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Number + "date-style")
+            .Single(element => (string?)element.Attribute(OdfNamespaces.Style + "name") == "LongDate");
+        style.Element(OdfNamespaces.Number + "month")!
+            .SetAttributeValue(OdfNamespaces.Number + "textual", textual);
+
+        OdsDataStyle projected = document.DataStyles.Single(item => item.Name == "LongDate");
+
+        Assert.Equal("yyyy-mmmm-dd", projected.ToExcelNumberFormatCode());
+    }
+
+    [Fact]
+    public void SpreadsheetPercentageProjectionUsesVisiblePercentTextAsTheScalingToken() {
+        OdsDocument document = OdsDocument.Create();
+        document.AddPercentageStyle("Rate", decimalPlaces: 2);
+        XElement style = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Number + "percentage-style")
+            .Single(element => (string?)element.Attribute(OdfNamespaces.Style + "name") == "Rate");
+        style.Element(OdfNamespaces.Number + "text")!.Value = " % ";
+
+        OdsDataStyle projected = document.DataStyles.Single(item => item.Name == "Rate");
+
+        Assert.Equal("0.00 % ", projected.ToExcelNumberFormatCode());
+    }
+
+    [Fact]
+    public void SpreadsheetPercentageProjectionRejectsSignlessStylesInsteadOfInventingAGlyph() {
+        OdsDocument document = OdsDocument.Create();
+        document.AddPercentageStyle("Rate", decimalPlaces: 2);
+        XElement style = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Number + "percentage-style")
+            .Single(element => (string?)element.Attribute(OdfNamespaces.Style + "name") == "Rate");
+        style.Element(OdfNamespaces.Number + "text")!.Value = " percent";
+
+        OdsDataStyle projected = document.DataStyles.Single(item => item.Name == "Rate");
+
+        Assert.False(projected.TryGetExcelNumberFormatCode(out _));
+        Assert.Throws<InvalidOperationException>(() => projected.ToExcelNumberFormatCode());
+    }
+
+    [Fact]
+    public void SpreadsheetValidationMessagesRoundTripOdfWhitespaceElements() {
+        OdsDocument document = OdsDocument.Create();
+        OdsValidation validation = document.AddValidation("Message", "cell-content()>0");
+        validation.SetHelpMessage("Input", "Enter  value\tbefore\nafter");
+
+        OdsValidation reopened = OdsDocument.Load(new MemoryStream(document.ToBytes())).Validations.Single();
+
+        Assert.Equal("Enter  value\tbefore\nafter", reopened.HelpText);
+    }
+
+    [Fact]
     public void SpreadsheetMergeValidationIncludesHeaderRows() {
         OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");
@@ -202,6 +402,235 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
 
         Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Id == "ODF200" &&
             diagnostic.Message.IndexOf("Missing", StringComparison.Ordinal) >= 0);
+    }
+
+    [Fact]
+    public void ExcelFormatProjectionBoundsMinimumIntegerAndFractionalSecondPlaceholders() {
+        OdsDocument numberDocument = OdsDocument.Create();
+        numberDocument.AddNumberStyle("Number", 0);
+        XDocument numberFlat = numberDocument.ToFlatXml();
+        numberFlat.Descendants(OdfNamespaces.Number + "number").Single()
+            .SetAttributeValue(OdfNamespaces.Number + "min-integer-digits", int.MaxValue);
+        using var numberStream = new MemoryStream();
+        numberFlat.Save(numberStream);
+        numberStream.Position = 0;
+        OdsDataStyle numberStyle = Assert.Single(OdsDocument.LoadFlatXml(numberStream).DataStyles);
+
+        OdsDocument timeDocument = OdsDocument.Create();
+        timeDocument.AddTimeStyle("Time");
+        XDocument timeFlat = timeDocument.ToFlatXml();
+        timeFlat.Descendants(OdfNamespaces.Number + "seconds").Single()
+            .SetAttributeValue(OdfNamespaces.Number + "decimal-places", int.MaxValue);
+        using var timeStream = new MemoryStream();
+        timeFlat.Save(timeStream);
+        timeStream.Position = 0;
+        OdsDataStyle timeStyle = Assert.Single(OdsDocument.LoadFlatXml(timeStream).DataStyles);
+
+        Assert.False(numberStyle.TryGetExcelNumberFormatCode(out _));
+        Assert.False(timeStyle.TryGetExcelNumberFormatCode(out _));
+    }
+
+    [Fact]
+    public void ExcelFormatProjectionPreservesWeekdaysAndRejectsUnsupportedDateComponents() {
+        OdsDocument weekdayDocument = OdsDocument.Create();
+        weekdayDocument.AddDateStyle("Weekday");
+        XDocument weekdayFlat = weekdayDocument.ToFlatXml();
+        XElement weekdayStyle = weekdayFlat.Descendants(OdfNamespaces.Number + "date-style").Single();
+        weekdayStyle.RemoveNodes();
+        weekdayStyle.Add(new XElement(OdfNamespaces.Number + "day-of-week",
+            new XAttribute(OdfNamespaces.Number + "style", "long")));
+        using var weekdayStream = new MemoryStream();
+        weekdayFlat.Save(weekdayStream);
+        weekdayStream.Position = 0;
+        OdsDataStyle weekday = Assert.Single(OdsDocument.LoadFlatXml(weekdayStream).DataStyles);
+
+        OdsDocument unsupportedDocument = OdsDocument.Create();
+        unsupportedDocument.AddDateStyle("Week");
+        XDocument unsupportedFlat = unsupportedDocument.ToFlatXml();
+        XElement unsupportedStyle = unsupportedFlat.Descendants(OdfNamespaces.Number + "date-style").Single();
+        unsupportedStyle.RemoveNodes();
+        unsupportedStyle.Add(new XElement(OdfNamespaces.Number + "week-of-year"));
+        using var unsupportedStream = new MemoryStream();
+        unsupportedFlat.Save(unsupportedStream);
+        unsupportedStream.Position = 0;
+        OdsDataStyle unsupported = Assert.Single(OdsDocument.LoadFlatXml(unsupportedStream).DataStyles);
+
+        Assert.Equal("dddd", weekday.ToExcelNumberFormatCode());
+        Assert.False(unsupported.TryGetExcelNumberFormatCode(out _));
+    }
+
+    [Fact]
+    public void ExcelFormatProjectionRejectsLocalizedTextualDateComponents() {
+        OdsDocument document = OdsDocument.Create();
+        document.AddDateStyle("Localized");
+        XDocument flat = document.ToFlatXml();
+        XElement style = flat.Descendants(OdfNamespaces.Number + "date-style").Single();
+        style.SetAttributeValue(OdfNamespaces.Number + "language", "pl");
+        style.SetAttributeValue(OdfNamespaces.Number + "country", "PL");
+        style.RemoveNodes();
+        style.Add(new XElement(OdfNamespaces.Number + "month",
+            new XAttribute(OdfNamespaces.Number + "style", "long"),
+            new XAttribute(OdfNamespaces.Number + "textual", true)));
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        OdsDataStyle localized = Assert.Single(OdsDocument.LoadFlatXml(stream).DataStyles);
+
+        Assert.False(localized.TryGetExcelNumberFormatCode(out _));
+        Assert.Throws<InvalidOperationException>(() => localized.ToExcelNumberFormatCode());
+    }
+
+    [Theory]
+    [InlineData("short")]
+    [InlineData("long")]
+    public void ExcelFormatProjectionRejectsMinutesWithoutTimeContext(string styleName) {
+        OdsDocument document = OdsDocument.Create();
+        document.AddTimeStyle("MinuteOnly");
+        XDocument flat = document.ToFlatXml();
+        XElement style = flat.Descendants(OdfNamespaces.Number + "time-style").Single();
+        style.RemoveNodes();
+        style.Add(new XElement(OdfNamespaces.Number + "minutes",
+            new XAttribute(OdfNamespaces.Number + "style", styleName)));
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        OdsDataStyle minuteOnly = Assert.Single(OdsDocument.LoadFlatXml(stream).DataStyles);
+
+        Assert.False(minuteOnly.TryGetExcelNumberFormatCode(out _));
+        Assert.Throws<InvalidOperationException>(() => minuteOnly.ToExcelNumberFormatCode());
+    }
+
+    [Fact]
+    public void ExcelFormatProjectionUsesElapsedComponentsForNonTruncatingTimeStyles() {
+        OdsDocument document = OdsDocument.Create();
+        document.AddTimeStyle("Elapsed");
+        XDocument flat = document.ToFlatXml();
+        flat.Descendants(OdfNamespaces.Number + "time-style").Single()
+            .SetAttributeValue(OdfNamespaces.Number + "truncate-on-overflow", false);
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        OdsDataStyle elapsed = Assert.Single(OdsDocument.LoadFlatXml(stream).DataStyles);
+
+        Assert.Equal("[h]:mm:ss", elapsed.ToExcelNumberFormatCode());
+    }
+
+    [Fact]
+    public void ExcelFormatProjectionUsesElapsedMinutesWhenHoursAreNotAuthored() {
+        OdsDocument document = OdsDocument.Create();
+        document.AddTimeStyle("ElapsedMinutes");
+        XDocument flat = document.ToFlatXml();
+        XElement style = flat.Descendants(OdfNamespaces.Number + "time-style").Single();
+        style.SetAttributeValue(OdfNamespaces.Number + "truncate-on-overflow", false);
+        style.RemoveNodes();
+        style.Add(new XElement(OdfNamespaces.Number + "minutes",
+            new XAttribute(OdfNamespaces.Number + "style", "long")));
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        OdsDataStyle elapsed = Assert.Single(OdsDocument.LoadFlatXml(stream).DataStyles);
+
+        Assert.Equal("[m]", elapsed.ToExcelNumberFormatCode());
+    }
+
+    [Fact]
+    public void AnnotationTextReadsNestedListsAndReplacingTextRemovesTheOldBlockBody() {
+        OdsDocument document = OdsDocument.Create();
+        OdsAnnotation annotation = document.AddSheet("Data").Cell(0, 0).AddAnnotation("Original", "Alice");
+        XElement element = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Office + "annotation").Single();
+        element.Elements(OdfNamespaces.Text + "p").Remove();
+        element.Add(
+            new XElement(OdfNamespaces.Text + "p", "Intro"),
+            new XElement(OdfNamespaces.Text + "list",
+                new XElement(OdfNamespaces.Text + "list-item",
+                    new XElement(OdfNamespaces.Text + "p", "First")),
+                new XElement(OdfNamespaces.Text + "list-item",
+                    new XElement(OdfNamespaces.Text + "p", "Second"),
+                    new XElement(OdfNamespaces.Text + "list",
+                        new XElement(OdfNamespaces.Text + "list-item",
+                            new XElement(OdfNamespaces.Text + "p", "Nested"))))));
+
+        Assert.Equal("Intro\nFirst\nSecond\nNested", annotation.Text);
+
+        annotation.Text = "Replacement";
+
+        Assert.Equal("Replacement", annotation.Text);
+        Assert.Empty(element.Elements(OdfNamespaces.Text + "list"));
+        Assert.Equal("Alice", annotation.Creator);
+    }
+
+    [Theory]
+    [InlineData("scientific-number")]
+    [InlineData("fraction")]
+    public void ExcelFormatProjectionRejectsUnsupportedNumericComponents(string componentName) {
+        OdsDocument document = OdsDocument.Create();
+        document.AddNumberStyle("Unsupported", 0);
+        XDocument flat = document.ToFlatXml();
+        XElement style = flat.Descendants(OdfNamespaces.Number + "number-style").Single();
+        style.RemoveNodes();
+        style.Add(new XElement(OdfNamespaces.Number + componentName));
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        OdsDataStyle unsupported = Assert.Single(OdsDocument.LoadFlatXml(stream).DataStyles);
+
+        Assert.False(unsupported.TryGetExcelNumberFormatCode(out _));
+    }
+
+    [Fact]
+    public void TransparentTextBackgroundStopsParentStyleInheritance() {
+        OdtDocument document = OdtDocument.Create();
+        OdfStyle parent = document.Styles.CreateNamed("ParentText", OdfStyleFamily.Text);
+        parent.TextBackgroundColor = OdfColor.Parse("#FF0000");
+        OdfStyle child = document.Styles.CreateNamed("ChildText", OdfStyleFamily.Text, parent.Name);
+        child.TextBackgroundColor = OdfColor.Parse("#000000");
+        child.Element.Element(OdfNamespaces.Style + "text-properties")!
+            .SetAttributeValue(OdfNamespaces.Fo + "background-color", "transparent");
+        OdtSpan span = document.AddParagraph().AddSpan("Not highlighted");
+        span.StyleName = child.Name;
+
+        Assert.Equal(OdfColor.Parse("#FF0000"), parent.TextBackgroundColor);
+        Assert.Null(child.TextBackgroundColor);
+        Assert.Null(span.BackgroundColor);
+    }
+
+    [Fact]
+    public void TransparentCellBackgroundStopsParentStyleInheritance() {
+        OdsDocument document = OdsDocument.Create();
+        OdfStyle parent = document.Styles.CreateNamed("ParentCell", OdfStyleFamily.TableCell);
+        parent.BackgroundColor = OdfColor.Parse("#00FF00");
+        OdfStyle child = document.Styles.CreateNamed("ChildCell", OdfStyleFamily.TableCell, parent.Name);
+        child.BackgroundColor = OdfColor.Parse("#000000");
+        child.Element.Element(OdfNamespaces.Style + "table-cell-properties")!
+            .SetAttributeValue(OdfNamespaces.Fo + "background-color", "transparent");
+        OdsCell cell = document.AddSheet("Data").Cell(0, 0);
+        cell.StyleName = child.Name;
+
+        Assert.Null(cell.BackgroundColor);
+    }
+
+    [Fact]
+    public void EffectiveTextFormattingExposesNonSolidDecorationVariants() {
+        OdtDocument document = OdtDocument.Create();
+        OdfStyle style = document.Styles.CreateNamed("Decorated", OdfStyleFamily.Text);
+        style.Underline = true;
+        style.StrikeThrough = true;
+        XElement properties = style.Element.Element(OdfNamespaces.Style + "text-properties")!;
+        properties.SetAttributeValue(OdfNamespaces.Style + "text-underline-style", "wave");
+        properties.SetAttributeValue(OdfNamespaces.Style + "text-line-through-style", "dotted");
+        OdtSpan span = document.AddParagraph().AddSpan("Decorated");
+        span.StyleName = style.Name;
+
+        Assert.True(span.Underline);
+        Assert.True(span.StrikeThrough);
+        Assert.True(span.UsesNonSolidUnderlineStyle);
+        Assert.True(span.UsesNonSolidLineThroughStyle);
     }
 
     private static void WrapFirstRowAsHeader(XElement table) {

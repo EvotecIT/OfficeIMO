@@ -47,6 +47,36 @@ public class ReaderOpenDocumentModularTests {
     }
 
     [Fact]
+    public void RegisteredAdapterAcceptsBoundedOdsSelectionBeyondExcelRowLimit() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("LargeGrid");
+        sheet.Cell(1_048_576, 0).SetString("Header");
+        sheet.Cell(1_048_577, 0).SetString("Value");
+        OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.OpenDocument(
+            a1Range: "A1048577:A1048578");
+
+        ReaderChunk chunk = Assert.Single(reader.Read(document.ToBytes(), "large-grid.ods"));
+
+        Assert.Equal("A1048577:A1048578", chunk.Location.A1Range);
+        ReaderTable table = Assert.Single(chunk.Tables!);
+        Assert.Equal("Header", Assert.Single(table.Columns));
+        Assert.Equal("Value", Assert.Single(Assert.Single(table.Rows)));
+    }
+
+    [Theory]
+    [InlineData("Data!A1:B2")]
+    [InlineData("A1:B2:C3")]
+    [InlineData("A1:2")]
+    [InlineData("B2:A1")]
+    public void RegisteredAdapterRejectsNonCellOrMalformedOdsRanges(string requestedRange) {
+        OdsDocument document = OdsDocument.Create();
+        document.AddSheet("Data").Cell(0, 0).SetString("A");
+        OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.OpenDocument(a1Range: requestedRange);
+
+        Assert.Throws<FormatException>(() => reader.Read(document.ToBytes(), "range.ods").ToList());
+    }
+
+    [Fact]
     public void RegisteredAdapterEmitsSlideAlignedOdpChunkWithNotesAndTable() {
         OdpPresentation document = OdpPresentation.Create();
         OdpSlide slide = document.AddSlide("Summary");

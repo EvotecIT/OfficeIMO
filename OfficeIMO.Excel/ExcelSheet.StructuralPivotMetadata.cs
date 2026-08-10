@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool IsNamedPivotSourceAffected(string sourceName, int firstAffectedRow) {
-            string? tableRange = GetTableRange(sourceName);
+            string? tableRange = GetTableRangeWithoutMaterializing(sourceName);
             if (tableRange != null
                 && A1.TryParseRange(tableRange.Replace("$", string.Empty), out _, out _, out int tableLastRow, out _)) {
                 return tableLastRow >= firstAffectedRow;

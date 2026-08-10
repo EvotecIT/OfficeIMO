@@ -155,7 +155,7 @@ public sealed class OpenDocumentConversionLossReportTests {
 
         Assert.Equal("of:=IF([.A1]=\"B2\";1;0)", target.GetSheet("Data")!.Cell(0, 1).Formula);
 
-        target.GetSheet("Data")!.Cell(0, 2).Formula = "of:=IF([.A1]=\"[.B2]\",1,0)";
+        target.GetSheet("Data")!.Cell(0, 2).Formula = "of:=IF([.A1]=\"[.B2]\";1;0)";
         OdfConversionResult<ExcelDocument> reverse = target.ToExcelDocumentResult();
         using ExcelDocument roundTrip = reverse.Value;
         ExcelCellSnapshot reverseFormula = roundTrip.CreateInspectionSnapshot().Worksheets.Single().Cells
@@ -174,7 +174,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         OdsDocument target = conversion.Value;
 
-        Assert.Equal("of:=SUM([$'Other'.A1];[$'Other Sheet'.B2:.C3])",
+        Assert.Equal("of:=SUM([$'Other'.A1];[$'Other Sheet'.B2:$'Other Sheet'.C3])",
             target.GetSheet("Data")!.Cell(0, 0).Formula);
         OdfConversionResult<ExcelDocument> reverse = target.ToExcelDocumentResult();
         using ExcelDocument roundTrip = reverse.Value;
@@ -246,6 +246,9 @@ public sealed class OpenDocumentConversionLossReportTests {
         second.CellAt(1, 1).SetValue(2);
         first.SetNamedRange("LocalValue", "A1", save: false);
         second.SetNamedRange("LocalValue", "A1", save: false);
+        first.CellAt(1, 2).SetFormula("LocalValue");
+        first.CellAt(1, 3).SetFormula("'Second Sheet'!LocalValue");
+        second.CellAt(1, 2).SetFormula("LocalValue");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         OdsDocument target = conversion.Value;
@@ -254,8 +257,31 @@ public sealed class OpenDocumentConversionLossReportTests {
         Assert.Equal(2, target.NamedRanges.Select(named => named.Name).Distinct(StringComparer.Ordinal).Count());
         Assert.Contains(target.NamedRanges, named => named.CellRangeAddress.Contains("First Sheet"));
         Assert.Contains(target.NamedRanges, named => named.CellRangeAddress.Contains("Second Sheet"));
+        Assert.Equal("of:=LocalValue", target.GetSheet("First Sheet")!.GetFormula(0, 1));
+        Assert.Equal("of:=LocalValue__Second_Sheet", target.GetSheet("First Sheet")!.GetFormula(0, 2));
+        Assert.Equal("of:=LocalValue__Second_Sheet", target.GetSheet("Second Sheet")!.GetFormula(0, 1));
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "sheet-local-named-ranges" &&
             mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void ExcelDefinedExpressionsThatAreNotRangesAreReportedAsUnsupported() {
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        source.OpenXmlDocument.WorkbookPart!.Workbook!.DefinedNames = new DocumentFormat.OpenXml.Spreadsheet.DefinedNames(
+            new DocumentFormat.OpenXml.Spreadsheet.DefinedName("0.2") { Name = "TaxRate" });
+        sheet.CellAt(1, 1).SetFormula("TaxRate*100");
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+
+        Assert.Empty(conversion.Value.NamedRanges);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "named-expressions" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            }));
     }
 
     [Fact]

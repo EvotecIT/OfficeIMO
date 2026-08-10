@@ -18,14 +18,26 @@ public enum LatexMacroExpansion {
 
 /// <summary>Options for dependency-free LaTeX parsing.</summary>
 public sealed class LatexParseOptions {
+    private readonly HashSet<string> _verbatimEnvironmentNames = new HashSet<string>(StringComparer.Ordinal) {
+        "verbatim", "verbatim*", "Verbatim", "lstlisting", "minted", "comment"
+    };
+
     /// <summary>Semantic profile. Defaults to OfficeIMO.</summary>
     public LatexDocumentProfile Profile { get; set; } = LatexDocumentProfile.OfficeIMO;
     /// <summary>Maximum input characters.</summary>
     public int? MaximumInputLength { get; set; } = 64 * 1024 * 1024;
+    /// <summary>Maximum encoded bytes accepted by file and stream loading APIs.</summary>
+    public long? MaximumInputBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum tokens.</summary>
     public int MaximumTokenCount { get; set; } = 2_000_000;
     /// <summary>Maximum nested groups and environments.</summary>
     public int MaximumNestingDepth { get; set; } = 128;
+
+    /// <summary>
+    /// Environment names whose bodies are opaque. Commands, comments, groups, math, and table separators
+    /// inside these environments are retained as source but never interpreted semantically.
+    /// </summary>
+    public ISet<string> VerbatimEnvironmentNames => _verbatimEnvironmentNames;
 
     /// <summary>Macro expansion mode. Parsing itself never expands macros.</summary>
     public LatexMacroExpansion MacroExpansion { get; set; } = LatexMacroExpansion.None;
@@ -35,4 +47,10 @@ public sealed class LatexParseOptions {
 
     /// <summary>Maximum characters produced by explicit safe macro expansion.</summary>
     public int MaximumExpansionLength { get; set; } = 16 * 1024 * 1024;
+
+    /// <summary>Maximum input characters accepted by one explicit safe macro expansion step.</summary>
+    public int MaximumExpansionInputLength { get; set; } = 64 * 1024 * 1024;
+
+    /// <summary>Maximum tokens consumed across one explicit safe macro expansion.</summary>
+    public int MaximumExpansionTokenCount { get; set; } = 2_000_000;
 }

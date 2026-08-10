@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Excel {
@@ -18,55 +16,14 @@ namespace OfficeIMO.Excel {
                 return formula;
             }
 
-            return RewriteFormulaReferencesOutsideStrings(formula, segment => {
-                var protectedRanges = new List<string>();
-                string rewrittenRanges = ReplaceFormulaRanges(segment, match => {
-                    string replacement = RewriteAnchoredFormulaRangeReference(
-                        match,
-                        firstAffectedRow,
-                        rowDelta,
-                        lastDeletedRow,
-                        sheetName,
-                        anchorRowDelta,
-                        relativeReferencesFollowAnchor,
-                        relativeFormulaSourceRowDelta,
-                        relativeFormulaAnchorRow);
-                    return ProtectRewrittenFormulaRange(match, replacement, protectedRanges);
-                });
-                rewrittenRanges = ReplaceFormulaRowRanges(rewrittenRanges, match => {
-                    string replacement = RewriteAnchoredFormulaRowRangeReference(
-                        match,
-                        firstAffectedRow,
-                        rowDelta,
-                        lastDeletedRow,
-                        sheetName,
-                        anchorRowDelta,
-                        relativeReferencesFollowAnchor,
-                        relativeFormulaSourceRowDelta,
-                        relativeFormulaAnchorRow);
-                    return ProtectRewrittenFormulaRange(match, replacement, protectedRanges);
-                });
-
-                string rewritten = ReplaceFormulaReferences(rewrittenRanges, match => {
-                    if (!IsValidFormulaColumn(match.Groups["col"].Value)
-                        || !int.TryParse(
-                            match.Groups["row"].Value,
-                            NumberStyles.None,
-                            CultureInfo.InvariantCulture,
-                            out int row)
-                        || row <= 0
-                        || row > A1.MaxRows) {
-                        return match.Value;
-                    }
-
-                    bool relativeRow = match.Groups["rowAbs"].Value.Length == 0;
-                    if (!FormulaQualifierTargetsSheet(match.Groups["sheet"].Value, sheetName)) {
-                        return match.Value;
-                    }
-
+            return ExcelFormulaReferenceRewriter.RewriteReferences(formula, match => {
+                if (IsFormulaFunctionReferenceToken(formula, match)
+                    || !FormulaQualifierTargetsSheet(match.Reference.Qualifier ?? string.Empty, sheetName)) return match.Text;
+                if (match.Reference.Kind == ExcelReferenceKind.Cell) {
+                    int row = match.Reference.Start.Row;
                     if (!TryMapAnchoredFormulaRow(
                             row,
-                            relativeRow,
+                            !match.Reference.Start.RowAbsolute,
                             firstAffectedRow,
                             rowDelta,
                             lastDeletedRow,
@@ -74,20 +31,23 @@ namespace OfficeIMO.Excel {
                             relativeReferencesFollowAnchor,
                             relativeFormulaSourceRowDelta,
                             relativeFormulaAnchorRow,
-                            out int targetRow)) {
-                        return "#REF!";
-                    }
-
-                    return targetRow == row ? match.Value : BuildFormulaReference(match, targetRow);
-                });
-
-                for (int index = 0; index < protectedRanges.Count; index++) {
-                    rewritten = rewritten.Replace(
-                        "\u0001A" + index.ToString(CultureInfo.InvariantCulture) + "\u0002",
-                        protectedRanges[index]);
+                            out int targetRow)) return "#REF!";
+                    return targetRow == row
+                        ? match.Text
+                        : FormatFormulaReference(match, targetRow, targetRow);
                 }
-
-                return rewritten;
+                if (match.Reference.Kind is ExcelReferenceKind.Range or ExcelReferenceKind.WholeRow) {
+                    return RewriteAnchoredFormulaRangeReference(
+                        match,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        anchorRowDelta,
+                        relativeReferencesFollowAnchor,
+                        relativeFormulaSourceRowDelta,
+                        relativeFormulaAnchorRow);
+                }
+                return match.Text;
             });
         }
 
@@ -122,65 +82,31 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static string ProtectRewrittenFormulaRange(
-            Match match,
-            string replacement,
-            List<string> protectedRanges) {
-            if (string.Equals(replacement, match.Value, StringComparison.Ordinal)) {
-                return match.Value;
-            }
-
-            string placeholder = "\u0001A"
-                + protectedRanges.Count.ToString(CultureInfo.InvariantCulture)
-                + "\u0002";
-            protectedRanges.Add(replacement);
-            return placeholder;
-        }
-
         private static string RewriteAnchoredFormulaRangeReference(
-            Match match,
+            ExcelFormulaReferenceCandidate match,
             int firstAffectedRow,
             int rowDelta,
             int? lastDeletedRow,
-            string sheetName,
             int anchorRowDelta,
             bool relativeReferencesFollowAnchor,
             int relativeFormulaSourceRowDelta,
             int? relativeFormulaAnchorRow) {
-            if (!IsValidFormulaColumn(match.Groups["startCol"].Value)
-                || !IsValidFormulaColumn(match.Groups["endCol"].Value)
-                || !int.TryParse(match.Groups["startRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int startRow)
-                || !int.TryParse(match.Groups["endRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int endRow)
-                || startRow <= 0
-                || startRow > A1.MaxRows
-                || endRow <= 0
-                || endRow > A1.MaxRows) {
-                return match.Value;
-            }
+            int startRow = match.Reference.Start.Row;
+            int endRow = match.Reference.End.Row;
+            bool startRelative = !match.Reference.Start.RowAbsolute;
+            bool endRelative = !match.Reference.End.RowAbsolute;
 
-            bool startRelative = match.Groups["startRowAbs"].Value.Length == 0;
-            bool endRelative = match.Groups["endRowAbs"].Value.Length == 0;
-            bool startTargetsSheet = FormulaQualifierTargetsSheet(match.Groups["sheet"].Value, sheetName);
-            string endQualifier = match.Groups["endSheet"].Value;
-            bool endTargetsSheet = endQualifier.Length == 0
-                ? startTargetsSheet
-                : FormulaQualifierTargetsSheet(endQualifier, sheetName);
-
-            if (!startRelative && !endRelative && startTargetsSheet && endTargetsSheet) {
+            if (!startRelative && !endRelative) {
                 return lastDeletedRow.HasValue
                     ? RewriteDeletedFormulaRangeReference(
                         match,
                         firstAffectedRow,
                         lastDeletedRow.Value,
-                        rowDelta,
-                        sheetName,
-                        rewriteUnqualifiedReferences: true)
+                        rowDelta)
                     : RewriteShiftedFormulaRangeReference(
                         match,
                         firstAffectedRow,
-                        rowDelta,
-                        sheetName,
-                        rewriteUnqualifiedReferences: true);
+                        rowDelta);
             }
 
             bool relativeRangeKeepsFirstDataRowOffsets = relativeReferencesFollowAnchor
@@ -189,8 +115,6 @@ namespace OfficeIMO.Excel {
                 && (startRelative || endRelative);
             if (lastDeletedRow.HasValue
                 && !relativeRangeKeepsFirstDataRowOffsets
-                && startTargetsSheet
-                && endTargetsSheet
                 && TryMapAnchoredFormulaRangeRows(
                     startRow,
                     startRelative,
@@ -202,13 +126,12 @@ namespace OfficeIMO.Excel {
                     relativeFormulaSourceRowDelta,
                     out int survivingStart,
                     out int survivingEnd)) {
-                return BuildAnchoredFormulaRange(match, survivingStart, survivingEnd);
+                return FormatFormulaReference(match, survivingStart, survivingEnd);
             }
 
             int targetStart = startRow;
             int targetEnd = endRow;
-            bool startMapped = !startTargetsSheet
-                || TryMapAnchoredFormulaRow(
+            bool startMapped = TryMapAnchoredFormulaRow(
                     startRow,
                     startRelative,
                     firstAffectedRow,
@@ -219,8 +142,7 @@ namespace OfficeIMO.Excel {
                     relativeFormulaSourceRowDelta,
                     relativeFormulaAnchorRow,
                     out targetStart);
-            bool endMapped = !endTargetsSheet
-                || TryMapAnchoredFormulaRow(
+            bool endMapped = TryMapAnchoredFormulaRow(
                     endRow,
                     endRelative,
                     firstAffectedRow,
@@ -235,106 +157,7 @@ namespace OfficeIMO.Excel {
                 return "#REF!";
             }
 
-            return BuildAnchoredFormulaRange(match, targetStart, targetEnd);
-        }
-
-        private static string RewriteAnchoredFormulaRowRangeReference(
-            Match match,
-            int firstAffectedRow,
-            int rowDelta,
-            int? lastDeletedRow,
-            string sheetName,
-            int anchorRowDelta,
-            bool relativeReferencesFollowAnchor,
-            int relativeFormulaSourceRowDelta,
-            int? relativeFormulaAnchorRow) {
-            if (!int.TryParse(match.Groups["startRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int startRow)
-                || !int.TryParse(match.Groups["endRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int endRow)
-                || startRow <= 0
-                || startRow > A1.MaxRows
-                || endRow <= 0
-                || endRow > A1.MaxRows) {
-                return match.Value;
-            }
-
-            bool startRelative = match.Groups["startRowAbs"].Value.Length == 0;
-            bool endRelative = match.Groups["endRowAbs"].Value.Length == 0;
-            bool startTargetsSheet = FormulaQualifierTargetsSheet(match.Groups["sheet"].Value, sheetName);
-            string endQualifier = match.Groups["endSheet"].Value;
-            bool endTargetsSheet = endQualifier.Length == 0
-                ? startTargetsSheet
-                : FormulaQualifierTargetsSheet(endQualifier, sheetName);
-
-            if (!startRelative && !endRelative && startTargetsSheet && endTargetsSheet) {
-                return lastDeletedRow.HasValue
-                    ? RewriteDeletedFormulaRowRangeReference(
-                        match,
-                        firstAffectedRow,
-                        lastDeletedRow.Value,
-                        rowDelta,
-                        sheetName,
-                        rewriteUnqualifiedReferences: true)
-                    : RewriteShiftedFormulaRowRangeReference(
-                        match,
-                        firstAffectedRow,
-                        rowDelta,
-                        sheetName,
-                        rewriteUnqualifiedReferences: true);
-            }
-
-            bool relativeRangeKeepsFirstDataRowOffsets = relativeReferencesFollowAnchor
-                && relativeFormulaAnchorRow.HasValue
-                && firstAffectedRow == relativeFormulaAnchorRow.Value
-                && (startRelative || endRelative);
-            if (lastDeletedRow.HasValue
-                && !relativeRangeKeepsFirstDataRowOffsets
-                && startTargetsSheet
-                && endTargetsSheet
-                && TryMapAnchoredFormulaRangeRows(
-                    startRow,
-                    startRelative,
-                    endRow,
-                    endRelative,
-                    firstAffectedRow,
-                    rowDelta,
-                    lastDeletedRow.Value,
-                    relativeFormulaSourceRowDelta,
-                    out int survivingStart,
-                    out int survivingEnd)) {
-                return BuildFormulaRowRange(match, survivingStart, survivingEnd);
-            }
-
-            int targetStart = startRow;
-            int targetEnd = endRow;
-            bool startMapped = !startTargetsSheet
-                || TryMapAnchoredFormulaRow(
-                    startRow,
-                    startRelative,
-                    firstAffectedRow,
-                    rowDelta,
-                    lastDeletedRow,
-                    anchorRowDelta,
-                    relativeReferencesFollowAnchor,
-                    relativeFormulaSourceRowDelta,
-                    relativeFormulaAnchorRow,
-                    out targetStart);
-            bool endMapped = !endTargetsSheet
-                || TryMapAnchoredFormulaRow(
-                    endRow,
-                    endRelative,
-                    firstAffectedRow,
-                    rowDelta,
-                    lastDeletedRow,
-                    anchorRowDelta,
-                    relativeReferencesFollowAnchor,
-                    relativeFormulaSourceRowDelta,
-                    relativeFormulaAnchorRow,
-                    out targetEnd);
-            if (!startMapped || !endMapped) {
-                return "#REF!";
-            }
-
-            return BuildFormulaRowRange(match, targetStart, targetEnd);
+            return FormatFormulaReference(match, targetStart, targetEnd);
         }
 
         private static bool TryMapAnchoredFormulaRow(
@@ -449,24 +272,6 @@ namespace OfficeIMO.Excel {
 
         private static bool FormulaQualifierTargetsSheet(string qualifier, string sheetName) {
             return qualifier.Length == 0 || IsCurrentSheetQualifier(qualifier, sheetName);
-        }
-
-        private static string BuildAnchoredFormulaRange(Match match, int startRow, int endRow) {
-            string startQualifier = match.Groups["sheet"].Value;
-            string endQualifier = match.Groups["endSheet"].Value;
-            return startQualifier
-                + (startQualifier.Length > 0 ? "!" : string.Empty)
-                + match.Groups["startColAbs"].Value
-                + match.Groups["startCol"].Value
-                + match.Groups["startRowAbs"].Value
-                + startRow.ToString(CultureInfo.InvariantCulture)
-                + ":"
-                + endQualifier
-                + (endQualifier.Length > 0 ? "!" : string.Empty)
-                + match.Groups["endColAbs"].Value
-                + match.Groups["endCol"].Value
-                + match.Groups["endRowAbs"].Value
-                + endRow.ToString(CultureInfo.InvariantCulture);
         }
 
         private static bool TryGetReferenceListAnchorRow(string references, out int row) {

@@ -60,6 +60,7 @@ namespace OfficeIMO.PowerPoint {
                         new ColorMapOverride(new A.MasterColorMapping()));
                 }
 
+                EnsureSlideRelationship(notesPart);
                 EnsureNotesMasterRelationship(notesPart);
 
                 if (notesPart.NotesSlide == null) {
@@ -73,6 +74,13 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 return notesPart.NotesSlide!;
+            }
+        }
+
+        private void EnsureSlideRelationship(NotesSlidePart notesPart) {
+            if (!notesPart.Parts.Any(pair => ReferenceEquals(
+                    pair.OpenXmlPart, _slidePart))) {
+                notesPart.AddPart(_slidePart);
             }
         }
 
@@ -112,45 +120,57 @@ namespace OfficeIMO.PowerPoint {
                 return paragraphs.Count == 0 ? string.Empty : string.Join(Environment.NewLine, paragraphs);
             }
             set {
-                NotesSlide notesSlide = NotesSlide;
-                CommonSlideData common = notesSlide.CommonSlideData ??= new CommonSlideData(CreateEmptyShapeTree());
-                ShapeTree tree = EnsureShapeTree(common);
-                Shape shape = GetOrCreateNotesTextShape(tree);
-                TextBody textBody = shape.TextBody ?? new TextBody(new A.BodyProperties(), new A.ListStyle());
-                shape.TextBody ??= textBody;
-
-                A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
-                A.ParagraphProperties? templateParagraphProperties = templateParagraph?.GetFirstChild<A.ParagraphProperties>();
-                A.EndParagraphRunProperties? templateEndParagraphRunProperties = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
-                A.RunProperties? templateRunProperties = templateParagraph?
-                    .Elements<A.Run>()
-                    .Select(run => run.RunProperties)
-                    .FirstOrDefault(properties => properties != null);
-
-                textBody.RemoveAllChildren<A.Paragraph>();
-
-                string[] lines = (value ?? string.Empty).Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-                foreach (string line in lines) {
-                    A.Paragraph paragraph = new();
-                    if (templateParagraphProperties != null) {
-                        paragraph.Append((A.ParagraphProperties)templateParagraphProperties.CloneNode(true));
-                    }
-
-                    A.Run run = new();
-                    if (templateRunProperties != null) {
-                        run.RunProperties = (A.RunProperties)templateRunProperties.CloneNode(true);
-                    }
-
-                    run.Append(new A.Text(line));
-                    paragraph.Append(run);
-
-                    if (templateEndParagraphRunProperties != null) {
-                        paragraph.Append((A.EndParagraphRunProperties)templateEndParagraphRunProperties.CloneNode(true));
-                    }
-
-                    textBody.Append(paragraph);
-                }
+                SetParagraphs((value ?? string.Empty).Split(new[] { "\r\n", "\n" }, StringSplitOptions.None));
             }
+        }
+
+        /// <summary>Gets the paragraphs in the existing speaker-notes text body without creating a notes part.</summary>
+        public IReadOnlyList<PowerPointParagraph> Paragraphs {
+            get {
+                NotesSlidePart? notesPart = _slidePart.NotesSlidePart;
+                Shape? shape = GetNotesTextShape(notesPart?.NotesSlide?.CommonSlideData?.ShapeTree);
+                return shape?.TextBody?.Elements<A.Paragraph>()
+                    .Select(paragraph => new PowerPointParagraph(paragraph, _slidePart, notesPart))
+                    .ToList() ?? (IReadOnlyList<PowerPointParagraph>)Array.Empty<PowerPointParagraph>();
+            }
+        }
+
+        /// <summary>Replaces the speaker notes with paragraphs that can be further styled through their typed runs.</summary>
+        public IReadOnlyList<PowerPointParagraph> SetParagraphs(IEnumerable<string> paragraphs) {
+            if (paragraphs == null) throw new ArgumentNullException(nameof(paragraphs));
+
+            NotesSlide notesSlide = NotesSlide;
+            NotesSlidePart notesPart = _slidePart.NotesSlidePart
+                ?? throw new InvalidOperationException("The notes slide part could not be created.");
+            CommonSlideData common = notesSlide.CommonSlideData ??= new CommonSlideData(CreateEmptyShapeTree());
+            ShapeTree tree = EnsureShapeTree(common);
+            Shape shape = GetOrCreateNotesTextShape(tree);
+            TextBody textBody = shape.TextBody ?? new TextBody(new A.BodyProperties(), new A.ListStyle());
+            shape.TextBody ??= textBody;
+
+            A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
+            A.ParagraphProperties? templateParagraphProperties = templateParagraph?.GetFirstChild<A.ParagraphProperties>();
+            A.EndParagraphRunProperties? templateEndParagraphRunProperties = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
+            A.RunProperties? templateRunProperties = templateParagraph?
+                .Elements<A.Run>()
+                .Select(run => run.RunProperties)
+                .FirstOrDefault(properties => properties != null);
+
+            textBody.RemoveAllChildren<A.Paragraph>();
+            var result = new List<PowerPointParagraph>();
+            foreach (string text in paragraphs) {
+                A.Paragraph paragraph = CreateParagraph(text ?? string.Empty, templateParagraphProperties,
+                    templateRunProperties, templateEndParagraphRunProperties);
+                textBody.Append(paragraph);
+                result.Add(new PowerPointParagraph(paragraph, _slidePart, notesPart));
+            }
+            if (result.Count == 0) {
+                A.Paragraph paragraph = CreateParagraph(string.Empty, templateParagraphProperties,
+                    templateRunProperties, templateEndParagraphRunProperties);
+                textBody.Append(paragraph);
+                result.Add(new PowerPointParagraph(paragraph, _slidePart, notesPart));
+            }
+            return result;
         }
 
         /// <summary>
@@ -311,6 +331,27 @@ namespace OfficeIMO.PowerPoint {
                     .Select(ReadParagraphText)
                     .Where(static value => !string.IsNullOrWhiteSpace(value))
                 ?? Enumerable.Empty<string>());
+        }
+
+        private static A.Paragraph CreateParagraph(
+            string text,
+            A.ParagraphProperties? templateParagraphProperties,
+            A.RunProperties? templateRunProperties,
+            A.EndParagraphRunProperties? templateEndParagraphRunProperties) {
+            var paragraph = new A.Paragraph();
+            if (templateParagraphProperties != null) {
+                paragraph.Append((A.ParagraphProperties)templateParagraphProperties.CloneNode(true));
+            }
+            var run = new A.Run();
+            if (templateRunProperties != null) {
+                run.RunProperties = (A.RunProperties)templateRunProperties.CloneNode(true);
+            }
+            run.Append(new A.Text(text));
+            paragraph.Append(run);
+            if (templateEndParagraphRunProperties != null) {
+                paragraph.Append((A.EndParagraphRunProperties)templateEndParagraphRunProperties.CloneNode(true));
+            }
+            return paragraph;
         }
 
         private HashSet<string> GetRelationshipIds() {

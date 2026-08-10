@@ -1,14 +1,11 @@
-using System.Text.RegularExpressions;
-
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private static string NormalizeSupportedFunctionPrefix(string formula) {
-            Match match = FunctionNameFormulaRegex.Match(formula);
-            if (!match.Success) {
+            if (!ExcelFormulaExpressionParser.TryParseFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? call)) {
                 return formula;
             }
 
-            string storedName = match.Groups[1].Value;
+            string storedName = call!.Name;
             const string futurePrefix = "_xlfn.";
             if (!storedName.StartsWith(futurePrefix, StringComparison.OrdinalIgnoreCase)) {
                 return formula;
@@ -24,8 +21,7 @@ namespace OfficeIMO.Excel {
                 return formula;
             }
 
-            Group nameGroup = match.Groups[1];
-            return formula.Remove(nameGroup.Index, nameGroup.Length).Insert(nameGroup.Index, functionName);
+            return formula.Remove(call.NameStart, call.NameLength).Insert(call.NameStart, functionName);
         }
     }
 }

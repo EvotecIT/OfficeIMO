@@ -397,24 +397,12 @@ public static partial class WordRtfConverterExtensions {
 
     private static string CreateHyperlinkFieldInstruction(WordParagraph wordParagraph, Hyperlink hyperlink) {
         var wordHyperlink = new WordHyperLink(wordParagraph._document, wordParagraph._paragraph, hyperlink);
-        var instruction = new StringBuilder("HYPERLINK");
-        AppendHyperlinkFieldArgument(instruction, null, wordHyperlink.Uri?.ToString());
-        AppendHyperlinkFieldArgument(instruction, "l", hyperlink.Anchor?.Value);
-        AppendHyperlinkFieldArgument(instruction, "o", hyperlink.Tooltip?.Value);
-        AppendHyperlinkFieldArgument(instruction, "t", hyperlink.TargetFrame?.Value);
-        return instruction.ToString();
-    }
-
-    private static void AppendHyperlinkFieldArgument(StringBuilder instruction, string? fieldSwitch, string? value) {
-        if (string.IsNullOrEmpty(value)) {
-            return;
-        }
-
-        instruction.Append(' ');
-        if (!string.IsNullOrEmpty(fieldSwitch)) {
-            instruction.Append('\\').Append(fieldSwitch).Append(' ');
-        }
-        instruction.Append('"').Append(value!.Replace("\"", "'")).Append('"');
+        return new RtfHyperlinkFieldInfo {
+            Target = wordHyperlink.Uri,
+            SubAddress = hyperlink.Anchor?.Value,
+            ScreenTip = hyperlink.Tooltip?.Value,
+            TargetFrame = hyperlink.TargetFrame?.Value
+        }.ToInstruction();
     }
 
     private static bool AppendRevisionContent(

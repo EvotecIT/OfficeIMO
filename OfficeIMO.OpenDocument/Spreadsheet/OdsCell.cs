@@ -26,6 +26,10 @@ public sealed class OdsCell {
             Dirty();
         }
     }
+    /// <summary>The annotation attached to this cell, when present.</summary>
+    public OdsAnnotation? Annotation => ReadAnnotations(_document, _element).FirstOrDefault();
+    /// <summary>Annotation elements present on this cell. Conforming ODF permits at most one.</summary>
+    public IReadOnlyList<OdsAnnotation> Annotations => ReadAnnotations(_document, _element);
     /// <summary>Referenced cell style name.</summary>
     public string? StyleName {
         get => (string?)_element.Attribute(OdfNamespaces.Table + "style-name");
@@ -71,7 +75,11 @@ public sealed class OdsCell {
     }
     /// <summary>Explicit or inherited cell background color.</summary>
     public OdfColor? BackgroundColor {
-        get => Resolve(style => style.BackgroundColor);
+        get {
+            OdfStyle? style = StyleName == null ? null : _document.Styles.Find(
+                OdfStyleFamily.TableCell, StyleName);
+            return _document.Styles.ResolveBackgroundColor(style);
+        }
         set => EnsureStyle().BackgroundColor = value;
     }
 
@@ -162,6 +170,30 @@ public sealed class OdsCell {
         paragraph.Add(link); Dirty();
     }
 
+    /// <summary>Adds an annotation to this cell.</summary>
+    public OdsAnnotation AddAnnotation(
+        string text,
+        string? creator = null,
+        DateTimeOffset? date = null,
+        string? name = null) {
+        if (text == null) throw new ArgumentNullException(nameof(text));
+        EnsureEditable();
+        if (_element.Elements(OdfNamespaces.Office + "annotation").Any()) {
+            throw new InvalidOperationException("An ODF spreadsheet cell can contain only one annotation.");
+        }
+        var annotationElement = new XElement(OdfNamespaces.Office + "annotation");
+        XElement? rangeSource = _element.Element(OdfNamespaces.Table + "cell-range-source");
+        if (rangeSource == null) _element.AddFirst(annotationElement); else rangeSource.AddAfterSelf(annotationElement);
+        var annotation = new OdsAnnotation(_document, annotationElement) {
+            Name = name,
+            Creator = creator,
+            Date = date,
+            Text = text
+        };
+        Dirty();
+        return annotation;
+    }
+
     internal static OdsCellValue ReadValue(XElement element) {
         string display = ReadDisplayText(element);
         string? type = (string?)element.Attribute(OdfNamespaces.Office + "value-type");
@@ -187,7 +219,14 @@ public sealed class OdsCell {
 
     internal static bool IsEmpty(XElement element) => element.Name == OdfNamespaces.Table + "covered-table-cell" ||
         ((string?)element.Attribute(OdfNamespaces.Office + "value-type") == null &&
-         (string?)element.Attribute(OdfNamespaces.Table + "formula") == null && ReadDisplayText(element).Length == 0);
+         (string?)element.Attribute(OdfNamespaces.Table + "formula") == null &&
+         !element.Elements(OdfNamespaces.Office + "annotation").Any() &&
+         ReadDisplayText(element).Length == 0);
+
+    internal static IReadOnlyList<OdsAnnotation> ReadAnnotations(OdsDocument document, XElement element) =>
+        element.Elements(OdfNamespaces.Office + "annotation")
+            .Select(annotation => new OdsAnnotation(document, annotation))
+            .ToArray();
 
     internal void SetSpans(long rows, long columns) {
         _element.SetAttributeValue(OdfNamespaces.Table + "number-rows-spanned", rows > 1 ? rows : (long?)null);
@@ -293,6 +332,10 @@ public sealed class OdsCellRun {
     public string? NumberFormatName => Cell.NumberFormatName;
     /// <summary>Referenced prototype validation rule.</summary>
     public string? ValidationName => Cell.ValidationName;
+    /// <summary>The annotation attached to the prototype cell, when present.</summary>
+    public OdsAnnotation? Annotation => OdsCell.ReadAnnotations(_document, _element).FirstOrDefault();
+    /// <summary>Annotation elements present on the prototype cell. Conforming ODF permits at most one.</summary>
+    public IReadOnlyList<OdsAnnotation> Annotations => OdsCell.ReadAnnotations(_document, _element);
     /// <summary>Explicit or inherited prototype bold state.</summary>
     public bool? Bold => Cell.Bold;
     /// <summary>Explicit or inherited prototype italic state.</summary>

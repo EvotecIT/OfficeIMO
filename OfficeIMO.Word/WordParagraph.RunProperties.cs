@@ -273,14 +273,24 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? FontSize {
             get {
+                double? points = FontSizePoints;
+                return points.HasValue ? checked((int)points.Value) : null;
+            }
+            set => FontSizePoints = value;
+        }
+
+        /// <summary>
+        /// Gets or sets the font size in points with Word's native half-point precision.
+        /// Values finer than half a point are rounded away from zero to the nearest representable size.
+        /// </summary>
+        public double? FontSizePoints {
+            get {
                 var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
-                if (runProperties != null && runProperties.FontSize != null) {
-                    var val = runProperties.FontSize.Val;
-                    if (!string.IsNullOrEmpty(val) && int.TryParse(val, out var fontSizeInHalfPoint)) {
-                        return fontSizeInHalfPoint / 2;
-                    }
-                }
-                return null;
+                string? value = runProperties?.FontSize?.Val?.Value;
+                return int.TryParse(value, System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture, out int halfPoints)
+                    ? halfPoints / 2D
+                    : (double?)null;
             }
             set {
                 RunProperties runProperties;
@@ -291,9 +301,14 @@ namespace OfficeIMO.Word {
                     runProperties = VerifyRunProperties();
                 }
                 if (value != null) {
-                    FontSize fontSize = new FontSize();
-                    fontSize.Val = (value * 2).ToString();
-                    runProperties.FontSize = fontSize;
+                    if (double.IsNaN(value.Value) || double.IsInfinity(value.Value) ||
+                        value.Value < 0D || value.Value > int.MaxValue / 2D) {
+                        throw new ArgumentOutOfRangeException(nameof(value));
+                    }
+                    int halfPoints = checked((int)Math.Round(value.Value * 2D, MidpointRounding.AwayFromZero));
+                    runProperties.FontSize = new FontSize {
+                        Val = halfPoints.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    };
                 } else {
                     if (runProperties.FontSize != null) runProperties.FontSize.Remove();
                 }

@@ -44,7 +44,8 @@ internal static partial class RtfSemanticReader {
             if (target == null && string.IsNullOrWhiteSpace(subAddress)) return true;
             if (_options.HyperlinkPolicy == RtfHyperlinkReadPolicy.AllowAll) return true;
             if (_options.HyperlinkPolicy == RtfHyperlinkReadPolicy.BlockAll) return false;
-            if (target == null || !target.IsAbsoluteUri) return true;
+            if (target == null) return !string.IsNullOrWhiteSpace(subAddress);
+            if (!target.IsAbsoluteUri) return false;
 
             return target.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
                    || target.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)

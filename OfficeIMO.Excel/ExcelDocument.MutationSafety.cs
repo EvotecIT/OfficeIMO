@@ -56,7 +56,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (rewriteBoundary == null && capacityTransform == null) return;
-            foreach (string referenceText in EnumerateMutationRangeMetadataReferences(editedSheet.WorksheetPart)) {
+            foreach (string referenceText in EnumerateMutationRangeMetadataReferences(editedSheet.DeferredMetadataWorksheetPart)) {
                 consumeScannedElement?.Invoke();
                 if (!ExcelReference.TryParse(referenceText, out ExcelReference? reference)) continue;
                 ValidateMutationReferenceCapacity(reference!, referenceText, operation, capacityTransform);

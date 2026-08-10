@@ -277,6 +277,47 @@ public class RtfPdfConverterTests {
     }
 
     [Fact]
+    public void RtfDocument_ToPdfDocumentResult_ReportsFlattenedCharacterFormatting() {
+        RtfDocument document = RtfDocument.Create();
+        RtfRun run = document.AddParagraph().AddText("Formatted");
+        run.UnderlineStyle = RtfUnderlineStyle.Double;
+        run.DoubleStrike = true;
+        run.CapsStyle = RtfCapsStyle.SmallCaps;
+        run.CharacterScalePercent = 80;
+        run.LanguageId = 1045;
+        run.RevisionKind = RtfRevisionKind.Inserted;
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult();
+
+        PdfCore.PdfConversionWarning warning = Assert.Single(
+            result.Warnings,
+            item => item.Code == "RunFormattingFlattened");
+        Assert.Equal(nameof(RtfConversionAction.Flattened), warning.Details["RtfAction"]);
+        Assert.Contains("underline-style-or-color", warning.Details["Features"], StringComparison.Ordinal);
+        Assert.Contains("double-strike", warning.Details["Features"], StringComparison.Ordinal);
+        Assert.Contains("text-effects", warning.Details["Features"], StringComparison.Ordinal);
+        Assert.Contains("character-metrics", warning.Details["Features"], StringComparison.Ordinal);
+        Assert.Contains("style-direction-or-language", warning.Details["Features"], StringComparison.Ordinal);
+        Assert.Contains("revision-metadata", warning.Details["Features"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfDocument_ToPdfDocumentResult_ReportsIncludedHiddenTextAsVisibilityFlattening() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph().AddText("Hidden").SetHidden();
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new RtfPdfSaveOptions {
+            IncludeHiddenText = true
+        });
+
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings,
+            item => item.Code == "RunFormattingFlattened");
+        Assert.Equal(nameof(RtfConversionAction.Flattened), warning.Details["RtfAction"]);
+        Assert.Contains("hidden-visibility", warning.Details["Features"], StringComparison.Ordinal);
+        Assert.Contains("Hidden", PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_Converts_Dib_Through_Shared_Drawing() {
         RtfDocument document = RtfDocument.Create();
         document.AddImage(RtfImageFormat.Dib, CreateDib24(OfficeColor.FromRgb(18, 52, 86)));

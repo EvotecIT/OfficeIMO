@@ -11,6 +11,41 @@ namespace OfficeIMO.Tests.Rtf;
 
 public class RtfReadLimitTests {
     [Fact]
+    public void Default_Profile_Is_Bounded_And_Blocks_External_Object_References() {
+        var options = new RtfReadOptions();
+
+        Assert.Equal(128, options.MaxDepth);
+        Assert.Equal(16L * 1024 * 1024, options.MaxInputBytes);
+        Assert.Equal(16 * 1024 * 1024, options.MaxInputCharacters);
+        Assert.Equal(1_000_000, options.MaxTokenCount);
+        Assert.Equal(250_000, options.MaxGroupCount);
+        Assert.Equal(8_000_000, options.MaxTextCharacters);
+        Assert.Equal(4 * 1024 * 1024, options.MaxBinaryBytesPerPayload);
+        Assert.Equal(256, options.MaxImageCount);
+        Assert.Equal(32, options.MaxObjectCount);
+        Assert.Equal(100_000, options.MaxSemanticBlockCount);
+        Assert.False(options.ReadEmbeddedObjects);
+        Assert.False(options.ReadFileReferences);
+        Assert.Equal(RtfHyperlinkReadPolicy.WebAndMailOnly, options.HyperlinkPolicy);
+    }
+
+    [Fact]
+    public void Compatibility_Profile_Explicitly_Restores_Legacy_Permissive_Behavior() {
+        RtfReadOptions options = RtfReadOptions.CreateCompatibilityProfile();
+
+        Assert.Equal(RtfReadOptions.CompatibilityMaxDepth, options.MaxDepth);
+        Assert.Null(options.MaxInputBytes);
+        Assert.Null(options.MaxInputCharacters);
+        Assert.Null(options.MaxTokenCount);
+        Assert.Null(options.MaxGroupCount);
+        Assert.Null(options.MaxTextCharacters);
+        Assert.Null(options.MaxSemanticBlockCount);
+        Assert.True(options.ReadEmbeddedObjects);
+        Assert.True(options.ReadFileReferences);
+        Assert.Equal(RtfHyperlinkReadPolicy.AllowAll, options.HyperlinkPolicy);
+    }
+
+    [Fact]
     public void Untrusted_Profile_Is_Bounded_And_Blocks_External_Object_References() {
         RtfReadOptions options = RtfReadOptions.CreateUntrustedProfile();
 
@@ -116,7 +151,8 @@ public class RtfReadLimitTests {
         var options = new RtfReadOptions {
             MaxObjectCount = count,
             MaxObjectBytesPerObject = perObject,
-            MaxTotalObjectBytes = total
+            MaxTotalObjectBytes = total,
+            ReadEmbeddedObjects = true
         };
 
         RtfReadLimitException exception = Assert.Throws<RtfReadLimitException>(() => RtfDocument.Read(rtf, options));
@@ -172,6 +208,23 @@ public class RtfReadLimitTests {
     }
 
     [Fact]
+    public void Default_Profile_Blocks_Objects_File_References_And_Unsafe_Hyperlinks() {
+        const string rtf = @"{\rtf1{\filetbl{\file\fid0 C:\\private.txt;}}{\object\objemb{\*\objdata 0102}}{\field{\*\fldinst HYPERLINK ""file:///C:/private.txt""}{\fldrslt Visible}}}";
+
+        RtfReadResult result = RtfDocument.Read(rtf);
+
+        Assert.Empty(result.Document.FileReferences);
+        Assert.Empty(result.Document.Blocks.OfType<RtfObject>());
+        RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+        Assert.Equal("Visible", paragraph.ToPlainText());
+        Assert.Empty(paragraph.Inlines.OfType<RtfField>());
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "RTF105");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "RTF106");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "RTF107");
+        Assert.Equal(rtf, result.ToRtfLossless());
+    }
+
+    [Fact]
     public void Unknown_Ignorable_Destination_Is_Preserved_And_Diagnosed() {
         const string rtf = @"{\rtf1{\*\vendorprivate secret}Visible}";
 
@@ -204,6 +257,40 @@ public class RtfReadLimitTests {
         RtfReadResult result = RtfDocument.Read(rtf, RtfReadOptions.CreateUntrustedProfile());
 
         Assert.Single(Assert.Single(result.Document.Paragraphs).Inlines.OfType<RtfField>());
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF107");
+    }
+
+    [Theory]
+    [InlineData("../payload.exe")]
+    [InlineData("payload.exe")]
+    [InlineData("\\\\server\\share\\payload.exe")]
+    public void Default_Profile_Flattens_Relative_And_FileLike_Hyperlink_Targets(string target) {
+        RtfDocument authored = RtfDocument.Create();
+        RtfField authoredField = authored.AddParagraph().AddField(
+            new RtfHyperlinkFieldInfo { Target = new Uri(target, UriKind.RelativeOrAbsolute) }.ToInstruction());
+        authoredField.Result.AddText("Visible");
+        string rtf = authored.ToRtf();
+
+        RtfReadResult result = RtfDocument.Read(rtf);
+
+        RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+        Assert.Equal("Visible", paragraph.ToPlainText());
+        Assert.Empty(paragraph.Inlines.OfType<RtfField>());
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "RTF107");
+    }
+
+    [Fact]
+    public void Default_Profile_Preserves_SubaddressOnly_Hyperlinks() {
+        RtfDocument authored = RtfDocument.Create();
+        RtfField authoredField = authored.AddParagraph().AddField(
+            new RtfHyperlinkFieldInfo { SubAddress = "bookmark" }.ToInstruction());
+        authoredField.Result.AddText("Jump");
+
+        RtfReadResult result = RtfDocument.Read(authored.ToRtf());
+
+        RtfField field = Assert.Single(Assert.Single(result.Document.Paragraphs).Inlines.OfType<RtfField>());
+        Assert.Null(field.HyperlinkField!.Target);
+        Assert.Equal("bookmark", field.HyperlinkField.SubAddress);
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF107");
     }
 

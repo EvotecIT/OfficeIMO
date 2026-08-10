@@ -1,7 +1,11 @@
+using OfficeIMO.OpenDocument;
+
 namespace OfficeIMO.PowerPoint.OpenDocument;
 
 /// <summary>Controls optional content transferred by the PowerPoint/OpenDocument adapter.</summary>
 public sealed class PowerPointOpenDocumentConversionOptions {
+    /// <summary>Controls whether reported conversion loss is returned or rejected.</summary>
+    public OdfConversionLossPolicy LossPolicy { get; set; } = OdfConversionLossPolicy.ReportOnly;
     /// <summary>Copy embedded images whose formats are supported by the target presentation model.</summary>
     public bool IncludeImages { get; set; } = true;
     /// <summary>Copy plain speaker-note text.</summary>

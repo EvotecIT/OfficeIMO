@@ -97,7 +97,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_File_Table_Metadata_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\*\filetbl{\file\fid0\frelative18\fvalidntfs C:\\Private\\Resume\\Edu\\File2.docx}{\file\fid1\fosnum42\fvalidmac\fnetwork MacHD:Docs:Linked.doc}}\pard Body\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.Read(rtf, RtfReadOptions.CreateCompatibilityProfile());
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Collection(result.Document.FileReferences,

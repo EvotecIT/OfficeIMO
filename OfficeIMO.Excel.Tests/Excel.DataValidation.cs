@@ -1,10 +1,10 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel;
 using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
-using OfficeIMO.Excel;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -259,6 +259,20 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
+
+        [Fact]
+        public void ValidationFormulaLimitsAreEnforcedBeforeInvalidOpenXmlIsWritten() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+
+            sheet.ValidationList("A1", new[] { new string('x', 253) });
+
+            Assert.Throws<ArgumentException>(() =>
+                sheet.ValidationList("A2", new[] { new string('x', 254) }));
+            Assert.Throws<ArgumentException>(() =>
+                sheet.ValidationList("A3", new[] { "one,two" }));
+            Assert.Throws<ArgumentException>(() =>
+                sheet.ValidationCustomFormula("A4", new string('x', ExcelSheet.MaximumDataValidationFormulaLength + 1)));
+        }
     }
 }
-

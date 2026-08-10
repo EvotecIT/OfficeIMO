@@ -2,6 +2,9 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        /// <summary>Maximum length supported by an Excel workbook defined name.</summary>
+        public const int MaximumDefinedNameLength = 255;
+
         private static string EscapeSheetName(string name) {
             return (name ?? string.Empty).Replace("'", "''");
         }
@@ -44,7 +47,7 @@ namespace OfficeIMO.Excel {
             var definedNames = workbook.DefinedNames ??= new DefinedNames();
 
             // Validate or sanitize the defined name
-            name = EnsureValidDefinedName(name, validationMode);
+            name = NormalizeDefinedName(name, validationMode);
 
             if (scope == null) {
                 string reference = NormalizeRange(range, validationMode); // may already contain a sheet prefix
@@ -388,10 +391,9 @@ namespace OfficeIMO.Excel {
         private string NormalizeRange(string range, ExcelDefinedNameValidationMode validationMode) {
             string? sheetPrefix = null;
             string a1 = range;
-            int idx = range.LastIndexOf('!');
-            if (idx >= 0) {
-                sheetPrefix = NormalizeSheetPrefix(range.Substring(0, idx), validationMode);
-                a1 = range.Substring(idx + 1);
+            if (SheetNameLookup.TryParseSheetQualifiedReference(range, out string parsedSheet, out string parsedReference)) {
+                sheetPrefix = NormalizeSheetPrefix(parsedSheet, validationMode);
+                a1 = parsedReference;
             }
             a1 = a1.Replace("$", string.Empty);
 
@@ -470,26 +472,58 @@ namespace OfficeIMO.Excel {
         /// Throws in Strict mode when input is invalid.
         /// Rules:
         /// - 1..255 characters
-        /// - First char must be a letter or underscore
-        /// - Allowed characters: letters, digits, underscore, period
+        /// - First char must be a letter, underscore, or backslash
+        /// - Allowed characters: letters, digits, underscore, period, backslash
         /// - Cannot look like a cell reference (e.g., A1, AA10) or an R1C1 reference
         /// - Cannot be TRUE or FALSE (case-insensitive)
         /// </summary>
-        private static string EnsureValidDefinedName(string name, ExcelDefinedNameValidationMode mode) {
-            const int MaxLen = 255;
+        /// <param name="name">Authored workbook defined name.</param>
+        /// <param name="mode">Whether invalid names are sanitized or rejected.</param>
+        /// <returns>The exact defined name that can be emitted to the workbook.</returns>
+        public static string NormalizeDefinedName(string name, ExcelDefinedNameValidationMode mode = ExcelDefinedNameValidationMode.Sanitize) {
             if (string.IsNullOrWhiteSpace(name)) {
                 if (mode == ExcelDefinedNameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be null or whitespace.", nameof(name));
                 name = "_";
             }
 
+            bool LooksLikeA1(string value) {
+                var parsed = OfficeIMO.Excel.A1.ParseCellRef(value);
+                return parsed.Row > 0 && parsed.Col > 0;
+            }
+            bool LooksLikeR1C1(string value) {
+                if (value.Length < 3 || (value[0] != 'R' && value[0] != 'r')) return false;
+                int index = 1;
+                while (index < value.Length && char.IsDigit(value[index])) index++;
+                if (index == 1 || index >= value.Length || (value[index] != 'C' && value[index] != 'c')) return false;
+                index++;
+                int digitStart = index;
+                while (index < value.Length && char.IsDigit(value[index])) index++;
+                return index > digitStart && index == value.Length;
+            }
+
+            if (mode == ExcelDefinedNameValidationMode.Strict) {
+                if (name.Length > MaximumDefinedNameLength)
+                    throw new System.ArgumentException($"Defined name '{name}' exceeds maximum length of {MaximumDefinedNameLength} characters (actual {name.Length}).", nameof(name));
+                if (!char.IsLetter(name[0]) && name[0] != '_' && name[0] != '\\')
+                    throw new System.ArgumentException($"Defined name '{name}' must start with a letter, underscore, or backslash.", nameof(name));
+                if (name.Any(ch => !char.IsLetterOrDigit(ch) && ch != '_' && ch != '.' && ch != '\\'))
+                    throw new System.ArgumentException($"Defined name '{name}' contains characters that Excel does not allow.", nameof(name));
+                if (string.Equals(name, "TRUE", System.StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, "FALSE", System.StringComparison.OrdinalIgnoreCase))
+                    throw new System.ArgumentException($"Defined name '{name}' cannot be TRUE or FALSE.", nameof(name));
+                if (LooksLikeA1(name) || LooksLikeR1C1(name))
+                    throw new System.ArgumentException($"Defined name '{name}' cannot be a cell address or R1C1 reference.", nameof(name));
+                return name;
+            }
+
             // Trim spaces and replace invalid chars
             var sb = new System.Text.StringBuilder(name.Length);
             foreach (char ch in name.Trim()) {
-                if (char.IsLetterOrDigit(ch) || ch == '_' || ch == '.') sb.Append(ch);
+                if (char.IsLetterOrDigit(ch) || ch == '_' || ch == '.' || ch == '\\') sb.Append(ch);
                 else { sb.Append('_'); }
             }
             if (sb.Length == 0) { sb.Append('_'); }
-            if (!char.IsLetter(sb[0]) && sb[0] != '_') { sb.Insert(0, '_'); }
+            if (!char.IsLetter(sb[0]) && sb[0] != '_' && sb[0] != '\\') { sb.Insert(0, '_'); }
 
             // Disallow TRUE/FALSE exactly (case-insensitive)
             var normalized = sb.ToString();
@@ -498,30 +532,12 @@ namespace OfficeIMO.Excel {
                 normalized = "_" + normalized;
             }
 
-            // Avoid names that look like A1 cell references or R1C1 format
-            bool LooksLikeA1(string s) {
-                var t = OfficeIMO.Excel.A1.ParseCellRef(s);
-                return t.Row > 0 && t.Col > 0;
-            }
-            bool LooksLikeR1C1(string s) {
-                // Very lenient check: R<digits>C<digits>
-                if (s.Length < 3) return false;
-                if (s[0] != 'R' && s[0] != 'r') return false;
-                int i = 1; while (i < s.Length && char.IsDigit(s[i])) i++;
-                if (i == 1 || i >= s.Length || (s[i] != 'C' && s[i] != 'c')) return false;
-                i++; if (i >= s.Length) return false;
-                int j = i; while (j < s.Length && char.IsDigit(s[j])) j++;
-                return j > i && j == s.Length;
-            }
-
             if (LooksLikeA1(normalized) || LooksLikeR1C1(normalized)) {
-                if (mode == ExcelDefinedNameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be a cell address or R1C1 reference.", nameof(name));
                 normalized = "_" + normalized;
             }
 
-            if (normalized.Length > MaxLen) {
-                if (mode == ExcelDefinedNameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' exceeds maximum length of {MaxLen} characters (actual {normalized.Length}).", nameof(name));
-                normalized = normalized.Substring(0, MaxLen);
+            if (normalized.Length > MaximumDefinedNameLength) {
+                normalized = normalized.Substring(0, MaximumDefinedNameLength);
             }
 
             return normalized;

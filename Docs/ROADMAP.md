@@ -28,6 +28,12 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 - [ ] Add interoperable ODF encryption/decryption only after an external producer corpus, explicit password and key policy, and fail-safe preservation evidence are available.
 
+## Document-format depth
+
+- [ ] Extend Excel/ODS conversion beyond the current typed formula, value, annotation, number-format, and validation subsets to date/time/custom-formula validations, conditional formatting, charts, pivot tables, and producer-backed advanced style fidelity.
+- [ ] Add recursive typed ODT and ODP inline syntax with inherited-style resolution so nested spans and hyperlinks can convert without the current explicit flattening approximation.
+- [ ] Expand Word/ODT and PowerPoint/ODP conversion for fields, notes, section/master-specific layout, advanced drawing geometry, media, and animation timing with producer fixtures and strict loss evidence.
+
 ## Completion rule
 
 Remove an item when its public API, compatibility boundary, tests, generated evidence, and user documentation agree. GitHub Releases records delivered history, while `MIGRATION.md` retains only upgrade actions; this file does not retain completed milestones.

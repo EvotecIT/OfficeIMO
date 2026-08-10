@@ -28,9 +28,13 @@ RtfReadResult read = RtfDocument.Load("input.rtf");
 read.SaveLossless("unchanged-copy.rtf");
 ```
 
+Byte, stream, and file reads retain the exact original bytes. `HasOriginalBytes`, `ToBytesLossless()`, and `TryGetLosslessBytes(...)` make that contract observable. Character-only input can be written as lossless bytes only when every source character has an exact single-byte representation; the API reports or throws instead of silently transcoding it.
+
+RTF field instructions are tokenized by `RtfFieldCodeSyntax`, including quoted arguments, switches, escapes, and unterminated-token state. Hyperlink projection uses this syntax rather than regular-expression extraction.
+
 ## Read untrusted RTF
 
-The compatibility profile is intentionally permissive apart from nesting depth. Uploaded files should use the bounded profile and a cancellation token:
+The default OfficeIMO profile is bounded, does not materialize embedded objects or file-table references, and accepts only web and mail hyperlinks. Uploaded files can state that policy explicitly and provide a cancellation token:
 
 ```csharp
 RtfReadOptions options = RtfReadOptions.CreateUntrustedProfile();
@@ -44,7 +48,7 @@ RtfReadResult read = await RtfDocument.LoadAsync(
 
 The profile caps input bytes and characters, group depth/count, token count, text, binary payloads, images, objects, and semantic block count. A breached limit throws `RtfReadLimitException` with a stable `Code`, `LimitSource`, observed value, configured limit, and source position.
 
-It also disables embedded-object and file-reference materialization and restricts semantic hyperlinks to web and mail schemes. The core never fetches external resources.
+The core never fetches external resources. `RtfReadOptions.CreateCompatibilityProfile()` restores the former unbounded, object-materializing, all-schemes behavior for trusted legacy inputs only.
 
 ## Require no conversion loss
 

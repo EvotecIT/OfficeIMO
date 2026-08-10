@@ -3,9 +3,9 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     internal static class PowerPointEmbeddedSound {
-        internal static string Add(SlidePart slidePart, Stream audio,
+        internal static string Add(OpenXmlPart ownerPart, Stream audio,
             string contentType, string extension) {
-            if (slidePart == null) throw new ArgumentNullException(nameof(slidePart));
+            if (ownerPart == null) throw new ArgumentNullException(nameof(ownerPart));
             if (audio == null) throw new ArgumentNullException(nameof(audio));
             if (!audio.CanRead) {
                 throw new ArgumentException("Audio stream must be readable.",
@@ -29,27 +29,27 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("An audio file extension is required.",
                     nameof(extension));
             }
-            if (slidePart.OpenXmlPackage is not PresentationDocument document) {
+            if (ownerPart.OpenXmlPackage is not PresentationDocument document) {
                 throw new InvalidOperationException(
-                    "The slide is not attached to a presentation document.");
+                    "The owning part is not attached to a presentation document.");
             }
             MediaDataPart mediaPart = document.CreateMediaDataPart(contentType,
                 normalizedExtension);
-            string relationshipId = GetNextRelationshipId(slidePart);
+            string relationshipId = GetNextRelationshipId(ownerPart);
             try {
                 if (audio.CanSeek) audio.Position = 0;
                 mediaPart.FeedData(audio);
-                slidePart.AddAudioReferenceRelationship(mediaPart,
+                AddAudioReferenceRelationship(ownerPart, mediaPart,
                     relationshipId);
                 return relationshipId;
             } catch {
-                AudioReferenceRelationship? relationship = slidePart
+                AudioReferenceRelationship? relationship = ownerPart
                     .DataPartReferenceRelationships
                     .OfType<AudioReferenceRelationship>()
                     .FirstOrDefault(candidate => ReferenceEquals(
                         candidate.DataPart, mediaPart));
                 if (relationship != null) {
-                    slidePart.DeleteReferenceRelationship(relationship);
+                    ownerPart.DeleteReferenceRelationship(relationship);
                 }
                 if (!mediaPart.GetDataPartReferenceRelationships().Any()) {
                     document.DeletePart(mediaPart);
@@ -58,19 +58,19 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        internal static MediaDataPart? Find(SlidePart slidePart,
+        internal static MediaDataPart? Find(OpenXmlPart ownerPart,
             string? relationshipId) {
             if (string.IsNullOrEmpty(relationshipId)) return null;
-            return slidePart.DataPartReferenceRelationships
+            return ownerPart.DataPartReferenceRelationships
                 .OfType<AudioReferenceRelationship>()
                 .FirstOrDefault(relationship => string.Equals(relationship.Id,
                     relationshipId, StringComparison.Ordinal))?
                 .DataPart as MediaDataPart;
         }
 
-        internal static byte[]? Read(SlidePart slidePart,
+        internal static byte[]? Read(OpenXmlPart ownerPart,
             string? relationshipId) {
-            MediaDataPart? mediaPart = Find(slidePart, relationshipId);
+            MediaDataPart? mediaPart = Find(ownerPart, relationshipId);
             if (mediaPart == null) return null;
             using Stream input = mediaPart.GetStream(FileMode.Open, FileAccess.Read);
             using var output = new MemoryStream();
@@ -196,12 +196,12 @@ namespace OfficeIMO.PowerPoint {
                         && string.Equals(attribute.Value, relationshipId,
                             StringComparison.Ordinal))));
 
-        private static string GetNextRelationshipId(SlidePart slidePart) {
-            var used = new HashSet<string>(slidePart.Parts.Select(pair =>
+        private static string GetNextRelationshipId(OpenXmlPart ownerPart) {
+            var used = new HashSet<string>(ownerPart.Parts.Select(pair =>
                     pair.RelationshipId)
-                .Concat(slidePart.ExternalRelationships.Select(item => item.Id))
-                .Concat(slidePart.HyperlinkRelationships.Select(item => item.Id))
-                .Concat(slidePart.DataPartReferenceRelationships.Select(item =>
+                .Concat(ownerPart.ExternalRelationships.Select(item => item.Id))
+                .Concat(ownerPart.HyperlinkRelationships.Select(item => item.Id))
+                .Concat(ownerPart.DataPartReferenceRelationships.Select(item =>
                     item.Id)), StringComparer.Ordinal);
             int next = 1;
             string value;
@@ -209,6 +209,23 @@ namespace OfficeIMO.PowerPoint {
                 value = "rId" + next++;
             } while (!used.Add(value));
             return value;
+        }
+
+        private static void AddAudioReferenceRelationship(OpenXmlPart ownerPart,
+            MediaDataPart mediaPart, string relationshipId) {
+            switch (ownerPart) {
+                case SlidePart slidePart:
+                    slidePart.AddAudioReferenceRelationship(mediaPart,
+                        relationshipId);
+                    break;
+                case NotesSlidePart notesPart:
+                    notesPart.AddAudioReferenceRelationship(mediaPart,
+                        relationshipId);
+                    break;
+                default:
+                    throw new InvalidOperationException(
+                        "Embedded action sounds require a slide or notes-slide owner.");
+            }
         }
     }
 }

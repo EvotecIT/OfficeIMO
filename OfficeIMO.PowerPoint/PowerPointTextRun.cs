@@ -84,8 +84,21 @@ namespace OfficeIMO.PowerPoint {
                 return size != null ? size / 100 : null;
             }
             set {
+                FontSizePoints = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the font size in points while preserving DrawingML hundredth-point precision.
+        /// </summary>
+        public double? FontSizePoints {
+            get {
+                int? size = Run.RunProperties?.FontSize?.Value;
+                return size.HasValue ? size.Value / 100D : (double?)null;
+            }
+            set {
                 A.RunProperties props = EnsureRunProperties();
-                props.FontSize = value != null ? value * 100 : null;
+                props.FontSize = PowerPointTextDefaults.ToDrawingFontSize(value, nameof(value));
             }
         }
 
@@ -184,11 +197,12 @@ namespace OfficeIMO.PowerPoint {
             if (uri == null) {
                 throw new ArgumentNullException(nameof(uri));
             }
-            if (_slidePart == null) {
-                throw new InvalidOperationException("Hyperlinks require a slide context.");
+            OpenXmlPart? ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
+            if (ownerPart == null) {
+                throw new InvalidOperationException("Hyperlinks require an owning presentation part.");
             }
 
-            HyperlinkRelationship rel = _slidePart.AddHyperlinkRelationship(uri, true);
+            HyperlinkRelationship rel = ownerPart.AddHyperlinkRelationship(uri, true);
             A.RunProperties props = EnsureRunProperties();
             var hyperlink = new A.HyperlinkOnClick { Id = rel.Id };
             if (!string.IsNullOrWhiteSpace(tooltip)) {
@@ -209,6 +223,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException(
                     "Hyperlinks require a slide context.");
             }
+            OpenXmlPart ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
 
             PresentationPart? sourcePresentation = _slidePart.GetParentParts()
                 .OfType<PresentationPart>().FirstOrDefault();
@@ -221,14 +236,27 @@ namespace OfficeIMO.PowerPoint {
                     nameof(targetSlide));
             }
 
-            if (!_slidePart.Parts.Any(pair => ReferenceEquals(
-                    pair.OpenXmlPart, targetSlide.SlidePart))) {
-                _slidePart.AddPart(targetSlide.SlidePart);
+            string relationshipId;
+            if (ownerPart is NotesSlidePart
+                && !ReferenceEquals(_slidePart, targetSlide.SlidePart)) {
+                Uri targetUri = PowerPointHyperlinkResolver.CreatePartRelativeUri(
+                    ownerPart, targetSlide.SlidePart);
+                HyperlinkRelationship relationship = ownerPart.HyperlinkRelationships
+                    .FirstOrDefault(candidate => !candidate.IsExternal
+                        && candidate.Uri == targetUri)
+                    ?? ownerPart.AddHyperlinkRelationship(targetUri, false);
+                relationshipId = relationship.Id;
+            } else {
+                if (!ownerPart.Parts.Any(pair => ReferenceEquals(
+                        pair.OpenXmlPart, targetSlide.SlidePart))) {
+                    ownerPart.AddPart(targetSlide.SlidePart);
+                }
+                relationshipId = ownerPart.GetIdOfPart(targetSlide.SlidePart);
             }
 
             A.RunProperties props = EnsureRunProperties();
             var hyperlink = new A.HyperlinkOnClick {
-                Id = _slidePart.GetIdOfPart(targetSlide.SlidePart),
+                Id = relationshipId,
                 Action = "ppaction://hlinksldjump"
             };
             if (!string.IsNullOrWhiteSpace(tooltip)) {
@@ -281,33 +309,42 @@ namespace OfficeIMO.PowerPoint {
                 hyperlink.Remove();
             }
             if (replacement != null) properties.Append(replacement);
-            if (_slidePart == null) return;
+            OpenXmlPart? ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
+            if (ownerPart == null) return;
             foreach (string relationshipId in relationshipIds) {
-                RemoveHyperlinkRelationshipIfUnused(_slidePart,
-                    relationshipId);
+                RemoveHyperlinkRelationshipIfUnused(ownerPart,
+                    relationshipId, _slidePart);
             }
             foreach (string soundRelationshipId in soundRelationshipIds) {
-                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                PowerPointEmbeddedSound.RemoveIfUnused(ownerPart,
                     soundRelationshipId);
             }
         }
 
         private static void RemoveHyperlinkRelationshipIfUnused(
-            SlidePart slidePart, string relationshipId) {
-            if (ReferencesRelationship(slidePart.RootElement,
+            OpenXmlPart ownerPart, string relationshipId,
+            SlidePart? owningSlidePart) {
+            if (ReferencesRelationship(ownerPart.RootElement,
                     relationshipId)) return;
-            HyperlinkRelationship? external = slidePart
+            if (ownerPart is NotesSlidePart
+                && owningSlidePart != null
+                && ownerPart.Parts.Any(pair => string.Equals(
+                        pair.RelationshipId, relationshipId,
+                        StringComparison.Ordinal)
+                    && ReferenceEquals(pair.OpenXmlPart,
+                        owningSlidePart))) return;
+            HyperlinkRelationship? external = ownerPart
                 .HyperlinkRelationships.FirstOrDefault(relationship =>
                     string.Equals(relationship.Id, relationshipId,
                         StringComparison.Ordinal));
             if (external != null) {
-                slidePart.DeleteReferenceRelationship(external);
+                ownerPart.DeleteReferenceRelationship(external);
                 return;
             }
-            if (slidePart.Parts.Any(pair => string.Equals(
+            if (ownerPart.Parts.Any(pair => string.Equals(
                     pair.RelationshipId, relationshipId,
                     StringComparison.Ordinal))) {
-                slidePart.DeletePart(relationshipId);
+                ownerPart.DeletePart(relationshipId);
             }
         }
 

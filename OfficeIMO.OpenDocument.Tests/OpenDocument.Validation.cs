@@ -1,7 +1,9 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Xml.Linq;
+using OfficeIMO.OpenDocument.Testing;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;
@@ -89,5 +91,60 @@ public sealed class OpenDocumentValidationContractTests {
 
         Assert.Contains(report.Findings, finding => finding.Name == "tracked-changes" && finding.Support == OdfFeatureSupport.Editable);
         Assert.Contains(report.Findings, finding => finding.Name == "external-links" && finding.Support == OdfFeatureSupport.Preserved);
+        Assert.True(report.IsComplete);
+    }
+
+    [Fact]
+    public void FeatureInspection_Reports_Unreadable_Xml_Instead_Of_Silently_Claiming_Complete_Coverage() {
+        OdtDocument template = OdtDocument.Create();
+        byte[] package = OdfTestPackageRewriter.Rewrite(
+            template.ToBytes(),
+            additions: new[] { new OdfTestPackageEntry("Configurations2/broken.xml", Encoding.UTF8.GetBytes("<broken")) });
+        OdtDocument document = OdtDocument.Load(new MemoryStream(package));
+
+        OdfFeatureReport report = document.InspectFeatures();
+
+        Assert.False(report.IsComplete);
+        OdfFeatureDiagnostic diagnostic = Assert.Single(report.Diagnostics);
+        Assert.Equal("ODF_FEATURE_XML_UNREADABLE", diagnostic.Code);
+        Assert.Equal("Configurations2/broken.xml", diagnostic.PartPath);
+    }
+
+    [Fact]
+    public void FeatureInspection_Classifies_Named_Ranges_And_Validations() {
+        OdsDocument document = OdsDocument.Create();
+        document.AddSheet("Data").Cell(0, 0).SetNumber(1);
+        document.AddNamedRange("Input", "$'Data'.$A$1");
+        document.AddValidation("Positive", "cell-content()>0");
+
+        OdfFeatureReport report = document.InspectFeatures();
+
+        Assert.Contains(report.Findings, finding => finding.Name == "spreadsheet-named-ranges");
+        Assert.Contains(report.Findings, finding => finding.Name == "spreadsheet-validations");
+    }
+
+    [Theory]
+    [InlineData("of:cell-content-is-whole-number() and cell-content-is-between(1,10)", "of:cell-content-is-whole-number() and cell-content-is-between(1,10)")]
+    [InlineData("of:cell-content-is-decimal-number() and cell-content() >= -2.5", "of:cell-content-is-decimal-number() and cell-content()>=-2.5")]
+    [InlineData("of:cell-content-text-length-is-not-between(2,12)", "of:cell-content-text-length-is-not-between(2,12)")]
+    [InlineData("of:cell-content-is-in-list(\"New\";\"On \"\"Hold\"\"\";\"Done\")", "of:cell-content-is-in-list(\"New\";\"On \"\"Hold\"\"\";\"Done\")")]
+    public void ValidationConditionSyntax_RoundTripsSupportedGrammar(string text, string canonical) {
+        OdsValidationConditionSyntax condition = OdsValidationConditionSyntax.Parse(text);
+
+        Assert.Equal(canonical, condition.ToString());
+        Assert.True(OdsValidationConditionSyntax.TryParse(condition.ToString(), out OdsValidationConditionSyntax? reparsed));
+        Assert.Equal(condition.ValueKind, reparsed!.ValueKind);
+        Assert.Equal(condition.Comparison, reparsed.Comparison);
+        Assert.Equal(condition.ListValues, reparsed.ListValues);
+    }
+
+    [Theory]
+    [InlineData("cell-content()>0 trailing")]
+    [InlineData("of:cell-content-is-in-list(A;B)")]
+    [InlineData("of:cell-content-is-in-list(\"A\";)")]
+    [InlineData("of:cell-content-is-in-list(\"A\";   )")]
+    [InlineData("of:cell-content-is-between(1)")]
+    public void ValidationConditionSyntax_RejectsUnsupportedOrMalformedExpressions(string text) {
+        Assert.False(OdsValidationConditionSyntax.TryParse(text, out _));
     }
 }

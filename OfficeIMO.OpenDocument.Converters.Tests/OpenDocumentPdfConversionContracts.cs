@@ -53,7 +53,8 @@ public sealed class OpenDocumentPdfConversionContracts {
             mapping.Feature == "source-tracked-changes" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        OdfConversionLossException loss = Assert.Throws<OdfConversionLossException>(() => result.RequireNoLoss());
+        Assert.Same(projection, loss.Report);
         Assert.DoesNotContain(result.Warnings, warning =>
             warning.Code.StartsWith("ODF_", StringComparison.Ordinal));
         Assert.Collection(
@@ -102,7 +103,8 @@ public sealed class OpenDocumentPdfConversionContracts {
             mapping.Feature == "source-presentation-animations" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        OdfConversionLossException loss = Assert.Throws<OdfConversionLossException>(() => result.RequireNoLoss());
+        Assert.Same(projection, loss.Report);
     }
 
     [Fact]
@@ -117,7 +119,8 @@ public sealed class OpenDocumentPdfConversionContracts {
         Assert.True(save.Succeeded, save.Exception?.Message);
         Assert.True(stream.Length > 0);
         Assert.True(save.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => save.RequireNoLoss());
+        OdfConversionLossException loss = Assert.Throws<OdfConversionLossException>(() => save.RequireNoLoss());
+        Assert.IsType<OdfConversionReport>(loss.Report);
         Assert.Collection(
             save.ConversionReports,
             report => Assert.IsType<OdfConversionReport>(report),

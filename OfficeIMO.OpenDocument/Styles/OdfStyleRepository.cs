@@ -89,6 +89,44 @@ public sealed class OdfStyleRepository {
         return result;
     }
 
+    internal OdfColor? ResolveTextBackgroundColor(OdfStyle? style) =>
+        ResolveColorOverride(style, static candidate => candidate.TryGetTextBackgroundColor(out OdfColor? color)
+            ? (true, color)
+            : (false, null));
+
+    internal OdfColor? ResolveBackgroundColor(OdfStyle? style) =>
+        ResolveColorOverride(style, static candidate => candidate.TryGetBackgroundColor(out OdfColor? color)
+            ? (true, color)
+            : (false, null));
+
+    internal string? ResolveFontFaceFamily(string? fontName, string preferredPartPath) {
+        if (string.IsNullOrWhiteSpace(fontName)) return null;
+        foreach (string partPath in new[] { preferredPartPath, "styles.xml", "content.xml" }.Distinct(StringComparer.Ordinal)) {
+            if (!_document.Package.ContainsEntry(partPath)) continue;
+            XElement? declarations = _document.GetXml(partPath).Root?
+                .Element(OdfNamespaces.Office + "font-face-decls");
+            XElement? face = declarations?.Elements(OdfNamespaces.Style + "font-face")
+                .FirstOrDefault(element => string.Equals(
+                    (string?)element.Attribute(OdfNamespaces.Style + "name"),
+                    fontName,
+                    StringComparison.Ordinal));
+            string? family = OdfStyle.NormalizeFontFamily(
+                (string?)face?.Attribute(OdfNamespaces.Svg + "font-family"));
+            if (family != null) return family;
+        }
+        return null;
+    }
+
+    private OdfColor? ResolveColorOverride(OdfStyle? style,
+        Func<OdfStyle, (bool HasValue, OdfColor? Color)> read) {
+        if (style == null) return null;
+        foreach (OdfStyle candidate in Resolve(style)) {
+            (bool hasValue, OdfColor? color) = read(candidate);
+            if (hasValue) return color;
+        }
+        return null;
+    }
+
     internal OdfStyle EnsureAutomaticStyle(XElement owner, XName styleAttribute, OdfStyleFamily family, string prefix, string partPath = "content.xml") {
         string? existingName = (string?)owner.Attribute(styleAttribute);
         OdfStyle? existing = existingName == null ? null : FindInPart(family, existingName, partPath);

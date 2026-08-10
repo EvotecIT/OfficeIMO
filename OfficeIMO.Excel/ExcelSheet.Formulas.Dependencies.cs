@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
@@ -114,8 +113,7 @@ namespace OfficeIMO.Excel {
                 return $"Formula is longer than {MaxSupportedFormulaLength} characters.";
             }
 
-            try {
-                if (formula.IndexOf(';') >= 0) {
+            if (formula.IndexOf(';') >= 0) {
                     return "Formula uses semicolon argument separators; OfficeIMO's lightweight evaluator expects Open XML comma-separated formulas.";
                 }
 
@@ -127,24 +125,19 @@ namespace OfficeIMO.Excel {
                     return "Formula uses array constants, which OfficeIMO's lightweight evaluator does not currently support.";
                 }
 
-                Match supportedFunctionMatch = SimpleFunctionFormulaRegex.Match(formula);
-                if (supportedFunctionMatch.Success) {
-                    string function = supportedFunctionMatch.Groups[1].Value.ToUpperInvariant();
+                if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? supportedFunction)) {
+                    string function = supportedFunction!.Name.ToUpperInvariant();
                     return $"Formula uses supported function '{function}' with arguments OfficeIMO's lightweight evaluator cannot currently evaluate.";
                 }
 
-                Match functionMatch = FunctionNameFormulaRegex.Match(formula);
-                if (functionMatch.Success) {
-                    string function = functionMatch.Groups[1].Value.ToUpperInvariant();
+                if (ExcelFormulaExpressionParser.TryParseFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? functionCall)) {
+                    string function = functionCall!.Name.ToUpperInvariant();
                     if (_excelDocument.Calculation.TryGetCustomFunction(function, out _)) {
                         return $"Formula uses registered custom function '{function}' with arguments the custom evaluator cannot currently evaluate.";
                     }
 
                     return $"Function '{function}' is not supported by OfficeIMO's lightweight evaluator.";
                 }
-            } catch (RegexMatchTimeoutException) {
-                return "Formula diagnostics timed out while parsing the formula.";
-            }
 
             return "Formula is outside OfficeIMO's lightweight evaluator support.";
         }
@@ -158,8 +151,7 @@ namespace OfficeIMO.Excel {
                 return Array.Empty<string>();
             }
 
-            try {
-                bool hasSourceCell = TryParseCellReference(
+            bool hasSourceCell = TryParseCellReference(
                     sourceCellReference ?? string.Empty,
                     out int parsedSourceRow,
                     out int parsedSourceColumn);
@@ -182,12 +174,9 @@ namespace OfficeIMO.Excel {
                 var dependencies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 AddFormulaDependencies(searchableFormula, dependencyMatches, sourceRow, dependencies);
 
-                return dependencies
+            return dependencies
                     .OrderBy(reference => reference, StringComparer.OrdinalIgnoreCase)
                     .ToList();
-            } catch (RegexMatchTimeoutException) {
-                return Array.Empty<string>();
-            }
         }
 
         private List<FormulaDependencyReferenceMatch> GetFormulaDependencyReferenceMatches(
@@ -199,15 +188,14 @@ namespace OfficeIMO.Excel {
             int? sourceColumn) {
             string localReferenceFormula = MaskFormulaNonLocalReferenceSegments(valueDependencyFormula);
             string directReferenceFormula = MaskFormulaStructuredReferenceSegments(localReferenceFormula);
-            List<FormulaDependencyReferenceMatch> dependencyMatches = ExcelFormulaReferenceRewriter.SharedFormulaReferenceRegex.Matches(directReferenceFormula)
-                    .Cast<Match>()
+            List<FormulaDependencyReferenceMatch> dependencyMatches = ExcelFormulaReferenceRewriter.FindReferences(directReferenceFormula)
                     .Where(match => IsLocalFormulaReferenceMatch(searchableFormula, match))
                     .Where(match => !IsFormulaDependencyFunctionToken(searchableFormula, match))
-                    .Where(match => !string.IsNullOrWhiteSpace(match.Value))
+                    .Where(match => !string.IsNullOrWhiteSpace(match.Text))
                     .Select(match => new FormulaDependencyReferenceMatch(
                         match.Index,
                         match.Length,
-                        match.Value))
+                        match.Text))
                     .ToList();
             IReadOnlyList<FormulaLexicalBinding> lexicalBindings = GetFormulaLexicalBindings(searchableFormula);
             foreach (FormulaDependencyAliasMatch match in aliases.FindMatches(valueDependencyFormula)) {
@@ -428,8 +416,8 @@ namespace OfficeIMO.Excel {
             return char.IsLetterOrDigit(character) || character == '_' || character == '.' || character == '\\';
         }
 
-        private static bool IsLocalFormulaReferenceMatch(string formula, Match match) {
-            if (!match.Success || match.Index < 0 || match.Index + match.Length > formula.Length) {
+        private static bool IsLocalFormulaReferenceMatch(string formula, ExcelFormulaReferenceCandidate match) {
+            if (match.Index < 0 || match.Index + match.Length > formula.Length) {
                 return false;
             }
 
@@ -442,10 +430,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string reference = match.Value;
-            int qualifierSeparator = reference.LastIndexOf('!');
-            if (qualifierSeparator > 0) {
-                string qualifier = reference.Substring(0, qualifierSeparator);
+            if (match.Reference.Qualifier is string qualifier) {
                 if (qualifier.IndexOf(':') >= 0 || qualifier.IndexOf('[') >= 0 || qualifier.IndexOf(']') >= 0) {
                     return false;
                 }
@@ -454,9 +439,13 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private bool IsFormulaDependencyFunctionToken(string formula, Match match) {
-            string token = match.Value;
-            if (token.IndexOf('!') >= 0 || token.IndexOf(':') >= 0 || token.IndexOf('$') >= 0) {
+        private bool IsFormulaDependencyFunctionToken(string formula, ExcelFormulaReferenceCandidate match) {
+            string token = match.Text;
+            if (match.Reference.IsQualified
+                || match.Reference.Kind != ExcelReferenceKind.Cell
+                || match.Reference.Start.ColumnAbsolute
+                || match.Reference.Start.RowAbsolute
+                || match.HasSpill) {
                 return false;
             }
 

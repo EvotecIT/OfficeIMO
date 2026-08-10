@@ -40,4 +40,76 @@ public sealed class LatexDocumentIOTests {
 
         Assert.Equal(new byte[] { 1, 2, 3 }, output.ToArray());
     }
+
+    [Fact]
+    public void Load_Rejects_Oversized_Seekable_Input_Before_Read_And_Restores_Position() {
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes("0123456789"));
+        input.Position = 4;
+
+        var options = new LatexParseOptions { MaximumInputBytes = 5 };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            LatexDocument.Load(input, options));
+
+        Assert.Contains("maximum size", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(4, input.Position);
+    }
+
+    [Fact]
+    public void Load_Strips_The_Utf8_Preamble_With_Default_Encoding() {
+        const string source = "\\documentclass{article}\nBody\n";
+        byte[] payload = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(source)).ToArray();
+        using var input = new MemoryStream(payload);
+
+        LatexParseResult result = LatexDocument.Load(input);
+
+        Assert.Equal(source, result.Document.ToLatex());
+    }
+
+    [Fact]
+    public void FileLoadDetectsUtf16AndUtf32ByteOrderMarksWhenEncodingIsOmitted() {
+        const string source = "\\documentclass{article}\nZażółć\n";
+        Encoding[] encodings = {
+            Encoding.Unicode,
+            Encoding.BigEndianUnicode,
+            new UTF32Encoding(bigEndian: false, byteOrderMark: true),
+            new UTF32Encoding(bigEndian: true, byteOrderMark: true)
+        };
+
+        foreach (Encoding encoding in encodings) {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".tex");
+            try {
+                byte[] payload = encoding.GetPreamble().Concat(encoding.GetBytes(source)).ToArray();
+                File.WriteAllBytes(path, payload);
+
+                LatexParseResult result = LatexDocument.Load(path);
+
+                Assert.Equal(source, result.Document.ToLatex());
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void Parse_Honors_PreCanceled_Token() {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            LatexDocument.Parse("Body\n", options: null, cancellation.Token));
+    }
+
+    [Fact]
+    public async Task LoadAsync_Honors_PreCanceled_Token_Without_Mutating_Stream_Position() {
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes("Body\n"));
+        input.Position = 2;
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            LatexDocument.LoadAsync(input, cancellationToken: cancellation.Token));
+
+        Assert.Equal(2, input.Position);
+    }
 }

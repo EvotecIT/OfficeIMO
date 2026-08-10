@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint {
         private static void ApplyTextStyle(A.TextCharacterPropertiesType runProps, double? fontSizePoints, bool? bold,
             bool? italic, string? color, string? fontName) {
             if (fontSizePoints != null) {
-                runProps.FontSize = (int)Math.Round(fontSizePoints.Value * 100);
+                runProps.FontSize = PowerPointTextDefaults.ToDrawingFontSize(fontSizePoints, nameof(fontSizePoints));
             }
             if (bold != null) {
                 runProps.Bold = bold.Value;
@@ -46,9 +46,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ValidateTextStyle(double? fontSizePoints, string? color, string? fontName) {
-            if (fontSizePoints != null && fontSizePoints <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(fontSizePoints));
-            }
+            _ = PowerPointTextDefaults.ToDrawingFontSize(fontSizePoints, nameof(fontSizePoints));
             if (color != null && string.IsNullOrWhiteSpace(color)) {
                 throw new ArgumentException("Color cannot be empty.", nameof(color));
             }

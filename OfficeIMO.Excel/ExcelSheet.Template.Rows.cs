@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -117,9 +116,10 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                var wholeMarker = WholeCellTemplateMarkerRegex.Match(text);
-                if (wholeMarker.Success) {
-                    string marker = wholeMarker.Groups["name"].Value;
+                ExcelTemplateSyntax syntax = ExcelTemplateSyntax.Parse(text);
+                ExcelTemplateMarkerSyntax? wholeMarker = syntax.IsWholeMarker ? syntax.Markers[0] : null;
+                if (wholeMarker != null) {
+                    string marker = wholeMarker.Name;
                     if (!bindings.TryGetValue(marker, out object? replacement)) {
                         if (ShouldThrowOnMissing(options)) {
                             ThrowMissingMarker(marker);
@@ -135,7 +135,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    string? format = wholeMarker.Groups["format"].Success ? wholeMarker.Groups["format"].Value.Trim() : null;
+                    string? format = wholeMarker.Format;
                     if (replacement is ExcelTemplateImage templateImage && reference.Row > 0 && reference.Col > 0) {
                         using (Locking.EnterNoLockScope()) {
                             if (!templateImage.TryAddToSheet(this, reference.Row, reference.Col)) {
@@ -158,8 +158,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 int cellReplacements = 0;
-                string replaced = TemplateMarkerRegex.Replace(text, match => {
-                    string marker = match.Groups["name"].Value;
+                string replaced = syntax.Rewrite(match => {
+                    string marker = match.Name;
                     if (!bindings.TryGetValue(marker, out object? replacement)) {
                         if (ShouldThrowOnMissing(options)) {
                             ThrowMissingMarker(marker);
@@ -170,12 +170,11 @@ namespace OfficeIMO.Excel {
                             return string.Empty;
                         }
 
-                        return match.Value;
+                        return match.Text;
                     }
 
                     cellReplacements++;
-                    string? format = match.Groups["format"].Success ? match.Groups["format"].Value.Trim() : null;
-                    return FormatTemplateValue(replacement, format, options);
+                    return FormatTemplateValue(replacement, match.Format, options);
                 });
 
                 if (cellReplacements == 0 || string.Equals(replaced, text, StringComparison.Ordinal)) {

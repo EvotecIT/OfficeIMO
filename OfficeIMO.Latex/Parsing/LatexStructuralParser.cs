@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Latex;
 
 internal sealed class LatexStructuralParser {
@@ -5,17 +7,20 @@ internal sealed class LatexStructuralParser {
     private readonly IReadOnlyList<LatexToken> _tokens;
     private readonly LatexParseOptions _options;
     private readonly List<LatexDiagnostic> _diagnostics;
+    private readonly CancellationToken _cancellationToken;
     private int _index;
 
     internal LatexStructuralParser(
         LatexSourceText source,
         IReadOnlyList<LatexToken> tokens,
         LatexParseOptions options,
-        List<LatexDiagnostic> diagnostics) {
+        List<LatexDiagnostic> diagnostics,
+        CancellationToken cancellationToken) {
         _source = source;
         _tokens = tokens;
         _options = options;
         _diagnostics = diagnostics;
+        _cancellationToken = cancellationToken;
     }
 
     internal LatexSyntaxTree Parse() {
@@ -26,6 +31,7 @@ internal sealed class LatexStructuralParser {
     }
 
     private LatexSyntaxNode ParseNode(int depth, bool allowMath) {
+        _cancellationToken.ThrowIfCancellationRequested();
         EnforceDepth(depth);
         LatexToken token = _tokens[_index];
         switch (token.Kind) {
@@ -49,6 +55,13 @@ internal sealed class LatexStructuralParser {
                 return ParseCommand(depth + 1);
             case LatexTokenKind.MathShift when allowMath:
                 return ParseDollarMath(depth + 1);
+            case LatexTokenKind.Verbatim:
+                _index++;
+                if (!token.IsTerminated) {
+                    _diagnostics.Add(new LatexDiagnostic("LATEX006", LatexDiagnosticSeverity.Error,
+                        "Verbatim content is not terminated; source was preserved through end of input.", token.Span));
+                }
+                return Node(LatexSyntaxKind.Verbatim, token.Span.Start.Offset, token.Span.End.Offset, token.Value);
             default:
                 _index++;
                 return TokenNode(token);
@@ -268,6 +281,8 @@ internal sealed class LatexStructuralParser {
     private LatexSyntaxNode TokenNode(LatexToken token) {
         LatexSyntaxKind kind = token.Kind == LatexTokenKind.Comment
             ? LatexSyntaxKind.Comment
+            : token.Kind == LatexTokenKind.Verbatim
+                ? LatexSyntaxKind.Verbatim
             : token.Kind == LatexTokenKind.Whitespace || token.Kind == LatexTokenKind.LineEnding
                 ? LatexSyntaxKind.Trivia
                 : token.Kind == LatexTokenKind.Command
@@ -301,6 +316,7 @@ internal sealed class LatexStructuralParser {
     }
 
     private void EnforceDepth(int depth) {
+        _cancellationToken.ThrowIfCancellationRequested();
         if (depth > _options.MaximumNestingDepth) throw new InvalidDataException("LaTeX source exceeds MaximumNestingDepth.");
     }
 
