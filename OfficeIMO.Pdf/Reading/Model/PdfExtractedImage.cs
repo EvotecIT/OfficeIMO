@@ -25,7 +25,9 @@ public sealed class PdfExtractedImage {
         bool transparencyMaskResolved = false,
         int directStreamIdentity = 0,
         bool isImageMask = false,
-        OfficeColor? imageMaskColor = null) {
+        OfficeColor? imageMaskColor = null,
+        bool hasExplicitDecode = false,
+        bool hasDecodeParameters = false) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -43,6 +45,8 @@ public sealed class PdfExtractedImage {
         DirectStreamIdentity = directStreamIdentity;
         IsImageMask = isImageMask;
         ImageMaskColor = imageMaskColor ?? OfficeColor.Black;
+        HasExplicitDecode = hasExplicitDecode;
+        HasDecodeParameters = hasDecodeParameters;
     }
 
     /// <summary>One-based page number containing the image resource.</summary>
@@ -104,4 +108,8 @@ public sealed class PdfExtractedImage {
     public bool IsImageMask { get; }
 
     internal OfficeColor ImageMaskColor { get; }
+
+    internal bool HasExplicitDecode { get; }
+
+    internal bool HasDecodeParameters { get; }
 }

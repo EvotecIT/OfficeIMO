@@ -757,8 +757,8 @@ public sealed partial class PdfReadPage {
             OfficeStrokeLineCap? strokeLineCap = ReadStrokeLineCap(state);
             OfficeStrokeLineJoin? strokeLineJoin = ReadStrokeLineJoin(state);
             OfficeBlendMode? blendMode = ReadBlendMode(state);
-            bool hasSoftMask = state.Items.ContainsKey("SMask");
-            PdfPageSoftMaskResource? softMask = hasSoftMask ? ReadSoftMask(state) : null;
+            bool? softMaskEnabled = ReadSoftMaskEnabled(state);
+            PdfPageSoftMaskResource? softMask = softMaskEnabled == true ? ReadSoftMask(state) : null;
             if (fillOpacity.HasValue ||
                 strokeOpacity.HasValue ||
                 strokeWidth.HasValue ||
@@ -766,8 +766,8 @@ public sealed partial class PdfReadPage {
                 strokeLineCap.HasValue ||
                 strokeLineJoin.HasValue ||
                 blendMode.HasValue ||
-                hasSoftMask) {
-                result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, blendMode, hasSoftMask, softMask);
+                softMaskEnabled.HasValue) {
+                result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, blendMode, softMaskEnabled, softMask);
             }
         }
 

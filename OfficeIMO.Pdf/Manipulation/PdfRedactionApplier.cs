@@ -43,7 +43,8 @@ internal static partial class PdfRedactionApplier {
             readOptions,
             RedactionMutationScope.All,
             paintMarks: true,
-            PdfMutationOperation.Redact);
+            PdfMutationOperation.Redact,
+            imageTargets: null);
     }
 
     /// <summary>
@@ -68,7 +69,40 @@ internal static partial class PdfRedactionApplier {
             readOptions,
             RedactionMutationScope.Text,
             paintMarks: false,
-            PdfMutationOperation.ModifyPageContent);
+            PdfMutationOperation.ModifyPageContent,
+            imageTargets: null);
+    }
+
+    /// <summary>
+    /// Removes only the exact image placements supplied by the caller. This is the canonical
+    /// destructive image-editing primitive; it leaves text, paths, annotations, and document-level
+    /// residue untouched and does not paint redaction marks.
+    /// </summary>
+    internal static byte[] RemoveImagePlacements(
+        byte[] pdf,
+        IReadOnlyList<PdfImagePlacement> placements,
+        PdfReadOptions? readOptions = null) {
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(placements, nameof(placements));
+        if (placements.Count == 0) return pdf.ToArray();
+        PdfRedactionArea[] areas = placements
+            .Select(static placement => new PdfRedactionArea(placement.PageNumber, placement.X, placement.Y, Math.Max(0.01D, placement.Width), Math.Max(0.01D, placement.Height)))
+            .ToArray();
+        return ApplyCore(
+            pdf,
+            areas,
+            new PdfRedactionApplyOptions {
+                PaintUnmatchedAreas = false,
+                RemoveIntersectingPaths = false,
+                CleanupScope = PdfRedactionCleanupScope.None,
+                UnsupportedImagePolicy = PdfRedactionUnsupportedImagePolicy.RemoveWholePlacement
+            },
+            layoutOptions: null,
+            readOptions,
+            RedactionMutationScope.Images,
+            paintMarks: false,
+            PdfMutationOperation.ModifyPageContent,
+            placements);
     }
 
     private static byte[] ApplyCore(
@@ -79,7 +113,8 @@ internal static partial class PdfRedactionApplier {
         PdfReadOptions? readOptions,
         RedactionMutationScope mutationScope,
         bool paintMarks,
-        PdfMutationOperation mutationOperation) {
+        PdfMutationOperation mutationOperation,
+        IReadOnlyList<PdfImagePlacement>? imageTargets) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(areas, nameof(areas));
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, mutationOperation, readOptions);
@@ -105,7 +140,7 @@ internal static partial class PdfRedactionApplier {
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         ValidateRedactionAreas(areaArray, document.Pages.Count);
         int maximumDecodedStreamBytes = readOptions?.Limits.MaxDecodedStreamBytes ?? PdfReadLimits.DefaultMaxDecodedStreamBytes;
-        RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions, maximumDecodedStreamBytes, mutationScope, paintMarks);
+        RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions, maximumDecodedStreamBytes, mutationScope, paintMarks, imageTargets);
         bool cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope);
         if (!mutation.HasChanges && !cleanupChanged) {
             return pdf.ToArray();
@@ -178,7 +213,8 @@ internal static partial class PdfRedactionApplier {
         PdfRedactionApplyOptions options,
         int maximumDecodedStreamBytes,
         RedactionMutationScope mutationScope,
-        bool paintMarks) {
+        bool paintMarks,
+        IReadOnlyList<PdfImagePlacement>? imageTargets) {
         var matchesByPage = plan.Matches
             .GroupBy(match => match.PageNumber)
             .ToDictionary(group => group.Key, group => group.ToArray());
@@ -204,11 +240,14 @@ internal static partial class PdfRedactionApplier {
             }
 
             PdfRedactionMatch[] currentMatches = pageMatches ?? Array.Empty<PdfRedactionMatch>();
+            PdfRedactionMatch[] selectedImageMatches = imageTargets is null
+                ? currentMatches
+                : currentMatches.Where(match => imageTargets.Any(target => MatchesExactImagePlacement(match, target))).ToArray();
             ImageRedactionMutation imageMutation = (mutationScope & RedactionMutationScope.Images) != 0
-                ? RemoveMatchedImageObjects(objects, pageDictionary, currentMatches, options, ref nextObjectNumber)
+                ? RemoveMatchedImageObjects(objects, pageDictionary, selectedImageMatches, options, ref nextObjectNumber)
                 : ImageRedactionMutation.None;
             foreach (PdfRedactionMatch removedImage in imageMutation.RemovedMatches) if (removedImage.ObjectNumber.HasValue) removedImageObjectNumbers.Add(removedImage.ObjectNumber.Value);
-            if ((mutationScope & RedactionMutationScope.Images) != 0) ValidateImagePlacementMatches(currentMatches, imageMutation.RemovedMatches, options);
+            if ((mutationScope & RedactionMutationScope.Images) != 0) ValidateImagePlacementMatches(selectedImageMatches, imageMutation.RemovedMatches, options);
             bool pageChanged = imageMutation.HasChanges;
             if ((mutationScope & RedactionMutationScope.Text) != 0) {
                 pageChanged = RemoveMatchedTextObjects(
@@ -238,6 +277,25 @@ internal static partial class PdfRedactionApplier {
         if (removedImageObjectNumbers.Count > 0) changed = RemoveUnusedImageObjectReferences(objects, removedImageObjectNumbers) || changed;
 
         return new RedactionMutation(changed);
+    }
+
+    private static bool MatchesExactImagePlacement(PdfRedactionMatch match, PdfImagePlacement target) {
+        const double tolerance = 0.01D;
+        return match.Kind == PdfRedactionMatchKind.ImagePlacement &&
+            match.PageNumber == target.PageNumber &&
+            string.Equals(match.ResourceName, target.ResourceName, StringComparison.Ordinal) &&
+            (target.ObjectNumber == 0 ? !match.ObjectNumber.HasValue : match.ObjectNumber == target.ObjectNumber) &&
+            (match.ImagePlacement is null ||
+             (Math.Abs(match.ImagePlacement.A - target.A) <= tolerance &&
+              Math.Abs(match.ImagePlacement.B - target.B) <= tolerance &&
+              Math.Abs(match.ImagePlacement.C - target.C) <= tolerance &&
+              Math.Abs(match.ImagePlacement.D - target.D) <= tolerance &&
+              Math.Abs(match.ImagePlacement.E - target.E) <= tolerance &&
+              Math.Abs(match.ImagePlacement.F - target.F) <= tolerance)) &&
+            Math.Abs(match.X - target.X) <= tolerance &&
+            Math.Abs(match.Y - target.Y) <= tolerance &&
+            Math.Abs(match.Width - target.Width) <= tolerance &&
+            Math.Abs(match.Height - target.Height) <= tolerance;
     }
 
     [Flags]
@@ -287,11 +345,13 @@ internal static partial class PdfRedactionApplier {
             PdfRedactionMatch removed = removedMatches[i];
             if (removed.Kind == candidate.Kind &&
                 removed.PageNumber == candidate.PageNumber &&
+                removed.ObjectNumber == candidate.ObjectNumber &&
                 string.Equals(removed.ResourceName, candidate.ResourceName, StringComparison.Ordinal) &&
                 AreSameRedactionCoordinate(removed.X, candidate.X) &&
                 AreSameRedactionCoordinate(removed.Y, candidate.Y) &&
                 AreSameRedactionCoordinate(removed.Width, candidate.Width) &&
-                AreSameRedactionCoordinate(removed.Height, candidate.Height)) {
+                AreSameRedactionCoordinate(removed.Height, candidate.Height) &&
+                AreSameImagePlacementTransform(removed.ImagePlacement, candidate.ImagePlacement)) {
                 return true;
             }
         }
@@ -301,6 +361,15 @@ internal static partial class PdfRedactionApplier {
 
     private static bool AreSameRedactionCoordinate(double left, double right) =>
         Math.Abs(left - right) <= 0.001D;
+
+    private static bool AreSameImagePlacementTransform(PdfImagePlacement? left, PdfImagePlacement? right) =>
+        left is null || right is null ||
+        (AreSameRedactionCoordinate(left.A, right.A) &&
+         AreSameRedactionCoordinate(left.B, right.B) &&
+         AreSameRedactionCoordinate(left.C, right.C) &&
+         AreSameRedactionCoordinate(left.D, right.D) &&
+         AreSameRedactionCoordinate(left.E, right.E) &&
+         AreSameRedactionCoordinate(left.F, right.F));
 
     private static bool RemoveMatchedAnnotations(
         Dictionary<int, PdfIndirectObject> objects,

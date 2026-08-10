@@ -93,6 +93,16 @@ public sealed partial class PdfDocument {
         }
 
         if (sourceInfo.Format == OfficeImageFormat.Jpeg) {
+            if (PdfWriter.TryGetJpegComponentCount(data, out int componentCount) && componentCount == 4) {
+                if (!OfficeImagePngConverter.TryConvertToPng(data, out byte[] normalizedJpegPng) ||
+                    !OfficeImageReader.TryIdentify(normalizedJpegPng, null, out OfficeImageInfo normalizedJpegInfo)) {
+                    throw new NotSupportedException(SupportedImageMessage + " Four-component JPEG data could not be normalized safely for PDF embedding.");
+                }
+                return new PreparedImage(normalizedJpegPng, normalizedJpegInfo, sourceInfo.Format, wasTranscoded: true);
+            }
+            if (componentCount != 0 && componentCount != 1 && componentCount != 3) {
+                throw new NotSupportedException(SupportedImageMessage + " JPEG component count is not supported for PDF embedding.");
+            }
             return new PreparedImage((byte[])data.Clone(), sourceInfo, sourceInfo.Format, wasTranscoded: false);
         }
 
