@@ -918,6 +918,29 @@ public class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void RenderPage_DiagnosesVisibleUnsupportedPatternedImageMaskWithOffsetCropBox() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 320 150 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 q 500 100 0 700 0 0 cm /Im1 Do Q",
+            glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
+            pageWidth: 440D,
+            pageHeight: 300D,
+            pageDictionaryEntries: "/CropBox [100 50 340 250]",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.DoesNotContain(drawing.Elements, element => element is OfficeDrawingEffectGroup);
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForUnsupportedOuterShadingOnImageMaskGlyph() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
@@ -1034,6 +1057,7 @@ public class PdfType3UncoloredPatternTests {
         string formDictionaryEntries = "",
         string catalogEntries = "",
         string pageResourceEntries = "",
+        string pageDictionaryEntries = "",
         string patternResourceEntries = "/P1 7 0 R",
         double pageWidth = 240D,
         double pageHeight = 200D,
@@ -1046,7 +1070,7 @@ public class PdfType3UncoloredPatternTests {
         var objects = new List<string> {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R " + catalogEntries + " >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 " + pageWidthText + " " + pageHeightText + "] >>\nendobj",
-            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources " + pageResources + " /Contents 4 0 R >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources " + pageResources + " /Contents 4 0 R " + pageDictionaryEntries + " >>\nendobj",
             StreamObject(4, "<<", pageContent),
             "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 2 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources " + glyphResources + " >>\nendobj",
             StreamObject(6, "<<", glyphContent),

@@ -10,7 +10,16 @@ public sealed partial class PdfReadPage {
         var pageContentBudget = new PageContentBudget(this);
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
-        CollectRenderCapabilityDiagnostics(GetContentStreamContent(pageContentBudget), resources, diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, 0);
+        CollectRenderCapabilityDiagnostics(
+            GetContentStreamContent(pageContentBudget),
+            resources,
+            diagnostics,
+            seen,
+            activeForms,
+            pageContentBudget,
+            type3GlyphBudget,
+            0,
+            GetVisualPageTransform());
         CollectAnnotationCapabilityDiagnostics(diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget);
         return diagnostics.Count == 0 ? Array.Empty<PdfRenderCapabilityDiagnostic>() : diagnostics.AsReadOnly();
     }
@@ -82,8 +91,8 @@ public sealed partial class PdfReadPage {
         if (invokedShadings.Count > 0 || invokedPatterns.Count > 0) {
             _ = PdfPageContentVisualParser.Parse(
                 WrapContentWithTransform(content, initialTransform ?? Matrix2D.Identity),
-                GetPageSize().Width,
-                GetPageSize().Height,
+                GetVisualPageSize().Width,
+                GetVisualPageSize().Height,
                 GetGraphicsStateResources(resources),
                 GetColorSpaceResources(resources),
                 GetShadingResources(resources),
@@ -171,7 +180,7 @@ public sealed partial class PdfReadPage {
         IReadOnlyList<PdfPageXObjectInvocation> discoveredXObjects = PdfPageXObjectInvocationParser.Parse(
             content,
             initialTransform,
-            GetPageSize().Height,
+            GetVisualPageSize().Height,
             GetGraphicsStateResources(resources),
             colorSpaces,
             GetOptionalContentVisibility(resources),
@@ -211,7 +220,7 @@ public sealed partial class PdfReadPage {
         IReadOnlyList<PdfPageXObjectInvocation> resolvedXObjects = PdfPageXObjectInvocationParser.Parse(
             content,
             initialTransform,
-            GetPageSize().Height,
+            GetVisualPageSize().Height,
             GetGraphicsStateResources(resources),
             colorSpaces,
             GetOptionalContentVisibility(resources),
@@ -305,7 +314,7 @@ public sealed partial class PdfReadPage {
             _ = PdfPageXObjectInvocationParser.Parse(
                 content,
                 programTransform,
-                GetPageSize().Height,
+                GetVisualPageSize().Height,
                 GetGraphicsStateResources(resources),
                 colorSpaces,
                 GetOptionalContentVisibility(resources),
@@ -334,8 +343,8 @@ public sealed partial class PdfReadPage {
             bool usesUnsupportedInheritedShadingPlacement = false;
             _ = PdfPageContentVisualParser.Parse(
                 content,
-                GetPageSize().Width,
-                GetPageSize().Height,
+                GetVisualPageSize().Width,
+                GetVisualPageSize().Height,
                 GetGraphicsStateResources(resources),
                 colorSpaces,
                 GetShadingResources(resources),
@@ -410,7 +419,7 @@ public sealed partial class PdfReadPage {
             foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                          content,
                          programTransform,
-                         GetPageSize().Height,
+                         GetVisualPageSize().Height,
                          GetGraphicsStateResources(resources),
                          colorSpaces,
                          GetOptionalContentVisibility(resources),
@@ -606,7 +615,7 @@ public sealed partial class PdfReadPage {
         CollectImageColorSpaceCapabilityDiagnostic(imageDictionary, resources, diagnostics, seen, invocation.Name);
         if (image == null || !image.IsImageFile || (requireImageMask && !image.IsImageMask)) return false;
         if (requireImageMask && inheritedFillPattern.HasValue) {
-            (double Width, double Height) pageSize = GetPageSize();
+            (double Width, double Height) pageSize = GetVisualPageSize();
             Type3PatternImageMaskDrawingResult result = TryPrepareInheritedPatternImageMaskDrawing(
                 inheritedFillPattern,
                 placement,
