@@ -5,8 +5,11 @@ using OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.OpenDocument;
 
 public static partial class PowerPointOpenDocumentConversionExtensions {
-    private static int ApplyOdpParagraphLayout(OdpParagraph source, PowerPointParagraph target) {
-        int unsupported = 0;
+    private static int ApplyOdpParagraphLayout(
+        OdpParagraph source,
+        PowerPointParagraph target,
+        ref int unsupportedWritingModes) {
+        int unsupportedMeasurements = 0;
         string? writingMode = source.WritingMode;
         if (string.Equals(writingMode, "rl", StringComparison.OrdinalIgnoreCase)
             || string.Equals(writingMode, "rl-tb", StringComparison.OrdinalIgnoreCase)) {
@@ -14,6 +17,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         } else if (string.Equals(writingMode, "lr", StringComparison.OrdinalIgnoreCase)
             || string.Equals(writingMode, "lr-tb", StringComparison.OrdinalIgnoreCase)) {
             target.RightToLeft = false;
+        } else if (!string.IsNullOrWhiteSpace(writingMode)) {
+            unsupportedWritingModes++;
         }
 
         if (source.LineHeight.HasValue) {
@@ -28,10 +33,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             } else if (source.LineHeight.Value.TryToPoints(out double points) && points >= 0D) {
                 target.LineSpacingPoints = points;
             } else {
-                unsupported++;
+                unsupportedMeasurements++;
             }
         }
-        return unsupported;
+        return unsupportedMeasurements;
     }
 
     private static void ApplyPowerPointParagraphLayout(PowerPointParagraph source, OdpParagraph target) {

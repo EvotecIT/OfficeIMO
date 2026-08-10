@@ -175,7 +175,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int notes = 0, transitions = 0, unsupportedTransitions = 0, unsupportedShapes = 0, unsupportedPictures = 0, transformedShapes = 0;
         int listParagraphs = 0, approximatedRuns = 0, unsupportedHyperlinks = 0, skippedBasicFormatting = 0, skippedNotes = 0, noteContainers = 0;
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
-        int unsupportedWritingModes = CountUnsupportedWritingModes(source);
+        int unsupportedWritingModes = 0;
         var pendingInternalLinks = new List<(PowerPointTextRun Run, int SlideIndex)>();
         foreach (OdpSlide sourceSlide in source.Slides) {
             PowerPointSlide targetSlide = target.AddSlide();
@@ -205,7 +205,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         paragraphTexts => converted.SetParagraphs(paragraphTexts), source.Slides,
                         pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
                         ref externalHyperlinks, ref unsupportedHyperlinks, ref approximatedRuns,
-                        ref skippedBasicFormatting, ref unsupportedMeasurements);
+                        ref skippedBasicFormatting, ref unsupportedWritingModes, ref unsupportedMeasurements);
                     textBoxes++;
                 } else if (shape is OdpImage image) {
                     if (!effective.IncludeImages) {
@@ -260,7 +260,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                                 paragraphTexts => converted.GetCell(row, column).SetParagraphs(paragraphTexts), source.Slides,
                                 pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
                                 ref externalHyperlinks, ref unsupportedHyperlinks, ref approximatedRuns,
-                                ref skippedBasicFormatting, ref unsupportedMeasurements);
+                                ref skippedBasicFormatting, ref unsupportedWritingModes, ref unsupportedMeasurements);
                             if (cell.RowSpan > 1 || cell.ColumnSpan > 1) merges.Add((row, column, cell.RowSpan, cell.ColumnSpan));
                         }
                     }
@@ -310,7 +310,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         paragraphTexts => targetSlide.Notes.SetParagraphs(paragraphTexts), source.Slides,
                         pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
                         ref externalHyperlinks, ref unsupportedHyperlinks, ref approximatedRuns,
-                        ref skippedBasicFormatting, ref unsupportedMeasurements);
+                        ref skippedBasicFormatting, ref unsupportedWritingModes, ref unsupportedMeasurements);
                     notes++;
                 }
             } else if (!effective.IncludeSpeakerNotes && sourceSlide.SpeakerNotes != null &&

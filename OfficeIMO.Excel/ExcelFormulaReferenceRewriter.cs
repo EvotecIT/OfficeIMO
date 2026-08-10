@@ -41,6 +41,7 @@ namespace OfficeIMO.Excel {
             if (formula == null) throw new ArgumentNullException(nameof(formula));
             if (start < 0 || start >= formula.Length) return false;
             if (start > 0 && IsReferenceIdentifierPart(formula[start - 1])) return false;
+            if (!CanStartReference(formula, start)) return false;
 
             int index = start;
             bool quotedQualifier = false;
@@ -185,6 +186,14 @@ namespace OfficeIMO.Excel {
 
         private static bool IsReferenceIdentifierPart(char value) =>
             char.IsLetterOrDigit(value) || value == '_' || value == '.' || value == '\\';
+
+        private static bool CanStartReference(string formula, int start) {
+            char value = formula[start];
+            if (value == '\'' || value == '[' || value == '_' || char.IsLetterOrDigit(value)) return true;
+            if (value != '$' || start + 1 >= formula.Length) return false;
+            char next = formula[start + 1];
+            return char.IsLetterOrDigit(next);
+        }
 
         /// <summary>Returns syntax-validated references with their exact source spans.</summary>
         internal static IReadOnlyList<ExcelFormulaReferenceCandidate> FindReferences(string formula) {

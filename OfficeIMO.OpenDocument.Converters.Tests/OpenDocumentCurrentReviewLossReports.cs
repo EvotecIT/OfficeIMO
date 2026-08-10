@@ -280,6 +280,25 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
+    public void OdpVerticalWritingModesAreReportedAcrossConvertedParagraphOwners() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpSlide slide = source.AddSlide("Vertical owners");
+        slide.AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2))
+            .AddParagraph("Text box").WritingMode = "tb-rl";
+        slide.AddTable(OdfRect.FromCentimeters(1, 4, 8, 2), 1, 1)
+            .Cell(0, 0).Paragraphs[0].WritingMode = "tb-lr";
+        slide.GetOrCreateSpeakerNotes().AddParagraph("Note").WritingMode = "tb-rl";
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "writing-mode"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Count == 3);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+    }
+
+    [Fact]
     public void OdtFontSizesFinerThanHalfAPointAreOmittedAndReported() {
         OdtDocument source = OdtDocument.Create();
         OdtSpan span = source.AddParagraph().AddSpan("Quarter point");
