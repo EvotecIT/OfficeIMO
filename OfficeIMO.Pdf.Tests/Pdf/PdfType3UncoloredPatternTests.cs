@@ -732,6 +732,28 @@ public class PdfType3UncoloredPatternTests {
         Assert.True(groups[1].Transform.OffsetX - groups[0].Transform.OffsetX > 1000D);
     }
 
+    [Theory]
+    [InlineData("q 500 0 0 700 10000 0 cm /Im1 Do Q")]
+    [InlineData("q 0 0 0 0 re W n 500 0 0 700 0 0 cm /Im1 Do Q")]
+    public void RenderPage_SkipsInvisiblePatternedImageMaskWithoutRejectingVisibleGlyphContent(string invisibleImageContent) {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 0 0 250 700 re f " + invisibleImageContent,
+            glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(22, 96));
+    }
+
     [Fact]
     public void RenderPage_KeepsBlendedPatternedImageMaskGroupsCropped() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
