@@ -112,8 +112,12 @@ public static class OfficeVisualPlacementExtensions {
             PowerPointUnits.FromPoints(conversion.WidthPoints),
             PowerPointUnits.FromPoints(conversion.HeightPoints));
         picture.Name = ResolveTitle(conversion);
-        picture.Title = ResolveTitle(conversion);
-        picture.Description = conversion.AlternativeText;
+        if (conversion.IsDecorative) {
+            picture.Decorative = true;
+        } else {
+            picture.Title = ResolveTitle(conversion);
+            picture.Description = conversion.AlternativeText;
+        }
         return picture;
     }
 
