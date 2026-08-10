@@ -18,7 +18,8 @@ public sealed partial class PdfReadPage {
         TextContentParser.TextOutputBudget? textOutputBudget,
         PageContentBudget pageContentBudget,
         int contentNestingDepth,
-        Action<PdfImagePlacement, PdfExtractedImage>? imageVisitor) {
+        Action<PdfImagePlacement, PdfExtractedImage>? imageVisitor,
+        PdfContentOrderKey? contentOrderPrefix) {
         if (invocation.Glyphs.Count == 0) return false;
 
         for (int i = 0; i < invocation.Glyphs.Count; i++) {
@@ -40,6 +41,7 @@ public sealed partial class PdfReadPage {
             _ = type3.TryGetGlyph(glyph.CharacterCode, out PdfStream glyphStream);
             if (!activeType3Glyphs.Add(glyphStream)) return false;
             try {
+                PdfContentOrderKey glyphOrderPrefix = (contentOrderPrefix ?? PdfContentOrderKey.Root).Append(i);
                 var localPrimitives = new List<PdfPageVisualPrimitive>();
                 var localImages = new List<(PdfImagePlacement Placement, PdfExtractedImage Image)>();
                 var localImagePlacements = new List<PdfImagePlacement>();
@@ -82,10 +84,12 @@ public sealed partial class PdfReadPage {
                         includeTilingPatterns: includeTilingPatterns,
                         retainPrimitiveData: retainPrimitiveData,
                         requireSupportedType3Content: true,
+                        requireNestedType3Uncolored: type3.IsUncolored,
                         type3ImageVisitor: (placement, image) => localImages.Add((placement, image)),
                         tilingPatternResourceCache: tilingPatternResourceCache,
                         textOutputBudget: textOutputBudget,
-                        pageContentBudget: pageContentBudget);
+                        pageContentBudget: pageContentBudget,
+                        contentOrderPrefix: glyphOrderPrefix);
                 } catch (Exception exception) when (IsRecoverableType3ProjectionFailure(exception)) {
                     return false;
                 }
@@ -107,9 +111,14 @@ public sealed partial class PdfReadPage {
                     1D,
                     initialClipPath: glyph.ClipPath,
                     contentNestingDepth: contentNestingDepth + 1,
-                    pageContentBudget: pageContentBudget);
+                    pageContentBudget: pageContentBudget,
+                    contentOrderPrefix: glyphOrderPrefix);
                 if (type3.IsUncolored) {
-                    if (localImages.Count > 0) return false;
+                    for (int imageIndex = 0; imageIndex < localImages.Count; imageIndex++) {
+                        (PdfImagePlacement Placement, PdfExtractedImage Image) image = localImages[imageIndex];
+                        if (!image.Image.IsImageMask) return false;
+                        localImages[imageIndex] = (image.Placement.WithImageMaskColor(glyph.FillColor), image.Image);
+                    }
                     for (int primitiveIndex = 0; primitiveIndex < localPrimitives.Count; primitiveIndex++) {
                         localPrimitives[primitiveIndex] = localPrimitives[primitiveIndex].WithPaintColors(glyph.FillColor, glyph.StrokeColor);
                     }
@@ -182,20 +191,18 @@ public sealed partial class PdfReadPage {
         double paintOrderLimit,
         List<PdfPageVisualPrimitive> targetPrimitives,
         List<(PdfImagePlacement Placement, PdfExtractedImage Image)> targetImages) {
-        var primitiveOrders = new HashSet<double>();
-        for (int i = 0; i < localPrimitives.Count; i++) primitiveOrders.Add(localPrimitives[i].PaintOrder);
-        for (int i = 0; i < localImages.Count; i++) {
-            if (primitiveOrders.Contains(localImages[i].Placement.PaintOrder)) return false;
-        }
-
         var items = new List<Type3GlyphPaintItem>(localPrimitives.Count + localImages.Count);
         for (int i = 0; i < localPrimitives.Count; i++) {
-            items.Add(new Type3GlyphPaintItem(localPrimitives[i].PaintOrder, false, i, i));
+            items.Add(new Type3GlyphPaintItem(localPrimitives[i].PaintOrder, localPrimitives[i].ContentOrderKey, false, i, i));
         }
         for (int i = 0; i < localImages.Count; i++) {
-            items.Add(new Type3GlyphPaintItem(localImages[i].Placement.PaintOrder, true, i, localPrimitives.Count + i));
+            items.Add(new Type3GlyphPaintItem(localImages[i].Placement.PaintOrder, localImages[i].Placement.ContentOrderKey, true, i, localPrimitives.Count + i));
         }
         items.Sort(static (left, right) => {
+            if (left.ContentOrderKey != null && right.ContentOrderKey != null) {
+                int contentOrder = left.ContentOrderKey.CompareTo(right.ContentOrderKey);
+                if (contentOrder != 0) return contentOrder;
+            }
             int order = left.PaintOrder.CompareTo(right.PaintOrder);
             return order != 0 ? order : left.Sequence.CompareTo(right.Sequence);
         });
@@ -221,14 +228,16 @@ public sealed partial class PdfReadPage {
     }
 
     private readonly struct Type3GlyphPaintItem {
-        internal Type3GlyphPaintItem(double paintOrder, bool isImage, int index, int sequence) {
+        internal Type3GlyphPaintItem(double paintOrder, PdfContentOrderKey? contentOrderKey, bool isImage, int index, int sequence) {
             PaintOrder = paintOrder;
+            ContentOrderKey = contentOrderKey;
             IsImage = isImage;
             Index = index;
             Sequence = sequence;
         }
 
         internal double PaintOrder { get; }
+        internal PdfContentOrderKey? ContentOrderKey { get; }
         internal bool IsImage { get; }
         internal int Index { get; }
         internal int Sequence { get; }

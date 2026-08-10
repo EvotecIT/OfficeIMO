@@ -36,7 +36,9 @@ internal readonly struct PdfPageVisualPrimitive {
         PdfPageClipPath? clipPath,
         double paintOrder = 0D,
         PdfPageTilingPatternPaint? fillTilingPattern = null,
-        PdfPageTilingPatternPaint? strokeTilingPattern = null) {
+        PdfPageTilingPatternPaint? strokeTilingPattern = null,
+        int sourceOperatorIndex = 0,
+        PdfContentOrderKey? contentOrderKey = null) {
         Kind = kind;
         X = x;
         Y = y;
@@ -64,6 +66,8 @@ internal readonly struct PdfPageVisualPrimitive {
         PaintOrder = paintOrder;
         FillTilingPattern = fillTilingPattern;
         StrokeTilingPattern = strokeTilingPattern;
+        SourceOperatorIndex = sourceOperatorIndex;
+        ContentOrderKey = contentOrderKey;
     }
 
     public static PdfPageVisualPrimitive Rectangle(double x, double y, double width, double height, OfficeColor? fillColor, OfficeColor? strokeColor, double strokeWidth, OfficeStrokeDashStyle strokeDashStyle, OfficeStrokeLineCap? strokeLineCap, OfficeStrokeLineJoin? strokeLineJoin, double? fillOpacity, double? strokeOpacity, PdfPageClipPath? clipPath, double paintOrder = 0D) =>
@@ -189,6 +193,10 @@ internal readonly struct PdfPageVisualPrimitive {
 
     public PdfPageTilingPatternPaint? StrokeTilingPattern { get; }
 
+    internal int SourceOperatorIndex { get; }
+
+    internal PdfContentOrderKey? ContentOrderKey { get; }
+
     internal PdfPageVisualPrimitive WithPaintColors(OfficeColor fillColor, OfficeColor strokeColor) =>
         new PdfPageVisualPrimitive(
             Kind,
@@ -215,7 +223,11 @@ internal readonly struct PdfPageVisualPrimitive {
             StrokeOpacity,
             FillRule,
             ClipPath,
-            PaintOrder);
+            PaintOrder,
+            FillTilingPattern,
+            StrokeTilingPattern,
+            SourceOperatorIndex,
+            ContentOrderKey);
 
     internal PdfPageVisualPrimitive WithPaintOrder(double paintOrder) =>
         new PdfPageVisualPrimitive(
@@ -245,7 +257,27 @@ internal readonly struct PdfPageVisualPrimitive {
             ClipPath,
             paintOrder,
             FillTilingPattern,
-            StrokeTilingPattern);
+            StrokeTilingPattern,
+            SourceOperatorIndex,
+            ContentOrderKey);
+
+    internal PdfPageVisualPrimitive WithSourceOperatorIndex(int sourceOperatorIndex) =>
+        new PdfPageVisualPrimitive(
+            Kind, X, Y, Width, Height, X1, Y1, X2, Y2, PathCommands,
+            FillColor, FillGradient, FillRadialGradient,
+            StrokeColor, StrokeGradient, StrokeRadialGradient,
+            StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin,
+            FillOpacity, StrokeOpacity, FillRule, ClipPath, PaintOrder,
+            FillTilingPattern, StrokeTilingPattern, sourceOperatorIndex, ContentOrderKey);
+
+    internal PdfPageVisualPrimitive WithContentOrderKey(PdfContentOrderKey contentOrderKey) =>
+        new PdfPageVisualPrimitive(
+            Kind, X, Y, Width, Height, X1, Y1, X2, Y2, PathCommands,
+            FillColor, FillGradient, FillRadialGradient,
+            StrokeColor, StrokeGradient, StrokeRadialGradient,
+            StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin,
+            FillOpacity, StrokeOpacity, FillRule, ClipPath, PaintOrder,
+            FillTilingPattern, StrokeTilingPattern, SourceOperatorIndex, contentOrderKey);
 
     private static void Include(OfficePoint point, ref bool hasPoint, ref double left, ref double top, ref double right, ref double bottom) {
         if (!hasPoint) {

@@ -103,6 +103,7 @@ internal static class PdfPageContentVisualParser {
         private OfficeColor? _strokeTilingTint;
         private PdfPageColorSpace? _strokePatternBaseColorSpace;
         private int _currentSubpathStartIndex = -1;
+        private int _currentOperatorIndex;
         private bool _currentSubpathHasDraw;
         private readonly int _maxOperations;
         private readonly int _maxNestingDepth;
@@ -203,6 +204,7 @@ internal static class PdfPageContentVisualParser {
                 operation => {
                     _args.Clear();
                     _args.AddRange(operation.Operands);
+                    _currentOperatorIndex = operation.OperatorOffset;
                     ApplyOperator(
                         operation.Name,
                         GetPaintOrder(operation.OperatorOffset),
@@ -217,6 +219,7 @@ internal static class PdfPageContentVisualParser {
         }
 
         private void AddPrimitive(PdfPageVisualPrimitive primitive) {
+            primitive = primitive.WithSourceOperatorIndex(_currentOperatorIndex);
             if (_primitiveVisitor != null) {
                 _primitiveVisitor(primitive);
             } else {

@@ -1,0 +1,28 @@
+namespace OfficeIMO.Pdf;
+
+internal sealed class PdfContentOrderKey : IComparable<PdfContentOrderKey> {
+    private readonly int[] _segments;
+
+    private PdfContentOrderKey(int[] segments) {
+        _segments = segments;
+    }
+
+    internal static PdfContentOrderKey Root { get; } = new PdfContentOrderKey(Array.Empty<int>());
+
+    internal PdfContentOrderKey Append(int segment) {
+        var segments = new int[_segments.Length + 1];
+        Array.Copy(_segments, segments, _segments.Length);
+        segments[_segments.Length] = segment;
+        return new PdfContentOrderKey(segments);
+    }
+
+    public int CompareTo(PdfContentOrderKey? other) {
+        if (other == null) return 1;
+        int commonLength = Math.Min(_segments.Length, other._segments.Length);
+        for (int i = 0; i < commonLength; i++) {
+            int comparison = _segments[i].CompareTo(other._segments[i]);
+            if (comparison != 0) return comparison;
+        }
+        return _segments.Length.CompareTo(other._segments.Length);
+    }
+}

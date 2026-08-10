@@ -26,7 +26,8 @@ public sealed class PdfImagePlacement {
         double? imageOpacity = null,
         PdfStream? inlineImageStream = null,
         PdfDictionary? inlineImageResources = null,
-        double paintOrder = 0D) {
+        double paintOrder = 0D,
+        PdfContentOrderKey? contentOrderKey = null) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -47,6 +48,7 @@ public sealed class PdfImagePlacement {
         InlineImageStream = inlineImageStream;
         InlineImageResources = inlineImageResources;
         PaintOrder = paintOrder;
+        ContentOrderKey = contentOrderKey;
     }
 
     /// <summary>One-based source page number containing the image invocation.</summary>
@@ -103,11 +105,20 @@ public sealed class PdfImagePlacement {
 
     internal double PaintOrder { get; }
 
+    internal PdfContentOrderKey? ContentOrderKey { get; }
+
     internal PdfImagePlacement WithPaintOrder(double paintOrder) =>
         Copy(ImageMaskColor, paintOrder);
 
     internal PdfImagePlacement WithImageMaskColor(OfficeColor imageMaskColor) =>
         Copy(imageMaskColor, PaintOrder);
+
+    internal PdfImagePlacement WithContentOrderKey(PdfContentOrderKey contentOrderKey) =>
+        new PdfImagePlacement(
+            PageNumber, ResourceName, ObjectNumber, DirectStreamIdentity,
+            A, B, C, D, E, F, X, Y, Width, Height, ClipPath,
+            ImageMaskColor, ImageOpacity, InlineImageStream, InlineImageResources,
+            PaintOrder, contentOrderKey);
 
     private PdfImagePlacement Copy(OfficeColor imageMaskColor, double paintOrder) =>
         new PdfImagePlacement(
@@ -130,7 +141,8 @@ public sealed class PdfImagePlacement {
             ImageOpacity,
             InlineImageStream,
             InlineImageResources,
-            paintOrder);
+            paintOrder,
+            ContentOrderKey);
 
     /// <summary>True when the placement matrix is axis-aligned within a small tolerance.</summary>
     public bool IsAxisAligned => Math.Abs(B) <= 0.001D && Math.Abs(C) <= 0.001D;

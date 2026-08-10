@@ -418,10 +418,12 @@ public sealed partial class PdfReadPage {
         bool includeTilingPatterns = true,
         bool retainPrimitiveData = true,
         bool requireSupportedType3Content = false,
+        bool requireNestedType3Uncolored = false,
         Action<PdfImagePlacement, PdfExtractedImage>? type3ImageVisitor = null,
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
-        PageContentBudget? pageContentBudget = null) {
+        PageContentBudget? pageContentBudget = null,
+        PdfContentOrderKey? contentOrderPrefix = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         activeType3Glyphs ??= new HashSet<PdfStream>();
@@ -460,6 +462,9 @@ public sealed partial class PdfReadPage {
                 patternInvocationVisitor: name => invokedPatternNames.Add(name));
         }
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
+        Action<PdfPageVisualPrimitive> currentPrimitiveVisitor = contentOrderPrefix == null
+            ? primitiveVisitor
+            : primitive => primitiveVisitor(primitive.WithContentOrderKey(contentOrderPrefix.Append(primitive.SourceOperatorIndex - transformedContentOffset)));
         _ = PdfPageContentVisualParser.Parse(
             transformedContent,
             pageWidth,
@@ -490,7 +495,7 @@ public sealed partial class PdfReadPage {
             patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
-            primitiveVisitor: primitiveVisitor,
+            primitiveVisitor: currentPrimitiveVisitor,
             retainPrimitiveData: retainPrimitiveData,
             scaleStrokeWidthWithTransform: requireSupportedType3Content);
 
@@ -521,6 +526,15 @@ public sealed partial class PdfReadPage {
                       fonts: fonts,
                       fontWidthProviders: widthProviders,
                       type3TextVisitor: invocation => {
+                          if (requireNestedType3Uncolored) {
+                              for (int glyphIndex = 0; glyphIndex < invocation.Glyphs.Count; glyphIndex++) {
+                                  if (invocation.Glyphs[glyphIndex].Font.Type3 is not PdfType3FontResource nestedType3 ||
+                                      !nestedType3.IsUncolored) {
+                                      type3GlyphBudget.RecordFailure();
+                                      return false;
+                                  }
+                              }
+                          }
                           bool rendered = RenderType3TextInvocation(
                               invocation,
                               pageWidth,
@@ -536,7 +550,8 @@ public sealed partial class PdfReadPage {
                               textOutputBudget,
                               pageContentBudget,
                               contentNestingDepth,
-                              type3ImageVisitor);
+                              type3ImageVisitor,
+                              contentOrderPrefix?.Append(invocation.SourceOperatorIndex));
                           if (!rendered) type3GlyphBudget.RecordFailure();
                           return rendered;
                       },
@@ -566,6 +581,7 @@ public sealed partial class PdfReadPage {
                 }
                 PdfDictionary? formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
+                PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
                 string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDictionary);
                 CollectVisualPrimitivesAndForms(
                     formContent,
@@ -595,10 +611,12 @@ public sealed partial class PdfReadPage {
                     includeTilingPatterns: includeTilingPatterns,
                     retainPrimitiveData: retainPrimitiveData,
                     requireSupportedType3Content: requireSupportedType3Content,
+                    requireNestedType3Uncolored: requireNestedType3Uncolored,
                     type3ImageVisitor: type3ImageVisitor,
                     tilingPatternResourceCache: tilingPatternResourceCache,
                     textOutputBudget: textOutputBudget,
-                    pageContentBudget: pageContentBudget);
+                    pageContentBudget: pageContentBudget,
+                    contentOrderPrefix: formOrderPrefix);
             } finally {
                 activeForms.Remove(formStream);
             }

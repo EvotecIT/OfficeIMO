@@ -611,7 +611,8 @@ public sealed partial class PdfReadPage {
         double paintOrderOffset = 0D,
         PdfPageClipPath? initialClipPath = null,
         int contentNestingDepth = 0,
-        PageContentBudget? pageContentBudget = null) {
+        PageContentBudget? pageContentBudget = null,
+        PdfContentOrderKey? contentOrderPrefix = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         foreach (var invocation in PdfPageXObjectInvocationParser.Parse(
@@ -632,8 +633,9 @@ public sealed partial class PdfReadPage {
                       maxNestingDepth: _limits.MaxContentNestingDepth,
                       maxOperands: _limits.MaxContentOperands)) {
             Matrix2D invocationTransform = invocation.Transform;
+            PdfContentOrderKey? invocationOrder = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
             if (invocation.InlineImage != null) {
-                placements.Add(BuildImagePlacement(
+                PdfImagePlacement placement = BuildImagePlacement(
                     pageNumber,
                     invocation.InlineImage.ResourceName,
                     0,
@@ -644,12 +646,14 @@ public sealed partial class PdfReadPage {
                     invocation.FillOpacity,
                     invocation.InlineImage.Stream,
                     resources,
-                    invocation.PaintOrder));
+                    invocation.PaintOrder);
+                placements.Add(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
                 continue;
             }
 
             if (TryGetImageXObject(resources, invocation.Name, out int imageObjectNumber, out int directStreamIdentity)) {
-                placements.Add(BuildImagePlacement(pageNumber, invocation.Name, imageObjectNumber, directStreamIdentity, invocationTransform, invocation.ClipPath, invocation.FillColor, invocation.FillOpacity, paintOrder: invocation.PaintOrder));
+                PdfImagePlacement placement = BuildImagePlacement(pageNumber, invocation.Name, imageObjectNumber, directStreamIdentity, invocationTransform, invocation.ClipPath, invocation.FillColor, invocation.FillOpacity, paintOrder: invocation.PaintOrder);
+                placements.Add(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
                 continue;
             }
 
@@ -681,7 +685,8 @@ public sealed partial class PdfReadPage {
                     paintOrderScale * 0.000000001D,
                     initialClipPath: invocation.ClipPath,
                     contentNestingDepth: contentNestingDepth + 1,
-                    pageContentBudget: pageContentBudget);
+                    pageContentBudget: pageContentBudget,
+                    contentOrderPrefix: invocationOrder);
             } finally {
                 activeForms.Remove(formStream);
             }

@@ -3,14 +3,17 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal readonly struct PdfPageType3TextInvocation {
-    internal PdfPageType3TextInvocation(IReadOnlyList<PdfPageType3GlyphInvocation> glyphs, double paintOrder) {
+    internal PdfPageType3TextInvocation(IReadOnlyList<PdfPageType3GlyphInvocation> glyphs, double paintOrder, int sourceOperatorIndex) {
         Glyphs = glyphs;
         PaintOrder = paintOrder;
+        SourceOperatorIndex = sourceOperatorIndex;
     }
 
     internal IReadOnlyList<PdfPageType3GlyphInvocation> Glyphs { get; }
 
     internal double PaintOrder { get; }
+
+    internal int SourceOperatorIndex { get; }
 }
 
 internal readonly struct PdfPageType3GlyphInvocation {

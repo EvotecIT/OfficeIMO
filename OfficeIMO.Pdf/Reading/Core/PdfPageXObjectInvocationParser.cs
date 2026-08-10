@@ -116,6 +116,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Action<PdfPageGraphicsStateResource>? _graphicsStateVisitor;
         private string _textFont = string.Empty;
         private double _currentPaintOrder;
+        private int _currentOperatorIndex;
 
         public Parser(
             string content,
@@ -189,6 +190,7 @@ internal static class PdfPageXObjectInvocationParser {
                     _args.Clear();
                     _args.AddRange(operation.Operands);
                     _currentInlineImage = operation.InlineImage;
+                    _currentOperatorIndex = operation.OperatorOffset;
                     ApplyOperator(
                         operation.Name,
                         GetPaintOrder(operation.OperatorOffset),
@@ -273,7 +275,7 @@ internal static class PdfPageXObjectInvocationParser {
 
         private void PublishType3GlyphBatch(List<PdfPageType3GlyphInvocation>? glyphs) {
             if (glyphs != null && glyphs.Count > 0 &&
-                _type3TextVisitor!(new PdfPageType3TextInvocation(glyphs, _currentPaintOrder))) {
+                _type3TextVisitor!(new PdfPageType3TextInvocation(glyphs, _currentPaintOrder, _currentOperatorIndex))) {
                 _renderedType3PaintOrders?.Add(_currentPaintOrder);
             }
         }
@@ -743,7 +745,7 @@ internal static class PdfPageXObjectInvocationParser {
                         _args.Count >= 1 &&
                         _args[_args.Count - 1] is string name &&
                         !string.IsNullOrEmpty(name)) {
-                        _invocations.Add(new PdfPageXObjectInvocation(name, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder));
+                        _invocations.Add(new PdfPageXObjectInvocation(name, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder, _currentOperatorIndex));
                     }
 
                     break;
@@ -753,7 +755,7 @@ internal static class PdfPageXObjectInvocationParser {
                         var inlineImage = new PdfPageInlineImage(
                             "__inline" + (++_inlineImageIndex).ToString(CultureInfo.InvariantCulture),
                             stream);
-                        _invocations.Add(new PdfPageXObjectInvocation(inlineImage, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder));
+                        _invocations.Add(new PdfPageXObjectInvocation(inlineImage, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder, _currentOperatorIndex));
                     }
 
                     break;
@@ -1313,7 +1315,8 @@ internal readonly struct PdfPageXObjectInvocation {
         OfficeStrokeDashStyle? strokeDashStyle,
         OfficeStrokeLineCap? strokeLineCap,
         OfficeStrokeLineJoin? strokeLineJoin,
-        double paintOrder = 0D) {
+        double paintOrder = 0D,
+        int sourceOperatorIndex = 0) {
         Name = name;
         InlineImage = null;
         Transform = transform;
@@ -1329,6 +1332,7 @@ internal readonly struct PdfPageXObjectInvocation {
         StrokeLineCap = strokeLineCap;
         StrokeLineJoin = strokeLineJoin;
         PaintOrder = paintOrder;
+        SourceOperatorIndex = sourceOperatorIndex;
     }
 
     public PdfPageXObjectInvocation(
@@ -1345,7 +1349,8 @@ internal readonly struct PdfPageXObjectInvocation {
         OfficeStrokeDashStyle? strokeDashStyle,
         OfficeStrokeLineCap? strokeLineCap,
         OfficeStrokeLineJoin? strokeLineJoin,
-        double paintOrder = 0D) {
+        double paintOrder = 0D,
+        int sourceOperatorIndex = 0) {
         Name = inlineImage.ResourceName;
         InlineImage = inlineImage;
         Transform = transform;
@@ -1361,6 +1366,7 @@ internal readonly struct PdfPageXObjectInvocation {
         StrokeLineCap = strokeLineCap;
         StrokeLineJoin = strokeLineJoin;
         PaintOrder = paintOrder;
+        SourceOperatorIndex = sourceOperatorIndex;
     }
 
     public string Name { get; }
@@ -1392,4 +1398,6 @@ internal readonly struct PdfPageXObjectInvocation {
     public OfficeStrokeLineJoin? StrokeLineJoin { get; }
 
     public double PaintOrder { get; }
+
+    internal int SourceOperatorIndex { get; }
 }

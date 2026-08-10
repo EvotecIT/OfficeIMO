@@ -182,11 +182,11 @@ public sealed partial class PdfReadPage {
                          fonts: fonts,
                          fontWidthProviders: ResourceResolver.GetFontWidthProvidersForResources(resources, _objects),
                          type3TextVisitor: nested => {
-                             if (requireImageMask) supported = false;
                              for (int index = 0; index < nested.Glyphs.Count; index++) {
                                  PdfPageType3GlyphInvocation glyph = nested.Glyphs[index];
                                  if (glyph.Font.Type3 is not PdfType3FontResource nestedType3 ||
                                      !nestedType3.TryGetGlyph(glyph.CharacterCode, out PdfStream nestedStream) ||
+                                     (requireImageMask && !nestedType3.IsUncolored) ||
                                      !CanProjectType3GlyphProgram(
                                          nestedStream,
                                          nestedType3.Resources,
@@ -294,8 +294,8 @@ public sealed partial class PdfReadPage {
         if (requiresOptionalCodec) {
             AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.OptionalImageCodecId, invocation.Name);
         }
-        if (image == null || !image.IsImageFile || (requireImageMask && !image.IsImageMask)) return false;
         CollectImageColorSpaceCapabilityDiagnostic(imageDictionary, resources, diagnostics, seen, invocation.Name);
+        if (image == null || !image.IsImageFile || (requireImageMask && !image.IsImageMask)) return false;
         return true;
     }
 
