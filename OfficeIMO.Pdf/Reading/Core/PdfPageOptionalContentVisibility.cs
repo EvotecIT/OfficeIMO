@@ -79,7 +79,17 @@ internal sealed class PdfPageOptionalContentVisibility {
     private bool TryEvaluateInlineVisibilityExpression(string expression, out bool visible) {
         visible = false;
         int index = 0;
-        return TryEvaluateInlineVisibilityExpression(expression, ref index, out visible);
+        SkipInlineWhitespace(expression, ref index);
+        if (index >= expression.Length || expression[index] != '[') {
+            return false;
+        }
+
+        if (!TryEvaluateInlineVisibilityExpression(expression, ref index, out visible)) {
+            return false;
+        }
+
+        SkipInlineWhitespace(expression, ref index);
+        return index == expression.Length;
     }
 
     private bool TryEvaluateInlineVisibilityExpression(string expression, ref int index, out bool visible) {
@@ -116,18 +126,22 @@ internal sealed class PdfPageOptionalContentVisibility {
         switch (operatorName) {
             case "And":
                 visible = true;
+                int andOperandCount = 0;
                 while (TryReadInlineExpressionOperand(expression, ref index, out bool operandVisible)) {
                     visible &= operandVisible;
+                    andOperandCount++;
                 }
 
-                return TryCloseInlineArray(expression, ref index);
+                return andOperandCount > 0 && TryCloseInlineArray(expression, ref index);
             case "Or":
                 visible = false;
+                int orOperandCount = 0;
                 while (TryReadInlineExpressionOperand(expression, ref index, out bool operandVisible)) {
                     visible |= operandVisible;
+                    orOperandCount++;
                 }
 
-                return TryCloseInlineArray(expression, ref index);
+                return orOperandCount > 0 && TryCloseInlineArray(expression, ref index);
             case "Not":
                 if (!TryReadInlineExpressionOperand(expression, ref index, out bool nestedVisible)) {
                     return false;
@@ -161,10 +175,23 @@ internal sealed class PdfPageOptionalContentVisibility {
     }
 
     private static void SkipInlineWhitespace(string text, ref int index) {
-        while (index < text.Length && char.IsWhiteSpace(text[index])) {
-            index++;
+        while (index < text.Length) {
+            while (index < text.Length && IsInlineWhitespace(text[index])) {
+                index++;
+            }
+
+            if (index >= text.Length || text[index] != '%') {
+                return;
+            }
+
+            while (index < text.Length && text[index] != '\r' && text[index] != '\n') {
+                index++;
+            }
         }
     }
+
+    private static bool IsInlineWhitespace(char ch) =>
+        ch == '\0' || ch == '\t' || ch == '\n' || ch == '\f' || ch == '\r' || ch == ' ';
 
     private static bool TryReadInlineName(string text, ref int index, out string? name) {
         name = null;
@@ -175,7 +202,10 @@ internal sealed class PdfPageOptionalContentVisibility {
 
         index++;
         int start = index;
-        while (index < text.Length && !char.IsWhiteSpace(text[index]) && text[index] != '[' && text[index] != ']') {
+        while (index < text.Length &&
+               !IsInlineWhitespace(text[index]) &&
+               text[index] != '[' && text[index] != ']' && text[index] != '%' && text[index] != '/' &&
+               text[index] != '(' && text[index] != ')' && text[index] != '<' && text[index] != '>') {
             index++;
         }
 
@@ -183,7 +213,7 @@ internal sealed class PdfPageOptionalContentVisibility {
             return false;
         }
 
-        name = text.Substring(start, index - start);
+        name = PdfSyntax.DecodeName(text.Substring(start, index - start));
         return true;
     }
 
@@ -202,13 +232,23 @@ internal sealed class PdfPageOptionalContentVisibility {
         }
 
         SkipInlineWhitespace(text, ref index);
-        if (index >= text.Length || text[index] != 'R') {
+        if (index >= text.Length || text[index] != 'R' || !IsInlineTokenBoundary(text, index + 1)) {
             index = start;
             return false;
         }
 
         index++;
         return true;
+    }
+
+    private static bool IsInlineTokenBoundary(string text, int index) {
+        if (index >= text.Length) {
+            return true;
+        }
+
+        char ch = text[index];
+        return IsInlineWhitespace(ch) || ch == '%' || ch == '(' || ch == ')' || ch == '<' || ch == '>' ||
+            ch == '[' || ch == ']' || ch == '{' || ch == '}' || ch == '/';
     }
 
     private static bool TryReadInlineInteger(string text, ref int index, out int value) {
