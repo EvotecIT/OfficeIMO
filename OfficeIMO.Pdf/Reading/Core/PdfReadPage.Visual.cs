@@ -436,9 +436,13 @@ public sealed partial class PdfReadPage {
         PdfPageClipPath? initialClipPath = null,
         OfficeColor? initialFillColor = null,
         PdfPageColorSpace initialFillColorSpace = default,
+        PdfPagePatternSelection? initialFillPattern = null,
+        PdfPageColorSpace? initialFillPatternBaseColorSpace = null,
         double? initialFillOpacity = null,
         OfficeColor? initialStrokeColor = null,
         PdfPageColorSpace initialStrokeColorSpace = default,
+        PdfPagePatternSelection? initialStrokePattern = null,
+        PdfPageColorSpace? initialStrokePatternBaseColorSpace = null,
         double? initialStrokeOpacity = null,
         double? initialStrokeWidth = null,
         OfficeStrokeDashStyle? initialStrokeDashStyle = null,
@@ -468,6 +472,8 @@ public sealed partial class PdfReadPage {
         Dictionary<string, Func<byte[], double>> widthProviders = resources == null
             ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
             : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
+        Dictionary<string, PdfPageColorSpace> colorSpaceResources = GetColorSpaceResources(resources);
+        Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources);
         var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
         if (includeTilingPatterns) {
             _ = PdfPageXObjectInvocationParser.Parse(
@@ -475,7 +481,7 @@ public sealed partial class PdfReadPage {
                 baseTransform,
                 pageHeight,
                 GetGraphicsStateResources(resources),
-                GetColorSpaceResources(resources),
+                colorSpaceResources,
                 GetOptionalContentVisibility(resources),
                 paintOrderBase: paintOrderBase,
                 paintOrderScale: paintOrderScale,
@@ -494,7 +500,14 @@ public sealed partial class PdfReadPage {
                 maxOperations: _limits.MaxContentOperations,
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
-                patternInvocationVisitor: name => invokedPatternNames.Add(name));
+                fonts: fonts,
+                fontWidthProviders: widthProviders,
+                patternInvocationVisitor: name => invokedPatternNames.Add(name),
+                patternBaseColorSpaces: patternBaseColorSpaces,
+                initialFillPattern: initialFillPattern,
+                initialFillPatternBaseColorSpace: initialFillPatternBaseColorSpace,
+                initialStrokePattern: initialStrokePattern,
+                initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace);
         }
         Dictionary<string, PdfPageShadingPatternResource> shadingPatternResources = GetShadingPatternResources(resources);
         Dictionary<string, PdfPageTilingPatternResource>? tilingPatternResources = includeTilingPatterns
@@ -509,7 +522,7 @@ public sealed partial class PdfReadPage {
             pageWidth,
             pageHeight,
             GetGraphicsStateResources(resources),
-            GetColorSpaceResources(resources),
+            colorSpaceResources,
             GetShadingResources(resources),
             shadingPatternResources,
             tilingPatternResources,
@@ -529,7 +542,7 @@ public sealed partial class PdfReadPage {
             initialStrokeLineCap,
             initialStrokeLineJoin,
             maxOperations: _limits.MaxContentOperations,
-            patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
+            patternBaseColorSpaces: patternBaseColorSpaces,
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
             primitiveVisitor: currentPrimitiveVisitor,
@@ -541,7 +554,7 @@ public sealed partial class PdfReadPage {
                      baseTransform,
                      pageHeight,
                      GetGraphicsStateResources(resources),
-                     GetColorSpaceResources(resources),
+                     colorSpaceResources,
                       GetOptionalContentVisibility(resources),
                       paintOrderBase: paintOrderBase,
                       paintOrderScale: paintOrderScale,
@@ -608,7 +621,13 @@ public sealed partial class PdfReadPage {
                               }
                           }
                           : null,
-                      allowSupportedGraphicsEffects: requireSupportedType3Content)) {
+                      allowSupportedGraphicsEffects: requireSupportedType3Content,
+                      patternBaseColorSpaces: patternBaseColorSpaces,
+                      initialFillPattern: initialFillPattern,
+                      initialFillPatternBaseColorSpace: initialFillPatternBaseColorSpace,
+                      initialStrokePattern: initialStrokePattern,
+                      initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
+                      tilingPatterns: tilingPatternResources)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     type3GlyphBudget.RecordFailure();
@@ -641,11 +660,11 @@ public sealed partial class PdfReadPage {
                             activeForms,
                             activeType3Glyphs,
                             renderedType3PaintOrders,
-                            type3GlyphBudget,
-                            paintOrderScale,
-                            includeTilingPatterns,
-                            retainPrimitiveData,
-                            tilingPatternResourceCache,
+                              type3GlyphBudget,
+                              paintOrderScale,
+                              includeTilingPatterns,
+                              retainPrimitiveData,
+                              tilingPatternResourceCache,
                             textOutputBudget,
                             pageContentBudget,
                             contentNestingDepth,
@@ -673,9 +692,13 @@ public sealed partial class PdfReadPage {
                     initialClipPath: invocation.ClipPath,
                     initialFillColor: invocation.FillColor,
                     initialFillColorSpace: invocation.FillColorSpace,
+                    initialFillPattern: invocation.FillPattern,
+                    initialFillPatternBaseColorSpace: invocation.FillPatternBaseColorSpace,
                     initialFillOpacity: invocation.FillOpacity,
                     initialStrokeColor: invocation.StrokeColor,
                     initialStrokeColorSpace: invocation.StrokeColorSpace,
+                    initialStrokePattern: invocation.StrokePattern,
+                    initialStrokePatternBaseColorSpace: invocation.StrokePatternBaseColorSpace,
                     initialStrokeOpacity: invocation.StrokeOpacity,
                     initialStrokeWidth: invocation.StrokeWidth,
                     initialStrokeDashStyle: invocation.StrokeDashStyle,
