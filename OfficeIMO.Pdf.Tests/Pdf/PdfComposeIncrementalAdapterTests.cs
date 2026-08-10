@@ -46,13 +46,24 @@ public class PdfComposeIncrementalAdapterTests {
     [Fact]
     public void Settings_UpdateExistingExplicitPageSnapshots() {
         PdfDocument document = PdfDocument.Create(_ => { });
-        document.Compose(compose => compose.Page(page => page.Content(content => content
-            .Item(item => item.Paragraph(paragraph => paragraph.Text("LateSettingsMarker"))))));
+        document.Compose(compose => compose.Page(page => page
+            .Size(300, 400)
+            .Margin(24)
+            .Content(content => content
+                .Item(item => item.Paragraph(paragraph => paragraph.Text("LateSettingsMarker"))))));
 
-        document.Compose(compose => compose.Settings(settings => settings.CompressContentStreams = false));
+        int callbackCount = 0;
+        document.Compose(compose => compose.Settings(settings => {
+            callbackCount++;
+            settings.CompressContentStreams = false;
+            settings.IncludeStandardFontToUnicodeMaps = true;
+        }));
 
         string source = Encoding.ASCII.GetString(document.ToBytes());
+        Assert.Equal(1, callbackCount);
+        Assert.Contains("/MediaBox [0 0 300 400]", source, StringComparison.Ordinal);
         Assert.DoesNotContain("/Filter /FlateDecode", source, StringComparison.Ordinal);
+        Assert.Contains("/ToUnicode", source, StringComparison.Ordinal);
         Assert.Contains("LateSettingsMarker", PdfReadDocument.Open(document.ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 }

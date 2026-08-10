@@ -8,11 +8,6 @@ public sealed partial class PdfDocument {
         Guard.NotNull(configure, nameof(configure));
         EnsureGeneratedDocument();
         configure(_options);
-        foreach (IPdfBlock block in _blocks) {
-            if (block is PageBlock page) {
-                configure(page.Options);
-            }
-        }
     }
 
     /// <summary>Updates document-wide page defaults through the canonical page builder.</summary>

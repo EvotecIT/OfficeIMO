@@ -148,7 +148,7 @@ internal static partial class PdfWriter {
                     fontProgram != null) {
                     byte[] fontData = fontProgram.BuildSubsetFontFile();
                     string fontFileExtraEntries = "/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
-                    int fontFileId = pendingFont.Options.CompressEmbeddedFonts
+                    int fontFileId = opts.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
                         : AddStreamObject(
                             objects,
@@ -167,7 +167,7 @@ internal static partial class PdfWriter {
                         PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(cffFontProgram, "embedded-font:" + pendingFont.Font, compactFontFile));
                     byte[] fontData = compactFontFile.Data;
                     string fontFileExtraEntries = "/Subtype /OpenType /Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
-                    int fontFileId = pendingFont.Options.CompressEmbeddedFonts
+                    int fontFileId = opts.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
                         : AddStreamObject(
                             objects,
@@ -178,7 +178,7 @@ internal static partial class PdfWriter {
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildIdentityGlyphToUnicodeCMap(cffFontProgram));
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(cffFontProgram, descendantFontId, toUnicodeObjectId));
                 } else {
-                    int toUnicodeObjectId = pendingFont.Options.IncludeStandardFontToUnicodeMaps
+                    int toUnicodeObjectId = opts.IncludeStandardFontToUnicodeMaps
                         ? AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildWinAnsiToUnicodeCMap())
                         : 0;
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildStandardType1FontObject(pendingFont.Font, toUnicodeObjectId));
@@ -190,7 +190,7 @@ internal static partial class PdfWriter {
                     fontProgram != null) {
                     byte[] fontData = fontProgram.BuildSubsetFontFile();
                     string fontFileExtraEntries = "/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
-                    int fontFileId = pendingFont.Options.CompressEmbeddedFonts
+                    int fontFileId = opts.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
                         : AddStreamObject(
                             objects,
@@ -209,7 +209,7 @@ internal static partial class PdfWriter {
                         PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(cffFontProgram, "named-font:" + pendingFont.Font.FaceKey, compactFontFile));
                     byte[] fontData = compactFontFile.Data;
                     string fontFileExtraEntries = "/Subtype /OpenType /Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
-                    int fontFileId = pendingFont.Options.CompressEmbeddedFonts
+                    int fontFileId = opts.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
                         : AddStreamObject(
                             objects,
@@ -534,7 +534,7 @@ internal static partial class PdfWriter {
                 string footer = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, footerFontAlias!, pageFontResources, pageNamedFontResources);
                 contentStr += WrapArtifactContent(footer, markInfo);
             }
-            bool flattenVisualAnnotations = pageOpts.FlattenVisualAnnotations;
+            bool flattenVisualAnnotations = opts.FlattenVisualAnnotations;
             if (flattenVisualAnnotations) {
                 contentStr += BuildFlattenedVisualAnnotationContent(
                     page,
@@ -547,7 +547,7 @@ internal static partial class PdfWriter {
             }
 
             byte[] contentBytes = Encoding.ASCII.GetBytes(contentStr);
-            int contentId = pageOpts.CompressContentStreams
+            int contentId = opts.CompressContentStreams
                 ? AddFlateStreamObject(objects, contentBytes)
                 : AddStreamObject(objects, contentBytes);
             // Annotations (links and form widgets)
