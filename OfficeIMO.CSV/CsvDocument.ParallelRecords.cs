@@ -298,6 +298,13 @@ public sealed partial class CsvDocument
         ParallelRowMappingOptions? parallelOptions,
         CancellationToken cancellationToken)
     {
+        if (readerOptions?.ParallelProcessing is not null)
+        {
+            throw new ArgumentException(
+                "ReadTextRowsAsParallel uses parallelOptions; CsvDataReaderOptions.ParallelProcessing must be omitted.",
+                nameof(readerOptions));
+        }
+
         using var reader = (CsvDataReader)OpenTextDataReader(text, loadOptions, readerOptions);
         CsvRecordFactory<T> factory = factoryBuilder(new CsvRecordHeader(reader))
             ?? throw new InvalidOperationException("The CSV record factory builder returned null.");

@@ -44,6 +44,29 @@ if (explicitlyStreamed.Name != "Alice" || explicitlyStreamed.Score != 42 ||
     throw new InvalidOperationException("The explicit forward-only typed-row mapper lost a value.");
 }
 
+CsvSchema parallelSchema = new CsvSchemaBuilder()
+    .Column("Name").AsString()
+    .Column("Score").AsInt32()
+    .Column("Date").AsType(typeof(DateOnly))
+    .Column("Time").AsType(typeof(TimeOnly))
+    .Done()
+    .Build();
+using (var parallelReader = CsvDocument.OpenTextDataReader(
+           "Name,Score,Date,Time\nAlice,42,2026-08-06,14:35:12\nBob,43,2026-08-07,15:36:13\n",
+           readerOptions: new CsvDataReaderOptions {
+               Schema = parallelSchema,
+               ParallelProcessing = new CsvDataReaderParallelOptions {
+                   MaxDegreeOfParallelism = 2,
+                   BatchSize = 1
+               }
+           })) {
+    int score = 0;
+    while (parallelReader.Read()) score += parallelReader.GetInt32(1);
+    if (score != 85) {
+        throw new InvalidOperationException("The AOT-safe parallel CSV data reader lost a value.");
+    }
+}
+
 var exportedRows = new DataTable();
 exportedRows.Columns.Add("Name", typeof(string));
 exportedRows.Columns.Add("Score", typeof(decimal));

@@ -335,6 +335,38 @@ var table = new DataTable();
 table.Load(reader);
 ```
 
+For a large typed import, enable bounded parallel projection on the reader.
+Parsing remains single-owner, completed batches are returned in source order,
+and the caller still consumes one `DbDataReader`, so the same reader can be
+passed to `SqlBulkCopy` or another provider bulk-copy API:
+
+```csharp
+var schema = new CsvSchemaBuilder()
+    .Column("Id").AsInt32()
+    .Column("Amount").AsType(typeof(decimal))
+    .Column("CreatedUtc").AsDateTime()
+    .Done()
+    .Build();
+
+using var reader = CsvDocument.OpenDataReader(
+    "large.csv",
+    readerOptions: new CsvDataReaderOptions {
+        Schema = schema,
+        ParallelProcessing = new CsvDataReaderParallelOptions {
+            MaxDegreeOfParallelism = 4,
+            BatchSize = 4096
+        }
+    });
+```
+
+Parallel processing is opt-in and targets typed value conversion. String-only
+readers keep their lower-overhead sequential fast path. The defaults use at
+most four workers and bounded batches; tune either setting only with a
+representative workload because more workers can be slower on multi-domain or
+hybrid CPUs. Custom schema converters may run concurrently in this mode and
+must be thread-safe; keep the reader sequential when a converter depends on
+mutable single-threaded state.
+
 `OpenDataReader` is the forward-only entry point. Use `CsvDocument.Load` when a
 materialized document is required; 3.1 no longer exposes a load-mode switch.
 `LoadAsync` and `SaveAsync` perform asynchronous source or destination I/O but

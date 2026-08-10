@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Collections;
+using System.Buffers;
 using System.Data;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
@@ -35,6 +36,18 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
     int IDataReaderParallelBatchInfo.ParallelBatchRowCount =>
         (_textRowSource as ICsvDataReaderParallelBatchInfo)?.RowCount ?? 0;
 
+    internal bool CanBenefitFromParallelProcessing =>
+        !_closed && _columns.Length != 0 && !_useRawStringValues;
+
+    internal int PreferredParallelProcessingBatchSize =>
+#if NET8_0_OR_GREATER
+        _textRowSource is CsvParser.CsvTextDataReaderRowSource ? 4096 : 256;
+#else
+        256;
+#endif
+
+    internal CancellationToken ProcessingCancellationToken => _processingCancellationToken;
+
     bool IDataReaderParallelBatchSource.TryReadParallelBatch(
         int preferredBatchSize,
         CancellationToken cancellationToken,
@@ -63,13 +76,17 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
             return true;
         }
 
+        int firstRowIndex = _rowIndex;
+        int batchRowCount = (batchRows as ICsvDataReaderParallelBatchInfo)?.RowCount ?? 0;
+        _rowIndex = checked(_rowIndex + batchRowCount);
         batchReader = new CsvDataReader(
             _columns,
             batchRows,
             _sourceColumnCount,
             _stringRowOptions!,
             _culture,
-            _dateTimeFormats);
+            _dateTimeFormats,
+            initialRowIndex: firstRowIndex);
         return true;
 #else
         return false;
@@ -124,6 +141,120 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
     }
 #endif
 
+    internal CsvDataReaderRawBatch ReadRawBatch(
+        int preferredBatchSize,
+        CancellationToken cancellationToken,
+        out bool reachedEnd)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        int rowCapacity = CsvDataReaderRawBatch.GetBoundedRowCapacity(preferredBatchSize, _columns.Length);
+        var batch = new CsvDataReaderRawBatch(rowCapacity, _columns.Length, includePositions: true);
+        reachedEnd = false;
+        try
+        {
+            while (batch.Count < rowCapacity)
+            {
+                if ((batch.Count & 63) == 0)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+
+                bool hasRow;
+                try
+                {
+                    hasRow = Read();
+                }
+                catch (Exception exception) when (!(exception is OperationCanceledException))
+                {
+                    batch.SetError(batch.Count, exception);
+                    reachedEnd = true;
+                    break;
+                }
+
+                if (!hasRow)
+                {
+                    reachedEnd = true;
+                    break;
+                }
+
+                if (batch.Count == 0)
+                {
+                    batch.FirstRecordIndex = _rowIndex;
+                }
+
+                int offset = batch.Count * _columns.Length;
+                try
+                {
+                    for (int ordinal = 0; ordinal < _columns.Length; ordinal++)
+                    {
+                        batch.Values[offset + ordinal] = GetRawValue(ordinal);
+                    }
+                }
+                catch (Exception exception) when (!(exception is OperationCanceledException))
+                {
+                    batch.SetError(batch.Count, exception);
+                    reachedEnd = true;
+                    break;
+                }
+
+                batch.SetPosition(batch.Count, PhysicalLineNumber, PhysicalEndLineNumber);
+                batch.Count++;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            return batch;
+        }
+        catch
+        {
+            batch.Dispose();
+            throw;
+        }
+    }
+
+    internal CsvDataReaderRawBatch ConvertRawBatch(
+        CsvDataReaderRawBatch batch,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            for (int row = 0; row < batch.Count; row++)
+            {
+                if ((row & 63) == 0)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+
+                int offset = row * _columns.Length;
+                try
+                {
+                    for (int ordinal = 0; ordinal < _columns.Length; ordinal++)
+                    {
+                        batch.Values[offset + ordinal] = CsvDataProjectionConverter.ConvertValue(
+                            batch.Values[offset + ordinal],
+                            _columns[ordinal],
+                            batch.FirstRecordIndex + row,
+                            _culture,
+                            _dateTimeFormats,
+                            _mappingErrorValuePolicy);
+                    }
+                }
+                catch (Exception exception) when (!(exception is OperationCanceledException))
+                {
+                    batch.SetError(row, exception);
+                    break;
+                }
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            return batch;
+        }
+        catch
+        {
+            batch.Dispose();
+            throw;
+        }
+    }
+
     private const string IsReadOnlyColumn = "IsReadOnly";
     private const string IsRowVersionColumn = "IsRowVersion";
     private const string IsAutoIncrementColumn = "IsAutoIncrement";
@@ -149,6 +280,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
     DataMappingErrorValuePolicy IDataReaderMappingErrorMetadata.MappingErrorValuePolicy => _mappingErrorValuePolicy;
     private readonly IDisposable? _rowOwner;
     private readonly CsvLoadOptions? _stringRowOptions;
+    private readonly CancellationToken _processingCancellationToken;
     private readonly object?[]? _staticColumnValues;
     private readonly int _sourceColumnCount;
     private readonly bool _useRawStringValues;
@@ -178,7 +310,8 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         char delimiter,
         DataMappingErrorValuePolicy mappingErrorValuePolicy = DataMappingErrorValuePolicy.Include,
         bool rawRowsAreParsedStringsOnly = false,
-        IDisposable? rowOwner = null)
+        IDisposable? rowOwner = null,
+        CancellationToken processingCancellationToken = default)
     {
         _columns = columns;
         _rows = rows.GetEnumerator();
@@ -187,6 +320,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         Delimiter = delimiter;
         _mappingErrorValuePolicy = mappingErrorValuePolicy;
         _rowOwner = rowOwner;
+        _processingCancellationToken = processingCancellationToken;
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
         _rawRowsAreParsedStringsOnly = rawRowsAreParsedStringsOnly;
@@ -205,6 +339,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         _stringRows = rows.GetEnumerator();
         _sourceColumnCount = sourceColumnCount;
         _stringRowOptions = options;
+        _processingCancellationToken = options.CancellationToken;
         _stringNullValue = options.NullValue;
         _staticColumnValues = CaptureStaticColumnValues(_stringRowOptions.StaticColumns);
         _culture = culture;
@@ -222,7 +357,8 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         int sourceColumnCount,
         CsvLoadOptions options,
         CultureInfo culture,
-        IReadOnlyList<string>? dateTimeFormats)
+        IReadOnlyList<string>? dateTimeFormats,
+        int initialRowIndex = -1)
     {
         _columns = columns;
         _textRowSource = rows;
@@ -232,10 +368,12 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
 #endif
         _sourceColumnCount = sourceColumnCount;
         _stringRowOptions = options;
+        _processingCancellationToken = options.CancellationToken;
         _stringNullValue = options.NullValue;
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
         _mappingErrorValuePolicy = options.MappingErrorValuePolicy;
+        _rowIndex = initialRowIndex;
         Delimiter = CsvParser.GetDelimiterChar(options);
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectTextSourceStrings = _useRawStringValues && _stringNullValue is null;

@@ -115,6 +115,46 @@ Quoted values were more sensitive: domain 0 was a tie at 1.0014 (P25-P75
 SQL-shaped workload in the isolated suite and clearly leads two of three
 shapes in paired execution; it is not a universal CSV-writer ranking.
 
+### Dated typed parallel DataReader snapshot (2026-08-10)
+
+This read lane uses the same generated 100,000-row UTF-8 file for every
+method. Each implementation exposes five typed columns through its public
+`DbDataReader`, traverses every row with `GetValues`, and returns an
+order-sensitive checksum derived independently while generating the fixture.
+The parallel methods use four workers and 4,096-row batches. This models the
+reader side of an ordered SQL bulk-copy workflow; it does not rank unrelated
+raw-text, span, DTO, or materialized-table contracts.
+
+The run used .NET 10, BenchmarkDotNet 0.15.8, workstation GC, the Windows High
+performance power plan, and separate jobs for both 16-logical-processor L3
+domains on the AMD Ryzen 9 9950X3D2. Each job used `High` priority, twelve
+warmups, twelve fixed invocations, twenty measured iterations, one launch, and
+retained outliers.
+
+```powershell
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvParallelDataReaderBenchmarks*" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 12 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
+```
+
+| L3 domain | Method | Mean (99.9% CI) | Managed allocation |
+| --- | --- | ---: | ---: |
+| `0xFFFF` | OfficeIMO sequential | 21.829 ms (20.739-22.920) | 31.16 MB |
+| `0xFFFF` | OfficeIMO parallel | 12.622 ms (11.608-13.636) | 31.18 MB |
+| `0xFFFF` | Dataplat sequential | 72.532 ms (70.336-74.728) | 28.49 MB |
+| `0xFFFF` | Dataplat parallel | 36.682 ms (36.075-37.289) | 51.84 MB |
+| `0xFFFF0000` | OfficeIMO sequential | 18.999 ms (18.112-19.886) | 31.16 MB |
+| `0xFFFF0000` | OfficeIMO parallel | 12.471 ms (11.871-13.070) | 31.18 MB |
+| `0xFFFF0000` | Dataplat sequential | 55.984 ms (49.929-62.038) | 28.49 MB |
+| `0xFFFF0000` | Dataplat parallel | 40.290 ms (39.330-41.249) | 53.26 MB |
+
+OfficeIMO parallel is 42.2% and 34.4% faster than OfficeIMO sequential on the
+two domains. Against Dataplat parallel, it uses 65.6% and 69.0% less time and
+about 40-41% less managed memory. The 99.9% confidence intervals are wholly
+separated for both comparisons on both domains. BenchmarkDotNet identified a
+bimodal distribution for OfficeIMO parallel on `0xFFFF` and a multimodal
+Dataplat sequential distribution on `0xFFFF0000`; the table retains every
+measured iteration and should be interpreted with that topology sensitivity in
+mind.
+
 The suite compares OfficeIMO.CSV object writing, OfficeIMO.CSV projected-row writing, OfficeIMO.CSV trusted text-row writing, OfficeIMO.CSV direct IDataReader writing, OfficeIMO.CSV reusable reads, OfficeIMO.CSV field-span reads, OfficeIMO.CSV in-memory and streaming DataTable materialization with string and inferred-schema columns, OfficeIMO.CSV direct DbDataReader consumption and DbDataReader-to-DataTable loading, CsvHelper typed/projected writes, CsvHelper raw/typed reads, Sylvan raw/string/span field reads and DataTable loading, Dataplat.Dbatools.Csv reader/writer/DataTable paths, and Sep strict reader/writer paths.
 
 Read lanes intentionally touch each field value and return a contract-appropriate checksum. Raw and DataTable lanes checksum field count and text length; typed lanes checksum every projected property and are preflighted against the generated source rows. DataTable lanes materialize the table and then traverse the cells, direct DbDataReader lanes traverse the public reader contract without first materializing a DataTable, and DbDataReader-to-DataTable lanes keep the ADO.NET table-loading path visible. This keeps the comparison honest: a lane cannot win by only counting rows or skipping the field payload.
