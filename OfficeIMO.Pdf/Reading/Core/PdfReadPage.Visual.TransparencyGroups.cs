@@ -20,7 +20,7 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private bool TryCreateType3TransparencyGroupDrawing(
+    private Type3TransparencyGroupDrawingResult TryCreateType3TransparencyGroupDrawing(
         string content,
         PdfDictionary formDictionary,
         PdfDictionary? resources,
@@ -45,15 +45,14 @@ public sealed partial class PdfReadPage {
         out OfficeTransform groupTransform) {
         groupDrawing = null!;
         groupTransform = OfficeTransform.Identity;
-        if (!TryGetVisibleType3TransparencyGroupBounds(
+        Type3TransparencyGroupDrawingResult boundsResult = TryGetVisibleType3TransparencyGroupBounds(
                 formDictionary,
                 transform,
                 invocation.ClipPath,
                 pageWidth,
                 pageHeight,
-                out PdfPageClipPath fittedBounds)) {
-            return false;
-        }
+                out PdfPageClipPath fittedBounds);
+        if (boundsResult != Type3TransparencyGroupDrawingResult.Success) return boundsResult;
 
         double localPageWidth = fittedBounds.Width;
         double localPageHeight = fittedBounds.Height;
@@ -126,7 +125,7 @@ public sealed partial class PdfReadPage {
             contentOrderPrefix: contentOrderPrefix);
         if (type3GlyphBudget.FailureVersion != failureVersion) {
             groupDrawing = null!;
-            return false;
+            return Type3TransparencyGroupDrawingResult.Unsupported;
         }
 
         if (requireNestedType3Uncolored) {
@@ -142,7 +141,7 @@ public sealed partial class PdfReadPage {
                         localPageHeight,
                         out PdfPageVisualPrimitive paintedPrimitive)) {
                     groupDrawing = null!;
-                    return false;
+                    return Type3TransparencyGroupDrawingResult.Unsupported;
                 }
                 elements[elementIndex] = PdfPageDrawingElement
                     .FromPrimitive(paintedPrimitive, element.Sequence)
@@ -175,11 +174,11 @@ public sealed partial class PdfReadPage {
                 PdfExtractedImage? image = FindImage(images, placements[i]);
                 if (image == null || !image.IsImageFile) {
                     groupDrawing = null!;
-                    return false;
+                    return Type3TransparencyGroupDrawingResult.Unsupported;
                 }
                 if (requireNestedType3Uncolored && !image.IsImageMask) {
                     groupDrawing = null!;
-                    return false;
+                    return Type3TransparencyGroupDrawingResult.Unsupported;
                 }
                 if (requireNestedType3Uncolored && localFillPattern.HasValue) {
                     Type3PatternImageMaskDrawingResult result = TryCreateInheritedPatternImageMaskDrawing(
@@ -192,7 +191,7 @@ public sealed partial class PdfReadPage {
                             out OfficeTransform maskedPatternTransform);
                     if (result == Type3PatternImageMaskDrawingResult.Unsupported) {
                         groupDrawing = null!;
-                        return false;
+                        return Type3TransparencyGroupDrawingResult.Unsupported;
                     }
                     if (result == Type3PatternImageMaskDrawingResult.Invisible) continue;
                     elements.Add(PdfPageDrawingElement.FromGroup(
@@ -250,10 +249,10 @@ public sealed partial class PdfReadPage {
         } else {
             groupDrawing = contentDrawing;
         }
-        return true;
+        return Type3TransparencyGroupDrawingResult.Success;
     }
 
-    private bool TryGetVisibleType3TransparencyGroupBounds(
+    private Type3TransparencyGroupDrawingResult TryGetVisibleType3TransparencyGroupBounds(
         PdfDictionary formDictionary,
         Matrix2D transform,
         PdfPageClipPath? activeClip,
@@ -266,7 +265,7 @@ public sealed partial class PdfReadPage {
                 out (double X1, double Y1, double X2, double Y2) bbox) ||
             bbox.X2 <= bbox.X1 ||
             bbox.Y2 <= bbox.Y1) {
-            return false;
+            return Type3TransparencyGroupDrawingResult.Unsupported;
         }
 
         (double X, double Y) transformedTopLeft = transform.Transform(bbox.X1, bbox.Y1);
@@ -281,12 +280,33 @@ public sealed partial class PdfReadPage {
         double top = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomLeft.Y, bottomRight.Y));
         double right = Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomLeft.X, bottomRight.X));
         double bottom = Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomLeft.Y, bottomRight.Y));
-        var projectedBounds = PdfPageClipPath.Rectangle(left, top, right - left, bottom - top);
+        PdfPageClipPath projectedBounds;
+        bool firstEdgeHorizontal = NearlyEqual(topLeft.Y, topRight.Y);
+        bool firstEdgeVertical = NearlyEqual(topLeft.X, topRight.X);
+        bool secondEdgeHorizontal = NearlyEqual(topRight.Y, bottomRight.Y);
+        bool secondEdgeVertical = NearlyEqual(topRight.X, bottomRight.X);
+        if ((firstEdgeHorizontal && secondEdgeVertical) || (firstEdgeVertical && secondEdgeHorizontal)) {
+            projectedBounds = PdfPageClipPath.Rectangle(left, top, right - left, bottom - top);
+        } else {
+            var commands = new[] {
+                OfficePathCommand.MoveTo(topLeft.X, topLeft.Y),
+                OfficePathCommand.LineTo(topRight.X, topRight.Y),
+                OfficePathCommand.LineTo(bottomRight.X, bottomRight.Y),
+                OfficePathCommand.LineTo(bottomLeft.X, bottomLeft.Y),
+                OfficePathCommand.Close()
+            };
+            if (!PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out projectedBounds)) {
+                return Type3TransparencyGroupDrawingResult.Unsupported;
+            }
+        }
         if (activeClip.HasValue) {
             projectedBounds = PdfPageClipPath.ResolveActiveClip(projectedBounds, activeClip.Value);
         }
+        if (projectedBounds.Width <= 0D || projectedBounds.Height <= 0D) {
+            return Type3TransparencyGroupDrawingResult.Invisible;
+        }
         if (!TryFitClipToDrawing(projectedBounds, pageWidth, pageHeight, out bounds)) {
-            return false;
+            return Type3TransparencyGroupDrawingResult.Invisible;
         }
         if (bounds.IsRectangle) {
             const double localSurfaceTolerance = 0.000000001D;
@@ -300,6 +320,12 @@ public sealed partial class PdfReadPage {
                 rightWithTolerance - leftWithTolerance,
                 bottomWithTolerance - topWithTolerance);
         }
-        return true;
+        return Type3TransparencyGroupDrawingResult.Success;
+    }
+
+    private enum Type3TransparencyGroupDrawingResult {
+        Success,
+        Invisible,
+        Unsupported
     }
 }
