@@ -79,6 +79,22 @@ public sealed class LatexMacroSafetyRegressionTests {
     }
 
     [Fact]
+    public void DocumentMacroExpansionRetainsConfiguredOpaqueEnvironments() {
+        var options = new LatexParseOptions {
+            MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions
+        };
+        options.VerbatimEnvironmentNames.Add("codeblock");
+        LatexDocument document = LatexDocument.Parse(
+            "\\newcommand{\\foo}[1]{<#1>}", options).Document;
+
+        LatexMacroExpansionResult result = document.ExpandSimpleMacros(
+            "\\begin{codeblock}\\foo{opaque}\\end{codeblock} \\foo{live}");
+
+        Assert.Equal("\\begin{codeblock}\\foo{opaque}\\end{codeblock} <live>", result.Value);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
     public void ContractingMacroUsesIndependentInputAndOutputBudgets() {
         LatexDocument document = LatexDocument.Parse(
             "\\newcommand{\\shorten}[1]{x}",

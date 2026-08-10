@@ -92,6 +92,18 @@ public static class LatexSimpleMacroExpander {
         int maximumOutputLength,
         int maximumInputLength,
         int maximumTokenCount) {
+        return Expand(value, definitions, maximumDepth, maximumOutputLength, maximumInputLength,
+            maximumTokenCount, verbatimEnvironmentNames: null);
+    }
+
+    internal static LatexMacroExpansionResult Expand(
+        string value,
+        IReadOnlyList<LatexMacroDefinition> definitions,
+        int maximumDepth,
+        int maximumOutputLength,
+        int maximumInputLength,
+        int maximumTokenCount,
+        IEnumerable<string>? verbatimEnvironmentNames) {
         if (value == null) throw new ArgumentNullException(nameof(value));
         if (definitions == null) throw new ArgumentNullException(nameof(definitions));
         if (maximumDepth < 1) throw new ArgumentOutOfRangeException(nameof(maximumDepth));
@@ -108,8 +120,12 @@ public static class LatexSimpleMacroExpander {
         }
         var diagnostics = new List<LatexMacroExpansionDiagnostic>();
         var tokenBudget = new TokenBudget(maximumTokenCount);
+        string[] opaqueEnvironments = verbatimEnvironmentNames?
+            .Where(static name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray() ?? Array.Empty<string>();
         string output = ExpandCore(value, map, diagnostics, new HashSet<string>(StringComparer.Ordinal), 0,
-            maximumDepth, maximumOutputLength, maximumInputLength, tokenBudget);
+            maximumDepth, maximumOutputLength, maximumInputLength, tokenBudget, opaqueEnvironments);
         return new LatexMacroExpansionResult(output, diagnostics);
     }
 
@@ -122,17 +138,17 @@ public static class LatexSimpleMacroExpander {
         int maximumDepth,
         int maximumOutputLength,
         int maximumInputLength,
-        TokenBudget tokenBudget) {
+        TokenBudget tokenBudget,
+        IReadOnlyCollection<string> verbatimEnvironmentNames) {
         if (depth > maximumDepth) throw new InvalidDataException("Simple macro expansion exceeds maximumDepth.");
         if (value.Length == 0) return string.Empty;
         if (depth > 0 && value.Length > maximumOutputLength) {
             throw new InvalidDataException("Simple macro expansion exceeds maximumOutputLength.");
         }
         var output = new StringBuilder(value.Length);
-        IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(value, new LatexParseOptions {
-            MaximumInputLength = depth == 0 ? maximumInputLength : maximumOutputLength,
-            MaximumTokenCount = tokenBudget.GetTokenizerLimit()
-        });
+        IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(value, CreateTokenizerOptions(
+            depth == 0 ? maximumInputLength : maximumOutputLength,
+            tokenBudget.GetTokenizerLimit(), verbatimEnvironmentNames));
         tokenBudget.Consume(tokens.Count);
         for (int tokenIndex = 0; tokenIndex < tokens.Count;) {
             LatexToken invocation = tokens[tokenIndex];
@@ -176,9 +192,11 @@ public static class LatexSimpleMacroExpander {
                 tokenIndex++;
                 continue;
             }
-            string replacement = SubstituteParameters(definition.Body, arguments, tokenBudget);
+            string replacement = SubstituteParameters(definition.Body, arguments, tokenBudget,
+                verbatimEnvironmentNames);
             output.Append(ExpandCore(replacement, definitions, diagnostics, active, depth + 1,
-                maximumDepth, maximumOutputLength, maximumInputLength, tokenBudget));
+                maximumDepth, maximumOutputLength, maximumInputLength, tokenBudget,
+                verbatimEnvironmentNames));
             active.Remove(name);
             tokenIndex = cursor;
             EnforceLength(output, maximumOutputLength);
@@ -189,13 +207,12 @@ public static class LatexSimpleMacroExpander {
     private static string SubstituteParameters(
         string body,
         IReadOnlyList<string> arguments,
-        TokenBudget tokenBudget) {
+        TokenBudget tokenBudget,
+        IReadOnlyCollection<string> verbatimEnvironmentNames) {
         if (body.Length == 0) return string.Empty;
         var output = new StringBuilder(body.Length);
-        IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(body, new LatexParseOptions {
-            MaximumInputLength = body.Length,
-            MaximumTokenCount = tokenBudget.GetTokenizerLimit()
-        });
+        IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(body, CreateTokenizerOptions(
+            body.Length, tokenBudget.GetTokenizerLimit(), verbatimEnvironmentNames));
         tokenBudget.Consume(tokens.Count);
         for (int index = 0; index < tokens.Count; index++) {
             LatexToken token = tokens[index];
@@ -212,6 +229,20 @@ public static class LatexSimpleMacroExpander {
             output.Append(token.Text);
         }
         return output.ToString();
+    }
+
+    private static LatexParseOptions CreateTokenizerOptions(
+        int maximumInputLength,
+        int maximumTokenCount,
+        IEnumerable<string> verbatimEnvironmentNames) {
+        var options = new LatexParseOptions {
+            MaximumInputLength = maximumInputLength,
+            MaximumTokenCount = maximumTokenCount
+        };
+        foreach (string environmentName in verbatimEnvironmentNames) {
+            options.VerbatimEnvironmentNames.Add(environmentName);
+        }
+        return options;
     }
 
     private static bool TryReadBalanced(

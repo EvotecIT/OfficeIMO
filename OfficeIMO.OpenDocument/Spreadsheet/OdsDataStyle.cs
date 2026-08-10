@@ -82,7 +82,10 @@ public sealed class OdsDataStyle {
             } else return false;
         }
         if (!wroteNumber && !TryAppend(builder, number)) return false;
-        if (Kind == OdsDataStyleKind.Percentage && !wrotePercentageScaling && !TryAppend(builder, "%")) return false;
+        // Excel's percent token both scales the value and renders a percent glyph.
+        // A signless ODF percentage style cannot be represented without inventing
+        // visible content, so fail closed and let conversion policy report the loss.
+        if (Kind == OdsDataStyleKind.Percentage && !wrotePercentageScaling) return false;
         formatCode = builder.ToString();
         return true;
     }

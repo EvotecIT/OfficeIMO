@@ -350,6 +350,21 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
     }
 
     [Fact]
+    public void SpreadsheetPercentageProjectionRejectsSignlessStylesInsteadOfInventingAGlyph() {
+        OdsDocument document = OdsDocument.Create();
+        document.AddPercentageStyle("Rate", decimalPlaces: 2);
+        XElement style = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Number + "percentage-style")
+            .Single(element => (string?)element.Attribute(OdfNamespaces.Style + "name") == "Rate");
+        style.Element(OdfNamespaces.Number + "text")!.Value = " percent";
+
+        OdsDataStyle projected = document.DataStyles.Single(item => item.Name == "Rate");
+
+        Assert.False(projected.TryGetExcelNumberFormatCode(out _));
+        Assert.Throws<InvalidOperationException>(() => projected.ToExcelNumberFormatCode());
+    }
+
+    [Fact]
     public void SpreadsheetValidationMessagesRoundTripOdfWhitespaceElements() {
         OdsDocument document = OdsDocument.Create();
         OdsValidation validation = document.AddValidation("Message", "cell-content()>0");

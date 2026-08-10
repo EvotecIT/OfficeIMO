@@ -131,7 +131,7 @@ public sealed partial class LatexDocument {
         }
         return LatexSimpleMacroExpander.Expand(value, MacroDefinitions, _options.MaximumExpansionDepth,
             _options.MaximumExpansionLength, _options.MaximumExpansionInputLength,
-            _options.MaximumExpansionTokenCount);
+            _options.MaximumExpansionTokenCount, _options.VerbatimEnvironmentNames);
     }
 
     internal IEnumerable<ILatexSourceEdit> GetSourceEdits() {

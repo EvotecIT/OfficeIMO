@@ -23,10 +23,11 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         target.PageWidth = OdfLength.Points(source.SlideSize.WidthPoints);
         target.PageHeight = OdfLength.Points(source.SlideSize.HeightPoints);
 
-        int textBoxes = 0, paragraphs = 0, textRuns = 0, pictures = 0, tables = 0, autoShapes = 0;
+        int textBoxes = 0, pictures = 0, tables = 0, autoShapes = 0;
         int notes = 0, transitions = 0, backgrounds = 0, unsupportedBackgrounds = 0, unsupportedShapes = 0, unsupportedPictures = 0;
-        int listParagraphs = 0, transformedShapes = 0, skippedBasicFormatting = 0, skippedNotes = 0, unsupportedHyperlinkTooltips = 0;
-        int unsupportedShapeHyperlinks = 0, unsupportedRunInteractions = 0;
+        int transformedShapes = 0, skippedBasicFormatting = 0, skippedNotes = 0;
+        int unsupportedShapeHyperlinks = 0;
+        var textState = new PowerPointToOdpTextConversionState();
         for (int slideIndex = 0; slideIndex < source.Slides.Count; slideIndex++) {
             PowerPointSlide sourceSlide = source.Slides[slideIndex];
             OdpSlide targetSlide = target.AddSlide("Slide" + (slideIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -39,9 +40,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 if (shape is PowerPointTextBox textBox) {
                     OdpTextBox converted = targetSlide.AddTextBox(ToOdfRect(textBox), null, textBox.Name);
                     CopyShapeAppearance(textBox, converted, effective);
-                    CopyPowerPointParagraphsToOdp(textBox.Paragraphs, () => converted.AddParagraph(), effective,
-                        ref paragraphs, ref textRuns, ref listParagraphs, ref skippedBasicFormatting,
-                        ref unsupportedHyperlinkTooltips, ref unsupportedRunInteractions);
+                    CopyPowerPointParagraphsToOdp(textBox.Paragraphs,
+                        () => converted.AddParagraph(), effective, textState);
                     textBoxes++;
                 } else if (shape is PowerPointPicture picture) {
                     if (!effective.IncludeImages) { unsupportedPictures++; continue; }
@@ -75,9 +75,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         for (int column = 0; column < table.Columns; column++) {
                             PowerPointTableCell cell = table.GetCell(row, column);
                             if (cell.IsMergedCell) continue;
-                            CopyPowerPointTableCellToOdp(cell, converted.Cell(row, column), effective,
-                                ref paragraphs, ref textRuns, ref listParagraphs, ref skippedBasicFormatting,
-                                ref unsupportedHyperlinkTooltips, ref unsupportedRunInteractions);
+                            CopyPowerPointTableCellToOdp(cell, converted.Cell(row, column),
+                                effective, textState);
                             if (cell.IsMergeAnchor) merges.Add((row, column, cell.Merge.rows, cell.Merge.columns));
                         }
                     }
@@ -109,9 +108,13 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             }
 
             if (effective.IncludeSpeakerNotes && sourceSlide.HasSpeakerNotes) {
-                string noteText = sourceSlide.GetSpeakerNotesText();
-                if (noteText.Length > 0) {
-                    foreach (string paragraph in SplitParagraphs(noteText)) targetSlide.GetOrCreateSpeakerNotes().AddParagraph(paragraph);
+                IReadOnlyList<PowerPointParagraph> noteParagraphs = sourceSlide.Notes.Paragraphs;
+                if (noteParagraphs.Any(paragraph => paragraph.Text.Length > 0
+                    || paragraph.InlineNodes.Any(node =>
+                        node.Kind != PowerPointParagraphInlineKind.Run || node.Text.Length > 0))) {
+                    OdpNotes convertedNotes = targetSlide.GetOrCreateSpeakerNotes();
+                    CopyPowerPointParagraphsToOdp(noteParagraphs,
+                        () => convertedNotes.AddParagraph(), effective, textState);
                     notes++;
                 }
             } else if (!effective.IncludeSpeakerNotes && sourceSlide.HasSpeakerNotes) {
@@ -121,8 +124,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
         AddConverted(report, "slides", source.Slides.Count);
         AddConverted(report, "text-boxes", textBoxes);
-        AddConverted(report, "paragraphs", paragraphs);
-        AddConverted(report, "text-runs", textRuns);
+        AddConverted(report, "paragraphs", textState.Paragraphs);
+        AddConverted(report, "text-runs", textState.TextRuns);
+        AddConverted(report, "line-breaks", textState.LineBreaks);
         AddConverted(report, "images", pictures);
         AddConverted(report, "tables", tables);
         AddConverted(report, "basic-shapes", autoShapes);
@@ -131,18 +135,24 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "slide-backgrounds", unsupportedBackgrounds, "Image, gradient, theme, and unsupported backgrounds are not translated.");
         if (transitions > 0) report.Add("slide-transitions", OdfConversionMappingStatus.Approximated, transitions,
             "Common transition families are mapped without PowerPoint-specific speed and timing metadata.");
-        if (listParagraphs > 0) report.Add("text-lists", OdfConversionMappingStatus.Approximated, listParagraphs,
+        if (textState.ListParagraphs > 0) report.Add("text-lists", OdfConversionMappingStatus.Approximated, textState.ListParagraphs,
             "List text is retained as paragraphs; PowerPoint bullet and numbering definitions are not translated.");
-        if (skippedBasicFormatting > 0) report.Add("basic-formatting", OdfConversionMappingStatus.Skipped, skippedBasicFormatting,
+        if (textState.Fields > 0) report.Add("paragraph-fields", OdfConversionMappingStatus.Approximated,
+            textState.Fields, "PowerPoint dynamic fields retain their displayed text but not their update semantics.");
+        if (textState.ApproximatedAlignments > 0) report.Add("paragraph-alignments",
+            OdfConversionMappingStatus.Approximated, textState.ApproximatedAlignments,
+            "PowerPoint distributed and low-justification variants are represented as ODF justification.");
+        int totalSkippedBasicFormatting = skippedBasicFormatting + textState.SkippedBasicFormatting;
+        if (totalSkippedBasicFormatting > 0) report.Add("basic-formatting", OdfConversionMappingStatus.Skipped, totalSkippedBasicFormatting,
             "Common text, fill, and outline formatting was omitted because IncludeBasicFormatting is disabled.");
         if (skippedNotes > 0) report.Add("speaker-notes", OdfConversionMappingStatus.Skipped, skippedNotes,
             "Speaker notes were omitted because IncludeSpeakerNotes is disabled.");
         AddUnsupported(report, "shape-transforms", transformedShapes, "Complex geometry, rotation, flips, and connector semantics are approximated or omitted.");
-        AddUnsupported(report, "hyperlink-tooltips", unsupportedHyperlinkTooltips,
+        AddUnsupported(report, "hyperlink-tooltips", textState.UnsupportedHyperlinkTooltips,
             "PowerPoint hyperlink tooltips have no equivalent in the current ODP hyperlink surface and were omitted.");
         AddUnsupported(report, "shape-hyperlinks", unsupportedShapeHyperlinks,
             "PowerPoint shape-level click hyperlinks, including internal slide jumps, are not translated to ODP.");
-        AddUnsupported(report, "run-interactions", unsupportedRunInteractions,
+        AddUnsupported(report, "run-interactions", textState.UnsupportedRunInteractions,
             "PowerPoint run actions, mouse-over interactions, and action sounds outside ordinary click hyperlinks are not represented in ODP.");
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or unavailable from an embedded image part were skipped.");
         AddUnsupported(report, "shapes", unsupportedShapes, "Charts, SmartArt, media, groups, and other advanced drawing shapes are not translated.");
@@ -176,7 +186,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int listParagraphs = 0, approximatedRuns = 0, unsupportedHyperlinks = 0, unsupportedHyperlinkBehaviors = 0;
         int skippedBasicFormatting = 0, skippedNotes = 0, noteContainers = 0;
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
-        int unsupportedWritingModes = 0;
+        int unsupportedWritingModes = 0, approximatedParagraphAlignments = 0;
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
         var pendingInternalLinks = new List<(PowerPointTextRun Run, int SlideIndex)>();
         foreach (OdpSlide sourceSlide in source.Slides) {
@@ -207,7 +217,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         paragraphTexts => converted.SetParagraphs(paragraphTexts), source.Slides,
                         pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
                         ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
-                        ref skippedBasicFormatting, ref unsupportedWritingModes, ref unsupportedMeasurements,
+                        ref skippedBasicFormatting, ref unsupportedWritingModes,
+                        ref approximatedParagraphAlignments, ref unsupportedMeasurements,
                         ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                     textBoxes++;
                 } else if (shape is OdpImage image) {
@@ -263,7 +274,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                                 paragraphTexts => converted.GetCell(row, column).SetParagraphs(paragraphTexts), source.Slides,
                                 pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
                                 ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
-                                ref skippedBasicFormatting, ref unsupportedWritingModes, ref unsupportedMeasurements,
+                                ref skippedBasicFormatting, ref unsupportedWritingModes,
+                                ref approximatedParagraphAlignments, ref unsupportedMeasurements,
                                 ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                             if (cell.RowSpan > 1 || cell.ColumnSpan > 1) merges.Add((row, column, cell.RowSpan, cell.ColumnSpan));
                         }
@@ -314,7 +326,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         paragraphTexts => targetSlide.Notes.SetParagraphs(paragraphTexts), source.Slides,
                         pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
                         ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
-                        ref skippedBasicFormatting, ref unsupportedWritingModes, ref unsupportedMeasurements,
+                        ref skippedBasicFormatting, ref unsupportedWritingModes,
+                        ref approximatedParagraphAlignments, ref unsupportedMeasurements,
                         ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                     notes++;
                 }
@@ -350,6 +363,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "Malformed ODF font-family syntax was omitted instead of being emitted as an invalid PowerPoint typeface name.");
         AddUnsupported(report, "writing-mode", unsupportedWritingModes,
             "Vertical and unsupported ODF writing modes cannot be represented by the PowerPoint paragraph model.");
+        if (approximatedParagraphAlignments > 0) report.Add("paragraph-alignments",
+            OdfConversionMappingStatus.Approximated, approximatedParagraphAlignments,
+            "Logical ODF start/end alignment is projected to the matching physical PowerPoint edge.");
         AddUnsupported(report, "hyperlinks", unsupportedHyperlinks,
             "Hyperlink targets that could not be resolved as slides or valid URI references were omitted.");
         AddUnsupported(report, "hyperlink-target-behavior", unsupportedHyperlinkBehaviors,
@@ -628,9 +644,6 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         }
         type = OfficeImageFormat.Png; return false;
     }
-
-    private static IEnumerable<string> SplitParagraphs(string text) => text.Replace("\r\n", "\n")
-        .Split(new[] { "\n\n" }, StringSplitOptions.None);
 
     private static void AddAdvancedPowerPointFindings(PowerPointFeatureReport source, OdfConversionReport target) {
         foreach (PowerPointFeatureFinding finding in source.PreservedFeatures.Concat(source.UnsupportedFeatures).Where(item => item.Count > 0)) {

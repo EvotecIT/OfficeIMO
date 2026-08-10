@@ -8,6 +8,7 @@ using OfficeIMO.PowerPoint.OpenDocument;
 using OfficeIMO.Word;
 using OfficeIMO.Word.OpenDocument;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -318,6 +319,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdpParagraph horizontal = textBox.AddParagraph("Horizontal");
         horizontal.WritingMode = "rl-tb";
         horizontal.LineHeight = OdfLength.Parse("125%");
+        horizontal.Alignment = OdpParagraphAlignment.Start;
         OdpParagraph vertical = textBox.AddParagraph("Vertical");
         vertical.WritingMode = "tb-rl";
 
@@ -326,7 +328,10 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         PowerPointTextBox converted = Assert.IsType<PowerPointTextBox>(target.Slides.Single().Shapes.Single());
 
         Assert.True(converted.Paragraphs[0].RightToLeft);
+        Assert.Equal(PowerPointTextAlignment.Right, converted.Paragraphs[0].Alignment);
         Assert.Equal(1.25D, converted.Paragraphs[0].LineSpacingMultiplier);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "paragraph-alignments"
+            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "writing-mode"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
@@ -336,6 +341,89 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             .Paragraphs[0];
         Assert.Equal("rl-tb", reopened.WritingMode);
         Assert.Equal("125%", reopened.LineHeight?.ToString());
+    }
+
+    [Fact]
+    public void PowerPointParagraphAlignmentProjectsAcrossAllSupportedValues() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointTextBox textBox = source.AddSlide().AddTextBoxPoints("", 10, 10, 300, 100);
+        IReadOnlyList<PowerPointParagraph> paragraphs = textBox.SetParagraphs(
+            new[] { "Left", "Center", "Right", "Justified", "Distributed" });
+        paragraphs[0].Alignment = PowerPointTextAlignment.Left;
+        paragraphs[1].Alignment = PowerPointTextAlignment.Center;
+        paragraphs[2].Alignment = PowerPointTextAlignment.Right;
+        paragraphs[3].Alignment = PowerPointTextAlignment.Justified;
+        paragraphs[4].Alignment = PowerPointTextAlignment.Distributed;
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdpTextBox converted = Assert.IsType<OdpTextBox>(
+            Assert.Single(conversion.Value.Slides.Single().Shapes));
+
+        Assert.Equal(new OdpParagraphAlignment?[] {
+            OdpParagraphAlignment.Left,
+            OdpParagraphAlignment.Center,
+            OdpParagraphAlignment.Right,
+            OdpParagraphAlignment.Justify,
+            OdpParagraphAlignment.Justify
+        }, converted.Paragraphs.Select(paragraph => paragraph.Alignment));
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "paragraph-alignments"
+            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+        Assert.True(conversion.Value.Validate().IsValid);
+    }
+
+    [Fact]
+    public void PowerPointBreaksAndFieldsRetainOrderAcrossEveryOdpParagraphOwner() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointSlide slide = source.AddSlide();
+        PowerPointParagraph textBoxParagraph = slide.AddTextBoxPoints("Before", 10, 10, 200, 50)
+            .Paragraphs.Single();
+        PowerPointParagraph tableParagraph = slide.AddTablePoints(1, 1, 10, 80, 200, 50)
+            .GetCell(0, 0).SetParagraphs(new[] { "Before" }).Single();
+        PowerPointParagraph noteParagraph = slide.Notes.SetParagraphs(new[] { "Before" }).Single();
+
+        foreach (PowerPointParagraph paragraph in new[] { textBoxParagraph, tableParagraph, noteParagraph }) {
+            paragraph.AddLineBreak().AddField("1", "slidenum").AddRun("After");
+            Assert.Equal(new[] {
+                PowerPointParagraphInlineKind.Run,
+                PowerPointParagraphInlineKind.LineBreak,
+                PowerPointParagraphInlineKind.Field,
+                PowerPointParagraphInlineKind.Run
+            }, paragraph.InlineNodes.Select(node => node.Kind));
+        }
+        Assert.Empty(source.ValidateDocument());
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdpSlide convertedSlide = conversion.Value.Slides.Single();
+        Assert.Equal("Before\n1After",
+            Assert.IsType<OdpTextBox>(convertedSlide.Shapes[0]).Paragraphs.Single().Text);
+        Assert.Equal("Before\n1After",
+            Assert.IsType<OdpTable>(convertedSlide.Shapes[1]).Cell(0, 0).Paragraphs.Single().Text);
+        Assert.Equal("Before\n1After", convertedSlide.SpeakerNotes!.Paragraphs.Single().Text);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "line-breaks"
+            && mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 3);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "paragraph-fields"
+            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 3);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+        Assert.True(OdpPresentation.Load(new MemoryStream(conversion.Value.ToBytes())).Validate().IsValid);
+
+        OdfConversionResult<PowerPointPresentation> reverse = conversion.Value.ToPowerPointPresentationResult();
+        using PowerPointPresentation reversePresentation = reverse.Value;
+        PowerPointSlide reverseSlide = reversePresentation.Slides.Single();
+        IReadOnlyList<PowerPointParagraph> reverseParagraphs = new[] {
+            Assert.IsType<PowerPointTextBox>(reverseSlide.Shapes[0]).Paragraphs.Single(),
+            Assert.IsType<PowerPointTable>(reverseSlide.Shapes[1]).GetCell(0, 0).Paragraphs.Single(),
+            reverseSlide.Notes.Paragraphs.Single()
+        };
+        foreach (PowerPointParagraph paragraph in reverseParagraphs) {
+            Assert.Equal(new[] {
+                PowerPointParagraphInlineKind.Run,
+                PowerPointParagraphInlineKind.LineBreak,
+                PowerPointParagraphInlineKind.Run,
+                PowerPointParagraphInlineKind.Run
+            }, paragraph.InlineNodes.Select(node => node.Kind));
+            Assert.Equal("Before\n1After", paragraph.Text.Replace("\r\n", "\n"));
+        }
+        Assert.Empty(reversePresentation.ValidateDocument());
     }
 
     [Fact]

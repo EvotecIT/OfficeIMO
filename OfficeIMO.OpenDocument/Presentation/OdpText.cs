@@ -61,6 +61,11 @@ public sealed class OdpParagraph {
         || string.Equals(WritingMode, "rl-tb", StringComparison.OrdinalIgnoreCase);
     /// <summary>Effective paragraph line height, including absolute and percentage values.</summary>
     public OdfLength? LineHeight { get => Resolve(style => style.LineHeight); set => EnsureStyle().LineHeight = value; }
+    /// <summary>Explicit or inherited horizontal paragraph alignment.</summary>
+    public OdpParagraphAlignment? Alignment {
+        get => ParseAlignment(ResolveReference(style => style.TextAlign));
+        set => EnsureStyle().TextAlign = FormatAlignment(value);
+    }
     /// <summary>Explicit or inherited text color.</summary>
     public OdfColor? Color { get => Resolve(style => style.Color); set => EnsureStyle().Color = value; }
     /// <summary>Explicit or inherited text background color.</summary>
@@ -92,6 +97,28 @@ public sealed class OdpParagraph {
     private string? ResolveReference(Func<OdfStyle, string?> selector) {
         OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Paragraph, StyleName); if (style == null) return null;
         foreach (OdfStyle candidate in _presentation.Styles.Resolve(style)) { string? value = selector(candidate); if (value != null) return value; } return null;
+    }
+    private static OdpParagraphAlignment? ParseAlignment(string? value) {
+        switch (value?.ToLowerInvariant()) {
+            case "start": return OdpParagraphAlignment.Start;
+            case "left": return OdpParagraphAlignment.Left;
+            case "center": return OdpParagraphAlignment.Center;
+            case "right": return OdpParagraphAlignment.Right;
+            case "end": return OdpParagraphAlignment.End;
+            case "justify": return OdpParagraphAlignment.Justify;
+            default: return null;
+        }
+    }
+    private static string? FormatAlignment(OdpParagraphAlignment? value) {
+        switch (value) {
+            case OdpParagraphAlignment.Start: return "start";
+            case OdpParagraphAlignment.Left: return "left";
+            case OdpParagraphAlignment.Center: return "center";
+            case OdpParagraphAlignment.Right: return "right";
+            case OdpParagraphAlignment.End: return "end";
+            case OdpParagraphAlignment.Justify: return "justify";
+            default: return null;
+        }
     }
     private void Dirty() => _presentation.MarkPartDirty("content.xml");
 }

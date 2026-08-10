@@ -7,16 +7,23 @@ using OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.OpenDocument;
 
 public static partial class PowerPointOpenDocumentConversionExtensions {
+    private sealed class PowerPointToOdpTextConversionState {
+        internal int Paragraphs;
+        internal int TextRuns;
+        internal int LineBreaks;
+        internal int Fields;
+        internal int ListParagraphs;
+        internal int ApproximatedAlignments;
+        internal int SkippedBasicFormatting;
+        internal int UnsupportedHyperlinkTooltips;
+        internal int UnsupportedRunInteractions;
+    }
+
     private static void CopyPowerPointTableCellToOdp(
         PowerPointTableCell source,
         OdpTableCell target,
         PowerPointOpenDocumentConversionOptions options,
-        ref int paragraphs,
-        ref int textRuns,
-        ref int listParagraphs,
-        ref int skippedBasicFormatting,
-        ref int unsupportedHyperlinkTooltips,
-        ref int unsupportedRunInteractions) {
+        PowerPointToOdpTextConversionState state) {
         OdpParagraph? firstParagraph = target.Paragraphs.FirstOrDefault();
         bool useFirstParagraph = firstParagraph != null;
 
@@ -27,49 +34,55 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             return firstParagraph;
         }
 
-        CopyPowerPointParagraphsToOdp(source.Paragraphs, AddParagraph, options,
-            ref paragraphs, ref textRuns, ref listParagraphs, ref skippedBasicFormatting,
-            ref unsupportedHyperlinkTooltips, ref unsupportedRunInteractions);
+        CopyPowerPointParagraphsToOdp(source.Paragraphs, AddParagraph, options, state);
     }
 
     private static void CopyPowerPointParagraphsToOdp(
         IReadOnlyList<PowerPointParagraph> sourceParagraphs,
         Func<OdpParagraph> addParagraph,
         PowerPointOpenDocumentConversionOptions options,
-        ref int paragraphs,
-        ref int textRuns,
-        ref int listParagraphs,
-        ref int skippedBasicFormatting,
-        ref int unsupportedHyperlinkTooltips,
-        ref int unsupportedRunInteractions) {
+        PowerPointToOdpTextConversionState state) {
         foreach (PowerPointParagraph sourceParagraph in sourceParagraphs) {
             OdpParagraph targetParagraph = addParagraph();
-            ApplyPowerPointParagraphLayout(sourceParagraph, targetParagraph);
-            IReadOnlyList<PowerPointTextRun> runs = sourceParagraph.Runs;
-            if (runs.Count == 0) {
+            if (ApplyPowerPointParagraphLayout(sourceParagraph, targetParagraph)) {
+                state.ApproximatedAlignments++;
+            }
+            IReadOnlyList<PowerPointParagraphInline> inlineNodes = sourceParagraph.InlineNodes;
+            if (inlineNodes.Count == 0) {
                 targetParagraph.Text = sourceParagraph.Text;
             } else {
-                foreach (PowerPointTextRun run in runs) {
-                    if (!options.IncludeBasicFormatting && HasBasicFormatting(run)) skippedBasicFormatting++;
+                foreach (PowerPointParagraphInline inlineNode in inlineNodes) {
+                    if (inlineNode.Kind == PowerPointParagraphInlineKind.LineBreak) {
+                        targetParagraph.AddText("\n");
+                        state.LineBreaks++;
+                        continue;
+                    }
+                    if (inlineNode.Kind == PowerPointParagraphInlineKind.Field) {
+                        targetParagraph.AddText(inlineNode.Text);
+                        state.Fields++;
+                        continue;
+                    }
+                    PowerPointTextRun run = inlineNode.Run!;
+                    if (!options.IncludeBasicFormatting && HasBasicFormatting(run)) state.SkippedBasicFormatting++;
                     Uri? hyperlink = run.Hyperlink;
                     bool clickActionRepresented = string.IsNullOrWhiteSpace(run.ClickAction)
                         || string.Equals(run.ClickAction, "ppaction://hlinksldjump", StringComparison.OrdinalIgnoreCase);
                     if (run.HasClickInteraction && (hyperlink == null || !clickActionRepresented
                         || run.ClickSoundName != null || run.ClickStopsSound)) {
-                        unsupportedRunInteractions++;
+                        state.UnsupportedRunInteractions++;
                     }
-                    if (run.HasMouseOverInteraction) unsupportedRunInteractions++;
+                    if (run.HasMouseOverInteraction) state.UnsupportedRunInteractions++;
                     if (hyperlink != null) {
                         ApplyPowerPointRun(run, targetParagraph.AddHyperlink(run.Text, hyperlink.ToString()), options);
-                        if (!string.IsNullOrWhiteSpace(run.HyperlinkTooltip)) unsupportedHyperlinkTooltips++;
+                        if (!string.IsNullOrWhiteSpace(run.HyperlinkTooltip)) state.UnsupportedHyperlinkTooltips++;
                     } else {
                         ApplyPowerPointRun(run, targetParagraph.AddRun(run.Text), options);
                     }
-                    textRuns++;
+                    state.TextRuns++;
                 }
             }
-            if (sourceParagraph.BulletCharacter != null || sourceParagraph.IsNumbered) listParagraphs++;
-            paragraphs++;
+            if (sourceParagraph.BulletCharacter != null || sourceParagraph.IsNumbered) state.ListParagraphs++;
+            state.Paragraphs++;
         }
     }
 
@@ -88,6 +101,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         ref int approximatedRuns,
         ref int skippedBasicFormatting,
         ref int unsupportedWritingModes,
+        ref int approximatedParagraphAlignments,
         ref int unsupportedMeasurements,
         ref int approximatedFontFamilyLists,
         ref int unsupportedFontFamilies) {
@@ -100,7 +114,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             unsupportedMeasurements += ApplyOdpParagraphLayout(
                 sourceParagraph,
                 targetParagraph,
-                ref unsupportedWritingModes);
+                ref unsupportedWritingModes,
+                ref approximatedParagraphAlignments);
             IReadOnlyList<OdpInlineNode> inlineNodes = sourceParagraph.InlineNodes;
             IReadOnlyList<PowerPointTextRun> existingRuns = targetParagraph.Runs;
             bool useExistingRun = existingRuns.Count > 0;
@@ -114,6 +129,21 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 return result;
             }
 
+            IReadOnlyList<PowerPointTextRun> AddInlineRuns(string text) {
+                string[] segments = (text ?? string.Empty)
+                    .Replace("\r\n", "\n")
+                    .Replace('\r', '\n')
+                    .Split('\n');
+                var runs = new List<PowerPointTextRun>(segments.Length);
+                for (int segmentIndex = 0; segmentIndex < segments.Length; segmentIndex++) {
+                    if (segmentIndex > 0) targetParagraph.AddLineBreak();
+                    if (segments[segmentIndex].Length > 0 || segments.Length == 1) {
+                        runs.Add(AddInlineRun(segments[segmentIndex]));
+                    }
+                }
+                return runs;
+            }
+
             if (inlineNodes.Count == 0) {
                 PowerPointTextRun run = useExistingRun
                     ? existingRuns[0]
@@ -122,26 +152,32 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
             } else {
                 foreach (OdpInlineNode node in inlineNodes) {
-                    PowerPointTextRun targetRun = AddInlineRun(node.Text);
+                    IReadOnlyList<PowerPointTextRun> targetRuns = AddInlineRuns(node.Text);
                     if (node.Kind == OdpInlineNodeKind.Run) {
-                        unsupportedMeasurements += ApplyOdpRun(node.Run!, sourceParagraph, targetRun, options,
-                            ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                        foreach (PowerPointTextRun targetRun in targetRuns) {
+                            unsupportedMeasurements += ApplyOdpRun(node.Run!, sourceParagraph, targetRun, options,
+                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                        }
                         if (!options.IncludeBasicFormatting && HasBasicFormatting(node.Run!)) skippedBasicFormatting++;
                     } else if (node.Kind == OdpInlineNodeKind.Hyperlink) {
                         OdpHyperlink hyperlink = node.Hyperlink!;
-                        unsupportedMeasurements += ApplyOdpHyperlink(hyperlink, sourceParagraph, targetRun, options,
-                            ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                        foreach (PowerPointTextRun targetRun in targetRuns) {
+                            unsupportedMeasurements += ApplyOdpHyperlink(hyperlink, sourceParagraph, targetRun, options,
+                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                        }
                         if (!string.IsNullOrWhiteSpace(hyperlink.TargetFrameName)
                             || !string.IsNullOrWhiteSpace(hyperlink.ShowBehavior)) {
                             unsupportedHyperlinkBehaviors++;
                         }
                         if (TryResolveSlideFragment(hyperlink.Href, slides, out int targetSlideIndex)) {
-                            pendingInternalLinks.Add((targetRun, targetSlideIndex));
+                            foreach (PowerPointTextRun targetRun in targetRuns) {
+                                pendingInternalLinks.Add((targetRun, targetSlideIndex));
+                            }
                             hyperlinks++;
                         } else if (hyperlink.Href.StartsWith("#", StringComparison.Ordinal)) {
                             unsupportedHyperlinks++;
                         } else if (Uri.TryCreate(hyperlink.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
-                            targetRun.SetHyperlink(uri);
+                            foreach (PowerPointTextRun targetRun in targetRuns) targetRun.SetHyperlink(uri);
                             hyperlinks++;
                             if (IsExternalOdfHref(hyperlink.Href)) externalHyperlinks++;
                         } else {
@@ -149,11 +185,13 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         }
                         if (!options.IncludeBasicFormatting && HasBasicFormatting(hyperlink)) skippedBasicFormatting++;
                     } else {
-                        unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, targetRun, options,
-                            ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                        foreach (PowerPointTextRun targetRun in targetRuns) {
+                            unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, targetRun, options,
+                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                        }
                         if (node.Kind == OdpInlineNodeKind.Other) approximatedRuns++;
                     }
-                    textRuns++;
+                    textRuns += targetRuns.Count;
                 }
             }
             if (!options.IncludeBasicFormatting && HasBasicFormatting(sourceParagraph)) skippedBasicFormatting++;

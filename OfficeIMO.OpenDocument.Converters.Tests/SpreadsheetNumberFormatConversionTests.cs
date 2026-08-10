@@ -543,4 +543,32 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         Assert.Throws<OdfConversionLossException>(() => loaded.ToExcelDocumentResult(
             new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
     }
+
+    [Fact]
+    public void SignlessOdfPercentageStyleIsRejectedAndReportedAsUnsupported() {
+        OdsDocument source = OdsDocument.Create();
+        OdsDataStyle style = source.AddPercentageStyle("WordsOnly", 2);
+        OdsCell cell = source.AddSheet("Data").Cell(0, 0);
+        cell.SetPercentage(0.25M);
+        cell.NumberFormatName = style.Name;
+        XDocument flat = source.ToFlatXml();
+        flat.Descendants(OdfNamespaces.Number + "percentage-style").Single()
+            .Element(OdfNamespaces.Number + "text")!.Value = " percent";
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+        OdsDocument loaded = OdsDocument.LoadFlatXml(stream);
+
+        Assert.False(Assert.Single(loaded.DataStyles).TryGetExcelNumberFormatCode(out _));
+        OdfConversionResult<ExcelDocument> conversion = loaded.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "cell-format-details"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => loaded.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            }));
+    }
 }

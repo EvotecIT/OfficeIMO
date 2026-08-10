@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Represents a paragraph within a textbox.
     /// </summary>
-    public class PowerPointParagraph {
+    public partial class PowerPointParagraph {
         private readonly SlidePart? _slidePart;
         private readonly OpenXmlPartContainer? _ownerPart;
 
@@ -26,13 +26,15 @@ namespace OfficeIMO.PowerPoint {
         /// Text content of the paragraph.
         /// </summary>
         public string Text {
-            get => Paragraph.InnerText ?? string.Empty;
+            get => string.Concat(InlineNodes.Select(node => node.Text));
             set {
                 string[] discardedSoundIds = PowerPointEmbeddedSound
                     .GetRelationshipIds(Paragraph);
                 A.EndParagraphRunProperties? endProps = Paragraph.GetFirstChild<A.EndParagraphRunProperties>();
                 endProps?.Remove();
                 Paragraph.RemoveAllChildren<A.Run>();
+                Paragraph.RemoveAllChildren<A.Break>();
+                Paragraph.RemoveAllChildren<A.Field>();
                 A.Run run = new(new A.Text(value ?? string.Empty));
                 Paragraph.Append(run);
                 if (endProps != null) {

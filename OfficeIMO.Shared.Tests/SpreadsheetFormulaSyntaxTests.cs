@@ -45,6 +45,8 @@ public sealed class SpreadsheetFormulaSyntaxTests {
     [InlineData("=OFFSET(A1,0,0) B1", "of:=OFFSET([.A1];0;0)![.B1]")]
     [InlineData("=A1 INDEX(B1:C2,0,1)", "of:=[.A1]!INDEX([.B1:.C2];0;1)")]
     [InlineData("=INDIRECT(\"A1\") B1", "of:=INDIRECT(\"A1\")![.B1]")]
+    [InlineData("=CHOOSE(1,A1:A3,B1:B3) A2:C2", "of:=CHOOSE(1;[.A1:.A3];[.B1:.B3])![.A2:.C2]")]
+    [InlineData("=_xlfn.XLOOKUP(A1,B1:B3,C1:C3) B2", "of:=_xlfn.XLOOKUP([.A1];[.B1:.B3];[.C1:.C3])![.B2]")]
     public void ReferenceReturningFunctionsParticipateInExcelIntersections(string excel, string expected) {
         SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
             .Parse(excel, SpreadsheetFormulaDialect.ExcelA1)
