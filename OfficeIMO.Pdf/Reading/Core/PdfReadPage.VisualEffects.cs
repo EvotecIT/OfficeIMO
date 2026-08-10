@@ -5,10 +5,10 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadPage {
     private OfficeBlendMode? ReadBlendMode(PdfDictionary state) {
         if (!state.Items.TryGetValue("BM", out PdfObject? value)) return null;
-        PdfObject? resolved = ResolveObject(value);
+        PdfObject? resolved = ResolveEffectObject(value);
         if (resolved is PdfArray array) {
             for (int index = 0; index < array.Items.Count; index++) {
-                OfficeBlendMode? candidate = MapBlendMode(ResolveObject(array.Items[index]) as PdfName);
+                OfficeBlendMode? candidate = MapBlendMode(ResolveEffectObject(array.Items[index]) as PdfName);
                 if (candidate.HasValue) return candidate;
             }
             return null;
@@ -39,22 +39,57 @@ public sealed partial class PdfReadPage {
     }
 
     private PdfPageSoftMaskResource? ReadSoftMask(PdfDictionary state) {
-        PdfObject? resolved = ResolveObject(state.Items.TryGetValue("SMask", out PdfObject? value) ? value : null);
+        PdfObject? resolved = ResolveEffectObject(state.Items.TryGetValue("SMask", out PdfObject? value) ? value : null);
         if (resolved is PdfName { Name: "None" } || resolved is not PdfDictionary mask ||
-            ResolveObject(mask.Items.TryGetValue("G", out PdfObject? groupObject) ? groupObject : null) is not PdfStream group) return null;
-        if (group.Dictionary.Get<PdfName>("Subtype")?.Name != "Form" ||
-            ResolveDictionary(group.Dictionary.Items.TryGetValue("Group", out PdfObject? transparencyObject) ? transparencyObject : null)?.Get<PdfName>("S")?.Name != "Transparency" ||
-            ResolveObject(mask.Items.TryGetValue("S", out PdfObject? modeObject) ? modeObject : null) is not PdfName modeName ||
+            ResolveEffectObject(mask.Items.TryGetValue("G", out PdfObject? groupObject) ? groupObject : null) is not PdfStream group) return null;
+        PdfDictionary? transparency = ResolveEffectObject(
+            group.Dictionary.Items.TryGetValue("Group", out PdfObject? transparencyObject) ? transparencyObject : null) as PdfDictionary;
+        if (ResolveEffectObject(group.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null) is not PdfName { Name: "Form" } ||
+            transparency == null ||
+            ResolveEffectObject(transparency.Items.TryGetValue("S", out PdfObject? groupSubtypeObject) ? groupSubtypeObject : null) is not PdfName { Name: "Transparency" } ||
+            ResolveEffectObject(mask.Items.TryGetValue("S", out PdfObject? modeObject) ? modeObject : null) is not PdfName modeName ||
             (modeName.Name != "Alpha" && modeName.Name != "Luminosity")) return null;
+        if (mask.Items.TryGetValue("TR", out PdfObject? transferObject) &&
+            ResolveEffectObject(transferObject) is not PdfName { Name: "Identity" }) return null;
+        if (transparency.Items.TryGetValue("I", out PdfObject? isolatedObject) &&
+            ResolveEffectObject(isolatedObject) is not PdfBoolean) return null;
+        if (transparency.Items.TryGetValue("K", out PdfObject? knockoutObject) &&
+            ResolveEffectObject(knockoutObject) is not PdfBoolean { Value: false }) return null;
+        PdfName? groupColorSpace = null;
+        if (transparency.Items.TryGetValue("CS", out PdfObject? colorSpaceObject)) {
+            groupColorSpace = ResolveEffectObject(colorSpaceObject) as PdfName;
+            if (groupColorSpace?.Name != "DeviceGray" && groupColorSpace?.Name != "DeviceRGB") return null;
+        }
         OfficeSoftMaskMode mode = modeName.Name == "Luminosity" ? OfficeSoftMaskMode.Luminosity : OfficeSoftMaskMode.Alpha;
         OfficeColor backdrop = OfficeColor.Transparent;
-        if (mode == OfficeSoftMaskMode.Luminosity &&
-            ResolveObject(mask.Items.TryGetValue("BC", out PdfObject? backdropObject) ? backdropObject : null) is PdfArray components) {
+        if (mask.Items.TryGetValue("BC", out PdfObject? backdropObject)) {
+            if (ResolveEffectObject(backdropObject) is not PdfArray components) return null;
             IReadOnlyList<double> values = ReadNumberArray(components);
-            if (values.Count >= 3) backdrop = OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[1]), ToColorByte(values[2]));
-            else if (values.Count == 1) backdrop = OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[0]), ToColorByte(values[0]));
+            int expectedComponents = groupColorSpace?.Name == "DeviceGray"
+                ? 1
+                : groupColorSpace?.Name == "DeviceRGB" ? 3 : values.Count;
+            if ((expectedComponents != 1 && expectedComponents != 3) || values.Count != expectedComponents) return null;
+            if (mode == OfficeSoftMaskMode.Luminosity) {
+                backdrop = values.Count == 1
+                    ? OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[0]), ToColorByte(values[0]))
+                    : OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[1]), ToColorByte(values[2]));
+            }
         }
         return new PdfPageSoftMaskResource(group, mode, backdrop);
+    }
+
+    private PdfObject? ResolveEffectObject(PdfObject? value) {
+        PdfObject? current = value;
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        int maximumDepth = Math.Max(1, _limits.MaxContentNestingDepth);
+        for (int depth = 0; depth < maximumDepth && current is PdfReference reference; depth++) {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
+                !PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject indirect)) {
+                return null;
+            }
+            current = indirect.Value;
+        }
+        return current is PdfReference ? null : current;
     }
 
     private IReadOnlyList<PdfPageDrawingEffectTransition> GetGraphicsEffectTransitions(Matrix2D pageTransform, double pageHeight, PageContentBudget? pageContentBudget = null) {
@@ -64,8 +99,17 @@ public sealed partial class PdfReadPage {
         string content = GetContentStreamContent(pageContentBudget);
         if (content.Length == 0) return Array.Empty<PdfPageDrawingEffectTransition>();
         var activeForms = new HashSet<PdfStream>();
-        CollectGraphicsEffectTransitions(content, resources, pageTransform, pageHeight, transitions, activeForms, PdfPageDrawingEffect.Default, pageContentBudget: pageContentBudget);
-        transitions.Sort(static (left, right) => left.PaintOrder.CompareTo(right.PaintOrder));
+        CollectGraphicsEffectTransitions(
+            content,
+            resources,
+            pageTransform,
+            pageHeight,
+            transitions,
+            activeForms,
+            PdfPageDrawingEffect.Default,
+            pageContentBudget: pageContentBudget,
+            contentOrderPrefix: PdfContentOrderKey.Root);
+        SortGraphicsEffectTransitions(transitions);
         return transitions.Count == 0 ? Array.Empty<PdfPageDrawingEffectTransition>() : transitions.AsReadOnly();
     }
 
@@ -92,21 +136,33 @@ public sealed partial class PdfReadPage {
         OfficeStrokeLineCap? initialStrokeLineCap = null,
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
         int contentNestingDepth = 0,
-        PageContentBudget? pageContentBudget = null) {
+        PageContentBudget? pageContentBudget = null,
+        PdfContentOrderKey? contentOrderPrefix = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
-        IReadOnlyList<PdfPageDrawingEffectTransition> local = PdfPageGraphicsEffectTimelineParser.Parse(
+        IReadOnlyList<PdfPageDrawingEffectTransition> parsed = PdfPageGraphicsEffectTimelineParser.Parse(
             content,
             graphicsStates,
             initialEffect,
+            baseTransform,
+            contentOrderPrefix,
             paintOrderBase,
             paintOrderScale,
             paintOrderOffset,
             _limits.MaxContentOperations,
             _limits.MaxContentNestingDepth,
             _limits.MaxContentOperands);
-        transitions.AddRange(local);
+        var local = new List<PdfPageDrawingEffectTransition>(parsed.Count);
+        for (int transitionIndex = 0; transitionIndex < parsed.Count; transitionIndex++) {
+            PdfPageDrawingEffectTransition transition = parsed[transitionIndex];
+            PdfPageDrawingEffect effect = transition.Effect.SoftMask != null && !transition.Effect.SoftMaskTransform.HasValue
+                ? transition.Effect.WithSoftMaskTransform(baseTransform)
+                : transition.Effect;
+            var resolvedTransition = new PdfPageDrawingEffectTransition(transition.PaintOrder, effect, transition.ContentOrderKey);
+            local.Add(resolvedTransition);
+            transitions.Add(resolvedTransition);
+        }
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -133,7 +189,8 @@ public sealed partial class PdfReadPage {
                      _limits.MaxContentNestingDepth,
                      _limits.MaxContentOperands)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream) || !activeForms.Add(formStream)) continue;
-            PdfPageDrawingEffect inherited = ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect);
+            PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
+            PdfPageDrawingEffect inherited = ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect, formOrderPrefix);
             try {
                 PdfDictionary dictionary = formStream.Dictionary;
                 PdfDictionary? formResources = ResolveDictionary(dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
@@ -161,8 +218,12 @@ public sealed partial class PdfReadPage {
                     initialStrokeLineCap: invocation.StrokeLineCap,
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
                     contentNestingDepth: contentNestingDepth + 1,
-                    pageContentBudget: pageContentBudget);
-                transitions.Add(new PdfPageDrawingEffectTransition(invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.25D), inherited));
+                    pageContentBudget: pageContentBudget,
+                    contentOrderPrefix: formOrderPrefix);
+                transitions.Add(new PdfPageDrawingEffectTransition(
+                    invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.25D),
+                    inherited,
+                    formOrderPrefix?.Append(int.MaxValue)));
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -172,13 +233,42 @@ public sealed partial class PdfReadPage {
     private static PdfPageDrawingEffect ResolveDrawingEffect(
         IReadOnlyList<PdfPageDrawingEffectTransition> transitions,
         double paintOrder,
-        PdfPageDrawingEffect? initial = null) {
+        PdfPageDrawingEffect? initial = null,
+        PdfContentOrderKey? contentOrderKey = null) {
         PdfPageDrawingEffect effect = initial ?? PdfPageDrawingEffect.Default;
         for (int i = 0; i < transitions.Count; i++) {
-            if (transitions[i].PaintOrder > paintOrder) break;
-            effect = transitions[i].Effect;
+            PdfPageDrawingEffectTransition transition = transitions[i];
+            if (contentOrderKey != null && transition.ContentOrderKey != null) {
+                if (transition.ContentOrderKey.CompareTo(contentOrderKey) > 0) break;
+            } else if (transition.PaintOrder > paintOrder) {
+                break;
+            }
+            effect = transition.Effect;
         }
         return effect;
+    }
+
+    private static void SortGraphicsEffectTransitions(List<PdfPageDrawingEffectTransition> transitions) {
+        transitions.Sort(static (left, right) => {
+            if (left.ContentOrderKey != null && right.ContentOrderKey != null) {
+                int contentOrder = left.ContentOrderKey.CompareTo(right.ContentOrderKey);
+                if (contentOrder != 0) return contentOrder;
+            }
+            return left.PaintOrder.CompareTo(right.PaintOrder);
+        });
+    }
+
+    private static void OverlayDrawingEffects(
+        List<PdfPageDrawingElement> elements,
+        IReadOnlyList<PdfPageDrawingEffectTransition> transitions) {
+        for (int i = 0; i < elements.Count; i++) {
+            PdfPageDrawingElement element = elements[i];
+            PdfPageDrawingEffect inherited = ResolveDrawingEffect(
+                transitions,
+                element.PaintOrder,
+                contentOrderKey: element.ContentOrderKey);
+            elements[i] = element.WithEffect(element.Effect.OverlayOn(inherited));
+        }
     }
 
     private OfficeDrawingSoftMask GetOrCreateSoftMask(
@@ -186,15 +276,24 @@ public sealed partial class PdfReadPage {
         double width,
         double height,
         Matrix2D pageTransform,
-        Dictionary<PdfPageSoftMaskResource, OfficeDrawingSoftMask> cache,
+        Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask> cache,
+        HashSet<PdfStream> active,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget) {
-        if (cache.TryGetValue(resource, out OfficeDrawingSoftMask? existing)) return existing;
-        OfficeDrawing drawing = CreateFormDrawing(resource.Group, width, height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget);
-        var mask = new OfficeDrawingSoftMask(drawing, resource.Mode, backdropColor: resource.BackdropColor);
-        cache[resource] = mask;
-        return mask;
+        var cacheKey = (resource.Group, resource.Mode, resource.BackdropColor, pageTransform, width, height);
+        if (cache.TryGetValue(cacheKey, out OfficeDrawingSoftMask? existing)) return existing;
+        if (!active.Add(resource.Group)) {
+            return new OfficeDrawingSoftMask(new OfficeDrawing(width, height), resource.Mode, backdropColor: resource.BackdropColor);
+        }
+        try {
+            OfficeDrawing drawing = CreateFormDrawing(resource.Group, width, height, pageTransform, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget);
+            var mask = new OfficeDrawingSoftMask(drawing, resource.Mode, backdropColor: resource.BackdropColor);
+            cache[cacheKey] = mask;
+            return mask;
+        } finally {
+            active.Remove(resource.Group);
+        }
     }
 
     private OfficeDrawing CreateFormDrawing(
@@ -202,6 +301,8 @@ public sealed partial class PdfReadPage {
         double width,
         double height,
         Matrix2D pageTransform,
+        Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask> softMasks,
+        HashSet<PdfStream> activeSoftMasks,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget) {
@@ -226,9 +327,11 @@ public sealed partial class PdfReadPage {
             activeForms,
             renderedType3PaintOrders: renderedType3PaintOrders,
             type3GlyphBudget: type3GlyphBudget,
-            type3ImageVisitor: (placement, image) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count)),
+            type3ImageVisitor: (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
+            type3PrimitiveVisitor: (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
             textOutputBudget: textOutputBudget,
-            pageContentBudget: pageContentBudget);
+            pageContentBudget: pageContentBudget,
+            contentOrderPrefix: PdfContentOrderKey.Root);
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
 
         var spans = new List<PdfTextSpan>();
@@ -265,9 +368,24 @@ public sealed partial class PdfReadPage {
                 if (image != null) elements.Add(PdfPageDrawingElement.FromImage(placements[i], image, elements.Count));
             }
         }
+        var enclosingEffects = new List<PdfPageDrawingEffectTransition>();
+        CollectGraphicsEffectTransitions(
+            content,
+            resources,
+            transform,
+            height,
+            enclosingEffects,
+            new HashSet<PdfStream>(),
+            PdfPageDrawingEffect.Default,
+            pageContentBudget: pageContentBudget,
+            contentOrderPrefix: PdfContentOrderKey.Root);
+        SortGraphicsEffectTransitions(enclosingEffects);
+        OverlayDrawingEffects(elements, enclosingEffects);
 
         SortDrawingElements(elements);
-        for (int i = 0; i < elements.Count; i++) AddDrawingElementCore(drawing, height, elements[i]);
+        for (int i = 0; i < elements.Count; i++) {
+            AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);
+        }
         return drawing;
     }
 }

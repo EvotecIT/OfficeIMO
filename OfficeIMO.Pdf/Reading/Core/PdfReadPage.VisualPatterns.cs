@@ -235,9 +235,11 @@ public sealed partial class PdfReadPage {
             includeTilingPatterns: false,
             requireSupportedType3Content: requireSupportedType3Content,
             unrenderedPatternVisitor: _ => type3GlyphBudget.RecordFailure(),
-            type3ImageVisitor: (placement, image) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count)),
+            type3ImageVisitor: (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
+            type3PrimitiveVisitor: (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
             textOutputBudget: textOutputBudget,
-            pageContentBudget: pageContentBudget);
+            pageContentBudget: pageContentBudget,
+            contentOrderPrefix: PdfContentOrderKey.Root);
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
 
         var spans = new List<PdfTextSpan>();
@@ -272,8 +274,25 @@ public sealed partial class PdfReadPage {
                 if (image != null) elements.Add(PdfPageDrawingElement.FromImage(placements[i], image, elements.Count));
             }
         }
+        var enclosingEffects = new List<PdfPageDrawingEffectTransition>();
+        CollectGraphicsEffectTransitions(
+            content,
+            resources,
+            transform,
+            height,
+            enclosingEffects,
+            new HashSet<PdfStream>(),
+            PdfPageDrawingEffect.Default,
+            pageContentBudget: pageContentBudget,
+            contentOrderPrefix: PdfContentOrderKey.Root);
+        SortGraphicsEffectTransitions(enclosingEffects);
+        OverlayDrawingEffects(elements, enclosingEffects);
         SortDrawingElements(elements);
-        for (int i = 0; i < elements.Count; i++) AddDrawingElementCore(drawing, height, elements[i]);
+        var softMasks = new Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
+        var activeSoftMasks = new HashSet<PdfStream>();
+        for (int i = 0; i < elements.Count; i++) {
+            AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);
+        }
         return drawing;
     }
 }

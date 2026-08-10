@@ -57,12 +57,13 @@ internal static class PdfPageXObjectInvocationParser {
         Action? unsupportedColorVisitor = null,
         Action<string>? visibleFontVisitor = null,
         Action<string>? patternInvocationVisitor = null,
-        Action<PdfPageGraphicsStateResource>? graphicsStateVisitor = null) {
+        Action<PdfPageGraphicsStateResource>? graphicsStateVisitor = null,
+        bool allowSupportedGraphicsEffects = false) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor);
+        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects);
         return parser.Parse();
     }
 
@@ -114,6 +115,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Action<string>? _visibleFontVisitor;
         private readonly Action<string>? _patternInvocationVisitor;
         private readonly Action<PdfPageGraphicsStateResource>? _graphicsStateVisitor;
+        private readonly bool _allowSupportedGraphicsEffects;
         private string _textFont = string.Empty;
         private double _currentPaintOrder;
         private int _currentOperatorIndex;
@@ -153,7 +155,8 @@ internal static class PdfPageXObjectInvocationParser {
             Action? unsupportedColorVisitor,
             Action<string>? visibleFontVisitor,
             Action<string>? patternInvocationVisitor,
-            Action<PdfPageGraphicsStateResource>? graphicsStateVisitor) {
+            Action<PdfPageGraphicsStateResource>? graphicsStateVisitor,
+            bool allowSupportedGraphicsEffects) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -180,6 +183,7 @@ internal static class PdfPageXObjectInvocationParser {
             _visibleFontVisitor = visibleFontVisitor;
             _patternInvocationVisitor = patternInvocationVisitor;
             _graphicsStateVisitor = graphicsStateVisitor;
+            _allowSupportedGraphicsEffects = allowSupportedGraphicsEffects;
         }
 
         public IReadOnlyList<PdfPageXObjectInvocation> Parse() {
@@ -936,8 +940,9 @@ internal static class PdfPageXObjectInvocationParser {
             _state = _state.WithGraphicsStateResource(resource);
             if (!HasHiddenContent()) _graphicsStateVisitor?.Invoke(resource);
             if (!HasHiddenContent() &&
-                ((resource.BlendMode.HasValue && resource.BlendMode.Value != OfficeBlendMode.Normal) ||
-                 (resource.HasSoftMask && resource.SoftMask != null) ||
+                ((!_allowSupportedGraphicsEffects &&
+                  ((resource.BlendMode.HasValue && resource.BlendMode.Value != OfficeBlendMode.Normal) ||
+                   (resource.HasSoftMask && resource.SoftMask != null))) ||
                  resource.HasUnsupportedSoftMask ||
                  resource.HasUnsupportedBlendMode)) {
                 _unsupportedGraphicsEffectVisitor?.Invoke();

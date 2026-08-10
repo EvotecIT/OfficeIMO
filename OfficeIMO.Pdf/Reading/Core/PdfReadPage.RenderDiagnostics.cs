@@ -209,6 +209,7 @@ public sealed partial class PdfReadPage {
                          type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
                          unsupportedTextVisitor: () => supported = false,
                          unsupportedGraphicsEffectVisitor: () => supported = false,
+                         allowSupportedGraphicsEffects: true,
                          unsupportedColorVisitor: () => supported = false,
                          patternInvocationVisitor: name => {
                              if (!patternSupport.TryGetValue(name, out bool canProject)) {
@@ -504,7 +505,7 @@ public sealed partial class PdfReadPage {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedBlendModeId, entry.Key);
             }
             if (state.Items.TryGetValue("SMask", out PdfObject? mask) &&
-                ResolveObject(mask) is not PdfName { Name: "None" } &&
+                ResolveEffectObject(mask) is not PdfName { Name: "None" } &&
                 ReadSoftMask(state) == null) {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedSoftMaskId, entry.Key);
             }
