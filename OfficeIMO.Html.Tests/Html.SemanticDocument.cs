@@ -308,6 +308,18 @@ public partial class Html {
     }
 
     [Fact]
+    public void SemanticDocument_ParsesHtmlIntegerPrefixesForListOrdinals() {
+        HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument
+            .Parse("<ol start='  +3x'><li>A</li><li value='-2junk'>B</li><li>C</li></ol>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal(3, list.List!.Start);
+        Assert.Equal(new int?[] { 3, -2, -1 }, list.Children.Select(item => item.ListItem!.Ordinal));
+        Assert.Equal(new int?[] { null, -2, null }, list.Children.Select(item => item.ListItem!.ExplicitOrdinal));
+        Assert.Equal("3. A\n-2. B\n-1. C", list.Text);
+    }
+
+    [Fact]
     public void SemanticDocument_ListTextRecursivelyIncludesNestedItems() {
         HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument.Parse("""
             <ul><li>Parent<ol><li>Child<ul><li>Grandchild</li></ul></li></ol></li><li>Sibling</li></ul>

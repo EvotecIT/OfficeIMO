@@ -46,8 +46,11 @@ public sealed class HtmlImageDataUri {
     /// <summary>Attempts to decode the image payload as bytes.</summary>
     public bool TryDecodeBytes(out byte[] bytes) => _dataUri.TryDecodeBytes(out bytes);
 
-    /// <summary>Decodes the payload as UTF-8 text.</summary>
+    /// <summary>Decodes the payload using its declared charset, or UTF-8 when none is declared.</summary>
     public string DecodeText() => _dataUri.DecodeText();
+
+    /// <summary>Attempts to decode the payload using its declared charset, or UTF-8 when none is declared.</summary>
+    public bool TryDecodeText(out string text) => _dataUri.TryDecodeText(out text);
 
     /// <summary>Estimates decoded byte count without allocating decoded content when possible.</summary>
     public long EstimateDecodedByteCount() => _dataUri.EstimateDecodedByteCount();

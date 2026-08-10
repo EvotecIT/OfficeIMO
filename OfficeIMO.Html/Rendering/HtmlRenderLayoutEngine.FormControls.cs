@@ -237,7 +237,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ? NormalizeControlText(HtmlFormControlSemantics.GetValues(element).FirstOrDefault())
                 : NormalizeControlText(element.GetAttribute("value"));
             if (type == "password" && value.Length > 0) value = new string('*', Math.Min(32, value.Length));
-            if (value.Length == 0) {
+            if (value.Length == 0 && HtmlFormControlSemantics.IsPlaceholderApplicable(tag, type)) {
                 value = NormalizeControlText(element.GetAttribute("placeholder"));
                 isPlaceholder = value.Length > 0;
             }

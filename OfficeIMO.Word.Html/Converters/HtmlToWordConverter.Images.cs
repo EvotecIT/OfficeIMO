@@ -1196,7 +1196,10 @@ namespace OfficeIMO.Word.Html {
                         return false;
                     }
 
-                    string svgText = dataUri.DecodeText();
+                    if (!dataUri.TryDecodeText(out string svgText)) {
+                        detail = "Image data URI text could not be decoded.";
+                        return false;
+                    }
                     if (!IsEmbeddableSvgText(svgText, out detail)) {
                         return false;
                     }

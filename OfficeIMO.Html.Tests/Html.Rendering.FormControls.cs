@@ -146,6 +146,21 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_DoesNotRenderInapplicablePlaceholdersForTypedInputs() {
+        const string html = """
+            <input type='date' value='invalid' placeholder='Birthday'>
+            <input type='number' value='invalid' placeholder='Quantity'>
+            <input type='text' placeholder='Search records'>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.DoesNotContain("Birthday", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Quantity", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("Search records", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdf_FormControlSnapshotRemainsSearchableWithoutExposingPasswordValues() {
         const string html = """
             <h1>Approval</h1>

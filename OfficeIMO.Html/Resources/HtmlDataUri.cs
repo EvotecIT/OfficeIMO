@@ -73,6 +73,19 @@ public sealed class HtmlDataUri {
     /// <summary>Decodes the payload using its declared charset, or UTF-8 when no charset is declared.</summary>
     public string DecodeText() => HtmlTextEncodingResolver.ResolveDataUriEncoding(Metadata).GetString(DecodeBytes());
 
+    /// <summary>Attempts to decode the payload using its declared charset, or UTF-8 when none is declared.</summary>
+    public bool TryDecodeText(out string text) {
+        text = string.Empty;
+        try {
+            text = DecodeText();
+            return true;
+        } catch (ArgumentException) {
+            return false;
+        } catch (FormatException) {
+            return false;
+        }
+    }
+
     /// <summary>Calculates decoded byte count without allocating the decoded payload.</summary>
     public long EstimateDecodedByteCount() {
         if (!IsBase64) {

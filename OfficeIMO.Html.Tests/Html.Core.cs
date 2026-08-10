@@ -200,6 +200,16 @@ public sealed class HtmlCoreTests {
         Assert.Equal("€", dataUri.DecodeText());
     }
 
+    [Theory]
+    [InlineData("data:text/plain;charset=bogus,hello")]
+    [InlineData("data:text/plain;charset=utf-8,%FF")]
+    public void HtmlDataUri_TryDecodeTextReturnsFalseForCharsetFailures(string source) {
+        Assert.True(HtmlDataUri.TryParse(source, out HtmlDataUri dataUri));
+
+        Assert.False(dataUri.TryDecodeText(out string text));
+        Assert.Equal(string.Empty, text);
+    }
+
     [Fact]
     public void HtmlStylesheetDecoderHonorsContentTypeAndCssCharset() {
         byte[] body = Encoding.ASCII.GetBytes(".label::before{content:'");
