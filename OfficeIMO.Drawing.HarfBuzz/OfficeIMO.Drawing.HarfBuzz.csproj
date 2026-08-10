@@ -31,7 +31,7 @@
     <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.1.1" />
     <PackageReference Include="HarfBuzzSharp.NativeAssets.macOS" Version="14.2.1.1" />
     <PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="14.2.1.1" />
-    <PackageReference Include="HarfBuzzSharp.NativeAssets.Win32" Version="14.2.1.1" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Win32" Version="14.2.1.2" />
   </ItemGroup>
 
   <ItemGroup>
