@@ -58,12 +58,18 @@ internal static class PdfPageXObjectInvocationParser {
         Action<string>? visibleFontVisitor = null,
         Action<string>? patternInvocationVisitor = null,
         Action<PdfPageGraphicsStateResource>? graphicsStateVisitor = null,
-        bool allowSupportedGraphicsEffects = false) {
+        bool allowSupportedGraphicsEffects = false,
+        IReadOnlyDictionary<string, PdfPageColorSpace>? patternBaseColorSpaces = null,
+        PdfPagePatternSelection? initialFillPattern = null,
+        PdfPageColorSpace? initialFillPatternBaseColorSpace = null,
+        PdfPagePatternSelection? initialStrokePattern = null,
+        PdfPageColorSpace? initialStrokePatternBaseColorSpace = null,
+        IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects);
+        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns);
         return parser.Parse();
     }
 
@@ -73,6 +79,8 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Matrix2D _baseTransform;
         private readonly IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? _graphicsStates;
         private readonly IReadOnlyDictionary<string, PdfPageColorSpace>? _colorSpaces;
+        private readonly IReadOnlyDictionary<string, PdfPageColorSpace>? _patternBaseColorSpaces;
+        private readonly IReadOnlyDictionary<string, PdfPageTilingPatternResource>? _tilingPatterns;
         private readonly PdfPageOptionalContentVisibility? _optionalContentVisibility;
         private readonly double _paintOrderBase;
         private readonly double _paintOrderScale;
@@ -80,13 +88,16 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly List<PdfPageXObjectInvocation> _invocations = new List<PdfPageXObjectInvocation>();
         private readonly List<object> _args = new List<object>(8);
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
+        private readonly Stack<PatternState> _patternStack = new Stack<PatternState>();
         private readonly Stack<TextState> _textStack = new Stack<TextState>();
         private readonly Stack<bool> _hiddenContentStack = new Stack<bool>();
         private readonly List<(double X, double Y)> _path = new List<(double X, double Y)>();
         private readonly List<OfficePathCommand> _pathCommands = new List<OfficePathCommand>();
         private readonly List<PdfPageClipPath> _pendingTextClipPaths = new List<PdfPageClipPath>();
         private readonly GraphicsState _initialState;
+        private readonly PatternState _initialPatternState;
         private GraphicsState _state;
+        private PatternState _patternState;
         private bool _inText;
         private double _textSize = 12D;
         private double _textLeading = 14.4D;
@@ -156,14 +167,28 @@ internal static class PdfPageXObjectInvocationParser {
             Action<string>? visibleFontVisitor,
             Action<string>? patternInvocationVisitor,
             Action<PdfPageGraphicsStateResource>? graphicsStateVisitor,
-            bool allowSupportedGraphicsEffects) {
+            bool allowSupportedGraphicsEffects,
+            IReadOnlyDictionary<string, PdfPageColorSpace>? patternBaseColorSpaces,
+            PdfPagePatternSelection? initialFillPattern,
+            PdfPageColorSpace? initialFillPatternBaseColorSpace,
+            PdfPagePatternSelection? initialStrokePattern,
+            PdfPageColorSpace? initialStrokePatternBaseColorSpace,
+            IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
             _colorSpaces = colorSpaces;
+            _patternBaseColorSpaces = patternBaseColorSpaces;
+            _tilingPatterns = tilingPatterns;
             _optionalContentVisibility = optionalContentVisibility;
             _initialState = GraphicsState.Create(baseTransform, initialFillColor, initialFillColorSpace, initialFillOpacity, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin);
+            _initialPatternState = new PatternState(
+                initialFillPattern,
+                initialFillPatternBaseColorSpace ?? initialFillPattern?.BaseColorSpace,
+                initialStrokePattern,
+                initialStrokePatternBaseColorSpace ?? initialStrokePattern?.BaseColorSpace);
             _state = _initialState;
+            _patternState = _initialPatternState;
             _pageHeight = pageHeight;
             _paintOrderBase = paintOrderBase;
             _paintOrderScale = paintOrderScale;
@@ -258,6 +283,10 @@ internal static class PdfPageXObjectInvocationParser {
             bool usesType3GlyphProgram = IsActiveType3Font();
             bool isVisible = !HasHiddenContent();
             if (isVisible) _visibleFontVisitor?.Invoke(_textFont);
+            if (isVisible && usesType3GlyphProgram) {
+                if (_patternState.Fill.HasValue) _patternInvocationVisitor?.Invoke(_patternState.Fill.Value.Name);
+                if (_patternState.Stroke.HasValue) _patternInvocationVisitor?.Invoke(_patternState.Stroke.Value.Name);
+            }
             List<PdfPageType3GlyphInvocation>? glyphs = CreateType3GlyphBatch(usesType3GlyphProgram, isVisible, bytes.Length);
             (double X, double Y) advance = ProcessShownText(bytes, glyphs);
             PublishType3GlyphBatch(glyphs);
@@ -326,8 +355,9 @@ internal static class PdfPageXObjectInvocationParser {
                             new Matrix2D(_textSize * _textHScale, 0D, 0D, _textSize, 0D, _textRise)));
                     glyphs.Add(new PdfPageType3GlyphInvocation(
                         font!, code, textState, _state.ClipPath,
-                        _state.FillColor, _state.FillColorSpace, _state.FillOpacity,
-                        _state.StrokeColor, _state.StrokeColorSpace, _state.StrokeOpacity,
+                        _state.Transform,
+                        _state.FillColor, _state.FillColorSpace, _patternState.Fill, _patternState.FillBaseColorSpace, _state.FillOpacity,
+                        _state.StrokeColor, _state.StrokeColorSpace, _patternState.Stroke, _patternState.StrokeBaseColorSpace, _state.StrokeOpacity,
                         _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin));
                 }
 
@@ -359,6 +389,10 @@ internal static class PdfPageXObjectInvocationParser {
             }
             List<PdfPageType3GlyphInvocation>? glyphs = CreateType3GlyphBatch(usesType3GlyphProgram, isVisible, (int)glyphCount);
             if (isVisible && glyphCount > 0) _visibleFontVisitor?.Invoke(_textFont);
+            if (isVisible && usesType3GlyphProgram && glyphCount > 0) {
+                if (_patternState.Fill.HasValue) _patternInvocationVisitor?.Invoke(_patternState.Fill.Value.Name);
+                if (_patternState.Stroke.HasValue) _patternInvocationVisitor?.Invoke(_patternState.Stroke.Value.Name);
+            }
             for (int i = 0; i < items.Count; i++) {
                 if (items[i] is byte[] bytes) {
                     (double X, double Y) advance = ProcessShownText(bytes, glyphs);
@@ -415,10 +449,12 @@ internal static class PdfPageXObjectInvocationParser {
             switch (op) {
                 case "q":
                     _stack.Push(_state);
+                    _patternStack.Push(_patternState);
                     _textStack.Push(CaptureTextState());
                     break;
                 case "Q":
                     _state = _stack.Count > 0 ? _stack.Pop() : _initialState;
+                    _patternState = _patternStack.Count > 0 ? _patternStack.Pop() : _initialPatternState;
                     RestoreTextState(_textStack.Count > 0 ? _textStack.Pop() : TextState.Default);
                     break;
                 case "cm":
@@ -562,6 +598,9 @@ internal static class PdfPageXObjectInvocationParser {
                         _args[_args.Count - 1] is string fillColorSpaceName &&
                         TryReadColorSpace(fillColorSpaceName, out PdfPageColorSpace fillColorSpace)) {
                         _state = _state.WithFillColorSpace(fillColorSpace);
+                        _patternState = _patternState.WithFill(
+                            null,
+                            ReadPatternBaseColorSpace(fillColorSpaceName, fillColorSpace));
                     } else if (!HasHiddenContent()) {
                         _unsupportedColorVisitor?.Invoke();
                     }
@@ -572,6 +611,9 @@ internal static class PdfPageXObjectInvocationParser {
                         _args[_args.Count - 1] is string strokeColorSpaceName &&
                         TryReadColorSpace(strokeColorSpaceName, out PdfPageColorSpace strokeColorSpace)) {
                         _state = _state.WithStrokeColorSpace(strokeColorSpace);
+                        _patternState = _patternState.WithStroke(
+                            null,
+                            ReadPatternBaseColorSpace(strokeColorSpaceName, strokeColorSpace));
                     } else if (!HasHiddenContent()) {
                         _unsupportedColorVisitor?.Invoke();
                     }
@@ -579,16 +621,31 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "sc":
                 case "scn":
-                    if (!HasHiddenContent() && op == "scn" && _args.Count > 0 && _args[_args.Count - 1] is string fillPatternName) {
+                    if (op == "scn" && _args.Count > 0 && _args[_args.Count - 1] is string fillPatternName) {
                         if (_state.FillColorSpace == PdfPageColorSpaceKind.Pattern) {
-                            _unsupportedPatternVisitor?.Invoke();
-                            _patternInvocationVisitor?.Invoke(fillPatternName);
-                        } else {
+                            if (!HasHiddenContent()) {
+                                _unsupportedPatternVisitor?.Invoke();
+                                _patternInvocationVisitor?.Invoke(fillPatternName);
+                            }
+                            OfficeColor? tint = _patternState.FillBaseColorSpace.HasValue &&
+                                TryReadColor(_patternState.FillBaseColorSpace.Value, out OfficeColor fillPatternTint)
+                                    ? fillPatternTint
+                                    : (OfficeColor?)null;
+                            _patternState = _patternState.WithFill(
+                                new PdfPagePatternSelection(
+                                    fillPatternName,
+                                    tint,
+                                    _patternState.FillBaseColorSpace,
+                                    ResolveTilingPattern(fillPatternName)),
+                                _patternState.FillBaseColorSpace);
+                        } else if (!HasHiddenContent()) {
                             _unsupportedColorVisitor?.Invoke();
                         }
                     }
-                    if (TryReadColor(_state.FillColorSpace, out OfficeColor fillColor)) {
+                    if (_state.FillColorSpace != PdfPageColorSpaceKind.Pattern &&
+                        TryReadColor(_state.FillColorSpace, out OfficeColor fillColor)) {
                         _state = _state.WithFillColor(fillColor);
+                        _patternState = _patternState.WithFill(null, null);
                     } else if (!HasHiddenContent() && !(_args.Count > 0 && _args[_args.Count - 1] is string)) {
                         _unsupportedColorVisitor?.Invoke();
                     }
@@ -596,16 +653,31 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "SC":
                 case "SCN":
-                    if (!HasHiddenContent() && op == "SCN" && _args.Count > 0 && _args[_args.Count - 1] is string strokePatternName) {
+                    if (op == "SCN" && _args.Count > 0 && _args[_args.Count - 1] is string strokePatternName) {
                         if (_state.StrokeColorSpace == PdfPageColorSpaceKind.Pattern) {
-                            _unsupportedPatternVisitor?.Invoke();
-                            _patternInvocationVisitor?.Invoke(strokePatternName);
-                        } else {
+                            if (!HasHiddenContent()) {
+                                _unsupportedPatternVisitor?.Invoke();
+                                _patternInvocationVisitor?.Invoke(strokePatternName);
+                            }
+                            OfficeColor? tint = _patternState.StrokeBaseColorSpace.HasValue &&
+                                TryReadColor(_patternState.StrokeBaseColorSpace.Value, out OfficeColor strokePatternTint)
+                                    ? strokePatternTint
+                                    : (OfficeColor?)null;
+                            _patternState = _patternState.WithStroke(
+                                new PdfPagePatternSelection(
+                                    strokePatternName,
+                                    tint,
+                                    _patternState.StrokeBaseColorSpace,
+                                    ResolveTilingPattern(strokePatternName)),
+                                _patternState.StrokeBaseColorSpace);
+                        } else if (!HasHiddenContent()) {
                             _unsupportedColorVisitor?.Invoke();
                         }
                     }
-                    if (TryReadColor(_state.StrokeColorSpace, out OfficeColor strokeColor)) {
+                    if (_state.StrokeColorSpace != PdfPageColorSpaceKind.Pattern &&
+                        TryReadColor(_state.StrokeColorSpace, out OfficeColor strokeColor)) {
                         _state = _state.WithStrokeColor(strokeColor);
+                        _patternState = _patternState.WithStroke(null, null);
                     } else if (!HasHiddenContent() && !(_args.Count > 0 && _args[_args.Count - 1] is string)) {
                         _unsupportedColorVisitor?.Invoke();
                     }
@@ -614,36 +686,42 @@ internal static class PdfPageXObjectInvocationParser {
                 case "rg":
                     if (_args.Count >= 3) {
                         _state = _state.WithFillColor(ReadRgb(_args.Count - 3), PdfPageColorSpaceKind.DeviceRgb);
+                        _patternState = _patternState.WithFill(null, null);
                     }
 
                     break;
                 case "RG":
                     if (_args.Count >= 3) {
                         _state = _state.WithStrokeColor(ReadRgb(_args.Count - 3), PdfPageColorSpaceKind.DeviceRgb);
+                        _patternState = _patternState.WithStroke(null, null);
                     }
 
                     break;
                 case "g":
                     if (_args.Count >= 1) {
                         _state = _state.WithFillColor(ReadGray(_args.Count - 1), PdfPageColorSpaceKind.DeviceGray);
+                        _patternState = _patternState.WithFill(null, null);
                     }
 
                     break;
                 case "G":
                     if (_args.Count >= 1) {
                         _state = _state.WithStrokeColor(ReadGray(_args.Count - 1), PdfPageColorSpaceKind.DeviceGray);
+                        _patternState = _patternState.WithStroke(null, null);
                     }
 
                     break;
                 case "k":
                     if (_args.Count >= 4) {
                         _state = _state.WithFillColor(ReadCmyk(_args.Count - 4), PdfPageColorSpaceKind.DeviceCmyk);
+                        _patternState = _patternState.WithFill(null, null);
                     }
 
                     break;
                 case "K":
                     if (_args.Count >= 4) {
                         _state = _state.WithStrokeColor(ReadCmyk(_args.Count - 4), PdfPageColorSpaceKind.DeviceCmyk);
+                        _patternState = _patternState.WithStroke(null, null);
                     }
 
                     break;
@@ -757,7 +835,7 @@ internal static class PdfPageXObjectInvocationParser {
                         _args.Count >= 1 &&
                         _args[_args.Count - 1] is string name &&
                         !string.IsNullOrEmpty(name)) {
-                        _invocations.Add(new PdfPageXObjectInvocation(name, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder, _currentOperatorIndex));
+                        _invocations.Add(new PdfPageXObjectInvocation(name, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _patternState.Fill, _patternState.FillBaseColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _patternState.Stroke, _patternState.StrokeBaseColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder, _currentOperatorIndex));
                     }
 
                     break;
@@ -767,7 +845,7 @@ internal static class PdfPageXObjectInvocationParser {
                         var inlineImage = new PdfPageInlineImage(
                             "__inline" + (++_inlineImageIndex).ToString(CultureInfo.InvariantCulture),
                             stream);
-                        _invocations.Add(new PdfPageXObjectInvocation(inlineImage, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder, _currentOperatorIndex));
+                        _invocations.Add(new PdfPageXObjectInvocation(inlineImage, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _patternState.Fill, _patternState.FillBaseColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _patternState.Stroke, _patternState.StrokeBaseColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder, _currentOperatorIndex));
                     }
 
                     break;
@@ -1053,6 +1131,22 @@ internal static class PdfPageXObjectInvocationParser {
             }
         }
 
+        private PdfPageColorSpace? ReadPatternBaseColorSpace(string name, PdfPageColorSpace colorSpace) {
+            if (colorSpace != PdfPageColorSpaceKind.Pattern || _patternBaseColorSpaces == null) {
+                return null;
+            }
+
+            return _patternBaseColorSpaces.TryGetValue(name, out PdfPageColorSpace baseColorSpace)
+                ? baseColorSpace
+                : (PdfPageColorSpace?)null;
+        }
+
+        private PdfPageTilingPatternResource? ResolveTilingPattern(string name) {
+            return _tilingPatterns != null && _tilingPatterns.TryGetValue(name, out PdfPageTilingPatternResource? pattern)
+                ? pattern
+                : null;
+        }
+
         private static byte ToByte(double value) => (byte)Math.Round(Clamp01(value) * 255D);
 
         private static OfficeStrokeLineCap? ReadLineCap(double value) {
@@ -1193,6 +1287,30 @@ internal static class PdfPageXObjectInvocationParser {
         public Matrix2D LineMatrix { get; }
     }
 
+    private readonly struct PatternState {
+        internal PatternState(
+            PdfPagePatternSelection? fill,
+            PdfPageColorSpace? fillBaseColorSpace,
+            PdfPagePatternSelection? stroke,
+            PdfPageColorSpace? strokeBaseColorSpace) {
+            Fill = fill;
+            FillBaseColorSpace = fillBaseColorSpace;
+            Stroke = stroke;
+            StrokeBaseColorSpace = strokeBaseColorSpace;
+        }
+
+        internal PdfPagePatternSelection? Fill { get; }
+        internal PdfPageColorSpace? FillBaseColorSpace { get; }
+        internal PdfPagePatternSelection? Stroke { get; }
+        internal PdfPageColorSpace? StrokeBaseColorSpace { get; }
+
+        internal PatternState WithFill(PdfPagePatternSelection? fill, PdfPageColorSpace? baseColorSpace) =>
+            new PatternState(fill, baseColorSpace, Stroke, StrokeBaseColorSpace);
+
+        internal PatternState WithStroke(PdfPagePatternSelection? stroke, PdfPageColorSpace? baseColorSpace) =>
+            new PatternState(Fill, FillBaseColorSpace, stroke, baseColorSpace);
+    }
+
     private readonly struct GraphicsState {
         private GraphicsState(
             Matrix2D transform,
@@ -1323,9 +1441,13 @@ internal readonly struct PdfPageXObjectInvocation {
         PdfPageClipPath? clipPath,
         OfficeColor fillColor,
         PdfPageColorSpace fillColorSpace,
+        PdfPagePatternSelection? fillPattern,
+        PdfPageColorSpace? fillPatternBaseColorSpace,
         double? fillOpacity,
         OfficeColor strokeColor,
         PdfPageColorSpace strokeColorSpace,
+        PdfPagePatternSelection? strokePattern,
+        PdfPageColorSpace? strokePatternBaseColorSpace,
         double? strokeOpacity,
         double strokeWidth,
         OfficeStrokeDashStyle? strokeDashStyle,
@@ -1339,9 +1461,13 @@ internal readonly struct PdfPageXObjectInvocation {
         ClipPath = clipPath;
         FillColor = fillColor;
         FillColorSpace = fillColorSpace;
+        FillPattern = fillPattern;
+        FillPatternBaseColorSpace = fillPatternBaseColorSpace;
         FillOpacity = fillOpacity;
         StrokeColor = strokeColor;
         StrokeColorSpace = strokeColorSpace;
+        StrokePattern = strokePattern;
+        StrokePatternBaseColorSpace = strokePatternBaseColorSpace;
         StrokeOpacity = strokeOpacity;
         StrokeWidth = strokeWidth;
         StrokeDashStyle = strokeDashStyle;
@@ -1357,9 +1483,13 @@ internal readonly struct PdfPageXObjectInvocation {
         PdfPageClipPath? clipPath,
         OfficeColor fillColor,
         PdfPageColorSpace fillColorSpace,
+        PdfPagePatternSelection? fillPattern,
+        PdfPageColorSpace? fillPatternBaseColorSpace,
         double? fillOpacity,
         OfficeColor strokeColor,
         PdfPageColorSpace strokeColorSpace,
+        PdfPagePatternSelection? strokePattern,
+        PdfPageColorSpace? strokePatternBaseColorSpace,
         double? strokeOpacity,
         double strokeWidth,
         OfficeStrokeDashStyle? strokeDashStyle,
@@ -1373,9 +1503,13 @@ internal readonly struct PdfPageXObjectInvocation {
         ClipPath = clipPath;
         FillColor = fillColor;
         FillColorSpace = fillColorSpace;
+        FillPattern = fillPattern;
+        FillPatternBaseColorSpace = fillPatternBaseColorSpace;
         FillOpacity = fillOpacity;
         StrokeColor = strokeColor;
         StrokeColorSpace = strokeColorSpace;
+        StrokePattern = strokePattern;
+        StrokePatternBaseColorSpace = strokePatternBaseColorSpace;
         StrokeOpacity = strokeOpacity;
         StrokeWidth = strokeWidth;
         StrokeDashStyle = strokeDashStyle;
@@ -1397,11 +1531,19 @@ internal readonly struct PdfPageXObjectInvocation {
 
     public PdfPageColorSpace FillColorSpace { get; }
 
+    internal PdfPagePatternSelection? FillPattern { get; }
+
+    internal PdfPageColorSpace? FillPatternBaseColorSpace { get; }
+
     public double? FillOpacity { get; }
 
     public OfficeColor StrokeColor { get; }
 
     public PdfPageColorSpace StrokeColorSpace { get; }
+
+    internal PdfPagePatternSelection? StrokePattern { get; }
+
+    internal PdfPageColorSpace? StrokePatternBaseColorSpace { get; }
 
     public double? StrokeOpacity { get; }
 

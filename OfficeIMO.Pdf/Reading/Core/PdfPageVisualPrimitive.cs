@@ -198,6 +198,13 @@ internal readonly struct PdfPageVisualPrimitive {
     internal PdfContentOrderKey? ContentOrderKey { get; }
 
     internal PdfPageVisualPrimitive WithPaintColors(OfficeColor fillColor, OfficeColor strokeColor) =>
+        WithPaints(fillColor, null, strokeColor, null);
+
+    internal PdfPageVisualPrimitive WithPaints(
+        OfficeColor fillColor,
+        PdfPageTilingPatternPaint? fillTilingPattern,
+        OfficeColor strokeColor,
+        PdfPageTilingPatternPaint? strokeTilingPattern) =>
         new PdfPageVisualPrimitive(
             Kind,
             X,
@@ -209,10 +216,14 @@ internal readonly struct PdfPageVisualPrimitive {
             X2,
             Y2,
             PathCommands,
-            FillColor.HasValue || FillGradient != null || FillRadialGradient != null || FillTilingPattern != null ? fillColor : null,
+            FillColor.HasValue || FillGradient != null || FillRadialGradient != null || FillTilingPattern != null
+                ? fillTilingPattern == null ? fillColor : (OfficeColor?)null
+                : null,
             null,
             null,
-            StrokeColor.HasValue || StrokeGradient != null || StrokeRadialGradient != null || StrokeTilingPattern != null ? strokeColor : null,
+            StrokeColor.HasValue || StrokeGradient != null || StrokeRadialGradient != null || StrokeTilingPattern != null
+                ? strokeTilingPattern == null ? strokeColor : (OfficeColor?)null
+                : null,
             null,
             null,
             StrokeWidth,
@@ -224,8 +235,8 @@ internal readonly struct PdfPageVisualPrimitive {
             FillRule,
             ClipPath,
             PaintOrder,
-            FillTilingPattern,
-            StrokeTilingPattern,
+            FillColor.HasValue || FillGradient != null || FillRadialGradient != null || FillTilingPattern != null ? fillTilingPattern : null,
+            StrokeColor.HasValue || StrokeGradient != null || StrokeRadialGradient != null || StrokeTilingPattern != null ? strokeTilingPattern : null,
             SourceOperatorIndex,
             ContentOrderKey);
 
