@@ -329,6 +329,22 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_Rtf_Image_Diagnostics_Include_Comment_Stories() {
+        using WordDocument word = WordDocument.Create();
+        word.AddParagraph("target").AddComment("Reviewer", "RV", "comment");
+        WordComment comment = Assert.Single(word.Comments);
+        comment.Paragraphs[0].AddImage(new Uri("https://example.test/comment.png"), 16, 16);
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        RtfConversionDiagnostic diagnostic = Assert.Single(
+            conversion.Report.Diagnostics,
+            item => item.Code == "WordRtfImagesOmitted");
+        Assert.Equal(1, diagnostic.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+    }
+
+    [Fact]
     public void Rtf_Word_Image_Diagnostics_Include_Referenced_Note_Stories() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         int idatOffset = FindRtfTestPngChunk(png, "IDAT");

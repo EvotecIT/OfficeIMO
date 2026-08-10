@@ -309,7 +309,7 @@ public static class OfficeImageExportBatchProcessor {
                 reentryScope.Value = scope;
                 Task callback;
                 try {
-                    callback = consumer(result.WithSequence(sequenceIndex, expectedOutputCount), token);
+                    callback = consumer(result.WithSequence(sequenceIndex, expectedOutputCount), effectiveToken);
                     if (callback == null) throw new InvalidOperationException("The image export consumer returned a null task.");
                 } finally {
                     scope.EndSynchronousInvocation();

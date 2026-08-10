@@ -285,7 +285,7 @@ public sealed class OpenDocumentConversionLossReportTests {
     }
 
     [Fact]
-    public void WordAutomaticColorsAndUnsupportedImagesDoNotAbortConversion() {
+    public void WordAutomaticColorsAndTiffImagesDoNotAbortConversion() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Automatic color").ColorHex = "auto";
         byte[] tiffBytes = OfficeTiffCodec.Encode(new OfficeRasterImage(
@@ -298,9 +298,10 @@ public sealed class OpenDocumentConversionLossReportTests {
 
         Assert.Equal("Automatic color", target.Paragraphs.First().Text);
         Assert.Null(target.Paragraphs.First().Spans.Single().Color);
-        Assert.Empty(target.Paragraphs.SelectMany(paragraph => paragraph.Images));
-        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
-            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        OdtImage convertedImage = Assert.Single(target.Paragraphs.SelectMany(paragraph => paragraph.Images));
+        Assert.EndsWith(".tiff", convertedImage.Path, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
     }
 
     [Fact]
@@ -350,7 +351,7 @@ public sealed class OpenDocumentConversionLossReportTests {
     }
 
     [Fact]
-    public void UnsupportedPowerPointImageFormatsAreReportedWithoutAbortingConversion() {
+    public void IncompletePowerPointTiffImagesAreReportedWithoutAbortingConversion() {
         using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide();
         using var tiff = new MemoryStream(new byte[] { 0x49, 0x49, 0x2A, 0x00, 0x00, 0x00, 0x00, 0x00 });

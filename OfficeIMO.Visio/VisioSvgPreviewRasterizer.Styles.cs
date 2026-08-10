@@ -118,7 +118,7 @@ namespace OfficeIMO.Visio {
                         out int specificity);
                     if (match == SvgCssSelectorMatcher.SelectorMatch.NoMatch) continue;
                     if (match == SvgCssSelectorMatcher.SelectorMatch.Unsupported) {
-                        if (IsActiveEffectValue(value!)) {
+                        if (IsActiveEffectValue(element, propertyName, value!)) {
                             if (important) unknownImportantActive = true;
                             else unknownNormalActive = true;
                         }
@@ -137,11 +137,11 @@ namespace OfficeIMO.Visio {
                     if (!candidate.HasValue || inline.HasHigherPriorityThan(candidate)) candidate = inline;
                 }
 
-                if (candidate.HasValue && IsActiveEffectValue(candidate.Value!)) return true;
+                if (candidate.HasValue && IsActiveEffectValue(element, propertyName, candidate.Value!)) return true;
                 if (unknownImportantActive && (!inline.HasValue || !inline.Important)) return true;
                 return unknownNormalActive &&
                        !inline.HasValue &&
-                       !(candidate.HasValue && candidate.Important && !IsActiveEffectValue(candidate.Value!));
+                       !(candidate.HasValue && candidate.Important && !IsActiveEffectValue(element, propertyName, candidate.Value!));
             }
 
             private static bool TryParseEffectValue(string? raw, out string? value, out bool important) {
@@ -159,8 +159,20 @@ namespace OfficeIMO.Visio {
                 return true;
             }
 
-            private static bool IsActiveEffectValue(string value) =>
-                !string.Equals(value.Trim(), "none", StringComparison.OrdinalIgnoreCase);
+            private bool IsActiveEffectValue(XElement element, string propertyName, string value) {
+                string normalized = value.Trim();
+                if (string.Equals(normalized, "none", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(normalized, "initial", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(normalized, "unset", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(normalized, "revert", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(normalized, "revert-layer", StringComparison.OrdinalIgnoreCase)) {
+                    return false;
+                }
+                if (string.Equals(normalized, "inherit", StringComparison.OrdinalIgnoreCase)) {
+                    return element.Parent != null && HasActiveVisualEffect(element.Parent, propertyName);
+                }
+                return true;
+            }
 
             private static Dictionary<string, string> ParseDeclarations(string? raw) {
                 Dictionary<string, string> style = new(StringComparer.OrdinalIgnoreCase);

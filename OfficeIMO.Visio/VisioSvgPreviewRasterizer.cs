@@ -103,10 +103,6 @@ namespace OfficeIMO.Visio {
                     OfficeConversionLossKind.Omission);
                 return false;
             }
-            if (!rendered) {
-                return false;
-            }
-
             if (context.UnsupportedFeatureCount > 0) {
                 AddSvgLossDiagnostic(
                     diagnosticSink,
@@ -114,6 +110,9 @@ namespace OfficeIMO.Visio {
                     context.UnsupportedFeatureCount.ToString(CultureInfo.InvariantCulture) +
                     " embedded SVG feature(s) were not represented completely by the dependency-free preview renderer.",
                     OfficeConversionLossKind.Approximation);
+            }
+            if (!rendered) {
+                return false;
             }
 
             if (useRootOpacityLayer && rootLayer != null) {

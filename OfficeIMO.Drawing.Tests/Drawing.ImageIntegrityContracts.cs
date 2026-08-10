@@ -119,6 +119,46 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void CompleteContentValidationRejectsUndecodableJpegBmpTiffAndWebpBodies() {
+        byte[] jpegWithoutTables = {
+            0xFF, 0xD8,
+            0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01, 0x01, 0x11, 0x00,
+            0xFF, 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F, 0x00,
+            0x01, 0xFF, 0xD9
+        };
+        byte[] bmpWithoutPixels = CreateBmpInfoHeader(24, 0, height: 2);
+        byte[] tiffWithoutCompleteStrip = OfficeTiffCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        Array.Resize(ref tiffWithoutCompleteStrip, tiffWithoutCompleteStrip.Length - 1);
+        byte[] webpHeaderOnly = {
+            (byte)'R', (byte)'I', (byte)'F', (byte)'F', 18, 0, 0, 0,
+            (byte)'W', (byte)'E', (byte)'B', (byte)'P',
+            (byte)'V', (byte)'P', (byte)'8', (byte)'L', 5, 0, 0, 0,
+            0x2F, 0, 0, 0, 0, 0
+        };
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(jpegWithoutTables, "missing-tables.jpg", out _));
+        Assert.True(OfficeImageReader.TryIdentifyByContent(bmpWithoutPixels, "missing-pixels.bmp", out _));
+        Assert.True(OfficeImageReader.TryIdentifyByContent(tiffWithoutCompleteStrip, "missing-strip.tiff", out _));
+        Assert.True(OfficeImageReader.TryIdentifyByContent(webpHeaderOnly, "header-only.webp", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(jpegWithoutTables, "missing-tables.jpg", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(bmpWithoutPixels, "missing-pixels.bmp", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(tiffWithoutCompleteStrip, "missing-strip.tiff", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(webpHeaderOnly, "header-only.webp", out _));
+    }
+
+    [Fact]
+    public async Task AsyncBatchPassesTheOperationDeadlineToConsumerCallbacks() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        var options = new OfficeImageExportOptions { RenderTimeout = TimeSpan.FromMilliseconds(250) };
+
+        await Assert.ThrowsAsync<OfficeImageExportTimeoutException>(() =>
+            OfficeImageExportBatchProcessor.RunAsync(
+                options,
+                (accept, _) => accept(CreateResult("timeout", png), CancellationToken.None),
+                async (_, callbackToken) => await Task.Delay(Timeout.InfiniteTimeSpan, callbackToken)));
+    }
+
+    [Fact]
     public void CompleteContentValidationRejectsInvalidApngSequenceCountAndFrameBounds() {
         byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] apng = CreateTwoFrameApng(staticPng);

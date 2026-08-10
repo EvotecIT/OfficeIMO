@@ -225,6 +225,7 @@ public static partial class WordRtfConverterExtensions {
         List<WordElement> elements = EnumerateWordElements(document.Elements)
             .Concat(EnumerateHeaderFooterElements(document))
             .Concat(EnumerateNoteElements(document))
+            .Concat(EnumerateCommentElements(document))
             .ToList();
         int equationCount = elements
             .Count(element => element is WordEquation);
@@ -367,6 +368,14 @@ public static partial class WordRtfConverterExtensions {
             string key = "E:" + (note.ReferenceId?.ToString() ?? "unknown");
             if (!visited.Add(key) || note.Paragraphs == null) continue;
             foreach (WordElement element in EnumerateWordElements(note.Paragraphs)) yield return element;
+        }
+    }
+
+    private static IEnumerable<WordElement> EnumerateCommentElements(WordDocument document) {
+        var visited = new HashSet<WordComment>();
+        foreach (WordComment comment in document.Comments) {
+            if (!visited.Add(comment)) continue;
+            foreach (WordElement element in EnumerateWordElements(comment.Paragraphs)) yield return element;
         }
     }
 

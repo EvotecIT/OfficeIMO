@@ -147,6 +147,11 @@ public class VisioImageExport {
     [InlineData("<style>.blur { filter:url(#blur); }</style>", "class='blur' style='filter:none'")]
     [InlineData("<style>.blur { filter:none; }</style>", "class='blur' filter='url(#blur)'")]
     [InlineData("<style>.blur { filter:url(#blur) !important; }</style>", "class='blur' style='filter:none !important'")]
+    [InlineData("", "style='filter:initial'")]
+    [InlineData("", "style='mask:unset'")]
+    [InlineData("", "style='filter:revert'")]
+    [InlineData("", "style='mask:revert-layer'")]
+    [InlineData("", "style='filter:inherit'")]
     public void EmbeddedSvgPreviewHonorsCssEffectOverrides(string styleDefinition, string rectangleAttributes) {
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
                      styleDefinition + "<rect width='10' height='10' fill='red' " + rectangleAttributes + "/></svg>";
@@ -174,6 +179,20 @@ public class VisioImageExport {
         Assert.NotNull(image);
         Assert.DoesNotContain(diagnostics, diagnostic =>
             diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss);
+    }
+
+    [Fact]
+    public void EmbeddedSvgPreviewReportsLossWhenOnlyUnsupportedContentIsVisible() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                           "<foreignObject width='10' height='10'/></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.False(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "unsupported-only.svg", default, out _));
+        Assert.Contains(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }
 
     [Fact]
