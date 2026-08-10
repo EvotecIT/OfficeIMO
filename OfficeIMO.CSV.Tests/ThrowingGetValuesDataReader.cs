@@ -11,6 +11,7 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
     private readonly object?[][] _rows;
     private readonly Type[] _fieldTypes;
     private readonly Action<int>? _afterRead;
+    private readonly bool _throwOnGetDataTypeName;
     private int _rowIndex = -1;
     private bool _closed;
 
@@ -19,12 +20,14 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
     public ThrowingGetValuesDataReader(
         string[] headers,
         object?[][] rows,
-        Action<int>? afterRead = null)
+        Action<int>? afterRead = null,
+        bool throwOnGetDataTypeName = false)
     {
         _headers = headers ?? throw new ArgumentNullException(nameof(headers));
         _rows = rows ?? throw new ArgumentNullException(nameof(rows));
         _fieldTypes = CreateFieldTypes(headers, rows);
         _afterRead = afterRead;
+        _throwOnGetDataTypeName = throwOnGetDataTypeName;
     }
 
     public override object this[int ordinal] => GetValue(ordinal);
@@ -51,7 +54,9 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
 
     public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) => throw new NotSupportedException();
 
-    public override string GetDataTypeName(int ordinal) => GetFieldType(ordinal).Name;
+    public override string GetDataTypeName(int ordinal) => _throwOnGetDataTypeName
+        ? throw new NotImplementedException()
+        : GetFieldType(ordinal).Name;
 
     public override DateTime GetDateTime(int ordinal) => GetRequiredValue<DateTime>(ordinal);
 

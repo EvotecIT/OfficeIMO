@@ -769,6 +769,8 @@ public static class ParallelRowMappingExtensions {
                 }
             } catch (NotSupportedException) {
                 return null;
+            } catch (NotImplementedException) {
+                return null;
             }
             CultureInfo culture = reader is IDataReaderMappingMetadata metadata
                 ? metadata.MappingCulture
@@ -785,6 +787,8 @@ public static class ParallelRowMappingExtensions {
                 try {
                     fieldType = reader.GetFieldType(ordinal);
                 } catch (NotSupportedException) {
+                    return false;
+                } catch (NotImplementedException) {
                     return false;
                 }
                 if (!IsIndependentFieldType(fieldType)) return false;

@@ -224,9 +224,22 @@ namespace OfficeIMO.Excel {
                     DirectCellValueKind.Int64 => nameof(IDataRecord.GetInt64),
                     _ => null
                 };
-                return getterName == null
-                    ? null
-                    : Expression.Call(reader, getterName, Type.EmptyTypes, ordinal);
+                if (getterName == null) {
+                    return null;
+                }
+
+                MethodCallExpression typedGetter = Expression.Call(
+                    reader,
+                    getterName,
+                    Type.EmptyTypes,
+                    ordinal);
+                UnaryExpression boxedFallback = Expression.Convert(
+                    Expression.Call(reader, nameof(IDataRecord.GetValue), Type.EmptyTypes, ordinal),
+                    typedGetter.Type);
+                return Expression.TryCatch(
+                    typedGetter,
+                    Expression.Catch(typeof(NotSupportedException), boxedFallback),
+                    Expression.Catch(typeof(NotImplementedException), boxedFallback));
             }
 
 #if NET8_0_OR_GREATER

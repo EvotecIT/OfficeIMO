@@ -7208,6 +7208,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_WriteDataReader_FallsBackWhenTypedGettersAreUnsupported() {
+            using var memory = new MemoryStream();
+            var table = new DataTable("ReaderData");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Score", typeof(int));
+            table.Rows.Add("Alpha", 10);
+
+            using var reader = new CountingDataReader(
+                table.CreateDataReader(),
+                throwOnTypedGetters: true);
+            ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
+                memory,
+                reader,
+                new ExcelTabularWriteOptions {
+                    SheetName = "Data",
+                    CreateTable = true,
+                    TableName = "ReaderTable",
+                    IncludeCellReferences = false,
+                    UseSharedStrings = false
+                });
+
+            Assert.Equal(1, result.RowCount);
+            Assert.Equal(2, reader.GetValueCalls);
+            memory.Position = 0;
+            using var workbookReader = ExcelDocumentReader.Open(memory);
+            object?[,] values = workbookReader.GetSheet("Data").ReadRange("A1:B2");
+            Assert.Equal("Alpha", values[1, 0]);
+            Assert.Equal(10D, Convert.ToDouble(values[1, 1], CultureInfo.InvariantCulture));
+        }
+
+        [Fact]
         public void PerformanceReview_InsertDataReader_FailedReadDoesNotPartiallyAppendRows() {
             var table = new DataTable("ReaderData");
             table.Columns.Add("Name", typeof(string));
@@ -7346,6 +7377,7 @@ namespace OfficeIMO.Tests {
             private readonly IDataReader _inner;
             private readonly bool _throwOnGetValues;
             private readonly bool _throwOnGetSchemaTable;
+            private readonly bool _throwOnTypedGetters;
             private readonly int _throwOnReadAfterRows;
             private int _successfulReads;
 
@@ -7353,11 +7385,13 @@ namespace OfficeIMO.Tests {
                 IDataReader inner,
                 bool throwOnGetValues = false,
                 int throwOnReadAfterRows = -1,
-                bool throwOnGetSchemaTable = false) {
+                bool throwOnGetSchemaTable = false,
+                bool throwOnTypedGetters = false) {
                 _inner = inner;
                 _throwOnGetValues = throwOnGetValues;
                 _throwOnReadAfterRows = throwOnReadAfterRows;
                 _throwOnGetSchemaTable = throwOnGetSchemaTable;
+                _throwOnTypedGetters = throwOnTypedGetters;
             }
 
             internal int GetValuesCalls { get; private set; }
@@ -7382,9 +7416,9 @@ namespace OfficeIMO.Tests {
 
             public void Dispose() => _inner.Dispose();
 
-            public bool GetBoolean(int i) => _inner.GetBoolean(i);
+            public bool GetBoolean(int i) => _throwOnTypedGetters ? throw new NotSupportedException() : _inner.GetBoolean(i);
 
-            public byte GetByte(int i) => _inner.GetByte(i);
+            public byte GetByte(int i) => _throwOnTypedGetters ? throw new NotSupportedException() : _inner.GetByte(i);
 
             public long GetBytes(int i, long fieldOffset, byte[]? buffer, int bufferoffset, int length) => _inner.GetBytes(i, fieldOffset, buffer, bufferoffset, length);
 
@@ -7396,23 +7430,23 @@ namespace OfficeIMO.Tests {
 
             public string GetDataTypeName(int i) => _inner.GetDataTypeName(i);
 
-            public DateTime GetDateTime(int i) => _inner.GetDateTime(i);
+            public DateTime GetDateTime(int i) => _throwOnTypedGetters ? throw new NotSupportedException() : _inner.GetDateTime(i);
 
-            public decimal GetDecimal(int i) => _inner.GetDecimal(i);
+            public decimal GetDecimal(int i) => _throwOnTypedGetters ? throw new NotSupportedException() : _inner.GetDecimal(i);
 
-            public double GetDouble(int i) => _inner.GetDouble(i);
+            public double GetDouble(int i) => _throwOnTypedGetters ? throw new NotSupportedException() : _inner.GetDouble(i);
 
             public Type GetFieldType(int i) => _inner.GetFieldType(i);
 
-            public float GetFloat(int i) => _inner.GetFloat(i);
+            public float GetFloat(int i) => _throwOnTypedGetters ? throw new NotSupportedException() : _inner.GetFloat(i);
 
             public Guid GetGuid(int i) => _inner.GetGuid(i);
 
-            public short GetInt16(int i) => _inner.GetInt16(i);
+            public short GetInt16(int i) => _throwOnTypedGetters ? throw new NotSupportedException() : _inner.GetInt16(i);
 
-            public int GetInt32(int i) => _inner.GetInt32(i);
+            public int GetInt32(int i) => _throwOnTypedGetters ? throw new NotSupportedException() : _inner.GetInt32(i);
 
-            public long GetInt64(int i) => _inner.GetInt64(i);
+            public long GetInt64(int i) => _throwOnTypedGetters ? throw new NotSupportedException() : _inner.GetInt64(i);
 
             public string GetName(int i) => _inner.GetName(i);
 
@@ -7422,7 +7456,7 @@ namespace OfficeIMO.Tests {
                 ? throw new NotImplementedException()
                 : _inner.GetSchemaTable();
 
-            public string GetString(int i) => _inner.GetString(i);
+            public string GetString(int i) => _throwOnTypedGetters ? throw new NotSupportedException() : _inner.GetString(i);
 
             public object GetValue(int i) {
                 GetValueCalls++;

@@ -139,6 +139,18 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         }
         return ordinal >= _currentRawRow!.Length;
     }
+
+    internal string GetCurrentSourceString(int ordinal)
+    {
+        EnsureOpenRow();
+        if ((uint)ordinal >= (uint)_sourceColumnCount)
+        {
+            throw new IndexOutOfRangeException();
+        }
+
+        return _textRowSource?.GetString(ordinal)
+            ?? throw new InvalidOperationException("The current CSV row is not backed by decoded source text.");
+    }
 #endif
 
     internal CsvDataReaderRawBatch ReadRawBatch(

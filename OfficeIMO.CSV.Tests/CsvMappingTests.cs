@@ -127,6 +127,30 @@ public class CsvMappingTests
     }
 
     [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Transient_Record_Projection_Preserves_Raw_Strings_When_Typed_Columns_Fall_Back(
+        int degreeOfParallelism)
+    {
+        CsvSchema schema = new CsvSchemaBuilder()
+            .Column("Id").AsInt32()
+            .Done()
+            .Build();
+
+        string[] rows = CsvDocument.ReadTextRowsAsParallel<string>(
+            "Id\n 42 \n",
+            _ => record => record.GetString(0),
+            loadOptions: new CsvLoadOptions { TrimWhitespace = true },
+            readerOptions: new CsvDataReaderOptions { Schema = schema },
+            parallelOptions: new ParallelRowMappingOptions {
+                MaxDegreeOfParallelism = degreeOfParallelism,
+                BatchSize = 1
+            }).ToArray();
+
+        Assert.Equal(new[] { "42" }, rows);
+    }
+
+    [Theory]
     [InlineData("A,B\n1\n")]
     [InlineData("A,B\n1,2,3\n")]
     [InlineData("A,B\n1")]
@@ -365,6 +389,24 @@ public class CsvMappingTests
             }).ToArray();
 
         Assert.Same(payload, Assert.Single(rows));
+    }
+
+    [Fact]
+    public void Parallel_Factory_Falls_Back_When_Optional_Type_Names_Are_Unimplemented()
+    {
+        using var reader = new ThrowingGetValuesDataReader(
+            ["Id"],
+            [[1], [2]],
+            throwOnGetDataTypeName: true);
+
+        int[] rows = reader.RowsAsParallel(
+            record => record.GetInt32(0),
+            new ParallelRowMappingOptions {
+                MaxDegreeOfParallelism = 2,
+                BatchSize = 1
+            }).ToArray();
+
+        Assert.Equal(new[] { 1, 2 }, rows);
     }
 
     [Fact]
