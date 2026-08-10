@@ -557,7 +557,8 @@ public sealed partial class PdfReadPage {
             scaleStrokeWidthWithTransform: requireSupportedType3Content,
             unsupportedShadingTransformVisitor: requireSupportedType3Content
                 ? type3GlyphBudget.RecordFailure
-                : null);
+                : null,
+            requireExactType3ShadingProjection: requireSupportedType3Content);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -844,16 +845,11 @@ public sealed partial class PdfReadPage {
         if (!dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) ||
             !TryReadColorSpaceResource(colorSpaceObject, out PdfPageColorSpace colorSpace)) return false;
 
-        // Drawing gradients interpolate already-converted RGB stops. That is exact only for
-        // DeviceGray and DeviceRGB; converting only the endpoints of CMYK, calibrated, ICC,
-        // indexed, or tint-transform spaces changes the authored interpolation curve.
-        if (colorSpace.Kind is not PdfPageColorSpaceKind.DeviceGray and not PdfPageColorSpaceKind.DeviceRgb ||
-            colorSpace.UsesIccApproximation) return false;
-
-        // Shading BBoxes clip the shading independently from the painted path. Until that clip
-        // is carried with the projected gradient, accepting one would overpaint the glyph.
-        if (dictionary.Items.TryGetValue("BBox", out PdfObject? shadingBoxObject) &&
-            ResolveObject(shadingBoxObject) is not PdfNull) return false;
+        bool exactColorInterpolation =
+            colorSpace.Kind is PdfPageColorSpaceKind.DeviceGray or PdfPageColorSpaceKind.DeviceRgb &&
+            !colorSpace.UsesIccApproximation;
+        bool hasShadingBoundingBox = dictionary.Items.TryGetValue("BBox", out PdfObject? shadingBoxObject) &&
+            ResolveObject(shadingBoxObject) is not PdfNull;
 
         if (dictionary.Items.TryGetValue("Domain", out PdfObject? shadingDomainObject) &&
             !IsCanonicalUnitIntervals(ReadNumberArray(shadingDomainObject), 1)) return false;
@@ -869,18 +865,32 @@ public sealed partial class PdfReadPage {
         }
 
         if (shadingType == 2) {
-            shading = new PdfPageShadingResource(coords[0], coords[1], coords[2], coords[3], stops);
+            shading = new PdfPageShadingResource(
+                coords[0],
+                coords[1],
+                coords[2],
+                coords[3],
+                stops,
+                exactColorInterpolation && !hasShadingBoundingBox);
             return true;
         }
 
         if (shadingType == 3) {
-            if (coords.Take(6).Any(value => !IsFinite(value)) ||
-                coords[2] < 0D ||
-                coords[5] < 0D ||
-                !NearlyEqual(coords[0], coords[3]) ||
-                !NearlyEqual(coords[1], coords[4]) ||
-                NearlyEqual(coords[2], coords[5])) return false;
-            shading = new PdfPageShadingResource(coords[0], coords[1], coords[2], coords[3], coords[4], coords[5], stops);
+            bool exactRadialFamily = coords.Take(6).All(IsFinite) &&
+                coords[2] >= 0D &&
+                coords[5] >= 0D &&
+                NearlyEqual(coords[0], coords[3]) &&
+                NearlyEqual(coords[1], coords[4]) &&
+                !NearlyEqual(coords[2], coords[5]);
+            shading = new PdfPageShadingResource(
+                coords[0],
+                coords[1],
+                Math.Max(0D, coords[2]),
+                coords[3],
+                coords[4],
+                Math.Max(0D, coords[5]),
+                stops,
+                exactColorInterpolation && !hasShadingBoundingBox && exactRadialFamily);
             return true;
         }
 
