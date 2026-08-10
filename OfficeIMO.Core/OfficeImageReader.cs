@@ -51,8 +51,8 @@ public static partial class OfficeImageReader {
 
     /// <summary>
     /// Validates a complete bounded image payload and returns its metadata. Unlike metadata
-    /// identification, this decodes supported PNG, JPEG, GIF, BMP, TIFF, and WebP payloads so
-    /// structurally plausible but incomplete or undecodable image bodies are rejected.
+    /// identification, this decodes supported PNG, JPEG, GIF, BMP, TIFF, and WebP payloads and
+    /// validates every ICO entry so structurally plausible but incomplete image bodies are rejected.
     /// </summary>
     public static bool TryValidateContent(Stream stream, string? fileName, out OfficeImageInfo info) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -138,8 +138,8 @@ public static partial class OfficeImageReader {
 
     /// <summary>
     /// Validates a complete bounded image payload and returns its metadata. Unlike metadata
-    /// identification, this decodes supported PNG, JPEG, GIF, BMP, TIFF, and WebP payloads so
-    /// structurally plausible but incomplete or undecodable image bodies are rejected.
+    /// identification, this decodes supported PNG, JPEG, GIF, BMP, TIFF, and WebP payloads and
+    /// validates every ICO entry so structurally plausible but incomplete image bodies are rejected.
     /// </summary>
     public static bool TryValidateContent(byte[]? data, string? fileName, out OfficeImageInfo info) {
         if (!TryIdentifyCore(data, fileName, allowExtensionFallback: false, out info) || data == null) return false;
@@ -156,6 +156,8 @@ public static partial class OfficeImageReader {
                 return OfficeTiffCodec.TryDecode(data, out _);
             case OfficeImageFormat.Webp:
                 return OfficeWebpCodec.TryDecode(data, out _);
+            case OfficeImageFormat.Icon:
+                return HasCompleteIconPayload(data);
             default:
                 return true;
         }

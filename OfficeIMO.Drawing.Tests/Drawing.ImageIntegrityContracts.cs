@@ -37,6 +37,19 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void CompleteContentValidationRejectsTrailingBytesInsidePngAndApngZlibStreams() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] pngWithTrailingDeflateByte = InsertByteBeforePngChunkChecksum(png, "IDAT");
+        byte[] apng = CreateTwoFrameApng(png);
+        byte[] apngWithTrailingFrameDeflateByte = InsertByteBeforePngChunkChecksum(apng, "fdAT");
+
+        Assert.True(OfficePngReader.TryGetFrameCount(pngWithTrailingDeflateByte, out _));
+        Assert.True(OfficePngReader.TryGetFrameCount(apngWithTrailingFrameDeflateByte, out _));
+        Assert.False(OfficeImageReader.TryValidateContent(pngWithTrailingDeflateByte, "trailing.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(apngWithTrailingFrameDeflateByte, "trailing-apng.png", out _));
+    }
+
+    [Fact]
     public void ExportResultAcceptsStructurallyValidAdam7PngWithoutManagedRasterDecode() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         png[28] = 1;
@@ -144,6 +157,23 @@ public partial class DrawingTests {
         Assert.False(OfficeImageReader.TryValidateContent(bmpWithoutPixels, "missing-pixels.bmp", out _));
         Assert.False(OfficeImageReader.TryValidateContent(tiffWithoutCompleteStrip, "missing-strip.tiff", out _));
         Assert.False(OfficeImageReader.TryValidateContent(webpHeaderOnly, "header-only.webp", out _));
+    }
+
+    [Fact]
+    public void CompleteContentValidationChecksEveryIconEntryBody() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] dib = CreateOnePixelIconDib();
+        byte[] pngIcon = CreateIcon(png);
+        byte[] dibIcon = CreateIcon(dib);
+        byte[] iconWithInvalidOnlyEntry = CreateIcon(new byte[] { 0x01 });
+        byte[] iconWithInvalidSecondEntry = CreateIcon(png, new byte[] { 0x01 });
+
+        Assert.True(OfficeImageReader.TryValidateContent(pngIcon, "valid-png.ico", out _));
+        Assert.True(OfficeImageReader.TryValidateContent(dibIcon, "valid-dib.ico", out _));
+        Assert.True(OfficeImageReader.TryIdentifyByContent(iconWithInvalidOnlyEntry, "invalid.ico", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(iconWithInvalidOnlyEntry, "invalid.ico", out _));
+        Assert.True(OfficeImageReader.TryIdentifyByContent(iconWithInvalidSecondEntry, "invalid.ico", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(iconWithInvalidSecondEntry, "invalid.ico", out _));
     }
 
     [Fact]
@@ -444,6 +474,52 @@ public partial class DrawingTests {
         Buffer.BlockCopy(data, 0, chunk, 8, data.Length);
         WritePngChunkCrc(chunk, 0, data.Length);
         return chunk;
+    }
+
+    private static byte[] InsertByteBeforePngChunkChecksum(byte[] png, string chunkType) {
+        int chunkOffset = FindPngChunk(png, chunkType);
+        int length = ReadBigEndianInt32(png, chunkOffset);
+        int insertionOffset = chunkOffset + 8 + length - 4;
+        byte[] result = new byte[png.Length + 1];
+        Buffer.BlockCopy(png, 0, result, 0, insertionOffset);
+        result[insertionOffset] = 0xA5;
+        Buffer.BlockCopy(png, insertionOffset, result, insertionOffset + 1, png.Length - insertionOffset);
+        WriteBigEndianInt32(result, chunkOffset, length + 1);
+        WritePngChunkCrc(result, chunkOffset, length + 1);
+        return result;
+    }
+
+    private static byte[] CreateIcon(params byte[][] payloads) {
+        int directoryLength = 6 + payloads.Length * 16;
+        byte[] icon = new byte[directoryLength + payloads.Sum(payload => payload.Length)];
+        WriteUInt16LittleEndian(icon, 2, 1);
+        WriteUInt16LittleEndian(icon, 4, checked((ushort)payloads.Length));
+        int payloadOffset = directoryLength;
+        for (int index = 0; index < payloads.Length; index++) {
+            int entryOffset = 6 + index * 16;
+            icon[entryOffset] = 1;
+            icon[entryOffset + 1] = 1;
+            WriteUInt16LittleEndian(icon, entryOffset + 4, 1);
+            WriteUInt16LittleEndian(icon, entryOffset + 6, 32);
+            WriteInt32LittleEndian(icon, entryOffset + 8, payloads[index].Length);
+            WriteInt32LittleEndian(icon, entryOffset + 12, payloadOffset);
+            Buffer.BlockCopy(payloads[index], 0, icon, payloadOffset, payloads[index].Length);
+            payloadOffset += payloads[index].Length;
+        }
+        return icon;
+    }
+
+    private static byte[] CreateOnePixelIconDib() {
+        var dib = new byte[48];
+        WriteInt32LittleEndian(dib, 0, 40);
+        WriteInt32LittleEndian(dib, 4, 1);
+        WriteInt32LittleEndian(dib, 8, 2);
+        WriteUInt16LittleEndian(dib, 12, 1);
+        WriteUInt16LittleEndian(dib, 14, 32);
+        WriteInt32LittleEndian(dib, 20, 4);
+        dib[40] = 0xFF;
+        dib[43] = 0xFF;
+        return dib;
     }
 
     private static void WriteBigEndianInt32(byte[] bytes, int offset, int value) {

@@ -1,0 +1,104 @@
+using System;
+
+namespace OfficeIMO.Drawing;
+
+public static partial class OfficeImageReader {
+    private static readonly byte[] IconPngSignature = { 137, 80, 78, 71, 13, 10, 26, 10 };
+
+    private static bool HasCompleteIconPayload(byte[] data) {
+        if (!TryReadIcon(data, out _)) return false;
+        int count = ReadUInt16LittleEndian(data, 4);
+        for (int index = 0; index < count; index++) {
+            int entryOffset = 6 + index * 16;
+            int declaredWidth = data[entryOffset] == 0 ? 256 : data[entryOffset];
+            int declaredHeight = data[entryOffset + 1] == 0 ? 256 : data[entryOffset + 1];
+            int imageLength = checked((int)ReadUInt32LittleEndian(data, entryOffset + 8));
+            int imageOffset = checked((int)ReadUInt32LittleEndian(data, entryOffset + 12));
+            var payload = new byte[imageLength];
+            Buffer.BlockCopy(data, imageOffset, payload, 0, imageLength);
+            if (HasIconPngSignature(payload)) {
+                if (!TryReadPng(payload, out OfficeImageInfo pngInfo) ||
+                    pngInfo.Width != declaredWidth || pngInfo.Height != declaredHeight ||
+                    !OfficePngReader.TryValidateDecodedPayload(payload)) {
+                    return false;
+                }
+            } else if (!HasCompleteIconDibPayload(payload, declaredWidth, declaredHeight)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool HasIconPngSignature(byte[] payload) {
+        if (payload.Length < IconPngSignature.Length) return false;
+        for (int index = 0; index < IconPngSignature.Length; index++) {
+            if (payload[index] != IconPngSignature[index]) return false;
+        }
+        return true;
+    }
+
+    private static bool HasCompleteIconDibPayload(byte[] payload, int declaredWidth, int declaredHeight) {
+        if (payload.Length < 12) return false;
+        int headerSize = ReadInt32LittleEndian(payload, 0);
+        int width;
+        int storedHeight;
+        int planes;
+        int bitsPerPixel;
+        int compression = 0;
+        int imageSize = 0;
+        int paletteEntrySize;
+        long paletteEntries;
+        long pixelOffset;
+
+        if (headerSize == 12) {
+            width = ReadUInt16LittleEndian(payload, 4);
+            storedHeight = ReadUInt16LittleEndian(payload, 6);
+            planes = ReadUInt16LittleEndian(payload, 8);
+            bitsPerPixel = ReadUInt16LittleEndian(payload, 10);
+            paletteEntrySize = 3;
+            paletteEntries = bitsPerPixel <= 8 ? 1L << bitsPerPixel : 0L;
+            pixelOffset = headerSize + paletteEntries * paletteEntrySize;
+        } else {
+            if (headerSize < 40 || headerSize > payload.Length) return false;
+            width = ReadInt32LittleEndian(payload, 4);
+            storedHeight = ReadInt32LittleEndian(payload, 8);
+            planes = ReadUInt16LittleEndian(payload, 12);
+            bitsPerPixel = ReadUInt16LittleEndian(payload, 14);
+            compression = ReadInt32LittleEndian(payload, 16);
+            imageSize = ReadInt32LittleEndian(payload, 20);
+            uint colorsUsed = ReadUInt32LittleEndian(payload, 32);
+            paletteEntrySize = 4;
+            long maximumPaletteEntries = bitsPerPixel <= 8 ? 1L << bitsPerPixel : 0L;
+            if (colorsUsed > maximumPaletteEntries && maximumPaletteEntries != 0) return false;
+            paletteEntries = colorsUsed != 0 ? colorsUsed : maximumPaletteEntries;
+            int externalMaskBytes = headerSize == 40 && compression == 3 ? 12 :
+                headerSize == 40 && compression == 6 ? 16 : 0;
+            pixelOffset = (long)headerSize + externalMaskBytes + paletteEntries * paletteEntrySize;
+        }
+
+        if (width <= 0 || storedHeight <= 0 || (storedHeight & 1) != 0 || planes != 1 ||
+            (bitsPerPixel != 1 && bitsPerPixel != 4 && bitsPerPixel != 8 &&
+             bitsPerPixel != 16 && bitsPerPixel != 24 && bitsPerPixel != 32) ||
+            (compression != 0 && compression != 3 && compression != 6) ||
+            ((compression == 3 || compression == 6) && bitsPerPixel != 16 && bitsPerPixel != 32)) {
+            return false;
+        }
+
+        int height = storedHeight / 2;
+        if (width != declaredWidth || height != declaredHeight ||
+            !OfficeRasterGuards.TryEnsurePixelCount(width, height, out _) ||
+            pixelOffset < headerSize || pixelOffset > payload.LongLength) {
+            return false;
+        }
+
+        long xorStride = (((long)width * bitsPerPixel + 31L) / 32L) * 4L;
+        long maskStride = (((long)width + 31L) / 32L) * 4L;
+        long xorBytes = xorStride * height;
+        long maskBytes = maskStride * height;
+        long remaining = payload.LongLength - pixelOffset;
+        if (imageSize < 0 || (imageSize != 0 && imageSize != xorBytes && imageSize != xorBytes + maskBytes)) {
+            return false;
+        }
+        return remaining == xorBytes + maskBytes || bitsPerPixel == 32 && remaining == xorBytes;
+    }
+}

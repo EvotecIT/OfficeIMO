@@ -206,7 +206,7 @@ namespace OfficeIMO.Visio {
                 parent.CancellationToken);
 
         private static bool CanApplyElementOpacity(string name) =>
-            string.Equals(name, "g", StringComparison.OrdinalIgnoreCase) ||
+            IsGroupingElement(name) ||
             string.Equals(name, "svg", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(name, "use", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(name, "image", StringComparison.OrdinalIgnoreCase) ||
@@ -220,7 +220,7 @@ namespace OfficeIMO.Visio {
             string.Equals(name, "path", StringComparison.OrdinalIgnoreCase);
 
         private static bool CanHiddenElementHaveVisibleDescendants(string name) =>
-            string.Equals(name, "g", StringComparison.OrdinalIgnoreCase) ||
+            IsGroupingElement(name) ||
             string.Equals(name, "svg", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(name, "use", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(name, "text", StringComparison.OrdinalIgnoreCase) ||
@@ -312,7 +312,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static bool RenderElementCore(OfficeRasterCanvas canvas, XElement element, string name, SvgPaint paint, SvgTransform localTransform, SvgRenderContext context) {
-            if (string.Equals(name, "g", StringComparison.OrdinalIgnoreCase)) {
+            if (IsGroupingElement(name)) {
                 return RenderChildren(canvas, element, paint, localTransform, context);
             }
 
@@ -372,6 +372,10 @@ namespace OfficeIMO.Visio {
             context.ReportUnsupportedFeature();
             return RenderChildren(canvas, element, paint, localTransform, context);
         }
+
+        private static bool IsGroupingElement(string name) =>
+            string.Equals(name, "g", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "a", StringComparison.OrdinalIgnoreCase);
 
         private static bool RenderUse(OfficeRasterCanvas canvas, XElement element, SvgPaint inherited, SvgTransform transform, SvgRenderContext context) {
             string? href = ReadHref(element);

@@ -196,6 +196,20 @@ public class VisioImageExport {
     }
 
     [Fact]
+    public void EmbeddedSvgPreviewTreatsAnchorContainersAsSupportedGroups() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                           "<a href='https://example.test/'><rect width='10' height='10' fill='red'/></a></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "anchor.svg", default, out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        Assert.DoesNotContain(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss);
+    }
+
+    [Fact]
     public void RetainedSvgApiUsesCanonicalDimensionValidation() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
