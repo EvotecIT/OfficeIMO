@@ -375,15 +375,7 @@ namespace OfficeIMO.Visio {
                 value = null;
                 important = false;
                 if (string.IsNullOrWhiteSpace(raw)) return false;
-                string trimmed = raw!.Trim();
-                const string importantSuffix = "!important";
-                if (trimmed.EndsWith(importantSuffix, StringComparison.OrdinalIgnoreCase)) {
-                    important = true;
-                    trimmed = trimmed.Substring(0, trimmed.Length - importantSuffix.Length).TrimEnd();
-                }
-                if (trimmed.Length == 0) return false;
-                value = trimmed;
-                return true;
+                return TryNormalizeDeclarationValue(raw!, out value, out important);
             }
 
             private bool IsActiveEffectValue(XElement element, string propertyName, string value) {
@@ -433,7 +425,7 @@ namespace OfficeIMO.Visio {
             }
 
             private static bool IsImportantDeclaration(string value) =>
-                value.TrimEnd().EndsWith("!important", StringComparison.OrdinalIgnoreCase);
+                TryNormalizeDeclarationValue(value, out _, out bool important) && important;
 
             private static void MergeRuleDeclarations(
                 Dictionary<string, string> style,
@@ -451,10 +443,37 @@ namespace OfficeIMO.Visio {
                          inline == previous.Inline &&
                          (specificity.CompareTo(previous.Specificity) > 0 ||
                           specificity.CompareTo(previous.Specificity) == 0 && order >= previous.Order))) {
-                        style[declaration.Key] = declaration.Value;
+                        style[declaration.Key] = NormalizeDeclarationValue(declaration.Value);
                         applied[declaration.Key] = (important, inline, specificity, order);
                     }
                 }
+            }
+
+            private static string NormalizeDeclarationValue(string value) {
+                return TryNormalizeDeclarationValue(value, out string? normalized, out _)
+                    ? normalized!
+                    : string.Empty;
+            }
+
+            private static bool TryNormalizeDeclarationValue(
+                string value,
+                out string? normalized,
+                out bool important) {
+                normalized = null;
+                important = false;
+                string trimmed = value.Trim();
+                const string importantKeyword = "important";
+                if (trimmed.EndsWith(importantKeyword, StringComparison.OrdinalIgnoreCase)) {
+                    int marker = trimmed.Length - importantKeyword.Length - 1;
+                    while (marker >= 0 && char.IsWhiteSpace(trimmed[marker])) marker--;
+                    if (marker >= 0 && trimmed[marker] == '!') {
+                        important = true;
+                        trimmed = trimmed.Substring(0, marker).TrimEnd();
+                    }
+                }
+                if (trimmed.Length == 0) return false;
+                normalized = trimmed;
+                return true;
             }
 
             private static string RemoveComments(string css, CancellationToken cancellationToken) {

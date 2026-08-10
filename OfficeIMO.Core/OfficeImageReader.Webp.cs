@@ -86,7 +86,8 @@ public static partial class OfficeImageReader {
                 alphaSemanticsKnown = true;
             } else if (chunkType == "ICCP") {
                 if (!extended || seenIccProfile || hasImage || seenAnimationControl || hasAnimationFrame ||
-                    seenAlphaChunk || exifOffset != 0 || seenXmp || chunkSize == 0) {
+                    seenAlphaChunk || exifOffset != 0 || seenXmp ||
+                    !OfficeIccProfileValidator.TryValidate(data, chunkDataOffset, chunkSize)) {
                     return false;
                 }
                 seenIccProfile = true;

@@ -368,9 +368,10 @@ internal static class OfficePngContainerValidator {
         var compressed = new byte[compressedLength];
         Buffer.BlockCopy(bytes, compressedOffset, compressed, 0, compressedLength);
         try {
-            return OfficeZlibCodec.Decompress(
+            byte[] profile = OfficeZlibCodec.Decompress(
                 compressed,
-                OfficeRasterGuards.MaximumEncodedBytes).Length > 0;
+                OfficeRasterGuards.MaximumEncodedBytes);
+            return OfficeIccProfileValidator.TryValidate(profile, 0, profile.Length);
         } catch (Exception exception) when (
             exception is ArgumentException ||
             exception is FormatException ||

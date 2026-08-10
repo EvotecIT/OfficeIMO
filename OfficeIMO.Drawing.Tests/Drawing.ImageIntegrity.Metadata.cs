@@ -64,11 +64,7 @@ public partial class DrawingTests {
     [Fact]
     public void PngContainerRequiresOneWellFormedIccProfileBeforePaletteAndImageData() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
-        byte[] compressedProfile = {
-            0x78, 0x01,
-            0x01, 0x03, 0x00, 0xFC, 0xFF, (byte)'i', (byte)'c', (byte)'c',
-            0x02, 0x67, 0x01, 0x30
-        };
+        byte[] compressedProfile = OfficeZlibCodec.Compress(CreateMinimalIccProfile());
         byte[] profile = new byte[] { (byte)'P', (byte)'r', (byte)'o', (byte)'f', (byte)'i', (byte)'l', (byte)'e', 0, 0 }
             .Concat(compressedProfile)
             .ToArray();
@@ -88,6 +84,11 @@ public partial class DrawingTests {
         byte[] invalidStream = (byte[])profile.Clone();
         invalidStream[invalidStream.Length - 1] ^= 0x01;
         invalidStream = InsertPngChunkBefore(png, "IDAT", "iCCP", invalidStream);
+        byte[] malformedProfile = CreateMinimalIccProfile();
+        malformedProfile[36] = (byte)'X';
+        byte[] malformedPayload = new byte[] { (byte)'P', (byte)'r', (byte)'o', (byte)'f', (byte)'i', (byte)'l', (byte)'e', 0, 0 }
+            .Concat(OfficeZlibCodec.Compress(malformedProfile))
+            .ToArray();
 
         Assert.True(OfficeImageReader.TryValidateContent(withProfile, "profile.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(duplicate, "duplicate-profile.png", out _));
@@ -96,6 +97,10 @@ public partial class DrawingTests {
         Assert.False(OfficeImageReader.TryValidateContent(invalidName, "invalid-name.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(invalidMethod, "invalid-method.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(invalidStream, "invalid-stream.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "iCCP", malformedPayload),
+            "malformed-profile.png",
+            out _));
     }
 
     [Fact]
@@ -198,5 +203,12 @@ public partial class DrawingTests {
             if (tag == expectedTag) return entryOffset;
         }
         throw new InvalidOperationException("The expected TIFF entry was not found.");
+    }
+
+    private static byte[] CreateMinimalIccProfile() {
+        var profile = new byte[132];
+        WriteBigEndianInt32(profile, 0, profile.Length);
+        Encoding.ASCII.GetBytes("acsp", 0, 4, profile, 36);
+        return profile;
     }
 }

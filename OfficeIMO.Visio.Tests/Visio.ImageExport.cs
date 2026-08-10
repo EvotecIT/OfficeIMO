@@ -435,6 +435,22 @@ public class VisioImageExport {
     }
 
     [Theory]
+    [InlineData("none!important")]
+    [InlineData("none ! important")]
+    public void EmbeddedSvgPreviewKeepsImportantPriorityOutOfTheComputedCssValue(string importantValue) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                     "<style>.hidden{display:" + importantValue + "}.hidden{display:block}</style>" +
+                     "<rect width='10' height='10' fill='red'/>" +
+                     "<rect class='hidden' width='10' height='10' fill='blue'/></svg>";
+
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            null, "important-value.svg", default, out OfficeRasterImage? image));
+
+        Assert.Equal(OfficeColor.Red, Assert.IsType<OfficeRasterImage>(image).GetPixel(5, 5));
+    }
+
+    [Theory]
     [InlineData("", false)]
     [InlineData("visibility='visible'", true)]
     public void EmbeddedSvgPreviewReportsHiddenContainerEffectsOnlyWhenDescendantsRender(

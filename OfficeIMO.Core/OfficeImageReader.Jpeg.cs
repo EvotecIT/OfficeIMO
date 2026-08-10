@@ -1,3 +1,5 @@
+using System;
+
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeImageReader {
@@ -109,6 +111,8 @@ public static partial class OfficeImageReader {
         bool hasScan = false;
         bool currentScanHasEntropyData = false;
         bool inScan = false;
+        bool seenExif = false;
+        byte[][]? iccSegments = null;
         int offset = 2;
         while (offset < data.Length) {
             if (inScan && data[offset] != 0xFF) {
@@ -132,7 +136,7 @@ public static partial class OfficeImageReader {
             }
 
             if (marker == 0xD9) {
-                return hasFrame && hasScan && offset == data.Length;
+                return hasFrame && hasScan && offset == data.Length && HasValidJpegIccProfile(iccSegments);
             }
             if (marker == 0x01) continue;
             if (marker == 0x00 || marker == 0xD8 || (marker >= 0xD0 && marker <= 0xD7) || offset + 2 > data.Length) {
@@ -146,6 +150,33 @@ public static partial class OfficeImageReader {
             if (IsStartOfFrame(marker)) {
                 if (!TryReadJpegFrameHeader(data, segmentStart, segmentDataLength, out _, out _)) return false;
                 hasFrame = true;
+            } else if (marker == 0xE1 && HasJpegSegmentPrefix(data, segmentStart, segmentDataLength, "Exif\0\0")) {
+                if (seenExif || !OfficeTiffStructureValidator.TryValidateExif(
+                    data,
+                    segmentStart + 6,
+                    segmentDataLength - 6)) {
+                    return false;
+                }
+                seenExif = true;
+            } else if (marker == 0xE2 && HasJpegSegmentPrefix(
+                data,
+                segmentStart,
+                segmentDataLength,
+                "ICC_PROFILE\0")) {
+                if (segmentDataLength <= 14) return false;
+                int sequence = data[segmentStart + 12];
+                int segmentCount = data[segmentStart + 13];
+                if (sequence <= 0 || segmentCount <= 0 || sequence > segmentCount) return false;
+                if (iccSegments == null) {
+                    iccSegments = new byte[segmentCount][];
+                } else if (iccSegments.Length != segmentCount) {
+                    return false;
+                }
+                if (iccSegments[sequence - 1] != null) return false;
+                int profilePartLength = segmentDataLength - 14;
+                var profilePart = new byte[profilePartLength];
+                Buffer.BlockCopy(data, segmentStart + 14, profilePart, 0, profilePartLength);
+                iccSegments[sequence - 1] = profilePart;
             } else if (marker == 0xDA) {
                 if (!hasFrame || segmentDataLength < 6) return false;
                 int componentCount = data[segmentStart];
@@ -158,5 +189,37 @@ public static partial class OfficeImageReader {
             offset += segmentLength;
         }
         return false;
+    }
+
+    private static bool HasJpegSegmentPrefix(
+        byte[] data,
+        int offset,
+        int count,
+        string prefix) {
+        if (count < prefix.Length) return false;
+        for (int index = 0; index < prefix.Length; index++) {
+            if (data[offset + index] != (byte)prefix[index]) return false;
+        }
+        return true;
+    }
+
+    private static bool HasValidJpegIccProfile(byte[][]? segments) {
+        if (segments == null) return true;
+        int profileLength = 0;
+        for (int index = 0; index < segments.Length; index++) {
+            byte[]? segment = segments[index];
+            if (segment == null || segment.Length > OfficeRasterGuards.MaximumEncodedBytes - profileLength) {
+                return false;
+            }
+            profileLength += segment.Length;
+        }
+        var profile = new byte[profileLength];
+        int offset = 0;
+        for (int index = 0; index < segments.Length; index++) {
+            byte[] segment = segments[index];
+            Buffer.BlockCopy(segment, 0, profile, offset, segment.Length);
+            offset += segment.Length;
+        }
+        return OfficeIccProfileValidator.TryValidate(profile, 0, profile.Length);
     }
 }
