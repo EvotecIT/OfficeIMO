@@ -8,7 +8,7 @@ internal static partial class PdfRedactionApplier {
         Dictionary<int, int> referenceCounts = CountIndirectReferenceUsage(objects); PdfObject currentContents = contentsObject; bool changed = false;
         foreach (PdfReference reference in EnumerateContentReferences(objects, contentsObject).ToArray()) {
             if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) || indirect.Value is not PdfStream stream || stream.DecodingFailed) continue;
-            string content = PdfEncoding.Latin1GetString(StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes)); string scrubbed = ScrubIntersectingPaths(content, areas);
+            string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes)); string scrubbed = ScrubIntersectingPaths(content, areas);
             if (string.Equals(content, scrubbed, StringComparison.Ordinal)) continue;
             PdfReference target = reference;
             if (IsSharedReference(referenceCounts, reference)) { target = CloneIndirectObject(objects, reference, indirect, ref nextObjectNumber); ReplacePageContentReference(objects, page, currentContents, reference, target); currentContents = page.Items.TryGetValue("Contents", out PdfObject? updated) ? updated : currentContents; }

@@ -533,6 +533,69 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void TryDecodeBudgetsPngPredictorSelectorsSeparatelyFromFinalOutput() {
+        var flateDictionary = new PdfDictionary();
+        flateDictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var flateParameters = new PdfDictionary();
+        flateParameters.Items["Predictor"] = new PdfNumber(12);
+        flateParameters.Items["Columns"] = new PdfNumber(4);
+        flateDictionary.Items["DecodeParms"] = flateParameters;
+        byte[] predicted = { 0, 65, 66, 67, 68 };
+
+        bool flateDecoded = StreamDecoder.TryDecode(
+            flateDictionary,
+            CompressForDecoderTest(predicted),
+            4,
+            out byte[] flateOutput);
+
+        var lzwDictionary = new PdfDictionary();
+        lzwDictionary.Items["Filter"] = new PdfName("LZWDecode");
+        var lzwParameters = new PdfDictionary();
+        lzwParameters.Items["Predictor"] = new PdfNumber(12);
+        lzwParameters.Items["Columns"] = new PdfNumber(4);
+        lzwDictionary.Items["DecodeParms"] = lzwParameters;
+        bool lzwDecoded = StreamDecoder.TryDecode(
+            lzwDictionary,
+            PackNineBitCodes(new[] { 256, 0, 65, 66, 67, 68, 257 }),
+            4,
+            out byte[] lzwOutput);
+
+        Assert.True(flateDecoded);
+        Assert.True(lzwDecoded);
+        Assert.Equal(new byte[] { 65, 66, 67, 68 }, flateOutput);
+        Assert.Equal(flateOutput, lzwOutput);
+    }
+
+    [Theory]
+    [InlineData("ASCIIHexDecode", 12)]
+    [InlineData("ASCII85Decode", 0)]
+    [InlineData("RunLengthDecode", -1)]
+    public void TryDecodeRejectsDecodeParametersForFiltersWithoutParameters(string filterName, int predictor) {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName(filterName);
+        var decodeParameters = new PdfDictionary();
+        decodeParameters.Items["Predictor"] = new PdfNumber(predictor);
+        dictionary.Items["DecodeParms"] = decodeParameters;
+
+        Assert.False(StreamDecoder.TryDecode(dictionary, Array.Empty<byte>(), 1024, out _));
+    }
+
+    [Fact]
+    public void TryDecodeRejectsFilterSpecificDecodeParametersOnTheWrongFilter() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var decodeParameters = new PdfDictionary();
+        decodeParameters.Items["EarlyChange"] = new PdfNumber(0);
+        dictionary.Items["DecodeParms"] = decodeParameters;
+
+        Assert.False(StreamDecoder.TryDecode(
+            dictionary,
+            CompressForDecoderTest(new byte[] { 65 }),
+            1024,
+            out _));
+    }
+
+    [Fact]
     public void TryDecodeResolvesIndirectPredictorParameters() {
         var dictionary = new PdfDictionary();
         dictionary.Items["Filter"] = new PdfName("FlateDecode");

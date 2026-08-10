@@ -95,7 +95,7 @@ internal static partial class PdfRedactionApplier {
         Matrix2D[] effectiveTransforms = parentTransforms
             .Select(parent => ApplyFormMatrix(Matrix2D.Multiply(parent, invocationTransform), formStream.Dictionary))
             .ToArray();
-        string formContent = PdfEncoding.Latin1GetString(StreamDecoder.Decode(formStream.Dictionary, formStream.Data, objects));
+        string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects));
         string scrubbed = ScrubTextObjects(formContent, textTargets, formDecoders, effectiveTransforms);
         bool changed = !string.Equals(formContent, scrubbed, StringComparison.Ordinal);
         TextFormScrubContentResult nestedResult = ScrubFormInvocations(

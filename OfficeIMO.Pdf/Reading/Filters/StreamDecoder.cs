@@ -28,7 +28,9 @@ internal static class StreamDecoder {
             return originalData;
         }
 
-        if (!TryGetFilterNames(filterObj, objects, out List<string> filterNames)) {
+        if (!TryGetFilterNames(filterObj, objects, out List<string> filterNames) ||
+            !HasValidDecodeParmsDeclaration(dict, filterNames.Count, objects) ||
+            !HasValidDecodeParmsForFilters(dict, filterNames, objects)) {
             return ReturnWithinDecodedLimit(data, maxOutputBytes);
         }
 
@@ -39,7 +41,8 @@ internal static class StreamDecoder {
             try {
                 switch (GetFilterKind(filterName)) {
                     case DecodeFilterKind.Flate:
-                        if (!FlateDecoder.TryDecode(current, maxOutputBytes, out current, out bool flateLimitExceeded)) {
+                        int flateOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes);
+                        if (!FlateDecoder.TryDecode(current, flateOutputLimit, out current, out bool flateLimitExceeded)) {
                             if (flateLimitExceeded) {
                                 throw CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             }
@@ -68,7 +71,8 @@ internal static class StreamDecoder {
 
                         break;
                     case DecodeFilterKind.Lzw:
-                        if (!LzwDecoder.TryDecode(current, maxOutputBytes, out current, GetEarlyChange(dict, filterIndex, objects))) {
+                        int lzwOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes);
+                        if (!LzwDecoder.TryDecode(current, lzwOutputLimit, out current, GetEarlyChange(dict, filterIndex, objects))) {
                             throw CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                         }
 
@@ -136,7 +140,8 @@ internal static class StreamDecoder {
         }
 
         if (!TryGetFilterNames(filterObj, objects, out List<string> filterNames) ||
-            !HasValidDecodeParmsDeclaration(dict, filterNames.Count, objects)) {
+            !HasValidDecodeParmsDeclaration(dict, filterNames.Count, objects) ||
+            !HasValidDecodeParmsForFilters(dict, filterNames, objects)) {
             return false;
         }
 
@@ -155,7 +160,8 @@ internal static class StreamDecoder {
             try {
                 switch (GetFilterKind(filterName)) {
                     case DecodeFilterKind.Flate:
-                        if (!FlateDecoder.TryDecode(current, maxOutputBytes, out current, out bool flateLimitExceeded)) {
+                        int flateOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes);
+                        if (!FlateDecoder.TryDecode(current, flateOutputLimit, out current, out bool flateLimitExceeded)) {
                             if (flateLimitExceeded) {
                                 limitException = CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             }
@@ -166,10 +172,6 @@ internal static class StreamDecoder {
                         current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes);
                         break;
                     case DecodeFilterKind.AsciiHex:
-                        if (HasActiveDecodeParms(dict, filterIndex, objects)) {
-                            return false;
-                        }
-
                         if (!AsciiHexDecoder.TryDecode(current, maxOutputBytes, out current)) {
                             limitException = CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             return false;
@@ -177,10 +179,6 @@ internal static class StreamDecoder {
 
                         break;
                     case DecodeFilterKind.Ascii85:
-                        if (HasActiveDecodeParms(dict, filterIndex, objects)) {
-                            return false;
-                        }
-
                         if (!Ascii85Decoder.TryDecode(current, maxOutputBytes, out current)) {
                             limitException = CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             return false;
@@ -195,7 +193,8 @@ internal static class StreamDecoder {
 
                         break;
                     case DecodeFilterKind.Lzw:
-                        if (!LzwDecoder.TryDecode(current, maxOutputBytes, out current, GetEarlyChange(dict, filterIndex, objects))) {
+                        int lzwOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes);
+                        if (!LzwDecoder.TryDecode(current, lzwOutputLimit, out current, GetEarlyChange(dict, filterIndex, objects))) {
                             limitException = CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             return false;
                         }
@@ -306,16 +305,6 @@ internal static class StreamDecoder {
         return data;
     }
 
-    private static bool HasActiveDecodeParms(PdfDictionary dict, int filterIndex, Dictionary<int, PdfIndirectObject>? objects) {
-        var decodeParms = GetDecodeParms(dict, filterIndex, objects);
-        if (decodeParms is null) {
-            return false;
-        }
-
-        int predictor = ReadIntegerParameter(decodeParms, "Predictor", 1, objects);
-        return predictor > 1;
-    }
-
     private static byte[] ApplyDecodeParms(
         PdfDictionary dict,
         int filterIndex,
@@ -348,6 +337,35 @@ internal static class StreamDecoder {
         }
 
         return PngPredictorDecoder.Decode(data, columns, colors, bitsPerComponent, maxOutputBytes);
+    }
+
+    private static int GetFilterOutputLimit(
+        PdfDictionary dict,
+        int filterIndex,
+        Dictionary<int, PdfIndirectObject>? objects,
+        int maxOutputBytes) {
+        PdfDictionary? decodeParms = GetDecodeParms(dict, filterIndex, objects);
+        if (decodeParms is null) {
+            return maxOutputBytes;
+        }
+
+        int predictor = ReadIntegerParameter(decodeParms, "Predictor", 1, objects);
+        if (predictor < 10 || predictor > 15) {
+            return maxOutputBytes;
+        }
+
+        int columns = ReadPositiveIntegerParameter(decodeParms, "Columns", 1, objects);
+        int colors = ReadPositiveIntegerParameter(decodeParms, "Colors", 1, objects);
+        int bitsPerComponent = ReadIntegerParameter(decodeParms, "BitsPerComponent", 8, objects);
+        long rowBits = checked((long)columns * colors * bitsPerComponent);
+        long rowBytes = (rowBits + 7L) / 8L;
+        if (rowBytes <= 0L) {
+            return maxOutputBytes;
+        }
+
+        long rowCount = maxOutputBytes / rowBytes;
+        long predictorInputLimit = checked(rowCount * (rowBytes + 1L));
+        return predictorInputLimit >= int.MaxValue ? int.MaxValue : (int)predictorInputLimit;
     }
 
     private static int GetEarlyChange(PdfDictionary dict, int filterIndex, Dictionary<int, PdfIndirectObject>? objects) {
@@ -444,6 +462,58 @@ internal static class StreamDecoder {
         }
 
         return true;
+    }
+
+    private static bool HasValidDecodeParmsForFilters(
+        PdfDictionary dict,
+        List<string> filterNames,
+        Dictionary<int, PdfIndirectObject>? objects) {
+        try {
+            for (int filterIndex = 0; filterIndex < filterNames.Count; filterIndex++) {
+                PdfDictionary? decodeParms = GetDecodeParms(dict, filterIndex, objects);
+                if (decodeParms is null) {
+                    continue;
+                }
+
+                DecodeFilterKind filterKind = GetFilterKind(filterNames[filterIndex]);
+                if (filterKind != DecodeFilterKind.Flate && filterKind != DecodeFilterKind.Lzw) {
+                    if (decodeParms.Items.Count != 0) {
+                        return false;
+                    }
+
+                    continue;
+                }
+
+                int predictor = ReadIntegerParameter(decodeParms, "Predictor", 1, objects);
+                if (predictor != 1 && predictor != 2 && (predictor < 10 || predictor > 15)) {
+                    return false;
+                }
+
+                _ = ReadPositiveIntegerParameter(decodeParms, "Columns", 1, objects);
+                _ = ReadPositiveIntegerParameter(decodeParms, "Colors", 1, objects);
+                int bitsPerComponent = ReadIntegerParameter(decodeParms, "BitsPerComponent", 8, objects);
+                if (bitsPerComponent != 1 && bitsPerComponent != 2 && bitsPerComponent != 4 && bitsPerComponent != 8 && bitsPerComponent != 16) {
+                    return false;
+                }
+
+                if (filterKind == DecodeFilterKind.Flate) {
+                    if (decodeParms.Items.ContainsKey("EarlyChange")) {
+                        return false;
+                    }
+
+                    continue;
+                }
+
+                int earlyChange = ReadIntegerParameter(decodeParms, "EarlyChange", 1, objects);
+                if (earlyChange != 0 && earlyChange != 1) {
+                    return false;
+                }
+            }
+
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     private static bool TryGetFilterNames(
