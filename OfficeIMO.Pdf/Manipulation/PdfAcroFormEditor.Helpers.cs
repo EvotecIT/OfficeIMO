@@ -193,15 +193,18 @@ internal static partial class PdfAcroFormEditor {
             if (options.DefaultValue is not null && !options.ChoiceOptions.Contains(options.DefaultValue, StringComparer.Ordinal)) throw new ArgumentException("Radio-button default value must match one of the provided options.", nameof(options));
         }
         if (options.Kind == PdfFormFieldCreationKind.Choice) {
-            if (options.Style?.IsEditableChoice == true && !options.IsComboBox) throw new ArgumentException("Editable choice fields must be combo boxes.", nameof(options));
-            if (!string.IsNullOrEmpty(options.Value) && options.Style?.IsEditableChoice != true && !options.ChoiceOptions.Contains(options.Value, StringComparer.Ordinal)) throw new ArgumentException("Choice value must match one of the provided options.", nameof(options));
-            if (options.DefaultValue is not null && options.Style?.IsEditableChoice != true && !options.ChoiceOptions.Contains(options.DefaultValue, StringComparer.Ordinal)) throw new ArgumentException("Choice default value must match one of the provided options.", nameof(options));
+            bool isComboBox = IsChoiceComboBox(options);
+            bool isEditableChoice = IsEditableChoice(options);
+            if (isEditableChoice && !isComboBox) throw new ArgumentException("Editable choice fields must be combo boxes.", nameof(options));
+            if (!string.IsNullOrEmpty(options.Value) && !isEditableChoice && !options.ChoiceOptions.Contains(options.Value, StringComparer.Ordinal)) throw new ArgumentException("Choice value must match one of the provided options.", nameof(options));
+            if (options.DefaultValue is not null && !isEditableChoice && !options.ChoiceOptions.Contains(options.DefaultValue, StringComparer.Ordinal)) throw new ArgumentException("Choice default value must match one of the provided options.", nameof(options));
         }
         if (options.Style?.IsComb == true && !options.Style.MaxLength.HasValue) throw new ArgumentException("Comb text fields require a maximum length.", nameof(options));
     }
 
     private static void ValidateCreateOptionsList(PdfFormFieldCreateOptions options) {
-        if (options.ChoiceOptions is null || options.ChoiceOptions.Count == 0) throw new ArgumentException("Choice and radio fields require at least one option.", nameof(options));
+        if (options.ChoiceOptions is null) throw new ArgumentException("Choice options cannot be null.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup && options.ChoiceOptions.Count == 0) throw new ArgumentException("Radio fields require at least one option.", nameof(options));
         var seen = new HashSet<string>(StringComparer.Ordinal);
         for (int i = 0; i < options.ChoiceOptions.Count; i++) {
             string option = options.ChoiceOptions[i];

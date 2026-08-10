@@ -53,7 +53,7 @@ internal static partial class PdfAcroFormEditor {
 
     private static void ValidateCreatedFieldReadback(PdfFormField field, PdfFormFieldCreateOptions options) {
         if (options.Kind == PdfFormFieldCreationKind.Text && options.Style?.IsMultiline == true && !field.IsMultiline) throw new InvalidOperationException("AcroForm multiline text-field readback validation failed for " + options.Name + ".");
-        if (options.Kind == PdfFormFieldCreationKind.Choice && field.IsCombo != options.IsComboBox) throw new InvalidOperationException("AcroForm choice presentation readback validation failed for " + options.Name + ".");
+        if (options.Kind == PdfFormFieldCreationKind.Choice && field.IsCombo != IsChoiceComboBox(options)) throw new InvalidOperationException("AcroForm choice presentation readback validation failed for " + options.Name + ".");
         if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup && (!field.IsRadioButton || field.WidgetCount != options.ChoiceOptions.Count)) throw new InvalidOperationException("AcroForm radio-button readback validation failed for " + options.Name + ".");
         if (options.Kind == PdfFormFieldCreationKind.PushButton && !field.IsPushButton) throw new InvalidOperationException("AcroForm push-button readback validation failed for " + options.Name + ".");
         if (options.JavaScript is not null && !string.Equals(field.JavaScript, options.JavaScript, StringComparison.Ordinal)) throw new InvalidOperationException("AcroForm widget JavaScript readback validation failed for " + options.Name + ".");
