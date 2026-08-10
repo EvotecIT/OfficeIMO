@@ -177,6 +177,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int skippedBasicFormatting = 0, skippedNotes = 0, noteContainers = 0;
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
         int unsupportedWritingModes = 0;
+        int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
         var pendingInternalLinks = new List<(PowerPointTextRun Run, int SlideIndex)>();
         foreach (OdpSlide sourceSlide in source.Slides) {
             PowerPointSlide targetSlide = target.AddSlide();
@@ -206,7 +207,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         paragraphTexts => converted.SetParagraphs(paragraphTexts), source.Slides,
                         pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
                         ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
-                        ref skippedBasicFormatting, ref unsupportedWritingModes, ref unsupportedMeasurements);
+                        ref skippedBasicFormatting, ref unsupportedWritingModes, ref unsupportedMeasurements,
+                        ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                     textBoxes++;
                 } else if (shape is OdpImage image) {
                     if (!effective.IncludeImages) {
@@ -261,7 +263,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                                 paragraphTexts => converted.GetCell(row, column).SetParagraphs(paragraphTexts), source.Slides,
                                 pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
                                 ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
-                                ref skippedBasicFormatting, ref unsupportedWritingModes, ref unsupportedMeasurements);
+                                ref skippedBasicFormatting, ref unsupportedWritingModes, ref unsupportedMeasurements,
+                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                             if (cell.RowSpan > 1 || cell.ColumnSpan > 1) merges.Add((row, column, cell.RowSpan, cell.ColumnSpan));
                         }
                     }
@@ -311,7 +314,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         paragraphTexts => targetSlide.Notes.SetParagraphs(paragraphTexts), source.Slides,
                         pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
                         ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
-                        ref skippedBasicFormatting, ref unsupportedWritingModes, ref unsupportedMeasurements);
+                        ref skippedBasicFormatting, ref unsupportedWritingModes, ref unsupportedMeasurements,
+                        ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                     notes++;
                 }
             } else if (!effective.IncludeSpeakerNotes && sourceSlide.SpeakerNotes != null &&
@@ -340,6 +344,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "Inline ODP elements outside plain text, spans, and hyperlinks were flattened to text.");
         if (approximatedTextDecorations > 0) report.Add("text-decorations", OdfConversionMappingStatus.Approximated,
             approximatedTextDecorations, "Non-solid ODF underline and line-through variants are simplified to solid PowerPoint decorations.");
+        if (approximatedFontFamilyLists > 0) report.Add("font-family-fallbacks", OdfConversionMappingStatus.Approximated,
+            approximatedFontFamilyLists, "PowerPoint run properties retain the first ODF font family but cannot retain the authored fallback list.");
+        AddUnsupported(report, "font-families", unsupportedFontFamilies,
+            "Malformed ODF font-family syntax was omitted instead of being emitted as an invalid PowerPoint typeface name.");
         AddUnsupported(report, "writing-mode", unsupportedWritingModes,
             "Vertical and unsupported ODF writing modes cannot be represented by the PowerPoint paragraph model.");
         AddUnsupported(report, "hyperlinks", unsupportedHyperlinks,
@@ -427,62 +435,6 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (effective.MaxTableColumns <= 0) throw new ArgumentOutOfRangeException(nameof(options), effective.MaxTableColumns,
             $"{nameof(PowerPointOpenDocumentConversionOptions.MaxTableColumns)} must be positive.");
         return effective;
-    }
-
-    private static int ApplyOdpRun(OdpRun source, OdpParagraph paragraph, PowerPointTextRun target,
-        PowerPointOpenDocumentConversionOptions options) {
-        target.Text = source.Text;
-        if (!options.IncludeBasicFormatting) return 0;
-        target.Bold = source.Bold ?? paragraph.Bold ?? false;
-        target.Italic = source.Italic ?? paragraph.Italic ?? false;
-        target.Underline = source.Underline ?? paragraph.Underline ?? false;
-        target.Strikethrough = source.StrikeThrough ?? paragraph.StrikeThrough ?? false;
-        OdfLength? fontSize = source.FontSize ?? paragraph.FontSize;
-        int unsupported = ApplyOdpFontSize(fontSize, target);
-        target.FontName = source.FontFamily ?? paragraph.FontFamily;
-        OdfColor? color = source.Color ?? paragraph.Color;
-        if (color.HasValue) target.Color = color.Value.ToString().TrimStart('#');
-        OdfColor? background = source.BackgroundColor ?? paragraph.BackgroundColor;
-        if (background.HasValue) target.HighlightColor = background.Value.ToString().TrimStart('#');
-        return unsupported;
-    }
-
-    private static int ApplyOdpHyperlink(OdpHyperlink source, OdpParagraph paragraph,
-        PowerPointTextRun target, PowerPointOpenDocumentConversionOptions options) {
-        if (!options.IncludeBasicFormatting) return 0;
-        target.Bold = source.Bold ?? paragraph.Bold ?? false;
-        target.Italic = source.Italic ?? paragraph.Italic ?? false;
-        target.Underline = source.Underline ?? paragraph.Underline ?? false;
-        target.Strikethrough = source.StrikeThrough ?? paragraph.StrikeThrough ?? false;
-        OdfLength? fontSize = source.FontSize ?? paragraph.FontSize;
-        int unsupported = ApplyOdpFontSize(fontSize, target);
-        target.FontName = source.FontFamily ?? paragraph.FontFamily;
-        OdfColor? color = source.Color ?? paragraph.Color;
-        if (color.HasValue) target.Color = color.Value.ToString().TrimStart('#');
-        OdfColor? background = source.BackgroundColor ?? paragraph.BackgroundColor;
-        if (background.HasValue) target.HighlightColor = background.Value.ToString().TrimStart('#');
-        return unsupported;
-    }
-
-    private static int ApplyOdpParagraphFormatting(OdpParagraph source, PowerPointTextRun target,
-        PowerPointOpenDocumentConversionOptions options) {
-        if (!options.IncludeBasicFormatting) return 0;
-        target.Bold = source.Bold == true;
-        target.Italic = source.Italic == true;
-        target.Underline = source.Underline == true;
-        target.Strikethrough = source.StrikeThrough == true;
-        int unsupported = ApplyOdpFontSize(source.FontSize, target);
-        target.FontName = source.FontFamily;
-        if (source.Color.HasValue) target.Color = source.Color.Value.ToString().TrimStart('#');
-        if (source.BackgroundColor.HasValue) target.HighlightColor = source.BackgroundColor.Value.ToString().TrimStart('#');
-        return unsupported;
-    }
-
-    private static int ApplyOdpFontSize(OdfLength? fontSize, PowerPointTextRun target) {
-        if (!fontSize.HasValue) return 0;
-        if (!fontSize.Value.TryToPoints(out double points)) return 1;
-        target.FontSizePoints = points;
-        return 0;
     }
 
     private static void ApplyPowerPointRun(PowerPointTextRun source, OdpRun target,

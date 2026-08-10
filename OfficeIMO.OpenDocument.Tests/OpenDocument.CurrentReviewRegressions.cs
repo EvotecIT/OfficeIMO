@@ -10,6 +10,19 @@ namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentCurrentReviewRegressionTests {
     [Fact]
+    public void FontFamilySyntaxPreservesQuotedCommasAndFallbackOrder() {
+        OdfFontFamilySyntax syntax = OdfFontFamilySyntax.Parse(
+            "'Liberation, Sans', Arial, sans-serif");
+
+        Assert.Equal(new[] { "Liberation, Sans", "Arial", "sans-serif" }, syntax.Families);
+        Assert.Equal("Liberation, Sans", syntax.PrimaryFamily);
+        Assert.True(syntax.HasFallbacks);
+        Assert.Equal("\"Liberation, Sans\", Arial, sans-serif", syntax.ToString());
+        Assert.False(OdfFontFamilySyntax.TryParse("'unterminated", out _));
+        Assert.False(OdfFontFamilySyntax.TryParse("Arial,,sans-serif", out _));
+    }
+
+    [Fact]
     public void FontFacesAndParagraphLayoutResolveThroughStyleReferencesAndParents() {
         OdtDocument document = OdtDocument.Create();
         OdtParagraph paragraph = document.AddParagraph();

@@ -232,11 +232,8 @@ public sealed class OdfStyle {
     internal static string? NormalizeFontFamily(string? value) {
         string? normalized = value?.Trim();
         if (normalized == null || normalized.Length == 0) return null;
-        if (normalized.Length >= 2 &&
-            ((normalized[0] == '\'' && normalized[normalized.Length - 1] == '\'')
-             || (normalized[0] == '"' && normalized[normalized.Length - 1] == '"'))) {
-            normalized = normalized.Substring(1, normalized.Length - 2).Trim();
-        }
-        return normalized.Length == 0 ? null : normalized;
+        return OdfFontFamilySyntax.TryParse(normalized, out OdfFontFamilySyntax? syntax)
+            ? syntax!.ToString()
+            : normalized;
     }
 }

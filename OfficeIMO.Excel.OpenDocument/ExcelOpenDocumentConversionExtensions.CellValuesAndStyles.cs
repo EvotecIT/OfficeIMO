@@ -151,7 +151,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         ExcelCell target,
         OdsCellRun style,
         IReadOnlyDictionary<string, OdsDataStyle> dataStyles,
-        out bool unsupportedDataStyleFormat) {
+        out bool unsupportedDataStyleFormat,
+        ref int approximatedFontFamilyLists,
+        ref int unsupportedFontFamilies) {
         int unsupported = 0;
         unsupportedDataStyleFormat = false;
         if (style.Bold == true) target.SetBold();
@@ -160,7 +162,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (style.FontSize.Value.TryToPoints(out double points)) target.SetFontSize(points);
             else unsupported++;
         }
-        if (!string.IsNullOrWhiteSpace(style.FontFamily)) target.SetFontName(style.FontFamily!);
+        string? fontFamily = SelectOdfFontFamily(style.FontFamily,
+            ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+        if (fontFamily != null) target.SetFontName(fontFamily);
         if (style.Color.HasValue) target.SetFontColor(style.Color.Value.ToString().TrimStart('#'));
         if (style.BackgroundColor.HasValue) target.SetFillColor(style.BackgroundColor.Value.ToString().TrimStart('#'));
         if (style.NumberFormatName != null && dataStyles.TryGetValue(style.NumberFormatName, out OdsDataStyle? dataStyle)) {
@@ -168,6 +172,17 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             else unsupportedDataStyleFormat = true;
         }
         return unsupported;
+    }
+
+    private static string? SelectOdfFontFamily(string? value,
+        ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        if (!OdfFontFamilySyntax.TryParse(value, out OdfFontFamilySyntax? syntax)) {
+            unsupportedFontFamilies++;
+            return null;
+        }
+        if (syntax!.HasFallbacks) approximatedFontFamilyLists++;
+        return syntax.PrimaryFamily;
     }
 
     private static bool IsNumeric(object value) {

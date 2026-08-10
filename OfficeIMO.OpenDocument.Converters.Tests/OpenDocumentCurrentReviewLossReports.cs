@@ -219,6 +219,65 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
+    public void OdtFontFallbackListSelectsOneWordTypefaceAndReportsApproximation() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph().AddSpan("Fallback").FontFamily =
+            "'Liberation Sans', Arial, sans-serif";
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        WordParagraphSnapshot paragraph = Assert.Single(target.CreateInspectionSnapshot()
+            .Sections.SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+
+        Assert.Equal("Liberation Sans", Assert.Single(paragraph.Runs).FontFamily);
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "font-family-fallbacks"
+            && mapping.Status == OdfConversionMappingStatus.Approximated
+            && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
+            }));
+    }
+
+    [Fact]
+    public void OdpFontFallbackListSelectsOnePowerPointTypefaceAndReportsApproximation() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide("Source").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2))
+            .AddParagraph().AddRun("Fallback").FontFamily =
+            "'Liberation Sans', Arial, sans-serif";
+
+        OdfConversionResult<PowerPointPresentation> conversion =
+            source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+
+        Assert.Equal("Liberation Sans", target.Slides.Single().TextBoxes.Single()
+            .Paragraphs.Single().Runs.Single().FontName);
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "font-family-fallbacks"
+            && mapping.Status == OdfConversionMappingStatus.Approximated
+            && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void OdsFontFallbackListSelectsOneExcelTypefaceAndReportsApproximation() {
+        OdsDocument source = OdsDocument.Create();
+        OdsCell cell = source.AddSheet("Data").Cell(0, 0);
+        cell.SetString("Fallback");
+        cell.FontFamily = "'Liberation Sans', Arial, sans-serif";
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+
+        Assert.Equal("Liberation Sans", target.CreateInspectionSnapshot().Worksheets.Single()
+            .Cells.Single().Style!.FontName);
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "font-family-fallbacks"
+            && mapping.Status == OdfConversionMappingStatus.Approximated
+            && mapping.Count == 1);
+    }
+
+    [Fact]
     public void WordLogicalLayoutProjectsBackToOdt() {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph("Logical layout");

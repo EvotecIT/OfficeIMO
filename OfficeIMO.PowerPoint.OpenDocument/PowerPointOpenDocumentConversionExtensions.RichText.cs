@@ -88,7 +88,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         ref int approximatedRuns,
         ref int skippedBasicFormatting,
         ref int unsupportedWritingModes,
-        ref int unsupportedMeasurements) {
+        ref int unsupportedMeasurements,
+        ref int approximatedFontFamilyLists,
+        ref int unsupportedFontFamilies) {
         IReadOnlyList<PowerPointParagraph> targetParagraphs =
             setParagraphs(sourceParagraphs.Select(paragraph => paragraph.Text));
         int paragraphCount = Math.Min(sourceParagraphs.Count, targetParagraphs.Count);
@@ -116,16 +118,19 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 PowerPointTextRun run = useExistingRun
                     ? existingRuns[0]
                     : targetParagraph.AddRun(string.Empty);
-                unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, run, options);
+                unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, run, options,
+                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
             } else {
                 foreach (OdpInlineNode node in inlineNodes) {
                     PowerPointTextRun targetRun = AddInlineRun(node.Text);
                     if (node.Kind == OdpInlineNodeKind.Run) {
-                        unsupportedMeasurements += ApplyOdpRun(node.Run!, sourceParagraph, targetRun, options);
+                        unsupportedMeasurements += ApplyOdpRun(node.Run!, sourceParagraph, targetRun, options,
+                            ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                         if (!options.IncludeBasicFormatting && HasBasicFormatting(node.Run!)) skippedBasicFormatting++;
                     } else if (node.Kind == OdpInlineNodeKind.Hyperlink) {
                         OdpHyperlink hyperlink = node.Hyperlink!;
-                        unsupportedMeasurements += ApplyOdpHyperlink(hyperlink, sourceParagraph, targetRun, options);
+                        unsupportedMeasurements += ApplyOdpHyperlink(hyperlink, sourceParagraph, targetRun, options,
+                            ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                         if (!string.IsNullOrWhiteSpace(hyperlink.TargetFrameName)
                             || !string.IsNullOrWhiteSpace(hyperlink.ShowBehavior)) {
                             unsupportedHyperlinkBehaviors++;
@@ -144,7 +149,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         }
                         if (!options.IncludeBasicFormatting && HasBasicFormatting(hyperlink)) skippedBasicFormatting++;
                     } else {
-                        unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, targetRun, options);
+                        unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, targetRun, options,
+                            ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                         if (node.Kind == OdpInlineNodeKind.Other) approximatedRuns++;
                     }
                     textRuns++;
@@ -153,5 +159,81 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             if (!options.IncludeBasicFormatting && HasBasicFormatting(sourceParagraph)) skippedBasicFormatting++;
             paragraphs++;
         }
+    }
+
+    private static int ApplyOdpRun(OdpRun source, OdpParagraph paragraph, PowerPointTextRun target,
+        PowerPointOpenDocumentConversionOptions options,
+        ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
+        target.Text = source.Text;
+        if (!options.IncludeBasicFormatting) return 0;
+        target.Bold = source.Bold ?? paragraph.Bold ?? false;
+        target.Italic = source.Italic ?? paragraph.Italic ?? false;
+        target.Underline = source.Underline ?? paragraph.Underline ?? false;
+        target.Strikethrough = source.StrikeThrough ?? paragraph.StrikeThrough ?? false;
+        OdfLength? fontSize = source.FontSize ?? paragraph.FontSize;
+        int unsupported = ApplyOdpFontSize(fontSize, target);
+        string? fontFamily = SelectOdfFontFamily(source.FontFamily ?? paragraph.FontFamily,
+            ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+        if (fontFamily != null) target.FontName = fontFamily;
+        OdfColor? color = source.Color ?? paragraph.Color;
+        if (color.HasValue) target.Color = color.Value.ToString().TrimStart('#');
+        OdfColor? background = source.BackgroundColor ?? paragraph.BackgroundColor;
+        if (background.HasValue) target.HighlightColor = background.Value.ToString().TrimStart('#');
+        return unsupported;
+    }
+
+    private static int ApplyOdpHyperlink(OdpHyperlink source, OdpParagraph paragraph,
+        PowerPointTextRun target, PowerPointOpenDocumentConversionOptions options,
+        ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
+        if (!options.IncludeBasicFormatting) return 0;
+        target.Bold = source.Bold ?? paragraph.Bold ?? false;
+        target.Italic = source.Italic ?? paragraph.Italic ?? false;
+        target.Underline = source.Underline ?? paragraph.Underline ?? false;
+        target.Strikethrough = source.StrikeThrough ?? paragraph.StrikeThrough ?? false;
+        OdfLength? fontSize = source.FontSize ?? paragraph.FontSize;
+        int unsupported = ApplyOdpFontSize(fontSize, target);
+        string? fontFamily = SelectOdfFontFamily(source.FontFamily ?? paragraph.FontFamily,
+            ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+        if (fontFamily != null) target.FontName = fontFamily;
+        OdfColor? color = source.Color ?? paragraph.Color;
+        if (color.HasValue) target.Color = color.Value.ToString().TrimStart('#');
+        OdfColor? background = source.BackgroundColor ?? paragraph.BackgroundColor;
+        if (background.HasValue) target.HighlightColor = background.Value.ToString().TrimStart('#');
+        return unsupported;
+    }
+
+    private static int ApplyOdpParagraphFormatting(OdpParagraph source, PowerPointTextRun target,
+        PowerPointOpenDocumentConversionOptions options,
+        ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
+        if (!options.IncludeBasicFormatting) return 0;
+        target.Bold = source.Bold == true;
+        target.Italic = source.Italic == true;
+        target.Underline = source.Underline == true;
+        target.Strikethrough = source.StrikeThrough == true;
+        int unsupported = ApplyOdpFontSize(source.FontSize, target);
+        string? fontFamily = SelectOdfFontFamily(source.FontFamily,
+            ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+        if (fontFamily != null) target.FontName = fontFamily;
+        if (source.Color.HasValue) target.Color = source.Color.Value.ToString().TrimStart('#');
+        if (source.BackgroundColor.HasValue) target.HighlightColor = source.BackgroundColor.Value.ToString().TrimStart('#');
+        return unsupported;
+    }
+
+    private static int ApplyOdpFontSize(OdfLength? fontSize, PowerPointTextRun target) {
+        if (!fontSize.HasValue) return 0;
+        if (!fontSize.Value.TryToPoints(out double points)) return 1;
+        target.FontSizePoints = points;
+        return 0;
+    }
+
+    private static string? SelectOdfFontFamily(string? value,
+        ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        if (!OdfFontFamilySyntax.TryParse(value, out OdfFontFamilySyntax? syntax)) {
+            unsupportedFontFamilies++;
+            return null;
+        }
+        if (syntax!.HasFallbacks) approximatedFontFamilyLists++;
+        return syntax.PrimaryFamily;
     }
 }

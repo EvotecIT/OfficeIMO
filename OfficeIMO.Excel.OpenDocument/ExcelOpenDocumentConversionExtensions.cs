@@ -26,7 +26,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         NamedRangeConversionPlan namedRangePlan = BuildNamedRangeConversionPlan(snapshot.NamedRanges);
 
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, unsupportedHyperlinks = 0, hyperlinkTooltips = 0, comments = 0, richComments = 0, threadedComments = 0, merges = 0;
-        int rows = 0, columns = 0, convertedValidations = 0, skippedValidations = 0, tables = 0, filters = 0, unsupportedStyles = 0, skippedStyles = 0;
+        int rows = 0, columns = 0, convertedValidations = 0, skippedValidations = 0, overlappingValidationAssignments = 0;
+        int tables = 0, filters = 0, unsupportedStyles = 0, skippedStyles = 0;
         long materializedCells = 0, skippedCells = 0, skippedRows = 0, skippedColumns = 0, skippedMerges = 0;
         bool truncated = false;
         var dataStyles = new Dictionary<uint, string>();
@@ -35,6 +36,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             worksheetOrdinal++;
             OdsSheet sheet = target.AddSheet(worksheet.Name);
             var materializedCoordinates = new HashSet<(int Row, int Column)>();
+            var validationAssignments = new Dictionary<(int Row, int Column), string>();
             sheet.Hidden = worksheet.Hidden;
             foreach (ExcelColumnSnapshot column in worksheet.Columns) {
                 if (column.EndIndex > effective.MaximumColumns) {
@@ -208,6 +210,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                 materializedCoordinates.Add(coordinate);
                                 materializedCells++;
                             }
+                            if (validationAssignments.TryGetValue(coordinate, out string? previousValidation)
+                                && !string.Equals(previousValidation, validationName, StringComparison.Ordinal)) {
+                                overlappingValidationAssignments++;
+                            }
+                            validationAssignments[coordinate] = validationName;
                             sheet.Cell(row - 1L, column - 1L).ValidationName = validationName;
                             assigned = true;
                         }
@@ -333,6 +340,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         AddConverted(report, "validations", convertedValidations);
         if (skippedValidations > 0) report.Add("validations", OdfConversionMappingStatus.Unsupported, skippedValidations,
             "Unsupported validation rules and ranges, plus assignments clipped by configured conversion limits, were not mapped completely.");
+        AddUnsupported(report, "validation-overlaps", overlappingValidationAssignments,
+            "ODF cells can reference only one validation rule; where Excel rules overlap, the later workbook rule was retained for that cell.");
         AddUnsupported(report, "structured-tables", tables, "Table cells remain; Excel table semantics and styles are not translated.");
         AddUnsupported(report, "filters", filters, "Filter state is not translated.");
         AddUnsupported(report, "built-in-names", builtInNames, "Excel print-area and print-title names are not translated.");
@@ -378,6 +387,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         long expandedCells = 0;
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, externalHyperlinks = 0, comments = 0, combinedComments = 0, metadataTranscriptComments = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
         int invalidValues = 0, normalizedDateTimeOffsets = 0, validations = 0, convertedValidations = 0, unsupportedValidationAssignments = 0, sortedValidationLists = 0, unsupportedHyperlinks = 0, unsupportedMeasurements = 0, unsupportedDataStyleFormats = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
+        int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
         int forcedVisibleWorksheets = 0;
         bool truncated = false;
         ExcelSheet? activeTarget = null;
@@ -476,7 +486,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                             }
                             if (effective.IncludeBasicStyles && cellRun.StyleName != null) {
                                 unsupportedMeasurements += ApplyOdsStyle(converted, cellRun, dataStyles,
-                                    out bool unsupportedDataStyleFormat);
+                                    out bool unsupportedDataStyleFormat, ref approximatedFontFamilyLists,
+                                    ref unsupportedFontFamilies);
                                 if (unsupportedDataStyleFormat) unsupportedDataStyleFormats++;
                                 styles++;
                             } else if (cellRun.StyleName != null) {
@@ -577,6 +588,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             "Formula syntax without a safe Excel A1 representation was omitted; the cached cell value was retained.");
         if (styles > 0) report.Add("cell-styles", OdfConversionMappingStatus.Approximated, styles,
             "Basic font, fill, and data-style categories are mapped.");
+        if (approximatedFontFamilyLists > 0) report.Add("font-family-fallbacks", OdfConversionMappingStatus.Approximated,
+            approximatedFontFamilyLists, "Excel cell styles retain the first ODF font family but cannot retain the authored fallback list.");
+        AddUnsupported(report, "font-families", unsupportedFontFamilies,
+            "Malformed ODF font-family syntax was omitted instead of being emitted as an invalid Excel typeface name.");
         if (skippedStyles > 0) report.Add("cell-styles", OdfConversionMappingStatus.Skipped, skippedStyles,
             "Cell styles were omitted because IncludeBasicStyles is disabled.");
         if (renamedSheets > 0) report.Add("worksheet-names", OdfConversionMappingStatus.Approximated, renamedSheets,
@@ -647,41 +662,6 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     private static bool IsExternalOdfHref(string href) =>
         !string.IsNullOrWhiteSpace(href) && !href.StartsWith("#", StringComparison.Ordinal)
         && (href.StartsWith("//", StringComparison.Ordinal) || Uri.TryCreate(href, UriKind.Absolute, out _));
-
-    private static void AddConverted(OdfConversionReport report, string feature, int count) {
-        if (count > 0) report.Add(feature, OdfConversionMappingStatus.Converted, count);
-    }
-
-    private static void AddUnsupported(OdfConversionReport report, string feature, int count, string? message) {
-        if (count > 0) report.Add(feature, OdfConversionMappingStatus.Unsupported, count, message);
-    }
-
-    private static void AddUnmappedOdfFindings(OdfFeatureReport features, OdfConversionReport report,
-        int formulas, int validations, int hyperlinks, int annotations, int namedRanges) {
-        foreach (OdfFeatureDiagnostic diagnostic in features.Diagnostics) {
-            report.Add("source-inspection", OdfConversionMappingStatus.Unsupported, 1,
-                diagnostic.Code + " in " + diagnostic.PartPath + ": " + diagnostic.Message);
-        }
-        int remainingFormulas = formulas, remainingValidations = validations, remainingHyperlinks = hyperlinks;
-        int remainingAnnotations = annotations, remainingNamedRanges = namedRanges;
-        foreach (OdfFeatureFinding finding in features.Findings) {
-            int handled = 0;
-            if (finding.Name == "spreadsheet-formulas") handled = Consume(ref remainingFormulas, finding.Count);
-            else if (finding.Name == "spreadsheet-validations") handled = Consume(ref remainingValidations, finding.Count);
-            else if (finding.Name == "external-links") handled = Consume(ref remainingHyperlinks, finding.Count);
-            else if (finding.Name == "annotations") handled = Consume(ref remainingAnnotations, finding.Count);
-            else if (finding.Name == "spreadsheet-named-ranges") handled = Consume(ref remainingNamedRanges, finding.Count);
-            int remaining = Math.Max(0, finding.Count - handled);
-            if (remaining > 0) report.Add("source-" + finding.Name, OdfConversionMappingStatus.Unsupported, remaining,
-                "The source feature is not represented by the XLSX conversion surface.");
-        }
-    }
-
-    private static int Consume(ref int available, int requested) {
-        int consumed = Math.Min(available, requested);
-        available -= consumed;
-        return consumed;
-    }
 
     private static ExcelDocument Normalize(ExcelDocument document) {
         using var stream = new MemoryStream();

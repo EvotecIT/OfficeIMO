@@ -133,6 +133,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         var report = new OdfConversionReport("ODT", "DOCX");
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, externalHyperlinks = 0, images = 0, bookmarks = 0;
         int approximatedRuns = 0, approximatedBookmarkRanges = 0, unsupportedMeasurements = 0;
+        int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
         int unsupportedWritingModes = CountUnsupportedWritingModes(source);
         int sourceImages = source.ContentBlocks.Where(block => block.Paragraph != null).Sum(block => block.Paragraph!.Images.Count) +
@@ -148,7 +149,8 @@ public static partial class WordOpenDocumentConversionExtensions {
                 currentList = null;
                 currentOrdered = null;
                 ConvertTable(block.Table, target, effective, ref hyperlinks, ref externalHyperlinks, ref images,
-                    ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements);
+                    ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
+                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                 tables++;
                 continue;
             }
@@ -177,7 +179,8 @@ public static partial class WordOpenDocumentConversionExtensions {
             }
 
             CopyParagraph(paragraph, converted, effective, ref hyperlinks, ref externalHyperlinks, ref images, ref bookmarks,
-                ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements);
+                ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
+                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
         }
 
         int unsupportedPageMeasurements = ApplyOdtPageLayout(source.PageLayout, target.Sections[0]);
@@ -193,12 +196,14 @@ public static partial class WordOpenDocumentConversionExtensions {
             foreach (OdtParagraph paragraph in source.PageLayout.Header.Paragraphs) {
                 WordParagraph converted = target.Header!.Default!.AddParagraph();
                 CopyParagraph(paragraph, converted, effective, ref hyperlinks, ref externalHyperlinks, ref images, ref bookmarks,
-                    ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements);
+                    ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
+                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
             }
             foreach (OdtParagraph paragraph in source.PageLayout.Footer.Paragraphs) {
                 WordParagraph converted = target.Footer!.Default!.AddParagraph();
                 CopyParagraph(paragraph, converted, effective, ref hyperlinks, ref externalHyperlinks, ref images, ref bookmarks,
-                    ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements);
+                    ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
+                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
             }
             report.Add("headers-footers", OdfConversionMappingStatus.Converted,
                 source.PageLayout.Header.Paragraphs.Count + source.PageLayout.Footer.Paragraphs.Count);
@@ -220,6 +225,11 @@ public static partial class WordOpenDocumentConversionExtensions {
             "Inline elements outside the typed ODT text, span, hyperlink, image, and bookmark syntax were flattened to text.");
         if (approximatedTextDecorations > 0) report.Add("text-decorations", OdfConversionMappingStatus.Approximated,
             approximatedTextDecorations, "Non-solid ODF underline and line-through variants are simplified to solid Word decorations.");
+        if (approximatedFontFamilyLists > 0) report.Add("font-family-fallbacks", OdfConversionMappingStatus.Approximated,
+            approximatedFontFamilyLists, "Word run properties retain the first ODF font family but cannot retain the authored fallback list.");
+        if (unsupportedFontFamilies > 0) report.Add("font-families", OdfConversionMappingStatus.Unsupported,
+            unsupportedFontFamilies,
+            "Malformed ODF font-family syntax was omitted instead of being emitted as an invalid Word typeface name.");
         if (unsupportedWritingModes > 0) report.Add("writing-mode", OdfConversionMappingStatus.Unsupported,
             unsupportedWritingModes, "Vertical and page-relative ODF writing modes are not represented by the current Word paragraph surface.");
         if (approximatedBookmarkRanges > 0) report.Add("bookmark-ranges", OdfConversionMappingStatus.Approximated,
@@ -272,14 +282,17 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static void CopyParagraph(OdtParagraph source, WordParagraph target,
         WordOpenDocumentConversionOptions options, ref int hyperlinks, ref int externalHyperlinks, ref int images, ref int bookmarks,
-        ref int approximatedRuns, ref int approximatedBookmarkRanges, ref int unsupportedMeasurements) {
+        ref int approximatedRuns, ref int approximatedBookmarkRanges, ref int unsupportedMeasurements,
+        ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
         foreach (OdtInlineNode node in source.InlineNodes) {
             switch (node.Kind) {
                 case OdtInlineNodeKind.Text:
-                    unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, target.AddText(node.Text));
+                    unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, target.AddText(node.Text),
+                        ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                     break;
                 case OdtInlineNodeKind.Span:
-                    unsupportedMeasurements += ApplyOdtSpanFormatting(node.Span!, source, target.AddText(node.Text));
+                    unsupportedMeasurements += ApplyOdtSpanFormatting(node.Span!, source, target.AddText(node.Text),
+                        ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                     break;
                 case OdtInlineNodeKind.Hyperlink:
                     OdtHyperlink link = node.Hyperlink!;
@@ -291,11 +304,13 @@ public static partial class WordOpenDocumentConversionExtensions {
                         hyperlinkRun = target.AddHyperLink(link.Text, uri, addStyle: true);
                     }
                     if (hyperlinkRun != null) {
-                        unsupportedMeasurements += ApplyOdtHyperlinkFormatting(link, source, hyperlinkRun);
+                        unsupportedMeasurements += ApplyOdtHyperlinkFormatting(link, source, hyperlinkRun,
+                            ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                         hyperlinks++;
                         if (IsExternalOdfHref(link.Href)) externalHyperlinks++;
                     } else {
-                        unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, target.AddText(link.Text));
+                        unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, target.AddText(link.Text),
+                            ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                         approximatedRuns++;
                     }
                     break;
@@ -327,7 +342,8 @@ public static partial class WordOpenDocumentConversionExtensions {
                 case OdtInlineNodeKind.BookmarkEnd:
                     break;
                 case OdtInlineNodeKind.Other:
-                    if (node.Text.Length > 0) unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, target.AddText(node.Text));
+                    if (node.Text.Length > 0) unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source,
+                        target.AddText(node.Text), ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                     approximatedRuns++;
                     break;
             }
@@ -359,64 +375,6 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (OdfColor.TryParse(source.ColorHex, out OdfColor color)) target.Color = color;
         if (OdfColor.TryParse(source.RunShadingFillColorHex, out OdfColor shading)) target.BackgroundColor = shading;
         else if (TryMapWordHighlight(source.HighlightColor, out OdfColor highlight)) target.BackgroundColor = highlight;
-    }
-
-    private static int ApplyOdtHyperlinkFormatting(OdtHyperlink source, OdtParagraph paragraph, WordParagraph target) {
-        target.Bold = source.Bold ?? paragraph.Bold ?? false;
-        target.Italic = source.Italic ?? paragraph.Italic ?? false;
-        target.Underline = (source.Underline ?? paragraph.Underline) == true ? WordUnderlineStyle.Single : (WordUnderlineStyle?)null;
-        target.Strike = (source.StrikeThrough ?? paragraph.StrikeThrough) == true;
-        OdfLength? fontSize = source.FontSize ?? paragraph.FontSize;
-        int unsupported = ApplyOdtFontSize(fontSize, target);
-        string? fontFamily = source.FontFamily ?? paragraph.FontFamily;
-        if (!string.IsNullOrWhiteSpace(fontFamily)) target.FontFamily = fontFamily;
-        OdfColor? color = source.Color ?? paragraph.Color;
-        if (color.HasValue) target.ColorHex = color.Value.ToString();
-        ApplyOdfTextBackground(source.BackgroundColor ?? paragraph.TextBackgroundColor, target);
-        return unsupported;
-    }
-
-    private static int ApplyOdtParagraphTextFormatting(OdtParagraph source, WordParagraph target) {
-        target.Bold = source.Bold == true;
-        target.Italic = source.Italic == true;
-        target.Underline = source.Underline == true ? WordUnderlineStyle.Single : (WordUnderlineStyle?)null;
-        target.Strike = source.StrikeThrough == true;
-        int unsupported = ApplyOdtFontSize(source.FontSize, target);
-        if (!string.IsNullOrWhiteSpace(source.FontFamily)) target.FontFamily = source.FontFamily;
-        if (source.Color.HasValue) target.ColorHex = source.Color.Value.ToString();
-        ApplyOdfTextBackground(source.TextBackgroundColor, target);
-        return unsupported;
-    }
-
-    private static int ApplyOdtSpanFormatting(OdtSpan source, OdtParagraph paragraph, WordParagraph target) {
-        target.Bold = source.Bold ?? paragraph.Bold ?? false;
-        target.Italic = source.Italic ?? paragraph.Italic ?? false;
-        target.Underline = (source.Underline ?? paragraph.Underline) == true ? WordUnderlineStyle.Single : (WordUnderlineStyle?)null;
-        target.Strike = (source.StrikeThrough ?? paragraph.StrikeThrough) == true;
-        OdfLength? fontSize = source.FontSize ?? paragraph.FontSize;
-        int unsupported = ApplyOdtFontSize(fontSize, target);
-        string? fontFamily = source.FontFamily ?? paragraph.FontFamily;
-        if (!string.IsNullOrWhiteSpace(fontFamily)) target.FontFamily = fontFamily;
-        OdfColor? color = source.Color ?? paragraph.Color;
-        if (color.HasValue) target.ColorHex = color.Value.ToString();
-        ApplyOdfTextBackground(source.BackgroundColor ?? paragraph.TextBackgroundColor, target);
-        return unsupported;
-    }
-
-    private static int ApplyOdtFontSize(OdfLength? fontSize, WordParagraph target) {
-        if (!fontSize.HasValue) return 0;
-        if (!fontSize.Value.TryToPoints(out double points)) return 1;
-        double halfPoints = points * 2D;
-        double roundedHalfPoints = Math.Round(halfPoints, MidpointRounding.AwayFromZero);
-        if (Math.Abs(halfPoints - roundedHalfPoints) > 0.000000001D) return 1;
-        target.FontSizePoints = roundedHalfPoints / 2D;
-        return 0;
-    }
-
-    private static void ApplyOdfTextBackground(OdfColor? source, WordParagraph target) {
-        if (!source.HasValue) return;
-        if (TryMapOdfHighlight(source.Value, out WordHighlightColor highlight)) target.Highlight = highlight;
-        else target.RunShadingFillColorHex = source.Value.ToString();
     }
 
     private static bool TryMapWordAlignment(string value, out OdtParagraphAlignment alignment) {
@@ -510,7 +468,8 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static void ConvertTable(OdtTable source, WordDocument targetDocument,
         WordOpenDocumentConversionOptions options, ref int hyperlinks, ref int externalHyperlinks, ref int images,
-        ref int bookmarks, ref int approximatedRuns, ref int approximatedBookmarkRanges, ref int unsupportedMeasurements) {
+        ref int bookmarks, ref int approximatedRuns, ref int approximatedBookmarkRanges, ref int unsupportedMeasurements,
+        ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
         int rows = Math.Max(1, source.Rows.Count);
         int columns = Math.Max(1, source.Rows.Select(row => row.Cells.Count).DefaultIfEmpty(1).Max());
         WordTable target = targetDocument.AddTable(rows, columns);
@@ -525,7 +484,8 @@ public static partial class WordOpenDocumentConversionExtensions {
                     WordParagraph targetParagraph = targetCell.AddParagraph(removeExistingParagraphs: paragraphIndex == 0);
                     CopyParagraph(cell.Paragraphs[paragraphIndex], targetParagraph, options, ref hyperlinks,
                         ref externalHyperlinks, ref images, ref bookmarks, ref approximatedRuns,
-                        ref approximatedBookmarkRanges, ref unsupportedMeasurements);
+                        ref approximatedBookmarkRanges, ref unsupportedMeasurements,
+                        ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                 }
                 if (cell.RowSpan > 1 || cell.ColumnSpan > 1) merges.Add((row, column, cell.RowSpan, cell.ColumnSpan));
             }

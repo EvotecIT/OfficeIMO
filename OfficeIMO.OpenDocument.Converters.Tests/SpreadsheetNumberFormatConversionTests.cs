@@ -145,6 +145,28 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     }
 
     [Fact]
+    public void OverlappingExcelValidationsRetainLaterRuleAndReportTheConflict() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.ValidationWholeNumber("A1:A2", ExcelDataValidationOperator.GreaterThan, 0);
+        sheet.ValidationDecimal("A2:A3", ExcelDataValidationOperator.LessThan, 10);
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdsSheet converted = conversion.Value.Sheets.Single();
+
+        Assert.NotEqual(converted.Cell(0, 0).ValidationName, converted.Cell(1, 0).ValidationName);
+        Assert.Equal(converted.Cell(1, 0).ValidationName, converted.Cell(2, 0).ValidationName);
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "validation-overlaps"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            }));
+    }
+
+    [Fact]
     public void OdsNumericFalseAllowEmptyCellProjectsToExcelAllowBlankFalse() {
         OdsDocument source = OdsDocument.Create();
         OdsValidation validation = source.AddValidation(
