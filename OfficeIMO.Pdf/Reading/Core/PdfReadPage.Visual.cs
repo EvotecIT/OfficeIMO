@@ -638,7 +638,8 @@ public sealed partial class PdfReadPage {
                       initialFillPatternBaseColorSpace: initialFillPatternBaseColorSpace,
                       initialStrokePattern: initialStrokePattern,
                       initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
-                      tilingPatterns: tilingPatternResources)) {
+                      tilingPatterns: tilingPatternResources,
+                      shadingPatterns: shadingPatternResources)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     type3GlyphBudget.RecordFailure();
@@ -772,6 +773,11 @@ public sealed partial class PdfReadPage {
         foreach (KeyValuePair<string, PdfObject> entry in patterns.Items) {
             if (TryReadShadingPattern(entry.Value, out PdfPageShadingPatternResource pattern)) {
                 result[entry.Key] = pattern;
+            } else if (TryReadInteger(
+                ResolveDictionary(entry.Value)?.Items.TryGetValue("PatternType", out PdfObject? patternTypeObject) == true
+                    ? patternTypeObject
+                    : null) == 2) {
+                result[entry.Key] = PdfPageShadingPatternResource.Unsupported;
             }
         }
 
@@ -827,6 +833,11 @@ public sealed partial class PdfReadPage {
 
         if (!dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) ||
             !TryReadColorSpaceResource(colorSpaceObject, out PdfPageColorSpace colorSpace)) return false;
+
+        PdfArray? extend = ResolveArray(dictionary.Items.TryGetValue("Extend", out PdfObject? extendObject) ? extendObject : null);
+        if (extend == null || extend.Items.Count != 2 ||
+            ResolveObject(extend.Items[0]) is not PdfBoolean { Value: true } ||
+            ResolveObject(extend.Items[1]) is not PdfBoolean { Value: true }) return false;
 
         PdfObject? functionObject = dictionary.Items.TryGetValue("Function", out PdfObject? authoredFunction) ? authoredFunction : null;
         if (!TryReadShadingStops(functionObject, colorSpace, out IReadOnlyList<OfficeGradientStop> stops)) {
@@ -915,7 +926,7 @@ public sealed partial class PdfReadPage {
         if (!HasValidFunctionIntervals(domain, 1) ||
             !function.Items.TryGetValue("N", out PdfObject? exponentObject) ||
             ResolveObject(exponentObject) is not PdfNumber exponent ||
-            !IsFinite(exponent.Value) || exponent.Value <= 0D) return false;
+            !IsFinite(exponent.Value) || Math.Abs(exponent.Value - 1D) > 0.000000001D) return false;
         IReadOnlyList<double> c0 = function.Items.TryGetValue("C0", out PdfObject? c0Object)
             ? ReadNumberArray(c0Object)
             : new[] { 0D };

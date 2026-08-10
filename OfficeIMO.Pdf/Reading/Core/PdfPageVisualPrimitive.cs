@@ -211,6 +211,17 @@ internal readonly struct PdfPageVisualPrimitive {
         PdfPageTilingPatternPaint? fillTilingPattern,
         OfficeColor strokeColor,
         PdfPageTilingPatternPaint? strokeTilingPattern) =>
+        WithPaints(fillColor, fillTilingPattern, null, null, strokeColor, strokeTilingPattern, null, null);
+
+    internal PdfPageVisualPrimitive WithPaints(
+        OfficeColor fillColor,
+        PdfPageTilingPatternPaint? fillTilingPattern,
+        OfficeLinearGradient? fillGradient,
+        OfficeRadialGradient? fillRadialGradient,
+        OfficeColor strokeColor,
+        PdfPageTilingPatternPaint? strokeTilingPattern,
+        OfficeLinearGradient? strokeGradient,
+        OfficeRadialGradient? strokeRadialGradient) =>
         new PdfPageVisualPrimitive(
             Kind,
             X,
@@ -222,16 +233,16 @@ internal readonly struct PdfPageVisualPrimitive {
             X2,
             Y2,
             PathCommands,
-            FillColor.HasValue || FillGradient != null || FillRadialGradient != null || FillTilingPattern != null
-                ? fillTilingPattern == null ? fillColor : (OfficeColor?)null
+            HasFillPaint
+                ? fillTilingPattern == null && fillGradient == null && fillRadialGradient == null ? fillColor : (OfficeColor?)null
                 : null,
-            null,
-            null,
-            StrokeColor.HasValue || StrokeGradient != null || StrokeRadialGradient != null || StrokeTilingPattern != null
-                ? strokeTilingPattern == null ? strokeColor : (OfficeColor?)null
+            HasFillPaint ? fillGradient : null,
+            HasFillPaint ? fillRadialGradient : null,
+            HasStrokePaint
+                ? strokeTilingPattern == null && strokeGradient == null && strokeRadialGradient == null ? strokeColor : (OfficeColor?)null
                 : null,
-            null,
-            null,
+            HasStrokePaint ? strokeGradient : null,
+            HasStrokePaint ? strokeRadialGradient : null,
             StrokeWidth,
             StrokeDashStyle,
             StrokeLineCap,

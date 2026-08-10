@@ -50,6 +50,11 @@ public sealed partial class PdfReadPage {
                 operation.Operands[operation.Operands.Count - 1] is string shadingName) {
                 invokedShadings.Add(shadingName);
             }
+            if ((operation.Name == "scn" || operation.Name == "SCN") &&
+                operation.Operands.Count > 0 &&
+                operation.Operands[operation.Operands.Count - 1] is string patternName) {
+                invokedPatterns.Add(patternName);
+            }
             if ((operation.Name == "cs" || operation.Name == "CS") &&
                 operation.Operands.Count > 0 &&
                 operation.Operands[operation.Operands.Count - 1] is string colorSpaceName) {
@@ -72,6 +77,31 @@ public sealed partial class PdfReadPage {
         maxOperands: _limits.MaxContentOperands);
 
         if (resources == null) return;
+        if (invokedShadings.Count > 0 || invokedPatterns.Count > 0) {
+            _ = PdfPageContentVisualParser.Parse(
+                WrapContentWithTransform(content, initialTransform ?? Matrix2D.Identity),
+                GetPageSize().Width,
+                GetPageSize().Height,
+                GetGraphicsStateResources(resources),
+                GetColorSpaceResources(resources),
+                GetShadingResources(resources),
+                GetShadingPatternResources(resources),
+                tilingPatterns: null,
+                GetOptionalContentVisibility(resources),
+                initialFillColorSpace: initialFillColorSpace,
+                initialStrokeColorSpace: initialStrokeColorSpace,
+                maxOperations: _limits.MaxContentOperations,
+                patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
+                maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxOperands: _limits.MaxContentOperands,
+                primitiveVisitor: static _ => { },
+                retainPrimitiveData: false,
+                unsupportedShadingTransformVisitor: () => AddRenderDiagnostic(
+                    diagnostics,
+                    seen,
+                    PdfRenderCapabilities.UnsupportedShadingId,
+                    "transformed-radial-shading"));
+        }
         HashSet<string> failedType3Fonts = CollectType3FontFailures(
             content,
             resources,
@@ -230,7 +260,8 @@ public sealed partial class PdfReadPage {
             initialFillPatternBaseColorSpace: initialFillPatternBaseColorSpace,
             initialStrokePattern: initialStrokePattern,
             initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
-            tilingPatterns: tilingPatterns);
+            tilingPatterns: tilingPatterns,
+            shadingPatterns: GetShadingPatternResources(resources));
         invokedXObjectStates.AddRange(resolvedXObjects);
         return failures;
     }
@@ -315,9 +346,20 @@ public sealed partial class PdfReadPage {
                     usesFillPaint |= primitive.HasFillPaint;
                     usesStrokePaint |= primitive.HasStrokePaint;
                 },
-                retainPrimitiveData: false);
+                retainPrimitiveData: false,
+                unsupportedShadingTransformVisitor: () => supported = false);
             if ((usesFillPaint && initialFillPattern.HasValue && !HasUsableInheritedPattern(initialFillPattern)) ||
                 (usesStrokePaint && initialStrokePattern.HasValue && !HasUsableInheritedPattern(initialStrokePattern))) {
+                PdfPagePatternSelection? unsupported = usesFillPaint && initialFillPattern.HasValue && !HasUsableInheritedPattern(initialFillPattern)
+                    ? initialFillPattern
+                    : initialStrokePattern;
+                if (unsupported.HasValue && unsupported.Value.ShadingPattern.HasValue) {
+                    AddRenderDiagnostic(
+                        diagnostics,
+                        seen,
+                        PdfRenderCapabilities.UnsupportedShadingId,
+                        unsupported.Value.Name);
+                }
                 return false;
             }
             var patternSupport = new Dictionary<string, bool>(StringComparer.Ordinal);
@@ -378,8 +420,9 @@ public sealed partial class PdfReadPage {
                                      ((initialFillPattern.HasValue && string.Equals(initialFillPattern.Value.Name, name, StringComparison.Ordinal)) ||
                                       (initialStrokePattern.HasValue && string.Equals(initialStrokePattern.Value.Name, name, StringComparison.Ordinal)))) {
                                      canProject = true;
-                                 } else if (!requireImageMask && shadingPatterns.ContainsKey(name)) {
-                                     canProject = true;
+                                } else if (!requireImageMask &&
+                                           shadingPatterns.TryGetValue(name, out PdfPageShadingPatternResource shadingPattern)) {
+                                    canProject = shadingPattern.IsSupported;
                                      CollectShadingCapabilityDiagnostics(
                                          resources,
                                          Array.Empty<string>(),
@@ -407,7 +450,8 @@ public sealed partial class PdfReadPage {
                          initialFillPatternBaseColorSpace: initialFillPatternBaseColorSpace,
                          initialStrokePattern: initialStrokePattern,
                          initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
-                         tilingPatterns: tilingPatterns)) {
+                         tilingPatterns: tilingPatterns,
+                         shadingPatterns: shadingPatterns)) {
                 if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     if (initialFillPattern.HasValue || !CanProjectType3ImageInvocation(invocation, resources, requireImageMask, diagnostics, seen)) supported = false;
                     continue;
@@ -447,7 +491,9 @@ public sealed partial class PdfReadPage {
     }
 
     private static bool HasUsableInheritedPattern(PdfPagePatternSelection? selection) {
-        if (!selection.HasValue || selection.Value.TilingPattern is not PdfPageTilingPatternResource pattern) return false;
+        if (!selection.HasValue) return false;
+        if (selection.Value.ShadingPattern.HasValue) return selection.Value.ShadingPattern.Value.IsSupported;
+        if (selection.Value.TilingPattern is not PdfPageTilingPatternResource pattern) return false;
         return !pattern.Uncolored || selection.Value.Tint.HasValue;
     }
 
@@ -743,12 +789,17 @@ public sealed partial class PdfReadPage {
                 bool HasFillTint,
                 PdfPageColorSpace? FillBase,
                 PdfPageTilingPatternResource? FillResource,
+                PdfPageShadingPatternResource? FillShadingResource,
+                Matrix2D FillPaintTransform,
                 PdfPageColorSpace FillColorSpace,
                 string? StrokeName,
                 bool HasStrokeTint,
                 PdfPageColorSpace? StrokeBase,
                 PdfPageTilingPatternResource? StrokeResource,
-                PdfPageColorSpace StrokeColorSpace)>();
+                PdfPageShadingPatternResource? StrokeShadingResource,
+                Matrix2D StrokePaintTransform,
+                PdfPageColorSpace StrokeColorSpace,
+                Matrix2D InvocationTransform)>();
             for (int stateIndex = 0; stateIndex < states.Count; stateIndex++) {
                 PdfPageXObjectInvocation invocation = states[stateIndex];
                 var stateKey = (
@@ -756,12 +807,17 @@ public sealed partial class PdfReadPage {
                     invocation.FillPattern?.Tint.HasValue == true,
                     invocation.FillPatternBaseColorSpace,
                     invocation.FillPattern?.TilingPattern,
+                    invocation.FillPattern?.ShadingPattern,
+                    invocation.FillPattern?.PaintTransform ?? Matrix2D.Identity,
                     invocation.FillColorSpace,
                     invocation.StrokePattern?.Name,
                     invocation.StrokePattern?.Tint.HasValue == true,
                     invocation.StrokePatternBaseColorSpace,
                     invocation.StrokePattern?.TilingPattern,
-                    invocation.StrokeColorSpace);
+                    invocation.StrokePattern?.ShadingPattern,
+                    invocation.StrokePattern?.PaintTransform ?? Matrix2D.Identity,
+                    invocation.StrokeColorSpace,
+                    invocation.Transform);
                 if (!distinctStates.Add(stateKey) || !activeForms.Add(stream)) continue;
                 try {
                     PdfDictionary? formResources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceObject) ? formResourceObject : null) ?? resources;

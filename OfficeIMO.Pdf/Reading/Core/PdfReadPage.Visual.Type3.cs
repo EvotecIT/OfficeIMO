@@ -172,11 +172,11 @@ public sealed partial class PdfReadPage {
                     bool paintsFill = localPrimitives.Any(item => item.Primitive.HasFillPaint) ||
                         localImages.Count > 0 || localImagePlacements.Count > 0;
                     bool paintsStroke = localPrimitives.Any(item => item.Primitive.HasStrokePaint);
-                    if ((paintsFill && !IsUsableInheritedTilingPattern(glyph.FillPattern)) ||
-                        (paintsStroke && !IsUsableInheritedTilingPattern(glyph.StrokePattern)) ||
+                    if ((paintsFill && !IsUsableInheritedPattern(glyph.FillPattern)) ||
+                        (paintsStroke && !IsUsableInheritedPattern(glyph.StrokePattern)) ||
                         (localGroups.Count > 0 &&
-                         (!IsUsableInheritedTilingPattern(glyph.FillPattern) ||
-                          !IsUsableInheritedTilingPattern(glyph.StrokePattern)))) {
+                         (!IsUsableInheritedPattern(glyph.FillPattern) ||
+                          !IsUsableInheritedPattern(glyph.StrokePattern)))) {
                         return false;
                     }
                     if ((glyph.FillPattern.HasValue && (localImages.Count > 0 || localImagePlacements.Count > 0)) ||
@@ -202,8 +202,28 @@ public sealed partial class PdfReadPage {
                                 out PdfPageTilingPatternPaint? strokePatternPaint)) {
                             return false;
                         }
+                        CreateInheritedShadingGradients(
+                            item.Primitive.HasFillPaint ? glyph.FillPattern : null,
+                            item.Primitive,
+                            pageHeight,
+                            out OfficeLinearGradient? fillGradient,
+                            out OfficeRadialGradient? fillRadialGradient);
+                        CreateInheritedShadingGradients(
+                            item.Primitive.HasStrokePaint ? glyph.StrokePattern : null,
+                            item.Primitive,
+                            pageHeight,
+                            out OfficeLinearGradient? strokeGradient,
+                            out OfficeRadialGradient? strokeRadialGradient);
                         localPrimitives[primitiveIndex] = (
-                            item.Primitive.WithPaints(glyph.FillColor, fillPatternPaint, glyph.StrokeColor, strokePatternPaint),
+                            item.Primitive.WithPaints(
+                                glyph.FillColor,
+                                fillPatternPaint,
+                                fillGradient,
+                                fillRadialGradient,
+                                glyph.StrokeColor,
+                                strokePatternPaint,
+                                strokeGradient,
+                                strokeRadialGradient),
                             item.Effect);
                     }
                     for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
@@ -280,6 +300,7 @@ public sealed partial class PdfReadPage {
         out PdfPageTilingPatternPaint? paint) {
         paint = null;
         if (!selection.HasValue) return true;
+        if (selection.Value.ShadingPattern.HasValue) return true;
         PdfPageTilingPatternResource? resource = selection.Value.TilingPattern;
         if (resource == null) {
             return false;
@@ -298,10 +319,35 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static bool IsUsableInheritedTilingPattern(PdfPagePatternSelection? selection) {
+    private static bool IsUsableInheritedPattern(PdfPagePatternSelection? selection) {
         if (!selection.HasValue) return true;
-        PdfPageTilingPatternResource? resource = selection.Value.TilingPattern;
-        return resource != null && (!resource.Uncolored || selection.Value.Tint.HasValue);
+        if (selection.Value.ShadingPattern.HasValue) return selection.Value.ShadingPattern.Value.IsSupported;
+        PdfPageTilingPatternResource? pattern = selection.Value.TilingPattern;
+        return pattern != null && (!pattern.Uncolored || selection.Value.Tint.HasValue);
+    }
+
+    private static void CreateInheritedShadingGradients(
+        PdfPagePatternSelection? selection,
+        PdfPageVisualPrimitive primitive,
+        double pageHeight,
+        out OfficeLinearGradient? linearGradient,
+        out OfficeRadialGradient? radialGradient) {
+        linearGradient = null;
+        radialGradient = null;
+        if (!selection.HasValue || !selection.Value.ShadingPattern.HasValue) return;
+        if (!PdfPageContentVisualParser.IsSupportedShadingTransform(
+                selection.Value.ShadingPattern.Value,
+                selection.Value.PaintTransform)) return;
+        PdfPageContentVisualParser.CreateShadingGradients(
+            selection.Value.ShadingPattern.Value,
+            primitive.X,
+            primitive.Y,
+            primitive.Width,
+            primitive.Height,
+            selection.Value.PaintTransform,
+            pageHeight,
+            out linearGradient,
+            out radialGradient);
     }
 
     private static bool IsRecoverableType3ProjectionFailure(Exception exception) =>
