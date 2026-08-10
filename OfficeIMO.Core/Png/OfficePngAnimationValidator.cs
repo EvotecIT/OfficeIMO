@@ -57,9 +57,11 @@ internal static class OfficePngAnimationValidator {
                         int height = ReadBigEndianInt32(bytes, dataOffset + 8);
                         int x = ReadBigEndianInt32(bytes, dataOffset + 12);
                         int y = ReadBigEndianInt32(bytes, dataOffset + 16);
+                        bool isFirstAnimationFrame = frameControlCount == 0;
                         if (!HasValidFrameBounds(width, height, x, y, canvasWidth, canvasHeight, out int framePixels) ||
                             decodedFramePixels > OfficeRasterGuards.MaximumPixels - framePixels ||
-                            bytes[dataOffset + 24] > 2 || bytes[dataOffset + 25] > 1) {
+                            bytes[dataOffset + 24] > 2 || bytes[dataOffset + 25] > 1 ||
+                            isFirstAnimationFrame && bytes[dataOffset + 24] == 2) {
                             return false;
                         }
                         decodedFramePixels += framePixels;

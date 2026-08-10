@@ -363,6 +363,29 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_Rtf_Image_Diagnostics_Report_Images_In_Later_Section_Headers() {
+        using WordDocument word = WordDocument.Create();
+        word.Sections[0].AddHeadersAndFooters();
+        word.Sections[0].Header.Default!.AddParagraph("First section header");
+        WordSection laterSection = word.AddSection(WordSectionBreakType.NextPage);
+        laterSection.AddHeadersAndFooters();
+        HeaderReference laterHeaderReference = Assert.Single(
+            laterSection._sectionProperties.Elements<HeaderReference>(),
+            reference => reference.Type?.Value == HeaderFooterValues.Default);
+        var laterHeader = new WordHeader(word, laterHeaderReference, laterSection);
+        laterHeader.AddParagraph().AddImage(
+            new Uri("https://example.test/later-section-header.png"), 16, 16);
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        RtfConversionDiagnostic diagnostic = Assert.Single(
+            conversion.Report.Diagnostics,
+            item => item.Code == "WordRtfImagesOmitted");
+        Assert.Equal(1, diagnostic.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+    }
+
+    [Fact]
     public void Word_Rtf_Image_Diagnostics_Include_Hyperlink_Image_Runs() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();

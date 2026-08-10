@@ -22,8 +22,12 @@ public static partial class OfficeImageReader {
         int imageHeight = 0;
         bool extended = false;
         bool hasImage = false;
+        bool hasAlpha = false;
         bool seenAnimationControl = false;
         bool hasAnimationFrame = false;
+        bool seenAlphaChunk = false;
+        bool seenIccProfile = false;
+        bool seenXmp = false;
         byte extendedFlags = 0;
         int exifOffset = 0;
         int exifLength = 0;
@@ -58,29 +62,55 @@ public static partial class OfficeImageReader {
                 width = 1 + ReadUInt24LittleEndian(data, chunkDataOffset + 4);
                 height = 1 + ReadUInt24LittleEndian(data, chunkDataOffset + 7);
             } else if (chunkType == "VP8L") {
-                if (hasImage || !TryReadWebpImageHeader(
-                        data, chunkDataOffset, chunkSize, "VP8L", out imageWidth, out imageHeight)) {
+                if (hasImage || seenAnimationControl || seenXmp || exifOffset != 0) {
+                    return false;
+                }
+                if (seenAlphaChunk || !TryReadWebpImageHeader(
+                        data, chunkDataOffset, chunkSize, "VP8L", out imageWidth, out imageHeight, out bool imageHasAlpha)) {
                     return false;
                 }
                 hasImage = true;
+                hasAlpha = imageHasAlpha;
             } else if (chunkType == "VP8 ") {
-                if (hasImage || !TryReadWebpImageHeader(
-                        data, chunkDataOffset, chunkSize, "VP8 ", out imageWidth, out imageHeight)) {
+                if (hasImage || seenAnimationControl || seenXmp || exifOffset != 0 || !TryReadWebpImageHeader(
+                        data, chunkDataOffset, chunkSize, "VP8 ", out imageWidth, out imageHeight, out _)) {
                     return false;
                 }
                 hasImage = true;
+                hasAlpha = seenAlphaChunk;
+            } else if (chunkType == "ICCP") {
+                if (!extended || seenIccProfile || hasImage || seenAnimationControl || hasAnimationFrame ||
+                    seenAlphaChunk || exifOffset != 0 || seenXmp || chunkSize == 0) {
+                    return false;
+                }
+                seenIccProfile = true;
+            } else if (chunkType == "ALPH") {
+                if (!extended || seenAlphaChunk || hasImage || seenAnimationControl || hasAnimationFrame ||
+                    exifOffset != 0 || seenXmp || chunkSize == 0 || (extendedFlags & 0x02) != 0) {
+                    return false;
+                }
+                seenAlphaChunk = true;
             } else if (chunkType == "ANIM") {
-                if (!extended || seenAnimationControl || hasImage || chunkSize != 6) return false;
+                if (!extended || seenAnimationControl || hasImage || seenAlphaChunk ||
+                    exifOffset != 0 || seenXmp || chunkSize != 6) return false;
                 seenAnimationControl = true;
             } else if (chunkType == "ANMF") {
-                if (!extended || !seenAnimationControl || hasImage ||
-                    !TryReadWebpAnimationFrame(data, chunkDataOffset, chunkSize, width, height)) {
+                if (!extended || !seenAnimationControl || hasImage || exifOffset != 0 || seenXmp ||
+                    !TryReadWebpAnimationFrame(
+                        data, chunkDataOffset, chunkSize, width, height, out bool frameHasAlpha)) {
                     return false;
                 }
                 hasAnimationFrame = true;
-            } else if (chunkType == "EXIF" && exifOffset == 0) {
+                hasAlpha |= frameHasAlpha;
+            } else if (chunkType == "EXIF") {
+                if (!extended || exifOffset != 0 || (!hasImage && !hasAnimationFrame) || seenXmp || chunkSize == 0) {
+                    return false;
+                }
                 exifOffset = chunkDataOffset;
                 exifLength = chunkSize;
+            } else if (chunkType == "XMP ") {
+                if (!extended || seenXmp || (!hasImage && !hasAnimationFrame) || chunkSize == 0) return false;
+                seenXmp = true;
             }
 
             offset = (int)paddedChunkEnd;
@@ -95,7 +125,10 @@ public static partial class OfficeImageReader {
                        width != imageWidth || height != imageHeight) {
                 return false;
             }
-            if (((extendedFlags & 0x08) != 0) != (exifOffset != 0)) {
+            if (((extendedFlags & 0x20) != 0) != seenIccProfile ||
+                ((extendedFlags & 0x10) != 0) != hasAlpha ||
+                ((extendedFlags & 0x08) != 0) != (exifOffset != 0) ||
+                ((extendedFlags & 0x04) != 0) != seenXmp) {
                 return false;
             }
         } else {
@@ -121,7 +154,9 @@ public static partial class OfficeImageReader {
         int offset,
         int length,
         int canvasWidth,
-        int canvasHeight) {
+        int canvasHeight,
+        out bool hasAlpha) {
+        hasAlpha = false;
         if (length < 24) return false;
 
         int frameX = checked(ReadUInt24LittleEndian(data, offset) * 2);
@@ -158,11 +193,13 @@ public static partial class OfficeImageReader {
                 seenAlpha = true;
             } else if (chunkType == "VP8 " || chunkType == "VP8L") {
                 if (seenImage || seenAlpha && chunkType == "VP8L" || !TryReadWebpImageHeader(
-                        data, chunkDataOffset, chunkSize, chunkType, out int imageWidth, out int imageHeight) ||
+                        data, chunkDataOffset, chunkSize, chunkType,
+                        out int imageWidth, out int imageHeight, out bool imageHasAlpha) ||
                     imageWidth != frameWidth || imageHeight != frameHeight) {
                     return false;
                 }
                 seenImage = true;
+                hasAlpha = seenAlpha || imageHasAlpha;
             }
 
             chunkOffset = (int)paddedChunkEnd;
@@ -177,15 +214,18 @@ public static partial class OfficeImageReader {
         int length,
         string chunkType,
         out int width,
-        out int height) {
+        out int height,
+        out bool hasAlpha) {
         width = 0;
         height = 0;
+        hasAlpha = false;
         if (chunkType == "VP8L") {
-            if (length < 5 || data[offset] != 0x2F) return false;
+            if (length < 5 || data[offset] != 0x2F || (data[offset + 4] & 0xE0) != 0) return false;
             width = 1 + data[offset + 1] + ((data[offset + 2] & 0x3F) << 8);
             height = 1 + ((data[offset + 2] & 0xC0) >> 6) +
                      (data[offset + 3] << 2) +
                      ((data[offset + 4] & 0x0F) << 10);
+            hasAlpha = (data[offset + 4] & 0x10) != 0;
             return true;
         }
 

@@ -13,8 +13,16 @@ public sealed class OfficeImageExportResult {
     private readonly byte[] _bytes;
 
     /// <summary>
-    /// Creates an image export result.
+    /// Creates an image export result after validating the complete encoded payload, declared format, and dimensions.
     /// </summary>
+    /// <remarks>
+    /// Use <see cref="OfficeImageReader.TryValidateContent(byte[], string, out OfficeImageInfo)"/> first when invalid
+    /// output should be handled without an exception.
+    /// </remarks>
+    /// <exception cref="System.ArgumentException">
+    /// The encoded bytes are incomplete or invalid, do not match <paramref name="format"/>, or do not have the
+    /// declared <paramref name="width"/> and <paramref name="height"/>.
+    /// </exception>
     public OfficeImageExportResult(
         OfficeImageExportFormat format,
         int width,

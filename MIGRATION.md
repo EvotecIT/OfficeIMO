@@ -15,6 +15,8 @@ Excel file and URL image methods now validate the complete bounded payload inste
 
 Applications that intentionally import opaque package bytes can keep using the byte-array `AddImage(...)` overload with an explicit content type. That is the low-level package path; it does not turn invalid content into a renderable image. Use `OfficeImageReader.TryValidateContent(...)` before ingestion when the application needs to report validation failures itself.
 
+Direct `OfficeImageExportResult` construction now applies the same complete-content check. A recognizable header is no longer enough: truncated, corrupt, undecodable, or dimension-mismatched bytes throw `ArgumentException`. Call `OfficeImageReader.TryValidateContent(...)` before construction when the application needs to handle invalid output without an exception.
+
 ## OfficeIMO 3.2: one PDF authoring and operation model
 
 `PdfDocument` no longer duplicates every heading, paragraph, table, image, form,

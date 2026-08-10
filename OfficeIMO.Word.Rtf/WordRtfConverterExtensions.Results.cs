@@ -222,16 +222,19 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void AddWordToRtfDiagnostics(WordDocument document, RtfConversionReport report) {
-        List<OpenXmlElement> storyRoots = EnumerateConvertibleWordStoryRoots(document).ToList();
+        List<WordStoryRootCandidate> storyRoots = EnumerateConvertibleWordStoryRoots(document).ToList();
         var footnoteIds = new HashSet<long>(storyRoots
+            .Select(candidate => candidate.Root)
             .OfType<Footnote>()
             .Where(note => note.Id?.Value != null)
             .Select(note => note.Id!.Value));
         var endnoteIds = new HashSet<long>(storyRoots
+            .Select(candidate => candidate.Root)
             .OfType<Endnote>()
             .Where(note => note.Id?.Value != null)
             .Select(note => note.Id!.Value));
         var commentIds = new HashSet<string>(storyRoots
+            .Select(candidate => candidate.Root)
             .OfType<Comment>()
             .Where(comment => !string.IsNullOrWhiteSpace(comment.Id?.Value))
             .Select(comment => comment.Id!.Value!), StringComparer.Ordinal);
@@ -327,76 +330,124 @@ public static partial class WordRtfConverterExtensions {
 
     private static IEnumerable<(WordImage Image, bool OmittedByConverter)> EnumerateWordImageCandidates(
         WordDocument document,
-        IEnumerable<OpenXmlElement> storyRoots) {
+        IEnumerable<WordStoryRootCandidate> storyRoots) {
         var visitedParagraphs = new HashSet<Paragraph>();
         var visitedRuns = new HashSet<Run>();
-        foreach (OpenXmlElement storyRoot in storyRoots) {
-            foreach (Paragraph paragraph in storyRoot.Descendants<Paragraph>()) {
+        foreach (WordStoryRootCandidate storyRoot in storyRoots) {
+            foreach (Paragraph paragraph in storyRoot.Root.Descendants<Paragraph>()) {
                 if (!visitedParagraphs.Add(paragraph)) continue;
                 foreach ((Run Run, bool OmittedByConverter) runCandidate in EnumerateConvertibleWordRuns(paragraph)) {
                     if (!visitedRuns.Add(runCandidate.Run)) continue;
                     var candidate = new WordParagraph(document, paragraph, runCandidate.Run);
                     foreach (WordImage image in candidate.EnumerateImages()) {
-                        yield return (image, runCandidate.OmittedByConverter);
+                        yield return (image, storyRoot.OmittedByConverter || runCandidate.OmittedByConverter);
                     }
                 }
             }
         }
     }
 
-    private static IEnumerable<OpenXmlElement> EnumerateConvertibleWordStoryRoots(WordDocument document) {
+    private static IEnumerable<WordStoryRootCandidate> EnumerateConvertibleWordStoryRoots(WordDocument document) {
         DocumentFormat.OpenXml.Packaging.MainDocumentPart? mainPart = document.OpenXmlDocument.MainDocumentPart;
-        var contentRoots = new List<OpenXmlElement>();
-        if (mainPart?.Document != null) contentRoots.Add(mainPart.Document);
         if (mainPart == null) yield break;
 
+        var rootOmissions = new Dictionary<OpenXmlElement, bool>();
+        if (mainPart.Document != null) rootOmissions.Add(mainPart.Document, false);
+        var convertedRelationshipIds = new HashSet<string>(StringComparer.Ordinal);
+        if (document.Sections.Count > 0) {
+            foreach (HeaderReference reference in document.Sections[0]._sectionProperties.Elements<HeaderReference>()) {
+                if (!string.IsNullOrWhiteSpace(reference.Id?.Value)) convertedRelationshipIds.Add(reference.Id!.Value!);
+            }
+            foreach (FooterReference reference in document.Sections[0]._sectionProperties.Elements<FooterReference>()) {
+                if (!string.IsNullOrWhiteSpace(reference.Id?.Value)) convertedRelationshipIds.Add(reference.Id!.Value!);
+            }
+        }
         foreach (DocumentFormat.OpenXml.Packaging.HeaderPart part in mainPart.HeaderParts) {
-            if (part.Header != null) contentRoots.Add(part.Header);
+            if (part.Header != null) {
+                rootOmissions[part.Header] = !convertedRelationshipIds.Contains(mainPart.GetIdOfPart(part));
+            }
         }
         foreach (DocumentFormat.OpenXml.Packaging.FooterPart part in mainPart.FooterParts) {
-            if (part.Footer != null) contentRoots.Add(part.Footer);
+            if (part.Footer != null) {
+                rootOmissions[part.Footer] = !convertedRelationshipIds.Contains(mainPart.GetIdOfPart(part));
+            }
         }
-        var includedRoots = new HashSet<OpenXmlElement>(contentRoots);
+
         bool added;
         do {
             added = false;
-            HashSet<string> referencedCommentIds = CollectReferencedCommentIds(contentRoots);
-            var referencedFootnoteIds = new HashSet<long>(contentRoots
-                .SelectMany(root => root.Descendants<FootnoteReference>())
-                .Where(reference => reference.Id?.Value != null)
-                .Select(reference => reference.Id!.Value));
-            var referencedEndnoteIds = new HashSet<long>(contentRoots
-                .SelectMany(root => root.Descendants<EndnoteReference>())
-                .Where(reference => reference.Id?.Value != null)
-                .Select(reference => reference.Id!.Value));
+            var referencedCommentIds = new Dictionary<string, bool>(StringComparer.Ordinal);
+            var referencedFootnoteIds = new Dictionary<long, bool>();
+            var referencedEndnoteIds = new Dictionary<long, bool>();
+            foreach (KeyValuePair<OpenXmlElement, bool> candidate in rootOmissions.ToList()) {
+                foreach (string id in CollectReferencedCommentIds(new[] { candidate.Key })) {
+                    RecordStoryReference(referencedCommentIds, id, candidate.Value);
+                }
+                foreach (FootnoteReference reference in candidate.Key.Descendants<FootnoteReference>()) {
+                    if (reference.Id?.Value is long id) RecordStoryReference(referencedFootnoteIds, id, candidate.Value);
+                }
+                foreach (EndnoteReference reference in candidate.Key.Descendants<EndnoteReference>()) {
+                    if (reference.Id?.Value is long id) RecordStoryReference(referencedEndnoteIds, id, candidate.Value);
+                }
+            }
 
             if (mainPart.WordprocessingCommentsPart?.Comments != null) {
                 foreach (Comment comment in mainPart.WordprocessingCommentsPart.Comments.Elements<Comment>()) {
-                    if (comment.Id?.Value is string id && referencedCommentIds.Contains(id) && includedRoots.Add(comment)) {
-                        contentRoots.Add(comment);
-                        added = true;
+                    if (comment.Id?.Value is string id && referencedCommentIds.TryGetValue(id, out bool omitted)) {
+                        added |= RecordStoryRoot(rootOmissions, comment, omitted);
                     }
                 }
             }
             if (mainPart.FootnotesPart?.Footnotes != null) {
                 foreach (Footnote note in mainPart.FootnotesPart.Footnotes.Elements<Footnote>()) {
-                    if (note.Id?.Value is long id && referencedFootnoteIds.Contains(id) && includedRoots.Add(note)) {
-                        contentRoots.Add(note);
-                        added = true;
+                    if (note.Id?.Value is long id && referencedFootnoteIds.TryGetValue(id, out bool omitted)) {
+                        added |= RecordStoryRoot(rootOmissions, note, omitted);
                     }
                 }
             }
             if (mainPart.EndnotesPart?.Endnotes != null) {
                 foreach (Endnote note in mainPart.EndnotesPart.Endnotes.Elements<Endnote>()) {
-                    if (note.Id?.Value is long id && referencedEndnoteIds.Contains(id) && includedRoots.Add(note)) {
-                        contentRoots.Add(note);
-                        added = true;
+                    if (note.Id?.Value is long id && referencedEndnoteIds.TryGetValue(id, out bool omitted)) {
+                        added |= RecordStoryRoot(rootOmissions, note, omitted);
                     }
                 }
             }
         } while (added);
 
-        foreach (OpenXmlElement root in contentRoots) yield return root;
+        foreach (KeyValuePair<OpenXmlElement, bool> candidate in rootOmissions) {
+            yield return new WordStoryRootCandidate(candidate.Key, candidate.Value);
+        }
+    }
+
+    private static void RecordStoryReference<TKey>(Dictionary<TKey, bool> references, TKey id, bool omitted)
+        where TKey : notnull {
+        if (!references.TryGetValue(id, out bool existing) || existing && !omitted) references[id] = omitted;
+    }
+
+    private static bool RecordStoryRoot(
+        Dictionary<OpenXmlElement, bool> roots,
+        OpenXmlElement root,
+        bool omitted) {
+        if (!roots.TryGetValue(root, out bool existing)) {
+            roots.Add(root, omitted);
+            return true;
+        }
+        if (existing && !omitted) {
+            roots[root] = false;
+            return true;
+        }
+        return false;
+    }
+
+    private readonly struct WordStoryRootCandidate {
+        internal WordStoryRootCandidate(OpenXmlElement root, bool omittedByConverter) {
+            Root = root;
+            OmittedByConverter = omittedByConverter;
+        }
+
+        internal OpenXmlElement Root { get; }
+
+        internal bool OmittedByConverter { get; }
     }
 
     private static IEnumerable<(Run Run, bool OmittedByConverter)> EnumerateConvertibleWordRuns(

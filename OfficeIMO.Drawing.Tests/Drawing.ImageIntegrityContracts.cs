@@ -308,6 +308,30 @@ public partial class DrawingTests {
         WriteBigEndianInt32(invalidBounds, secondFrameControlOffset + 12, 2);
         WritePngChunkCrc(invalidBounds, secondFrameControlOffset, ReadBigEndianInt32(invalidBounds, secondFrameControlOffset));
         Assert.False(OfficeImageReader.TryValidateContent(invalidBounds, "bounds.png", out _));
+
+        byte[] invalidFirstDisposal = (byte[])apng.Clone();
+        int disposalFrameControlOffset = FindPngChunk(invalidFirstDisposal, "fcTL");
+        invalidFirstDisposal[disposalFrameControlOffset + 8 + 24] = 2;
+        WritePngChunkCrc(
+            invalidFirstDisposal,
+            disposalFrameControlOffset,
+            ReadBigEndianInt32(invalidFirstDisposal, disposalFrameControlOffset));
+        Assert.False(OfficeImageReader.TryValidateContent(invalidFirstDisposal, "first-disposal.png", out _));
+    }
+
+    [Theory]
+    [InlineData(0x20)]
+    [InlineData(0x10)]
+    [InlineData(0x08)]
+    [InlineData(0x04)]
+    public void AnimatedWebpRequiresEveryDeclaredVp8xFeature(int featureFlag) {
+        byte[] animated = Convert.FromBase64String(
+            "UklGRoQAAABXRUJQVlA4WAoAAAACAAAAAQAAAQAAQU5JTQYAAAAAAAAAAABBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAAJWUDhMDwAAAC8BQAAABxD9j/4HIqL/AQBBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAABWUDhMDwAAAC8BQAAABxDR//4HIqL/AQA=");
+        byte[] inconsistent = (byte[])animated.Clone();
+        inconsistent[20] |= (byte)featureFlag;
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(animated, "animated.webp", out _));
+        Assert.False(OfficeImageReader.TryIdentifyByContent(inconsistent, "inconsistent.webp", out _));
     }
 
     [Fact]
