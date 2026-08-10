@@ -480,7 +480,8 @@ public sealed partial class PdfReadPage {
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
             primitiveVisitor: primitiveVisitor,
-            retainPrimitiveData: retainPrimitiveData);
+            retainPrimitiveData: retainPrimitiveData,
+            scaleStrokeWidthWithTransform: requireVectorOnly);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -545,6 +546,10 @@ public sealed partial class PdfReadPage {
 
             try {
                 PdfDictionary formDictionary = formStream.Dictionary;
+                if (requireVectorOnly && HasUnsupportedType3FormGroup(formDictionary)) {
+                    type3GlyphBudget.RecordFailure();
+                    continue;
+                }
                 PdfDictionary? formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
                 string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDictionary);
@@ -584,6 +589,9 @@ public sealed partial class PdfReadPage {
             }
         }
     }
+
+    private static bool HasUnsupportedType3FormGroup(PdfDictionary formDictionary) =>
+        formDictionary.Items.ContainsKey("Group");
 
     private Dictionary<string, PdfPageShadingResource> GetShadingResources(PdfDictionary? resources) {
         var result = new Dictionary<string, PdfPageShadingResource>(StringComparer.Ordinal);

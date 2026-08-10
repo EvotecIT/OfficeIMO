@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfPageXObjectInvocationParser {
-    private const double HairlineStrokeWidth = 0.25D;
+    private const double HairlineStrokeWidth = double.PositiveInfinity;
 
     private static double ResolveStrokeWidth(double value) {
         if (value < 0D) {
@@ -83,6 +83,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Stack<bool> _hiddenContentStack = new Stack<bool>();
         private readonly List<(double X, double Y)> _path = new List<(double X, double Y)>();
         private readonly List<OfficePathCommand> _pathCommands = new List<OfficePathCommand>();
+        private readonly List<PdfPageClipPath> _pendingTextClipPaths = new List<PdfPageClipPath>();
         private readonly GraphicsState _initialState;
         private GraphicsState _state;
         private bool _inText;
@@ -198,6 +199,8 @@ internal static class PdfPageXObjectInvocationParser {
                 _maxNestingDepth,
                 _maxOperands);
 
+            ApplyPendingTextClippingPath();
+
             return _invocations.Count == 0 ? Array.Empty<PdfPageXObjectInvocation>() : _invocations.AsReadOnly();
         }
 
@@ -280,6 +283,30 @@ internal static class PdfPageXObjectInvocationParser {
             bool isType3 = _fonts != null &&
                 _fonts.TryGetValue(_textFont, out font) &&
                 font.Type3 != null;
+            if (!isType3) {
+                double width1000;
+                if (_fontWidthProviders != null &&
+                    _fontWidthProviders.TryGetValue(_textFont, out Func<byte[], double>? provider)) {
+                    width1000 = provider(bytes);
+                } else {
+                    width1000 = string.Equals(font?.FontSubtype, "Type0", StringComparison.Ordinal)
+                        ? (bytes.Length / 2D) * 1000D
+                        : bytes.Length * 500D;
+                }
+
+                bool isComposite = string.Equals(font?.FontSubtype, "Type0", StringComparison.Ordinal);
+                int glyphCount = isComposite ? bytes.Length / 2 : bytes.Length;
+                int spaceCount = 0;
+                if (!isComposite && Math.Abs(_textWordSpacing) > 0D) {
+                    for (int i = 0; i < bytes.Length; i++) {
+                        if (bytes[i] == 32) spaceCount++;
+                    }
+                }
+
+                double spacing = (glyphCount * _textCharSpacing) + (spaceCount * _textWordSpacing);
+                return ((((width1000 / 1000D) * _textSize) + spacing) * _textHScale, 0D);
+            }
+
             double advanceX = 0D;
             double advanceY = 0D;
             for (int i = 0; i < bytes.Length; i++) {
@@ -299,24 +326,13 @@ internal static class PdfPageXObjectInvocationParser {
                 }
 
                 double spacing = _textCharSpacing + (code == 32 ? _textWordSpacing : 0D);
-                if (font?.Type3 is PdfType3FontResource type3) {
-                    (double X, double Y) displacement = type3.GetGlyphDisplacement(code);
-                    advanceX += (displacement.X * _textSize + spacing) * _textHScale;
-                    advanceY += displacement.Y * _textSize;
-                } else {
-                    double glyphWidth = GetGlyphWidth(code);
-                    advanceX += ((glyphWidth / 1000D) * _textSize + spacing) * _textHScale;
-                }
+                PdfType3FontResource type3 = font!.Type3!;
+                (double X, double Y) displacement = type3.GetGlyphDisplacement(code);
+                advanceX += (displacement.X * _textSize + spacing) * _textHScale;
+                advanceY += displacement.Y * _textSize;
             }
 
             return (advanceX, advanceY);
-        }
-
-        private double GetGlyphWidth(byte code) {
-            if (_fontWidthProviders != null && _fontWidthProviders.TryGetValue(_textFont, out Func<byte[], double>? provider)) {
-                return provider(new[] { code });
-            }
-            return 500D;
         }
 
         private void ShowTextArray(object arrayObject) {
@@ -377,8 +393,15 @@ internal static class PdfPageXObjectInvocationParser {
             var textClipBuilder = new PdfPageClipPathBuilder(_pageHeight);
             textClipBuilder.AddRectanglePath(textToPage, left, _textRise - descent, width, height);
             if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
+                _pendingTextClipPaths.Add(textClipPath);
+            }
+        }
+
+        private void ApplyPendingTextClippingPath() {
+            if (PdfPageClipPath.TryCombineTextClippingPaths(_pendingTextClipPaths, out PdfPageClipPath textClipPath)) {
                 _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, textClipPath));
             }
+            _pendingTextClipPaths.Clear();
         }
 
         private void ApplyOperator(string op, double paintOrder, bool hasInvalidOperands) {
@@ -513,6 +536,13 @@ internal static class PdfPageXObjectInvocationParser {
                 case "B*":
                 case "b":
                 case "b*":
+                    if (!HasHiddenContent() &&
+                        OperatorStrokesPath(op) &&
+                        _state.StrokeWidth > 0D &&
+                        !double.IsPositiveInfinity(_state.StrokeWidth) &&
+                        !IsConformalStrokeTransform(_state.Transform)) {
+                        _unsupportedGraphicsEffectVisitor?.Invoke();
+                    }
                     ClearPath();
                     break;
                 case "gs":
@@ -604,11 +634,13 @@ internal static class PdfPageXObjectInvocationParser {
 
                     break;
                 case "BT":
+                    ApplyPendingTextClippingPath();
                     _inText = true;
                     _textMatrix = Matrix2D.Identity;
                     _lineMatrix = Matrix2D.Identity;
                     break;
                 case "ET":
+                    ApplyPendingTextClippingPath();
                     _inText = false;
                     break;
                 case "Tf":
@@ -1083,6 +1115,22 @@ internal static class PdfPageXObjectInvocationParser {
 
         private static bool AddsTextToClippingPath(int renderingMode) =>
             renderingMode >= 4 && renderingMode <= 7;
+
+        private static bool OperatorStrokesPath(string op) =>
+            op == "S" || op == "s" || op == "B" || op == "B*" || op == "b" || op == "b*";
+
+        private static bool IsConformalStrokeTransform(Matrix2D transform) {
+            double firstLengthSquared = (transform.A * transform.A) + (transform.B * transform.B);
+            double secondLengthSquared = (transform.C * transform.C) + (transform.D * transform.D);
+            if (firstLengthSquared <= 0D || secondLengthSquared <= 0D ||
+                double.IsNaN(firstLengthSquared) || double.IsNaN(secondLengthSquared) ||
+                double.IsInfinity(firstLengthSquared) || double.IsInfinity(secondLengthSquared)) return false;
+
+            double scale = Math.Max(firstLengthSquared, secondLengthSquared);
+            double dot = (transform.A * transform.C) + (transform.B * transform.D);
+            return Math.Abs(firstLengthSquared - secondLengthSquared) <= scale * 0.000000001D &&
+                   Math.Abs(dot) <= Math.Sqrt(firstLengthSquared * secondLengthSquared) * 0.000000001D;
+        }
 
         private static bool NearlyEqual(double left, double right) => Math.Abs(left - right) <= 0.001D;
     }

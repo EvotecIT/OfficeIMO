@@ -242,6 +242,7 @@ internal static class TextContentParser {
         int textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
         PdfPageClipPath? clipPath = initialClipPath;
         var clipPathBuilder = new PdfPageClipPathBuilder(pageHeight);
+        var pendingTextClipPaths = new List<PdfPageClipPath>();
         Matrix2D textMatrix = Matrix2D.Identity;
         Matrix2D lineMatrix = Matrix2D.Identity;
         // Graphics state (CTM) and stack
@@ -260,8 +261,8 @@ internal static class TextContentParser {
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
             string op = operation.Name;
             switch (op) {
-                case "BT": inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
-                case "ET": inText = false; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
+                case "BT": ApplyPendingTextClippingPath(); inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
+                case "ET": ApplyPendingTextClippingPath(); inText = false; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
                 case "Tf": if (args.Count >= 2) { size = ToDouble(args[args.Count - 1]); font = ToName(args[args.Count - 2]); args.Clear(); } break;
                 case "Tm": if (args.Count >= 6) { SetTextMatrix(args); args.Clear(); } break;
                 case "Td": if (args.Count >= 2) { MoveTextLine(ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1])); args.Clear(); } break;
@@ -529,6 +530,7 @@ internal static class TextContentParser {
                 default: args.Clear(); break;
             }
         }, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands);
+        ApplyPendingTextClippingPath();
         return spans;
 
         // Helpers
@@ -724,8 +726,15 @@ internal static class TextContentParser {
             var textClipBuilder = new PdfPageClipPathBuilder(pageHeight);
             textClipBuilder.AddRectanglePath(textToPage, left, textRise - descent, width, height);
             if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
+                pendingTextClipPaths.Add(textClipPath);
+            }
+        }
+
+        void ApplyPendingTextClippingPath() {
+            if (PdfPageClipPath.TryCombineTextClippingPaths(pendingTextClipPaths, out PdfPageClipPath textClipPath)) {
                 clipPath = PdfPageClipPath.ResolveActiveClip(clipPath, textClipPath);
             }
+            pendingTextClipPaths.Clear();
         }
 
         MarkedContentState? GetActiveActualTextState() {

@@ -48,37 +48,41 @@ public sealed partial class PdfReadPage {
 
                 Matrix2D glyphTransform = Matrix2D.Multiply(glyph.Transform, type3.FontMatrix);
                 var localRenderedType3PaintOrders = new HashSet<double>();
-                CollectVisualPrimitivesAndForms(
-                    glyphContent,
-                    type3.Resources,
-                    glyphTransform,
-                    pageWidth,
-                    pageHeight,
-                    localPrimitives.Add,
-                    activeForms,
-                    activeType3Glyphs,
-                    localRenderedType3PaintOrders,
-                    type3GlyphBudget,
-                    0D,
-                    1D,
-                    initialClipPath: glyph.ClipPath,
-                    initialFillColor: glyph.FillColor,
-                    initialFillColorSpace: glyph.FillColorSpace,
-                    initialFillOpacity: glyph.FillOpacity,
-                    initialStrokeColor: glyph.StrokeColor,
-                    initialStrokeColorSpace: glyph.StrokeColorSpace,
-                    initialStrokeOpacity: glyph.StrokeOpacity,
-                    initialStrokeWidth: glyph.StrokeWidth,
-                    initialStrokeDashStyle: glyph.StrokeDashStyle,
-                    initialStrokeLineCap: glyph.StrokeLineCap,
-                    initialStrokeLineJoin: glyph.StrokeLineJoin,
-                    contentNestingDepth: contentNestingDepth + 1,
-                    includeTilingPatterns: includeTilingPatterns,
-                    retainPrimitiveData: retainPrimitiveData,
-                    requireVectorOnly: true,
-                    tilingPatternResourceCache: tilingPatternResourceCache,
-                    textOutputBudget: textOutputBudget,
-                    pageContentBudget: pageContentBudget);
+                try {
+                    CollectVisualPrimitivesAndForms(
+                        glyphContent,
+                        type3.Resources,
+                        glyphTransform,
+                        pageWidth,
+                        pageHeight,
+                        localPrimitives.Add,
+                        activeForms,
+                        activeType3Glyphs,
+                        localRenderedType3PaintOrders,
+                        type3GlyphBudget,
+                        0D,
+                        1D,
+                        initialClipPath: glyph.ClipPath,
+                        initialFillColor: glyph.FillColor,
+                        initialFillColorSpace: glyph.FillColorSpace,
+                        initialFillOpacity: glyph.FillOpacity,
+                        initialStrokeColor: glyph.StrokeColor,
+                        initialStrokeColorSpace: glyph.StrokeColorSpace,
+                        initialStrokeOpacity: glyph.StrokeOpacity,
+                        initialStrokeWidth: glyph.StrokeWidth,
+                        initialStrokeDashStyle: glyph.StrokeDashStyle,
+                        initialStrokeLineCap: glyph.StrokeLineCap,
+                        initialStrokeLineJoin: glyph.StrokeLineJoin,
+                        contentNestingDepth: contentNestingDepth + 1,
+                        includeTilingPatterns: includeTilingPatterns,
+                        retainPrimitiveData: retainPrimitiveData,
+                        requireVectorOnly: true,
+                        tilingPatternResourceCache: tilingPatternResourceCache,
+                        textOutputBudget: textOutputBudget,
+                        pageContentBudget: pageContentBudget);
+                } catch (Exception exception) when (IsRecoverableType3ProjectionFailure(exception)) {
+                    return false;
+                }
 
                 if (type3GlyphBudget.FailureVersion != failureVersion) return false;
 
@@ -102,6 +106,10 @@ public sealed partial class PdfReadPage {
         for (int i = 0; i < glyphPrimitives.Count; i++) primitiveVisitor(glyphPrimitives[i]);
         return true;
     }
+
+    private static bool IsRecoverableType3ProjectionFailure(Exception exception) =>
+        exception is not PdfReadLimitException &&
+        (exception is IOException || exception is InvalidDataException || exception is NotSupportedException);
 
     private static double NextRepresentablePaintOrder(double value) {
         if (value == 0D) return double.Epsilon;

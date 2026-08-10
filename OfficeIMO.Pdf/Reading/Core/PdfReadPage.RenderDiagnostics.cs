@@ -115,7 +115,14 @@ public sealed partial class PdfReadPage {
                     PdfPageType3GlyphInvocation glyph = invocation.Glyphs[i];
                     if (glyph.Font.Type3 is not PdfType3FontResource type3 ||
                         !type3.TryGetGlyph(glyph.CharacterCode, out PdfStream stream) ||
-                        !CanProjectType3VectorProgram(stream, type3.Resources, pageContentBudget, type3GlyphBudget, activeStreams, 0)) {
+                        !CanProjectType3VectorProgram(
+                            stream,
+                            type3.Resources,
+                            Matrix2D.Multiply(glyph.Transform, type3.FontMatrix),
+                            pageContentBudget,
+                            type3GlyphBudget,
+                            activeStreams,
+                            0)) {
                         failures.Add(glyph.Font.ResourceName);
                         supported = false;
                     }
@@ -136,6 +143,7 @@ public sealed partial class PdfReadPage {
     private bool CanProjectType3VectorProgram(
         PdfStream stream,
         PdfDictionary resources,
+        Matrix2D programTransform,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
         HashSet<PdfStream> activeStreams,
@@ -155,7 +163,7 @@ public sealed partial class PdfReadPage {
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                          content,
-                         Matrix2D.Identity,
+                         programTransform,
                          GetPageSize().Height,
                          GetGraphicsStateResources(resources),
                          GetColorSpaceResources(resources),
@@ -170,7 +178,14 @@ public sealed partial class PdfReadPage {
                                  PdfPageType3GlyphInvocation glyph = nested.Glyphs[index];
                                  if (glyph.Font.Type3 is not PdfType3FontResource nestedType3 ||
                                      !nestedType3.TryGetGlyph(glyph.CharacterCode, out PdfStream nestedStream) ||
-                                     !CanProjectType3VectorProgram(nestedStream, nestedType3.Resources, pageContentBudget, type3GlyphBudget, activeStreams, depth + 1)) {
+                                     !CanProjectType3VectorProgram(
+                                         nestedStream,
+                                         nestedType3.Resources,
+                                         Matrix2D.Multiply(glyph.Transform, nestedType3.FontMatrix),
+                                         pageContentBudget,
+                                         type3GlyphBudget,
+                                         activeStreams,
+                                         depth + 1)) {
                                      supported = false;
                                  }
                              }
@@ -186,10 +201,23 @@ public sealed partial class PdfReadPage {
                     supported = false;
                     continue;
                 }
+                if (HasUnsupportedType3FormGroup(form.Dictionary)) {
+                    supported = false;
+                    continue;
+                }
                 PdfDictionary formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? value) ? value : null) ?? resources;
-                if (!CanProjectType3VectorProgram(form, formResources, pageContentBudget, type3GlyphBudget, activeStreams, depth + 1)) supported = false;
+                if (!CanProjectType3VectorProgram(
+                        form,
+                        formResources,
+                        ApplyFormMatrix(invocation.Transform, form.Dictionary),
+                        pageContentBudget,
+                        type3GlyphBudget,
+                        activeStreams,
+                        depth + 1)) supported = false;
             }
             return supported;
+        } catch (Exception exception) when (IsRecoverableType3ProjectionFailure(exception)) {
+            return false;
         } finally {
             activeStreams.Remove(stream);
         }
