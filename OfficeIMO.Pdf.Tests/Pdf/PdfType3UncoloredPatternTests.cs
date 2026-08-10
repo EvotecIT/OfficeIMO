@@ -137,12 +137,147 @@ public class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void RenderPage_IgnoresMissingOuterStrokePatternForFillOnlyGlyph() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern CS /Missing SCN 1 0 0 rg BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(22, 96));
+    }
+
+    [Fact]
+    public void RenderPage_IgnoresMissingOuterFillPatternForStrokeOnlyGlyph() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /Missing scn 0 0 1 RG BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 60 w 30 30 440 640 re S");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        OfficeColor painted = raster.GetPixel(21, 96);
+        Assert.Equal((byte)0, painted.R);
+        Assert.Equal((byte)0, painted.G);
+        Assert.Equal((byte)255, painted.B);
+        Assert.True(painted.A > 0);
+    }
+
+    [Fact]
+    public void RenderPage_AppliesGlyphPrimitiveOpacityToOuterPatternPaint() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Half gs 0 0 500 700 re f",
+            glyphResources: "<< /ExtGState << /Half 8 0 R >> >>",
+            extraObjects: new[] { "8 0 obj\n<< /Type /ExtGState /ca 0.5 >>\nendobj" });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+        OfficeColor painted = raster.GetPixel(22, 96);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Equal((byte)255, painted.R);
+        Assert.Equal((byte)0, painted.G);
+        Assert.Equal((byte)0, painted.B);
+        Assert.InRange(painted.A, (byte)120, (byte)136);
+    }
+
+    [Fact]
+    public void RenderPage_PreservesOuterPatternPhaseAcrossNonIdentityForm() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn /Fm1 Do",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            invokeThroughForm: true,
+            formDictionaryEntries: "/Matrix [1 0 0 1 3 0]");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(24, 96));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(27, 96));
+    }
+
+    [Fact]
+    public void RenderPage_PreservesOuterPatternPhaseAcrossNestedType3Glyph() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 BT /FNested 500 Tf (B) Tj ET",
+            glyphResources: "<< /Font << /FNested 9 0 R >> >>",
+            extraObjects: new[] {
+                "9 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 2 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 10 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << >> >>\nendobj",
+                StreamObject(10, "<<", "500 0 d0 0 0 500 700 re f")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(22, 96));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(27, 96));
+    }
+
+    [Fact]
+    public void RenderPage_DoesNotDoubleChargeOuterPatternDuringDiagnostics() {
+        const string pageContent = "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET";
+        const string glyphContent = "500 0 d0 0 0 500 700 re f";
+        const string patternContent = "1 0 0 rg 0 0 5 5 re f";
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: pageContent,
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: patternContent,
+            glyphContent: glyphContent);
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits {
+                MaxPageContentBytes = pageContent.Length + glyphContent.Length + patternContent.Length
+            }
+        };
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf, readOptions: readOptions));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForMissingOuterPatternOnUncoloredType3Glyph() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /Missing scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
             pageColorSpaceResources: string.Empty,
             patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
             patternContent: "1 0 0 rg 0 0 5 5 re f");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Empty(drawing.Shapes);
+    }
+
+    [Fact]
+    public void RenderPage_ReportsMissingOuterPatternCarriedIntoForm() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /Missing scn /Fm1 Do",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            invokeThroughForm: true);
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
@@ -233,6 +368,7 @@ public class PdfType3UncoloredPatternTests {
         string glyphResources = "<< >>",
         string? formContent = null,
         string formResourceEntries = "/Font << /FType3 5 0 R >>",
+        string formDictionaryEntries = "",
         string catalogEntries = "",
         string pageResourceEntries = "",
         IReadOnlyList<string>? extraObjects = null) {
@@ -251,7 +387,7 @@ public class PdfType3UncoloredPatternTests {
         if (invokeThroughForm) {
             objects.Add(StreamObject(
                 8,
-                "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Resources << " + formResourceEntries + " >>",
+                "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Resources << " + formResourceEntries + " >> " + formDictionaryEntries,
                 formContent ?? "BT /FType3 18 Tf 20 100 Td (A) Tj ET"));
         }
         if (extraObjects != null) objects.AddRange(extraObjects);

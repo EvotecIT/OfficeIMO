@@ -169,22 +169,18 @@ public sealed partial class PdfReadPage {
                     contentOrderPrefix: glyphOrderPrefix,
                     skipTransparencyGroupForms: true);
                 if (type3.IsUncolored) {
-                    if (!TryCreateInheritedTilingPatternPaint(
-                            glyph.FillPattern,
-                            glyph.PaintTransform,
-                            pageHeight,
-                            glyph.FillOpacity,
-                            out PdfPageTilingPatternPaint? fillPatternPaint) ||
-                        !TryCreateInheritedTilingPatternPaint(
-                            glyph.StrokePattern,
-                            glyph.PaintTransform,
-                            pageHeight,
-                            glyph.StrokeOpacity,
-                            out PdfPageTilingPatternPaint? strokePatternPaint)) {
+                    bool paintsFill = localPrimitives.Any(item => item.Primitive.HasFillPaint) ||
+                        localImages.Count > 0 || localImagePlacements.Count > 0;
+                    bool paintsStroke = localPrimitives.Any(item => item.Primitive.HasStrokePaint);
+                    if ((paintsFill && !IsUsableInheritedTilingPattern(glyph.FillPattern)) ||
+                        (paintsStroke && !IsUsableInheritedTilingPattern(glyph.StrokePattern)) ||
+                        (localGroups.Count > 0 &&
+                         (!IsUsableInheritedTilingPattern(glyph.FillPattern) ||
+                          !IsUsableInheritedTilingPattern(glyph.StrokePattern)))) {
                         return false;
                     }
-                    if ((fillPatternPaint != null && (localImages.Count > 0 || localImagePlacements.Count > 0)) ||
-                        ((fillPatternPaint != null || strokePatternPaint != null) && localGroups.Count > 0)) {
+                    if ((glyph.FillPattern.HasValue && (localImages.Count > 0 || localImagePlacements.Count > 0)) ||
+                        ((glyph.FillPattern.HasValue || glyph.StrokePattern.HasValue) && localGroups.Count > 0)) {
                         return false;
                     }
                     for (int imageIndex = 0; imageIndex < localImages.Count; imageIndex++) {
@@ -194,6 +190,18 @@ public sealed partial class PdfReadPage {
                     }
                     for (int primitiveIndex = 0; primitiveIndex < localPrimitives.Count; primitiveIndex++) {
                         (PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect) item = localPrimitives[primitiveIndex];
+                        if (!TryCreateInheritedTilingPatternPaint(
+                                item.Primitive.HasFillPaint ? glyph.FillPattern : null,
+                                pageHeight,
+                                item.Primitive.FillOpacity,
+                                out PdfPageTilingPatternPaint? fillPatternPaint) ||
+                            !TryCreateInheritedTilingPatternPaint(
+                                item.Primitive.HasStrokePaint ? glyph.StrokePattern : null,
+                                pageHeight,
+                                item.Primitive.StrokeOpacity,
+                                out PdfPageTilingPatternPaint? strokePatternPaint)) {
+                            return false;
+                        }
                         localPrimitives[primitiveIndex] = (
                             item.Primitive.WithPaints(glyph.FillColor, fillPatternPaint, glyph.StrokeColor, strokePatternPaint),
                             item.Effect);
@@ -267,7 +275,6 @@ public sealed partial class PdfReadPage {
 
     private static bool TryCreateInheritedTilingPatternPaint(
         PdfPagePatternSelection? selection,
-        Matrix2D paintTransform,
         double pageHeight,
         double? opacity,
         out PdfPageTilingPatternPaint? paint) {
@@ -282,13 +289,19 @@ public sealed partial class PdfReadPage {
         var localToPattern = new Matrix2D(1D, 0D, 0D, -1D, resource.BoundingBoxX, resource.BoundingBoxTop);
         Matrix2D combined = Matrix2D.Multiply(
             new Matrix2D(1D, 0D, 0D, -1D, 0D, pageHeight),
-            Matrix2D.Multiply(paintTransform, Matrix2D.Multiply(resource.Matrix, localToPattern)));
+            Matrix2D.Multiply(selection.Value.PaintTransform, Matrix2D.Multiply(resource.Matrix, localToPattern)));
         paint = new PdfPageTilingPatternPaint(
             resource,
             new OfficeTransform(combined.A, combined.B, combined.C, combined.D, combined.E, combined.F),
             resource.Uncolored ? selection.Value.Tint : null,
             opacity ?? 1D);
         return true;
+    }
+
+    private static bool IsUsableInheritedTilingPattern(PdfPagePatternSelection? selection) {
+        if (!selection.HasValue) return true;
+        PdfPageTilingPatternResource? resource = selection.Value.TilingPattern;
+        return resource != null && (!resource.Uncolored || selection.Value.Tint.HasValue);
     }
 
     private static bool IsRecoverableType3ProjectionFailure(Exception exception) =>

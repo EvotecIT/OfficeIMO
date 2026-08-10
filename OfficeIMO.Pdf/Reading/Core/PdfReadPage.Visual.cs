@@ -615,6 +615,10 @@ public sealed partial class PdfReadPage {
                       patternInvocationVisitor: requireSupportedType3Content || unrenderedPatternVisitor != null
                           ? name => {
                               unrenderedPatternVisitor?.Invoke(name);
+                              if ((initialFillPattern.HasValue && string.Equals(initialFillPattern.Value.Name, name, StringComparison.Ordinal)) ||
+                                  (initialStrokePattern.HasValue && string.Equals(initialStrokePattern.Value.Name, name, StringComparison.Ordinal))) {
+                                  return;
+                              }
                               if (!allowSupportedType3Patterns ||
                                   !(shadingPatternResources.ContainsKey(name) || tilingPatternResources?.ContainsKey(name) == true)) {
                                   if (requireSupportedType3Content) type3GlyphBudget.RecordFailure();

@@ -355,7 +355,6 @@ internal static class PdfPageXObjectInvocationParser {
                             new Matrix2D(_textSize * _textHScale, 0D, 0D, _textSize, 0D, _textRise)));
                     glyphs.Add(new PdfPageType3GlyphInvocation(
                         font!, code, textState, _state.ClipPath,
-                        _state.Transform,
                         _state.FillColor, _state.FillColorSpace, _patternState.Fill, _patternState.FillBaseColorSpace, _state.FillOpacity,
                         _state.StrokeColor, _state.StrokeColorSpace, _patternState.Stroke, _patternState.StrokeBaseColorSpace, _state.StrokeOpacity,
                         _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin));
@@ -636,7 +635,8 @@ internal static class PdfPageXObjectInvocationParser {
                                     fillPatternName,
                                     tint,
                                     _patternState.FillBaseColorSpace,
-                                    ResolveTilingPattern(fillPatternName)),
+                                    ResolveTilingPattern(fillPatternName),
+                                    _state.Transform),
                                 _patternState.FillBaseColorSpace);
                         } else if (!HasHiddenContent()) {
                             _unsupportedColorVisitor?.Invoke();
@@ -668,7 +668,8 @@ internal static class PdfPageXObjectInvocationParser {
                                     strokePatternName,
                                     tint,
                                     _patternState.StrokeBaseColorSpace,
-                                    ResolveTilingPattern(strokePatternName)),
+                                    ResolveTilingPattern(strokePatternName),
+                                    _state.Transform),
                                 _patternState.StrokeBaseColorSpace);
                         } else if (!HasHiddenContent()) {
                             _unsupportedColorVisitor?.Invoke();
