@@ -63,7 +63,15 @@ public sealed partial class PdfReadPage {
         Type3GlyphBudget type3GlyphBudget) {
         var elements = new List<PdfPageDrawingElement>();
         var renderedType3PaintOrders = new HashSet<double>();
-        IReadOnlyList<PdfPageVisualPrimitive> primitives = GetVisualPrimitives(pageWidth, pageHeight, pageTransform, textOutputBudget, pageContentBudget, renderedType3PaintOrders, type3GlyphBudget);
+        IReadOnlyList<PdfPageVisualPrimitive> primitives = GetVisualPrimitives(
+            pageWidth,
+            pageHeight,
+            pageTransform,
+            textOutputBudget,
+            pageContentBudget,
+            renderedType3PaintOrders,
+            type3GlyphBudget,
+            (placement, image) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count)));
         for (int i = 0; i < primitives.Count; i++) {
             elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
         }
@@ -347,7 +355,8 @@ public sealed partial class PdfReadPage {
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
         HashSet<double>? renderedType3PaintOrders = null,
-        Type3GlyphBudget? type3GlyphBudget = null) {
+        Type3GlyphBudget? type3GlyphBudget = null,
+        Action<PdfImagePlacement, PdfExtractedImage>? type3ImageVisitor = null) {
         textOutputBudget ??= CreateTextOutputBudget();
         pageContentBudget ??= new PageContentBudget(this);
         var primitives = new List<PdfPageVisualPrimitive>();
@@ -371,6 +380,7 @@ public sealed partial class PdfReadPage {
                 activeType3Glyphs: activeType3Glyphs,
                 renderedType3PaintOrders: renderedType3PaintOrders,
                 type3GlyphBudget: type3GlyphBudget,
+                type3ImageVisitor: type3ImageVisitor,
                 tilingPatternResourceCache: tilingPatternResourceCache,
                 textOutputBudget: textOutputBudget,
                 pageContentBudget: pageContentBudget);
@@ -407,7 +417,8 @@ public sealed partial class PdfReadPage {
         int contentNestingDepth = 0,
         bool includeTilingPatterns = true,
         bool retainPrimitiveData = true,
-        bool requireVectorOnly = false,
+        bool requireSupportedType3Content = false,
+        Action<PdfImagePlacement, PdfExtractedImage>? type3ImageVisitor = null,
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null) {
@@ -481,7 +492,7 @@ public sealed partial class PdfReadPage {
             maxOperands: _limits.MaxContentOperands,
             primitiveVisitor: primitiveVisitor,
             retainPrimitiveData: retainPrimitiveData,
-            scaleStrokeWidthWithTransform: requireVectorOnly);
+            scaleStrokeWidthWithTransform: requireSupportedType3Content);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -524,29 +535,32 @@ public sealed partial class PdfReadPage {
                               tilingPatternResourceCache,
                               textOutputBudget,
                               pageContentBudget,
-                              contentNestingDepth);
+                              contentNestingDepth,
+                              type3ImageVisitor);
                           if (!rendered) type3GlyphBudget.RecordFailure();
                           return rendered;
                       },
                       renderedType3PaintOrders: renderedType3PaintOrders,
                       type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
-                      unsupportedTextVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null,
-                      unsupportedGraphicsEffectVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null,
-                      unsupportedPatternVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null,
-                      unsupportedColorVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null)) {
+                      unsupportedTextVisitor: requireSupportedType3Content ? type3GlyphBudget.RecordFailure : null,
+                      unsupportedGraphicsEffectVisitor: requireSupportedType3Content ? type3GlyphBudget.RecordFailure : null,
+                      unsupportedPatternVisitor: requireSupportedType3Content ? type3GlyphBudget.RecordFailure : null,
+                      unsupportedColorVisitor: requireSupportedType3Content ? type3GlyphBudget.RecordFailure : null)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
-                if (requireVectorOnly) type3GlyphBudget.RecordFailure();
+                if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {
+                    type3GlyphBudget.RecordFailure();
+                }
                 continue;
             }
 
             if (!activeForms.Add(formStream)) {
-                if (requireVectorOnly) type3GlyphBudget.RecordFailure();
+                if (requireSupportedType3Content) type3GlyphBudget.RecordFailure();
                 continue;
             }
 
             try {
                 PdfDictionary formDictionary = formStream.Dictionary;
-                if (requireVectorOnly && HasUnsupportedType3FormGroup(formDictionary)) {
+                if (requireSupportedType3Content && HasUnsupportedType3FormGroup(formDictionary)) {
                     type3GlyphBudget.RecordFailure();
                     continue;
                 }
@@ -580,7 +594,8 @@ public sealed partial class PdfReadPage {
                     contentNestingDepth: contentNestingDepth + 1,
                     includeTilingPatterns: includeTilingPatterns,
                     retainPrimitiveData: retainPrimitiveData,
-                    requireVectorOnly: requireVectorOnly,
+                    requireSupportedType3Content: requireSupportedType3Content,
+                    type3ImageVisitor: type3ImageVisitor,
                     tilingPatternResourceCache: tilingPatternResourceCache,
                     textOutputBudget: textOutputBudget,
                     pageContentBudget: pageContentBudget);
@@ -1109,6 +1124,7 @@ public sealed partial class PdfReadPage {
                 activeForms,
                 renderedType3PaintOrders: renderedType3PaintOrders,
                 type3GlyphBudget: type3GlyphBudget,
+                type3ImageVisitor: (placement, image) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count)),
                 textOutputBudget: textOutputBudget,
                 pageContentBudget: pageContentBudget);
             for (int primitiveIndex = 0; primitiveIndex < primitives.Count; primitiveIndex++) {

@@ -103,6 +103,35 @@ public sealed class PdfImagePlacement {
 
     internal double PaintOrder { get; }
 
+    internal PdfImagePlacement WithPaintOrder(double paintOrder) =>
+        Copy(ImageMaskColor, paintOrder);
+
+    internal PdfImagePlacement WithImageMaskColor(OfficeColor imageMaskColor) =>
+        Copy(imageMaskColor, PaintOrder);
+
+    private PdfImagePlacement Copy(OfficeColor imageMaskColor, double paintOrder) =>
+        new PdfImagePlacement(
+            PageNumber,
+            ResourceName,
+            ObjectNumber,
+            DirectStreamIdentity,
+            A,
+            B,
+            C,
+            D,
+            E,
+            F,
+            X,
+            Y,
+            Width,
+            Height,
+            ClipPath,
+            imageMaskColor,
+            ImageOpacity,
+            InlineImageStream,
+            InlineImageResources,
+            paintOrder);
+
     /// <summary>True when the placement matrix is axis-aligned within a small tolerance.</summary>
     public bool IsAxisAligned => Math.Abs(B) <= 0.001D && Math.Abs(C) <= 0.001D;
 }

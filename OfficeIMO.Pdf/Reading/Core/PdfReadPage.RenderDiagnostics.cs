@@ -64,7 +64,7 @@ public sealed partial class PdfReadPage {
         maxOperands: _limits.MaxContentOperands);
 
         if (resources == null) return;
-        HashSet<string> failedType3Fonts = CollectType3FontFailures(content, resources, pageContentBudget, type3GlyphBudget, invokedFonts, invokedPatterns, invokedSoftMasks);
+        HashSet<string> failedType3Fonts = CollectType3FontFailures(content, resources, pageContentBudget, type3GlyphBudget, invokedFonts, invokedPatterns, invokedSoftMasks, diagnostics, seen);
         CollectFontCapabilityDiagnostics(resources, invokedFonts, failedType3Fonts, diagnostics, seen);
         CollectShadingCapabilityDiagnostics(resources, invokedShadings, invokedPatterns, diagnostics, seen);
         CollectPatternCapabilityDiagnostics(resources, diagnostics, seen);
@@ -93,7 +93,9 @@ public sealed partial class PdfReadPage {
         Type3GlyphBudget type3GlyphBudget,
         HashSet<string> invokedFonts,
         HashSet<string> invokedPatterns,
-        HashSet<PdfStream> invokedSoftMasks) {
+        HashSet<PdfStream> invokedSoftMasks,
+        List<PdfRenderCapabilityDiagnostic> diagnostics,
+        HashSet<string> seen) {
         var failures = new HashSet<string>(StringComparer.Ordinal);
         var activeStreams = new HashSet<PdfStream>();
         Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
@@ -115,13 +117,16 @@ public sealed partial class PdfReadPage {
                     PdfPageType3GlyphInvocation glyph = invocation.Glyphs[i];
                     if (glyph.Font.Type3 is not PdfType3FontResource type3 ||
                         !type3.TryGetGlyph(glyph.CharacterCode, out PdfStream stream) ||
-                        !CanProjectType3VectorProgram(
+                        !CanProjectType3GlyphProgram(
                             stream,
                             type3.Resources,
                             Matrix2D.Multiply(glyph.Transform, type3.FontMatrix),
+                            type3.IsUncolored,
                             pageContentBudget,
                             type3GlyphBudget,
                             activeStreams,
+                            diagnostics,
+                            seen,
                             0)) {
                         failures.Add(glyph.Font.ResourceName);
                         supported = false;
@@ -140,13 +145,16 @@ public sealed partial class PdfReadPage {
         return failures;
     }
 
-    private bool CanProjectType3VectorProgram(
+    private bool CanProjectType3GlyphProgram(
         PdfStream stream,
         PdfDictionary resources,
         Matrix2D programTransform,
+        bool requireImageMask,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
         HashSet<PdfStream> activeStreams,
+        List<PdfRenderCapabilityDiagnostic> diagnostics,
+        HashSet<string> seen,
         int depth) {
         EnsureContentNestingBudget(depth);
         if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).Count != 0 ||
@@ -174,17 +182,21 @@ public sealed partial class PdfReadPage {
                          fonts: fonts,
                          fontWidthProviders: ResourceResolver.GetFontWidthProvidersForResources(resources, _objects),
                          type3TextVisitor: nested => {
+                             if (requireImageMask) supported = false;
                              for (int index = 0; index < nested.Glyphs.Count; index++) {
                                  PdfPageType3GlyphInvocation glyph = nested.Glyphs[index];
                                  if (glyph.Font.Type3 is not PdfType3FontResource nestedType3 ||
                                      !nestedType3.TryGetGlyph(glyph.CharacterCode, out PdfStream nestedStream) ||
-                                     !CanProjectType3VectorProgram(
+                                     !CanProjectType3GlyphProgram(
                                          nestedStream,
                                          nestedType3.Resources,
                                          Matrix2D.Multiply(glyph.Transform, nestedType3.FontMatrix),
+                                         requireImageMask || nestedType3.IsUncolored,
                                          pageContentBudget,
                                          type3GlyphBudget,
                                          activeStreams,
+                                         diagnostics,
+                                         seen,
                                          depth + 1)) {
                                      supported = false;
                                  }
@@ -196,8 +208,11 @@ public sealed partial class PdfReadPage {
                          unsupportedGraphicsEffectVisitor: () => supported = false,
                          unsupportedPatternVisitor: () => supported = false,
                          unsupportedColorVisitor: () => supported = false)) {
-                if (invocation.InlineImage != null ||
-                    !TryGetFormStream(resources, invocation.Name, out PdfStream form)) {
+                if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
+                    if (!CanProjectType3ImageInvocation(invocation, resources, requireImageMask, diagnostics, seen)) supported = false;
+                    continue;
+                }
+                if (!TryGetFormStream(resources, invocation.Name, out PdfStream form)) {
                     supported = false;
                     continue;
                 }
@@ -206,13 +221,16 @@ public sealed partial class PdfReadPage {
                     continue;
                 }
                 PdfDictionary formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? value) ? value : null) ?? resources;
-                if (!CanProjectType3VectorProgram(
+                if (!CanProjectType3GlyphProgram(
                         form,
                         formResources,
                         ApplyFormMatrix(invocation.Transform, form.Dictionary),
+                        requireImageMask,
                         pageContentBudget,
                         type3GlyphBudget,
                         activeStreams,
+                        diagnostics,
+                        seen,
                         depth + 1)) supported = false;
             }
             return supported;
@@ -221,6 +239,64 @@ public sealed partial class PdfReadPage {
         } finally {
             activeStreams.Remove(stream);
         }
+    }
+
+    private bool CanProjectType3ImageInvocation(
+        PdfPageXObjectInvocation invocation,
+        PdfDictionary resources,
+        bool requireImageMask,
+        List<PdfRenderCapabilityDiagnostic> diagnostics,
+        HashSet<string> seen) {
+        PdfImagePlacement placement;
+        PdfDictionary imageDictionary;
+        if (invocation.InlineImage != null) {
+            imageDictionary = invocation.InlineImage.Stream.Dictionary;
+            placement = BuildImagePlacement(
+                0,
+                invocation.InlineImage.ResourceName,
+                0,
+                invocation.InlineImage.DirectStreamIdentity,
+                invocation.Transform,
+                invocation.ClipPath,
+                invocation.FillColor,
+                invocation.FillOpacity,
+                invocation.InlineImage.Stream,
+                resources,
+                invocation.PaintOrder);
+        } else {
+            if (!TryGetImageXObject(resources, invocation.Name, out int objectNumber, out int directStreamIdentity)) return false;
+            PdfDictionary? xObjects = ResolveDictionary(resources.Items.TryGetValue("XObject", out PdfObject? xObjectValue) ? xObjectValue : null);
+            if (xObjects?.Items.TryGetValue(invocation.Name, out PdfObject? imageValue) != true ||
+                ResolveObject(imageValue) is not PdfStream imageStream) return false;
+            imageDictionary = imageStream.Dictionary;
+            placement = BuildImagePlacement(
+                0,
+                invocation.Name,
+                objectNumber,
+                directStreamIdentity,
+                invocation.Transform,
+                invocation.ClipPath,
+                invocation.FillColor,
+                invocation.FillOpacity,
+                paintOrder: invocation.PaintOrder);
+        }
+
+        IReadOnlyList<PdfExtractedImage> images;
+        try {
+            images = GetImagesForResources(resources, 0, new[] { placement }, colorizeImageMasks: true);
+        } catch (IOException exception) when (exception is not PdfReadLimitException) {
+            return false;
+        } catch (NotSupportedException) {
+            return false;
+        }
+        PdfExtractedImage? image = FindImage(images, placement);
+        bool requiresOptionalCodec = RequiresOptionalImageCodec(imageDictionary.Items.TryGetValue("Filter", out PdfObject? filterObject) ? filterObject : null);
+        if (requiresOptionalCodec) {
+            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.OptionalImageCodecId, invocation.Name);
+        }
+        if (image == null || !image.IsImageFile || (requireImageMask && !image.IsImageMask)) return false;
+        CollectImageColorSpaceCapabilityDiagnostic(imageDictionary, resources, diagnostics, seen, invocation.Name);
+        return true;
     }
 
     private void CollectFontCapabilityDiagnostics(PdfDictionary resources, HashSet<string> invokedFonts, HashSet<string> failedType3Fonts, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {
