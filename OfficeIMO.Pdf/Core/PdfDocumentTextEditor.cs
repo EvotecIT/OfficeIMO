@@ -10,7 +10,7 @@ public sealed class PdfDocumentTextEditor {
     public PdfRegionText Inspect(PdfPageRegion region, PdfReadOptions? readOptions = null) =>
         PdfTextEditor.Inspect(_document.GetBytesForOperation(), region, readOptions ?? _document.ReadOptions);
 
-    /// <summary>Finds text occurrences across decoded visual lines.</summary>
+    /// <summary>Finds visible, unclipped text occurrences across decoded visual runs.</summary>
     public IReadOnlyList<PdfTextMatch> Find(string text, PdfTextSearchOptions? options = null, PdfReadOptions? readOptions = null) =>
         PdfTextEditor.Find(_document.GetBytesForOperation(), text, options, readOptions ?? _document.ReadOptions);
 
@@ -26,7 +26,7 @@ public sealed class PdfDocumentTextEditor {
     public PdfTextEditResult Move(PdfPageRegion region, double deltaX, double deltaY, PdfTextEditOptions? options = null, PdfReadOptions? readOptions = null) =>
         Apply(input => PdfTextEditor.Move(input, region, deltaX, deltaY, options, readOptions ?? _document.ReadOptions));
 
-    /// <summary>Replaces every located occurrence while preserving the remainder of each decoded source span.</summary>
+    /// <summary>Replaces every located occurrence while preserving exact unmatched source-span text and independent visual runs.</summary>
     public PdfTextEditResult ReplaceAll(string text, string replacement, PdfTextSearchOptions? searchOptions = null, PdfTextEditOptions? editOptions = null, PdfReadOptions? readOptions = null) =>
         Apply(input => PdfTextEditor.ReplaceAll(input, text, replacement, searchOptions, editOptions, readOptions ?? _document.ReadOptions));
 

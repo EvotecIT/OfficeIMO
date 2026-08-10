@@ -606,8 +606,11 @@ edited.Document.Text.Add(
     .Save("contract-edited.pdf");
 ```
 
-`Text.Find(...)` supports case and whole-word filters, while
-`Text.ReplaceAll(...)` preserves unmatched text in each decoded visual line.
+`Text.Find(...)` supports case and whole-word filters over visible, unclipped
+text, while `Text.ReplaceAll(...)` preserves unmatched source-span text and
+keeps wide same-baseline runs such as columns independent. Edits fail closed
+when an atomic PDF text object would require invisible or clipped text to be
+recreated without its original rendering state.
 Replacement uses the closest standard PDF font unless the caller selects one;
 `PdfTextEditResult.Warnings` reports source-font substitutions that can change
 metrics or letterforms.

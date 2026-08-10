@@ -104,6 +104,83 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void ReplaceAllKeepsSameBaselineColumnsSeparateAndUsesMatchedSpanStyle() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (left cat) Tj ET\n" +
+            "BT /F2 20 Tf 350 700 Td (right cat) Tj ET\n");
+
+        IReadOnlyList<PdfTextMatch> matches = PdfDocument.Open(source).Text.Find("cat", new PdfTextSearchOptions { MatchCase = true });
+        PdfTextMatch right = Assert.Single(matches, static match => match.X > 300D);
+        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll("left cat", "left fox", new PdfTextSearchOptions { MatchCase = true });
+        string text = result.Document.Read.Text();
+
+        Assert.Equal(PdfStandardFont.Courier, right.SuggestedFont);
+        Assert.Equal(20D, right.FontSize, 2);
+        Assert.Contains("left fox", text, StringComparison.Ordinal);
+        Assert.Contains("right cat", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReplaceAllPreservesExactUnmatchedWhitespaceAndCarriesInputBudgetAcrossRewrites() {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (cat  cat dog) Tj ET\n");
+        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxInputBytes = source.Length } };
+        string decodedSource = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans()).Text;
+
+        PdfTextEditResult result = PdfDocument.Open(source, readOptions).Text.ReplaceAll(
+            "cat",
+            "longer-fox",
+            new PdfTextSearchOptions { MatchCase = true, WholeWords = true });
+        PdfTextSpan rewritten = Assert.Single(PdfReadDocument.Open(result.Document.ToBytes()).Pages[0].GetTextSpans(), static span => span.Text.Contains("longer-fox", StringComparison.Ordinal));
+
+        Assert.Equal(decodedSource.Replace("cat", "longer-fox", StringComparison.Ordinal), rewritten.Text);
+        Assert.Equal(2, result.AffectedCount);
+    }
+
+    [Fact]
+    public void SearchExcludesInvisibleAndClippedTextAndMutationFailsClosedWhenAtomicRemovalWouldExposeIt() {
+        byte[] invisible = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (visible) Tj 3 Tr ( hidden secret) Tj 0 Tr ET\n");
+        byte[] clipped = BuildRawTextPdf(
+            "q 0 0 10 10 re W n BT /F1 12 Tf 50 700 Td (clipped secret) Tj ET Q\n");
+
+        Assert.Empty(PdfDocument.Open(invisible).Text.Find("secret", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.Empty(PdfDocument.Open(clipped).Text.Find("secret", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch visible = Assert.Single(PdfDocument.Open(invisible).Text.Find("visible", new PdfTextSearchOptions { MatchCase = true }));
+        var visibleRegion = new PdfPageRegion(1, visible.X, visible.Y, visible.Width, visible.Height);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(invisible).Text.Replace(visibleRegion, "updated"));
+    }
+
+    [Fact]
+    public void RotatedMatchUsesMatchedSliceGeometryAndPreservesRotationDuringReplacement() {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 0 1 -1 0 200 300 Tm (rotate cat) Tj ET\n");
+
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("cat", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll("cat", "fox", new PdfTextSearchOptions { MatchCase = true });
+        PdfTextMatch replacement = Assert.Single(result.Document.Text.Find("fox", new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.InRange(match.RotationDegrees, 89.9D, 90.1D);
+        Assert.True(match.Height > match.Width);
+        Assert.InRange(replacement.RotationDegrees, 89.9D, 90.1D);
+    }
+
+    [Fact]
+    public void ReplaceAllMapsCrossSpanPhraseEditsWithoutNormalizingUnmatchedSpanText() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (alpha) Tj 38 0 Td (beta tail) Tj ET\n");
+
+        PdfTextMatch phrase = Assert.Single(PdfDocument.Open(source).Text.Find("alpha beta", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll("alpha beta", "gamma", new PdfTextSearchOptions { MatchCase = true });
+        string text = result.Document.Read.Text();
+
+        Assert.True(phrase.Width > 38D);
+        Assert.Contains("gamma", text, StringComparison.Ordinal);
+        Assert.Contains("tail", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("alpha", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("beta", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SearchOptionsSnapshotPagesAndRejectInvalidSelection() {
         int[] pages = { 1 };
         var options = new PdfTextSearchOptions { PageNumbers = pages };
@@ -142,6 +219,27 @@ public class PdfTextEditorTests {
         double bottom = spans.Min(static span => span.Y - span.FontSize * 0.3D);
         double top = spans.Max(static span => span.Y + span.FontSize * 0.9D);
         return new PdfPageRegion(1, left - 0.5D, bottom, right - left + 1D, top - bottom);
+    }
+
+    private static byte[] BuildRawTextPdf(string content) {
+        byte[] contentBytes = System.Text.Encoding.ASCII.GetBytes(content);
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length + " >>\nstream\n");
+        output.Write(contentBytes, 0, contentBytes.Length);
+        WriteAscii(output, "endstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 7 >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static void WriteAscii(Stream stream, string value) {
+        byte[] bytes = System.Text.Encoding.ASCII.GetBytes(value);
+        stream.Write(bytes, 0, bytes.Length);
     }
 }
 
