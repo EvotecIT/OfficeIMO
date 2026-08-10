@@ -27,6 +27,30 @@ public partial class Html {
     }
 
     [Fact]
+    public void SemanticDocument_DoesNotCreateAHeadingOnlySectionForAnEmptyHeading() {
+        IReadOnlyList<HtmlSemanticSection> sections = HtmlConversionDocument
+            .Parse("<p>Body</p><h1>  </h1>")
+            .SemanticDocument.Sections;
+
+        HtmlSemanticSection section = Assert.Single(sections);
+        Assert.Equal("Imported 1", section.Title);
+        Assert.Single(section.Blocks);
+    }
+
+    [Fact]
+    public void SemanticDocument_EmptyHeadingStillSeparatesFollowingContent() {
+        IReadOnlyList<HtmlSemanticSection> sections = HtmlConversionDocument
+            .Parse("<p>Before</p><h1></h1><p>After</p>")
+            .SemanticDocument.Sections;
+
+        Assert.Equal(2, sections.Count);
+        Assert.Equal("Imported 1", sections[0].Title);
+        Assert.Equal("Imported 2", sections[1].Title);
+        Assert.Single(sections[0].Blocks);
+        Assert.Single(sections[1].Blocks);
+    }
+
+    [Fact]
     public void SemanticDocument_NormalizesFormControlStateUsingHtmlRules() {
         HtmlSemanticBlock form = Assert.Single(HtmlConversionDocument.Parse("""
             <form id="settings" action="/save" method="post" enctype="multipart/form-data" novalidate>
@@ -221,6 +245,15 @@ public partial class Html {
             "<main><select size='2'><option>First</option><option>Second</option></select></main>",
             "<main><select size='2'><option selected>First</option><option>Second</option></select></main>");
         Assert.True(score.Metrics["form-state"] < 1D);
+    }
+
+    [Fact]
+    public void SemanticDocument_ZeroSelectSizeUsesTheParsedZeroDisplaySize() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse(
+            "<select size='0'><option>First</option><option>Second</option></select>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Empty(control.Values);
     }
 
     [Fact]

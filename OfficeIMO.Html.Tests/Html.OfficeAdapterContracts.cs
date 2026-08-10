@@ -55,4 +55,17 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains(second.TextBoxes, textBox =>
             textBox.Text.Contains("Heading-only slide", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void PowerPointHtml_DoesNotRenderAnEmptyHeadingAsAnExtraSection() {
+        HtmlToPowerPointResult result = HtmlConversionDocument
+            .Parse("<p>Only slide</p><h1>  </h1>")
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.Value;
+
+        Assert.Equal(1, result.Slides);
+        PowerPointSlide slide = Assert.Single(presentation.Slides);
+        Assert.DoesNotContain(slide.TextBoxes, textBox =>
+            textBox.Text.Contains("Imported 2", StringComparison.Ordinal));
+    }
 }

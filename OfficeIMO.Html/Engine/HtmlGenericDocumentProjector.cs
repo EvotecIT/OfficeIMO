@@ -86,15 +86,19 @@ internal static class HtmlGenericDocumentProjector {
                     title.Length > 0 ? titleSource : HtmlSemanticSectionTitleSource.Generated));
                 blocks.Clear();
                 title = Normalize(child.TextContent);
-                titleSource = HtmlSemanticSectionTitleSource.Heading;
-                hasCapturedHeading = true;
+                hasCapturedHeading = title.Length > 0;
+                titleSource = hasCapturedHeading
+                    ? HtmlSemanticSectionTitleSource.Heading
+                    : HtmlSemanticSectionTitleSource.Generated;
                 continue;
             }
 
             if (IsPrimaryHeading(child) && title.Length == 0) {
                 title = Normalize(child.TextContent);
-                titleSource = HtmlSemanticSectionTitleSource.Heading;
-                hasCapturedHeading = true;
+                hasCapturedHeading = title.Length > 0;
+                titleSource = hasCapturedHeading
+                    ? HtmlSemanticSectionTitleSource.Heading
+                    : HtmlSemanticSectionTitleSource.Generated;
                 continue;
             }
             blocks.Add(child);
