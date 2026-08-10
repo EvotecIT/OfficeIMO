@@ -63,6 +63,13 @@ internal static partial class PdfAcroFormEditor {
     private static void ApplyCreate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, PdfFormFieldCreateOptions options, Dictionary<string, string> refillValues, ref int nextObjectNumber) {
         ValidateCreateOptions(options, pages.Length);
         if (FindField(objects, fields, options.Name) is not null) throw new ArgumentException("PDF form field already exists: " + options.Name, nameof(options));
+        EnsureAcroFormAppearanceDefaults(objects, acroForm);
+        if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
+            ApplyCreateRadioButtonGroup(objects, acroForm, fields, pages, options, refillValues, ref nextObjectNumber);
+            if (!acroForm.Items.ContainsKey("NeedAppearances")) acroForm.Items["NeedAppearances"] = new PdfBoolean(false);
+            return;
+        }
+
         PdfDictionary page = RequirePage(objects, pages, options.PageNumber);
         int objectNumber = nextObjectNumber++;
         var field = new PdfDictionary();
@@ -70,13 +77,23 @@ internal static partial class PdfAcroFormEditor {
         field.Items["FT"] = new PdfName(GetFieldType(options.Kind)); field.Items["T"] = new PdfStringObj(options.Name, true);
         field.Items["Rect"] = CreateRectangle(options.X, options.Y, options.X + options.Width, options.Y + options.Height);
         field.Items["P"] = CreateReference(objects, pages[options.PageNumber - 1]); field.Items["F"] = new PdfNumber(options.WidgetFlags);
-        if (options.FieldFlags != 0) field.Items["Ff"] = new PdfNumber(options.FieldFlags);
+        int fieldFlags = GetCreateFieldFlags(options);
+        if (fieldFlags != 0) field.Items["Ff"] = new PdfNumber(fieldFlags);
         if (options.Kind == PdfFormFieldCreationKind.Choice) field.Items["Opt"] = CreateStringArray(options.ChoiceOptions);
-        SetFieldValue(field, GetFieldType(options.Kind), options.Value, options.CheckedValueName, setAppearanceState: true);
-        SetDefaultValue(field, GetFieldType(options.Kind), options.DefaultValue, options.CheckedValueName, normalizeButtonValue: true);
+        ApplyCreateFieldStyle(field, options, includeWidgetStyle: true);
+        if (options.Kind != PdfFormFieldCreationKind.PushButton) {
+            string initialValue = ResolveInitialValue(options);
+            SetFieldValue(field, GetFieldType(options.Kind), initialValue, options.CheckedValueName, setAppearanceState: true);
+            SetDefaultValue(field, GetFieldType(options.Kind), options.DefaultValue, options.CheckedValueName, normalizeButtonValue: true);
+        }
+        ApplyWidgetJavaScript(field, options.JavaScript, usePrimaryAction: options.Kind == PdfFormFieldCreationKind.PushButton);
         objects[objectNumber] = new PdfIndirectObject(objectNumber, 0, field);
         var reference = new PdfReference(objectNumber, 0); fields.Items.Add(reference); EnsureAnnotationArray(objects, page).Items.Add(reference);
-        if (options.Kind != PdfFormFieldCreationKind.Signature) refillValues[options.Name] = ReadSimpleValue(field) ?? string.Empty;
+        if (options.Kind == PdfFormFieldCreationKind.PushButton) {
+            AddPushButtonAppearance(objects, acroForm, page, field, options, ref nextObjectNumber);
+        } else if (options.Kind != PdfFormFieldCreationKind.Signature) {
+            refillValues[options.Name] = ReadSimpleValue(field) ?? string.Empty;
+        }
         if (!acroForm.Items.ContainsKey("NeedAppearances")) acroForm.Items["NeedAppearances"] = new PdfBoolean(false);
     }
 

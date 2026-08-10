@@ -47,7 +47,20 @@ internal static partial class PdfSanitizer {
                 " forbidden item(s); the artifact was not returned.");
         }
 
-        return new PdfSanitizationResult(sanitized, plan, before, remaining, quarantined);
+        var preservationOptions = new PdfRewritePreservationOptions {
+            OriginalReadOptions = readOptions,
+            PreserveLinkAnnotations = false,
+            PreserveAnnotations = !policy.RemoveRichMedia,
+            PreserveEmbeddedFiles = false,
+            PreserveCatalogActions = false,
+            PreservePageActions = false,
+            PreserveOpenAction = false,
+            PreserveRevisionStructure = false,
+            PreserveSecurityState = !PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions).HasEncryption
+        };
+        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, sanitized, preservationOptions);
+
+        return new PdfSanitizationResult(sanitized, plan, preservation, before, remaining, quarantined);
     }
 
     /// <summary>Sanitizes a PDF from the current position of a readable stream.</summary>

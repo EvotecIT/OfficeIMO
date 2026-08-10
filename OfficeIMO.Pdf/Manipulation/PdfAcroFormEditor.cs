@@ -9,7 +9,7 @@ internal static partial class PdfAcroFormEditor {
         PdfReadDocument source = PdfReadDocument.Open(pdf, readOptions);
         if (source.AcroFormXfa is not null) throw new NotSupportedException("Transactional AcroForm editing does not modify XFA packets. Remove or convert XFA before editing the AcroForm field tree.");
 
-        var session = new PdfAcroFormEditSession();
+        var session = new PdfAcroFormEditSession(source.ReadOptions.Limits);
         edit(session);
         if (session.Commands.Count == 0) throw new ArgumentException("At least one AcroForm edit command is required.", nameof(edit));
         string[] fieldNames = session.Commands.SelectMany(GetCommandFieldNames).Distinct(StringComparer.Ordinal).ToArray();

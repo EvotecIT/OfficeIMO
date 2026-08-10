@@ -1,0 +1,256 @@
+using System.Text;
+using OfficeIMO.Pdf;
+using Xunit;
+
+namespace OfficeIMO.Tests.Pdf;
+
+public class PdfAcroFormAuthoringTests {
+    [Fact]
+    public void Edit_AuthorsChromiumEditorFieldKindsAppearancesAndWidgetScripts() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Chromium form authoring acceptance"))
+            .ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "notes",
+                Kind = PdfFormFieldCreationKind.Text,
+                X = 72,
+                Y = 650,
+                Width = 220,
+                Height = 60,
+                Value = "line one\nline two",
+                JavaScript = "this.getField('total').value = 2;",
+                Style = new PdfFormFieldStyle { IsMultiline = true }
+            })
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "agree",
+                Kind = PdfFormFieldCreationKind.CheckBox,
+                X = 72,
+                Y = 610,
+                Width = 18,
+                Height = 18,
+                Value = "Yes",
+                JavaScript = "app.alert('checked');"
+            })
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "country",
+                Kind = PdfFormFieldCreationKind.Choice,
+                X = 72,
+                Y = 565,
+                Width = 180,
+                Height = 24,
+                ChoiceOptions = new[] { "Poland", "Germany", "Australia" },
+                Value = "Germany",
+                IsComboBox = true,
+                JavaScript = "app.alert('country');"
+            })
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "size",
+                Kind = PdfFormFieldCreationKind.RadioButtonGroup,
+                X = 72,
+                Y = 430,
+                Width = 180,
+                Height = 100,
+                ChoiceOptions = new[] { "Small", "Medium", "Large" },
+                Value = "Medium",
+                JavaScript = "app.alert('size');"
+            })
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "calculate",
+                Kind = PdfFormFieldCreationKind.PushButton,
+                X = 72,
+                Y = 385,
+                Width = 110,
+                Height = 26,
+                Caption = "Calculate",
+                JavaScript = "this.getField('total').value = 42;"
+            }));
+
+        PdfDocumentInfo info = result.ToDocument().Inspect();
+        Assert.True(result.PreservationReport.IsPreserved);
+        Assert.Equal(5, info.FormFields.Count);
+
+        PdfFormField notes = info.FormFieldsByName["notes"];
+        Assert.True(notes.IsMultiline);
+        Assert.Equal("line one\nline two", notes.Value);
+        Assert.Equal("U", Assert.Single(Assert.Single(notes.Widgets).Actions).TriggerName);
+        Assert.Equal("this.getField('total').value = 2;", notes.JavaScript);
+
+        PdfFormField country = info.FormFieldsByName["country"];
+        Assert.True(country.IsCombo);
+        Assert.Equal(new[] { "Poland", "Germany", "Australia" }, country.Options.Select(static option => option.ExportValue));
+        Assert.Equal("Germany", country.Value);
+
+        PdfFormField radio = info.FormFieldsByName["size"];
+        Assert.True(radio.IsRadioButton);
+        Assert.Equal("Medium", radio.Value);
+        Assert.Equal(3, radio.WidgetCount);
+        Assert.All(radio.Widgets, static widget => Assert.True(widget.HasNormalAppearanceStates));
+        Assert.All(radio.Widgets, static widget => Assert.Equal(180D, widget.Width, 3));
+        Assert.All(radio.Widgets, static widget => Assert.Equal("U", Assert.Single(widget.Actions).TriggerName));
+
+        PdfFormField button = info.FormFieldsByName["calculate"];
+        Assert.True(button.IsPushButton);
+        PdfFormWidgetAction action = Assert.Single(Assert.Single(button.Widgets).Actions);
+        Assert.True(action.IsPrimary);
+        Assert.Equal("JavaScript", action.ActionType);
+        Assert.Equal("this.getField('total').value = 42;", action.JavaScript);
+
+        Assert.All(info.FormFields.SelectMany(static field => field.Widgets), static widget => Assert.True(widget.IsPrint));
+        Assert.Contains(PdfSanitizer.Analyze(result.ToBytes()), static finding =>
+            finding.Kind == PdfSanitizationFindingKind.ActiveAction && finding.Detail == "JavaScript");
+    }
+
+    [Fact]
+    public void Fill_PreservesAuthoredWidgetActionsAndUpdatesRadioAndChoiceValues() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Fill scripted fields")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "country",
+                Kind = PdfFormFieldCreationKind.Choice,
+                X = 72,
+                Y = 600,
+                Width = 160,
+                Height = 24,
+                ChoiceOptions = new[] { "One", "Two" },
+                JavaScript = "app.alert('country');"
+            })
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "option",
+                Kind = PdfFormFieldCreationKind.RadioButtonGroup,
+                X = 72,
+                Y = 480,
+                Width = 160,
+                Height = 90,
+                ChoiceOptions = new[] { "A", "B" },
+                JavaScript = "app.alert('radio');"
+            })).ToBytes();
+
+        PdfDocument filled = PdfDocument.Open(authored).Forms.Fill(new Dictionary<string, string> {
+            ["country"] = "Two",
+            ["option"] = "B"
+        });
+
+        PdfDocumentInfo info = filled.Inspect();
+        Assert.Equal("Two", info.FormFieldsByName["country"].Value);
+        Assert.Equal("B", info.FormFieldsByName["option"].Value);
+        Assert.Equal("app.alert('country');", info.FormFieldsByName["country"].JavaScript);
+        Assert.Equal("app.alert('radio');", info.FormFieldsByName["option"].JavaScript);
+    }
+
+    [Fact]
+    public void Sanitize_RemovesAuthoredWidgetJavaScriptWithoutRemovingFields() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Sanitize widget script")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "submit",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            X = 72,
+            Y = 600,
+            Width = 100,
+            Height = 24,
+            Caption = "Submit",
+            JavaScript = "app.alert('submit');"
+        })).ToBytes();
+
+        PdfSanitizationResult sanitized = PdfSanitizer.Sanitize(authored);
+        PdfFormField field = Assert.Single(sanitized.ToDocument().Inspect().FormFields);
+
+        Assert.Equal("submit", field.Name);
+        Assert.False(field.HasJavaScript);
+        Assert.False(Assert.Single(field.Widgets).HasActions);
+        Assert.True(sanitized.PreservationReport.IsPreserved);
+        Assert.Contains(sanitized.RemovedFindings, static finding => finding.Detail == "JavaScript");
+    }
+
+    [Fact]
+    public void Create_SnapshotsMutableOptionsAndEnforcesWidgetJavaScriptBudget() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Snapshot options")).ToBytes();
+        var choices = new List<string> { "One", "Two" };
+        var options = new PdfFormFieldCreateOptions {
+            Name = "choice",
+            Kind = PdfFormFieldCreationKind.Choice,
+            X = 72,
+            Y = 600,
+            Width = 160,
+            Height = 24,
+            ChoiceOptions = choices,
+            JavaScript = "app.alert('kept');"
+        };
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => {
+            edit.Create(options);
+            options.Name = "mutated";
+            choices[0] = "Changed";
+            options.Style = new PdfFormFieldStyle { IsReadOnly = true };
+        });
+
+        PdfFormField field = Assert.Single(result.Fields);
+        Assert.Equal("choice", field.Name);
+        Assert.Equal(new[] { "One", "Two" }, field.Options.Select(static option => option.ExportValue));
+        Assert.False(field.IsReadOnly);
+
+        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScriptBytes = 8 } };
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Open(source, readOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+                Name = "limited",
+                Kind = PdfFormFieldCreationKind.PushButton,
+                JavaScript = "app.alert('too large');"
+            })));
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+    }
+
+    [Fact]
+    public void Reader_DecodesExistingWidgetJavaScriptStreamAndAppliesLimits() {
+        byte[] source = BuildWidgetJavaScriptStreamPdf("app.alert('stream');");
+
+        PdfFormField field = Assert.Single(PdfDocument.Open(source).Inspect().FormFields);
+        PdfFormWidgetAction action = Assert.Single(Assert.Single(field.Widgets).Actions);
+        Assert.Equal("A", action.TriggerName);
+        Assert.Equal("app.alert('stream');", action.JavaScript);
+
+        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScriptBytes = 8 } };
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Open(source, options).Inspect());
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+    }
+
+    [Fact]
+    public void WidgetJavaScript_RoundTripsUnicodeAndPdfDocSensitiveCharacters() {
+        const string script = "app.alert('€ •');\f";
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Unicode widget action")).ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "unicode",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            X = 72,
+            Y = 600,
+            Width = 100,
+            Height = 24,
+            Caption = "Run",
+            JavaScript = script
+        }));
+
+        PdfFormWidgetAction action = Assert.Single(Assert.Single(Assert.Single(result.Fields).Widgets).Actions);
+        Assert.Equal(script, action.JavaScript);
+    }
+
+    private static byte[] BuildWidgetJavaScriptStreamPdf(string source) {
+        byte[] script = PdfJavaScriptStringEncoding.EncodeUnicode(source, nameof(source));
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [6 0 R] >>\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Fields [6 0 R] >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Type /Annot /Subtype /Widget /FT /Btn /Ff 65536 /T (run) /Rect [20 20 120 44] /P 3 0 R /A << /S /JavaScript /JS 7 0 R >> >>\nendobj\n");
+        WriteAscii(output, "7 0 obj\n<< /Length " + script.Length + " >>\nstream\n");
+        output.Write(script, 0, script.Length);
+        WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R /Size 8 >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static void WriteAscii(Stream stream, string value) {
+        byte[] bytes = Encoding.ASCII.GetBytes(value);
+        stream.Write(bytes, 0, bytes.Length);
+    }
+}

@@ -3,8 +3,20 @@ namespace OfficeIMO.Pdf;
 /// <summary>Transactional existing-document AcroForm edit commands.</summary>
 public sealed class PdfAcroFormEditSession {
     private readonly List<EditCommand> _commands = new List<EditCommand>();
-    /// <summary>Creates a text, checkbox, choice, or empty signature field.</summary>
-    public PdfAcroFormEditSession Create(PdfFormFieldCreateOptions options) { Guard.NotNull(options, nameof(options)); _commands.Add(new EditCommand(EditKind.Create, options: options)); return this; }
+    private readonly PdfReadLimits _limits;
+    private int _javaScriptCount;
+    private long _javaScriptBytes;
+    /// <summary>Creates a standalone edit session. Documents normally create sessions through <see cref="PdfDocumentForms.Edit(Action{PdfAcroFormEditSession})"/>.</summary>
+    public PdfAcroFormEditSession() : this(new PdfReadLimits()) { }
+    internal PdfAcroFormEditSession(PdfReadLimits limits) { _limits = limits; }
+    /// <summary>Creates a text, checkbox, choice, radio-button, push-button, or empty signature field.</summary>
+    public PdfAcroFormEditSession Create(PdfFormFieldCreateOptions options) {
+        Guard.NotNull(options, nameof(options));
+        PdfFormFieldCreateOptions snapshot = options.Snapshot();
+        ReserveJavaScript(snapshot.JavaScript, snapshot.Kind == PdfFormFieldCreationKind.RadioButtonGroup ? snapshot.ChoiceOptions.Count : 1);
+        _commands.Add(new EditCommand(EditKind.Create, options: snapshot));
+        return this;
+    }
     /// <summary>Places an empty signature field owned by the signature engine.</summary>
     public PdfAcroFormEditSession PlaceSignatureField(string name, int pageNumber, double x, double y, double width, double height) => Create(new PdfFormFieldCreateOptions { Name = name, Kind = PdfFormFieldCreationKind.Signature, PageNumber = pageNumber, X = x, Y = y, Width = width, Height = height });
     /// <summary>Renames one fully qualified field.</summary>
@@ -18,12 +30,25 @@ public sealed class PdfAcroFormEditSession {
     /// <summary>Replaces raw field flags.</summary>
     public PdfAcroFormEditSession SetFlags(string name, int flags) { Guard.NotNullOrWhiteSpace(name, nameof(name)); _commands.Add(new EditCommand(EditKind.Flags, name, number: flags)); return this; }
     /// <summary>Replaces AcroForm calculation order with exact named fields.</summary>
-    public PdfAcroFormEditSession SetCalculationOrder(params string[] fieldNames) { Guard.NotNull(fieldNames, nameof(fieldNames)); _commands.Add(new EditCommand(EditKind.CalculationOrder, names: fieldNames)); return this; }
+    public PdfAcroFormEditSession SetCalculationOrder(params string[] fieldNames) { Guard.NotNull(fieldNames, nameof(fieldNames)); _commands.Add(new EditCommand(EditKind.CalculationOrder, names: fieldNames.ToArray())); return this; }
     /// <summary>Sets a page /Tabs order hint.</summary>
     public PdfAcroFormEditSession SetTabOrder(int pageNumber, PdfPageTabOrder order) { _commands.Add(new EditCommand(EditKind.TabOrder, pageNumber: pageNumber, number: (int)order)); return this; }
     /// <summary>Marks exact fields for visual flattening after tree edits.</summary>
-    public PdfAcroFormEditSession Flatten(params string[] fieldNames) { Guard.NotNull(fieldNames, nameof(fieldNames)); _commands.Add(new EditCommand(EditKind.Flatten, names: fieldNames)); return this; }
+    public PdfAcroFormEditSession Flatten(params string[] fieldNames) { Guard.NotNull(fieldNames, nameof(fieldNames)); _commands.Add(new EditCommand(EditKind.Flatten, names: fieldNames.ToArray())); return this; }
     internal IReadOnlyList<EditCommand> Commands => _commands.AsReadOnly();
+    private void ReserveJavaScript(string? source, int actionCount) {
+        if (source is null) return;
+        if (source.Length == 0) throw new ArgumentException("PDF widget JavaScript cannot be empty.", nameof(source));
+        byte[] encoded = PdfJavaScriptStringEncoding.EncodeUnicode(source, nameof(source));
+        int maximumBytes = Math.Min(_limits.MaxJavaScriptBytes, _limits.MaxDecodedStreamBytes);
+        if (encoded.Length > maximumBytes) throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedStreamBytes, maximumBytes, encoded.Length);
+        int nextCount = checked(_javaScriptCount + actionCount);
+        if (nextCount > _limits.MaxJavaScripts) throw PdfReadLimitException.Create(PdfReadLimitKind.JavaScripts, _limits.MaxJavaScripts, nextCount);
+        long nextBytes = checked(_javaScriptBytes + encoded.LongLength * actionCount);
+        if (nextBytes > _limits.MaxTotalJavaScriptBytes) throw PdfReadLimitException.Create(PdfReadLimitKind.JavaScriptBytes, _limits.MaxTotalJavaScriptBytes, nextBytes);
+        _javaScriptCount = nextCount;
+        _javaScriptBytes = nextBytes;
+    }
     private void AddName(EditKind kind, string name) { Guard.NotNullOrWhiteSpace(name, nameof(name)); _commands.Add(new EditCommand(kind, name)); }
     private void AddNames(EditKind kind, string name, string value) { Guard.NotNullOrWhiteSpace(name, nameof(name)); Guard.NotNullOrWhiteSpace(value, nameof(value)); _commands.Add(new EditCommand(kind, name, value: value)); }
     internal enum EditKind { Create, Rename, Remove, Move, DefaultValue, Flags, CalculationOrder, TabOrder, Flatten }

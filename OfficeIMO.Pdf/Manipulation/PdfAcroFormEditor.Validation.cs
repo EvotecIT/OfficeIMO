@@ -7,7 +7,10 @@ internal static partial class PdfAcroFormEditor {
             PdfAcroFormEditSession.EditCommand command = commands[i];
             switch (command.Kind) {
                 case PdfAcroFormEditSession.EditKind.Create:
-                    if (!IsRemovedLater(commands, i, command.Options!.Name) && (!byName.TryGetValue(command.Options.Name, out PdfFormField? created) || created.Kind != ToFieldKind(command.Options.Kind))) throw new InvalidOperationException("AcroForm create readback validation failed for " + command.Options.Name + ".");
+                    if (!IsRemovedLater(commands, i, command.Options!.Name)) {
+                        if (!byName.TryGetValue(command.Options.Name, out PdfFormField? created) || created.Kind != ToFieldKind(command.Options.Kind)) throw new InvalidOperationException("AcroForm create readback validation failed for " + command.Options.Name + ".");
+                        ValidateCreatedFieldReadback(created, command.Options);
+                    }
                     break;
                 case PdfAcroFormEditSession.EditKind.Rename:
                     if (!IsRemovedLater(commands, i, command.Value!) && !byName.ContainsKey(command.Value!)) throw new InvalidOperationException("AcroForm rename readback validation failed for " + command.Value + ".");
@@ -47,4 +50,12 @@ internal static partial class PdfAcroFormEditor {
     }
 
     private static PdfFormFieldKind ToFieldKind(PdfFormFieldCreationKind kind) => kind == PdfFormFieldCreationKind.Text ? PdfFormFieldKind.Text : kind == PdfFormFieldCreationKind.Choice ? PdfFormFieldKind.Choice : kind == PdfFormFieldCreationKind.Signature ? PdfFormFieldKind.Signature : PdfFormFieldKind.Button;
+
+    private static void ValidateCreatedFieldReadback(PdfFormField field, PdfFormFieldCreateOptions options) {
+        if (options.Kind == PdfFormFieldCreationKind.Text && options.Style?.IsMultiline == true && !field.IsMultiline) throw new InvalidOperationException("AcroForm multiline text-field readback validation failed for " + options.Name + ".");
+        if (options.Kind == PdfFormFieldCreationKind.Choice && field.IsCombo != options.IsComboBox) throw new InvalidOperationException("AcroForm choice presentation readback validation failed for " + options.Name + ".");
+        if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup && (!field.IsRadioButton || field.WidgetCount != options.ChoiceOptions.Count)) throw new InvalidOperationException("AcroForm radio-button readback validation failed for " + options.Name + ".");
+        if (options.Kind == PdfFormFieldCreationKind.PushButton && !field.IsPushButton) throw new InvalidOperationException("AcroForm push-button readback validation failed for " + options.Name + ".");
+        if (options.JavaScript is not null && !string.Equals(field.JavaScript, options.JavaScript, StringComparison.Ordinal)) throw new InvalidOperationException("AcroForm widget JavaScript readback validation failed for " + options.Name + ".");
+    }
 }
