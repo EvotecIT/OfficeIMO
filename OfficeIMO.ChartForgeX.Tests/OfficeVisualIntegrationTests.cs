@@ -184,6 +184,24 @@ public sealed class OfficeVisualIntegrationTests {
     }
 
     [Fact]
+    public void DecorativeArtifactMarksPowerPointPictureWithoutInformativeMetadata() {
+        VisualArtifact artifact = CreateArtifact();
+        artifact.Accessibility.AsDecorative();
+        OfficeVisualConversionResult visual = artifact.ToOfficeVisual(new OfficeVisualConversionOptions { WidthPoints = 300D });
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-decorative-" + Guid.NewGuid().ToString("N") + ".pptx");
+        try {
+            using var presentation = PowerPointPresentation.Create(path);
+            PowerPointPicture picture = presentation.AddSlide().AddVisualArtifact(visual, 36D, 54D);
+
+            Assert.True(picture.Decorative);
+            Assert.Null(picture.Title);
+            Assert.Null(picture.Description);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void PdfPlacementRasterizesUnsupportedEffectGroupsOrFailsClosed() {
         const string blendedSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='80' viewBox='0 0 120 80'><rect width='120' height='80' fill='#ffffff'/><g style='mix-blend-mode:multiply'><rect x='10' y='10' width='70' height='50' fill='#ef4444'/><rect x='40' y='20' width='70' height='50' fill='#2563eb'/></g></svg>";
         const string maskedSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='80' viewBox='0 0 120 80'><defs><mask id='fade' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='80'><rect width='60' height='80' fill='white'/></mask></defs><rect width='120' height='80' fill='#2563eb' mask='url(#fade)'/></svg>";

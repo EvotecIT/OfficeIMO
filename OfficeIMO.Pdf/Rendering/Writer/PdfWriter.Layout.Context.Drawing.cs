@@ -173,8 +173,16 @@ internal static partial class PdfWriter {
             double xDrawing = GetAlignedObjectX(containerX, containerWidth, block.Drawing.Width, style.Align);
             bool markedContent;
             int? structElementIndex = AppendDrawingMarkedContentBegin(style, out markedContent);
-            DrawDrawingElements(block.Drawing, xDrawing, topY);
-            AppendDrawingMarkedContentEnd(markedContent);
+            bool previousSuppressAccessibilityWrappers = _suppressCanvasAccessibilityWrappers;
+            if (markedContent) {
+                _suppressCanvasAccessibilityWrappers = true;
+            }
+            try {
+                DrawDrawingElements(block.Drawing, xDrawing, topY);
+            } finally {
+                _suppressCanvasAccessibilityWrappers = previousSuppressAccessibilityWrappers;
+                AppendDrawingMarkedContentEnd(markedContent);
+            }
             return structElementIndex;
         }
 

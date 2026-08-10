@@ -42,4 +42,17 @@ public class PdfComposeIncrementalAdapterTests {
         Assert.Equal("evidence.txt", attachments.Single().FileName);
         Assert.Equal("adapter evidence", Encoding.UTF8.GetString(attachments.Single().Bytes));
     }
+
+    [Fact]
+    public void Settings_UpdateExistingExplicitPageSnapshots() {
+        PdfDocument document = PdfDocument.Create(_ => { });
+        document.Compose(compose => compose.Page(page => page.Content(content => content
+            .Item(item => item.Paragraph(paragraph => paragraph.Text("LateSettingsMarker"))))));
+
+        document.Compose(compose => compose.Settings(settings => settings.CompressContentStreams = false));
+
+        string source = Encoding.ASCII.GetString(document.ToBytes());
+        Assert.DoesNotContain("/Filter /FlateDecode", source, StringComparison.Ordinal);
+        Assert.Contains("LateSettingsMarker", PdfReadDocument.Open(document.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
 }
