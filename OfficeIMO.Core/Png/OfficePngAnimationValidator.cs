@@ -20,6 +20,7 @@ internal static class OfficePngAnimationValidator {
             bool seenImageData = false;
             int declaredFrameCount = 0;
             int frameControlCount = 0;
+            long decodedFramePixels = 0;
             uint expectedSequence = 0;
             FramePayload? currentFrame = null;
 
@@ -56,10 +57,12 @@ internal static class OfficePngAnimationValidator {
                         int height = ReadBigEndianInt32(bytes, dataOffset + 8);
                         int x = ReadBigEndianInt32(bytes, dataOffset + 12);
                         int y = ReadBigEndianInt32(bytes, dataOffset + 16);
-                        if (!HasValidFrameBounds(width, height, x, y, canvasWidth, canvasHeight) ||
+                        if (!HasValidFrameBounds(width, height, x, y, canvasWidth, canvasHeight, out int framePixels) ||
+                            decodedFramePixels > OfficeRasterGuards.MaximumPixels - framePixels ||
                             bytes[dataOffset + 24] > 2 || bytes[dataOffset + 25] > 1) {
                             return false;
                         }
+                        decodedFramePixels += framePixels;
 
                         bool usesDefaultImageData = frameControlCount == 0 && !seenImageData;
                         if (usesDefaultImageData &&
@@ -123,11 +126,14 @@ internal static class OfficePngAnimationValidator {
         int x,
         int y,
         int canvasWidth,
-        int canvasHeight) =>
-        width > 0 && height > 0 && x >= 0 && y >= 0 &&
-        (long)x + width <= canvasWidth &&
-        (long)y + height <= canvasHeight &&
-        OfficeRasterGuards.TryEnsurePixelCount(width, height, out _);
+        int canvasHeight,
+        out int framePixels) {
+        framePixels = 0;
+        return width > 0 && height > 0 && x >= 0 && y >= 0 &&
+               (long)x + width <= canvasWidth &&
+               (long)y + height <= canvasHeight &&
+               OfficeRasterGuards.TryEnsurePixelCount(width, height, out framePixels);
+    }
 
     private static int ReadBigEndianInt32(byte[] bytes, int offset) =>
         (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];

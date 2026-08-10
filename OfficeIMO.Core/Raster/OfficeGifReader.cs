@@ -356,7 +356,7 @@ public static class OfficeGifReader {
             previousCode = code;
         }
 
-        if (requireCompleteStream && (!sawEndCode || output.Count != expectedPixelCount) ||
+        if (requireCompleteStream && (!sawEndCode || output.Count != expectedPixelCount || !reader.HasNoTrailingBytes) ||
             !requireCompleteStream && output.Count < expectedPixelCount) {
             return false;
         }
@@ -501,6 +501,8 @@ public static class OfficeGifReader {
         internal LzwBitReader(byte[] data) {
             _data = data;
         }
+
+        internal bool HasNoTrailingBytes => (_data.Length * 8) - _bitOffset < 8;
 
         internal int ReadBits(int count) {
             if (count <= 0 || count > 12 || _bitOffset + count > _data.Length * 8) {

@@ -33,6 +33,7 @@ public sealed class OfficeTiffEncodeOptions {
 /// </summary>
 public static partial class OfficeTiffCodec {
     private const int EntryCount = 15;
+    private const int MaximumIfdCount = 65535;
 
     /// <summary>Returns whether the payload starts with a TIFF byte-order marker and magic value.</summary>
     public static bool IsTiff(byte[]? encodedBytes) =>
@@ -112,141 +113,162 @@ public static partial class OfficeTiffCodec {
             bool littleEndian = encodedBytes[0] == (byte)'I';
             if (ReadUInt16(encodedBytes, 2, littleEndian) != 42) return false;
             int ifdOffset = ReadOffset(encodedBytes, 4, littleEndian);
-            if (!HasBytes(encodedBytes, ifdOffset, 2)) return false;
-            int entryCount = ReadUInt16(encodedBytes, ifdOffset, littleEndian);
-            if (entryCount <= 0 || !HasBytes(encodedBytes, ifdOffset + 2, checked(entryCount * 12 + 4))) return false;
-
-            var entries = new System.Collections.Generic.Dictionary<int, TiffEntry>();
-            int entryOffset = ifdOffset + 2;
-            for (int index = 0; index < entryCount; index++, entryOffset += 12) {
-                int tag = ReadUInt16(encodedBytes, entryOffset, littleEndian);
-                int type = ReadUInt16(encodedBytes, entryOffset + 2, littleEndian);
-                uint count = ReadUInt32(encodedBytes, entryOffset + 4, littleEndian);
-                if (count == 0 || count > int.MaxValue || entries.ContainsKey(tag)) return false;
-                entries.Add(tag, new TiffEntry(type, (int)count, entryOffset + 8));
-            }
-
-            if (!TryReadScalar(encodedBytes, entries, 256, littleEndian, out int width) ||
-                !TryReadScalar(encodedBytes, entries, 257, littleEndian, out int height) ||
-                !OfficeRasterGuards.TryEnsurePixelCount(width, height, out _)) {
-                return false;
-            }
-
-            if (!TryReadScalarOrDefault(encodedBytes, entries, 259, littleEndian, 1, out int compression) ||
-                !TryReadScalarOrDefault(encodedBytes, entries, 262, littleEndian, 2, out int photometric) ||
-                !TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
-                !TryReadScalarOrDefault(encodedBytes, entries, 278, littleEndian, height, out int rowsPerStrip) ||
-                !TryReadScalarOrDefault(encodedBytes, entries, 284, littleEndian, 1, out int planarConfiguration) ||
-                !TryReadScalarOrDefault(encodedBytes, entries, 317, littleEndian, 1, out int predictor)) {
-                return false;
-            }
-            if (!TryGetBaseSampleCount(photometric, out int baseSamples) ||
-                !TryReadScalarOrDefault(encodedBytes, entries, 277, littleEndian, baseSamples, out int samples)) {
-                return false;
-            }
-            if (photometric == 5 &&
-                (!TryReadScalarOrDefault(encodedBytes, entries, 332, littleEndian, 1, out int inkSet) ||
-                 inkSet != 1)) {
-                return false;
-            }
-            if ((compression != (int)OfficeTiffCompression.None &&
-                 compression != (int)OfficeTiffCompression.PackBits &&
-                 compression != (int)OfficeTiffCompression.Deflate &&
-                 compression != 32946) ||
-                orientation < 1 || orientation > 4 ||
-                (samples != baseSamples && samples != baseSamples + 1) ||
-                rowsPerStrip < 1 ||
-                planarConfiguration != 1 ||
-                (predictor != 1 && predictor != 2)) {
-                return false;
-            }
-
-            int expectedStripCount = checked((height + rowsPerStrip - 1) / rowsPerStrip);
-            if (!TryReadValues(encodedBytes, entries, 258, littleEndian, samples, out int[] bitsPerSample) ||
-                Array.Exists(bitsPerSample, value => value != 8) ||
-                !TryReadValues(encodedBytes, entries, 273, littleEndian, expectedStripCount, out int[] stripOffsets) ||
-                !TryReadValues(encodedBytes, entries, 279, littleEndian, expectedStripCount, out int[] stripByteCounts)) {
-                return false;
-            }
-
-            int[]? colorMap = null;
-            if (photometric == 3 &&
-                !TryReadValues(encodedBytes, entries, 320, littleEndian, 768, out colorMap)) {
-                return false;
-            }
-
-            int alphaKind = 2;
-            if (samples == baseSamples + 1) {
-                if (!TryReadValues(encodedBytes, entries, 338, littleEndian, 1, out int[] extraSamples) ||
-                    (extraSamples[0] != 1 && extraSamples[0] != 2)) {
+            var visitedIfds = new System.Collections.Generic.HashSet<int>();
+            long decodedPagePixels = 0;
+            bool isFirstIfd = true;
+            OfficeRasterImage? firstImage = null;
+            while (ifdOffset != 0) {
+                if (visitedIfds.Count >= MaximumIfdCount || !visitedIfds.Add(ifdOffset) ||
+                    !HasBytes(encodedBytes, ifdOffset, 2)) {
                     return false;
                 }
-                alphaKind = extraSamples[0];
-            }
+                int entryCount = ReadUInt16(encodedBytes, ifdOffset, littleEndian);
+                if (entryCount <= 0 || !HasBytes(encodedBytes, ifdOffset + 2, checked(entryCount * 12 + 4))) return false;
 
-            int sourceLength = OfficeRasterGuards.EnsureByteCount(
-                (long)width * height * samples,
-                "TIFF decoded source pixels exceed the managed limit.");
-            byte[] source = new byte[sourceLength];
-            int destinationOffset = 0;
-            for (int strip = 0; strip < stripOffsets.Length && destinationOffset < source.Length; strip++) {
-                int rowStart = checked(strip * rowsPerStrip);
-                if (rowStart >= height) return false;
-                int rows = Math.Min(rowsPerStrip, height - rowStart);
-                int expected = checked(rows * width * samples);
-                int offset = stripOffsets[strip];
-                int count = stripByteCounts[strip];
-                if (count < 0 || !HasBytes(encodedBytes, offset, count)) return false;
-                bool decoded = TryDecodeStrip(
-                    encodedBytes,
-                    offset,
-                    count,
-                    compression,
-                    source,
-                    destinationOffset,
-                    expected);
-                if (!decoded) return false;
-                if (predictor == 2) {
-                    ReverseHorizontalPredictor(
+                var entries = new System.Collections.Generic.Dictionary<int, TiffEntry>();
+                int entryOffset = ifdOffset + 2;
+                for (int index = 0; index < entryCount; index++, entryOffset += 12) {
+                    int tag = ReadUInt16(encodedBytes, entryOffset, littleEndian);
+                    int type = ReadUInt16(encodedBytes, entryOffset + 2, littleEndian);
+                    uint count = ReadUInt32(encodedBytes, entryOffset + 4, littleEndian);
+                    if (count == 0 || count > int.MaxValue || entries.ContainsKey(tag)) return false;
+                    entries.Add(tag, new TiffEntry(type, (int)count, entryOffset + 8));
+                }
+
+                if (!TryReadScalar(encodedBytes, entries, 256, littleEndian, out int width) ||
+                    !TryReadScalar(encodedBytes, entries, 257, littleEndian, out int height) ||
+                    !OfficeRasterGuards.TryEnsurePixelCount(width, height, out int pagePixels) ||
+                    decodedPagePixels > OfficeRasterGuards.MaximumPixels - pagePixels) {
+                    return false;
+                }
+                decodedPagePixels += pagePixels;
+
+                if (!TryReadScalarOrDefault(encodedBytes, entries, 259, littleEndian, 1, out int compression) ||
+                    !TryReadScalarOrDefault(encodedBytes, entries, 262, littleEndian, 2, out int photometric) ||
+                    !TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
+                    !TryReadScalarOrDefault(encodedBytes, entries, 278, littleEndian, height, out int rowsPerStrip) ||
+                    !TryReadScalarOrDefault(encodedBytes, entries, 284, littleEndian, 1, out int planarConfiguration) ||
+                    !TryReadScalarOrDefault(encodedBytes, entries, 317, littleEndian, 1, out int predictor)) {
+                    return false;
+                }
+                if (!TryGetBaseSampleCount(photometric, out int baseSamples) ||
+                    !TryReadScalarOrDefault(encodedBytes, entries, 277, littleEndian, baseSamples, out int samples)) {
+                    return false;
+                }
+                if (photometric == 5 &&
+                    (!TryReadScalarOrDefault(encodedBytes, entries, 332, littleEndian, 1, out int inkSet) ||
+                     inkSet != 1)) {
+                    return false;
+                }
+                if ((compression != (int)OfficeTiffCompression.None &&
+                     compression != (int)OfficeTiffCompression.PackBits &&
+                     compression != (int)OfficeTiffCompression.Deflate &&
+                     compression != 32946) ||
+                    orientation < 1 || orientation > 4 ||
+                    (samples != baseSamples && samples != baseSamples + 1) ||
+                    rowsPerStrip < 1 ||
+                    planarConfiguration != 1 ||
+                    (predictor != 1 && predictor != 2)) {
+                    return false;
+                }
+
+                int expectedStripCount = checked((height + rowsPerStrip - 1) / rowsPerStrip);
+                if (!TryReadValues(encodedBytes, entries, 258, littleEndian, samples, out int[] bitsPerSample) ||
+                    Array.Exists(bitsPerSample, value => value != 8) ||
+                    !TryReadValues(encodedBytes, entries, 273, littleEndian, expectedStripCount, out int[] stripOffsets) ||
+                    !TryReadValues(encodedBytes, entries, 279, littleEndian, expectedStripCount, out int[] stripByteCounts)) {
+                    return false;
+                }
+
+                int[]? colorMap = null;
+                if (photometric == 3 &&
+                    !TryReadValues(encodedBytes, entries, 320, littleEndian, 768, out colorMap)) {
+                    return false;
+                }
+
+                int alphaKind = 2;
+                if (samples == baseSamples + 1) {
+                    if (!TryReadValues(encodedBytes, entries, 338, littleEndian, 1, out int[] extraSamples) ||
+                        (extraSamples[0] != 1 && extraSamples[0] != 2)) {
+                        return false;
+                    }
+                    alphaKind = extraSamples[0];
+                }
+
+                int sourceLength = OfficeRasterGuards.EnsureByteCount(
+                    (long)width * height * samples,
+                    "TIFF decoded source pixels exceed the managed limit.");
+                byte[] source = new byte[sourceLength];
+                int destinationOffset = 0;
+                for (int strip = 0; strip < stripOffsets.Length && destinationOffset < source.Length; strip++) {
+                    int rowStart = checked(strip * rowsPerStrip);
+                    if (rowStart >= height) return false;
+                    int rows = Math.Min(rowsPerStrip, height - rowStart);
+                    int expected = checked(rows * width * samples);
+                    int offset = stripOffsets[strip];
+                    int count = stripByteCounts[strip];
+                    if (count < 0 || !HasBytes(encodedBytes, offset, count)) return false;
+                    bool decoded = TryDecodeStrip(
+                        encodedBytes,
+                        offset,
+                        count,
+                        compression,
                         source,
                         destinationOffset,
-                        rows,
-                        width,
-                        samples);
+                        expected);
+                    if (!decoded) return false;
+                    if (predictor == 2) {
+                        ReverseHorizontalPredictor(
+                            source,
+                            destinationOffset,
+                            rows,
+                            width,
+                            samples);
+                    }
+                    destinationOffset += expected;
                 }
-                destinationOffset += expected;
-            }
-            if (destinationOffset != source.Length) return false;
+                if (destinationOffset != source.Length) return false;
 
-            byte[] rgba = OfficeRasterGuards.AllocateRgba32(width, height, "TIFF decoded pixels exceed the managed limit.");
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    int sourcePixel = ((y * width) + x) * samples;
-                    int targetX = orientation == 2 || orientation == 3 ? width - 1 - x : x;
-                    int targetY = orientation == 3 || orientation == 4 ? height - 1 - y : y;
-                    int targetPixel = ((targetY * width) + targetX) * 4;
-                    byte alpha = samples == baseSamples + 1
-                        ? source[sourcePixel + baseSamples]
-                        : (byte)255;
-                    ConvertPixel(
-                        source,
-                        sourcePixel,
-                        photometric,
-                        alphaKind,
-                        alpha,
-                        colorMap,
-                        out byte red,
-                        out byte green,
-                        out byte blue);
-                    rgba[targetPixel] = red;
-                    rgba[targetPixel + 1] = green;
-                    rgba[targetPixel + 2] = blue;
-                    rgba[targetPixel + 3] = alpha;
+                byte[]? rgba = isFirstIfd
+                    ? OfficeRasterGuards.AllocateRgba32(width, height, "TIFF decoded pixels exceed the managed limit.")
+                    : null;
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        int sourcePixel = ((y * width) + x) * samples;
+                        int targetX = orientation == 2 || orientation == 3 ? width - 1 - x : x;
+                        int targetY = orientation == 3 || orientation == 4 ? height - 1 - y : y;
+                        int targetPixel = ((targetY * width) + targetX) * 4;
+                        byte alpha = samples == baseSamples + 1
+                            ? source[sourcePixel + baseSamples]
+                            : (byte)255;
+                        ConvertPixel(
+                            source,
+                            sourcePixel,
+                            photometric,
+                            alphaKind,
+                            alpha,
+                            colorMap,
+                            out byte red,
+                            out byte green,
+                            out byte blue);
+                        if (rgba != null) {
+                            rgba[targetPixel] = red;
+                            rgba[targetPixel + 1] = green;
+                            rgba[targetPixel + 2] = blue;
+                            rgba[targetPixel + 3] = alpha;
+                        }
+                    }
                 }
-            }
 
-            image = OfficeRasterImage.FromRgba32(width, height, rgba);
-            return true;
+                if (isFirstIfd && rgba != null) {
+                    firstImage = OfficeRasterImage.FromRgba32(width, height, rgba);
+                }
+                int nextIfdPointerOffset = checked(ifdOffset + 2 + entryCount * 12);
+                ifdOffset = ReadOffset(encodedBytes, nextIfdPointerOffset, littleEndian);
+                isFirstIfd = false;
+            }
+            image = firstImage;
+            return image != null;
         } catch (ArgumentException) {
             return false;
         } catch (FormatException) {

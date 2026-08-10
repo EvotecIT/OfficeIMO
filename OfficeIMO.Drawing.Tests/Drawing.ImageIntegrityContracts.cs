@@ -217,6 +217,25 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void ApngValidationBoundsAggregateDecodedFramePixels() {
+        byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] apng = CreateTwoFrameApng(staticPng);
+        const int frameWidth = 30000000;
+
+        int ihdrOffset = FindPngChunk(apng, "IHDR");
+        WriteBigEndianInt32(apng, ihdrOffset + 8, frameWidth);
+        int firstFrameControlOffset = FindPngChunk(apng, "fcTL");
+        int secondFrameControlOffset = FindPngChunk(
+            apng,
+            "fcTL",
+            firstFrameControlOffset + 12 + ReadBigEndianInt32(apng, firstFrameControlOffset));
+        WriteBigEndianInt32(apng, firstFrameControlOffset + 12, frameWidth);
+        WriteBigEndianInt32(apng, secondFrameControlOffset + 12, frameWidth);
+
+        Assert.False(OfficePngAnimationValidator.TryValidateAdditionalFrames(apng));
+    }
+
+    [Fact]
     public void PngContainerTreatsApngFrameControlAsEndingTheIdatRun() {
         byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] apng = CreateTwoFrameApng(staticPng);

@@ -6,8 +6,12 @@ using System.Xml.Linq;
 namespace OfficeIMO.Visio {
     internal static partial class VisioSvgPreviewRasterizer {
         private sealed class SvgStyleSheet {
+            private const int MaximumSelectorEvaluations = 100000;
             private readonly List<SvgStyleRule> _rules;
             private readonly List<SvgVisualEffectRule> _visualEffectRules;
+            private readonly Dictionary<XElement, Dictionary<string, string>> _styleCache = new();
+            private readonly Dictionary<XElement, bool> _visualEffectCache = new();
+            private int _selectorEvaluations;
 
             private SvgStyleSheet(List<SvgStyleRule> rules, List<SvgVisualEffectRule> visualEffectRules) {
                 _rules = rules;
@@ -29,10 +33,14 @@ namespace OfficeIMO.Visio {
                 return new SvgStyleSheet(rules, visualEffectRules);
             }
 
+            internal bool SelectorBudgetExceeded { get; private set; }
+
             internal Dictionary<string, string> CreateStyle(XElement element) {
+                if (_styleCache.TryGetValue(element, out Dictionary<string, string>? cached)) return cached;
                 Dictionary<string, string> style = new(StringComparer.OrdinalIgnoreCase);
                 Dictionary<string, (int Specificity, int Order)> applied = new(StringComparer.OrdinalIgnoreCase);
                 for (int i = 0; i < _rules.Count; i++) {
+                    if (!TryConsumeSelectorEvaluation()) break;
                     SvgStyleRule rule = _rules[i];
                     if (rule.Matches(element)) {
                         MergeRuleDeclarations(style, applied, rule.Declarations, rule.Specificity, rule.Order);
@@ -40,6 +48,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 MergeDeclarations(style, element.Attribute("style")?.Value);
+                _styleCache[element] = style;
                 return style;
             }
 
@@ -93,8 +102,12 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            internal bool HasActiveVisualEffect(XElement element) =>
-                HasActiveVisualEffect(element, "filter") || HasActiveVisualEffect(element, "mask");
+            internal bool HasActiveVisualEffect(XElement element) {
+                if (_visualEffectCache.TryGetValue(element, out bool cached)) return cached;
+                bool active = HasActiveVisualEffect(element, "filter") || HasActiveVisualEffect(element, "mask");
+                _visualEffectCache[element] = active;
+                return active;
+            }
 
             private bool HasActiveVisualEffect(XElement element, string propertyName) {
                 EffectCandidate candidate = default;
@@ -111,6 +124,8 @@ namespace OfficeIMO.Visio {
                         !TryParseEffectValue(rawValue, out string? value, out bool important)) {
                         continue;
                     }
+
+                    if (!TryConsumeSelectorEvaluation()) break;
 
                     SvgCssSelectorMatcher.SelectorMatch match = SvgCssSelectorMatcher.Evaluate(
                         element,
@@ -142,6 +157,16 @@ namespace OfficeIMO.Visio {
                 return unknownNormalActive &&
                        !inline.HasValue &&
                        !(candidate.HasValue && candidate.Important && !IsActiveEffectValue(element, propertyName, candidate.Value!));
+            }
+
+            private bool TryConsumeSelectorEvaluation() {
+                if (_selectorEvaluations >= MaximumSelectorEvaluations) {
+                    SelectorBudgetExceeded = true;
+                    return false;
+                }
+
+                _selectorEvaluations++;
+                return true;
             }
 
             private static bool TryParseEffectValue(string? raw, out string? value, out bool important) {

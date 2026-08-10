@@ -99,7 +99,7 @@ namespace OfficeIMO.Visio {
                 AddSvgLossDiagnostic(
                     diagnosticSink,
                     diagnosticSource,
-                    "The embedded SVG preview exceeded the bounded rendering depth or element budget and was omitted.",
+                    "The embedded SVG preview exceeded a bounded rendering depth, element, or selector-work budget and was omitted.",
                     OfficeConversionLossKind.Omission);
                 return false;
             }

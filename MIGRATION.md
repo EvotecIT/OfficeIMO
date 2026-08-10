@@ -9,6 +9,12 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIMO package in an application to the same `3.2.x` version and perform a clean restore after changing versions.
 
+## OfficeIMO 3.2: complete image validation at ingestion boundaries
+
+Excel file and URL image methods now validate the complete bounded payload instead of trusting a filename extension or image header. They throw `ArgumentException` for truncated, corrupt, mismatched, or unsupported content that older versions could package.
+
+Applications that intentionally import opaque package bytes can keep using the byte-array `AddImage(...)` overload with an explicit content type. That is the low-level package path; it does not turn invalid content into a renderable image. Use `OfficeImageReader.TryValidateContent(...)` before ingestion when the application needs to report validation failures itself.
+
 ## OfficeIMO 3.2: one PDF authoring and operation model
 
 `PdfDocument` no longer duplicates every heading, paragraph, table, image, form,

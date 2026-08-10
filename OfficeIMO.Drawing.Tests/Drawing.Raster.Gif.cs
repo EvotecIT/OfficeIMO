@@ -148,6 +148,23 @@ namespace OfficeIMO.Tests {
             Assert.False(OfficeImageReader.TryValidateContent(withTrailingBytes, "trailing.gif", out _));
         }
 
+        [Fact]
+        public void CompleteContentValidationRejectsFullBytesAfterGifLzwEndCode() {
+            byte[] valid = CreateIndexedGif(
+                1,
+                1,
+                new[] { OfficeColor.Red, OfficeColor.Lime, OfficeColor.Blue, OfficeColor.White },
+                new byte[] { 0 });
+            const int imageDescriptorOffset = 25;
+            int blockLengthOffset = imageDescriptorOffset + 11;
+            int insertOffset = blockLengthOffset + 1 + valid[blockLengthOffset];
+            var malformed = valid.ToList();
+            malformed.Insert(insertOffset, 0x00);
+            malformed[blockLengthOffset]++;
+
+            Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "trailing-lzw.gif", out _));
+        }
+
         private static byte[] CreateSinglePixelGif() =>
             Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
 

@@ -6,6 +6,8 @@ using System.Xml.Linq;
 namespace OfficeIMO.Visio {
     internal static partial class VisioSvgPreviewRasterizer {
         private static class SvgCssSelectorMatcher {
+            private const int MaximumMatchSteps = 256;
+
             internal static bool MayMatch(XElement element, string selector) {
                 return Evaluate(element, selector, out _) != SelectorMatch.NoMatch;
             }
@@ -17,22 +19,24 @@ namespace OfficeIMO.Visio {
                     !TryCalculateSpecificity(parts, out specificity)) {
                     return SelectorMatch.Unsupported;
                 }
-                return MatchesPart(element, parts, parts.Count - 1);
+                int remainingSteps = MaximumMatchSteps;
+                return MatchesPart(element, parts, parts.Count - 1, ref remainingSteps);
             }
 
-            private static SelectorMatch MatchesPart(XElement element, IReadOnlyList<SelectorPart> parts, int index) {
+            private static SelectorMatch MatchesPart(XElement element, IReadOnlyList<SelectorPart> parts, int index, ref int remainingSteps) {
+                if (remainingSteps-- <= 0) return SelectorMatch.Unsupported;
                 SelectorMatch compoundMatch = MatchesCompound(element, parts[index].Compound);
                 if (compoundMatch != SelectorMatch.Match) return compoundMatch;
                 if (index == 0) return SelectorMatch.Match;
 
                 XElement? parent = element.Parent;
                 if (parts[index].Combinator == '>') {
-                    return parent == null ? SelectorMatch.NoMatch : MatchesPart(parent, parts, index - 1);
+                    return parent == null ? SelectorMatch.NoMatch : MatchesPart(parent, parts, index - 1, ref remainingSteps);
                 }
 
                 bool foundUnsupported = false;
                 while (parent != null) {
-                    SelectorMatch parentMatch = MatchesPart(parent, parts, index - 1);
+                    SelectorMatch parentMatch = MatchesPart(parent, parts, index - 1, ref remainingSteps);
                     if (parentMatch == SelectorMatch.Match) return SelectorMatch.Match;
                     if (parentMatch == SelectorMatch.Unsupported) foundUnsupported = true;
                     parent = parent.Parent;

@@ -17,6 +17,7 @@ namespace OfficeIMO.Visio {
             private int _auxiliaryRecursionDepth;
             private int _renderDepth;
             private int _renderedElements;
+            private bool _renderBudgetExceeded;
 
             private SvgRenderContext(SvgStyleSheet styleSheet, Dictionary<string, XElement> definitions, Func<string, byte[]?>? imageResolver, SvgPaintBounds viewportBounds) {
                 StyleSheet = styleSheet;
@@ -37,7 +38,7 @@ namespace OfficeIMO.Visio {
 
             internal OfficeFillRule CurrentFillRule { get; private set; } = OfficeFillRule.NonZero;
 
-            internal bool RenderBudgetExceeded { get; private set; }
+            internal bool RenderBudgetExceeded => _renderBudgetExceeded || StyleSheet.SelectorBudgetExceeded;
 
             internal int UnsupportedFeatureCount { get; private set; }
 
@@ -53,7 +54,7 @@ namespace OfficeIMO.Visio {
 
             internal bool TryEnterRenderElement() {
                 if (_renderDepth >= MaximumRenderDepth) {
-                    RenderBudgetExceeded = true;
+                    _renderBudgetExceeded = true;
                     return false;
                 }
                 if (!TryCountRenderedElement()) return false;
@@ -63,7 +64,7 @@ namespace OfficeIMO.Visio {
 
             internal bool TryCountRenderedElement() {
                 if (_renderedElements >= MaximumRenderedElements) {
-                    RenderBudgetExceeded = true;
+                    _renderBudgetExceeded = true;
                     return false;
                 }
 
@@ -77,7 +78,7 @@ namespace OfficeIMO.Visio {
 
             internal bool TryEnterAuxiliaryRecursion() {
                 if (_auxiliaryRecursionDepth >= MaximumRenderDepth) {
-                    RenderBudgetExceeded = true;
+                    _renderBudgetExceeded = true;
                     return false;
                 }
 

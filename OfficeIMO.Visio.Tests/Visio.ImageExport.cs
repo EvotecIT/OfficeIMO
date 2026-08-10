@@ -79,6 +79,28 @@ public class VisioImageExport {
     }
 
     [Fact]
+    public void EmbeddedSvgPreviewBoundsAggregateCssSelectorEvaluation() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><style>");
+        for (int index = 0; index < 400; index++) {
+            svg.Append("[data-effect-").Append(index).Append("] { filter:url(#f); }");
+        }
+        svg.Append("</style>");
+        for (int index = 0; index < 300; index++) {
+            svg.Append("<rect width='1' height='1'/>");
+        }
+        svg.Append("</svg>");
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.False(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg.ToString()), null, null, null, null, null,
+            diagnostics, "selector-budget.svg", default, out OfficeRasterImage? image));
+        Assert.Null(image);
+        Assert.Contains(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
     public void EmbeddedSvgPreviewReportsUnsupportedVisualEffects() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
                            "<rect width='10' height='10' fill='red' filter='url(#blur)'/>" +
