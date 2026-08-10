@@ -33,6 +33,7 @@ public sealed partial class PdfDocument {
         Attachments = new PdfDocumentAttachments(this);
         Bookmarks = new PdfDocumentBookmarks(this);
         Annotations = new PdfDocumentAnnotations(this);
+        JavaScript = new PdfDocumentJavaScript(this);
         Security = new PdfDocumentSecurity(this);
         Redactions = new PdfDocumentRedactions(this);
         Optimization = new PdfDocumentOptimization(this);
@@ -132,6 +133,9 @@ public sealed partial class PdfDocument {
 
     /// <summary>Existing-document annotation editing operations.</summary>
     public PdfDocumentAnnotations Annotations { get; }
+
+    /// <summary>Explicit active-content operations for named document-level JavaScript.</summary>
+    public PdfDocumentJavaScript JavaScript { get; }
 
     /// <summary>Password encryption and digital-signature operations for this PDF.</summary>
     public PdfDocumentSecurity Security { get; }
