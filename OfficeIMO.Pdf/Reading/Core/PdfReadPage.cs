@@ -523,7 +523,9 @@ public sealed partial class PdfReadPage {
         bool includeArtifactText = false,
         int contentNestingDepth = 0,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
-        PageContentBudget? pageContentBudget = null) {
+        PageContentBudget? pageContentBudget = null,
+        PdfContentOrderKey? contentOrderPrefix = null,
+        int contentOrderOffset = 0) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         textOutputBudget ??= new TextContentParser.TextOutputBudget(
@@ -574,7 +576,9 @@ public sealed partial class PdfReadPage {
             maxActualTextCharacters: _limits.MaxActualTextCharacters,
             maxDecodedTextCharacters: _limits.MaxDecodedTextCharacters,
             textOutputBudget: textOutputBudget,
-            decodeWithFontWithinLimit: DecodeWithFontWithinLimit));
+            decodeWithFontWithinLimit: DecodeWithFontWithinLimit,
+            contentOrderPrefix: contentOrderPrefix,
+            contentOrderOffset: contentOrderOffset));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -613,6 +617,7 @@ public sealed partial class PdfReadPage {
                 var formFonts = MergeFonts(fonts, formFontResources.Fonts);
                 var combinedTransform = ApplyFormMatrix(invocation.Transform, formDict);
                 var formContent = WrapContentWithTransform(WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDict), combinedTransform, out int formContentOffset);
+                PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex + contentOrderOffset);
 
                 CollectTextAndForms(
                     formContent,
@@ -638,7 +643,9 @@ public sealed partial class PdfReadPage {
                     includeArtifactText,
                     contentNestingDepth + 1,
                     textOutputBudget,
-                    pageContentBudget);
+                    pageContentBudget,
+                    formOrderPrefix,
+                    -formContentOffset);
             } finally {
                 activeForms.Remove(formStream);
             }

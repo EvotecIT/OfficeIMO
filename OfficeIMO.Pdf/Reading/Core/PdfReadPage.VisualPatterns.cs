@@ -259,7 +259,9 @@ public sealed partial class PdfReadPage {
             paintOrderOffset: -transformedOffset,
             useLogicalTextFilters: false,
             textOutputBudget: textOutputBudget,
-            pageContentBudget: pageContentBudget);
+            pageContentBudget: pageContentBudget,
+            contentOrderPrefix: PdfContentOrderKey.Root,
+            contentOrderOffset: -transformedOffset);
         for (int i = 0; i < spans.Count; i++) {
             if (renderedType3PaintOrders.Contains(spans[i].PaintOrder)) continue;
             elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));

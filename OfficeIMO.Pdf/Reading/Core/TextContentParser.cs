@@ -157,6 +157,7 @@ internal static class TextContentParser {
         public double? StrokeOpacity { get; }
         public int TextRenderingMode { get; }
         public PdfPageClipPath? ClipPath { get; }
+        public int SourceOperatorIndex { get; }
 
         public FormInvocation(
             string name,
@@ -169,7 +170,8 @@ internal static class TextContentParser {
             double? fillOpacity = null,
             double? strokeOpacity = null,
             int textRenderingMode = 0,
-            PdfPageClipPath? clipPath = null) {
+            PdfPageClipPath? clipPath = null,
+            int sourceOperatorIndex = 0) {
             Name = name;
             Transform = transform;
             PaintOrder = paintOrder;
@@ -181,6 +183,7 @@ internal static class TextContentParser {
             StrokeOpacity = strokeOpacity;
             TextRenderingMode = textRenderingMode;
             ClipPath = clipPath;
+            SourceOperatorIndex = sourceOperatorIndex;
         }
     }
 
@@ -215,7 +218,9 @@ internal static class TextContentParser {
         int maxActualTextCharacters = PdfReadLimits.DefaultMaxActualTextCharacters,
         int maxDecodedTextCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters,
         TextOutputBudget? textOutputBudget = null,
-        System.Func<string, byte[], int, string>? decodeWithFontWithinLimit = null) {
+        System.Func<string, byte[], int, string>? decodeWithFontWithinLimit = null,
+        PdfContentOrderKey? contentOrderPrefix = null,
+        int contentOrderOffset = 0) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -254,12 +259,14 @@ internal static class TextContentParser {
         double pendingGapPt = 0;
         int pendingLineBreaks = 0;
         bool emittedTextInTextObject = false;
+        PdfContentOrderKey? currentContentOrderKey = null;
         var sbOutGlobal = new StringBuilder();
         var markedContentStack = new Stack<MarkedContentState>();
         PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
             args.Clear();
             args.AddRange(operation.Operands);
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
+            currentContentOrderKey = contentOrderPrefix?.Append(operation.OperatorOffset + contentOrderOffset);
             string op = operation.Name;
             switch (op) {
                 case "BT": ApplyPendingTextClippingPath(); inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
@@ -694,7 +701,8 @@ internal static class TextContentParser {
                     drawingFontFamilyForResource?.Invoke(font),
                     pendingLineBreaks,
                     logicalLeadingSpace,
-                    logicalTrailingSpace));
+                    logicalTrailingSpace,
+                    currentContentOrderKey));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;
@@ -1223,7 +1231,7 @@ internal static class TextContentParser {
                     if (!HasHiddenContent() && args.Count >= 1) {
                         string name = ToName(args[args.Count - 1]);
                         if (!string.IsNullOrEmpty(name)) {
-                            invocations.Add(new FormInvocation(name, ctm, paintOrder, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath));
+                            invocations.Add(new FormInvocation(name, ctm, paintOrder, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, operation.OperatorOffset));
                         }
                     }
                     args.Clear();
