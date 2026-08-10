@@ -497,8 +497,19 @@ public sealed partial class PdfReadPage {
                          tilingPatterns: tilingPatterns,
                 shadingPatterns: shadingPatterns)) {
                 if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
+                    if (requireImageMask &&
+                        initialFillPattern?.ShadingPattern is PdfPageShadingPatternResource inheritedShading &&
+                        !PdfPageContentVisualParser.IsSupportedShadingTransform(inheritedShading, initialFillPattern.Value.PaintTransform)) {
+                        AddRenderDiagnostic(
+                            diagnostics,
+                            seen,
+                            PdfRenderCapabilities.UnsupportedShadingId,
+                            initialFillPattern.Value.Name);
+                        supported = false;
+                        continue;
+                    }
                     if ((initialFillPattern.HasValue && !HasUsableInheritedPattern(initialFillPattern)) ||
-                        !CanProjectType3ImageInvocation(invocation, resources, requireImageMask, diagnostics, seen)) supported = false;
+                        !CanProjectType3ImageInvocation(invocation, resources, requireImageMask, initialFillPattern, diagnostics, seen)) supported = false;
                     continue;
                 }
                 if (!TryGetFormStream(resources, invocation.Name, out PdfStream form)) {
@@ -546,6 +557,7 @@ public sealed partial class PdfReadPage {
         PdfPageXObjectInvocation invocation,
         PdfDictionary resources,
         bool requireImageMask,
+        PdfPagePatternSelection? inheritedFillPattern,
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen) {
         PdfImagePlacement placement;
@@ -597,6 +609,30 @@ public sealed partial class PdfReadPage {
         }
         CollectImageColorSpaceCapabilityDiagnostic(imageDictionary, resources, diagnostics, seen, invocation.Name);
         if (image == null || !image.IsImageFile || (requireImageMask && !image.IsImageMask)) return false;
+        if (requireImageMask && inheritedFillPattern.HasValue) {
+            (double Width, double Height) pageSize = GetPageSize();
+            Type3PatternImageMaskDrawingResult result = TryPrepareInheritedPatternImageMaskDrawing(
+                inheritedFillPattern,
+                placement,
+                image,
+                pageSize.Width,
+                pageSize.Height,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _);
+            if (result == Type3PatternImageMaskDrawingResult.Unsupported) {
+                if (inheritedFillPattern.Value.ShadingPattern.HasValue) {
+                    AddRenderDiagnostic(
+                        diagnostics,
+                        seen,
+                        PdfRenderCapabilities.UnsupportedShadingId,
+                        inheritedFillPattern.Value.Name);
+                }
+                return false;
+            }
+        }
         return true;
     }
 
