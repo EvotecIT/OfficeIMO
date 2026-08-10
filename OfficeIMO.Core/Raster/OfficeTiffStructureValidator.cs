@@ -3,10 +3,12 @@ using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing;
 
+/// <summary>Validates bounded classic-TIFF structure used by embedded Exif metadata.</summary>
 internal static class OfficeTiffStructureValidator {
     private const int MaximumIfdCount = 1024;
     private const int MaximumEntryCount = 65535;
 
+    /// <summary>Checks byte order, typed value ranges, and all reachable IFD pointer chains.</summary>
     internal static bool TryValidateExif(byte[] bytes, int offset, int count) {
         if (bytes == null || offset < 0 || count < 8 || offset > bytes.Length - count) return false;
 

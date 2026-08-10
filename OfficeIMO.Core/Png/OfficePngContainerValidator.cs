@@ -7,7 +7,9 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Validates PNG chunk framing, ordering, and CRC integrity without decoding pixels.</summary>
 internal static class OfficePngContainerValidator {
+    private const int MaximumPngTextBytes = 1024 * 1024;
     private static readonly byte[] Signature = { 137, 80, 78, 71, 13, 10, 26, 10 };
+    private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     internal static bool TryValidate(byte[]? bytes, out int frameCount, out string? failureReason) {
         frameCount = 0;
@@ -38,6 +40,7 @@ internal static class OfficePngContainerValidator {
             int colorType = 0;
             int paletteEntries = 0;
             int declaredFrameCount = 1;
+            long decodedTextBytes = 0;
             int offset = Signature.Length;
             while (offset + 12 <= bytes.Length) {
                 int length = ReadBigEndianInt32(bytes, offset);
@@ -188,6 +191,27 @@ internal static class OfficePngContainerValidator {
                         }
                         seenIccProfile = true;
                         break;
+                    case "tEXt":
+                        if (!seenHeader || !HasValidLatinText(bytes, dataOffset, length, ref decodedTextBytes)) {
+                            failureReason = "PNG bytes contain an invalid tEXt chunk.";
+                            return false;
+                        }
+                        if (seenImageData) imageDataEnded = true;
+                        break;
+                    case "zTXt":
+                        if (!seenHeader || !HasValidCompressedText(bytes, dataOffset, length, ref decodedTextBytes)) {
+                            failureReason = "PNG bytes contain an invalid zTXt chunk.";
+                            return false;
+                        }
+                        if (seenImageData) imageDataEnded = true;
+                        break;
+                    case "iTXt":
+                        if (!seenHeader || !HasValidInternationalText(bytes, dataOffset, length, ref decodedTextBytes)) {
+                            failureReason = "PNG bytes contain an invalid iTXt chunk.";
+                            return false;
+                        }
+                        if (seenImageData) imageDataEnded = true;
+                        break;
                     case "eXIf":
                         if (!seenHeader || seenExif ||
                             !OfficeTiffStructureValidator.TryValidateExif(bytes, dataOffset, length)) {
@@ -294,22 +318,8 @@ internal static class OfficePngContainerValidator {
     }
 
     private static bool HasValidIccProfile(byte[] bytes, int offset, int length) {
-        if (length < 9) return false;
-        int nameLength = 0;
-        while (nameLength < length && nameLength < 80 && bytes[offset + nameLength] != 0) {
-            byte value = bytes[offset + nameLength];
-            if (!IsValidKeywordByte(value) ||
-                (value == (byte)' ' && (nameLength == 0 || bytes[offset + nameLength - 1] == (byte)' '))) {
-                return false;
-            }
-            nameLength++;
-        }
-        if (nameLength < 1 || nameLength > 79 || nameLength >= length ||
-            bytes[offset + nameLength - 1] == (byte)' ') {
-            return false;
-        }
-
-        int compressionMethodOffset = offset + nameLength + 1;
+        if (length < 9 || !TryReadKeyword(bytes, offset, length, out int keywordEnd)) return false;
+        int compressionMethodOffset = keywordEnd + 1;
         if (compressionMethodOffset >= offset + length || bytes[compressionMethodOffset] != 0) return false;
         int compressedOffset = compressionMethodOffset + 1;
         int compressedLength = offset + length - compressedOffset;
@@ -328,6 +338,132 @@ internal static class OfficePngContainerValidator {
             exception is OverflowException) {
             return false;
         }
+    }
+
+    private static bool HasValidLatinText(
+        byte[] bytes,
+        int offset,
+        int length,
+        ref long decodedTextBytes) {
+        if (!TryReadKeyword(bytes, offset, length, out int keywordEnd)) return false;
+        int textOffset = keywordEnd + 1;
+        int textLength = offset + length - textOffset;
+        for (int index = 0; index < textLength; index++) {
+            if (bytes[textOffset + index] == 0) return false;
+        }
+        return TryAddDecodedTextBytes(ref decodedTextBytes, textLength);
+    }
+
+    private static bool HasValidCompressedText(
+        byte[] bytes,
+        int offset,
+        int length,
+        ref long decodedTextBytes) {
+        if (!TryReadKeyword(bytes, offset, length, out int keywordEnd)) return false;
+        int methodOffset = keywordEnd + 1;
+        if (methodOffset >= offset + length || bytes[methodOffset] != 0) return false;
+        return TryInflateText(
+            bytes,
+            methodOffset + 1,
+            offset + length - methodOffset - 1,
+            ref decodedTextBytes,
+            requireUtf8: false);
+    }
+
+    private static bool HasValidInternationalText(
+        byte[] bytes,
+        int offset,
+        int length,
+        ref long decodedTextBytes) {
+        if (!TryReadKeyword(bytes, offset, length, out int keywordEnd)) return false;
+        int end = offset + length;
+        int flagOffset = keywordEnd + 1;
+        if (flagOffset > end - 2 || bytes[flagOffset] > 1 || bytes[flagOffset + 1] != 0) return false;
+
+        int languageOffset = flagOffset + 2;
+        int languageEnd = FindNull(bytes, languageOffset, end);
+        if (languageEnd < 0 || !HasValidLanguageTag(bytes, languageOffset, languageEnd - languageOffset)) return false;
+        int translatedOffset = languageEnd + 1;
+        int translatedEnd = FindNull(bytes, translatedOffset, end);
+        if (translatedEnd < 0 || !HasValidUtf8(bytes, translatedOffset, translatedEnd - translatedOffset)) return false;
+        int textOffset = translatedEnd + 1;
+        int textLength = end - textOffset;
+        if (bytes[flagOffset] == 1) {
+            return TryInflateText(bytes, textOffset, textLength, ref decodedTextBytes, requireUtf8: true);
+        }
+        return HasValidUtf8(bytes, textOffset, textLength) &&
+               TryAddDecodedTextBytes(ref decodedTextBytes, textLength);
+    }
+
+    private static bool TryInflateText(
+        byte[] bytes,
+        int offset,
+        int length,
+        ref long decodedTextBytes,
+        bool requireUtf8) {
+        if (length < 6) return false;
+        var compressed = new byte[length];
+        Buffer.BlockCopy(bytes, offset, compressed, 0, length);
+        try {
+            byte[] text = OfficeZlibCodec.Decompress(compressed, MaximumPngTextBytes);
+            return (!requireUtf8 || HasValidUtf8(text, 0, text.Length)) &&
+                   TryAddDecodedTextBytes(ref decodedTextBytes, text.Length);
+        } catch (Exception exception) when (
+            exception is ArgumentException ||
+            exception is FormatException ||
+            exception is InvalidDataException ||
+            exception is NotSupportedException ||
+            exception is OverflowException) {
+            return false;
+        }
+    }
+
+    private static bool TryReadKeyword(byte[] bytes, int offset, int length, out int keywordEnd) {
+        keywordEnd = offset;
+        int end = offset + length;
+        while (keywordEnd < end && keywordEnd - offset < 80 && bytes[keywordEnd] != 0) {
+            byte value = bytes[keywordEnd];
+            if (!IsValidKeywordByte(value) ||
+                (value == (byte)' ' && (keywordEnd == offset || bytes[keywordEnd - 1] == (byte)' '))) {
+                return false;
+            }
+            keywordEnd++;
+        }
+        int keywordLength = keywordEnd - offset;
+        return keywordLength >= 1 && keywordLength <= 79 && keywordEnd < end &&
+               bytes[keywordEnd] == 0 && bytes[keywordEnd - 1] != (byte)' ';
+    }
+
+    private static int FindNull(byte[] bytes, int offset, int end) {
+        for (int index = offset; index < end; index++) {
+            if (bytes[index] == 0) return index;
+        }
+        return -1;
+    }
+
+    private static bool HasValidLanguageTag(byte[] bytes, int offset, int length) {
+        for (int index = 0; index < length; index++) {
+            byte value = bytes[offset + index];
+            if (!((value >= (byte)'A' && value <= (byte)'Z') ||
+                  (value >= (byte)'a' && value <= (byte)'z') ||
+                  (value >= (byte)'0' && value <= (byte)'9') ||
+                  value == (byte)'-')) return false;
+        }
+        return true;
+    }
+
+    private static bool HasValidUtf8(byte[] bytes, int offset, int length) {
+        try {
+            _ = StrictUtf8.GetString(bytes, offset, length);
+            return true;
+        } catch (DecoderFallbackException) {
+            return false;
+        }
+    }
+
+    private static bool TryAddDecodedTextBytes(ref long total, int count) {
+        total += count;
+        return total <= MaximumPngTextBytes;
     }
 
     private static bool IsValidKeywordByte(byte value) =>

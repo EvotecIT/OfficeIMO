@@ -363,6 +363,43 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void WebpValidationRequiresStructurallyValidExifMetadata() {
+        byte[] valid = OfficeRasterImageEncoder.Encode(
+            new OfficeRasterImage(1, 1, OfficeColor.White),
+            OfficeImageExportFormat.Webp,
+            new OfficeRasterEncodingOptions { DpiX = 144D, DpiY = 120D });
+        int exifOffset = FindWebpChunk(valid, "EXIF");
+        byte[] malformed = (byte[])valid.Clone();
+        malformed[exifOffset + 8] = (byte)'X';
+
+        Assert.True(OfficeImageReader.TryValidateContent(valid, "valid-exif.webp", out _));
+        Assert.False(OfficeImageReader.TryIdentifyByContent(malformed, "malformed-exif.webp", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(malformed, "malformed-exif.webp", out _));
+    }
+
+    [Fact]
+    public void WebpValidationAcceptsStructurallyValidExifWithoutImageDimensionTags() {
+        byte[] simple = OfficeWebpCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] exif = {
+            (byte)'I', (byte)'I', 42, 0, 8, 0, 0, 0,
+            0, 0,
+            0, 0, 0, 0
+        };
+        var bytes = new List<byte> {
+            (byte)'R', (byte)'I', (byte)'F', (byte)'F', 0, 0, 0, 0,
+            (byte)'W', (byte)'E', (byte)'B', (byte)'P'
+        };
+        bytes.AddRange(CreateWebpChunk("VP8X", new byte[] { 0x08, 0, 0, 0, 0, 0, 0, 0, 0, 0 }));
+        bytes.AddRange(simple.Skip(12));
+        bytes.AddRange(CreateWebpChunk("EXIF", exif));
+        byte[] extended = bytes.ToArray();
+        WriteInt32LittleEndian(extended, 4, extended.Length - 8);
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(extended, "metadata-only-exif.webp", out _));
+        Assert.True(OfficeImageReader.TryValidateContent(extended, "metadata-only-exif.webp", out _));
+    }
+
+    [Fact]
     public void ApngValidationBoundsAggregateDecodedFramePixels() {
         byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] apng = CreateTwoFrameApng(staticPng);
@@ -604,6 +641,20 @@ public partial class DrawingTests {
         WriteInt32LittleEndian(chunk, 4, data.Length);
         Buffer.BlockCopy(data, 0, chunk, 8, data.Length);
         return chunk;
+    }
+
+    private static int FindWebpChunk(byte[] bytes, string expectedType) {
+        int offset = 12;
+        while (offset <= bytes.Length - 8) {
+            string type = System.Text.Encoding.ASCII.GetString(bytes, offset, 4);
+            int length = bytes[offset + 4] |
+                         bytes[offset + 5] << 8 |
+                         bytes[offset + 6] << 16 |
+                         bytes[offset + 7] << 24;
+            if (type == expectedType) return offset;
+            offset += 8 + length + (length & 1);
+        }
+        throw new InvalidDataException("WebP chunk was not found.");
     }
 
     private static byte[] CreateTwoFrameApng(byte[] png) {

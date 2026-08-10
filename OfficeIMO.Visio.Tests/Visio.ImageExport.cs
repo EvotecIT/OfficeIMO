@@ -317,6 +317,22 @@ public class VisioImageExport {
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }
 
+    [Fact]
+    public void EmbeddedSvgPreviewSkipsCascadeLayersAndReportsLoss() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>" +
+                           "<style>rect { fill:blue; } @layer themed { rect { fill:red; } }</style>" +
+                           "<rect width='10' height='10'/></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.True(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "cascade-layer.svg", default, out OfficeRasterImage? image));
+        Assert.Equal(OfficeColor.Blue, Assert.IsType<OfficeRasterImage>(image).GetPixel(5, 5));
+        Assert.Contains(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
     [Theory]
     [InlineData("display='none'", false)]
     [InlineData("visibility='hidden'", false)]

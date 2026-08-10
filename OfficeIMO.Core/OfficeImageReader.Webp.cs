@@ -104,7 +104,8 @@ public static partial class OfficeImageReader {
                 hasAnimationFrame = true;
                 hasAlpha |= frameHasAlpha;
             } else if (chunkType == "EXIF") {
-                if (!extended || exifOffset != 0 || (!hasImage && !hasAnimationFrame) || seenXmp || chunkSize == 0) {
+                if (!extended || exifOffset != 0 || (!hasImage && !hasAnimationFrame) || seenXmp ||
+                    !HasValidWebpExif(data, chunkDataOffset, chunkSize)) {
                     return false;
                 }
                 exifOffset = chunkDataOffset;
@@ -269,6 +270,19 @@ public static partial class OfficeImageReader {
         return TryReadTiff(tiff, out info) &&
                info.Width == expectedWidth &&
                info.Height == expectedHeight;
+    }
+
+    private static bool HasValidWebpExif(byte[] data, int offset, int length) {
+        if (length < 8 || length > MaximumWebpExifBytes) return false;
+        if (length >= 14 &&
+            GetAscii(data, offset, 4) == "Exif" &&
+            data[offset + 4] == 0 &&
+            data[offset + 5] == 0) {
+            offset += 6;
+            length -= 6;
+        }
+
+        return OfficeTiffStructureValidator.TryValidateExif(data, offset, length);
     }
 
     private static uint ReadUInt32LittleEndian(byte[] data, int offset) =>

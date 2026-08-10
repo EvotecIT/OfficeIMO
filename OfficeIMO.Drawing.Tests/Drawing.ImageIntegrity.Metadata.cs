@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Text;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -117,6 +119,41 @@ public partial class DrawingTests {
             InsertPngChunkBefore(png, "IDAT", "eXIf", Array.Empty<byte>()),
             "empty-exif.png",
             out _));
+    }
+
+    [Fact]
+    public void PngContainerValidatesTextKeywordsAndCompressedTextStreams() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] compressed = OfficeZlibCodec.Compress(Encoding.UTF8.GetBytes("OfficeIMO"));
+        byte[] zText = Encoding.ASCII.GetBytes("Comment")
+            .Concat(new byte[] { 0, 0 })
+            .Concat(compressed)
+            .ToArray();
+        byte[] internationalText = Encoding.ASCII.GetBytes("Description")
+            .Concat(new byte[] { 0, 1, 0, 0, 0 })
+            .Concat(compressed)
+            .ToArray();
+        byte[] invalidMethod = (byte[])zText.Clone();
+        invalidMethod[8] = 1;
+        byte[] invalidStream = (byte[])zText.Clone();
+        invalidStream[invalidStream.Length - 1] ^= 0x01;
+        byte[] invalidInternationalStream = (byte[])internationalText.Clone();
+        invalidInternationalStream[invalidInternationalStream.Length - 1] ^= 0x01;
+
+        Assert.True(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "zTXt", zText), "compressed-text.png", out _));
+        Assert.True(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "iTXt", internationalText), "international-text.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "zTXt", Array.Empty<byte>()), "empty-text.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "zTXt", invalidMethod), "text-method.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "zTXt", invalidStream), "text-stream.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "iTXt", invalidInternationalStream), "international-stream.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "tEXt", new byte[] { (byte)' ', 0 }), "text-keyword.png", out _));
     }
 
     [Fact]

@@ -239,7 +239,7 @@ namespace OfficeIMO.Visio {
                 while (end < prelude.Length && (char.IsLetter(prelude[end]) || prelude[end] == '-')) end++;
                 string name = prelude.Substring(1, end - 1);
                 if (string.Equals(name, "layer", StringComparison.OrdinalIgnoreCase)) {
-                    applies = true;
+                    canEvaluate = false;
                     return true;
                 }
                 if (string.Equals(name, "media", StringComparison.OrdinalIgnoreCase)) {
