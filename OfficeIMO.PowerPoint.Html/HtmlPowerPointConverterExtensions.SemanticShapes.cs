@@ -74,7 +74,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     private static double ImportTextBox(
-        IElement source,
+        IElement? source,
         string text,
         PptCore.PowerPointSlide slide,
         double fallbackTop,
@@ -100,42 +100,86 @@ public static partial class HtmlPowerPointConverterExtensions {
             return fallbackTop;
         }
 
-        ReadSemanticShapeGeometry(source, 64D, fallbackTop, 620D, fallbackHeight, budget, result,
-            out double left, out double top, out double width, out double height);
+        double left = 64D;
+        double top = fallbackTop;
+        double width = 620D;
+        double height = fallbackHeight;
+        if (source != null) {
+            ReadSemanticShapeGeometry(source, left, top, width, height, budget, result,
+                out left, out top, out width, out height);
+        }
         PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(text, left, top, width, height);
         if (semanticBlock?.Kind == HtmlSemanticBlockKind.List) {
-            ApplySemanticList(textBox, semanticBlock);
+            ApplySemanticList(textBox, semanticBlock, result);
         } else if (semanticBlock != null && semanticBlock.Runs.Count > 0) {
             ApplySemanticRuns(textBox.Paragraphs[0], semanticBlock.Runs);
         }
-        ApplyShapeTransforms(source, textBox, budget, result);
+        if (source != null) ApplyShapeTransforms(source, textBox, budget, result);
         result.TextBoxes++;
         return Math.Max(fallbackTop + 58D, top + height + 10D);
     }
 
-    private static void ApplySemanticList(PptCore.PowerPointTextBox textBox, HtmlSemanticBlock list) {
+    private static void ApplySemanticList(
+        PptCore.PowerPointTextBox textBox,
+        HtmlSemanticBlock list,
+        HtmlToPowerPointResult result) {
         var items = new List<SemanticListItem>();
-        AppendSemanticListItems(list, 0, items);
+        AppendSemanticListItems(list, 0, items, result);
         if (items.Count == 0) return;
         textBox.Text = string.Join("\n", items.Select(item => item.Block.Text));
         IReadOnlyList<PptCore.PowerPointParagraph> paragraphs = textBox.Paragraphs;
         for (int index = 0; index < Math.Min(items.Count, paragraphs.Count); index++) {
             SemanticListItem item = items[index];
             PptCore.PowerPointParagraph paragraph = paragraphs[index];
-            if (item.Ordered) paragraph.SetNumbered(index + 1);
-            else paragraph.SetBullet();
+            if (item.Ordered) {
+                if (item.ShouldRestart) {
+                    paragraph.SetNumbered(item.Ordinal ?? 1);
+                } else {
+                    paragraph.SetNumbered(PptCore.PowerPointNumberingScheme.ArabicPeriod);
+                }
+            } else {
+                paragraph.SetBullet();
+            }
             paragraph.Level = Math.Min(8, item.Level);
             ApplySemanticRuns(paragraph, item.Block.Runs);
         }
     }
 
-    private static void AppendSemanticListItems(HtmlSemanticBlock list, int level, ICollection<SemanticListItem> result) {
+    private static void AppendSemanticListItems(
+        HtmlSemanticBlock list,
+        int level,
+        ICollection<SemanticListItem> result,
+        HtmlToPowerPointResult conversionResult) {
+        int? previousOrdinal = null;
         foreach (HtmlSemanticBlock item in list.Children) {
-            result.Add(new SemanticListItem(item, list.Ordered, level));
+            int? ordinal = list.Ordered
+                ? NormalizePowerPointListOrdinal(item.ListItem?.Ordinal ?? 1, conversionResult)
+                : null;
+            bool shouldRestart = list.Ordered && (!previousOrdinal.HasValue
+                || item.ListItem?.ExplicitOrdinal.HasValue == true
+                || list.List?.IsReversed == true
+                || (long)ordinal.GetValueOrDefault() != (long)previousOrdinal.Value + 1L);
+            result.Add(new SemanticListItem(item, list.Ordered, ordinal, shouldRestart, level));
+            previousOrdinal = ordinal;
             foreach (HtmlSemanticBlock nested in item.Children.Where(child => child.Kind == HtmlSemanticBlockKind.List)) {
-                AppendSemanticListItems(nested, level + 1, result);
+                AppendSemanticListItems(nested, level + 1, result, conversionResult);
             }
         }
+    }
+
+    private static int NormalizePowerPointListOrdinal(int ordinal, HtmlToPowerPointResult result) {
+        const int minimum = 1;
+        const int maximum = 32767;
+        int normalized = Math.Max(minimum, Math.Min(maximum, ordinal));
+        if (normalized != ordinal) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                "An HTML list ordinal outside PowerPoint's supported range was clamped to "
+                + normalized.ToString(CultureInfo.InvariantCulture) + ".",
+                lossKind: OfficeConversionLossKind.Approximation,
+                source: "list ordinal",
+                detail: "Ordinal=" + ordinal.ToString(CultureInfo.InvariantCulture) + "; Supported=1..32767");
+        }
+        return normalized;
     }
 
     private static void ApplySemanticRuns(PptCore.PowerPointParagraph paragraph, IReadOnlyList<HtmlSemanticRun> runs) {
@@ -193,13 +237,17 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     private sealed class SemanticListItem {
-        internal SemanticListItem(HtmlSemanticBlock block, bool ordered, int level) {
+        internal SemanticListItem(HtmlSemanticBlock block, bool ordered, int? ordinal, bool shouldRestart, int level) {
             Block = block;
             Ordered = ordered;
+            Ordinal = ordinal;
+            ShouldRestart = shouldRestart;
             Level = level;
         }
         internal HtmlSemanticBlock Block { get; }
         internal bool Ordered { get; }
+        internal int? Ordinal { get; }
+        internal bool ShouldRestart { get; }
         internal int Level { get; }
     }
 

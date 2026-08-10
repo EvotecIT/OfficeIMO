@@ -41,7 +41,7 @@ public static partial class HtmlExcelConverterExtensions {
         }
 
         bool hasNarrative = tables.Count == 0 || document.Sections
-            .Any(section => section.Blocks.Any(block => IsSectionNarrativeBlock(section, block)));
+            .Any(HasSectionNarrative);
         ExcelSheet? narrativeSheet = null;
         int row = 1;
         if (hasNarrative) {
@@ -55,7 +55,7 @@ public static partial class HtmlExcelConverterExtensions {
                 int maxTableCells = budget.Limits.MaxTableCells;
                 foreach (HtmlSemanticSection section in document.Sections) {
                     if (row > maxTableCells || row > A1.MaxRows) break;
-                    bool sectionHasNarrative = section.Blocks.Any(block => IsSectionNarrativeBlock(section, block));
+                    bool sectionHasNarrative = HasSectionNarrative(section);
                     if (!sectionHasNarrative && tables.Count > 0) continue;
                     if (TrySetCellTextValue(narrativeSheet, row, 1, section.Title, result, budget)) {
                         narrativeSheet.CellAt(row, 1).SetBold();
@@ -102,6 +102,10 @@ public static partial class HtmlExcelConverterExtensions {
         && !(block.Kind == HtmlSemanticBlockKind.Heading
             && string.Equals(block.Text, section.Title, StringComparison.Ordinal));
 
+    private static bool HasSectionNarrative(HtmlSemanticSection section) =>
+        (section.Blocks.Count == 0 && section.TitleSource == HtmlSemanticSectionTitleSource.Heading)
+        || section.Blocks.Any(block => IsSectionNarrativeBlock(section, block));
+
     private static void ImportGenericImages(
         HtmlSemanticDocument document,
         ExcelSheet sheet,
@@ -116,18 +120,13 @@ public static partial class HtmlExcelConverterExtensions {
                 continue;
             }
             if (!IsSupportedExcelImage(dataUri, result, resource.Source)) continue;
-            if (!budget.IsImageWithinLimit(dataUri, out string imageLimit)) {
-                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                    "An embedded generic worksheet image was omitted because the shared image limit was reached.",
-                    lossKind: OfficeConversionLossKind.Omission, source: resource.Source, detail: imageLimit);
-                continue;
-            }
-            if (!budget.TryReserveImageWithShape(dataUri, out imageLimit)) {
+            if (!budget.TryReserveImageWithShape(dataUri, out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                     "An embedded generic worksheet image was omitted because the shared image or drawing limit was reached.",
                     lossKind: OfficeConversionLossKind.Omission, source: resource.Source, detail: imageLimit);
                 continue;
             }
+            using HtmlImportBudgetReservation imageReservationScope = imageReservation;
             if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
                     "An embedded generic worksheet image could not be decoded.",
@@ -141,6 +140,7 @@ public static partial class HtmlExcelConverterExtensions {
                 name: null,
                 altText: string.IsNullOrWhiteSpace(resource.AlternateText) ? null : resource.AlternateText);
             result.Images++;
+            imageReservation.Commit();
             row = Math.Min(A1.MaxRows + 1, row + Math.Max(2, (height + 19) / 20 + 1));
         }
     }

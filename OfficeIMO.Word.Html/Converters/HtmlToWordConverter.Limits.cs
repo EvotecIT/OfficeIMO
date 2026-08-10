@@ -1,6 +1,5 @@
 using AngleSharp.Dom;
 using OfficeIMO.Html;
-using System.Text;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -18,8 +17,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void ValidateCssLimit(string css, string? source) {
-            var bytes = Encoding.UTF8.GetByteCount(css);
+        private void ValidateCssLimit(long bytes, string? source) {
             if (_options.MaxCssBytes.HasValue && bytes > _options.MaxCssBytes.Value) {
                 ThrowLimitExceeded(_options, "CssSizeLimitExceeded", "CSS size exceeded the configured conversion limit.", source ?? "stylesheet", bytes, _options.MaxCssBytes.Value);
             }
@@ -58,7 +56,7 @@ namespace OfficeIMO.Word.Html {
             return (limit, limitedByTotalBudget);
         }
 
-        private void ValidateTableLimit(HtmlToWordOptions options, int rows, int columns) {
+        private void ValidateTableLimit(HtmlToWordOptions options, int rows, long columns) {
             if (!options.MaxTableCells.HasValue) {
                 return;
             }

@@ -339,7 +339,10 @@ public static class HtmlNormalizer {
 
         return IsImageSourceElement(element)
             || (string.Equals(tagName, "input", StringComparison.OrdinalIgnoreCase)
-                && string.Equals((element.GetAttribute("type") ?? string.Empty).Trim(), "image", StringComparison.OrdinalIgnoreCase));
+                && string.Equals(
+                    HtmlFormControlSemantics.GetEffectiveType("input", element.GetAttribute("type")),
+                    "image",
+                    StringComparison.Ordinal));
     }
 
     private static bool IsImageSourceElement(IElement element) {

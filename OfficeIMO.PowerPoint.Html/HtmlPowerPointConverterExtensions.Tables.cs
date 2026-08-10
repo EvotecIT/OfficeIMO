@@ -37,22 +37,23 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
         }
 
-        if (semanticBlock?.Table != null) ApplySemanticTableFormatting(table, semanticBlock.Table);
+        if (semanticBlock?.Table != null) ApplySemanticTableFormatting(table, semanticBlock.Table, grid.Cells);
 
         ApplyShapeTransforms(tableElement, table, budget, result);
         result.Tables++;
         return Math.Max(top + Math.Max(90D, grid.Rows * 40D), tableTop + height + 20D);
     }
 
-    private static void ApplySemanticTableFormatting(PptCore.PowerPointTable target, HtmlSemanticTable source) {
-        var occupied = new HashSet<long>();
-        int rowIndex = 0;
+    private static void ApplySemanticTableFormatting(
+        PptCore.PowerPointTable target,
+        HtmlSemanticTable source,
+        IReadOnlyList<PowerPointHtmlTableCell> layoutCells) {
+        int layoutIndex = 0;
         foreach (HtmlSemanticTableRow row in source.Rows) {
-            int columnIndex = 0;
             foreach (HtmlSemanticTableCell cell in row.Cells) {
-                while (occupied.Contains(GetTableCellKey(rowIndex, columnIndex))) columnIndex++;
-                if (rowIndex >= target.Rows || columnIndex >= target.Columns) break;
-                PptCore.PowerPointTableCell targetCell = target.GetCell(rowIndex, columnIndex);
+                if (layoutIndex >= layoutCells.Count) return;
+                PowerPointHtmlTableCell layoutCell = layoutCells[layoutIndex++];
+                PptCore.PowerPointTableCell targetCell = target.GetCell(layoutCell.Row, layoutCell.Column);
                 if (cell.Runs.Count > 0) ApplySemanticRuns(targetCell.Paragraphs[0], cell.Runs);
                 if (cell.IsHeader) {
                     foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Bold = true;
@@ -64,12 +65,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                     foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Color = color;
                 }
                 ApplySemanticTableAlignment(targetCell, cell.Style?.GetValue("text-align"));
-                ReservePowerPointSpan(occupied, rowIndex, columnIndex,
-                    Math.Max(1, cell.RowSpan), Math.Max(1, cell.ColumnSpan));
-                columnIndex += Math.Max(1, cell.ColumnSpan);
             }
-            rowIndex++;
-            if (rowIndex >= target.Rows) break;
         }
     }
 

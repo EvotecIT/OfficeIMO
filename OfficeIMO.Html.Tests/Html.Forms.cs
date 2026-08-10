@@ -42,6 +42,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_RangeInputsUseSanitizedCurrentValues() {
+            const string html = """
+                <p><input type="range" name="default"><input type="range" name="bounded" min="10" max="20" value="200">
+                   <input type="range" name="stepped" min="0" max="10" step="3" value="8"></p>
+                """;
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            Assert.Equal(new[] { "50", "20", "9" }, doc.StructuredDocumentTags.Select(control => control.Text));
+        }
+
+        [Fact]
+        public void HtmlToWord_TypedInputsUseSanitizedCurrentValues() {
+            const string html = """
+                <p><input type="number" value="twelve"><input type="color" value="red"><input type="color"><input type="date" value="not-a-date"></p>
+                """;
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            Assert.Equal(new[] { string.Empty, "#000000", "#000000", string.Empty }, doc.StructuredDocumentTags.Select(control => control.Text));
+            Assert.Null(Assert.Single(doc.DatePickers).Date);
+        }
+
+        [Fact]
+        public void HtmlToWord_RadioGroupsUseEffectiveCheckedness() {
+            const string html = """
+                <p><input type="radio" name="choice" value="first" checked>
+                   <input type="radio" name="choice" value="last" checked></p>
+                """;
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            Assert.Equal("last", Assert.Single(doc.DropDownLists).SelectedValue);
+        }
+
+        [Fact]
+        public void HtmlToWord_WhitespacePaddedInputTypeUsesTheTextState() {
+            const string html = "<p><input type=\" checkbox \" name=\"choice\" value=\"Contoso\" checked></p>";
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            Assert.Empty(doc.CheckBoxes);
+            Assert.Equal("Contoso", Assert.Single(doc.StructuredDocumentTags).Text);
+        }
+
+        [Fact]
         public void HtmlToWord_NonDocumentInputControls_AreIgnored() {
             const string html = "<p>Start <input type=\"hidden\" value=\"secret\"><input type=\"file\" value=\"C:\\fakepath\\report.docx\"><input type=\"button\" value=\"Click\"><input type=\"submit\" value=\"Send\"> End</p>";
 
@@ -97,6 +143,47 @@ namespace OfficeIMO.Tests {
             Assert.Equal("High", dropDown.SelectedValue);
             Assert.Equal("Priority", dropDown.Alias);
             Assert.Equal("priority", dropDown.Tag);
+        }
+
+        [Fact]
+        public void HtmlToWord_SingleSelectUsesEffectiveLastSelectedOption() {
+            const string html = "<select><option selected>First</option><option selected>Second</option></select>";
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            var dropDown = Assert.Single(doc.DropDownLists);
+            Assert.Equal("Second", dropDown.SelectedValue);
+        }
+
+        [Fact]
+        public void HtmlToWord_SingleSelectUsesFirstEnabledOptionAndHtmlOptionValues() {
+            const string html = "<select><option disabled>Disabled</option><optgroup disabled><option>Group disabled</option></optgroup><option label='Enabled label'>\tA&nbsp;\nB\u2003C\r</option></select>";
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            WordDropDownList dropDown = Assert.Single(doc.DropDownLists);
+            Assert.Equal(new[] { "Disabled", "Group disabled", "Enabled label" }, dropDown.Items.ToArray());
+            Assert.Equal("A\u00A0 B\u2003C", dropDown.SelectedValue);
+        }
+
+        [Fact]
+        public void HtmlToWord_AllDisabledSingleSelectHasNoSelectedValue() {
+            const string html = "<select><option disabled>A</option><optgroup disabled><option>B</option></optgroup></select>";
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            WordDropDownList dropDown = Assert.Single(doc.DropDownLists);
+            Assert.Equal(string.Empty, dropDown.SelectedValue);
+        }
+
+        [Fact]
+        public void HtmlToWord_SizedSingleSelectWithoutSelectionHasNoSelectedValue() {
+            const string html = "<select size='2'><option>First</option><option>Second</option></select>";
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            WordDropDownList dropDown = Assert.Single(doc.DropDownLists);
+            Assert.Equal(string.Empty, dropDown.SelectedValue);
         }
 
         [Fact]
@@ -234,6 +321,17 @@ namespace OfficeIMO.Tests {
             var dropDown = Assert.Single(doc.DropDownLists);
             Assert.Equal(new[] { "internal", "external" }, dropDown.Items.ToArray());
             Assert.Equal("internal", dropDown.SelectedValue);
+        }
+
+        [Fact]
+        public void HtmlToWord_ExplicitlyEmptyFormOwnerDoesNotUseAncestorForm() {
+            const string html = "<form id='f'><input type='radio' name='status' value='owned' checked><input type='radio' name='status' form='' value='unowned' checked></form>";
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            Assert.Equal(2, doc.DropDownLists.Count);
+            Assert.Contains(doc.DropDownLists, dropDown => dropDown.Items.SequenceEqual(new[] { "owned" }));
+            Assert.Contains(doc.DropDownLists, dropDown => dropDown.Items.SequenceEqual(new[] { "unowned" }));
         }
 
         [Fact]

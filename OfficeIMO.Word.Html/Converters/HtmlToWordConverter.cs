@@ -78,30 +78,35 @@ namespace OfficeIMO.Word.Html {
             await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
 
             var wordDoc = WordDocument.Create();
-            if (!string.IsNullOrEmpty(options.FontFamily)) {
-                var resolved = ResolveFontFamily(options.FontFamily) ?? options.FontFamily;
-                wordDoc.Settings.FontFamily = resolved;
-            }
-            ApplyDocumentMetadata(wordDoc, document);
+            try {
+                if (!string.IsNullOrEmpty(options.FontFamily)) {
+                    var resolved = ResolveFontFamily(options.FontFamily) ?? options.FontFamily;
+                    wordDoc.Settings.FontFamily = resolved;
+                }
+                ApplyDocumentMetadata(wordDoc, document);
 
-            if (options.DefaultPageSize.HasValue) {
-                wordDoc.PageSettings.PageSize = options.DefaultPageSize.Value;
-            }
-            if (options.DefaultOrientation.HasValue) {
-                wordDoc.PageOrientation = options.DefaultOrientation.Value;
-            }
+                if (options.DefaultPageSize.HasValue) {
+                    wordDoc.PageSettings.PageSize = options.DefaultPageSize.Value;
+                }
+                if (options.DefaultOrientation.HasValue) {
+                    wordDoc.PageOrientation = options.DefaultOrientation.Value;
+                }
 
-            var section = wordDoc.Sections.First();
-            var listStack = new Stack<WordList>();
-            WordList? headingList = options.SupportsHeadingNumbering ? wordDoc.AddList(WordListStyle.Headings111) : null;
-            if (document.Body != null) {
+                var section = wordDoc.Sections.First();
+                var listStack = new Stack<WordList>();
+                WordList? headingList = options.SupportsHeadingNumbering ? wordDoc.AddList(WordListStyle.Headings111) : null;
+                if (document.Body != null) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ProcessNode(document.Body, wordDoc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
+                }
+
                 cancellationToken.ThrowIfCancellationRequested();
-                ProcessNode(document.Body, wordDoc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
+                InsertTopBookmarkIfNeeded(wordDoc);
+                return wordDoc;
+            } catch {
+                wordDoc.Dispose();
+                throw;
             }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            InsertTopBookmarkIfNeeded(wordDoc);
-            return wordDoc;
         }
 
         internal async Task AddHtmlToBodyAsync(WordDocument doc, WordSection section, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {

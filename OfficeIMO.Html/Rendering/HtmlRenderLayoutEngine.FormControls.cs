@@ -115,7 +115,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (tag == "select") {
             string longest = element.QuerySelectorAll("option")
-                .Select(option => NormalizeControlText(option.TextContent))
+                .Select(HtmlFormControlSemantics.GetOptionLabel)
                 .OrderByDescending(text => text.Length)
                 .FirstOrDefault() ?? string.Empty;
             return Math.Max(108D, MeasureText(longest, style.Font) + 24D);
@@ -134,8 +134,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int rows = ParsePositiveInteger(element.GetAttribute("rows"), 2, 1, 100);
             return Math.Max(style.LineHeight, rows * style.LineHeight);
         }
-        if (tag == "select" && (element.HasAttribute("multiple") || ParsePositiveInteger(element.GetAttribute("size"), 1, 1, 100) > 1)) {
-            int rows = ParsePositiveInteger(element.GetAttribute("size"), 4, 2, 20);
+        int selectDisplaySize = tag == "select" ? HtmlFormControlSemantics.GetSelectDisplaySize(element) : 1;
+        if (tag == "select" && (element.HasAttribute("multiple") || selectDisplaySize > 1)) {
+            int rows = Math.Max(2, Math.Min(20, selectDisplaySize));
             return Math.Max(style.LineHeight, rows * style.LineHeight);
         }
         return Math.Max(style.LineHeight, 20D);
@@ -190,12 +191,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentHeight = Math.Max(0.01D, boxHeight - style.VerticalInsets);
 
         if (tag == "input" && type == "checkbox") {
-            if (element.HasAttribute("checked")) AddCheckboxMark(visuals, contentX, contentY, contentWidth, contentHeight, source);
+            if (HtmlFormControlSemantics.IsEffectivelyChecked(element)) AddCheckboxMark(visuals, contentX, contentY, contentWidth, contentHeight, source);
             return;
         }
         if (tag == "input" && type == "radio") {
             ReplaceControlBackgroundWithRadio(visuals, boxX, boxY, boxWidth, boxHeight, style, source);
-            if (element.HasAttribute("checked")) AddRadioMark(visuals, contentX, contentY, contentWidth, contentHeight, source);
+            if (HtmlFormControlSemantics.IsEffectivelyChecked(element)) AddRadioMark(visuals, contentX, contentY, contentWidth, contentHeight, source);
             return;
         }
         if (tag == "input" && type == "range") {
@@ -231,12 +232,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             value = ResolveButtonLabel(element, type);
             alignment = OfficeTextAlignment.Center;
         } else if (tag == "input" && type == "file") {
-            value = NormalizeControlText(element.GetAttribute("value"));
-            value = value.Length == 0 ? "Choose file" : value;
+            value = "Choose file";
         } else {
-            value = NormalizeControlText(element.GetAttribute("value"));
+            value = tag == "input"
+                ? NormalizeControlText(HtmlFormControlSemantics.GetValues(element).FirstOrDefault())
+                : NormalizeControlText(element.GetAttribute("value"));
             if (type == "password" && value.Length > 0) value = new string('*', Math.Min(32, value.Length));
-            if (value.Length == 0) {
+            if (value.Length == 0 && HtmlFormControlSemantics.IsPlaceholderApplicable(tag, type)) {
                 value = NormalizeControlText(element.GetAttribute("placeholder"));
                 isPlaceholder = value.Length > 0;
             }
@@ -323,7 +325,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         string source) {
-        double fraction = ResolveNumericFraction(element, 0D, 100D, 50D);
+        double fraction = HtmlFormControlSemantics.GetRangeFraction(element);
         double trackHeight = Math.Max(2D, Math.Min(4D, height * 0.25D));
         double trackY = y + (height - trackHeight) / 2D;
         OfficeShape track = OfficeShape.RoundedRectangle(width, trackHeight, trackHeight / 2D);
@@ -352,7 +354,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         string source) {
-        OfficeColor color = HtmlRenderCssValues.TryColor(element.GetAttribute("value") ?? string.Empty, out OfficeColor parsed)
+        string value = HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty;
+        OfficeColor color = HtmlRenderCssValues.TryColor(value, out OfficeColor parsed)
             ? parsed
             : OfficeColor.Black;
         OfficeShape swatch = OfficeShape.Rectangle(width, height);
@@ -396,22 +399,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         HtmlRenderBoxStyle style,
         string source) {
-        IElement[] options = element.QuerySelectorAll("option").ToArray();
-        bool multiple = element.HasAttribute("multiple") || ParsePositiveInteger(element.GetAttribute("size"), 1, 1, 100) > 1;
-        if (multiple) {
-            string[] values = options
-                .Where(option => option.HasAttribute("selected"))
-                .DefaultIfEmpty(options.FirstOrDefault()!)
-                .Where(option => option != null)
-                .Select(option => NormalizeControlText(option.TextContent))
+        bool listBox = element.HasAttribute("multiple")
+            || HtmlFormControlSemantics.GetSelectDisplaySize(element) > 1;
+        if (listBox) {
+            string[] values = HtmlFormControlSemantics.GetEffectiveSelectedOptions(element)
+                .Select(HtmlFormControlSemantics.GetOptionLabel)
                 .Where(value => value.Length > 0)
                 .ToArray();
             AddMultilineControlText(visuals, string.Join("\n", values), x, y, width, height, style, false, source);
             return;
         }
 
-        IElement? selected = options.FirstOrDefault(option => option.HasAttribute("selected")) ?? options.FirstOrDefault();
-        string value = selected == null ? string.Empty : NormalizeControlText(selected.TextContent);
+        IElement? selected = HtmlFormControlSemantics.GetEffectiveSelectedOptions(element).SingleOrDefault();
+        string value = selected == null ? string.Empty : HtmlFormControlSemantics.GetOptionLabel(selected);
         AddSingleLineControlText(visuals, value, x, y, Math.Max(1D, width - 16D), height, style, false, OfficeTextAlignment.Left, source);
 
         double arrowWidth = Math.Min(8D, width * 0.12D);
@@ -524,8 +524,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static string NormalizeInputType(IElement element) {
         if (!string.Equals(element.TagName, "input", StringComparison.OrdinalIgnoreCase)) return string.Empty;
-        string type = (element.GetAttribute("type") ?? string.Empty).Trim().ToLowerInvariant();
-        return type.Length == 0 ? "text" : type;
+        return HtmlFormControlSemantics.GetEffectiveType("input", element.GetAttribute("type"));
     }
 
     private static string NormalizeControlText(string? value) =>
@@ -535,7 +534,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         value.Replace("\r\n", "\n").Replace('\r', '\n').Trim();
 
     private static int ParsePositiveInteger(string? value, int fallback, int minimum, int maximum) =>
-        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed)
+        HtmlIntegerSemantics.TryParsePositiveInteger(value, out int parsed)
             ? Math.Max(minimum, Math.Min(maximum, parsed))
             : fallback;
 

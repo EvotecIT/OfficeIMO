@@ -551,16 +551,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? parent = element.ParentElement;
         if (parent == null) return "• ";
         if (!string.Equals(parent.TagName, "ol", StringComparison.OrdinalIgnoreCase)) return "• ";
-        int start = 1;
-        int.TryParse(parent.GetAttribute("start"), out start);
-        if (start == 0) start = 1;
-        int index = 0;
-        foreach (IElement sibling in parent.Children) {
-            if (!string.Equals(sibling.TagName, "li", StringComparison.OrdinalIgnoreCase)) continue;
-            if (ReferenceEquals(sibling, element)) break;
-            index++;
-        }
-
-        return (start + index).ToString(System.Globalization.CultureInfo.InvariantCulture) + ". ";
+        return HtmlListSemantics.TryResolveOrdinal(element, out int ordinal)
+            ? ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) + ". "
+            : "1. ";
     }
 }

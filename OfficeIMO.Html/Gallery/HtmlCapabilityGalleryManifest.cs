@@ -13,8 +13,8 @@ public sealed class HtmlCapabilityGalleryManifest {
     public HtmlCapabilityGalleryManifest(
         HtmlCapabilityGalleryResult result,
         HtmlConversionProfile profile,
-        HtmlRoundTripScore roundTripScore,
-        HtmlResourceManifest resourceManifest)
+        HtmlRoundTripScore? roundTripScore,
+        HtmlResourceManifest? resourceManifest)
         : this(result, profile, roundTripScore, resourceManifest, Array.Empty<HtmlCapabilityGalleryExpectation>()) {
     }
 
@@ -24,8 +24,8 @@ public sealed class HtmlCapabilityGalleryManifest {
     public HtmlCapabilityGalleryManifest(
         HtmlCapabilityGalleryResult result,
         HtmlConversionProfile profile,
-        HtmlRoundTripScore roundTripScore,
-        HtmlResourceManifest resourceManifest,
+        HtmlRoundTripScore? roundTripScore,
+        HtmlResourceManifest? resourceManifest,
         IEnumerable<HtmlCapabilityGalleryExpectation> expectations)
         : this(result, profile, roundTripScore, resourceManifest, expectations, Array.Empty<OfficeHtmlConversionProfile>()) {
     }
@@ -36,8 +36,8 @@ public sealed class HtmlCapabilityGalleryManifest {
     public HtmlCapabilityGalleryManifest(
         HtmlCapabilityGalleryResult result,
         HtmlConversionProfile profile,
-        HtmlRoundTripScore roundTripScore,
-        HtmlResourceManifest resourceManifest,
+        HtmlRoundTripScore? roundTripScore,
+        HtmlResourceManifest? resourceManifest,
         IEnumerable<HtmlCapabilityGalleryExpectation> expectations,
         IEnumerable<OfficeHtmlConversionProfile> officeProfiles) {
         Result = result ?? throw new ArgumentNullException(nameof(result));
@@ -55,10 +55,10 @@ public sealed class HtmlCapabilityGalleryManifest {
     public HtmlConversionProfile Profile { get; }
 
     /// <summary>Optional round-trip score.</summary>
-    public HtmlRoundTripScore RoundTripScore { get; }
+    public HtmlRoundTripScore? RoundTripScore { get; }
 
     /// <summary>Optional resource manifest.</summary>
-    public HtmlResourceManifest ResourceManifest { get; }
+    public HtmlResourceManifest? ResourceManifest { get; }
 
     /// <summary>Expected proof outcomes for features, simplifications, blocked resources, diagnostics, and visual or logical evidence.</summary>
     public IReadOnlyList<HtmlCapabilityGalleryExpectation> Expectations => _expectations;

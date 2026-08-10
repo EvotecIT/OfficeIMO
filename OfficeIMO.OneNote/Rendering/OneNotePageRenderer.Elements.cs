@@ -27,6 +27,7 @@ public static partial class OneNotePageRenderer {
         private readonly IDictionary<OneNoteImage, ImageRenderData> _imageCache;
         private readonly OfficeTextMeasurer _measurer;
         private readonly bool _pageRightToLeft;
+        private readonly Dictionary<string, int> _listIndices = new(StringComparer.Ordinal);
 
         internal RenderContext(
             OfficeDrawing drawing,
@@ -43,8 +44,19 @@ public static partial class OneNotePageRenderer {
         }
 
         internal double RenderOutline(OneNoteOutline outline, double x, double y, double width, bool? inheritedRightToLeft = null) {
+            ResetListNumbering();
             bool rightToLeft = outline.Layout?.RightToLeft ?? inheritedRightToLeft ?? _pageRightToLeft;
             return Math.Max(DefaultParagraphHeight, RenderChildren(outline.Children, x, y, width, 0D, rightToLeft));
+        }
+
+        internal void ResetListNumbering() => _listIndices.Clear();
+
+        internal Dictionary<string, int> SnapshotListNumbering() =>
+            new Dictionary<string, int>(_listIndices, StringComparer.Ordinal);
+
+        internal void RestoreListNumbering(Dictionary<string, int> indices) {
+            _listIndices.Clear();
+            foreach (KeyValuePair<string, int> item in indices) _listIndices.Add(item.Key, item.Value);
         }
 
         internal double RenderElement(
@@ -55,7 +67,10 @@ public static partial class OneNotePageRenderer {
             double availableHeight,
             bool forcePageBounds = false,
             bool? inheritedRightToLeft = null) {
-            if (y >= _drawing.Height || x >= _drawing.Width) return 0D;
+            if (y >= _drawing.Height || x >= _drawing.Width) {
+                AdvanceListNumberingForElement(element);
+                return 0D;
+            }
             if (x < 0D || y < 0D) {
                 return RenderElementWithNegativeOffset(
                     element,
@@ -67,7 +82,10 @@ public static partial class OneNotePageRenderer {
                     inheritedRightToLeft);
             }
             availableWidth = Math.Min(availableWidth, _drawing.Width - x);
-            if (availableWidth <= 0D) return 0D;
+            if (availableWidth <= 0D) {
+                AdvanceListNumberingForElement(element);
+                return 0D;
+            }
             double explicitHeight = element is not OneNoteImage
                 && element.Layout?.Height.HasValue == true
                 ? Math.Max(0D, element.Layout.Height.Value * PointsPerHalfInch)
@@ -90,7 +108,7 @@ public static partial class OneNotePageRenderer {
         }
 
         private double RenderParagraph(OneNoteParagraph paragraph, double x, double y, double width, bool rightToLeft) {
-            string prefix = CreateParagraphPrefix(paragraph);
+            string prefix = CreateParagraphPrefix(paragraph, advanceListState: true);
             double textHeight;
             if (paragraph.Runs.Count == 0 && prefix.Length == 0) {
                 textHeight = DefaultParagraphHeight;
@@ -244,125 +262,6 @@ public static partial class OneNotePageRenderer {
         private static double ResolveParagraphLineHeight(OneNoteParagraph paragraph, double fontSize) =>
             Math.Max(fontSize * 1.25D, ParagraphDistance(paragraph.Style.ExactLineSpacing));
 
-        internal double MeasureElementHeight(OneNoteElement element, double width) {
-            if (element is OneNoteImage image) {
-                if (!_options.IncludeImages) return 0D;
-                if (TryIdentifyImage(image, out OfficeImageInfo? info)) {
-                    double renderWidth = ResolveImageWidth(image, info, width);
-                    return Math.Max(1D, ResolveImageHeight(image, info, renderWidth));
-                }
-                return ResolveImageHeight(image, null, width);
-            }
-            if (element.Layout?.Height.HasValue == true) return Math.Max(1D, element.Layout.Height.Value * PointsPerHalfInch);
-            if (element is OneNoteParagraph paragraph) return MeasureParagraphHeight(paragraph, width);
-            if (element is OneNoteOutline outline) return MeasureElementsBounds(outline.Children, width).Bottom;
-            if (element is OneNoteTable table) return MeasureTableHeight(table, width);
-            if (element is OneNoteInk ink) {
-                OfficeInkBounds bounds = ink.Ink.GetBounds();
-                if (bounds.IsEmpty) return DefaultParagraphHeight;
-                double sourceWidth = Math.Max(0.000001D, (bounds.X + bounds.Width) * PointsPerHalfInch);
-                double fit = Math.Min(1D, Math.Max(1D, width) / sourceWidth);
-                return Math.Max(DefaultParagraphHeight, (bounds.Y + bounds.Height) * PointsPerHalfInch * fit);
-            }
-            if (element is OneNoteMath math) {
-                OfficeMathLayoutMetrics metrics = OfficeMathRenderer.Measure(math.GetExpression(), _options.Math);
-                return Math.Max(DefaultParagraphHeight, metrics.Height);
-            }
-            if (element is OneNoteBinaryElement) return 34D;
-            return 32D;
-        }
-
-        internal double MeasureElementsHeight(IEnumerable<OneNoteElement> elements, double width) {
-            return MeasureElementsBounds(elements, width).Bottom;
-        }
-
-        internal (double Right, double Bottom) MeasureElementsBounds(IEnumerable<OneNoteElement> elements, double width) {
-            double right = 0D;
-            double bottom = 0D;
-            double cursor = 0D;
-            double pendingSpace = 0D;
-            foreach (OneNoteElement element in elements) {
-                bool participatesInFlow = element.Layout?.Y.HasValue != true;
-                double elementX = element.Layout?.X.HasValue == true ? element.Layout.X.Value * PointsPerHalfInch : 0D;
-                double elementY = element.Layout?.Y.HasValue == true
-                    ? element.Layout.Y.Value * PointsPerHalfInch
-                    : cursor + Math.Max(pendingSpace, ParagraphSpaceBefore(element));
-                double remainingWidth = Math.Max(1D, width - Math.Max(0D, elementX));
-                double elementWidth = ResolveEstimatedWidth(element, remainingWidth, _options);
-                double elementHeight = MeasureElementHeight(element, elementWidth);
-                double extentWidth = MeasureElementWidthExtent(element, elementWidth);
-                right = Math.Max(right, elementX + extentWidth);
-                bottom = Math.Max(bottom, elementY + elementHeight);
-                if (participatesInFlow) {
-                    cursor = Math.Max(cursor, elementY + elementHeight);
-                    pendingSpace = element is OneNoteParagraph ? ParagraphSpaceAfter(element) : 6D;
-                }
-            }
-            return (Math.Max(1D, right), Math.Max(DefaultParagraphHeight, Math.Max(bottom, cursor + pendingSpace)));
-        }
-
-        internal double MeasureElementWidthExtent(OneNoteElement element, double width) {
-            if (element is OneNoteOutline outline) return Math.Max(width, MeasureElementsBounds(outline.Children, width).Right);
-            if (element is OneNoteParagraph paragraph) return Math.Max(width, MeasureElementsBounds(paragraph.Children, width).Right);
-            return width;
-        }
-
-        private double MeasureParagraphHeight(OneNoteParagraph paragraph, double width) {
-            string prefix = CreateParagraphPrefix(paragraph);
-            double textHeight;
-            if (paragraph.Runs.Count == 0 && prefix.Length == 0) {
-                textHeight = DefaultParagraphHeight;
-            } else if (paragraph.Runs.Any(run => run.MathExpression != null)) {
-                IReadOnlyList<InlineMathLine> lines = CreateInlineMathLines(paragraph, prefix, width);
-                double exactLineHeight = ParagraphDistance(paragraph.Style.ExactLineSpacing);
-                double height = lines.Sum(line => Math.Max(line.Height + 3D, exactLineHeight)) - 3D;
-                textHeight = Math.Max(DefaultParagraphHeight, height);
-            } else {
-                IReadOnlyList<OfficeRichTextRun> runs = CreateParagraphRichTextRuns(paragraph, prefix);
-                double fontSize = paragraph.Runs.Count == 0
-                    ? _options.DefaultFont.Size
-                    : paragraph.Runs.Max(run => run.Style.FontSize ?? _options.DefaultFont.Size);
-                double lineHeight = ResolveParagraphLineHeight(paragraph, fontSize);
-                textHeight = MeasureRichTextHeight(runs, width, lineHeight, CreateParagraphIndent(paragraph));
-            }
-            double cursor = textHeight;
-            double bottom = textHeight;
-            double pendingSpace = 0D;
-            foreach (OneNoteElement child in paragraph.Children) {
-                bool participatesInFlow = child.Layout?.Y.HasValue != true;
-                double childX = child.Layout?.X.HasValue == true ? child.Layout.X.Value * PointsPerHalfInch : 0D;
-                double childY = child.Layout?.Y.HasValue == true
-                    ? child.Layout.Y.Value * PointsPerHalfInch
-                    : cursor + Math.Max(pendingSpace, ParagraphSpaceBefore(child));
-                double childWidth = ResolveEstimatedWidth(
-                    child,
-                    Math.Max(1D, width - Math.Max(0D, childX)),
-                    _options);
-                double childHeight = MeasureElementHeight(child, childWidth);
-                bottom = Math.Max(bottom, childY + childHeight);
-                if (participatesInFlow) {
-                    cursor = Math.Max(cursor, childY + childHeight);
-                    pendingSpace = child is OneNoteParagraph ? ParagraphSpaceAfter(child) : 5D;
-                }
-            }
-            return Math.Max(DefaultParagraphHeight, Math.Max(bottom, cursor + pendingSpace));
-        }
-
-        private double MeasureTableHeight(OneNoteTable table, double width) {
-            int columns = Math.Max(table.ColumnWidths.Count, table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.Cells.Count));
-            if (columns == 0) return DefaultParagraphHeight;
-            double[] columnWidths = ResolveTableColumns(table, columns, width);
-            double height = 0D;
-            foreach (OneNoteTableRow row in table.Rows) {
-                double rowHeight = 32D;
-                for (int column = 0; column < row.Cells.Count && column < columnWidths.Length; column++) {
-                    rowHeight = Math.Max(rowHeight, MeasureElementsHeight(row.Cells[column].Content, Math.Max(1D, columnWidths[column] - 8D)) + 8D);
-                }
-                height += rowHeight;
-            }
-            return Math.Max(DefaultParagraphHeight, height);
-        }
-
         private IReadOnlyList<OfficeRichTextRun> CreateParagraphRichTextRuns(OneNoteParagraph paragraph, string prefix) {
             if (paragraph.Runs.Count == 0) {
                 return prefix.Length == 0
@@ -496,9 +395,11 @@ public static partial class OneNotePageRenderer {
             double cursorY = y;
             foreach (OneNoteTableRow row in table.Rows) {
                 double rowHeight = 32D;
-                for (int column = 0; column < row.Cells.Count && column < columns.Length; column++) {
-                    rowHeight = Math.Max(rowHeight, MeasureElementsHeight(row.Cells[column].Content, Math.Max(1D, columns[column] - 8D)) + 8D);
-                }
+                MeasureWithTemporaryListNumbering(() => {
+                    for (int column = 0; column < row.Cells.Count && column < columns.Length; column++) {
+                        rowHeight = Math.Max(rowHeight, MeasureElementsHeight(row.Cells[column].Content, Math.Max(1D, columns[column] - 8D)) + 8D);
+                    }
+                });
                 rowHeight = Math.Min(rowHeight, Math.Max(1D, _drawing.Height - cursorY));
                 double cursorX = x;
                 for (int column = 0; column < columnCount; column++) {
@@ -776,16 +677,32 @@ public static partial class OneNotePageRenderer {
             return new OfficeTextParagraphIndent(paragraph.List.Level * 18D, paragraph.List.Level * 18D);
         }
 
-        private static string CreateParagraphPrefix(OneNoteParagraph paragraph) {
+        private string CreateParagraphPrefix(OneNoteParagraph paragraph, bool advanceListState) {
             var builder = new System.Text.StringBuilder();
             if (paragraph.List != null) {
-                builder.Append(paragraph.List.Ordered ? Math.Max(1, paragraph.List.DisplayIndex ?? 1).ToString() + ". " : "• ");
+                builder.Append(paragraph.List.Ordered ? ResolveListIndex(paragraph.List, advanceListState).ToString() + ". " : "• ");
             }
             foreach (OneNoteTag tag in paragraph.Tags) {
                 if (tag.IsCheckable || tag.IsTask) builder.Append(tag.IsCompleted ? "☑ " : "☐ ");
                 else if (!string.IsNullOrWhiteSpace(tag.Label)) builder.Append('[').Append(tag.Label).Append("] ");
             }
             return builder.ToString();
+        }
+
+        private int ResolveListIndex(OneNoteListInfo list, bool advanceListState) {
+            string key = list.Level.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + "|" + (list.Format ?? 0U).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + "|" + (list.FontFamily ?? string.Empty);
+            int index;
+            if (list.Restart || list.DisplayIndex.HasValue) {
+                index = Math.Max(1, list.DisplayIndex ?? 1);
+            } else if (_listIndices.TryGetValue(key, out int previous)) {
+                index = previous == int.MaxValue ? int.MaxValue : previous + 1;
+            } else {
+                index = 1;
+            }
+            if (advanceListState) _listIndices[key] = index;
+            return index;
         }
 
         private static OfficeColor ResolveColor(uint? argb) {

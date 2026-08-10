@@ -3,7 +3,7 @@ using System.Text;
 
 namespace OfficeIMO.OneNote.Tests;
 
-public sealed class OneNoteRenderingTests {
+public sealed partial class OneNoteRenderingTests {
     [Theory]
     [InlineData("testOneNote2016.one")]
     [InlineData("testOneNoteFromOffice365.one")]
@@ -509,6 +509,29 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
+    public void ClippedOrderedParagraphAdvancesFollowingListNumbering() {
+        var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard };
+        var clipped = new OneNoteParagraph {
+            Layout = new OneNoteLayout { Y = -0.1D },
+            List = new OneNoteListInfo { Ordered = true, Level = 1, Restart = true, DisplayIndex = 1 }
+        };
+        clipped.Runs.Add(new OneNoteTextRun { Text = "Clipped" });
+        var following = new OneNoteParagraph {
+            List = new OneNoteListInfo { Ordered = true, Level = 1 }
+        };
+        following.Runs.Add(new OneNoteTextRun { Text = "Following" });
+        page.DirectContent.Add(clipped);
+        page.DirectContent.Add(following);
+
+        OfficeDrawing drawing = page.ToDrawing(new OneNotePageRenderingOptions { IncludeTitle = false });
+        OfficeDrawingRichText followingText = Assert.Single(
+            drawing.Elements.OfType<OfficeDrawingRichText>(),
+            item => item.Runs.Any(run => run.Text.Contains("Following", StringComparison.Ordinal)));
+
+        Assert.StartsWith("2. ", followingText.Runs[0].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ParagraphChildrenRenderAfterRunsAndExplicitFlowHeightIsReserved() {
         var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard };
         var outline = new OneNoteOutline { Layout = new OneNoteLayout { X = 0.25D, Y = 0.5D, Width = 4D } };
@@ -629,6 +652,35 @@ public sealed class OneNoteRenderingTests {
         Assert.True(frames[0].Shape.Height > 32D);
         Assert.Equal(90D, frames[1].X - frames[0].X, 6);
         Assert.True(frames[2].Y >= frames[0].Y + frames[0].Shape.Height);
+    }
+
+    [Fact]
+    public void TableMeasurementDoesNotAdvanceOrderedListNumbering() {
+        var page = new OneNotePage { PageSize = OneNotePageSize.Letter };
+        var table = new OneNoteTable { Layout = new OneNoteLayout { X = 0.5D, Y = 0.5D, Width = 4D } };
+        table.ColumnWidths.Add(4D);
+        var row = new OneNoteTableRow();
+        var cell = new OneNoteTableCell();
+        var first = new OneNoteParagraph {
+            List = new OneNoteListInfo { Ordered = true, Level = 1, Restart = true, DisplayIndex = 1 }
+        };
+        first.Runs.Add(new OneNoteTextRun { Text = "First" });
+        var second = new OneNoteParagraph {
+            List = new OneNoteListInfo { Ordered = true, Level = 1 }
+        };
+        second.Runs.Add(new OneNoteTextRun { Text = "Second" });
+        cell.Content.Add(first);
+        cell.Content.Add(second);
+        row.Cells.Add(cell);
+        table.Rows.Add(row);
+        page.DirectContent.Add(table);
+
+        OfficeDrawingRichText[] paragraphs = page.ToDrawing(new OneNotePageRenderingOptions { IncludeTitle = false })
+            .Elements.OfType<OfficeDrawingRichText>().ToArray();
+
+        Assert.Equal(2, paragraphs.Length);
+        Assert.StartsWith("1. ", paragraphs[0].Runs[0].Text, StringComparison.Ordinal);
+        Assert.StartsWith("2. ", paragraphs[1].Runs[0].Text, StringComparison.Ordinal);
     }
 
     [Fact]

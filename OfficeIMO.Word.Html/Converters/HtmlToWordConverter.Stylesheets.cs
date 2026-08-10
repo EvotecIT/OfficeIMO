@@ -27,9 +27,9 @@ namespace OfficeIMO.Word.Html {
             }
 
             try {
-                var css = await FetchCssStringAsync(uri, url.Href, cancellationToken).ConfigureAwait(false);
-                if (css != null) {
-                    ParseCss(css, url.Href);
+                DecodedStylesheet? stylesheet = await FetchCssStringAsync(uri, url.Href, cancellationToken).ConfigureAwait(false);
+                if (stylesheet.HasValue) {
+                    ParseCss(stylesheet.Value, url.Href);
                 }
             } catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested) {
                 AddDiagnostic(_options, "StylesheetLoadTimedOut", "Stylesheet resource timed out or was canceled by the resource pipeline and was skipped.", url.Href, ex);
@@ -61,7 +61,7 @@ namespace OfficeIMO.Word.Html {
             ParseCss(ReadCssFileWithLimit(localPath), localPath);
         }
 
-        private async Task<string?> FetchCssStringAsync(Uri uri, string source, CancellationToken cancellationToken) {
+        private async Task<DecodedStylesheet?> FetchCssStringAsync(Uri uri, string source, CancellationToken cancellationToken) {
             using var cts = _resourceTimeout.HasValue
                 ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
                 : null;
@@ -86,7 +86,7 @@ namespace OfficeIMO.Word.Html {
             return await ReadCssContentWithLimitAsync(response.Content, source, token).ConfigureAwait(false);
         }
 
-        private async Task<string> ReadCssContentWithLimitAsync(HttpContent content, string source, CancellationToken cancellationToken) {
+        private async Task<DecodedStylesheet> ReadCssContentWithLimitAsync(HttpContent content, string source, CancellationToken cancellationToken) {
             var readLimit = GetCssReadLimit();
             if (readLimit.Limit.HasValue && content.Headers.ContentLength.HasValue && content.Headers.ContentLength.Value > readLimit.Limit.Value) {
                 if (readLimit.LimitedByTotalBudget) {
@@ -124,10 +124,13 @@ namespace OfficeIMO.Word.Html {
                 memory.Write(buffer, 0, read);
             }
 
-            return Encoding.UTF8.GetString(memory.ToArray());
+            byte[] bytes = memory.ToArray();
+            return new DecodedStylesheet(
+                HtmlTextEncodingResolver.DecodeCss(bytes, content.Headers.ContentType?.ToString()),
+                bytes.LongLength);
         }
 
-        private string ReadCssFileWithLimit(string path) {
+        private DecodedStylesheet ReadCssFileWithLimit(string path) {
             var readLimit = GetCssReadLimit();
             if (readLimit.Limit.HasValue) {
                 var length = new FileInfo(path).Length;
@@ -140,7 +143,18 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            return File.ReadAllText(path);
+            byte[] bytes = File.ReadAllBytes(path);
+            try {
+                return new DecodedStylesheet(HtmlTextEncodingResolver.DecodeCss(bytes), bytes.LongLength);
+            } catch (DecoderFallbackException exception) {
+                AddDiagnostic(
+                    _options,
+                    "StylesheetEncodingFailed",
+                    "Stylesheet resource used an unsupported encoding or invalid byte sequence and was skipped.",
+                    path,
+                    exception);
+                return new DecodedStylesheet(string.Empty, bytes.LongLength);
+            }
         }
 
         private bool TryApplyStylesheetUriPolicy(Uri uri, string source) {
@@ -209,12 +223,17 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void ParseCss(string css, string? key = null) {
+        private void ParseCss(string css, string? key = null) =>
+            ParseCss(css, Encoding.UTF8.GetByteCount(css), key);
+
+        private void ParseCss(DecodedStylesheet stylesheet, string? key = null) =>
+            ParseCss(stylesheet.Text, stylesheet.EncodedByteCount, key);
+
+        private void ParseCss(string css, long encodedByteCount, string? key) {
+            ValidateCssLimit(encodedByteCount, key);
             if (string.IsNullOrWhiteSpace(css)) {
                 return;
             }
-
-            ValidateCssLimit(css, key);
 
             var cacheKey = ComputeHash(css);
             if (!_stylesheetCache.TryGetValue(cacheKey, out var rules)) {
@@ -244,6 +263,16 @@ namespace OfficeIMO.Word.Html {
                     }
                 }
             }
+        }
+
+        private readonly struct DecodedStylesheet {
+            internal DecodedStylesheet(string text, long encodedByteCount) {
+                Text = text;
+                EncodedByteCount = encodedByteCount;
+            }
+
+            internal string Text { get; }
+            internal long EncodedByteCount { get; }
         }
 
         private static string ComputeHash(string content) {

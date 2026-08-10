@@ -1,10 +1,493 @@
 using OfficeIMO.Html;
+using OfficeIMO.OneNote;
 using OfficeIMO.OneNote.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public partial class Html {
+    [Fact]
+    public void SemanticDocument_PreservesHeadingOnlySectionTitles() {
+        HtmlSemanticSection section = Assert.Single(
+            HtmlConversionDocument.Parse("<h1>Only title</h1>").SemanticDocument.Sections);
+
+        Assert.Equal("Only title", section.Title);
+        Assert.Equal(HtmlSemanticSectionTitleSource.Heading, section.TitleSource);
+        Assert.Empty(section.Blocks);
+    }
+
+    [Fact]
+    public void SemanticDocument_ReportsGeneratedTitlesForUnnamedEmptySections() {
+        HtmlSemanticSection section = Assert.Single(
+            HtmlConversionDocument.Parse("<section></section>").SemanticDocument.Sections);
+
+        Assert.Equal("Imported 1", section.Title);
+        Assert.Equal(HtmlSemanticSectionTitleSource.Generated, section.TitleSource);
+        Assert.Empty(section.Blocks);
+    }
+
+    [Fact]
+    public void SemanticDocument_DoesNotCreateAHeadingOnlySectionForAnEmptyHeading() {
+        IReadOnlyList<HtmlSemanticSection> sections = HtmlConversionDocument
+            .Parse("<p>Body</p><h1>  </h1>")
+            .SemanticDocument.Sections;
+
+        HtmlSemanticSection section = Assert.Single(sections);
+        Assert.Equal("Imported 1", section.Title);
+        Assert.Single(section.Blocks);
+    }
+
+    [Fact]
+    public void SemanticDocument_EmptyHeadingStillSeparatesFollowingContent() {
+        IReadOnlyList<HtmlSemanticSection> sections = HtmlConversionDocument
+            .Parse("<p>Before</p><h1></h1><p>After</p>")
+            .SemanticDocument.Sections;
+
+        Assert.Equal(2, sections.Count);
+        Assert.Equal("Imported 1", sections[0].Title);
+        Assert.Equal("Imported 2", sections[1].Title);
+        Assert.Single(sections[0].Blocks);
+        Assert.Single(sections[1].Blocks);
+    }
+
+    [Fact]
+    public void SemanticDocument_NormalizesFormControlStateUsingHtmlRules() {
+        HtmlSemanticBlock form = Assert.Single(HtmlConversionDocument.Parse("""
+            <form id="settings" action="/save" method="post" enctype="multipart/form-data" novalidate>
+              <input name="text" required checked multiple min="1" step="2" pattern="[A-Z]+" minlength="2" maxlength="8" placeholder="Code">
+              <input name="check" type="checkbox" checked readonly pattern="ignored" minlength="4" placeholder="ignored">
+              <button name="save" required readonly checked multiple formaction="/draft" formmethod="get" formenctype="text/plain" formtarget="preview" formnovalidate>Save</button>
+              <select name="choice"><option>One</option><option selected>Two</option></select>
+              <select name="many" multiple><option selected>A</option><option selected value="b">B</option></select>
+              <fieldset disabled><legend><input name="legend"></legend><input name="disabled"></fieldset>
+            </form>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks));
+        Dictionary<string, HtmlSemanticFormControl> controls = form.Children
+            .Select(block => block.FormControl!)
+            .ToDictionary(control => control.Name, StringComparer.Ordinal);
+
+        Assert.Equal("/save", form.Form!.Action);
+        Assert.Equal("post", form.Form.Method);
+        Assert.Equal("multipart/form-data", form.Form.EncodingType);
+        Assert.True(form.Form.NoValidate);
+        Assert.Equal("text", controls["text"].Type);
+        Assert.True(controls["text"].IsRequired);
+        Assert.Equal("[A-Z]+", controls["text"].Pattern);
+        Assert.Equal(2, controls["text"].MinimumLength);
+        Assert.Equal(8, controls["text"].MaximumLength);
+        Assert.Equal("Code", controls["text"].Placeholder);
+        Assert.False(controls["text"].IsChecked);
+        Assert.False(controls["text"].IsMultiple);
+        Assert.Equal(string.Empty, controls["text"].Minimum);
+        Assert.Equal(string.Empty, controls["text"].Step);
+        Assert.Equal("on", controls["check"].Value);
+        Assert.True(controls["check"].IsChecked);
+        Assert.False(controls["check"].IsReadOnly);
+        Assert.Equal(string.Empty, controls["check"].Pattern);
+        Assert.Null(controls["check"].MinimumLength);
+        Assert.Equal(string.Empty, controls["check"].Placeholder);
+        Assert.Equal("submit", controls["save"].Type);
+        Assert.False(controls["save"].IsRequired);
+        Assert.False(controls["save"].IsReadOnly);
+        Assert.False(controls["save"].IsChecked);
+        Assert.False(controls["save"].IsMultiple);
+        Assert.Equal("/draft", controls["save"].FormAction);
+        Assert.Equal("get", controls["save"].FormMethod);
+        Assert.Equal("text/plain", controls["save"].FormEncodingType);
+        Assert.Equal("preview", controls["save"].FormTarget);
+        Assert.True(controls["save"].FormNoValidate);
+        Assert.Equal(new[] { "Two" }, controls["choice"].Values);
+        Assert.Equal(new[] { "A", "b" }, controls["many"].Values);
+        Assert.True(controls["many"].IsMultiple);
+        Assert.False(controls["legend"].IsDisabled);
+        Assert.True(controls["disabled"].IsDisabled);
+        Assert.All(controls.Values, control => Assert.Equal("settings", control.FormOwnerId));
+    }
+
+    [Theory]
+    [InlineData("+5", 5)]
+    [InlineData(" 5 ", 5)]
+    [InlineData("-0", 0)]
+    [InlineData("5junk", 5)]
+    [InlineData("999999999999999999999", int.MaxValue)]
+    [InlineData("-1", null)]
+    [InlineData("\u00A05", null)]
+    public void SemanticDocument_ParsesLengthConstraintsUsingHtmlIntegerRules(string value, int? expected) {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
+            .Parse($"<input minlength='{value}' maxlength='{value}'>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(expected, control.MinimumLength);
+        Assert.Equal(expected, control.MaximumLength);
+    }
+
+    [Fact]
+    public void RoundTripScorer_NormalizesEffectiveLengthConstraints() {
+        HtmlRoundTripScore equivalent = HtmlRoundTripScorer.Compare(
+            "<input minlength='+5' maxlength=' 5 '>",
+            "<input minlength='5junk' maxlength='5'>");
+        HtmlRoundTripScore invalid = HtmlRoundTripScorer.Compare(
+            "<input minlength='\u00A05' maxlength='-1'>",
+            "<input>");
+
+        Assert.Equal(1D, equivalent.Metrics["form-state"], 3);
+        Assert.Equal(1D, invalid.Metrics["form-state"], 3);
+    }
+
+    [Fact]
+    public void SemanticDocument_ExplicitFormOwnerUsesFirstMatchingIdElement() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse("""
+            <div id="owner"></div><form id="owner"></form><input name="field" form="owner">
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks),
+            block => block.FormControl?.Name == "field").FormControl!;
+
+        Assert.Equal(string.Empty, control.FormOwnerId);
+    }
+
+    [Fact]
+    public void SemanticDocument_ExplicitFormOwnerMatchesTheRawIdentifier() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse("""
+            <form id="checkout"></form><input name="field" form=" checkout ">
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks),
+            block => block.FormControl?.Name == "field").FormControl!;
+
+        Assert.Equal(string.Empty, control.FormOwnerId);
+    }
+
+    [Fact]
+    public void SemanticDocument_ExplicitFormOwnerPreservesAnExactlyMatchingWhitespaceIdentifier() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse("""
+            <form id=" checkout "></form><input name="field" form=" checkout ">
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks),
+            block => block.FormControl?.Name == "field").FormControl!;
+
+        Assert.Equal(" checkout ", control.FormOwnerId);
+    }
+
+    [Fact]
+    public void SemanticDocument_NumberInputExcludesInapplicablePlaceholder() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
+            .Parse("<input type='number' name='quantity' placeholder='Count'>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(string.Empty, control.Placeholder);
+    }
+
+    [Fact]
+    public void SemanticDocument_FileInputDoesNotFabricateASelectedFile() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
+            .Parse("<input type='file' name='attachment' value='report.pdf'>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Empty(control.Values);
+        Assert.Equal(string.Empty, control.Value);
+    }
+
+    [Fact]
+    public void SemanticDocument_SelectDefaultsToFirstEnabledOption() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse("""
+            <select name="choice">
+              <option disabled>Directly disabled</option>
+              <optgroup disabled><option>Group disabled</option></optgroup>
+              <option>Enabled</option>
+            </select>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(new[] { "Enabled" }, control.Values);
+
+        HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(
+            "<main><select><option disabled>A</option><optgroup disabled><option>B</option></optgroup><option>C</option></select></main>",
+            "<main><select><option disabled>A</option><optgroup disabled><option>B</option></optgroup><option selected>C</option></select></main>");
+        Assert.Equal(1D, score.Metrics["form-state"], 3);
+    }
+
+    [Fact]
+    public void SemanticDocument_OptionDefaultValueCollapsesOnlyAsciiWhitespace() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse(
+            "<select name='choice'><option>\tA&nbsp;\nB\u2003C\r</option></select>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(new[] { "A\u00A0 B\u2003C" }, control.Values);
+    }
+
+    [Fact]
+    public void SemanticDocument_OptionDefaultValuePreservesOnlyNonAsciiWhitespace() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse(
+            "<select name='choice'><option>&nbsp;\u2003</option></select>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(new[] { "\u00A0\u2003" }, control.Values);
+
+        HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(
+            "<select><option>&nbsp;</option></select>",
+            "<select><option>\u2003</option></select>");
+        Assert.True(score.Metrics["form-state"] < 1D);
+    }
+
+    [Fact]
+    public void SemanticDocument_AllDisabledSingleSelectHasNoImplicitValue() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse(
+            "<select><option disabled>A</option><optgroup disabled><option>B</option></optgroup></select>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Empty(control.Values);
+    }
+
+    [Fact]
+    public void SemanticDocument_SizedSingleSelectWithoutSelectionHasNoImplicitValue() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse(
+            "<select size='2'><option>First</option><option>Second</option></select>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Empty(control.Values);
+
+        HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(
+            "<main><select size='2'><option>First</option><option>Second</option></select></main>",
+            "<main><select size='2'><option selected>First</option><option>Second</option></select></main>");
+        Assert.True(score.Metrics["form-state"] < 1D);
+    }
+
+    [Fact]
+    public void SemanticDocument_ZeroSelectSizeUsesTheParsedZeroDisplaySize() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse(
+            "<select size='0'><option>First</option><option>Second</option></select>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Empty(control.Values);
+    }
+
+    [Fact]
+    public void SemanticDocument_PreservesEmptyScalarValuesButNotValuelessControls() {
+        HtmlSemanticBlock form = Assert.Single(HtmlConversionDocument.Parse("""
+            <form>
+              <input name="text">
+              <textarea name="notes"></textarea>
+              <button name="save">Save</button>
+              <input name="attachment" type="file" value="ignored.txt">
+              <select name="choice" size="2"><option>First</option><option>Second</option></select>
+            </form>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks));
+        Dictionary<string, HtmlSemanticFormControl> controls = form.Children
+            .Select(block => block.FormControl!)
+            .ToDictionary(control => control.Name, StringComparer.Ordinal);
+
+        Assert.Equal(new[] { string.Empty }, controls["text"].Values);
+        Assert.Equal(new[] { string.Empty }, controls["notes"].Values);
+        Assert.Equal(new[] { string.Empty }, controls["save"].Values);
+        Assert.Empty(controls["attachment"].Values);
+        Assert.Empty(controls["choice"].Values);
+    }
+
+    [Theory]
+    [InlineData("<input type='range'>", "50")]
+    [InlineData("<input type='range' value='invalid'>", "50")]
+    [InlineData("<input type='range' min='10' max='20'>", "15")]
+    [InlineData("<input type='range' min='10' max='20' value='4'>", "10")]
+    [InlineData("<input type='range' min='10' max='20' value='24'>", "20")]
+    [InlineData("<input type='range' min='0' max='10' step='3' value='8'>", "9")]
+    [InlineData("<input type='range' max='10' step='3' value='200'>", "8")]
+    [InlineData("<input type='range' min='0' max='10' step='4'>", "4")]
+    [InlineData("<input type='range' min='0' max='10' step='any' value='8'>", "8")]
+    [InlineData("<input type='range' min='0' max='10' value='005.0'>", "005.0")]
+    [InlineData("<input type='range' min='-1e308' max='1e308'>", "0")]
+    public void SemanticDocument_RangeInputReportsItsSanitizedCurrentValue(string html, string expected) {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
+            .Parse(html)
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(expected, control.Value);
+    }
+
+    [Theory]
+    [InlineData("date", "not-a-date", "")]
+    [InlineData("date", "2026-02-29", "")]
+    [InlineData("date", "2028-02-29", "2028-02-29")]
+    [InlineData("month", "2026-13", "")]
+    [InlineData("week", "2026-W54", "")]
+    [InlineData("time", "25:00", "")]
+    [InlineData("datetime-local", "2026-08-09 12:30", "2026-08-09T12:30")]
+    [InlineData("datetime-local", "2026-08-09T12:30:00.000", "2026-08-09T12:30")]
+    [InlineData("datetime-local", "2026-08-09T12:30:01.2300", "2026-08-09T12:30:01.23")]
+    [InlineData("number", "twelve", "")]
+    [InlineData("color", "red", "#000000")]
+    [InlineData("color", "#A1B2C3", "#a1b2c3")]
+    [InlineData("date", "123456789012345678901234567890-02-29", "")]
+    [InlineData("date", "123456789012345678901234567920-02-29", "123456789012345678901234567920-02-29")]
+    public void SemanticDocument_TypedInputsReportSanitizedCurrentValues(string type, string value, string expected) {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
+            .Parse($"<input type='{type}' value='{value}'>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(expected, control.Value);
+    }
+
+    [Fact]
+    public void SemanticDocument_ColorInputWithoutAValueReportsTheBlackDefault() {
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
+            .Parse("<input type='color'>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal("#000000", control.Value);
+        Assert.Equal(new[] { "#000000" }, control.Values);
+    }
+
+    [Fact]
+    public void SemanticDocument_RadioGroupsExposeOnlyTheEffectiveCheckedControl() {
+        HtmlSemanticBlock form = Assert.Single(HtmlConversionDocument.Parse("""
+            <form><input type="radio" name="choice" value="first" checked>
+              <input type="radio" name="choice" value="last" checked></form>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks));
+        HtmlSemanticFormControl[] controls = form.Children.Select(block => block.FormControl!).ToArray();
+
+        Assert.False(controls[0].IsChecked);
+        Assert.True(controls[1].IsChecked);
+    }
+
+    [Fact]
+    public void SemanticDocument_RadioGroupsRespectOwnersAndNonemptyNames() {
+        HtmlSemanticBlock[] forms = HtmlConversionDocument.Parse("""
+            <form><input type="radio" name="choice" checked></form>
+            <form><input type="radio" name="choice" checked></form>
+            <input type="radio" checked><input type="radio" checked>
+            <input type="radio" name=" " checked><input type="radio" name=" " checked>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks).ToArray();
+        HtmlSemanticFormControl[] controls = forms
+            .SelectMany(block => block.FormControl == null ? block.Children : new[] { block })
+            .Select(block => block.FormControl!)
+            .ToArray();
+
+        Assert.True(controls[0].IsChecked);
+        Assert.True(controls[1].IsChecked);
+        Assert.True(controls[2].IsChecked);
+        Assert.True(controls[3].IsChecked);
+        Assert.False(controls[4].IsChecked);
+        Assert.True(controls[5].IsChecked);
+    }
+
+    [Theory]
+    [InlineData("text", "A&#10;B&#13;C", "ABC")]
+    [InlineData("url", "  https://example.test/&#10; ", "https://example.test/")]
+    [InlineData("email", " first@example.test , second@example.test ", "first@example.test , second@example.test")]
+    [InlineData("email multiple", " first@example.test , second@example.test ", "first@example.test,second@example.test")]
+    public void SemanticDocument_TextualInputsRunTheirValueSanitizers(string typeAndFlags, string value, string expected) {
+        string[] parts = typeAndFlags.Split(' ');
+        string multiple = parts.Length > 1 ? " multiple" : string.Empty;
+        HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument
+            .Parse($"<input type='{parts[0]}'{multiple} value='{value}'>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
+
+        Assert.Equal(expected, control.Value);
+    }
+
+    [Fact]
+    public void SemanticDocument_WhitespacePaddedFormKeywordsUseTheirInvalidValueDefaults() {
+        HtmlSemanticBlock form = Assert.Single(HtmlConversionDocument.Parse("""
+            <form method=" post " enctype=" multipart/form-data ">
+              <input name="choice" type=" checkbox " checked>
+              <input name="unicode" type="checKbox" checked>
+              <button name="save" type=" reset " formmethod=" post " formenctype=" text/plain ">Save</button>
+            </form>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal("get", form.Form!.Method);
+        Assert.Equal("application/x-www-form-urlencoded", form.Form.EncodingType);
+        HtmlSemanticFormControl input = Assert.Single(form.Children, child => child.FormControl?.Name == "choice").FormControl!;
+        HtmlSemanticFormControl unicode = Assert.Single(form.Children, child => child.FormControl?.Name == "unicode").FormControl!;
+        HtmlSemanticFormControl button = Assert.Single(form.Children, child => child.FormControl?.Name == "save").FormControl!;
+        Assert.Equal("text", input.Type);
+        Assert.False(input.IsChecked);
+        Assert.Equal("text", unicode.Type);
+        Assert.False(unicode.IsChecked);
+        Assert.Equal("submit", button.Type);
+        Assert.Equal("get", button.FormMethod);
+        Assert.Equal("application/x-www-form-urlencoded", button.FormEncodingType);
+    }
+
+    [Fact]
+    public void SemanticDocument_PreservesOrderedListDirectionAndItemOrdinals() {
+        HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument
+            .Parse("<ol start='3' reversed><li>A</li><li value='10'>B</li><li>C</li></ol>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal(HtmlSemanticListKind.Ordered, list.List!.Kind);
+        Assert.Equal(3, list.List.Start);
+        Assert.True(list.List.IsReversed);
+        Assert.Equal(new int?[] { 3, 10, 9 }, list.Children.Select(item => item.ListItem!.Ordinal));
+        Assert.Equal(new int?[] { null, 10, null }, list.Children.Select(item => item.ListItem!.ExplicitOrdinal));
+        Assert.Equal("3. A\n10. B\n9. C", list.Text);
+    }
+
+    [Fact]
+    public void SemanticDocument_ParsesHtmlIntegerPrefixesForListOrdinals() {
+        HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument
+            .Parse("<ol start='  +3x'><li>A</li><li value='-2junk'>B</li><li>C</li></ol>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal(3, list.List!.Start);
+        Assert.Equal(new int?[] { 3, -2, -1 }, list.Children.Select(item => item.ListItem!.Ordinal));
+        Assert.Equal(new int?[] { null, -2, null }, list.Children.Select(item => item.ListItem!.ExplicitOrdinal));
+        Assert.Equal("3. A\n-2. B\n-1. C", list.Text);
+    }
+
+    [Fact]
+    public void SemanticDocument_ListTextRecursivelyIncludesNestedItems() {
+        HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument.Parse("""
+            <ul><li>Parent<ol><li>Child<ul><li>Grandchild</li></ul></li></ol></li><li>Sibling</li></ul>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal("• Parent\n  1. Child\n    • Grandchild\n• Sibling", list.Text);
+    }
+
+    [Fact]
+    public void SemanticDocument_NestedListsTraverseFlowContentWrappersWithoutDuplicatingDescendants() {
+        HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument.Parse("""
+            <ul><li>Parent<div><section><ol><li>Child<div><ul><li>Grandchild</li></ul></div></li></ol></section></div></li><li>Sibling</li></ul>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal("• Parent\n  1. Child\n    • Grandchild\n• Sibling", list.Text);
+        HtmlSemanticBlock nested = Assert.Single(list.Children[0].Children);
+        Assert.Equal(HtmlSemanticListKind.Ordered, nested.List!.Kind);
+        Assert.Single(nested.Children[0].Children);
+    }
+
+    [Fact]
+    public void SemanticDocument_DefinitionListIncludesDivWrappedGroups() {
+        HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument.Parse("""
+            <dl><div><dt>Term</dt><dd>Description</dd></div><dt>Loose</dt><dd>Tail</dd></dl>
+            """).SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal(new[] {
+            HtmlSemanticListItemKind.Term,
+            HtmlSemanticListItemKind.Description,
+            HtmlSemanticListItemKind.Term,
+            HtmlSemanticListItemKind.Description
+        }, list.Children.Select(item => item.ListItem!.Kind));
+        Assert.Equal("Term\n  Description\nLoose\n  Tail", list.Text);
+    }
+
+    [Fact]
+    public void SemanticDocument_ListOrdinalsSaturateInsteadOfOverflowing() {
+        HtmlSemanticBlock list = Assert.Single(HtmlConversionDocument
+            .Parse("<ol start='2147483647'><li>A</li><li>B</li></ol>")
+            .SemanticDocument.Sections.SelectMany(section => section.Blocks));
+
+        Assert.Equal(new int?[] { int.MaxValue, int.MaxValue },
+            list.Children.Select(item => item.ListItem?.Ordinal));
+    }
+
+    [Fact]
+    public void SemanticDocument_ParsesTableSpansUsingHtmlIntegerRules() {
+        HtmlSemanticBlock[] tables = HtmlConversionDocument.Parse("""
+            <table><tr><td colspan="+2junk" rowspan=" 2tail">A</td></tr><tr><td>B</td></tr></table>
+            <table><tr><td colspan="&#160;2" rowspan="-1">C</td></tr></table>
+            """).SemanticDocument.RootTables.ToArray();
+
+        Assert.Equal(2, tables[0].Table!.Rows[0].Cells[0].ColumnSpan);
+        Assert.Equal(2, tables[0].Table.Rows[0].Cells[0].RowSpan);
+        Assert.Equal(1, tables[1].Table!.Rows[0].Cells[0].ColumnSpan);
+        Assert.Equal(1, tables[1].Table.Rows[0].Cells[0].RowSpan);
+    }
+
     [Fact]
     public void SemanticDocument_InterpretsRichStructureStylesResourcesAndSourceLocationsOnce() {
         const string html = """
@@ -59,7 +542,7 @@ public partial class Html {
         HtmlConversionDocument source = HtmlConversionDocument.Parse("""
             <h1>Notes</h1>
             <p>Normal <strong>bold</strong> <a href="https://example.test">link</a></p>
-            <ul><li>Parent<ol><li>Child</li></ol></li></ul>
+            <ul><li>Parent<div><ol><li>Child</li></ol></div></li></ul>
             """);
 
         var result = source.ToOneNoteSectionResult();
@@ -70,6 +553,103 @@ public partial class Html {
         Assert.Contains(paragraphs.SelectMany(paragraph => paragraph.Runs), run => run.Text == "link" && run.Hyperlink == "https://example.test");
         Assert.Contains(paragraphs, paragraph => paragraph.List?.Level == 0);
         Assert.Contains(paragraphs, paragraph => paragraph.List?.Level == 1);
+    }
+
+    [Fact]
+    public void OneNoteGenericImportRetainsNestedAndFollowingItemsAfterAnEmptyParent() {
+        OfficeIMO.OneNote.OneNotePage page = Assert.Single(HtmlConversionDocument
+            .Parse("<ul><li><ol><li>Nested</li></ol></li><li>Following</li></ul>")
+            .ToOneNoteSectionResult()
+            .RequireValue()
+            .Pages);
+        OfficeIMO.OneNote.OneNoteParagraph[] paragraphs = Assert.Single(page.Outlines).Children
+            .OfType<OfficeIMO.OneNote.OneNoteParagraph>()
+            .ToArray();
+
+        Assert.Equal(new[] { "Nested", "Following" },
+            paragraphs.Select(paragraph => string.Concat(paragraph.Runs.Select(run => run.Text))));
+        Assert.Equal(new int?[] { 1, 0 }, paragraphs.Select(paragraph => paragraph.List?.Level));
+    }
+
+    [Fact]
+    public void OneNoteGenericImportPreservesEffectiveOrderedListOrdinals() {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            "<ol start='3' reversed><li>A</li><li value='10'>B</li><li>C</li></ol>");
+
+        var page = Assert.Single(source.ToOneNoteSectionResult().RequireValue().Pages);
+        var paragraphs = Assert.Single(page.Outlines).Children
+            .OfType<OfficeIMO.OneNote.OneNoteParagraph>()
+            .ToArray();
+
+        Assert.Equal(new int?[] { 3, 10, 9 }, paragraphs.Select(paragraph => paragraph.List?.DisplayIndex));
+        Assert.All(paragraphs, paragraph => Assert.True(paragraph.List?.Ordered));
+        Assert.All(paragraphs, paragraph => Assert.True(paragraph.List?.Restart));
+    }
+
+    [Fact]
+    public void OneNoteGenericImportUsesNativeContinuationForOrdinaryOrderedLists() {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            "<ol><li>A</li><li>B</li></ol>");
+
+        OfficeIMO.OneNote.OneNoteSection section = source.ToOneNoteSectionResult().RequireValue();
+        var paragraphs = Assert.Single(Assert.Single(section.Pages).Outlines).Children
+            .OfType<OfficeIMO.OneNote.OneNoteParagraph>()
+            .ToArray();
+        Assert.Equal(new int?[] { 1, null }, paragraphs.Select(paragraph => paragraph.List?.DisplayIndex));
+        Assert.Equal(new bool?[] { true, false }, paragraphs.Select(paragraph => paragraph.List?.Restart));
+
+        byte[] bytes = OfficeIMO.OneNote.OneNoteSectionWriter.Write(section);
+        OfficeIMO.OneNote.OneNoteSection reloaded = OfficeIMO.OneNote.OneNoteSectionReader.Read(new MemoryStream(bytes));
+        var reloadedParagraphs = Assert.Single(Assert.Single(reloaded.Pages).Outlines).Children
+            .OfType<OfficeIMO.OneNote.OneNoteParagraph>()
+            .ToArray();
+        Assert.Equal(new int?[] { 1, null }, reloadedParagraphs.Select(paragraph => paragraph.List?.DisplayIndex));
+        Assert.Equal(new bool?[] { true, false }, reloadedParagraphs.Select(paragraph => paragraph.List?.Restart));
+    }
+
+    [Fact]
+    public void OneNoteGenericImportRestartsSeparateListsAndRendersEffectiveOrdinals() {
+        OfficeIMO.OneNote.OneNotePage page = Assert.Single(HtmlConversionDocument
+            .Parse("<ol><li>A</li><li>B</li></ol><p>Break</p><ol><li>C</li></ol>")
+            .ToOneNoteSectionResult()
+            .RequireValue()
+            .Pages);
+        OfficeIMO.OneNote.OneNoteParagraph[] listParagraphs = Assert.Single(page.Outlines).Children
+            .OfType<OfficeIMO.OneNote.OneNoteParagraph>()
+            .Where(paragraph => paragraph.List?.Ordered == true)
+            .ToArray();
+
+        Assert.Equal(new int?[] { 1, null, 1 }, listParagraphs.Select(paragraph => paragraph.List?.DisplayIndex));
+        Assert.Equal(new bool?[] { true, false, true }, listParagraphs.Select(paragraph => paragraph.List?.Restart));
+
+        string[] rendered = page
+            .ToDrawing(new OfficeIMO.OneNote.OneNotePageRenderingOptions { IncludeTitle = false })
+            .Elements
+            .OfType<OfficeIMO.Drawing.OfficeDrawingRichText>()
+            .Select(item => string.Concat(item.Runs.Select(run => run.Text)))
+            .Where(text => text.EndsWith("A", StringComparison.Ordinal)
+                || text.EndsWith("B", StringComparison.Ordinal)
+                || text.EndsWith("C", StringComparison.Ordinal))
+            .ToArray();
+        Assert.Equal(new[] { "1. A", "2. B", "1. C" }, rendered);
+    }
+
+    [Fact]
+    public void OneNoteGenericImportClampsNonpositiveListOrdinalsWithDiagnostic() {
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument
+            .Parse("<ol start='-2'><li>A</li><li>B</li><li>C</li><li>D</li><li>E</li></ol>")
+            .ToOneNoteSectionResult();
+        OfficeIMO.OneNote.OneNoteParagraph[] paragraphs =
+            Assert.Single(Assert.Single(result.Value.Pages).Outlines).Children
+                .OfType<OfficeIMO.OneNote.OneNoteParagraph>()
+                .ToArray();
+
+        Assert.Equal(new int?[] { 1, 1, 1, 1, null },
+            paragraphs.Select(paragraph => paragraph.List?.DisplayIndex));
+        Assert.Equal(new bool?[] { true, true, true, true, false },
+            paragraphs.Select(paragraph => paragraph.List?.Restart));
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
     }
 
     [Fact]

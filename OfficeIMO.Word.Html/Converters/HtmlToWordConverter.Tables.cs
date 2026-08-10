@@ -226,92 +226,6 @@ namespace OfficeIMO.Word.Html {
             content.Append(table._table);
         }
 
-        private int DetermineTableColumnCount(IHtmlTableElement tableElem, int rows, HtmlToWordOptions options) {
-            var occupied = new HashSet<long>();
-            int cols = 0;
-            int rowIndex = 0;
-
-            void HandleRows(IHtmlCollection<IHtmlTableRowElement> htmlRows) {
-                int groupRowCount = htmlRows.Length;
-                for (int localRowIndex = 0; localRowIndex < groupRowCount; localRowIndex++) {
-                    var htmlRow = htmlRows[localRowIndex];
-                    int columnIndex = 0;
-                    for (int cellIndex = 0; cellIndex < htmlRow.Cells.Length; cellIndex++) {
-                        while (occupied.Contains(GetTableGridKey(rowIndex, columnIndex))) {
-                            columnIndex++;
-                        }
-
-                        var htmlCell = htmlRow.Cells[cellIndex] as IHtmlTableCellElement;
-                        int rowSpan = GetHtmlRowSpan(htmlCell, options.MaxTableCells.HasValue);
-                        int colSpan = GetHtmlColumnSpan(htmlCell, options.MaxTableCells.HasValue);
-                        if (rowSpan == 0) {
-                            rowSpan = groupRowCount - localRowIndex;
-                        }
-
-                        rowSpan = Math.Max(1, Math.Min(rowSpan, rows - rowIndex));
-                        cols = Math.Max(cols, columnIndex + colSpan);
-                        ValidateTableLimit(options, rows, cols);
-
-                        for (int rr = rowIndex; rr < rowIndex + rowSpan && rr < rows; rr++) {
-                            for (int cc = columnIndex; cc < columnIndex + colSpan; cc++) {
-                                occupied.Add(GetTableGridKey(rr, cc));
-                            }
-                        }
-
-                        columnIndex += colSpan;
-                    }
-
-                    rowIndex++;
-                }
-            }
-
-            if (tableElem.Head != null) {
-                HandleRows(tableElem.Head.Rows);
-            }
-
-            foreach (var body in tableElem.Bodies) {
-                HandleRows(body.Rows);
-            }
-
-            if (tableElem.Foot != null) {
-                HandleRows(tableElem.Foot.Rows);
-            }
-
-            return cols;
-        }
-
-        private static long GetTableGridKey(int row, int column) {
-            return ((long)row << 32) | (uint)column;
-        }
-
-        private static int GetHtmlRowSpan(IHtmlTableCellElement? htmlCell, bool useRawAttribute) {
-            if (htmlCell == null) {
-                return 1;
-            }
-
-            if (useRawAttribute &&
-                int.TryParse(htmlCell.GetAttribute("rowspan"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var rowSpan) &&
-                rowSpan >= 0) {
-                return rowSpan;
-            }
-
-            return htmlCell.RowSpan;
-        }
-
-        private static int GetHtmlColumnSpan(IHtmlTableCellElement? htmlCell, bool useRawAttribute) {
-            if (htmlCell == null) {
-                return 1;
-            }
-
-            if (useRawAttribute &&
-                int.TryParse(htmlCell.GetAttribute("colspan"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var colSpan) &&
-                colSpan > 0) {
-                return colSpan;
-            }
-
-            return Math.Max(1, htmlCell.ColumnSpan);
-        }
-
         private static void ApplyColumnGroup(WordTable wordTable, IHtmlTableElement tableElem, int cols) {
             var colElements = tableElem.QuerySelectorAll("col");
             if (colElements.Length == 0) {
@@ -338,7 +252,7 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 int span = 1;
-                if (int.TryParse(col.GetAttribute("span"), out int sp) && sp > 1) {
+                if (HtmlIntegerSemantics.TryParsePositiveInteger(col.GetAttribute("span"), out int sp) && sp > 1) {
                     span = sp;
                 }
 

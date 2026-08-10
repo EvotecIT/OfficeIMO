@@ -9,6 +9,17 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderHtmlModularTests {
     [Fact]
+    public void DocumentReaderHtml_UsesHtmlIntegerRulesForOrderedLists() {
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(
+            "<ol start='9x'><li>First</li><li value='12junk'>Second</li><li>Third</li></ol>",
+            "integer-list.html");
+
+        Assert.Contains("9. First", result.Markdown ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("12. Second", result.Markdown ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("13. Third", result.Markdown ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReaderHtml_RichDispatch_MapsMetadataStructureLinksFormsAndImages() {
         const string html = "<html><head><title>Rich HTML</title><meta name=\"author\" content=\"OfficeIMO\"/></head><body>"
             + "<h2>Inventory</h2><p>See <a href=\"https://example.test/inventory\">inventory</a>.</p>"
@@ -183,6 +194,32 @@ public sealed class ReaderHtmlModularTests {
         Assert.Equal("status", form.Name);
         Assert.Equal("select", form.Kind);
         Assert.Equal("approved", form.Value);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_SingleSelectUsesEffectiveLastSelectedOption() {
+        const string html = "<select name='status'><option selected>First</option><option selected>Second</option></select>";
+
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "select-effective.html");
+
+        OfficeDocumentFormField form = Assert.Single(result.Forms);
+        Assert.Equal("Second", form.Value);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_SingleSelectUsesFirstEnabledOptionAndHtmlOptionValues() {
+        const string html = "<select name='status'><option disabled>Disabled</option>"
+            + "<optgroup disabled><option>Group disabled</option></optgroup>"
+            + "<option>\tA&nbsp;\nB\u2003C\r</option></select>"
+            + "<select name='spaces'><option>&nbsp;\u2003</option></select>"
+            + "<select name='disabled'><option disabled>A</option>"
+            + "<optgroup disabled><option>B</option></optgroup></select>";
+
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "select-enabled.html");
+
+        Assert.Equal("A\u00A0 B\u2003C", Assert.Single(result.Forms, form => form.Name == "status").Value);
+        Assert.Equal("\u00A0\u2003", Assert.Single(result.Forms, form => form.Name == "spaces").Value);
+        Assert.Equal(string.Empty, Assert.Single(result.Forms, form => form.Name == "disabled").Value);
     }
 
     [Fact]
@@ -464,9 +501,28 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderHtml_StreamInputDetectsMetaCharsetAndSupportsExplicitEncoding() {
+        byte[] prefix = Encoding.ASCII.GetBytes("<meta charset='windows-1252'><p>caf");
+        byte[] suffix = Encoding.ASCII.GetBytes("</p>");
+        byte[] html = prefix.Concat(new byte[] { 0xE9 }).Concat(suffix).ToArray();
+
+        using var detectedStream = new MemoryStream(html);
+        ReaderChunk detected = Assert.Single(HtmlReaderAdapter.Read(detectedStream));
+
+        using var explicitStream = new MemoryStream(html);
+        ReaderChunk explicitResult = Assert.Single(HtmlReaderAdapter.Read(
+            explicitStream,
+            htmlOptions: new ReaderHtmlOptions { InputEncoding = Encoding.GetEncoding("iso-8859-1") }));
+
+        Assert.Contains("café", detected.Text, StringComparison.Ordinal);
+        Assert.Contains("café", explicitResult.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ReaderHtmlOptions_CloneCopiesNestedOptionsIndependently() {
         var options = ReaderHtmlOptions.CreateUntrustedHtmlProfile(64);
         options.HtmlToMarkdownOptions!.BaseUri = new Uri("https://example.com/docs/");
+        options.InputEncoding = Encoding.GetEncoding("iso-8859-1");
 
         var clone = options.Clone();
 
@@ -475,6 +531,7 @@ public sealed class ReaderHtmlModularTests {
         Assert.NotSame(options.HtmlToMarkdownOptions, clone.HtmlToMarkdownOptions);
         Assert.Equal(options.HtmlToMarkdownOptions.BaseUri, clone.HtmlToMarkdownOptions.BaseUri);
         Assert.Equal(options.HtmlToMarkdownOptions.MaxInputCharacters, clone.HtmlToMarkdownOptions.MaxInputCharacters);
+        Assert.Same(options.InputEncoding, clone.InputEncoding);
         Assert.NotNull(clone.HtmlToMarkdownOptions.MarkdownWriteOptions);
         Assert.NotSame(options.HtmlToMarkdownOptions.MarkdownWriteOptions, clone.HtmlToMarkdownOptions.MarkdownWriteOptions);
         Assert.NotNull(clone.ConversionOptions);

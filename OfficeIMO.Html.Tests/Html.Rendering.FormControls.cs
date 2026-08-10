@@ -62,7 +62,7 @@ public sealed partial class HtmlRenderingTests {
               <input id='sized' value='Sized field' style='box-sizing:border-box;width:240px;height:40px'>
               <input id='range' type='range' min='0' max='10' value='6'>
               <input id='color' type='color' value='#ef476f'>
-              <input id='file' type='file'>
+              <input id='file' type='file' value='report.pdf'>
               <select id='multiple' multiple size='3'>
                 <option selected>North</option><option>South</option><option selected>West</option>
               </select>
@@ -84,9 +84,80 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "input#range:thumb");
         Assert.Contains(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "input#color:swatch");
         Assert.Contains("Choose file", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("report.pdf", rendered.Text, StringComparison.Ordinal);
         Assert.Contains("North", rendered.Text, StringComparison.Ordinal);
         Assert.Contains("West", rendered.Text, StringComparison.Ordinal);
         Assert.Contains("Disabled value", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRendering_SizedSingleSelectWithoutSelectionRendersBlank() {
+        const string html = "<select size='2'><option>First choice</option><option>Second choice</option></select>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.DoesNotContain("First choice", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Second choice", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRendering_SingleSelectDefaultsToFirstEnabledOption() {
+        const string html = "<select><option disabled>Disabled</option><optgroup disabled><option>Group disabled</option></optgroup><option label='Enabled label'>Fallback text</option></select>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Contains("Enabled label", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Disabled", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Fallback text", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRendering_UsesEffectiveInputTypesAndSanitizedRangePositions() {
+        HtmlRenderDocument invalidType = HtmlRenderTestDriver.Render(
+            "<input id='choice' type=' checkbox ' value='Text state' checked>",
+            new HtmlRenderOptions());
+        Assert.Contains("Text state", invalidType.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            invalidType.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "input#choice:checked");
+
+        double defaultPosition = RangeThumbX("<input id='range' type='range'>");
+        double explicitDefaultPosition = RangeThumbX("<input id='range' type='range' value='50'>");
+        double clampedPosition = RangeThumbX("<input id='range' type='range' min='10' max='20' value='200'>");
+        double maximumPosition = RangeThumbX("<input id='range' type='range' min='10' max='20' value='20'>");
+        double extremeMidpointPosition = RangeThumbX("<input id='range' type='range' min='-1e308' max='1e308'>");
+        double steppedPosition = RangeThumbX("<input id='range' type='range' min='0' max='10' step='3' value='8'>");
+        double roundedPosition = RangeThumbX("<input id='range' type='range' min='0' max='10' step='3' value='9'>");
+
+        Assert.Equal(explicitDefaultPosition, defaultPosition, 6);
+        Assert.Equal(maximumPosition, clampedPosition, 6);
+        Assert.Equal(explicitDefaultPosition, extremeMidpointPosition, 6);
+        Assert.Equal(roundedPosition, steppedPosition, 6);
+
+        HtmlRenderDocument radios = HtmlRenderTestDriver.Render(
+            "<input id='first' type='radio' name='choice' checked><input id='last' type='radio' name='choice' checked>",
+            new HtmlRenderOptions());
+        HtmlRenderShape[] radioMarks = radios.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source.EndsWith(":checked", StringComparison.Ordinal))
+            .ToArray();
+        Assert.DoesNotContain(radioMarks, shape => shape.Source == "input#first:checked");
+        Assert.Contains(radioMarks, shape => shape.Source == "input#last:checked");
+    }
+
+    [Fact]
+    public void HtmlRendering_DoesNotRenderInapplicablePlaceholdersForTypedInputs() {
+        const string html = """
+            <input type='date' value='invalid' placeholder='Birthday'>
+            <input type='number' value='invalid' placeholder='Quantity'>
+            <input type='text' placeholder='Search records'>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.DoesNotContain("Birthday", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Quantity", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("Search records", rendered.Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -129,5 +200,12 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(36D, image.Width, 3);
         Assert.Equal(24D, image.Height, 3);
         Assert.DoesNotContain("Button", rendered.Text, StringComparison.Ordinal);
+    }
+
+    private static double RangeThumbX(string html) {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+        return Assert.Single(
+            rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "input#range:thumb").X;
     }
 }

@@ -5,6 +5,7 @@
 It owns the reusable parts that should behave consistently across HTML-to-Markdown, HTML-to-Office, image, and PDF workflows:
 
 - trust-aware parsing profiles and shared source, DOM, CSS, selector, responsive-image, and semantic-metadata limits
+- shared HTML, CSS, and data-URI charset handling, including legacy web encodings
 - URL policy evaluation and base URI resolution
 - AngleSharp document parsing helpers
 - DOM traversal facts and node/depth limit tracking
@@ -56,7 +57,7 @@ IReadOnlyList<OfficeImageExportResult> webpPages = source
 
 ## Dependency footprint
 
-- **External:** AngleSharp and AngleSharp.Css for DOM and CSS parsing.
+- **External:** AngleSharp and AngleSharp.Css for DOM and CSS parsing; System.Text.Encoding.CodePages for legacy web encodings.
 - **OfficeIMO:** `OfficeIMO.Core`. Resource policy, layout, rendering, and diagnostics are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
@@ -109,6 +110,8 @@ HtmlConversionDocument document = HtmlConversionDocument.Parse(
     });
 Uri? baseUri = document.BaseUri;
 ```
+
+`HtmlConversionDocument.Load` and `LoadAsync` detect byte-order marks and HTML `meta charset` declarations. Pass the optional `Encoding` argument when transport metadata or application configuration is authoritative. CSS resources use their content-type charset, BOM, or `@charset`; textual data URIs use their declared `charset` and default to UTF-8.
 
 ## Trust and conversion limits
 
@@ -166,16 +169,33 @@ Reuse the same document for analysis too: `HtmlComputedStyleEngine.Compute(conve
 ## Semantic IR and target preflight
 
 ```csharp
-HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+const string semanticHtml = """
+    <h1>Quarterly checklist</h1>
+    <ol start="3"><li>Publish report</li></ol>
+    <input name="owner" value="Finance">
+    """;
+
+HtmlConversionDocument source = HtmlConversionDocument.Parse(semanticHtml);
 HtmlSemanticDocument semantics = source.SemanticDocument;
 HtmlConversionPreflight excel = source.AnalyzeFor(HtmlConversionTarget.Excel);
+
+HtmlSemanticBlock list = semantics.Sections
+    .SelectMany(section => section.Blocks)
+    .First(block => block.List != null);
+Console.WriteLine($"{list.List!.Kind}: start={list.List.Start}, reversed={list.List.IsReversed}");
+
+HtmlSemanticFormControl control = semantics.Sections
+    .SelectMany(section => section.Blocks)
+    .First(block => block.FormControl != null)
+    .FormControl!;
+foreach (string value in control.Values) Console.WriteLine(value);
 
 foreach (HtmlFeaturePreflightResult feature in excel.Features) {
     Console.WriteLine($"{feature.Feature}: {feature.Outcome} ({feature.OccurrenceCount})");
 }
 ```
 
-`HtmlSemanticDocument` is the single interpretation of sections, rich runs, nested lists, tables, links, forms, notes, resources, computed styles, and source locations. Generic Excel, PowerPoint, and OneNote importers consume it instead of independently deciding what the same DOM means. `AnalyzeFor(target)` uses the executable target registry to report `Supported`, `Approximated`, or `Omitted` before artifact creation. Diagnostics carry source and target provenance so applications can map a warning back to both sides of a conversion.
+`HtmlSemanticDocument` is the single interpretation of sections, rich runs, nested lists, tables, links, forms, notes, resources, computed styles, and source locations. List state retains ordered, unordered, and definition kinds, effective start and reverse direction, and each item's effective or explicit ordinal. Form controls expose specification-normalized types, one or more selected values, checked/disabled/required/readonly state, and resolved form ownership. Generic Excel, PowerPoint, and OneNote importers consume this model instead of independently deciding what the same DOM means. `AnalyzeFor(target)` uses the executable target registry to report `Supported`, `Approximated`, or `Omitted` before artifact creation. Diagnostics carry source and target provenance so applications can map a warning back to both sides of a conversion.
 
 The generated [HTML support matrix](../Docs/officeimo.html-support-matrix.md) is checked against those executable contracts in the test suite. Run `Build/Export-HtmlSupportMatrix.ps1 -Check` to verify it or omit `-Check` to regenerate it.
 
@@ -218,6 +238,8 @@ Console.WriteLine(verified.Dimensions["artifact-reload"]);
 
 Version 2 scores top-level fidelity dimensions independently. A dimension absent from both inputs is omitted rather than counted as a perfect result. Artifact reload evidence is intentionally caller-supplied: the score is marked verified only when a native artifact was successfully reopened and its re-exported HTML was compared with the original source.
 
+Capability-gallery JSON and Markdown manifests retain the score schema version, top-level dimensions, artifact kind, and reload-verification flag as durable review evidence.
+
 Conversion profile and trust are separate decisions. A `Document` or `HighFidelityPrint` profile does not make external resources trusted. Leave `Trust` as `Untrusted` for user-supplied HTML; set it to `Trusted` only when the caller controls the document and resource locations.
 
 Normalized HTML output is policy-aware: hyperlink and resource URLs are evaluated separately, URL-bearing attributes are resolved against the configured base URI, disallowed URLs are removed, boolean attributes are normalized, event-handler attributes are stripped by default, and non-document executable elements are skipped. External bytes are loaded only through a caller-supplied bounded resolver. Normalized output is intended for clean review, gallery proof, and downstream adapter input selection, not as a browser sandbox.
@@ -239,3 +261,5 @@ if (HtmlImageDataUri.TryParse(source, out var dataUri) && dataUri.IsBase64) {
     string extension = dataUri.FileExtension;
 }
 ```
+
+Use `HtmlDataUri` when the payload is textual. Its `DecodeText()` method honors a declared `charset` and uses UTF-8 only when the data URI does not declare one.
