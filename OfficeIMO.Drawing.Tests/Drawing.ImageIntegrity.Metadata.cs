@@ -17,12 +17,16 @@ public partial class DrawingTests {
         byte[] misplaced = InsertPngChunkBefore(png, "IEND", "gAMA", gamma);
         byte[] zero = InsertPngChunkBefore(png, "IDAT", "gAMA", new byte[4]);
         byte[] wrongLength = InsertPngChunkBefore(png, "IDAT", "gAMA", new byte[3]);
+        byte[] maximum = InsertPngChunkBefore(png, "IDAT", "gAMA", new byte[] { 0x7F, 0xFF, 0xFF, 0xFF });
+        byte[] outOfRange = InsertPngChunkBefore(png, "IDAT", "gAMA", new byte[] { 0x80, 0, 0, 0 });
 
         Assert.True(OfficeImageReader.TryValidateContent(withGamma, "gamma.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(duplicate, "duplicate-gamma.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(misplaced, "misplaced-gamma.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(zero, "zero-gamma.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(wrongLength, "short-gamma.png", out _));
+        Assert.True(OfficeImageReader.TryValidateContent(maximum, "maximum-gamma.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(outOfRange, "out-of-range-gamma.png", out _));
     }
 
     [Fact]

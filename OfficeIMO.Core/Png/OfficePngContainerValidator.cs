@@ -157,7 +157,7 @@ internal static class OfficePngContainerValidator {
                         break;
                     case "gAMA":
                         if (!seenHeader || seenPalette || seenImageData || seenGamma || length != 4 ||
-                            ReadBigEndianUInt32(bytes, dataOffset) == 0) {
+                            ReadBigEndianUInt32(bytes, dataOffset) is 0 or > int.MaxValue) {
                             failureReason = "PNG bytes contain an invalid or misplaced gAMA chunk.";
                             return false;
                         }

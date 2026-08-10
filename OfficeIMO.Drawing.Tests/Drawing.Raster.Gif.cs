@@ -192,6 +192,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompleteContentValidationRejectsDanglingOrRepeatedGraphicControls() {
+            byte[] valid = CreateSinglePixelGif();
+            int imageDescriptorOffset = Array.IndexOf(valid, (byte)0x2C);
+            int trailerOffset = Array.LastIndexOf(valid, (byte)0x3B);
+            byte[] graphicControl = { 0x21, 0xF9, 0x04, 0, 0, 0, 0, 0 };
+            byte[] dangling = valid.Take(trailerOffset)
+                .Concat(graphicControl)
+                .Concat(valid.Skip(trailerOffset))
+                .ToArray();
+            byte[] repeated = valid.Take(imageDescriptorOffset)
+                .Concat(graphicControl)
+                .Concat(graphicControl)
+                .Concat(valid.Skip(imageDescriptorOffset))
+                .ToArray();
+
+            Assert.True(OfficeGifReader.TryDecodeFrame(dangling, 0, out _, out _));
+            Assert.False(OfficeImageReader.TryValidateContent(dangling, "dangling-control.gif", out _));
+            Assert.True(OfficeGifReader.TryDecodeFrame(repeated, 0, out _, out _));
+            Assert.False(OfficeImageReader.TryValidateContent(repeated, "repeated-control.gif", out _));
+        }
+
+        [Fact]
         public void PlainTextExtensionsConsumePendingGraphicControlState() {
             byte[] valid = CreateIndexedGif(
                 1,

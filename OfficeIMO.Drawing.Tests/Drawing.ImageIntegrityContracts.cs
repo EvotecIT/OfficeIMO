@@ -428,6 +428,17 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void CompleteContentValidationAllowsEmptyApngFrameDataSegments() {
+        byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] apng = CreateTwoFrameApng(staticPng);
+        byte[] emptyFrameData = new byte[4];
+        WriteBigEndianInt32(emptyFrameData, 0, 3);
+        byte[] split = InsertPngChunkBefore(apng, "IEND", "fdAT", emptyFrameData);
+
+        Assert.True(OfficeImageReader.TryValidateContent(split, "empty-frame-segment.png", out _));
+    }
+
+    [Fact]
     public async Task GuardedAsyncConsumerSerializesConcurrentAdmissionAndSequenceAssignment() {
         const int maximum = 300;
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
@@ -561,6 +572,39 @@ public partial class DrawingTests {
         release.TrySetResult(true);
         Exception error = Assert.IsType<InvalidOperationException>(await deferred!);
         Assert.Contains("deferred reentry", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task GuardedAsyncConsumerSerializesSiblingSynchronousReentries() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        var firstStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseFirst = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var observed = new ConcurrentQueue<string>();
+        OfficeImageExportAsyncConsumer? accept = null;
+        accept = OfficeImageExportBatchProcessor.CreateGuardedAsyncConsumer(
+            new OfficeImageExportOptions { MaximumOutputCount = 3 },
+            async (result, token) => {
+                observed.Enqueue(result.Name!);
+                if (result.Name == "outer") {
+                    Task first = accept!(CreateResult("first", png), token);
+                    Task second = accept!(CreateResult("second", png), token);
+                    await Task.WhenAll(first, second).ConfigureAwait(false);
+                } else if (result.Name == "first") {
+                    firstStarted.TrySetResult(true);
+                    await releaseFirst.Task.ConfigureAwait(false);
+                } else if (result.Name == "second") {
+                    secondStarted.TrySetResult(true);
+                }
+            });
+
+        Task outer = accept(CreateResult("outer", png), default);
+        await firstStarted.Task;
+        Assert.False(secondStarted.Task.IsCompleted);
+        releaseFirst.TrySetResult(true);
+        await outer;
+
+        Assert.Equal(new[] { "outer", "first", "second" }, observed);
     }
 
     [Fact]

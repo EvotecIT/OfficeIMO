@@ -9,6 +9,41 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Fact]
+    public void CompleteContentValidationAcceptsOnlySupportedIconDibHeaders() {
+        foreach (int headerSize in new[] { 40, 52, 56, 108, 124 }) {
+            Assert.True(OfficeImageReader.TryValidateContent(
+                CreateIcon(CreateIconDibWithHeaderSize(headerSize)),
+                "supported-header.ico",
+                out _));
+        }
+        Assert.False(OfficeImageReader.TryValidateContent(
+            CreateIcon(CreateIconDibWithHeaderSize(41)),
+            "invented-header.ico",
+            out _));
+    }
+
+    [Fact]
+    public void CompleteContentValidationChecksRecognizableJfifHeaders() {
+        byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        int jfifOffset = FindAsciiSequence(jpeg, "JFIF\0");
+        Assert.True(jfifOffset >= 2);
+
+        byte[] invalidUnits = (byte[])jpeg.Clone();
+        invalidUnits[jfifOffset + 7] = 3;
+        byte[] missingThumbnail = (byte[])jpeg.Clone();
+        missingThumbnail[jfifOffset + 12] = 1;
+        missingThumbnail[jfifOffset + 13] = 1;
+        byte[] truncatedHeader = (byte[])jpeg.Clone();
+        truncatedHeader[jfifOffset - 2] = 0;
+        truncatedHeader[jfifOffset - 1] = 15;
+
+        Assert.True(OfficeImageReader.TryValidateContent(jpeg, "valid-jfif.jpg", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(invalidUnits, "invalid-units.jpg", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(missingThumbnail, "missing-thumbnail.jpg", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(truncatedHeader, "truncated-jfif.jpg", out _));
+    }
+
+    [Fact]
     public void CompleteContentValidationBoundsAggregateExifIfdScheduling() {
         const int pointerCount = 1025;
         int tableLength = 2 + pointerCount * 12 + 4;
@@ -175,6 +210,33 @@ public partial class DrawingTests {
         WriteInt32LittleEndian(dib, 32, 1);
         dib[headerSize + paletteBytes] = packedPixel;
         return dib;
+    }
+
+    private static byte[] CreateIconDibWithHeaderSize(int headerSize) {
+        var dib = new byte[headerSize + 4];
+        WriteInt32LittleEndian(dib, 0, headerSize);
+        WriteInt32LittleEndian(dib, 4, 1);
+        WriteInt32LittleEndian(dib, 8, 2);
+        WriteUInt16LittleEndian(dib, 12, 1);
+        WriteUInt16LittleEndian(dib, 14, 32);
+        WriteInt32LittleEndian(dib, 20, 4);
+        dib[headerSize] = 0xFF;
+        dib[headerSize + 3] = 0xFF;
+        return dib;
+    }
+
+    private static int FindAsciiSequence(byte[] bytes, string value) {
+        byte[] expected = Encoding.ASCII.GetBytes(value);
+        for (int offset = 0; offset <= bytes.Length - expected.Length; offset++) {
+            bool match = true;
+            for (int index = 0; index < expected.Length; index++) {
+                if (bytes[offset + index] == expected[index]) continue;
+                match = false;
+                break;
+            }
+            if (match) return offset;
+        }
+        return -1;
     }
 
     private static byte[] CreateExtendedWebpWithIcc(byte[] simple, byte[] profile) {

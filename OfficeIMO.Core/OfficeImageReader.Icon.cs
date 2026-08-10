@@ -71,7 +71,7 @@ public static partial class OfficeImageReader {
             paletteEntries = bitsPerPixel <= 8 ? 1L << bitsPerPixel : 0L;
             pixelOffset = headerSize + paletteEntries * paletteEntrySize;
         } else {
-            if (headerSize < 40 || headerSize > payload.Length) return false;
+            if (!IsSupportedIconDibHeaderSize(headerSize) || headerSize > payload.Length) return false;
             width = ReadInt32LittleEndian(payload, 4);
             storedHeight = ReadInt32LittleEndian(payload, 8);
             planes = ReadUInt16LittleEndian(payload, 12);
@@ -122,6 +122,10 @@ public static partial class OfficeImageReader {
                    (int)xorStride,
                    (int)paletteEntries);
     }
+
+    private static bool IsSupportedIconDibHeaderSize(int headerSize) =>
+        headerSize == 40 || headerSize == 52 || headerSize == 56 ||
+        headerSize == 108 || headerSize == 124;
 
     private static bool HasValidIndexedIconPixels(
         byte[] payload,

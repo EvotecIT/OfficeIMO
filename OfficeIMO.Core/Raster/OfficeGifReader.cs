@@ -75,6 +75,7 @@ public static class OfficeGifReader {
             OfficeRasterImage? canvas = null;
             int transparentIndex = -1;
             int disposalMethod = 0;
+            bool hasPendingGraphicControl = false;
             FrameRectangle previousFrame = default;
             int previousDisposalMethod = 0;
             OfficeRasterImage? restoreCanvas = null;
@@ -82,7 +83,9 @@ public static class OfficeGifReader {
             while (offset < bytes.Length) {
                 byte marker = bytes[offset++];
                 if (marker == 0x3B) {
-                    return validateAllFrames ? frameCount > 0 && offset == bytes.Length : image != null;
+                    return validateAllFrames
+                        ? frameCount > 0 && !hasPendingGraphicControl && offset == bytes.Length
+                        : image != null;
                 }
 
                 if (marker == 0x21) {
@@ -103,6 +106,8 @@ public static class OfficeGifReader {
                         if (validateAllFrames && (hasReservedBits || disposalMethod > 3)) {
                             return false;
                         }
+                        if (validateAllFrames && hasPendingGraphicControl) return false;
+                        hasPendingGraphicControl = true;
                     } else if (validateAllFrames && label == 0xFF) {
                         if (!TryReadFixedHeaderExtension(bytes, ref offset, expectedHeaderLength: 11)) return false;
                     } else if (label == 0x01) {
@@ -120,6 +125,7 @@ public static class OfficeGifReader {
                         }
                         transparentIndex = -1;
                         disposalMethod = 0;
+                        hasPendingGraphicControl = false;
                     } else if (!SkipSubBlocks(bytes, ref offset)) {
                         return false;
                     }
@@ -170,6 +176,7 @@ public static class OfficeGifReader {
                 frameCount++;
                 transparentIndex = -1;
                 disposalMethod = 0;
+                hasPendingGraphicControl = false;
             }
 
             return !validateAllFrames && image != null;

@@ -49,17 +49,22 @@ public static partial class OfficeImageReader {
             int segmentStart = offset + 2;
             int segmentDataLength = segmentLength - 2;
 
-            if (marker == 0xE0 && segmentDataLength >= 12 && GetAscii(data, segmentStart, 5) == "JFIF\0") {
-                byte units = data[segmentStart + 7];
-                int xDensity = ReadUInt16BigEndian(data, segmentStart + 8);
-                int yDensity = ReadUInt16BigEndian(data, segmentStart + 10);
-                if (xDensity > 0 && yDensity > 0) {
-                    if (units == 1) {
-                        dpiX = xDensity;
-                        dpiY = yDensity;
-                    } else if (units == 2) {
-                        dpiX = xDensity * 2.54;
-                        dpiY = yDensity * 2.54;
+            if (marker == 0xE0 && HasJpegSegmentPrefix(data, segmentStart, segmentDataLength, "JFIF\0")) {
+                if (TryReadJfifSegment(
+                    data,
+                    segmentStart,
+                    segmentDataLength,
+                    out byte units,
+                    out int xDensity,
+                    out int yDensity)) {
+                    if (xDensity > 0 && yDensity > 0) {
+                        if (units == 1) {
+                            dpiX = xDensity;
+                            dpiY = yDensity;
+                        } else if (units == 2) {
+                            dpiX = xDensity * 2.54;
+                            dpiY = yDensity * 2.54;
+                        }
                     }
                 }
             }
@@ -112,6 +117,7 @@ public static partial class OfficeImageReader {
         bool currentScanHasEntropyData = false;
         bool inScan = false;
         bool seenExif = false;
+        bool seenJfif = false;
         byte[][]? iccSegments = null;
         int offset = 2;
         while (offset < data.Length) {
@@ -150,6 +156,19 @@ public static partial class OfficeImageReader {
             if (IsStartOfFrame(marker)) {
                 if (!TryReadJpegFrameHeader(data, segmentStart, segmentDataLength, out _, out _)) return false;
                 hasFrame = true;
+            } else if (marker == 0xE0 && HasJpegSegmentPrefix(
+                data,
+                segmentStart,
+                segmentDataLength,
+                "JFIF\0")) {
+                if (seenJfif || hasFrame || !TryReadJfifSegment(
+                    data,
+                    segmentStart,
+                    segmentDataLength,
+                    out _,
+                    out _,
+                    out _)) return false;
+                seenJfif = true;
             } else if (marker == 0xE1 && HasJpegSegmentPrefix(data, segmentStart, segmentDataLength, "Exif\0\0")) {
                 if (seenExif || !OfficeTiffStructureValidator.TryValidateExif(
                     data,
@@ -201,6 +220,26 @@ public static partial class OfficeImageReader {
             if (data[offset + index] != (byte)prefix[index]) return false;
         }
         return true;
+    }
+
+    private static bool TryReadJfifSegment(
+        byte[] data,
+        int offset,
+        int length,
+        out byte units,
+        out int xDensity,
+        out int yDensity) {
+        units = 0;
+        xDensity = 0;
+        yDensity = 0;
+        if (length < 14 || data[offset + 5] != 1 || data[offset + 6] > 2) return false;
+        units = data[offset + 7];
+        xDensity = ReadUInt16BigEndian(data, offset + 8);
+        yDensity = ReadUInt16BigEndian(data, offset + 10);
+        int thumbnailWidth = data[offset + 12];
+        int thumbnailHeight = data[offset + 13];
+        long expectedLength = 14L + 3L * thumbnailWidth * thumbnailHeight;
+        return units <= 2 && xDensity > 0 && yDensity > 0 && expectedLength == length;
     }
 
     private static bool HasValidJpegIccProfile(byte[][]? segments) {

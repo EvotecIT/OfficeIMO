@@ -78,7 +78,7 @@ internal static class OfficePngAnimationValidator {
                         seenImageData = true;
                         break;
                     case "fdAT":
-                        if (!seenAnimationControl || !seenImageData || length <= 4 ||
+                        if (!seenAnimationControl || !seenImageData || length < 4 ||
                             currentFrame == null || currentFrame.UsesDefaultImageData) {
                             return false;
                         }

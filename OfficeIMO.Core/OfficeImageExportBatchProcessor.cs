@@ -288,13 +288,26 @@ public static class OfficeImageExportBatchProcessor {
         var reentryScope = new AsyncLocal<AsyncConsumerReentryScope?>();
         return (result, token) => {
             AsyncConsumerReentryScope? inheritedScope = reentryScope.Value;
-            if (inheritedScope != null && !inheritedScope.AllowsSynchronousReentry) {
+            bool allowsSynchronousReentry = inheritedScope?.AllowsSynchronousReentry == true;
+            if (inheritedScope != null && !allowsSynchronousReentry) {
                 return Task.FromException(new InvalidOperationException(
                     "Forked or deferred reentry into an image export consumer is not supported. " +
                     "Await the guarded consumer directly from the synchronous portion of the callback."));
             }
-            bool ownsGate = inheritedScope == null || !inheritedScope.AllowsSynchronousReentry;
-            Task invocation = InvokeGuardedAsyncConsumer(
+            if (allowsSynchronousReentry) {
+                return inheritedScope!.EnqueueNestedInvocation(() => InvokeGuardedAsyncConsumer(
+                    options,
+                    consumer,
+                    tracker,
+                    gate,
+                    reentryScope,
+                    result,
+                    cancellationToken,
+                    token,
+                    expectedOutputCount,
+                    ownsGate: false));
+            }
+            return InvokeGuardedAsyncConsumer(
                 options,
                 consumer,
                 tracker,
@@ -304,9 +317,7 @@ public static class OfficeImageExportBatchProcessor {
                 cancellationToken,
                 token,
                 expectedOutputCount,
-                ownsGate);
-            if (!ownsGate && inheritedScope != null) inheritedScope.TrackNestedInvocation(invocation);
-            return invocation;
+                ownsGate: true);
         };
     }
 
@@ -356,6 +367,7 @@ public static class OfficeImageExportBatchProcessor {
     private sealed class AsyncConsumerReentryScope {
         private readonly int _managedThreadId;
         private readonly List<Task> _nestedInvocations = new();
+        private Task _nestedTail = Task.CompletedTask;
         private int _synchronousInvocation = 1;
 
         internal AsyncConsumerReentryScope(int managedThreadId) => _managedThreadId = managedThreadId;
@@ -367,8 +379,13 @@ public static class OfficeImageExportBatchProcessor {
         internal void EndSynchronousInvocation() =>
             Interlocked.Exchange(ref _synchronousInvocation, 0);
 
-        internal void TrackNestedInvocation(Task invocation) {
-            lock (_nestedInvocations) _nestedInvocations.Add(invocation);
+        internal Task EnqueueNestedInvocation(Func<Task> invocationFactory) {
+            lock (_nestedInvocations) {
+                Task invocation = InvokeAfterAsync(_nestedTail, invocationFactory);
+                _nestedTail = invocation;
+                _nestedInvocations.Add(invocation);
+                return invocation;
+            }
         }
 
         internal Task AwaitNestedInvocationsAsync() {
@@ -377,6 +394,14 @@ public static class OfficeImageExportBatchProcessor {
             return invocations.Length == 0 ? Task.CompletedTask : Task.WhenAll(invocations);
         }
 
+        private static async Task InvokeAfterAsync(Task previous, Func<Task> invocationFactory) {
+            try {
+                await previous.ConfigureAwait(false);
+            } catch {
+                // Preserve each invocation's own result while allowing the serialized queue to drain.
+            }
+            await invocationFactory().ConfigureAwait(false);
+        }
     }
 
     private static CancellationTokenSource? CreateLinkedCancellationSource(
