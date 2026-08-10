@@ -367,7 +367,7 @@ public static partial class OfficeImageReader {
         bool validateCompleteDocument,
         out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
-        bool likelySvg = FromExtension(fileName) == OfficeImageFormat.Svg;
+        bool likelySvg = validateCompleteDocument || FromExtension(fileName) == OfficeImageFormat.Svg;
         if (!likelySvg) {
             likelySvg = HasSvgXmlPrefix(data);
         }

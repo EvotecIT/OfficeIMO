@@ -222,10 +222,26 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void AddWordToRtfDiagnostics(WordDocument document, RtfConversionReport report) {
+        List<OpenXmlElement> storyRoots = EnumerateConvertibleWordStoryRoots(document).ToList();
+        HashSet<long> footnoteIds = storyRoots
+            .OfType<Footnote>()
+            .Where(note => note.Id?.Value != null)
+            .Select(note => note.Id!.Value)
+            .ToHashSet();
+        HashSet<long> endnoteIds = storyRoots
+            .OfType<Endnote>()
+            .Where(note => note.Id?.Value != null)
+            .Select(note => note.Id!.Value)
+            .ToHashSet();
+        HashSet<string> commentIds = storyRoots
+            .OfType<Comment>()
+            .Where(comment => !string.IsNullOrWhiteSpace(comment.Id?.Value))
+            .Select(comment => comment.Id!.Value!)
+            .ToHashSet(StringComparer.Ordinal);
         List<WordElement> elements = EnumerateWordElements(document.Elements)
             .Concat(EnumerateHeaderFooterElements(document))
-            .Concat(EnumerateNoteElements(document))
-            .Concat(EnumerateCommentElements(document))
+            .Concat(EnumerateNoteElements(document, footnoteIds, endnoteIds))
+            .Concat(EnumerateCommentElements(document, commentIds))
             .ToList();
         int equationCount = elements
             .Count(element => element is WordEquation);
@@ -255,7 +271,7 @@ public static partial class WordRtfConverterExtensions {
 
         int omittedImageCount = 0;
         int normalizedImageCount = 0;
-        foreach ((WordImage Image, bool OmittedByConverter) candidate in EnumerateWordImageCandidates(document)) {
+        foreach ((WordImage Image, bool OmittedByConverter) candidate in EnumerateWordImageCandidates(document, storyRoots)) {
             if (candidate.OmittedByConverter) {
                 omittedImageCount++;
                 continue;
@@ -312,10 +328,12 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static IEnumerable<(WordImage Image, bool OmittedByConverter)> EnumerateWordImageCandidates(WordDocument document) {
+    private static IEnumerable<(WordImage Image, bool OmittedByConverter)> EnumerateWordImageCandidates(
+        WordDocument document,
+        IEnumerable<OpenXmlElement> storyRoots) {
         var visitedParagraphs = new HashSet<Paragraph>();
         var visitedRuns = new HashSet<Run>();
-        foreach (OpenXmlElement storyRoot in EnumerateConvertibleWordStoryRoots(document)) {
+        foreach (OpenXmlElement storyRoot in storyRoots) {
             foreach (Paragraph paragraph in storyRoot.Descendants<Paragraph>()) {
                 if (!visitedParagraphs.Add(paragraph)) continue;
                 foreach ((Run Run, bool OmittedByConverter) runCandidate in EnumerateConvertibleWordRuns(paragraph)) {
@@ -341,23 +359,49 @@ public static partial class WordRtfConverterExtensions {
         foreach (DocumentFormat.OpenXml.Packaging.FooterPart part in mainPart.FooterParts) {
             if (part.Footer != null) contentRoots.Add(part.Footer);
         }
-        if (mainPart.FootnotesPart?.Footnotes != null) {
-            contentRoots.Add(mainPart.FootnotesPart.Footnotes);
-        }
-        if (mainPart.EndnotesPart?.Endnotes != null) {
-            contentRoots.Add(mainPart.EndnotesPart.Endnotes);
-        }
-        foreach (OpenXmlElement root in contentRoots) {
-            yield return root;
-        }
-        if (mainPart.WordprocessingCommentsPart?.Comments != null) {
+        var includedRoots = new HashSet<OpenXmlElement>(contentRoots);
+        bool added;
+        do {
+            added = false;
             HashSet<string> referencedCommentIds = CollectReferencedCommentIds(contentRoots);
-            foreach (Comment comment in mainPart.WordprocessingCommentsPart.Comments.Elements<Comment>()) {
-                if (comment.Id?.Value is string id && referencedCommentIds.Contains(id)) {
-                    yield return comment;
+            HashSet<long> referencedFootnoteIds = contentRoots
+                .SelectMany(root => root.Descendants<FootnoteReference>())
+                .Where(reference => reference.Id?.Value != null)
+                .Select(reference => reference.Id!.Value)
+                .ToHashSet();
+            HashSet<long> referencedEndnoteIds = contentRoots
+                .SelectMany(root => root.Descendants<EndnoteReference>())
+                .Where(reference => reference.Id?.Value != null)
+                .Select(reference => reference.Id!.Value)
+                .ToHashSet();
+
+            if (mainPart.WordprocessingCommentsPart?.Comments != null) {
+                foreach (Comment comment in mainPart.WordprocessingCommentsPart.Comments.Elements<Comment>()) {
+                    if (comment.Id?.Value is string id && referencedCommentIds.Contains(id) && includedRoots.Add(comment)) {
+                        contentRoots.Add(comment);
+                        added = true;
+                    }
                 }
             }
-        }
+            if (mainPart.FootnotesPart?.Footnotes != null) {
+                foreach (Footnote note in mainPart.FootnotesPart.Footnotes.Elements<Footnote>()) {
+                    if (note.Id?.Value is long id && referencedFootnoteIds.Contains(id) && includedRoots.Add(note)) {
+                        contentRoots.Add(note);
+                        added = true;
+                    }
+                }
+            }
+            if (mainPart.EndnotesPart?.Endnotes != null) {
+                foreach (Endnote note in mainPart.EndnotesPart.Endnotes.Elements<Endnote>()) {
+                    if (note.Id?.Value is long id && referencedEndnoteIds.Contains(id) && includedRoots.Add(note)) {
+                        contentRoots.Add(note);
+                        added = true;
+                    }
+                }
+            }
+        } while (added);
+
+        foreach (OpenXmlElement root in contentRoots) yield return root;
     }
 
     private static IEnumerable<(Run Run, bool OmittedByConverter)> EnumerateConvertibleWordRuns(
@@ -428,24 +472,31 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static IEnumerable<WordElement> EnumerateNoteElements(WordDocument document) {
+    private static IEnumerable<WordElement> EnumerateNoteElements(
+        WordDocument document,
+        ISet<long> footnoteIds,
+        ISet<long> endnoteIds) {
         var visited = new HashSet<string>(StringComparer.Ordinal);
         foreach (WordFootNote note in document.FootNotes) {
+            if (note.ReferenceId is not long id || !footnoteIds.Contains(id)) continue;
             string key = "F:" + (note.ReferenceId?.ToString() ?? "unknown");
             if (!visited.Add(key) || note.Paragraphs == null) continue;
             foreach (WordElement element in EnumerateWordElements(note.Paragraphs)) yield return element;
         }
         foreach (WordEndNote note in document.EndNotes) {
+            if (note.ReferenceId is not long id || !endnoteIds.Contains(id)) continue;
             string key = "E:" + (note.ReferenceId?.ToString() ?? "unknown");
             if (!visited.Add(key) || note.Paragraphs == null) continue;
             foreach (WordElement element in EnumerateWordElements(note.Paragraphs)) yield return element;
         }
     }
 
-    private static IEnumerable<WordElement> EnumerateCommentElements(WordDocument document) {
+    private static IEnumerable<WordElement> EnumerateCommentElements(
+        WordDocument document,
+        ISet<string> commentIds) {
         var visited = new HashSet<WordComment>();
         foreach (WordComment comment in document.Comments) {
-            if (!visited.Add(comment)) continue;
+            if (comment.Id == null || !commentIds.Contains(comment.Id) || !visited.Add(comment)) continue;
             foreach (WordElement element in EnumerateWordElements(comment.Paragraphs)) yield return element;
         }
     }

@@ -12,8 +12,8 @@ namespace OfficeIMO.Visio {
                 return Evaluate(element, selector, out _) != SelectorMatch.NoMatch;
             }
 
-            internal static SelectorMatch Evaluate(XElement element, string selector, out int specificity) {
-                specificity = 0;
+            internal static SelectorMatch Evaluate(XElement element, string selector, out SelectorSpecificity specificity) {
+                specificity = default;
                 if (!TryTokenize(selector, out List<SelectorPart> parts) ||
                     parts.Count == 0 ||
                     !TryCalculateSpecificity(parts, out specificity)) {
@@ -158,15 +158,18 @@ namespace OfficeIMO.Visio {
                 return nextCombinator == '\0';
             }
 
-            private static bool TryCalculateSpecificity(IReadOnlyList<SelectorPart> parts, out int specificity) {
-                specificity = 0;
+            private static bool TryCalculateSpecificity(IReadOnlyList<SelectorPart> parts, out SelectorSpecificity specificity) {
+                specificity = default;
+                int idCount = 0;
+                int classCount = 0;
+                int typeCount = 0;
                 for (int partIndex = 0; partIndex < parts.Count; partIndex++) {
                     string compound = parts[partIndex].Compound;
                     int index = 0;
                     if (compound[index] == '*') {
                         index++;
                     } else if (IsNameStart(compound[index])) {
-                        specificity++;
+                        typeCount++;
                         index++;
                         while (index < compound.Length && IsNameCharacter(compound[index])) index++;
                     }
@@ -177,17 +180,18 @@ namespace OfficeIMO.Visio {
                             int start = index;
                             while (index < compound.Length && IsNameCharacter(compound[index])) index++;
                             if (start == index) return false;
-                            specificity += marker == '#' ? 100 : 10;
+                            if (marker == '#') idCount++;
+                            else classCount++;
                         } else if (marker == '[') {
                             int close = compound.IndexOf(']', index);
                             if (close < 0) return false;
-                            specificity += 10;
+                            classCount++;
                             index = close + 1;
                         } else if (marker == ':') {
                             int start = index;
                             while (index < compound.Length && IsNameCharacter(compound[index])) index++;
                             if (start == index) return false;
-                            specificity += 10;
+                            classCount++;
                             if (index < compound.Length && compound[index] == '(') {
                                 int depth = 1;
                                 index++;
@@ -203,12 +207,34 @@ namespace OfficeIMO.Visio {
                         }
                     }
                 }
+                specificity = new SelectorSpecificity(idCount, classCount, typeCount);
                 return true;
             }
 
             private static bool IsNameStart(char value) => char.IsLetter(value) || value == '_' || value == '-';
 
             private static bool IsNameCharacter(char value) => IsNameStart(value) || char.IsDigit(value);
+
+            internal readonly struct SelectorSpecificity {
+                internal SelectorSpecificity(int idCount, int classCount, int typeCount) {
+                    IdCount = idCount;
+                    ClassCount = classCount;
+                    TypeCount = typeCount;
+                }
+
+                internal int IdCount { get; }
+
+                internal int ClassCount { get; }
+
+                internal int TypeCount { get; }
+
+                internal int CompareTo(SelectorSpecificity other) {
+                    int result = IdCount.CompareTo(other.IdCount);
+                    if (result != 0) return result;
+                    result = ClassCount.CompareTo(other.ClassCount);
+                    return result != 0 ? result : TypeCount.CompareTo(other.TypeCount);
+                }
+            }
 
             private readonly struct SelectorPart {
                 internal SelectorPart(string compound, char combinator) {

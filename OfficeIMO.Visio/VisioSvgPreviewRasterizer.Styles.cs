@@ -38,7 +38,7 @@ namespace OfficeIMO.Visio {
             internal Dictionary<string, string> CreateStyle(XElement element) {
                 if (_styleCache.TryGetValue(element, out Dictionary<string, string>? cached)) return cached;
                 Dictionary<string, string> style = new(StringComparer.OrdinalIgnoreCase);
-                Dictionary<string, (bool Important, int Specificity, int Order)> applied = new(StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, (bool Important, bool Inline, SvgCssSelectorMatcher.SelectorSpecificity Specificity, int Order)> applied = new(StringComparer.OrdinalIgnoreCase);
                 for (int i = 0; i < _rules.Count; i++) {
                     if (!TryConsumeSelectorEvaluation()) break;
                     SvgStyleRule rule = _rules[i];
@@ -47,7 +47,14 @@ namespace OfficeIMO.Visio {
                     }
                 }
 
-                MergeDeclarations(style, element.Attribute("style")?.Value);
+                Dictionary<string, string> inlineDeclarations = ParseDeclarations(element.Attribute("style")?.Value);
+                MergeRuleDeclarations(
+                    style,
+                    applied,
+                    inlineDeclarations,
+                    default,
+                    int.MaxValue,
+                    inline: true);
                 _styleCache[element] = style;
                 return style;
             }
@@ -113,7 +120,7 @@ namespace OfficeIMO.Visio {
                 EffectCandidate candidate = default;
                 string? presentationValue = element.Attribute(propertyName)?.Value;
                 if (TryParseEffectValue(presentationValue, out string? normalizedPresentation, out bool presentationImportant)) {
-                    candidate = new EffectCandidate(normalizedPresentation!, presentationImportant, specificity: 0, order: -1);
+                    candidate = new EffectCandidate(normalizedPresentation!, presentationImportant, default, order: -1);
                 }
 
                 EffectCandidate uncertainActiveCandidate = default;
@@ -129,7 +136,7 @@ namespace OfficeIMO.Visio {
                     SvgCssSelectorMatcher.SelectorMatch match = SvgCssSelectorMatcher.Evaluate(
                         element,
                         rule.Selector,
-                        out int specificity);
+                        out SvgCssSelectorMatcher.SelectorSpecificity specificity);
                     if (match == SvgCssSelectorMatcher.SelectorMatch.NoMatch) continue;
                     if (match == SvgCssSelectorMatcher.SelectorMatch.Unsupported) {
                         if (IsActiveEffectValue(element, propertyName, value!)) {
@@ -149,7 +156,7 @@ namespace OfficeIMO.Visio {
                 Dictionary<string, string> inlineDeclarations = ParseDeclarations(element.Attribute("style")?.Value);
                 if (inlineDeclarations.TryGetValue(propertyName, out string? inlineValue) &&
                     TryParseEffectValue(inlineValue, out string? normalizedInline, out bool inlineImportant)) {
-                    inline = new EffectCandidate(normalizedInline!, inlineImportant, specificity: 1000, order: int.MaxValue);
+                    inline = new EffectCandidate(normalizedInline!, inlineImportant, default, int.MaxValue, inline: true);
                     if (!candidate.HasValue || inline.HasHigherPriorityThan(candidate)) candidate = inline;
                 }
 
@@ -234,19 +241,22 @@ namespace OfficeIMO.Visio {
 
             private static void MergeRuleDeclarations(
                 Dictionary<string, string> style,
-                Dictionary<string, (bool Important, int Specificity, int Order)> applied,
+                Dictionary<string, (bool Important, bool Inline, SvgCssSelectorMatcher.SelectorSpecificity Specificity, int Order)> applied,
                 Dictionary<string, string> declarations,
-                int specificity,
-                int order) {
+                SvgCssSelectorMatcher.SelectorSpecificity specificity,
+                int order,
+                bool inline = false) {
                 foreach (KeyValuePair<string, string> declaration in declarations) {
                     bool important = IsImportantDeclaration(declaration.Value);
-                    if (!applied.TryGetValue(declaration.Key, out (bool Important, int Specificity, int Order) previous) ||
+                    if (!applied.TryGetValue(declaration.Key, out (bool Important, bool Inline, SvgCssSelectorMatcher.SelectorSpecificity Specificity, int Order) previous) ||
                         important && !previous.Important ||
                         important == previous.Important &&
-                        (specificity > previous.Specificity ||
-                         specificity == previous.Specificity && order >= previous.Order)) {
+                        (inline && !previous.Inline ||
+                         inline == previous.Inline &&
+                         (specificity.CompareTo(previous.Specificity) > 0 ||
+                          specificity.CompareTo(previous.Specificity) == 0 && order >= previous.Order))) {
                         style[declaration.Key] = declaration.Value;
-                        applied[declaration.Key] = (important, specificity, order);
+                        applied[declaration.Key] = (important, inline, specificity, order);
                     }
                 }
             }
@@ -354,7 +364,10 @@ namespace OfficeIMO.Visio {
                     Classes = classes;
                     Declarations = declarations;
                     Order = order;
-                    Specificity = (id == null ? 0 : 100) + (classes.Count * 10) + (elementName == null ? 0 : 1);
+                    Specificity = new SvgCssSelectorMatcher.SelectorSpecificity(
+                        id == null ? 0 : 1,
+                        classes.Count,
+                        elementName == null ? 0 : 1);
                 }
 
                 private string? ElementName { get; }
@@ -367,10 +380,10 @@ namespace OfficeIMO.Visio {
 
                 internal int Order { get; }
 
-                internal int Specificity { get; }
+                internal SvgCssSelectorMatcher.SelectorSpecificity Specificity { get; }
 
                 internal bool Matches(XElement element) {
-                    if (ElementName != null && !string.Equals(element.Name.LocalName, ElementName, StringComparison.OrdinalIgnoreCase)) {
+                    if (ElementName != null && !string.Equals(element.Name.LocalName, ElementName, StringComparison.Ordinal)) {
                         return false;
                     }
 
@@ -391,7 +404,7 @@ namespace OfficeIMO.Visio {
                     for (int i = 0; i < Classes.Count; i++) {
                         bool found = false;
                         for (int j = 0; j < elementClasses.Length; j++) {
-                            if (string.Equals(elementClasses[j], Classes[i], StringComparison.OrdinalIgnoreCase)) {
+                            if (string.Equals(elementClasses[j], Classes[i], StringComparison.Ordinal)) {
                                 found = true;
                                 break;
                             }
@@ -421,11 +434,17 @@ namespace OfficeIMO.Visio {
             }
 
             private readonly struct EffectCandidate {
-                internal EffectCandidate(string value, bool important, int specificity, int order) {
+                internal EffectCandidate(
+                    string value,
+                    bool important,
+                    SvgCssSelectorMatcher.SelectorSpecificity specificity,
+                    int order,
+                    bool inline = false) {
                     Value = value;
                     Important = important;
                     Specificity = specificity;
                     Order = order;
+                    Inline = inline;
                     HasValue = true;
                 }
 
@@ -433,18 +452,22 @@ namespace OfficeIMO.Visio {
 
                 internal bool Important { get; }
 
+                internal bool Inline { get; }
+
                 internal int Order { get; }
 
-                internal int Specificity { get; }
+                internal SvgCssSelectorMatcher.SelectorSpecificity Specificity { get; }
 
                 internal string? Value { get; }
 
                 internal bool HasHigherPriorityThan(EffectCandidate other) =>
                     Important != other.Important
                         ? Important
-                        : Specificity != other.Specificity
-                            ? Specificity > other.Specificity
-                            : Order >= other.Order;
+                        : Inline != other.Inline
+                            ? Inline
+                            : Specificity.CompareTo(other.Specificity) != 0
+                                ? Specificity.CompareTo(other.Specificity) > 0
+                                : Order >= other.Order;
             }
         }
     }

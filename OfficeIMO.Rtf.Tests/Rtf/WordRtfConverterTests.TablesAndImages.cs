@@ -480,6 +480,41 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_Rtf_Element_Diagnostics_Ignore_Unreferenced_Comment_Stories() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph target = word.AddParagraph("target");
+        target.AddComment("Reviewer", "RV", "orphaned comment");
+        WordComment comment = Assert.Single(word.Comments);
+        comment.Paragraphs[0].AddStructuredDocumentTag("unsupported orphan control");
+        foreach (CommentRangeStart marker in target._paragraph.Descendants<CommentRangeStart>().ToList()) marker.Remove();
+        foreach (CommentRangeEnd marker in target._paragraph.Descendants<CommentRangeEnd>().ToList()) marker.Remove();
+        foreach (CommentReference marker in target._paragraph.Descendants<CommentReference>().ToList()) marker.Remove();
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "WordRtfElementOmitted");
+    }
+
+    [Fact]
+    public void Word_Rtf_Image_Diagnostics_Ignore_Unreferenced_Note_Stories() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph footnoteAnchor = word.AddParagraph("footnote").AddFootNote("orphaned footnote");
+        WordParagraph endnoteAnchor = word.AddParagraph("endnote").AddEndNote("orphaned endnote");
+        footnoteAnchor.FootNote!.Paragraphs![1].AddImage(
+            new Uri("https://example.test/orphaned-footnote.png"), 16, 16);
+        endnoteAnchor.EndNote!.Paragraphs![1].AddImage(
+            new Uri("https://example.test/orphaned-endnote.png"), 16, 16);
+        foreach (FootnoteReference marker in word._document.Body!.Descendants<FootnoteReference>().ToList()) marker.Remove();
+        foreach (EndnoteReference marker in word._document.Body!.Descendants<EndnoteReference>().ToList()) marker.Remove();
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "WordRtfImagesOmitted");
+    }
+
+    [Fact]
     public void Word_Rtf_Bridge_Preserves_Images_In_Supported_SimpleField_Containers() {
         byte[] png = CreateOnePixelPng();
         using WordDocument word = WordDocument.Create();

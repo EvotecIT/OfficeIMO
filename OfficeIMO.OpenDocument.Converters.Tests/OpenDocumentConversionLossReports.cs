@@ -305,6 +305,39 @@ public sealed class OpenDocumentConversionLossReportTests {
     }
 
     [Fact]
+    public void GeneralWebpImagesRemainPreservableAcrossOfficeToOpenDocumentBridges() {
+        byte[] webp = Convert.FromBase64String(
+            "UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoCAAIAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=");
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        Assert.False(OfficeWebpCodec.TryDecode(webp, out _));
+
+        using WordDocument word = WordDocument.Create();
+        using (var image = new MemoryStream(png, writable: false)) {
+            word.AddParagraph().AddImage(image, "imported.png", 10, 10);
+        }
+        using (var image = new MemoryStream(webp, writable: false)) {
+            word.OpenXmlDocument.MainDocumentPart!.ImageParts.Single().FeedData(image);
+        }
+        OdfConversionResult<OdtDocument> wordConversion = word.ToOpenDocumentResult();
+        Assert.Single(wordConversion.Value.Paragraphs.SelectMany(paragraph => paragraph.Images));
+        Assert.DoesNotContain(wordConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(
+            new MemoryStream(), new PowerPointCreateOptions());
+        using (var image = new MemoryStream(png, writable: false)) {
+            presentation.AddSlide().AddPicture(image, OfficeImageFormat.Png);
+        }
+        using (var image = new MemoryStream(webp, writable: false)) {
+            presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single().ImageParts.Single().FeedData(image);
+        }
+        OdfConversionResult<OdpPresentation> presentationConversion = presentation.ToOpenDocumentResult();
+        Assert.Single(Assert.Single(presentationConversion.Value.Slides).Shapes.OfType<OdpImage>());
+        Assert.DoesNotContain(presentationConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
     public void OdtToWordPreservesRelativeLinksAndSkipsUnsupportedImages() {
         OdtDocument source = OdtDocument.Create();
         source.AddParagraph().AddHyperlink("Relative", "docs/page.html");

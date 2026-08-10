@@ -48,7 +48,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     try {
                         byte[] imageBytes = picture.GetImageBytes();
                         string imageFileName = FileNameForContentType(picture.ContentType);
-                        if (!OfficeImageReader.TryValidateContent(imageBytes, imageFileName, out _)) {
+                        if (!OdfImagePayloadValidator.CanPreserve(imageBytes, imageFileName)) {
                             unsupportedPictures++;
                             continue;
                         }

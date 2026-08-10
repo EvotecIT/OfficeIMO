@@ -36,6 +36,17 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void CompleteContentValidationParsesSvgBeyondTheMetadataPrefix() {
+        string markup = "<!--" + new string('x', 5000) + "-->" +
+                        "<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'/>";
+        byte[] svg = System.Text.Encoding.UTF8.GetBytes(markup);
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(svg, "misleading.png", out OfficeImageInfo info));
+        Assert.Equal(OfficeImageFormat.Svg, info.Format);
+        Assert.True(OfficeImageReader.TryValidateContent(svg, "misleading.png", out _));
+    }
+
+    [Fact]
     public void PngReaderAndExportResultRejectInvalidZlibChecksumWithValidChunkCrc() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         int idatOffset = FindPngChunk(png, "IDAT");
