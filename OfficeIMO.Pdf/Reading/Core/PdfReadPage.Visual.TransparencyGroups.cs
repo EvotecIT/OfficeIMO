@@ -36,7 +36,7 @@ public sealed partial class PdfReadPage {
         bool includeTilingPatterns,
         bool retainPrimitiveData,
         bool requireNestedType3Uncolored,
-        Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache,
+        TilingPatternResourceCache? tilingPatternResourceCache,
         TextContentParser.TextOutputBudget? textOutputBudget,
         PageContentBudget pageContentBudget,
         int contentNestingDepth,

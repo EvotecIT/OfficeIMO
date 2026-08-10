@@ -14,7 +14,7 @@ public sealed partial class PdfReadPage {
         double paintOrderScale,
         bool includeTilingPatterns,
         bool retainPrimitiveData,
-        Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache,
+        TilingPatternResourceCache? tilingPatternResourceCache,
         TextContentParser.TextOutputBudget? textOutputBudget,
         PageContentBudget pageContentBudget,
         int contentNestingDepth,

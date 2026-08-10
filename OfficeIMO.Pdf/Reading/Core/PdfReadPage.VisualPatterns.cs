@@ -116,7 +116,7 @@ public sealed partial class PdfReadPage {
     private Dictionary<string, PdfPageTilingPatternResource> GetTilingPatternResources(
         PdfDictionary? resources,
         HashSet<string>? invokedPatternNames = null,
-        Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? resourceCache = null,
+        TilingPatternResourceCache? resourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
         Type3GlyphBudget? type3GlyphBudget = null,
@@ -125,6 +125,7 @@ public sealed partial class PdfReadPage {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
+        resourceCache ??= new TilingPatternResourceCache();
         var result = new Dictionary<string, PdfPageTilingPatternResource>(StringComparer.Ordinal);
         if (resources == null || !resources.Items.TryGetValue("Pattern", out PdfObject? patternObject)) return result;
         PdfDictionary? patterns = ResolveDictionary(patternObject);
@@ -135,30 +136,39 @@ public sealed partial class PdfReadPage {
                 continue;
             }
 
-            var cacheKey = (Stream: stream, Resources: resources);
-            if (!requireSupportedType3Content && resourceCache != null &&
-                resourceCache.TryGetValue(cacheKey, out PdfPageTilingPatternResource? cached)) {
+            var activeKey = (Stream: stream, Resources: resources);
+            var cacheKey = (
+                Stream: stream,
+                Resources: resources,
+                RequireSupportedType3Content: requireSupportedType3Content,
+                ContentNestingDepth: contentNestingDepth);
+            if (resourceCache.Resources.TryGetValue(cacheKey, out PdfPageTilingPatternResource? cached)) {
                 if (cached != null) {
                     result[entry.Key] = cached;
                 }
                 continue;
             }
 
-            int patternNestingDepth = contentNestingDepth + 1;
-            EnsureContentNestingBudget(patternNestingDepth);
-            PdfPageTilingPatternResource? pattern = TryReadTilingPattern(
-                stream,
-                resources,
-                textOutputBudget,
-                pageContentBudget,
-                type3GlyphBudget,
-                requireSupportedType3Content,
-                patternNestingDepth,
-                out PdfPageTilingPatternResource? parsed)
-                ? parsed
-                : null;
-            if (!requireSupportedType3Content && resourceCache != null) {
-                resourceCache[cacheKey] = pattern;
+            if (!resourceCache.Active.Add(activeKey)) continue;
+            PdfPageTilingPatternResource? pattern;
+            try {
+                int patternNestingDepth = contentNestingDepth + 1;
+                EnsureContentNestingBudget(patternNestingDepth);
+                pattern = TryReadTilingPattern(
+                    stream,
+                    resources,
+                    textOutputBudget,
+                    pageContentBudget,
+                    type3GlyphBudget,
+                    resourceCache,
+                    requireSupportedType3Content,
+                    patternNestingDepth,
+                    out PdfPageTilingPatternResource? parsed)
+                    ? parsed
+                    : null;
+                resourceCache.Resources[cacheKey] = pattern;
+            } finally {
+                resourceCache.Active.Remove(activeKey);
             }
             if (pattern != null) {
                 result[entry.Key] = pattern;
@@ -173,6 +183,7 @@ public sealed partial class PdfReadPage {
         TextContentParser.TextOutputBudget? textOutputBudget,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
+        TilingPatternResourceCache resourceCache,
         bool requireSupportedType3Content,
         int contentNestingDepth,
         out PdfPageTilingPatternResource pattern) {
@@ -193,7 +204,20 @@ public sealed partial class PdfReadPage {
         if (width <= 0D || height <= 0D) return false;
         PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
         int failureVersion = type3GlyphBudget.FailureVersion;
-        OfficeDrawing tile = CreatePatternTileDrawing(stream, resources, box, width, height, textOutputBudget ?? CreateTextOutputBudget(), pageContentBudget, type3GlyphBudget, requireSupportedType3Content, contentNestingDepth);
+        bool allowNestedPatterns = requireSupportedType3Content && paintType == 1;
+        OfficeDrawing tile = CreatePatternTileDrawing(
+            stream,
+            resources,
+            box,
+            width,
+            height,
+            textOutputBudget ?? CreateTextOutputBudget(),
+            pageContentBudget,
+            type3GlyphBudget,
+            resourceCache,
+            requireSupportedType3Content,
+            allowNestedPatterns,
+            contentNestingDepth);
         if (type3GlyphBudget.FailureVersion != failureVersion) return false;
         Matrix2D matrix = stream.Dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)
             ? ReadPatternMatrix(matrixObject)
@@ -218,9 +242,10 @@ public sealed partial class PdfReadPage {
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
+        TilingPatternResourceCache resourceCache,
         bool requireSupportedType3Content,
+        bool allowNestedPatterns,
         int contentNestingDepth) {
-        EnsureContentNestingBudget(contentNestingDepth);
         var drawing = new OfficeDrawing(width, height);
         RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
         string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
@@ -244,10 +269,11 @@ public sealed partial class PdfReadPage {
             renderedType3PaintOrders: renderedType3PaintOrders,
             type3GlyphBudget: type3GlyphBudget,
             contentNestingDepth: contentNestingDepth,
-            includeTilingPatterns: false,
+            includeTilingPatterns: allowNestedPatterns,
             requireSupportedType3Content: requireSupportedType3Content,
+            allowSupportedType3Patterns: allowNestedPatterns,
             allowSupportedType3TransparencyGroups: requireSupportedType3Content,
-            unrenderedPatternVisitor: _ => type3GlyphBudget.RecordFailure(),
+            unrenderedPatternVisitor: requireSupportedType3Content ? null : _ => type3GlyphBudget.RecordFailure(),
             type3ImageVisitor: (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
             type3PrimitiveVisitor: (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
             type3GroupVisitor: (group, transform, paintOrder, key, effect) => elements.Add(PdfPageDrawingElement.FromGroup(group, transform, paintOrder, key, elements.Count).WithEffect(effect)),
@@ -267,6 +293,7 @@ public sealed partial class PdfReadPage {
                         type3GlyphBudget.RecordFailure();
                     }
                 },
+            tilingPatternResourceCache: resourceCache,
             textOutputBudget: textOutputBudget,
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: PdfContentOrderKey.Root);
@@ -328,5 +355,13 @@ public sealed partial class PdfReadPage {
             AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);
         }
         return drawing;
+    }
+
+    private sealed class TilingPatternResourceCache {
+        internal Dictionary<(PdfStream Stream, PdfDictionary Resources, bool RequireSupportedType3Content, int ContentNestingDepth), PdfPageTilingPatternResource?> Resources { get; } =
+            new Dictionary<(PdfStream Stream, PdfDictionary Resources, bool RequireSupportedType3Content, int ContentNestingDepth), PdfPageTilingPatternResource?>();
+
+        internal HashSet<(PdfStream Stream, PdfDictionary Resources)> Active { get; } =
+            new HashSet<(PdfStream Stream, PdfDictionary Resources)>();
     }
 }
