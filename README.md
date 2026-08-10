@@ -117,9 +117,10 @@ _Dependency footprint:_ only `OfficeIMO.Core` and CodeGlyphX; both core packages
 - [x] Optional bridge from every ChartForgeX `VisualArtifact` to reusable SVG and `OfficeDrawing` representations
 - [x] Vector-native placement in Word, Excel, and PowerPoint plus first-party PDF composition through OfficeIMO.Drawing
 - [x] Point-normalized sizing, accessibility text, region metadata, and explicit preserve-vector, raster-fallback, or require-vector policy
+- [x] Native editable Visio projection for CFX topology, flow, and sequence semantics, including containers, Shape Data, hyperlinks, messages, notes, activations, and fragments
 - [x] ChartForgeX watermarks and render options flow through the same conversion, while document/page watermarks remain owned by OfficeIMO
 
-_Dependency footprint:_ ChartForgeX and the OfficeIMO Word, Excel, PowerPoint, PDF, and Core packages. Existing format packages remain independently usable and do not depend on ChartForgeX.
+_Dependency footprint:_ ChartForgeX and the OfficeIMO Word, Excel, PowerPoint, PDF, Visio, and Core packages. Existing format packages remain independently usable and do not depend on ChartForgeX.
 
 #### [OfficeIMO.Word](OfficeIMO.Word/README.md)
 

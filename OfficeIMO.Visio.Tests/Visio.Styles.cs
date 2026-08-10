@@ -146,13 +146,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void DiagramTitleStylePreservesThemeColor() {
+        public void DiagramTitleStyleUsesConfiguredTitleText() {
             VisioStyleTheme theme = VisioStyleTheme.Technical();
-            theme.Emphasis.TextStyle!.Color = Color.Red;
+            theme.TitleText.Color = Color.Red;
+            theme.Emphasis.TextStyle!.Color = Color.White;
 
             VisioTextStyle style = VisioDiagramTitleStyles.Create(theme);
 
             Assert.Equal(Color.Red, style.Color);
+            Assert.Equal(theme.TitleText.FontFamily, style.FontFamily);
         }
 
         [Fact]
