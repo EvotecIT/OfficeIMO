@@ -215,6 +215,45 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void Reader_TraversesChainedWidgetActionsWithCyclesAndAggregateBudgets() {
+        byte[] source = BuildWidgetActionGraphPdf(includeOpenAction: false);
+
+        PdfFormWidget widget = Assert.Single(Assert.Single(PdfDocument.Open(source).Inspect().FormFields).Widgets);
+        Assert.Equal(new[] { "A", "A.Next.0", "A.Next.1" }, widget.Actions.Select(static action => action.TriggerName));
+        Assert.Equal(new[] { "GoTo", "JavaScript", "JavaScript" }, widget.Actions.Select(static action => action.ActionType));
+        Assert.Equal("app.alert('one');", widget.JavaScript);
+
+        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScripts = 1 } };
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Open(source, options).Inspect());
+        Assert.Equal(PdfReadLimitKind.JavaScripts, exception.Kind);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void Flatten_PrunesIndirectWidgetActionGraphButKeepsPublicRedactionAnalysisClean() {
+        byte[] source = BuildWidgetActionGraphPdf(includeOpenAction: false);
+
+        PdfDocument flattened = PdfDocument.Open(source).Forms.Flatten();
+        IReadOnlyList<PdfSanitizationFinding> findings = PdfSanitizer.Analyze(flattened.ToBytes());
+
+        Assert.Empty(flattened.Inspect().FormFields);
+        Assert.DoesNotContain(findings, static finding => finding.Kind == PdfSanitizationFindingKind.ActiveAction);
+        Assert.DoesNotContain("app.alert", Encoding.ASCII.GetString(flattened.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FormPreflightAndPlannerBothRejectUnrelatedCatalogOpenAction() {
+        byte[] source = BuildWidgetActionGraphPdf(includeOpenAction: true);
+
+        PdfDocumentPreflight preflight = PdfDocument.Open(source).Preflight();
+
+        Assert.False(preflight.CanFillSimpleFormFields);
+        Assert.False(preflight.CanFlattenSimpleFormFields);
+        Assert.Contains(preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields), message => message.Contains("open action", StringComparison.OrdinalIgnoreCase));
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(source).Forms.Fill(new Dictionary<string, string> { ["run"] = "updated" }));
+    }
+
+    [Fact]
     public void WidgetJavaScript_RoundTripsUnicodeAndPdfDocSensitiveCharacters() {
         const string script = "app.alert('€ •');\f";
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Unicode widget action")).ToBytes();
@@ -338,6 +377,24 @@ public class PdfAcroFormAuthoringTests {
         WriteAscii(output, "7 0 obj\n<< /Length " + script.Length + " >>\nstream\n");
         output.Write(script, 0, script.Length);
         WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R /Size 8 >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildWidgetActionGraphPdf(bool includeOpenAction) {
+        using var output = new MemoryStream();
+        string openAction = includeOpenAction ? " /OpenAction 11 0 R" : string.Empty;
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R" + openAction + " >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /Helv 12 0 R >> >> /Annots [6 0 R] >>\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Fields [6 0 R] /DA (/Helv 10 Tf 0 g) /DR << /Font << /Helv 12 0 R >> >> >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Type /Annot /Subtype /Widget /FT /Tx /T (run) /V (before) /DA (/Helv 10 Tf 0 g) /Rect [20 20 160 48] /P 3 0 R /A 8 0 R >>\nendobj\n");
+        WriteAscii(output, "8 0 obj\n<< /S /GoTo /D [3 0 R /Fit] /Next [9 0 R 10 0 R] >>\nendobj\n");
+        WriteAscii(output, "9 0 obj\n<< /S /JavaScript /JS (app.alert\\('one'\\);) >>\nendobj\n");
+        WriteAscii(output, "10 0 obj\n<< /S /JavaScript /JS (app.alert\\('two'\\);) /Next 8 0 R >>\nendobj\n");
+        WriteAscii(output, "11 0 obj\n<< /S /JavaScript /JS (app.alert\\('open'\\);) >>\nendobj\n");
+        WriteAscii(output, "12 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 13 >>\n%%EOF\n");
         return output.ToArray();
     }
 

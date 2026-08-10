@@ -588,7 +588,7 @@ public sealed class PdfFormWidgetAction {
         JavaScript = javaScript;
     }
 
-    /// <summary>PDF action trigger: A for the primary activation action, or an /AA key such as U, D, Fo, or Bl.</summary>
+    /// <summary>PDF action path rooted at A for the primary activation action or an /AA key such as U, D, Fo, or Bl. Chained actions append .Next and an optional array index.</summary>
     public string TriggerName { get; }
 
     /// <summary>Action type from the action dictionary /S entry.</summary>
