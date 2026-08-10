@@ -597,7 +597,10 @@ public sealed partial class PdfReadPage {
             unsupportedShadingTransformVisitor: requireSupportedType3Content
                 ? type3GlyphBudget.RecordFailure
                 : null,
-            requireExactType3ShadingProjection: requireSupportedType3Content);
+            requireExactType3ShadingProjection: requireSupportedType3Content,
+            authoredShadingInvocationVisitor: requireNestedType3Uncolored
+                ? _ => type3GlyphBudget.RecordFailure()
+                : null);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,

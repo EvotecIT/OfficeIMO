@@ -658,8 +658,8 @@ internal static class PdfPageXObjectInvocationParser {
                 case "scn":
                     if (op == "scn" && _args.Count > 0 && _args[_args.Count - 1] is string fillPatternName) {
                         if (_state.FillColorSpace == PdfPageColorSpaceKind.Pattern) {
-                            _authoredPatternInvocationVisitor?.Invoke(fillPatternName);
                             if (!HasHiddenContent()) {
+                                _authoredPatternInvocationVisitor?.Invoke(fillPatternName);
                                 _unsupportedPatternVisitor?.Invoke();
                                 _patternInvocationVisitor?.Invoke(fillPatternName);
                             }
@@ -693,8 +693,8 @@ internal static class PdfPageXObjectInvocationParser {
                 case "SCN":
                     if (op == "SCN" && _args.Count > 0 && _args[_args.Count - 1] is string strokePatternName) {
                         if (_state.StrokeColorSpace == PdfPageColorSpaceKind.Pattern) {
-                            _authoredPatternInvocationVisitor?.Invoke(strokePatternName);
                             if (!HasHiddenContent()) {
+                                _authoredPatternInvocationVisitor?.Invoke(strokePatternName);
                                 _unsupportedPatternVisitor?.Invoke();
                                 _patternInvocationVisitor?.Invoke(strokePatternName);
                             }
