@@ -337,12 +337,7 @@ internal static partial class ResourceResolver {
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         out byte[] decoded) =>
-        Filters.StreamDecoder.TryDecode(
-            stream.Dictionary,
-            stream.Data,
-            PdfReadLimits.DefaultMaxDecodedStreamBytes,
-            out decoded,
-            objects);
+        PdfImageStreamDecoder.TryDecode(stream, objects, out decoded);
 
     private static bool TryReadIndexedSample(byte[] pixels, int width, int sampleIndex, int bitsPerComponent, out int sample) {
         sample = 0;

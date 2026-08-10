@@ -158,25 +158,7 @@ internal static class PdfIndexedImageNormalizer {
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         out byte[] bytes) {
-        bytes = Array.Empty<byte>();
-        if (stream.Dictionary.Items.TryGetValue("Filter", out _)) {
-            if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) {
-                return false;
-            }
-
-            if (!Filters.StreamDecoder.TryDecode(
-                    stream.Dictionary,
-                    stream.Data,
-                    PdfReadLimits.DefaultMaxDecodedStreamBytes,
-                    out bytes,
-                    objects)) {
-                return false;
-            }
-        } else {
-            bytes = stream.Data;
-        }
-
-        return bytes.Length > 0;
+        return PdfImageStreamDecoder.TryDecode(stream, objects, out bytes) && bytes.Length > 0;
     }
 
     private static bool TryBuildPngFileFromIndexedPixels(

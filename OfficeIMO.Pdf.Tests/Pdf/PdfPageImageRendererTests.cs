@@ -2649,6 +2649,40 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void ImageStreamDecoderPreservesDecodedSizeLimitFailures() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var stream = new PdfStream(dictionary, CompressWithDeflate(new byte[8]));
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfImageStreamDecoder.TryDecode(
+                stream,
+                new Dictionary<int, PdfIndirectObject>(),
+                out _,
+                maxDecodedBytes: 4));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(4, exception.Limit);
+    }
+
+    [Fact]
+    public void ImageStreamDecoderReturnsFalseForMalformedStreamData() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var decodeParameters = new PdfDictionary();
+        decodeParameters.Items["Predictor"] = new PdfNumber(12);
+        decodeParameters.Items["Columns"] = new PdfNumber(4);
+        dictionary.Items["DecodeParms"] = decodeParameters;
+        var stream = new PdfStream(dictionary, CompressWithDeflate(new byte[] { 1, 2, 3, 4 }));
+
+        Assert.False(PdfImageStreamDecoder.TryDecode(
+            stream,
+            new Dictionary<int, PdfIndirectObject>(),
+            out _,
+            maxDecodedBytes: 4));
+    }
+
+    [Fact]
     public void PackedImageNormalizersRejectMalformedPredictorFallbackBytes() {
         byte[] malformedPredictedPixels = Enumerable.Range(0, 64).Select(value => (byte)value).ToArray();
         byte[] encoded = CompressWithDeflate(malformedPredictedPixels);
