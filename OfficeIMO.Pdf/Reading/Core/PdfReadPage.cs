@@ -669,7 +669,8 @@ public sealed partial class PdfReadPage {
         PdfPageClipPath? initialClipPath = null,
         int contentNestingDepth = 0,
         PageContentBudget? pageContentBudget = null,
-        PdfContentOrderKey? contentOrderPrefix = null) {
+        PdfContentOrderKey? contentOrderPrefix = null,
+        bool skipTransparencyGroupForms = false) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         foreach (var invocation in PdfPageXObjectInvocationParser.Parse(
@@ -719,6 +720,10 @@ public sealed partial class PdfReadPage {
                 continue;
             }
 
+            if (skipTransparencyGroupForms && formStream.Dictionary.Items.ContainsKey("Group")) {
+                continue;
+            }
+
             if (!activeForms.Add(formStream)) {
                 continue;
             }
@@ -744,7 +749,8 @@ public sealed partial class PdfReadPage {
                     initialClipPath: invocation.ClipPath,
                     contentNestingDepth: contentNestingDepth + 1,
                     pageContentBudget: pageContentBudget,
-                    contentOrderPrefix: invocationOrder);
+                    contentOrderPrefix: invocationOrder,
+                    skipTransparencyGroupForms: skipTransparencyGroupForms);
             } finally {
                 activeForms.Remove(formStream);
             }

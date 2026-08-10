@@ -294,7 +294,8 @@ public sealed partial class PdfReadPage {
                     supported = false;
                     continue;
                 }
-                if (HasUnsupportedType3FormGroup(form.Dictionary)) {
+                if (form.Dictionary.Items.ContainsKey("Group") &&
+                    (requireImageMask || !IsSupportedType3TransparencyGroup(form.Dictionary))) {
                     supported = false;
                     continue;
                 }

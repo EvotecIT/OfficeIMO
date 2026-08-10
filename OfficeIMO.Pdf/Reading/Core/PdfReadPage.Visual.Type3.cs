@@ -20,6 +20,7 @@ public sealed partial class PdfReadPage {
         int contentNestingDepth,
         Action<PdfImagePlacement, PdfExtractedImage, PdfPageDrawingEffect>? imageVisitor,
         Action<PdfPageVisualPrimitive, PdfPageDrawingEffect>? primitiveEffectVisitor,
+        Action<OfficeDrawing, double, PdfContentOrderKey?, PdfPageDrawingEffect>? groupVisitor,
         PdfContentOrderKey? contentOrderPrefix) {
         if (invocation.Glyphs.Count == 0) return false;
 
@@ -33,6 +34,7 @@ public sealed partial class PdfReadPage {
 
         var glyphPrimitives = new List<(PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect)>();
         var glyphImages = new List<(PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect)>();
+        var glyphGroups = new List<(OfficeDrawing Drawing, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)>();
         var extractedImageCache = new Dictionary<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor), PdfExtractedImage>();
         var validatedSoftMaskGroups = new HashSet<PdfStream>();
         var softMaskValidationBudget = new PageContentBudget(this);
@@ -47,6 +49,7 @@ public sealed partial class PdfReadPage {
                 PdfContentOrderKey glyphOrderPrefix = (contentOrderPrefix ?? PdfContentOrderKey.Root).Append(i);
                 var localPrimitives = new List<(PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect)>();
                 var localImages = new List<(PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect)>();
+                var localGroups = new List<(OfficeDrawing Drawing, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)>();
                 var localImagePlacements = new List<PdfImagePlacement>();
                 int failureVersion = type3GlyphBudget.FailureVersion;
                 string glyphContent;
@@ -88,9 +91,11 @@ public sealed partial class PdfReadPage {
                         retainPrimitiveData: retainPrimitiveData,
                         requireSupportedType3Content: true,
                         allowSupportedType3Patterns: !type3.IsUncolored,
+                        allowSupportedType3TransparencyGroups: !type3.IsUncolored,
                         requireNestedType3Uncolored: type3.IsUncolored,
                         type3ImageVisitor: (placement, image, effect) => localImages.Add((placement, image, effect)),
                         type3PrimitiveVisitor: (primitive, effect) => localPrimitives.Add((primitive, effect)),
+                        type3GroupVisitor: (drawing, paintOrder, key, effect) => localGroups.Add((drawing, paintOrder, key, effect)),
                         tilingPatternResourceCache: tilingPatternResourceCache,
                         textOutputBudget: textOutputBudget,
                         pageContentBudget: pageContentBudget,
@@ -135,6 +140,11 @@ public sealed partial class PdfReadPage {
                     PdfPageDrawingEffect inherited = ResolveDrawingEffect(localEffects, item.Placement.PaintOrder, contentOrderKey: item.Placement.ContentOrderKey);
                     localImages[imageIndex] = (item.Placement, item.Image, item.Effect.OverlayOn(inherited));
                 }
+                for (int groupIndex = 0; groupIndex < localGroups.Count; groupIndex++) {
+                    (OfficeDrawing Drawing, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect) item = localGroups[groupIndex];
+                    PdfPageDrawingEffect inherited = ResolveDrawingEffect(localEffects, item.PaintOrder, contentOrderKey: item.ContentOrderKey);
+                    localGroups[groupIndex] = (item.Drawing, item.PaintOrder, item.ContentOrderKey, item.Effect.OverlayOn(inherited));
+                }
 
                 CollectImagePlacementsAndForms(
                     glyphContent,
@@ -152,7 +162,8 @@ public sealed partial class PdfReadPage {
                     initialClipPath: glyph.ClipPath,
                     contentNestingDepth: contentNestingDepth + 1,
                     pageContentBudget: pageContentBudget,
-                    contentOrderPrefix: glyphOrderPrefix);
+                    contentOrderPrefix: glyphOrderPrefix,
+                    skipTransparencyGroupForms: true);
                 if (type3.IsUncolored) {
                     for (int imageIndex = 0; imageIndex < localImages.Count; imageIndex++) {
                         (PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect) image = localImages[imageIndex];
@@ -203,10 +214,12 @@ public sealed partial class PdfReadPage {
                 if (!TryPublishType3GlyphContent(
                         localPrimitives,
                         localImages,
+                        localGroups,
                         ref nextPaintOrder,
                         paintOrderLimit,
                         glyphPrimitives,
-                        glyphImages)) {
+                        glyphImages,
+                        glyphGroups)) {
                     return false;
                 }
             } finally {
@@ -215,11 +228,16 @@ public sealed partial class PdfReadPage {
         }
 
         if (glyphImages.Count > 0 && imageVisitor == null) return false;
+        if (glyphGroups.Count > 0 && groupVisitor == null) return false;
         for (int i = 0; i < glyphPrimitives.Count; i++) {
             if (primitiveEffectVisitor != null) primitiveEffectVisitor(glyphPrimitives[i].Primitive, glyphPrimitives[i].Effect);
             else primitiveVisitor(glyphPrimitives[i].Primitive);
         }
         for (int i = 0; i < glyphImages.Count; i++) imageVisitor!(glyphImages[i].Placement, glyphImages[i].Image, glyphImages[i].Effect);
+        for (int i = 0; i < glyphGroups.Count; i++) {
+            (OfficeDrawing Drawing, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect) group = glyphGroups[i];
+            groupVisitor!(group.Drawing, group.PaintOrder, group.ContentOrderKey, group.Effect);
+        }
         return true;
     }
 
@@ -233,16 +251,21 @@ public sealed partial class PdfReadPage {
     private static bool TryPublishType3GlyphContent(
         List<(PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect)> localPrimitives,
         List<(PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect)> localImages,
+        List<(OfficeDrawing Drawing, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)> localGroups,
         ref double nextPaintOrder,
         double paintOrderLimit,
         List<(PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect)> targetPrimitives,
-        List<(PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect)> targetImages) {
-        var items = new List<Type3GlyphPaintItem>(localPrimitives.Count + localImages.Count);
+        List<(PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect)> targetImages,
+        List<(OfficeDrawing Drawing, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)> targetGroups) {
+        var items = new List<Type3GlyphPaintItem>(localPrimitives.Count + localImages.Count + localGroups.Count);
         for (int i = 0; i < localPrimitives.Count; i++) {
-            items.Add(new Type3GlyphPaintItem(localPrimitives[i].Primitive.PaintOrder, localPrimitives[i].Primitive.ContentOrderKey, false, i, i));
+            items.Add(new Type3GlyphPaintItem(localPrimitives[i].Primitive.PaintOrder, localPrimitives[i].Primitive.ContentOrderKey, Type3GlyphPaintItemKind.Primitive, i, i));
         }
         for (int i = 0; i < localImages.Count; i++) {
-            items.Add(new Type3GlyphPaintItem(localImages[i].Placement.PaintOrder, localImages[i].Placement.ContentOrderKey, true, i, localPrimitives.Count + i));
+            items.Add(new Type3GlyphPaintItem(localImages[i].Placement.PaintOrder, localImages[i].Placement.ContentOrderKey, Type3GlyphPaintItemKind.Image, i, localPrimitives.Count + i));
+        }
+        for (int i = 0; i < localGroups.Count; i++) {
+            items.Add(new Type3GlyphPaintItem(localGroups[i].PaintOrder, localGroups[i].ContentOrderKey, Type3GlyphPaintItemKind.Group, i, localPrimitives.Count + localImages.Count + i));
         }
         items.Sort(static (left, right) => {
             if (left.ContentOrderKey != null && right.ContentOrderKey != null) {
@@ -257,9 +280,12 @@ public sealed partial class PdfReadPage {
             nextPaintOrder = NextRepresentablePaintOrder(nextPaintOrder);
             if (nextPaintOrder >= paintOrderLimit) return false;
             Type3GlyphPaintItem item = items[i];
-            if (item.IsImage) {
+            if (item.Kind == Type3GlyphPaintItemKind.Image) {
                 (PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect) image = localImages[item.Index];
                 targetImages.Add((image.Placement.WithPaintOrder(nextPaintOrder), image.Image, image.Effect));
+            } else if (item.Kind == Type3GlyphPaintItemKind.Group) {
+                (OfficeDrawing Drawing, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect) group = localGroups[item.Index];
+                targetGroups.Add((group.Drawing, nextPaintOrder, group.ContentOrderKey, group.Effect));
             } else {
                 (PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect) primitive = localPrimitives[item.Index];
                 targetPrimitives.Add((primitive.Primitive.WithPaintOrder(nextPaintOrder), primitive.Effect));
@@ -275,19 +301,25 @@ public sealed partial class PdfReadPage {
     }
 
     private readonly struct Type3GlyphPaintItem {
-        internal Type3GlyphPaintItem(double paintOrder, PdfContentOrderKey? contentOrderKey, bool isImage, int index, int sequence) {
+        internal Type3GlyphPaintItem(double paintOrder, PdfContentOrderKey? contentOrderKey, Type3GlyphPaintItemKind kind, int index, int sequence) {
             PaintOrder = paintOrder;
             ContentOrderKey = contentOrderKey;
-            IsImage = isImage;
+            Kind = kind;
             Index = index;
             Sequence = sequence;
         }
 
         internal double PaintOrder { get; }
         internal PdfContentOrderKey? ContentOrderKey { get; }
-        internal bool IsImage { get; }
+        internal Type3GlyphPaintItemKind Kind { get; }
         internal int Index { get; }
         internal int Sequence { get; }
+    }
+
+    private enum Type3GlyphPaintItemKind {
+        Primitive,
+        Image,
+        Group
     }
     private sealed class Type3GlyphBudget {
         private readonly int _maximum;
