@@ -322,7 +322,7 @@ public sealed partial class PdfReadPage {
             double surfaceWidth = projectionPageWidth ?? visualPageSize.Width;
             double surfaceHeight = projectionPageHeight ?? visualPageSize.Height;
             bool supported = true;
-            var validatedSoftMaskGroups = new HashSet<PdfStream>();
+            var validatedSoftMaskGroups = new Dictionary<PdfStream, int>();
             var softMaskValidationBudget = new PageContentBudget(this);
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
@@ -552,7 +552,12 @@ public sealed partial class PdfReadPage {
                          unsupportedGraphicsEffectVisitor: () => supported = false,
                          allowSupportedGraphicsEffects: true,
                          graphicsStateVisitor: resource => {
-                             if (!CanDecodeType3SoftMask(resource.SoftMask, softMaskValidationBudget, validatedSoftMaskGroups)) {
+                             if (!CanDecodeType3SoftMask(
+                                     resource.SoftMask,
+                                     softMaskValidationBudget,
+                                     validatedSoftMaskGroups,
+                                     type3GlyphBudget,
+                                     depth + 1)) {
                                  supported = false;
                              }
                          },
