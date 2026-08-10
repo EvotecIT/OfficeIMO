@@ -2,6 +2,7 @@ using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Package;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
@@ -30,6 +31,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int currentRow = -1;
             int previousCellColumn = -1;
             byte[] bytes = worksheetPart.Buffer;
+            ref byte data = ref MemoryMarshal.GetReference(bytes.AsSpan());
             int dataLength = worksheetPart.DataLength;
             int position = 0;
             {
@@ -51,14 +53,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 // method dispatch and record-object path for every cell.
                 while (position < dataLength) {
                     int recordOffset = position;
-                    int firstTypeByte = bytes[position++];
+                    int firstTypeByte = Unsafe.Add(ref data, position++);
                     int recordType = firstTypeByte & 0x7F;
                     if ((firstTypeByte & 0x80) != 0) {
                         if (position == dataLength) {
                             throw new EndOfStreamException(
                                 "The BIFF12 stream ended inside the record type header.");
                         }
-                        int secondTypeByte = bytes[position++];
+                        int secondTypeByte = Unsafe.Add(ref data, position++);
                         recordType |= (secondTypeByte & 0x7F) << 7;
                         if (recordType < 128) {
                             throw new InvalidDataException(
@@ -70,7 +72,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         throw new EndOfStreamException(
                             "The BIFF12 stream ended inside the record size header.");
                     }
-                    int sizeByte = bytes[position++];
+                    int sizeByte = Unsafe.Add(ref data, position++);
                     int recordSize = sizeByte & 0x7F;
                     if ((sizeByte & 0x80) != 0) {
                         bool complete = false;
@@ -79,7 +81,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                                 throw new EndOfStreamException(
                                     "The BIFF12 stream ended inside the record size header.");
                             }
-                            sizeByte = bytes[position++];
+                            sizeByte = Unsafe.Add(ref data, position++);
                             recordSize |= (sizeByte & 0x7F) << (sizeIndex * 7);
                             if ((sizeByte & 0x80) == 0) {
                                 complete = true;
@@ -216,7 +218,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     int column;
                     if (recordSize >= sizeof(int) + sizeof(uint)
                         && recordType is >= BrtCellBlank and <= BrtCellIsst) {
-                        ref byte payload = ref bytes[payloadOffset];
+                        ref byte payload = ref Unsafe.Add(ref data, payloadOffset);
                         column = Unsafe.ReadUnaligned<int>(ref payload);
                         uint styleIndex = Unsafe.ReadUnaligned<uint>(
                             ref Unsafe.Add(ref payload, sizeof(int))) & 0x00FFFFFFU;

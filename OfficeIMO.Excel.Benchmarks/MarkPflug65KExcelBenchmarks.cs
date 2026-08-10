@@ -384,9 +384,9 @@ internal struct ExcelObservationAccumulator {
     }
 
     private void AddUInt64(ulong value) {
-        for (int shift = 0; shift < 64; shift += 8) {
-            _checksum ^= (byte)(value >> shift);
-            _checksum *= Prime;
-        }
+        // One deterministic FNV-style word mix keeps every observed value in the
+        // timed contract without making validation dominate the reader itself.
+        _checksum ^= value;
+        _checksum *= Prime;
     }
 }

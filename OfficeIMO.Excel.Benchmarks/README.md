@@ -345,7 +345,7 @@ For one fixed-work run across both measured CPU domains, add affinity jobs and
 use the same invocation count for every method and job:
 
 ```powershell
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*MarkPflug65KXlsxBenchmarks*" --affinityMasks "0x1,0x10000" --invocationCount 1 --unrollFactor 1 --warmupCount 5 --iterationCount 15 --launchCount 1
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*MarkPflug65KXlsxBenchmarks*" --affinityMasks "0x1,0x10000" --priority High --invocationCount 1 --unrollFactor 1 --warmupCount 5 --iterationCount 15 --launchCount 1 --outliers DontRemove
 ```
 
 These suites compare library methods within each CPU job, so method baselines
@@ -355,38 +355,38 @@ method baselines with an `--apples` job-baseline comparison.
 ### Dated 65K XLSX snapshot (2026-08-10)
 
 The fixed-work command above was run locally on .NET 10 with workstation GC,
-the Windows High performance power plan, and an AMD Ryzen 9 9950X3D2. CPU 0
-and CPU 16 are the first logical processor in each measured L3 domain. Every
-method read the same hash-pinned workbook and passed the row, cell, and payload
-observation before measurement.
+High process priority, the Windows High performance power plan, and an AMD
+Ryzen 9 9950X3D2. CPU 0 and CPU 16 are the first logical processor in each
+measured L3 domain. Every method read the same hash-pinned workbook and passed
+the row, cell, and payload observation before measurement.
 
 | Library | CPU 0 mean (median) | CPU 16 mean (median) | Managed allocation |
 | --- | ---: | ---: | ---: |
-| OfficeIMO.Excel | 151.1 ms (147.2 ms) | 164.8 ms (171.0 ms) | 366.73-366.95 KB |
-| Sylvan.Data.Excel | 459.0 ms (208.0 ms) | 428.7 ms (199.0 ms) | 649.63 KB |
-| ExcelDataReader | 686.2 ms (558.0 ms) | 739.0 ms (543.4 ms) | 207,509.23-207,509.47 KB |
-| ClosedXML | 1,240.6 ms (1,208.4 ms) | 1,098.0 ms (1,086.9 ms) | 725,534.69 KB |
-| EPPlus | 875.7 ms (869.2 ms) | 847.2 ms (888.2 ms) | 864,352.27-864,364.36 KB |
-| MiniExcel | 568.7 ms (470.3 ms) | 648.6 ms (468.7 ms) | 666,370.99-666,371.07 KB |
+| OfficeIMO.Excel | 248.4 ms (240.4 ms) | 176.1 ms (185.0 ms) | 366.95-368.04 KB |
+| Sylvan.Data.Excel | 473.6 ms (435.6 ms) | 556.4 ms (701.7 ms) | 650.28 KB |
+| ExcelDataReader | 844.8 ms (706.6 ms) | 714.8 ms (543.9 ms) | 207,509.89-207,509.97 KB |
+| ClosedXML | 1,502.9 ms (1,475.2 ms) | 1,233.5 ms (1,212.0 ms) | 725,534.91-725,536.56 KB |
+| EPPlus | 1,379.2 ms (1,132.7 ms) | 862.8 ms (836.4 ms) | 864,345.25-864,434.83 KB |
+| MiniExcel | 747.5 ms (602.2 ms) | 623.1 ms (483.6 ms) | 666,370.91-666,372.80 KB |
 
-OfficeIMO has the lowest mean and median and BenchmarkDotNet rank 1 on both
-domains. It also has the lowest managed allocation by a wide margin. Sylvan,
-ExcelDataReader, and MiniExcel changed performance phase during their isolated
-processes. Sylvan's broad 99.9% confidence intervals overlap OfficeIMO on both
-domains; the run therefore establishes the observed rank and allocation lead,
-not a universal statistical separation from every reader. Outliers were
-retained, and the full distributions matter more than selecting one favorable
-cluster.
+OfficeIMO has the lowest observed mean and median within both affinity jobs. It
+also has the lowest managed allocation by a wide margin. Sylvan,
+ExcelDataReader, EPPlus, and MiniExcel changed performance phase during their
+isolated processes. Sylvan's broad 99.9% confidence intervals overlap
+OfficeIMO on both domains; the run therefore establishes the observed timing
+and allocation lead, not a universal statistical separation from every
+reader. Outliers were retained, and the full distributions matter more than
+selecting one favorable cluster.
 
 The measured assemblies were SHA-256
-`B4AF8D8EB9C21AD0689D19B105FF5CD04E7F21339DF00167336848AD97A56AAB`
+`1EE9FA523E390F5610352798720D633CB1DA23C4D4DCCDBE7F15777874992CA0`
 for `OfficeIMO.Excel.Benchmarks.dll` and
-`AA7C4DE4881C95124EA527FB4B4571AB3A6481BEF988623D222CD98ABA29EC92`
+`3D7C721A2DFF57B1505C453A256594C027E13D88F9EB4C6DD2810F75603D89D7`
 for `OfficeIMO.Excel.dll`.
 
-### Dated 65K XLS and XLSB snapshot (2026-08-09)
+### Dated 65K XLS and XLSB snapshot (2026-08-10)
 
-The legacy-format runner uses twelve warmups followed by forty symmetric ABBA
+The legacy-format runner uses twelve warmups followed by eighty symmetric ABBA
 samples at High process priority. Each sample averages two reads per library,
 alternates which library runs outside the pair, and rejects any row, cell, or
 payload observation mismatch. These results used the same workstation and CPU
@@ -394,29 +394,35 @@ domains as the XLSX snapshot above.
 
 | Format | CPU | OfficeIMO median | Sylvan median | Ratio of medians | Paired ratio median (P25-P75) |
 | --- | --- | ---: | ---: | ---: | ---: |
-| XLS | CPU 0 | 49.494 ms | 50.716 ms | 0.9759 | 0.9847 (0.9498-1.0334) |
-| XLS | CPU 16 | 44.355 ms | 46.572 ms | 0.9524 | 0.9502 (0.9425-0.9661) |
-| XLSB | CPU 0 | 76.264 ms | 74.601 ms | 1.0223 | 0.9913 (0.9294-1.0411) |
-| XLSB | CPU 16 | 55.135 ms | 56.471 ms | 0.9763 | 0.9803 (0.9607-0.9920) |
+| XLS | CPU 0 | 28.334 ms | 27.533 ms | 1.0291 | 1.0238 (0.9679-1.0869) |
+| XLS | CPU 16 | 24.271 ms | 23.054 ms | 1.0528 | 1.0459 (0.9845-1.0955) |
+| XLSB | CPU 0 | 48.187 ms | 46.466 ms | 1.0370 | 1.0308 (0.9837-1.0804) |
+| XLSB | CPU 16 | 37.128 ms | 37.433 ms | 0.9919 | 0.9879 (0.9729-1.0173) |
 
-All four differences are below the repository's predeclared 5% threshold, so
-they are classified as ties rather than wins. OfficeIMO had the lower observed
-median in both XLS domains and one XLSB domain. A separate BenchmarkDotNet run
-with four invocations, twelve warmups, twenty retained-outlier iterations, and
-both affinity jobs measured steady-state XLSB allocation at 115.15-115.23 KB
-for OfficeIMO, 343.78 KB for Sylvan, and 90,233.52-90,236.31 KB for
-ExcelDataReader. Its CPU 16 OfficeIMO timing changed phase dramatically, so the
-ABBA runner above is the relative timing evidence; the BenchmarkDotNet run is
-used for allocation evidence and its timing outliers remain visible.
+Three ratio-of-medians results are within the repository's predeclared 5%
+threshold. XLS on CPU 16 is borderline: its ratio of medians is 1.0528 while
+the paired ratio median is 1.0459 and the interquartile range crosses parity.
+The snapshot therefore establishes near parity, not an OfficeIMO timing win.
+OfficeIMO had the lower observed median only for XLSB on CPU 16.
+
+The timed observer folds every typed value into the deterministic checksum one
+word at a time. This preserves row, cell, type, order, and payload validation
+without making byte-at-a-time checksum bookkeeping the dominant workload. A
+separate two-reader BenchmarkDotNet run with four invocations, twelve warmups,
+twenty retained-outlier iterations, and both affinity jobs measured 115.15 KB
+for OfficeIMO and 343.71-343.87 KB for Sylvan. Its isolated method processes
+changed performance phase and produced multimodal timing distributions, so the
+ABBA runner above is the relative timing evidence; that BenchmarkDotNet run is
+used only for allocation evidence.
 
 Reproduce both timing domains and the allocation run with:
 
 ```powershell
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xls-paired 40 0x1 High
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xls-paired 40 0x10000 High
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xlsb-paired 40 0x1 High
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xlsb-paired 40 0x10000 High
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*MarkPflug65KXlsbBenchmarks*" --affinityMasks "0x1,0x10000" --priority High --invocationCount 4 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xls-paired 80 0x1 High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xls-paired 80 0x10000 High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xlsb-paired 80 0x1 High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xlsb-paired 80 0x10000 High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*MarkPflug65KXlsbBenchmarks.OfficeIMO" "*MarkPflug65KXlsbBenchmarks.Sylvan" --affinityMasks "0x1,0x10000" --priority High --invocationCount 4 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
 ```
 
 The four `--profile-markpflug65k-*` commands are lightweight profiling loops,
