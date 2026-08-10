@@ -310,13 +310,16 @@ internal static class HtmlTextEncodingResolver {
 
     private static Encoding? ResolveCharsetEncoding(Regex pattern, string? source) {
         string? charset = ReadCharset(pattern, source);
-        return charset == null ? null : GetEncoding(charset);
+        return charset == null ? null : NormalizeCssDeclaredEncoding(GetEncoding(charset));
     }
 
     private static Encoding? ResolveContentTypeCharsetEncoding(string? source) {
         string? charset = ReadContentTypeCharset(source);
-        return charset == null ? null : GetEncoding(charset);
+        return charset == null ? null : NormalizeCssDeclaredEncoding(GetEncoding(charset));
     }
+
+    private static Encoding NormalizeCssDeclaredEncoding(Encoding encoding) =>
+        IsUtf16(encoding) ? new UTF8Encoding(false, true) : encoding;
 
     private static string? ReadContentTypeCharset(string? source) {
         if (string.IsNullOrWhiteSpace(source)) return null;

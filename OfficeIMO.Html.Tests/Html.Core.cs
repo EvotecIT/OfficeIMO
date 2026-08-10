@@ -240,6 +240,38 @@ public sealed class HtmlCoreTests {
         Assert.Contains("€", css, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("utf-16")]
+    [InlineData("utf-16le")]
+    [InlineData("utf-16be")]
+    public void HtmlStylesheetDecoderTreatsDeclaredUtf16LabelsAsUtf8(string charset) {
+        byte[] stylesheet = Encoding.UTF8.GetBytes(".café{color:red}");
+
+        Assert.True(HtmlRenderStylesheetText.TryDecode(
+            stylesheet,
+            $"text/css; charset={charset}",
+            out string contentTypeCss));
+        Assert.Equal(".café{color:red}", contentTypeCss);
+
+        byte[] declared = Encoding.UTF8.GetBytes($"@charset \"{charset}\";.café{{color:red}}");
+        Assert.True(HtmlRenderStylesheetText.TryDecode(declared, "text/css", out string declaredCss));
+        Assert.Equal($"@charset \"{charset}\";.café{{color:red}}", declaredCss);
+    }
+
+    [Fact]
+    public void HtmlStylesheetDecoderHonorsUtf16BomOverDeclaredEncoding() {
+        var utf16 = new UnicodeEncoding(false, true, true);
+        byte[] stylesheet = utf16.GetPreamble()
+            .Concat(utf16.GetBytes(".café{color:red}"))
+            .ToArray();
+
+        Assert.True(HtmlRenderStylesheetText.TryDecode(
+            stylesheet,
+            "text/css; charset=utf-16be",
+            out string css));
+        Assert.Equal(".café{color:red}", css);
+    }
+
     [Fact]
     public void HtmlStylesheetDecoderIgnoresNonCanonicalCharsetDeclaration() {
         byte[] stylesheet = Encoding.UTF8.GetBytes("@charset 'windows-1252';.café{color:red}");
