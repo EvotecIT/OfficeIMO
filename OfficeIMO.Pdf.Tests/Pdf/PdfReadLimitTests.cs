@@ -918,10 +918,14 @@ public class PdfReadLimitTests {
         var attachmentBytesOptions = new PdfReadOptions {
             Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 0 }
         };
+        var type3GlyphOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 0 }
+        };
 
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfReadDocument.Open(pdf, options));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfReadDocument.Open(pdf, attachmentCountOptions));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfReadDocument.Open(pdf, attachmentBytesOptions));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfReadDocument.Open(pdf, type3GlyphOptions));
     }
 
     [Fact]

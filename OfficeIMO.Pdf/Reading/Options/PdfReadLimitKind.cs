@@ -96,5 +96,8 @@ public enum PdfReadLimitKind {
     Attachments = 30,
 
     /// <summary>Aggregate decoded bytes retained for unique embedded attachment streams.</summary>
-    AttachmentBytes = 31
+    AttachmentBytes = 31,
+
+    /// <summary>Type 3 glyph programs invoked while rendering one page.</summary>
+    Type3GlyphInvocations = 32
 }

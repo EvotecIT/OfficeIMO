@@ -182,7 +182,7 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPages_ReportsBoundedType3FontSubstitutionOnlyWhenInvoked() {
+    public void RenderPages_ProjectsBoundedType3GlyphProgramOnlyWhenInvoked() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /Name /FType3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
         string charProc = BuildStreamObject(6, "<<", "500 0 d0 0 0 500 700 re f");
         byte[] invoked = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, charProc);
@@ -190,10 +190,340 @@ public class PdfPageImageRendererTests {
 
         PdfPageRenderResult invokedResult = Assert.Single(PdfPageImageRenderer.RenderPages(invoked));
         PdfPageRenderResult unusedResult = Assert.Single(PdfPageImageRenderer.RenderPages(unused));
+        OfficeDrawing invokedDrawing = PdfPageImageRenderer.RenderPage(invoked);
+        OfficeRasterImage invokedRaster = OfficeDrawingRasterRenderer.Render(invokedDrawing);
 
-        Assert.Contains(invokedResult.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId && diagnostic.Subject == "FType3");
+        Assert.DoesNotContain(invokedResult.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId && diagnostic.Subject == "FType3");
         Assert.DoesNotContain(invokedResult.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.FontSubstitutionId && diagnostic.Subject == "FType3");
         Assert.DoesNotContain(unusedResult.CapabilityDiagnostics, diagnostic => diagnostic.Subject == "FType3");
+        Assert.Empty(invokedDrawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Contains(invokedDrawing.Elements, element => element is OfficeDrawingShape);
+        Assert.Equal(OfficeColor.Black, invokedRaster.GetPixel(24, 94));
+        Assert.Equal(OfficeColor.Transparent, invokedRaster.GetPixel(31, 94));
+    }
+
+    [Fact]
+    public void RenderPage_UsesOuterColorForUncoloredType3GlyphProgram() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 2 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
+        string charProc = BuildStreamObject(6, "<<", "500 0 d0 1 0 0 rg 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("0 0 1 rg BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, charProc);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(24, 94));
+    }
+
+    [Fact]
+    public void RenderPage_PreservesGlyphColorForColoredType3GlyphProgram() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
+        string charProc = BuildStreamObject(6, "<<", "500 0 d0 1 0 0 rg 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("0 0 1 rg BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, charProc);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(24, 94));
+    }
+
+    [Fact]
+    public void RenderPage_Type3GlyphPaintingIgnoresTextRenderingMode() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
+        string charProc = BuildStreamObject(6, "<<", "500 0 d0 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 3 Tr 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, charProc);
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+
+        Assert.Empty(drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(24, 94));
+    }
+
+    [Fact]
+    public void RenderPage_PositionsType3GlyphsFromDeclaredWidths() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R /B 7 0 R >> /Encoding << /Differences [65 /A /B] >> /FirstChar 65 /LastChar 66 /Widths [1000 500] /Resources << >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "1000 0 d0 0 0 500 700 re f");
+        string glyphB = BuildStreamObject(7, "<<", "500 0 d0 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (AB) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, glyphB);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(24, 94));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(32, 94));
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(42, 94));
+    }
+
+    [Fact]
+    public void RenderPage_AppliesType3FontMatrixToGlyphAdvance() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.002 0 0 0.001 0 0] /CharProcs << /A 6 0 R /B 7 0 R >> /Encoding << /Differences [65 /A /B] >> /FirstChar 65 /LastChar 66 /Widths [500 500] /Resources << >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 0 0 250 700 re f");
+        string glyphB = BuildStreamObject(7, "<<", "500 0 d0 0 0 250 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (AB) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, glyphB);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(24, 94));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(32, 94));
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(42, 94));
+    }
+
+    [Fact]
+    public void RenderPages_FallsBackAndReportsMissingType3GlyphProgram() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A /B] >> /FirstChar 65 /LastChar 66 /Widths [500 500] /Resources << >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (B) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId && diagnostic.Subject == "FType3");
+        Assert.Single(drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.DoesNotContain(drawing.Elements, element => element is OfficeDrawingShape);
+    }
+
+    [Fact]
+    public void RenderPage_ProjectsFormXObjectInsideType3GlyphProgram() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Fm1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /Fm1 Do");
+        string form = BuildStreamObject(7, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Resources << >>", "0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, form);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(24, 94));
+    }
+
+    [Fact]
+    public void RenderPage_ProjectsType3GlyphProgramInsidePageFormWithoutSubstitution() {
+        string form = BuildStreamObject(5, "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Resources << /Font << /FType3 6 0 R >> >>", "BT /FType3 18 Tf 20 100 Td (A) Tj ET");
+        string type3Font = "6 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 7 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
+        string glyphA = BuildStreamObject(7, "<<", "500 0 d0 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("/Fm1 Do", "<< /XObject << /Fm1 5 0 R >> >>", form, type3Font, glyphA);
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+
+        Assert.Empty(drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(24, 94));
+    }
+
+    [Fact]
+    public void RenderPage_BoundsType3GlyphProgramInvocations() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (AA) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 1 }
+        });
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.Type3GlyphInvocations, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void RenderPage_DecodesFilteredType3GlyphProgramAndHonorsPageClip() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
+        string glyphProgram = "500 0 d0 0 0 500 700 re f";
+        string encodedGlyph = Convert.ToHexString(Encoding.ASCII.GetBytes(glyphProgram)) + ">";
+        string glyphA = BuildStreamObject(6, "<< /Filter /ASCIIHexDecode", encodedGlyph);
+        byte[] pdf = BuildSingleStreamPdf("20 100 5 7 re W n BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(22, 94));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(27, 94));
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForRecursiveType3GlyphProgram() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Font << /FType3 5 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 BT /FType3 500 Tf (A) Tj ET");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId && diagnostic.Subject == "FType3");
+        Assert.Single(drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.DoesNotContain(drawing.Elements, element => element is OfficeDrawingShape);
+    }
+
+    [Fact]
+    public void RenderPages_DiagnosesAndSubstitutesType3RasterImageGlyphProgram() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /Im1 Do");
+        string image = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8", "x");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, image);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId && diagnostic.Subject == "FType3");
+        Assert.Single(drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Empty(drawing.Images);
+    }
+
+    [Fact]
+    public void RenderPage_TreatsType3TextArrayAsOneAtomicGlyphBatch() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A /B] >> /FirstChar 65 /LastChar 66 /Widths [500 500] /Resources << >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td [(A) 20 (B)] TJ ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId && diagnostic.Subject == "FType3");
+        Assert.Equal(2, drawing.Elements.OfType<OfficeDrawingText>().Count());
+        Assert.DoesNotContain(drawing.Elements, element => element is OfficeDrawingShape);
+    }
+
+    [Fact]
+    public void RenderPage_BoundsWholeType3TextArrayBeforeCreatingGlyphBatch() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td [(A) 20 (A)] TJ ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 1 }
+        });
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.Type3GlyphInvocations, exception.Kind);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void RenderPage_SkipsType3GlyphProgramInsideHiddenOptionalContent() {
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(BuildHiddenOptionalContentType3Pdf()));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(BuildHiddenOptionalContentType3Pdf());
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Empty(drawing.Elements.OfType<OfficeDrawingShape>());
+        Assert.Empty(drawing.Elements.OfType<OfficeDrawingText>());
+    }
+
+    [Theory]
+    [InlineData("/StandardEncoding", 33, "exclam")]
+    [InlineData("/WinAnsiEncoding", 128, "Euro")]
+    public void RenderPage_ResolvesPredefinedType3EncodingGlyphNames(string encoding, int characterCode, string glyphName) {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /" + glyphName + " 6 0 R >> /Encoding " + encoding + " /FirstChar " + characterCode + " /LastChar " + characterCode + " /Widths [500] /Resources << >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 0 0 500 700 re f");
+        string character = "<" + characterCode.ToString("X2", System.Globalization.CultureInfo.InvariantCulture) + ">";
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td " + character + " Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Contains(drawing.Elements, element => element is OfficeDrawingShape);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedWhenType3GlyphProgramPaintsOrdinaryText() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Font << /F1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 BT /F1 500 Tf (X) Tj ET");
+        string ordinaryFont = "7 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, ordinaryFont);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedWhenType3GlyphProgramUsesBlendEffect() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
+        string graphicsState = "7 0 obj\n<< /Type /ExtGState /BM /Multiply >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, graphicsState);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedWhenType3GlyphProgramUsesSoftMask() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
+        string graphicsState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
+        string softMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 1 1] /Group << /S /Transparency >> /Resources << >>", "0 0 1 1 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, graphicsState, softMask);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedWhenType3GlyphProgramUsesPatternPaint() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");
+        string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 1 1] /XStep 1 /YStep 1 /Resources << >>", "0 0 1 1 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, pattern);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" /Encoding 123")]
+    [InlineData(" /Encoding << /Differences 123 >>")]
+    public void RenderPage_FailsClosedForMalformedType3Encoding(string encodingClause) {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >>" + encodingClause + " /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForMissingType3GlyphGraphicsState() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /Missing gs 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
+    public void RenderPages_DoesNotDiagnoseMalformedType3FontInsideHiddenOptionalContent() {
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(BuildHiddenOptionalContentType3Pdf(includeEncoding: false)));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPages_DiagnosesUnsupportedType3GlyphInsideTilingPattern() {
+        string pattern = BuildStreamObject(5, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /Font << /FType3 6 0 R >> >>", "BT /FType3 8 Tf (B) Tj ET");
+        string type3Font = "6 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 7 0 R >> /Encoding << /Differences [65 /A /B] >> /FirstChar 65 /LastChar 66 /Widths [500 500] /Resources << >> >>\nendobj";
+        string glyphA = BuildStreamObject(7, "<<", "500 0 d0 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("/Pattern cs /P1 scn 0 0 20 20 re f", "<< /Pattern << /P1 5 0 R >> >>", pattern, type3Font, glyphA);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId && diagnostic.Subject == "FType3");
+    }
+
+    [Fact]
+    public void RenderPages_DiagnosesUnsupportedType3GlyphInsideSoftMaskGroup() {
+        string graphicsState = "5 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 6 0 R >> >>\nendobj";
+        string softMask = BuildStreamObject(6, "<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Group << /S /Transparency >> /Resources << /Font << /FType3 7 0 R >> >>", "BT /FType3 8 Tf (B) Tj ET");
+        string type3Font = "7 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 8 0 R >> /Encoding << /Differences [65 /A /B] >> /FirstChar 65 /LastChar 66 /Widths [500 500] /Resources << >> >>\nendobj";
+        string glyphA = BuildStreamObject(8, "<<", "500 0 d0 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("/GS1 gs 0 0 20 20 re f", "<< /ExtGState << /GS1 5 0 R >> >>", graphicsState, softMask, type3Font, glyphA);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId && diagnostic.Subject == "FType3");
+    }
+
+    [Fact]
+    public void RenderPages_DiagnosesUnsupportedType3GlyphInsideAnnotationAppearance() {
+        string annotation = "5 0 obj\n<< /Type /Annot /Subtype /Stamp /Rect [20 20 80 80] /AP << /N 6 0 R >> >>\nendobj";
+        string appearance = BuildStreamObject(6, "<< /Type /XObject /Subtype /Form /BBox [0 0 60 60] /Resources << /Font << /FType3 7 0 R >> >>", "BT /FType3 18 Tf (B) Tj ET");
+        string type3Font = "7 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 8 0 R >> /Encoding << /Differences [65 /A /B] >> /FirstChar 65 /LastChar 66 /Widths [500 500] /Resources << >> >>\nendobj";
+        string glyphA = BuildStreamObject(8, "<<", "500 0 d0 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdfWithPageEntries("", "<< >>", "/Annots [5 0 R]", annotation, appearance, type3Font, glyphA);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId && diagnostic.Subject == "FType3");
     }
 
     [Fact]
@@ -2753,6 +3083,15 @@ public class PdfPageImageRendererTests {
         Assert.Equal(71, bytes[3]);
     }
 
+    private static void AssertType3FallsBackWithoutNativeShapes(byte[] pdf) {
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId && diagnostic.Subject == "FType3");
+        Assert.Single(drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.DoesNotContain(drawing.Elements, element => element is OfficeDrawingShape);
+    }
+
     private static byte[] BuildSingleStreamPdf(string streamContent) =>
         BuildSingleStreamPdf(streamContent, "<< >>");
 
@@ -2874,6 +3213,27 @@ public class PdfPageImageRendererTests {
         pdf.Write(imageStream, 0, imageStream.Length);
         WriteAscii(pdf, "\nendstream\nendobj\n");
         WriteAscii(pdf, "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
+        WriteAscii(pdf, "7 0 obj\n<< /Type /OCG /Name (Hidden layer) >>\nendobj\n");
+        WriteAscii(pdf, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return pdf.ToArray();
+    }
+
+    private static byte[] BuildHiddenOptionalContentType3Pdf(bool includeEncoding = true) {
+        string streamContent = "/OC /Hidden BDC BT /FType3 18 Tf 20 100 Td (A) Tj ET EMC";
+        byte[] streamBytes = Encoding.ASCII.GetBytes(streamContent);
+        string encoding = includeEncoding ? " /Encoding << /Differences [65 /A] >>" : string.Empty;
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >>" + encoding + " /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 0 0 500 700 re f");
+
+        using var pdf = new MemoryStream();
+        WriteAscii(pdf, "%PDF-1.4\n");
+        WriteAscii(pdf, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [7 0 R] /D << /OFF [7 0 R] >> >> >>\nendobj\n");
+        WriteAscii(pdf, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj\n");
+        WriteAscii(pdf, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Properties << /Hidden 7 0 R >> /Font << /FType3 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(pdf, "4 0 obj\n<< /Length " + streamBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        pdf.Write(streamBytes, 0, streamBytes.Length);
+        WriteAscii(pdf, "\nendstream\nendobj\n");
+        WriteAscii(pdf, type3Font + "\n" + glyphA + "\n");
         WriteAscii(pdf, "7 0 obj\n<< /Type /OCG /Name (Hidden layer) >>\nendobj\n");
         WriteAscii(pdf, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return pdf.ToArray();

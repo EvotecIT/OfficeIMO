@@ -117,8 +117,10 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources,
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? resourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
-        PageContentBudget? pageContentBudget = null) {
+        PageContentBudget? pageContentBudget = null,
+        Type3GlyphBudget? type3GlyphBudget = null) {
         pageContentBudget ??= new PageContentBudget(this);
+        type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var result = new Dictionary<string, PdfPageTilingPatternResource>(StringComparer.Ordinal);
         if (resources == null || !resources.Items.TryGetValue("Pattern", out PdfObject? patternObject)) return result;
         PdfDictionary? patterns = ResolveDictionary(patternObject);
@@ -142,6 +144,7 @@ public sealed partial class PdfReadPage {
                 resources,
                 textOutputBudget,
                 pageContentBudget,
+                type3GlyphBudget,
                 out PdfPageTilingPatternResource? parsed)
                 ? parsed
                 : null;
@@ -160,6 +163,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary parentResources,
         TextContentParser.TextOutputBudget? textOutputBudget,
         PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget,
         out PdfPageTilingPatternResource pattern) {
         pattern = null!;
         int? paintType;
@@ -177,7 +181,7 @@ public sealed partial class PdfReadPage {
         double height = box.Y2 - box.Y1;
         if (width <= 0D || height <= 0D) return false;
         PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
-        OfficeDrawing tile = CreatePatternTileDrawing(stream, resources, box, width, height, textOutputBudget ?? CreateTextOutputBudget(), pageContentBudget);
+        OfficeDrawing tile = CreatePatternTileDrawing(stream, resources, box, width, height, textOutputBudget ?? CreateTextOutputBudget(), pageContentBudget, type3GlyphBudget);
         Matrix2D matrix = stream.Dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)
             ? ReadPatternMatrix(matrixObject)
             : Matrix2D.Identity;
@@ -199,7 +203,8 @@ public sealed partial class PdfReadPage {
         double width,
         double height,
         TextContentParser.TextOutputBudget textOutputBudget,
-        PageContentBudget pageContentBudget) {
+        PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget) {
         var drawing = new OfficeDrawing(width, height);
         RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
         string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
@@ -208,6 +213,7 @@ public sealed partial class PdfReadPage {
         var activeForms = new HashSet<PdfStream>();
         var elements = new List<PdfPageDrawingElement>();
         var primitives = new List<PdfPageVisualPrimitive>();
+        var renderedType3PaintOrders = new HashSet<double>();
         CollectVisualPrimitivesAndForms(
             content,
             resources,
@@ -216,6 +222,8 @@ public sealed partial class PdfReadPage {
             height,
             primitives.Add,
             activeForms,
+            renderedType3PaintOrders: renderedType3PaintOrders,
+            type3GlyphBudget: type3GlyphBudget,
             includeTilingPatterns: false,
             textOutputBudget: textOutputBudget,
             pageContentBudget: pageContentBudget);
@@ -239,7 +247,10 @@ public sealed partial class PdfReadPage {
             useLogicalTextFilters: false,
             textOutputBudget: textOutputBudget,
             pageContentBudget: pageContentBudget);
-        for (int i = 0; i < spans.Count; i++) elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
+        for (int i = 0; i < spans.Count; i++) {
+            if (renderedType3PaintOrders.Contains(spans[i].PaintOrder)) continue;
+            elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
+        }
 
         var placements = new List<PdfImagePlacement>();
         CollectImagePlacementsAndForms(content, resources, 0, transform, height, placements, activeForms, pageContentBudget: pageContentBudget);

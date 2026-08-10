@@ -12,7 +12,9 @@ internal readonly struct PdfPageGraphicsStateResource {
         OfficeStrokeLineJoin? strokeLineJoin,
         OfficeBlendMode? blendMode = null,
         bool hasSoftMask = false,
-        PdfPageSoftMaskResource? softMask = null) {
+        PdfPageSoftMaskResource? softMask = null,
+        bool hasUnsupportedSoftMask = false,
+        bool hasUnsupportedBlendMode = false) {
         FillOpacity = fillOpacity;
         StrokeOpacity = strokeOpacity;
         StrokeWidth = strokeWidth;
@@ -22,6 +24,8 @@ internal readonly struct PdfPageGraphicsStateResource {
         BlendMode = blendMode;
         HasSoftMask = hasSoftMask;
         SoftMask = softMask;
+        HasUnsupportedSoftMask = hasUnsupportedSoftMask;
+        HasUnsupportedBlendMode = hasUnsupportedBlendMode;
     }
 
     public double? FillOpacity { get; }
@@ -41,4 +45,8 @@ internal readonly struct PdfPageGraphicsStateResource {
     public bool HasSoftMask { get; }
 
     public PdfPageSoftMaskResource? SoftMask { get; }
+
+    public bool HasUnsupportedSoftMask { get; }
+
+    public bool HasUnsupportedBlendMode { get; }
 }

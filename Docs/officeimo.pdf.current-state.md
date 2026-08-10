@@ -41,7 +41,7 @@ Byte, stream, path, sync, and async entry points share the same engines. Caller-
 | Attachments and portfolios | Create, list, extract, add, replace, rename, remove, and preserve supported associated-file and collection structures | Existing portfolio presentation metadata editing remains bounded |
 | Optimization | Deterministic compression, unreachable-object removal, exact-stream/image/resource deduplication, object streams, Fast Web View, and action reporting | Optimization is a full rewrite and never claims signature preservation |
 | Redaction | Reviewable geometry/search plans remove intersecting text, paths, annotations, fields, and supported image pixels; cleanup and residue checks are explicit | Unknown image encodings require a bounded caller decoder or fail-closed whole-placement policy |
-| Render pages | Managed Drawing projection for supported paths, clipping, forms, images, shadings, patterns, appearances, alpha, blend modes, masks, fonts, and color spaces | Type 3/CFF, ICC, advanced patterns, and incomplete layer cases remain in per-page diagnostics |
+| Render pages | Managed Drawing projection for supported paths, clipping, forms, images, shadings, patterns, appearances, alpha, blend modes, masks, fonts, and color spaces. Bounded Type 3 vector glyph programs honor font/text transforms, declared widths, clipping, resources, and colored or uncolored paint semantics. | Unsupported Type 3 programs still use diagnosed substitution; CFF substitution, ICC approximation, advanced patterns, and incomplete layer cases remain in per-page diagnostics |
 | Serialize | Buffered output with memory limits/spillover and opt-in forward-only object serialization to non-seekable destinations | Forward-only object writing is not forward-only layout; `ToBytes()` necessarily buffers the final artifact |
 | Extract text and layout | Fast heuristic plus a pluggable understanding pipeline with stable JSON, Markdown, ALTO, hOCR, and PAGE XML | Editable reconstruction from arbitrary fixed-layout PDFs is not claimed |
 | Compliance artifacts | PDF/A-2a/b/u, PDF/A-3a/b/u, PDF/A-4/4e/4f, PDF/UA-1, PDF/UA-2, Factur-X, and ZUGFeRD gates bind internal readiness and external evidence to exact bytes | Tags or metadata alone never establish conformance |
@@ -74,7 +74,7 @@ readback, and loss-aware format adapters. The remaining gap is mostly depth and
 producer fidelity rather than a missing second API for the same operation.
 
 The highest-value open areas are tracked in [ROADMAP.md](ROADMAP.md): difficult
-Type 3 and color/pattern/transparency rendering, broader native Office layout,
+remaining difficult Type 3 programs and color/pattern/transparency rendering, broader native Office layout,
 externally proven standards and producer corpora, stronger hybrid editable
 PDF-to-Office reconstruction, and optional provider packages for capabilities
 that should not become core runtime dependencies. Browser JavaScript, TeX

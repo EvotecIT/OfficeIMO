@@ -17,12 +17,14 @@ internal sealed class PdfFontResource {
     public IReadOnlyDictionary<int, string>? Differences { get; }
     public byte[]? EmbeddedTrueTypeFont { get; }
     public string? DrawingFontFamily { get; }
-    public PdfFontResource(string resourceName, string baseFont, string encoding, bool hasToUnicode, ToUnicodeCMap? cmap = null, IReadOnlyDictionary<int, string>? differences = null, byte[]? embeddedTrueTypeFont = null, string? fontSubtype = null, string? embeddedProgramSubtype = null) {
+    internal PdfType3FontResource? Type3 { get; }
+    public PdfFontResource(string resourceName, string baseFont, string encoding, bool hasToUnicode, ToUnicodeCMap? cmap = null, IReadOnlyDictionary<int, string>? differences = null, byte[]? embeddedTrueTypeFont = null, string? fontSubtype = null, string? embeddedProgramSubtype = null, PdfType3FontResource? type3 = null) {
         ResourceName = resourceName;
         BaseFont = baseFont;
         Encoding = encoding;
         FontSubtype = fontSubtype ?? string.Empty;
         EmbeddedProgramSubtype = embeddedProgramSubtype;
+        Type3 = type3;
         HasToUnicode = hasToUnicode;
         CMap = cmap;
         Differences = differences;
@@ -49,4 +51,3 @@ internal sealed class PdfFontResource {
         return true;
     }
 }
-

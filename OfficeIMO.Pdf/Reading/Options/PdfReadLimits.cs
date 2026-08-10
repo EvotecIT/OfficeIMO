@@ -13,6 +13,7 @@ public sealed class PdfReadLimits {
     internal const int DefaultMaxNameTreeDepth = 128;
     internal const int DefaultMaxAttachments = 100_000;
     internal const long DefaultMaxTotalAttachmentBytes = 256L * 1024L * 1024L;
+    internal const int DefaultMaxType3GlyphInvocationsPerPage = 1_000_000;
 
     /// <summary>Creates default parser budgets that callers can customize without changing another options instance.</summary>
     public static PdfReadLimits Default => new PdfReadLimits();
@@ -98,6 +99,9 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum nested lexical arrays/dictionaries or form XObjects while parsing page content. Default: 128.</summary>
     public int MaxContentNestingDepth { get; init; } = DefaultMaxContentNestingDepth;
 
+    /// <summary>Maximum Type 3 glyph programs invoked while rendering one page, including nested forms. Default: 1,000,000.</summary>
+    public int MaxType3GlyphInvocationsPerPage { get; init; } = DefaultMaxType3GlyphInvocationsPerPage;
+
     internal PdfReadLimits WithMinimumInputBytes(long minimumInputBytes) {
         return new PdfReadLimits {
             MaxInputBytes = Math.Max(MaxInputBytes, minimumInputBytes),
@@ -126,7 +130,8 @@ public sealed class PdfReadLimits {
             MaxColorSpaceResourcesPerPage = MaxColorSpaceResourcesPerPage,
             MaxContentOperations = MaxContentOperations,
             MaxContentOperands = MaxContentOperands,
-            MaxContentNestingDepth = MaxContentNestingDepth
+            MaxContentNestingDepth = MaxContentNestingDepth,
+            MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage
         };
     }
 
@@ -185,6 +190,7 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxContentOperations, nameof(MaxContentOperations), "Maximum content operations must be positive.");
         ValidatePositive(MaxContentOperands, nameof(MaxContentOperands), "Maximum content operands must be positive.");
         ValidatePositive(MaxContentNestingDepth, nameof(MaxContentNestingDepth), "Maximum content nesting depth must be positive.");
+        ValidatePositive(MaxType3GlyphInvocationsPerPage, nameof(MaxType3GlyphInvocationsPerPage), "Maximum Type 3 glyph invocations per page must be positive.");
     }
 
     private static void ValidatePositive(int value, string parameterName, string message) {

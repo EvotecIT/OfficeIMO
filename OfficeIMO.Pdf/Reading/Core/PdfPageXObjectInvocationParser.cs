@@ -45,12 +45,23 @@ internal static class PdfPageXObjectInvocationParser {
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
-        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
+        IReadOnlyDictionary<string, PdfFontResource>? fonts = null,
+        IReadOnlyDictionary<string, Func<byte[], double>>? fontWidthProviders = null,
+        Func<PdfPageType3TextInvocation, bool>? type3TextVisitor = null,
+        ISet<double>? renderedType3PaintOrders = null,
+        Action<int>? type3GlyphBudgetConsumer = null,
+        Action? unsupportedTextVisitor = null,
+        Action? unsupportedGraphicsEffectVisitor = null,
+        Action? unsupportedPatternVisitor = null,
+        Action<string>? visibleFontVisitor = null,
+        Action<string>? patternInvocationVisitor = null,
+        Action<PdfPageGraphicsStateResource>? graphicsStateVisitor = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands);
+        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor);
         return parser.Parse();
     }
 
@@ -89,6 +100,19 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly int _maxOperations;
         private readonly int _maxNestingDepth;
         private readonly int _maxOperands;
+        private readonly IReadOnlyDictionary<string, PdfFontResource>? _fonts;
+        private readonly IReadOnlyDictionary<string, Func<byte[], double>>? _fontWidthProviders;
+        private readonly Func<PdfPageType3TextInvocation, bool>? _type3TextVisitor;
+        private readonly ISet<double>? _renderedType3PaintOrders;
+        private readonly Action<int>? _type3GlyphBudgetConsumer;
+        private readonly Action? _unsupportedTextVisitor;
+        private readonly Action? _unsupportedGraphicsEffectVisitor;
+        private readonly Action? _unsupportedPatternVisitor;
+        private readonly Action<string>? _visibleFontVisitor;
+        private readonly Action<string>? _patternInvocationVisitor;
+        private readonly Action<PdfPageGraphicsStateResource>? _graphicsStateVisitor;
+        private string _textFont = string.Empty;
+        private double _currentPaintOrder;
 
         public Parser(
             string content,
@@ -113,7 +137,18 @@ internal static class PdfPageXObjectInvocationParser {
             OfficeStrokeLineJoin? initialStrokeLineJoin,
             int maxOperations,
             int maxNestingDepth,
-            int maxOperands) {
+            int maxOperands,
+            IReadOnlyDictionary<string, PdfFontResource>? fonts,
+            IReadOnlyDictionary<string, Func<byte[], double>>? fontWidthProviders,
+            Func<PdfPageType3TextInvocation, bool>? type3TextVisitor,
+            ISet<double>? renderedType3PaintOrders,
+            Action<int>? type3GlyphBudgetConsumer,
+            Action? unsupportedTextVisitor,
+            Action? unsupportedGraphicsEffectVisitor,
+            Action? unsupportedPatternVisitor,
+            Action<string>? visibleFontVisitor,
+            Action<string>? patternInvocationVisitor,
+            Action<PdfPageGraphicsStateResource>? graphicsStateVisitor) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -128,6 +163,17 @@ internal static class PdfPageXObjectInvocationParser {
             _maxOperations = maxOperations;
             _maxNestingDepth = maxNestingDepth;
             _maxOperands = maxOperands;
+            _fonts = fonts;
+            _fontWidthProviders = fontWidthProviders;
+            _type3TextVisitor = type3TextVisitor;
+            _renderedType3PaintOrders = renderedType3PaintOrders;
+            _type3GlyphBudgetConsumer = type3GlyphBudgetConsumer;
+            _unsupportedTextVisitor = unsupportedTextVisitor;
+            _unsupportedGraphicsEffectVisitor = unsupportedGraphicsEffectVisitor;
+            _unsupportedPatternVisitor = unsupportedPatternVisitor;
+            _visibleFontVisitor = visibleFontVisitor;
+            _patternInvocationVisitor = patternInvocationVisitor;
+            _graphicsStateVisitor = graphicsStateVisitor;
         }
 
         public IReadOnlyList<PdfPageXObjectInvocation> Parse() {
@@ -154,10 +200,11 @@ internal static class PdfPageXObjectInvocationParser {
         private double GetPaintOrder(int operatorIndex) => _paintOrderBase + ((operatorIndex + _paintOrderOffset) * _paintOrderScale);
 
         private TextState CaptureTextState() =>
-            new TextState(_inText, _textSize, _textLeading, _textCharSpacing, _textWordSpacing, _textHScale, _textRise, _textRenderingMode, _textMatrix, _lineMatrix);
+            new TextState(_inText, _textFont, _textSize, _textLeading, _textCharSpacing, _textWordSpacing, _textHScale, _textRise, _textRenderingMode, _textMatrix, _lineMatrix);
 
         private void RestoreTextState(TextState state) {
             _inText = state.InText;
+            _textFont = state.Font;
             _textSize = state.Size;
             _textLeading = state.Leading;
             _textCharSpacing = state.CharSpacing;
@@ -195,9 +242,77 @@ internal static class PdfPageXObjectInvocationParser {
                 return;
             }
 
-            double advance = EstimateTextAdvance(bytes);
-            ApplyTextClippingPath(advance);
-            _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(advance, 0D));
+            bool usesType3GlyphProgram = IsActiveType3Font();
+            bool isVisible = !HasHiddenContent();
+            if (isVisible) _visibleFontVisitor?.Invoke(_textFont);
+            List<PdfPageType3GlyphInvocation>? glyphs = CreateType3GlyphBatch(usesType3GlyphProgram, isVisible, bytes.Length);
+            (double X, double Y) advance = ProcessShownText(bytes, glyphs);
+            PublishType3GlyphBatch(glyphs);
+            if (isVisible && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
+            if (isVisible && !usesType3GlyphProgram) ApplyTextClippingPath(advance.X);
+            _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(advance.X, advance.Y));
+        }
+
+        private bool IsActiveType3Font() =>
+            _fonts != null &&
+            _fonts.TryGetValue(_textFont, out PdfFontResource? font) &&
+            font.Type3 != null;
+
+        private List<PdfPageType3GlyphInvocation>? CreateType3GlyphBatch(bool usesType3GlyphProgram, bool isVisible, int glyphCount) {
+            if (!usesType3GlyphProgram || !isVisible || _type3TextVisitor == null || glyphCount <= 0) return null;
+            _type3GlyphBudgetConsumer?.Invoke(glyphCount);
+            return new List<PdfPageType3GlyphInvocation>(glyphCount);
+        }
+
+        private void PublishType3GlyphBatch(List<PdfPageType3GlyphInvocation>? glyphs) {
+            if (glyphs != null && glyphs.Count > 0 &&
+                _type3TextVisitor!(new PdfPageType3TextInvocation(glyphs, _currentPaintOrder))) {
+                _renderedType3PaintOrders?.Add(_currentPaintOrder);
+            }
+        }
+
+        private (double X, double Y) ProcessShownText(byte[] bytes, List<PdfPageType3GlyphInvocation>? glyphs) {
+            PdfFontResource? font = null;
+            bool isType3 = _fonts != null &&
+                _fonts.TryGetValue(_textFont, out font) &&
+                font.Type3 != null;
+            double advanceX = 0D;
+            double advanceY = 0D;
+            for (int i = 0; i < bytes.Length; i++) {
+                byte code = bytes[i];
+                if (glyphs != null) {
+                    Matrix2D glyphTextMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(advanceX, advanceY));
+                    Matrix2D textState = Matrix2D.Multiply(
+                        _state.Transform,
+                        Matrix2D.Multiply(
+                            glyphTextMatrix,
+                            new Matrix2D(_textSize * _textHScale, 0D, 0D, _textSize, 0D, _textRise)));
+                    glyphs.Add(new PdfPageType3GlyphInvocation(
+                        font!, code, textState, _state.ClipPath,
+                        _state.FillColor, _state.FillColorSpace, _state.FillOpacity,
+                        _state.StrokeColor, _state.StrokeColorSpace, _state.StrokeOpacity,
+                        _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin));
+                }
+
+                double spacing = _textCharSpacing + (code == 32 ? _textWordSpacing : 0D);
+                if (font?.Type3 is PdfType3FontResource type3) {
+                    (double X, double Y) displacement = type3.GetGlyphDisplacement(code);
+                    advanceX += (displacement.X * _textSize + spacing) * _textHScale;
+                    advanceY += displacement.Y * _textSize;
+                } else {
+                    double glyphWidth = GetGlyphWidth(code);
+                    advanceX += ((glyphWidth / 1000D) * _textSize + spacing) * _textHScale;
+                }
+            }
+
+            return (advanceX, advanceY);
+        }
+
+        private double GetGlyphWidth(byte code) {
+            if (_fontWidthProviders != null && _fontWidthProviders.TryGetValue(_textFont, out Func<byte[], double>? provider)) {
+                return provider(new[] { code });
+            }
+            return 500D;
         }
 
         private void ShowTextArray(object arrayObject) {
@@ -206,14 +321,30 @@ internal static class PdfPageXObjectInvocationParser {
                 return;
             }
 
+            bool usesType3GlyphProgram = IsActiveType3Font();
+            bool isVisible = !HasHiddenContent();
+            long glyphCount = 0;
+            for (int i = 0; i < items.Count; i++) {
+                if (items[i] is byte[] bytes) glyphCount += bytes.Length;
+            }
+            if (glyphCount > int.MaxValue) {
+                _type3GlyphBudgetConsumer?.Invoke(int.MaxValue);
+                throw PdfReadLimitException.Create(PdfReadLimitKind.Type3GlyphInvocations, int.MaxValue, glyphCount);
+            }
+            List<PdfPageType3GlyphInvocation>? glyphs = CreateType3GlyphBatch(usesType3GlyphProgram, isVisible, (int)glyphCount);
+            if (isVisible && glyphCount > 0) _visibleFontVisitor?.Invoke(_textFont);
             for (int i = 0; i < items.Count; i++) {
                 if (items[i] is byte[] bytes) {
-                    ShowText(bytes);
+                    (double X, double Y) advance = ProcessShownText(bytes, glyphs);
+                    if (isVisible && !usesType3GlyphProgram) ApplyTextClippingPath(advance.X);
+                    _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(advance.X, advance.Y));
                 } else if (items[i] is double kerning) {
                     double delta = -kerning / 1000D * _textSize * _textHScale;
                     _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(delta, 0D));
                 }
             }
+            PublishType3GlyphBatch(glyphs);
+            if (isVisible && glyphCount > 0 && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
         }
 
         private double EstimateTextAdvance(byte[] bytes) {
@@ -247,6 +378,7 @@ internal static class PdfPageXObjectInvocationParser {
         }
 
         private void ApplyOperator(string op, double paintOrder, bool hasInvalidOperands) {
+            _currentPaintOrder = paintOrder;
             switch (op) {
                 case "q":
                     _stack.Push(_state);
@@ -403,6 +535,10 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "sc":
                 case "scn":
+                    if (!HasHiddenContent() && op == "scn" && _args.Count > 0 && _args[_args.Count - 1] is string fillPatternName) {
+                        _unsupportedPatternVisitor?.Invoke();
+                        _patternInvocationVisitor?.Invoke(fillPatternName);
+                    }
                     if (TryReadColor(_state.FillColorSpace, out OfficeColor fillColor)) {
                         _state = _state.WithFillColor(fillColor);
                     }
@@ -410,6 +546,10 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "SC":
                 case "SCN":
+                    if (!HasHiddenContent() && op == "SCN" && _args.Count > 0 && _args[_args.Count - 1] is string strokePatternName) {
+                        _unsupportedPatternVisitor?.Invoke();
+                        _patternInvocationVisitor?.Invoke(strokePatternName);
+                    }
                     if (TryReadColor(_state.StrokeColorSpace, out OfficeColor strokeColor)) {
                         _state = _state.WithStrokeColor(strokeColor);
                     }
@@ -461,6 +601,7 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "Tf":
                     if (_args.Count >= 2) {
+                        _textFont = _args[_args.Count - 2] as string ?? string.Empty;
                         _textSize = NumberAt(_args.Count - 1);
                     }
 
@@ -734,10 +875,19 @@ internal static class PdfPageXObjectInvocationParser {
 
         private void ApplyGraphicsStateResource(string name) {
             if (_graphicsStates == null || !_graphicsStates.TryGetValue(name, out PdfPageGraphicsStateResource resource)) {
+                if (!HasHiddenContent()) _unsupportedGraphicsEffectVisitor?.Invoke();
                 return;
             }
 
             _state = _state.WithGraphicsStateResource(resource);
+            if (!HasHiddenContent()) _graphicsStateVisitor?.Invoke(resource);
+            if (!HasHiddenContent() &&
+                ((resource.BlendMode.HasValue && resource.BlendMode.Value != OfficeBlendMode.Normal) ||
+                 (resource.HasSoftMask && resource.SoftMask != null) ||
+                 resource.HasUnsupportedSoftMask ||
+                 resource.HasUnsupportedBlendMode)) {
+                _unsupportedGraphicsEffectVisitor?.Invoke();
+            }
         }
 
         private bool HasHiddenContent() {
@@ -926,8 +1076,9 @@ internal static class PdfPageXObjectInvocationParser {
     }
 
     private readonly struct TextState {
-        public TextState(bool inText, double size, double leading, double charSpacing, double wordSpacing, double hScale, double textRise, int textRenderingMode, Matrix2D textMatrix, Matrix2D lineMatrix) {
+        public TextState(bool inText, string font, double size, double leading, double charSpacing, double wordSpacing, double hScale, double textRise, int textRenderingMode, Matrix2D textMatrix, Matrix2D lineMatrix) {
             InText = inText;
+            Font = font;
             Size = size;
             Leading = leading;
             CharSpacing = charSpacing;
@@ -939,9 +1090,11 @@ internal static class PdfPageXObjectInvocationParser {
             LineMatrix = lineMatrix;
         }
 
-        public static TextState Default { get; } = new TextState(false, 12D, 14.4D, 0D, 0D, 1D, 0D, 0, Matrix2D.Identity, Matrix2D.Identity);
+        public static TextState Default { get; } = new TextState(false, string.Empty, 12D, 14.4D, 0D, 0D, 1D, 0D, 0, Matrix2D.Identity, Matrix2D.Identity);
 
         public bool InText { get; }
+
+        public string Font { get; }
 
         public double Size { get; }
 
