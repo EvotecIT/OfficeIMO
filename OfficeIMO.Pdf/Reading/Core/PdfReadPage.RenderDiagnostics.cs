@@ -495,9 +495,10 @@ public sealed partial class PdfReadPage {
                          initialStrokePattern: initialStrokePattern,
                          initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
                          tilingPatterns: tilingPatterns,
-                         shadingPatterns: shadingPatterns)) {
+                shadingPatterns: shadingPatterns)) {
                 if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
-                    if (initialFillPattern.HasValue || !CanProjectType3ImageInvocation(invocation, resources, requireImageMask, diagnostics, seen)) supported = false;
+                    if ((initialFillPattern.HasValue && !HasUsableInheritedPattern(initialFillPattern)) ||
+                        !CanProjectType3ImageInvocation(invocation, resources, requireImageMask, diagnostics, seen)) supported = false;
                     continue;
                 }
                 if (!TryGetFormStream(resources, invocation.Name, out PdfStream form)) {
