@@ -131,6 +131,7 @@ public sealed class SpreadsheetRangeReference {
     public bool TryFormat(SpreadsheetAddressDialect dialect, out string formatted) {
         formatted = string.Empty;
         if (UsesA1Syntax(dialect) && !CanRepresentInA1Syntax()) return false;
+        if (dialect == SpreadsheetAddressDialect.ExcelA1 && !FitsExcelGrid()) return false;
         var output = new StringBuilder();
         AppendEndpoint(output, Start, dialect, includeSheet: true);
         if (End != null) {
@@ -151,6 +152,9 @@ public sealed class SpreadsheetRangeReference {
     /// <summary>Formats the first cell using the requested grammar.</summary>
     public string FormatBaseCell(SpreadsheetAddressDialect dialect) {
         if (!Start.IsCell) throw new InvalidOperationException("A whole-row or whole-column range has no base cell.");
+        if (dialect == SpreadsheetAddressDialect.ExcelA1 && !FitsExcelGrid(Start)) {
+            throw new InvalidOperationException("The base cell exceeds Excel's worksheet grid.");
+        }
         var output = new StringBuilder();
         AppendEndpoint(output, Start, dialect, includeSheet: true);
         return output.ToString();
@@ -443,6 +447,12 @@ public sealed class SpreadsheetRangeReference {
         if (End.SheetName != null && !End.IsSheetAbsolute) return false;
         return string.Equals(Start.SheetName, End.SheetName, StringComparison.Ordinal);
     }
+
+    private bool FitsExcelGrid() => FitsExcelGrid(Start) && (End == null || FitsExcelGrid(End));
+
+    private static bool FitsExcelGrid(SpreadsheetCellReference endpoint) =>
+        (!endpoint.Column.HasValue || endpoint.Column.Value <= 16384) &&
+        (!endpoint.Row.HasValue || endpoint.Row.Value <= 1048576L);
 
     private static SpreadsheetCellReference InheritA1SheetQualifier(
         SpreadsheetAddressDialect dialect,

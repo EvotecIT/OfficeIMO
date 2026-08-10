@@ -5,6 +5,7 @@ using OfficeIMO.Excel.OpenDocument;
 using OfficeIMO.OpenDocument;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
@@ -393,6 +394,71 @@ public sealed class SpreadsheetNumberFormatConversionTests {
             && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() => localized.ToExcelDocumentResult(
             new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
+    }
+
+    [Theory]
+    [InlineData("mmddyyyy")]
+    [InlineData("hhmm")]
+    [InlineData("00000")]
+    [InlineData("???.??")]
+    public void ExcelFormatsFlattenedByOdfProjectionAreReportedUnsupported(string numberFormat) {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelCell cell = source.AddWorksheet("Data").CellAt(1, 1);
+        cell.SetValue(12345D);
+        cell.SetNumberFormat(numberFormat);
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "cell-format-details" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            }));
+    }
+
+    [Fact]
+    public void UnprojectedExcelTextLayoutAndDecorationAreReportedUnsupported() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelCell cell = sheet.CellAt(1, 1).SetValue("Formatted").SetShrinkToFit();
+        sheet.CellStrikethrough(1, 1);
+        sheet.CellWrapText(1, 1);
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "cell-format-details" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            }));
+    }
+
+    [Fact]
+    public void OffsetBearingOdsDateTimesNormalizeToUtcAndReportOffsetLoss() {
+        OdsDocument source = OdsDocument.Create();
+        var timestamp = new DateTimeOffset(2026, 8, 10, 10, 0, 0, TimeSpan.FromHours(5));
+        source.AddSheet("Data").Cell(0, 0).SetDateTime(timestamp);
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        object? projected = target.Sheets.Single().CellAt(1, 1).GetValue().Value;
+        double serial = projected is DateTime dateTime
+            ? dateTime.ToOADate()
+            : Convert.ToDouble(projected, CultureInfo.InvariantCulture);
+
+        Assert.Equal(timestamp.UtcDateTime.ToOADate(), serial, 10);
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "date-time-offsets" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported &&
+            mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            }));
     }
 
     [Fact]

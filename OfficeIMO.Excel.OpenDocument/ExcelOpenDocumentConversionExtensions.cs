@@ -343,7 +343,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
         long expandedCells = 0;
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, externalHyperlinks = 0, comments = 0, combinedComments = 0, metadataTranscriptComments = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
-        int invalidValues = 0, validations = 0, convertedValidations = 0, unsupportedValidationAssignments = 0, unsupportedHyperlinks = 0, unsupportedMeasurements = 0, unsupportedDataStyleFormats = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
+        int invalidValues = 0, normalizedDateTimeOffsets = 0, validations = 0, convertedValidations = 0, unsupportedValidationAssignments = 0, unsupportedHyperlinks = 0, unsupportedMeasurements = 0, unsupportedDataStyleFormats = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
         int forcedVisibleWorksheets = 0;
         bool truncated = false;
         ExcelSheet? activeTarget = null;
@@ -396,7 +396,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                             expandedCells++;
                             int excelColumn = checked((int)column + 1);
                             ExcelCell converted = sheet.CellAt(excelRow, excelColumn);
-                            if (!SetExcelValue(converted, cellRun.Value)) invalidValues++;
+                            ExcelValueProjectionStatus valueStatus = SetExcelValue(converted, cellRun.Value);
+                            if (valueStatus == ExcelValueProjectionStatus.Invalid) invalidValues++;
+                            else if (valueStatus == ExcelValueProjectionStatus.TimeZoneNormalized) normalizedDateTimeOffsets++;
                             if (!string.IsNullOrWhiteSpace(cellRun.Formula)) {
                                 var translation = SpreadsheetAddressConverter.OpenFormulaToExcel(cellRun.Formula!);
                                 if (translation.IsSuccessful) {
@@ -550,6 +552,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             unsupportedValidationAssignments,
             "Only explicit lists and scalar whole-number, decimal, and text-length ODF validation conditions have an exact Excel mapping.");
         AddUnsupported(report, "invalid-values", invalidValues, "Invalid typed lexemes were transferred as display text.");
+        AddUnsupported(report, "date-time-offsets", normalizedDateTimeOffsets,
+            "Offset-bearing ODF date/time values were normalized to their UTC instant before Excel serial storage; Excel cannot retain the authored offset.");
         AddUnsupported(report, "relative-measurements", unsupportedMeasurements,
             "Relative or unsupported ODF row, column, or text measurements could not be projected to fixed Excel sizes and were omitted.");
         AddUnsupported(report, "cell-format-details", unsupportedDataStyleFormats,
@@ -595,115 +599,6 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         }
         return builder.ToString();
     }
-
-    private static bool SetOdsValue(OdsCell target, object? value) {
-        if (value == null) return true;
-        if (value is string text) target.SetString(text);
-        else if (value is bool boolean) target.SetBoolean(boolean);
-        else if (value is decimal decimalValue) target.SetDecimal(decimalValue);
-        else if (value is DateTime dateTime) target.SetDate(dateTime);
-        else if (value is DateTimeOffset dateTimeOffset) target.SetDateTime(dateTimeOffset);
-        else if (value is TimeSpan timeSpan) target.SetDuration(timeSpan);
-        else if (IsNumeric(value)) target.SetNumber(Convert.ToDouble(value, CultureInfo.InvariantCulture));
-        else { target.SetString(Convert.ToString(value, CultureInfo.InvariantCulture)); return false; }
-        return true;
-    }
-
-    private static bool SetExcelValue(ExcelCell target, OdsCellValue value) {
-        try {
-            switch (value.Kind) {
-                case OdsCellValueKind.Empty: return true;
-                case OdsCellValueKind.String: target.SetValue(value.LexicalValue); return true;
-                case OdsCellValueKind.Number:
-                case OdsCellValueKind.Percentage:
-                case OdsCellValueKind.Currency: target.SetValue(value.AsDecimal()); return true;
-                case OdsCellValueKind.Boolean: target.SetValue(value.AsBoolean()); return true;
-                case OdsCellValueKind.Date: target.SetValue(value.AsDateTimeOffset()); return true;
-                case OdsCellValueKind.Time: target.SetValue(value.AsTimeSpan()); return true;
-                default: target.SetValue(value.ToString()); return false;
-            }
-        } catch (FormatException) {
-            target.SetValue(value.ToString());
-            return false;
-        } catch (OverflowException) {
-            target.SetValue(value.ToString());
-            return false;
-        }
-    }
-
-    private static void ApplyExcelStyle(OdsDocument document, OdsCell target, ExcelCellStyleSnapshot style,
-        IDictionary<uint, string> dataStyles, ref int unsupported) {
-        if (style.Bold) target.Bold = true;
-        if (style.Italic) target.Italic = true;
-        if (style.FontSize.HasValue) target.FontSize = OdfLength.Points(style.FontSize.Value);
-        if (!string.IsNullOrWhiteSpace(style.FontName)) target.FontFamily = style.FontName;
-        if (!string.IsNullOrWhiteSpace(style.FontColorHex)) target.Color = OdfColor.Parse(style.FontColorHex!);
-        if (!string.IsNullOrWhiteSpace(style.FillColorHex)) target.BackgroundColor = OdfColor.Parse(style.FillColorHex!);
-        if (!string.IsNullOrWhiteSpace(style.NumberFormatCode) && style.NumberFormatCode != "General") {
-            if (!dataStyles.TryGetValue(style.StyleIndex, out string? name)) {
-                name = "xlData" + style.StyleIndex.ToString(CultureInfo.InvariantCulture);
-                SpreadsheetNumberFormatSyntax format = SpreadsheetNumberFormatSyntax.Parse(style.NumberFormatCode!);
-                if (style.IsDateLike) {
-                    bool timeOnly = format.Tokens.Any(token => token.Kind == SpreadsheetNumberFormatTokenKind.DateTimeSymbol &&
-                            (token.Value.IndexOf("h", StringComparison.OrdinalIgnoreCase) >= 0 || token.Value.IndexOf("s", StringComparison.OrdinalIgnoreCase) >= 0)) &&
-                        !format.Tokens.Any(token => token.Kind == SpreadsheetNumberFormatTokenKind.DateTimeSymbol &&
-                            (token.Value.IndexOf("y", StringComparison.OrdinalIgnoreCase) >= 0 || token.Value.IndexOf("d", StringComparison.OrdinalIgnoreCase) >= 0));
-                    if (timeOnly) document.AddTimeStyle(name); else document.AddDateStyle(name);
-                } else if (format.IsPercentage) {
-                    document.AddPercentageStyle(name, format.DecimalPlaces, format.UsesGrouping);
-                } else if (!string.IsNullOrWhiteSpace(format.CurrencySymbol)) {
-                    document.AddCurrencyStyle(name, format.CurrencySymbol!, format.DecimalPlaces, format.UsesGrouping);
-                } else {
-                    document.AddNumberStyle(name, format.DecimalPlaces, format.UsesGrouping);
-                }
-                if (!format.IsValid || format.SectionCount > 1 || format.Tokens.Any(token =>
-                        token.Kind == SpreadsheetNumberFormatTokenKind.BracketedDirective ||
-                        token.Kind == SpreadsheetNumberFormatTokenKind.ScalingSeparator ||
-                        token.Kind == SpreadsheetNumberFormatTokenKind.TextPlaceholder ||
-                        token.Kind == SpreadsheetNumberFormatTokenKind.Literal ||
-                        token.Kind == SpreadsheetNumberFormatTokenKind.Other)) unsupported++;
-                dataStyles.Add(style.StyleIndex, name);
-            }
-            target.NumberFormatName = name;
-        }
-        if (style.Underline || style.Border != null || style.FillGradientUnsupported || style.FillGradientStops.Count > 0 ||
-            style.TextRotation.HasValue || style.HorizontalAlignment != null || style.VerticalAlignment != null) unsupported++;
-    }
-
-    private static int ApplyOdsStyle(
-        ExcelCell target,
-        OdsCellRun style,
-        IReadOnlyDictionary<string, OdsDataStyle> dataStyles,
-        out bool unsupportedDataStyleFormat) {
-        int unsupported = 0;
-        unsupportedDataStyleFormat = false;
-        if (style.Bold == true) target.SetBold();
-        if (style.Italic == true) target.SetItalic();
-        if (style.FontSize.HasValue) {
-            if (style.FontSize.Value.TryToPoints(out double points)) target.SetFontSize(points);
-            else unsupported++;
-        }
-        if (!string.IsNullOrWhiteSpace(style.FontFamily)) target.SetFontName(style.FontFamily!);
-        if (style.Color.HasValue) target.SetFontColor(style.Color.Value.ToString().TrimStart('#'));
-        if (style.BackgroundColor.HasValue) target.SetFillColor(style.BackgroundColor.Value.ToString().TrimStart('#'));
-        if (style.NumberFormatName != null && dataStyles.TryGetValue(style.NumberFormatName, out OdsDataStyle? dataStyle)) {
-            if (dataStyle.TryGetExcelNumberFormatCode(out string formatCode)) target.SetNumberFormat(formatCode);
-            else unsupportedDataStyleFormat = true;
-        }
-        return unsupported;
-    }
-
-    private static bool IsNumeric(object value) {
-        TypeCode code = Type.GetTypeCode(value.GetType());
-        return code >= TypeCode.SByte && code <= TypeCode.Decimal;
-    }
-
-    private static bool HasRichTextFormatting(ExcelRichTextRun run) =>
-        run.Bold || run.Italic || run.Underline || run.Strikethrough ||
-        (run.UnderlineStyle.HasValue && run.UnderlineStyle.Value != ExcelUnderlineStyle.None) ||
-        !string.IsNullOrWhiteSpace(run.FontColor) || !string.IsNullOrWhiteSpace(run.FontName) ||
-        run.FontSize.HasValue || run.VerticalTextAlignment.HasValue || run.Outline || run.Shadow ||
-        run.Condense || run.Extend || run.FontFamily.HasValue || run.FontCharacterSet.HasValue;
 
     private static string ValueText(object? value) => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
     private static double ExcelWidthToPoints(double width) => Math.Max(0D, (width * 7D + 5D) * 72D / 96D);

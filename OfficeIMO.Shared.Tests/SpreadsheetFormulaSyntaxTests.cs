@@ -248,6 +248,13 @@ public sealed class SpreadsheetFormulaSyntaxTests {
             "XFE1048577:XFF1048578",
             SpreadsheetAddressDialect.ExcelA1,
             out _));
+        Assert.False(unbounded.TryFormat(SpreadsheetAddressDialect.ExcelA1, out _));
+        Assert.Throws<InvalidOperationException>(() =>
+            unbounded.Format(SpreadsheetAddressDialect.ExcelA1));
+        Assert.Throws<InvalidOperationException>(() =>
+            unbounded.FormatBaseCell(SpreadsheetAddressDialect.ExcelA1));
+        Assert.Equal("XFE1048577:XFF1048578",
+            unbounded.Format(SpreadsheetAddressDialect.UnboundedA1));
     }
 
     [Fact]
