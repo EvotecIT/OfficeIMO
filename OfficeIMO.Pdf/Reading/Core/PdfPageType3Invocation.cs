@@ -7,17 +7,20 @@ internal readonly struct PdfPagePatternSelection {
         string name,
         OfficeColor? tint,
         PdfPageColorSpace? baseColorSpace,
-        PdfPageTilingPatternResource? tilingPattern) {
+        PdfPageTilingPatternResource? tilingPattern,
+        Matrix2D paintTransform) {
         Name = name;
         Tint = tint;
         BaseColorSpace = baseColorSpace;
         TilingPattern = tilingPattern;
+        PaintTransform = paintTransform;
     }
 
     internal string Name { get; }
     internal OfficeColor? Tint { get; }
     internal PdfPageColorSpace? BaseColorSpace { get; }
     internal PdfPageTilingPatternResource? TilingPattern { get; }
+    internal Matrix2D PaintTransform { get; }
 }
 
 internal readonly struct PdfPageType3TextInvocation {
@@ -40,7 +43,6 @@ internal readonly struct PdfPageType3GlyphInvocation {
         byte characterCode,
         Matrix2D transform,
         PdfPageClipPath? clipPath,
-        Matrix2D paintTransform,
         OfficeColor fillColor,
         PdfPageColorSpace fillColorSpace,
         PdfPagePatternSelection? fillPattern,
@@ -61,7 +63,6 @@ internal readonly struct PdfPageType3GlyphInvocation {
         CharacterCode = characterCode;
         Transform = transform;
         ClipPath = clipPath;
-        PaintTransform = paintTransform;
         FillColor = fillColor;
         FillColorSpace = fillColorSpace;
         FillPattern = fillPattern;
@@ -84,7 +85,6 @@ internal readonly struct PdfPageType3GlyphInvocation {
     internal byte CharacterCode { get; }
     internal Matrix2D Transform { get; }
     internal PdfPageClipPath? ClipPath { get; }
-    internal Matrix2D PaintTransform { get; }
     internal OfficeColor FillColor { get; }
     internal PdfPageColorSpace FillColorSpace { get; }
     internal PdfPagePatternSelection? FillPattern { get; }

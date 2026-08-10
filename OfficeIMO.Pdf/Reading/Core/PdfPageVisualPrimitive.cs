@@ -193,6 +193,12 @@ internal readonly struct PdfPageVisualPrimitive {
 
     public PdfPageTilingPatternPaint? StrokeTilingPattern { get; }
 
+    internal bool HasFillPaint =>
+        FillColor.HasValue || FillGradient != null || FillRadialGradient != null || FillTilingPattern != null;
+
+    internal bool HasStrokePaint =>
+        StrokeColor.HasValue || StrokeGradient != null || StrokeRadialGradient != null || StrokeTilingPattern != null;
+
     internal int SourceOperatorIndex { get; }
 
     internal PdfContentOrderKey? ContentOrderKey { get; }
