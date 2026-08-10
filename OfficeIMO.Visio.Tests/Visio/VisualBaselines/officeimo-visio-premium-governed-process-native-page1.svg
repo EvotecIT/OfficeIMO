@@ -109,7 +109,7 @@
     </g>
     <g data-visio-shape-id="title" data-visio-nameu="Text Box">
       <path d="M 67.2 110.4 L 1276.8 110.4 L 1276.8 67.2 L 67.2 67.2 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
-      <text x="672" y="86.133" font-family="Aptos" font-size="26.667" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+      <text x="672" y="85.867" font-family="Aptos Display" font-size="29.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
         <tspan x="672" dy="0">Access Request - Governed Fulfillment</tspan>
       </text>
     </g>

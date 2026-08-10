@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Optional typed bridge from ChartForgeX visual artifacts to OfficeIMO Word, Excel, PowerPoint, PDF, and drawing surfaces.</Description>
+    <Description>Optional typed bridge from ChartForgeX visual artifacts to OfficeIMO Word, Excel, PowerPoint, PDF, drawing, and editable Visio surfaces.</Description>
     <PackageId>OfficeIMO.ChartForgeX</PackageId>
     <AssemblyName>OfficeIMO.ChartForgeX</AssemblyName>
     <AssemblyTitle>OfficeIMO.ChartForgeX</AssemblyTitle>
@@ -10,7 +10,7 @@
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageTags>officeimo;chartforgex;charts;diagrams;topology;svg;word;excel;powerpoint;pdf</PackageTags>
+    <PackageTags>officeimo;chartforgex;charts;diagrams;topology;svg;word;excel;powerpoint;pdf;visio;vsdx</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -39,6 +39,7 @@
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Visio\OfficeIMO.Visio.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(ChartForgeXProjectPath)' != '' And Exists('$(ChartForgeXProjectPath)')">

@@ -1,10 +1,10 @@
 # OfficeIMO.ChartForgeX
 
-`OfficeIMO.ChartForgeX` is the optional bridge for placing any ChartForgeX `VisualArtifact` in Word, Excel, PowerPoint, PDF, or another `OfficeDrawing` consumer. Existing OfficeIMO packages do not acquire a ChartForgeX dependency.
+`OfficeIMO.ChartForgeX` is the optional bridge for placing any ChartForgeX `VisualArtifact` in Word, Excel, PowerPoint, PDF, or another `OfficeDrawing` consumer, and for projecting supported diagram semantics into native editable Visio. Existing OfficeIMO packages do not acquire a ChartForgeX dependency.
 
 For source builds, reference `OfficeIMO.ChartForgeX.csproj` from the consuming project and make the ChartForgeX source projects available through the repository's project-reference configuration. The bridge remains optional: applications that do not reference it keep the standard OfficeIMO dependency graph.
 
-Every CFX surface that emits SVG can use the same bridge, even when it does not expose a typed artifact envelope. Wrap the generated markup in `OfficeVisualSource`; this is also the stable exchange contract across processes and isolated PowerShell module load contexts:
+Every CFX surface that emits SVG can use the flat Office placement path, even when it does not expose a typed artifact envelope. Wrap the generated markup in `OfficeVisualSource`:
 
 ```csharp
 OfficeVisualConversionResult visual = new OfficeVisualSource(canvas.ToSvg()) {
@@ -46,4 +46,21 @@ PdfDocument.Create(pdf => pdf.Content(content =>
 
 The default `PreserveVector` policy keeps the imported vector scene and reports SVG features that OfficeIMO.Drawing cannot represent. Choose `RasterizeWhenNeeded` for visual fidelity when unsupported SVG features should use the PNG placement payload, or `RequireVector` when incomplete vector conversion must fail closed. Word, Excel, and PowerPoint use the selected placement payload; PDF uses the converted `OfficeDrawing` scene.
 
-ChartForgeX owns chart and diagram rendering, watermarks, layout, and raster metadata. OfficeIMO owns document placement, page layout, document/page watermarks, PDF composition, and Office package behavior.
+## Native editable Visio
+
+Topology, flow, and sequence artifacts can be projected into native OfficeIMO.Visio diagrams. Nodes, containers, connectors, Shape Data, hyperlinks, sequence messages, activations, notes, and fragments remain editable after saving to VSDX. The conversion result includes the document, generated page, validated CFX interchange envelope, and a fidelity report.
+
+```csharp
+using ChartForgeX.VisualArtifacts;
+using OfficeIMO.ChartForgeX;
+
+VisualArtifact artifact = topology.ToVisualArtifact();
+OfficeVisioVisualConversionResult visio = artifact.ToOfficeVisio(
+    new OfficeVisioVisualOptions { PageName = "Service topology" });
+
+visio.Document.Save("service-topology.vsdx");
+```
+
+Use `artifact.ToInterchangeUtf8Json()` and `jsonBytes.ToOfficeVisio()` across process or PowerShell assembly-load-context boundaries. Static SVG remains a separate fallback; the adapter does not infer editable semantics by scraping rendered markup. Unsupported artifact families fail closed for native Visio conversion. Native builders fit the page to editable content by default; set `UseNaturalPageSize` when the CFX pixel viewport must remain the minimum page size.
+
+ChartForgeX owns chart and diagram semantics, deterministic rendering, interchange, watermarks, layout, and raster metadata. OfficeIMO owns document placement, native Visio projection, page layout, document/page watermarks, PDF composition, and Office package behavior.

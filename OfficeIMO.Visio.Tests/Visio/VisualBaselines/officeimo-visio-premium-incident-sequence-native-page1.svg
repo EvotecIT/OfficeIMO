@@ -3,7 +3,7 @@
   <g data-officeimo-visio-page="Premium Incident Sequence">
     <g data-visio-shape-id="title" data-visio-nameu="Text Box">
       <path d="M 76.8 115.2 L 1329.6 115.2 L 1329.6 72 L 76.8 72 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
-      <text x="703.2" y="90.933" font-family="Aptos" font-size="26.667" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+      <text x="703.2" y="90.667" font-family="Aptos Display" font-size="29.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
         <tspan x="703.2" dy="0">Payment Timeout - Detection and Recovery</tspan>
       </text>
     </g>
