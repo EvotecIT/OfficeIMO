@@ -109,7 +109,14 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             using var stream = new MemoryStream();
             WriteRecord(stream, 0x0809, WorkbookGlobalsBof);
+            WriteRecord(stream, 0x00e1, BuildUInt16Payload(1200));
+            WriteRecord(stream, 0x00c1, BuildUInt16Payload(0));
+            WriteRecord(stream, 0x00e2, Array.Empty<byte>());
+            WriteWorkbookFileSharingRecords(stream, document);
             WriteRecord(stream, 0x0042, BuildUInt16Payload(1200));
+            WriteRecord(stream, 0x0161, BuildUInt16Payload(0));
+            WriteRecord(stream, 0x013d, BuildSheetTabIdsPayload(document, sheets));
+            WriteRecord(stream, 0x009c, BuildUInt16Payload(14));
             string? workbookCodeName = document.WorkbookRoot.GetFirstChild<WorkbookProperties>()?.CodeName?.Value;
             if (!string.IsNullOrWhiteSpace(workbookCodeName)) {
                 WriteRecord(stream, 0x01ba, BuildCodeNamePayload(workbookCodeName!));
@@ -121,26 +128,18 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 WriteRecord(stream, 0x00d3, Array.Empty<byte>());
             }
 
-            WriteWorkbookFileSharingRecord(stream, document);
-
-            if (document.DateSystem == ExcelDateSystem.NineteenFour) {
-                WriteRecord(stream, 0x0022, BuildUInt16Payload(1));
-            }
-
-            WriteWorkbookOptionRecords(stream, document);
-            WriteCalculationSettingsRecords(stream, document);
             WriteWorkbookProtectionRecords(stream, document);
             foreach (byte[] windowPayload in BuildWindow1Payloads(document, sheets)) {
                 WriteRecord(stream, 0x003d, windowPayload);
             }
+            WriteWorkbookOptionRecords(stream, document);
+            WriteRecord(stream, 0x0022, BuildUInt16Payload(
+                document.DateSystem == ExcelDateSystem.NineteenFour ? (ushort)1 : (ushort)0));
+            WriteWorkbookCalculationSettingsRecords(stream, document);
+            WriteWorkbookPostCalculationOptionRecords(stream, document);
 
             foreach (byte[] fontPayload in fontTable.FontRecords) {
                 WriteRecord(stream, 0x0031, fontPayload);
-            }
-
-            byte[]? palettePayload = fontTable.PaletteRecord;
-            if (palettePayload != null) {
-                WriteRecord(stream, 0x0092, palettePayload);
             }
 
             foreach (byte[] formatPayload in styleTable.FormatRecords) {
@@ -154,14 +153,16 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             foreach (byte[] stylePayload in styleTable.StyleRecords) {
                 WriteRecord(stream, 0x0293, stylePayload);
             }
+            WriteRecord(stream, 0x0160, BuildUInt16Payload(0));
 
-            foreach (TableStyleRecord tableStyleRecord in CreateTableStyleRecords(document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet)) {
+            Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
+            foreach (TableStyleRecord tableStyleRecord in CreateTableStyleRecords(stylesheet)) {
                 WriteRecord(stream, tableStyleRecord.RecordType, tableStyleRecord.Payload);
             }
 
-            int commentShapeCount = LegacyXlsCommentWriter.CountCommentRecordSets(sheets, fontTable);
-            if (commentShapeCount > 0) {
-                WriteRecord(stream, 0x00eb, LegacyXlsCommentWriter.BuildWorkbookDrawingGroupPayload(commentShapeCount));
+            byte[]? palettePayload = fontTable.PaletteRecord;
+            if (palettePayload != null) {
+                WriteRecord(stream, 0x0092, palettePayload);
             }
 
             var boundSheetPositions = new List<long>(sheets.Length);
@@ -170,7 +171,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, sheet));
             }
 
-            WriteRecord(stream, 0x013d, BuildSheetTabIdsPayload(document, sheets));
+            WriteRecord(stream, 0x008c, BuildCountryPayload());
             foreach (LegacyXlsExternSheetTable.SupportingLinkRecord supportingLinkRecord in externSheetTable.SupportingLinkRecords) {
                 WriteRecord(stream, supportingLinkRecord.RecordType, supportingLinkRecord.Payload);
             }
@@ -196,12 +197,17 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 }
             }
 
+            byte[] workbookDrawingGroup = LegacyXlsCommentWriter.BuildWorkbookDrawingGroupPayload(sheets, fontTable);
+            if (workbookDrawingGroup.Length != 0) {
+                WriteRecord(stream, 0x00eb, workbookDrawingGroup);
+            }
+
             sharedStrings.WriteRecords(stream);
             WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
             for (int i = 0; i < sheets.Length; i++) {
                 int sheetOffset = checked((int)stream.Position);
-                WriteWorksheet(stream, sheets[i], i, worksheetCells[i], sharedStrings, styleTable, document.DateSystem, formulaNameIndex, fontTable);
+                WriteWorksheet(stream, document, sheets[i], i, worksheetCells[i], sharedStrings, styleTable, document.DateSystem, formulaNameIndex, fontTable);
 
                 long patchOffset = boundSheetPositions[i] + 4;
                 long currentPosition = stream.Position;
@@ -281,6 +287,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         private static void WriteWorksheet(
             Stream stream,
+            ExcelDocument document,
             ExcelSheet sheet,
             int sheetIndex,
             List<LegacyXlsCell> cells,
@@ -290,36 +297,75 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             LegacyXlsFormulaNameIndex formulaNameIndex,
             LegacyXlsFontTable fontTable) {
             LegacyXlsWorksheetLayout layout = ExtractWorksheetLayout(sheet, styleTable);
+            LegacyXlsWorksheetRow[] worksheetRows = CreateWorksheetRows(cells, layout.Rows);
+            LegacyXlsDimensions dimensions = GetWorksheetDimensions(cells, layout);
             WriteRecord(stream, 0x0809, WorksheetBof);
-            string? worksheetCodeName = sheet.WorksheetPart.Worksheet!.GetFirstChild<SheetProperties>()?.CodeName?.Value;
-            if (!string.IsNullOrWhiteSpace(worksheetCodeName)) {
-                WriteRecord(stream, 0x01ba, BuildCodeNamePayload(worksheetCodeName!));
-            }
-
-            if (layout.DefaultColumnWidth.HasValue) {
-                WriteRecord(stream, 0x0055, BuildDefaultColumnWidthPayload(layout.DefaultColumnWidth.Value));
-            }
-
-            if (layout.DefaultRowHeight.HasValue) {
-                WriteRecord(stream, 0x0225, BuildDefaultRowHeightPayload(layout.DefaultRowHeight.Value, layout.DefaultRowsHidden));
-            }
+            WriteWorksheetCalculationRecords(stream, sheet);
+            long indexRecordPosition = stream.Position;
+            WriteRecord(stream, 0x020b, BuildWorksheetIndexPayload(cells, dimensions.RowBlockCount));
+            WriteWorksheetCalculationSettingsRecords(stream, document);
+            WritePageSetupRecords(stream, layout.PageSetup, layout.DefaultRowHeight, layout.DefaultRowsHidden);
+            WriteWorksheetProtectionRecords(stream, layout.Protection);
 
             foreach (LegacyXlsColumnLayout column in layout.Columns) {
                 WriteRecord(stream, 0x007d, BuildColInfoPayload(column));
             }
 
-            WriteRecord(stream, 0x0200, BuildDimensionsPayload(cells, layout));
+            long defaultColumnWidthPosition = stream.Position;
+            WriteRecord(stream, 0x0055, BuildDefaultColumnWidthPayload(layout.DefaultColumnWidth ?? 8d));
 
-            foreach (LegacyXlsRowLayout row in layout.Rows) {
-                WriteRecord(stream, 0x0208, BuildRowPayload(row));
+            if (LegacyXlsScenarioWriter.TryCreateScenarioManagerPayload(sheet, out byte[]? scenarioManagerPayload)) {
+                WriteRecord(stream, 0x00ae, scenarioManagerPayload!);
+                foreach (byte[] scenarioPayload in LegacyXlsScenarioWriter.CreateScenarioPayloads(sheet)) {
+                    WriteRecord(stream, 0x00af, scenarioPayload);
+                }
+            }
+
+            byte[]? sortPayload = LegacyXlsSortWriter.CreateSortPayload(sheet);
+            if (sortPayload != null) {
+                WriteRecord(stream, 0x0090, sortPayload);
+            }
+
+            if (LegacyXlsAutoFilterWriter.TryCreateAutoFilterInfoPayload(sheet, out byte[]? autoFilterInfoPayload)) {
+                WriteRecord(stream, 0x009b, Array.Empty<byte>());
+                WriteRecord(stream, 0x009d, autoFilterInfoPayload!);
+                foreach (byte[] criteriaPayload in LegacyXlsAutoFilterWriter.CreateCriteriaPayloads(sheet, dateSystem)) {
+                    WriteRecord(stream, 0x009e, criteriaPayload);
+                }
+            }
+
+            WriteRecord(stream, 0x0200, BuildDimensionsPayload(dimensions));
+
+            WriteWorksheetCellTable(
+                stream,
+                sheetIndex,
+                worksheetRows,
+                sharedStrings,
+                dimensions,
+                indexRecordPosition,
+                defaultColumnWidthPosition);
+
+            IReadOnlyList<LegacyXlsCommentWriter.CommentRecordSet> commentRecordSets =
+                LegacyXlsCommentWriter.CreateCommentRecordSets(sheet, fontTable, checked((ushort)(sheetIndex + 1)));
+            foreach (LegacyXlsCommentWriter.CommentRecordSet commentRecordSet in commentRecordSets) {
+                WriteRecord(stream, 0x00ec, commentRecordSet.DrawingPayload);
+                WriteRecord(stream, 0x005d, commentRecordSet.ObjectPayload);
+                WriteRecord(stream, 0x00ec, commentRecordSet.TextboxPayload);
+                WriteRecord(stream, 0x01b6, commentRecordSet.TextObjectPayload);
+                WriteRecord(stream, 0x003c, commentRecordSet.TextPayload);
+                WriteRecord(stream, 0x003c, commentRecordSet.FormattingPayload);
+            }
+
+            foreach (LegacyXlsCommentWriter.CommentRecordSet commentRecordSet in commentRecordSets) {
+                WriteRecord(stream, 0x001c, commentRecordSet.NotePayload);
+            }
+
+            if (LegacyXlsDataConsolidationWriter.TryCreatePayload(sheet, out byte[]? dataConsolidationPayload) && dataConsolidationPayload != null) {
+                WriteRecord(stream, 0x0050, dataConsolidationPayload);
             }
 
             foreach (LegacyXlsWorksheetView view in layout.Views) {
                 WriteRecord(stream, 0x023e, BuildWindow2Payload(view));
-            }
-
-            if (TryCreateSheetExtensionPayload(sheet, fontTable, out byte[]? sheetExtensionPayload)) {
-                WriteRecord(stream, 0x0862, sheetExtensionPayload!);
             }
 
             if (layout.View.ZoomScale.HasValue) {
@@ -340,13 +386,51 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 WriteRecord(stream, 0x001d, BuildSelectionPayload(selection));
             }
 
-            byte[]? sortPayload = LegacyXlsSortWriter.CreateSortPayload(sheet);
-            if (sortPayload != null) {
-                WriteRecord(stream, 0x0090, sortPayload);
+            if (layout.View.Selections.Count == 0) {
+                WriteRecord(stream, 0x001d, BuildDefaultSelectionPayload());
             }
 
-            WritePageSetupRecords(stream, layout.PageSetup);
-            WriteWorksheetProtectionRecords(stream, layout.Protection);
+            foreach (byte[] mergeChunk in BuildMergeCellsPayloads(layout.MergedRanges)) {
+                WriteRecord(stream, 0x00e5, mergeChunk);
+            }
+
+            WriteWorksheetPhoneticInfoRecords(stream, sheet);
+
+            foreach (LegacyXlsConditionalFormattingWriter.ConditionalFormattingBlock conditionalFormattingBlock in LegacyXlsConditionalFormattingWriter.CreateBlocks(sheet, sheetIndex, formulaNameIndex)) {
+                WriteRecord(stream, 0x01b0, conditionalFormattingBlock.HeaderPayload);
+                foreach (byte[] rulePayload in conditionalFormattingBlock.RulePayloads) {
+                    WriteRecord(stream, 0x01b1, rulePayload);
+                }
+
+                foreach (byte[] extensionPayload in conditionalFormattingBlock.ExtensionPayloads) {
+                    WriteRecord(stream, 0x087b, extensionPayload);
+                }
+            }
+
+            foreach (LegacyXlsHyperlinkWriter.LegacyXlsHyperlinkRecord hyperlinkRecord in LegacyXlsHyperlinkWriter.CreateHyperlinkRecords(sheet)) {
+                WriteRecord(stream, hyperlinkRecord.RecordType, hyperlinkRecord.Payload);
+            }
+
+            if (LegacyXlsDataValidationWriter.TryCreateCollectionPayload(sheet, out byte[]? dataValidationCollectionPayload)) {
+                WriteRecord(stream, 0x01b2, dataValidationCollectionPayload!);
+                foreach (byte[] dataValidationPayload in LegacyXlsDataValidationWriter.CreateValidationPayloads(sheet, sheetIndex, formulaNameIndex)) {
+                    WriteRecord(stream, 0x01be, dataValidationPayload);
+                }
+            }
+
+            string? worksheetCodeName = sheet.WorksheetPart.Worksheet!.GetFirstChild<SheetProperties>()?.CodeName?.Value;
+            if (!string.IsNullOrWhiteSpace(worksheetCodeName)) {
+                WriteRecord(stream, 0x01ba, BuildCodeNamePayload(worksheetCodeName!));
+            }
+
+            foreach (byte[] cellWatchPayload in LegacyXlsCellWatchWriter.CreateCellWatchPayloads(sheet)) {
+                WriteRecord(stream, 0x086c, cellWatchPayload);
+            }
+
+            if (TryCreateSheetExtensionPayload(sheet, fontTable, out byte[]? sheetExtensionPayload)) {
+                WriteRecord(stream, 0x0862, sheetExtensionPayload!);
+            }
+
             IReadOnlyList<byte[]> protectedRangePayloads = LegacyXlsProtectedRangeWriter.CreateProtectedRangePayloads(sheet);
             if (LegacyXlsWorksheetProtectionFeatureWriter.TryCreatePayload(sheet.WorksheetPart.Worksheet?.Elements<SheetProtection>().FirstOrDefault(), forceDefault: protectedRangePayloads.Count > 0, out byte[]? protectionFeaturePayload)) {
                 WriteRecord(stream, 0x0867, protectionFeaturePayload!);
@@ -363,70 +447,99 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 }
             }
 
-            foreach (byte[] cellWatchPayload in LegacyXlsCellWatchWriter.CreateCellWatchPayloads(sheet)) {
-                WriteRecord(stream, 0x086c, cellWatchPayload);
-            }
-
-            if (LegacyXlsDataConsolidationWriter.TryCreatePayload(sheet, out byte[]? dataConsolidationPayload) && dataConsolidationPayload != null) {
-                WriteRecord(stream, 0x0050, dataConsolidationPayload);
-            }
-
-            if (LegacyXlsScenarioWriter.TryCreateScenarioManagerPayload(sheet, out byte[]? scenarioManagerPayload)) {
-                WriteRecord(stream, 0x00ae, scenarioManagerPayload!);
-                foreach (byte[] scenarioPayload in LegacyXlsScenarioWriter.CreateScenarioPayloads(sheet)) {
-                    WriteRecord(stream, 0x00af, scenarioPayload);
-                }
-            }
-
-            WriteWorksheetCalculationRecords(stream, sheet);
-            WriteWorksheetPhoneticInfoRecords(stream, sheet);
-
-            WriteCellRecords(stream, sheetIndex, cells, sharedStrings);
-
-            if (LegacyXlsAutoFilterWriter.TryCreateAutoFilterInfoPayload(sheet, out byte[]? autoFilterInfoPayload)) {
-                WriteRecord(stream, 0x009d, autoFilterInfoPayload!);
-                WriteRecord(stream, 0x009b, Array.Empty<byte>());
-                foreach (byte[] criteriaPayload in LegacyXlsAutoFilterWriter.CreateCriteriaPayloads(sheet, dateSystem)) {
-                    WriteRecord(stream, 0x009e, criteriaPayload);
-                }
-            }
-
-            if (LegacyXlsDataValidationWriter.TryCreateCollectionPayload(sheet, out byte[]? dataValidationCollectionPayload)) {
-                WriteRecord(stream, 0x01b2, dataValidationCollectionPayload!);
-                foreach (byte[] dataValidationPayload in LegacyXlsDataValidationWriter.CreateValidationPayloads(sheet, sheetIndex, formulaNameIndex)) {
-                    WriteRecord(stream, 0x01be, dataValidationPayload);
-                }
-            }
-
-            foreach (LegacyXlsConditionalFormattingWriter.ConditionalFormattingBlock conditionalFormattingBlock in LegacyXlsConditionalFormattingWriter.CreateBlocks(sheet, sheetIndex, formulaNameIndex)) {
-                WriteRecord(stream, 0x01b0, conditionalFormattingBlock.HeaderPayload);
-                foreach (byte[] rulePayload in conditionalFormattingBlock.RulePayloads) {
-                    WriteRecord(stream, 0x01b1, rulePayload);
-                }
-
-                foreach (byte[] extensionPayload in conditionalFormattingBlock.ExtensionPayloads) {
-                    WriteRecord(stream, 0x087b, extensionPayload);
-                }
-            }
-
-            foreach (LegacyXlsCommentWriter.CommentRecordSet commentRecordSet in LegacyXlsCommentWriter.CreateCommentRecordSets(sheet, fontTable)) {
-                WriteRecord(stream, 0x00ec, commentRecordSet.DrawingPayload);
-                WriteRecord(stream, 0x005d, commentRecordSet.ObjectPayload);
-                WriteRecord(stream, 0x01b6, commentRecordSet.TextObjectPayload);
-                WriteRecord(stream, 0x003c, commentRecordSet.TextPayload);
-                WriteRecord(stream, 0x003c, commentRecordSet.FormattingPayload);
-                WriteRecord(stream, 0x001c, commentRecordSet.NotePayload);
-            }
-
-            foreach (LegacyXlsHyperlinkWriter.LegacyXlsHyperlinkRecord hyperlinkRecord in LegacyXlsHyperlinkWriter.CreateHyperlinkRecords(sheet)) {
-                WriteRecord(stream, hyperlinkRecord.RecordType, hyperlinkRecord.Payload);
-            }
-
-            foreach (byte[] mergeChunk in BuildMergeCellsPayloads(layout.MergedRanges)) {
-                WriteRecord(stream, 0x00e5, mergeChunk);
-            }
-
             WriteRecord(stream, 0x000a, Array.Empty<byte>());
+        }
+
+        private static LegacyXlsWorksheetRow[] CreateWorksheetRows(
+            IReadOnlyList<LegacyXlsCell> cells,
+            IReadOnlyList<LegacyXlsRowLayout> rowLayouts) {
+            var layoutsByRow = new Dictionary<ushort, LegacyXlsRowLayout>();
+            foreach (LegacyXlsRowLayout layout in rowLayouts) {
+                layoutsByRow[layout.Row] = layout;
+            }
+
+            var rows = new List<LegacyXlsWorksheetRow>();
+            foreach (IGrouping<ushort, LegacyXlsCell> group in cells.GroupBy(static cell => cell.Row)) {
+                LegacyXlsRowLayout? layout = layoutsByRow.TryGetValue(group.Key, out LegacyXlsRowLayout value)
+                    ? value
+                    : null;
+                rows.Add(new LegacyXlsWorksheetRow(group.Key, group.ToArray(), layout));
+                layoutsByRow.Remove(group.Key);
+            }
+
+            foreach (LegacyXlsRowLayout layout in layoutsByRow.Values) {
+                rows.Add(new LegacyXlsWorksheetRow(layout.Row, Array.Empty<LegacyXlsCell>(), layout));
+            }
+
+            rows.Sort(static (left, right) => left.Row.CompareTo(right.Row));
+            return rows.ToArray();
+        }
+
+        private static byte[] BuildWorksheetIndexPayload(
+            IReadOnlyList<LegacyXlsCell> cells,
+            int dbCellCount) {
+            byte[] payload = new byte[checked(16 + (dbCellCount * 4))];
+            uint? firstDataRow = null;
+            uint? lastDataRow = null;
+            foreach (LegacyXlsCell cell in cells) {
+                if (cell.Kind == LegacyXlsCellKind.Blank) {
+                    continue;
+                }
+
+                firstDataRow = firstDataRow.HasValue ? Math.Min(firstDataRow.Value, cell.Row) : cell.Row;
+                lastDataRow = lastDataRow.HasValue ? Math.Max(lastDataRow.Value, cell.Row) : cell.Row;
+            }
+
+            if (firstDataRow.HasValue && lastDataRow.HasValue) {
+                WriteUInt32(payload, 4, firstDataRow.Value);
+                WriteUInt32(payload, 8, checked(lastDataRow.Value + 1U));
+            }
+            return payload;
+        }
+
+        private static void WriteWorksheetCellTable(
+            Stream stream,
+            int sheetIndex,
+            IReadOnlyList<LegacyXlsWorksheetRow> rows,
+            LegacyXlsSharedStringTable sharedStrings,
+            LegacyXlsDimensions dimensions,
+            long indexRecordPosition,
+            long defaultColumnWidthPosition) {
+            var dbCellPositions = new List<uint>(dimensions.RowBlockCount);
+            int rowIndex = 0;
+            for (int blockIndex = 0; blockIndex < dimensions.RowBlockCount; blockIndex++) {
+                uint blockFirstRow = checked(dimensions.FirstRow + ((uint)blockIndex * DirectRowsPerDbCellBlock));
+                uint blockRowAfterLast = Math.Min(
+                    checked(blockFirstRow + DirectRowsPerDbCellBlock),
+                    dimensions.RowAfterLast);
+                int blockStart = rowIndex;
+                while (rowIndex < rows.Count && rows[rowIndex].Row < blockRowAfterLast) {
+                    rowIndex++;
+                }
+                int blockCount = rowIndex - blockStart;
+                long firstRowPosition = stream.Position;
+                for (int index = 0; index < blockCount; index++) {
+                    LegacyXlsWorksheetRow row = rows[blockStart + index];
+                    WriteRecord(stream, 0x0208, BuildRowPayload(row));
+                }
+
+                var firstCellPositions = new List<long>(blockCount);
+                for (int index = 0; index < blockCount; index++) {
+                    LegacyXlsWorksheetRow row = rows[blockStart + index];
+                    if (row.Cells.Count == 0) {
+                        continue;
+                    }
+
+                    firstCellPositions.Add(stream.Position);
+                    WriteCellRecords(stream, sheetIndex, row.Cells, sharedStrings);
+                }
+
+                long dbCellPosition = stream.Position;
+                dbCellPositions.Add(checked((uint)dbCellPosition));
+                WriteRecord(stream, 0x00d7, BuildDbCellPayload(firstRowPosition, firstCellPositions, dbCellPosition));
+            }
+
+            PatchIndexRecord(stream, indexRecordPosition, defaultColumnWidthPosition, dbCellPositions);
         }
 
         private static void WriteCellRecords(
@@ -1104,7 +1217,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return payload;
         }
 
-        private static byte[] BuildDimensionsPayload(IReadOnlyList<LegacyXlsCell> cells, LegacyXlsWorksheetLayout layout) {
+        private static LegacyXlsDimensions GetWorksheetDimensions(
+            IReadOnlyList<LegacyXlsCell> cells,
+            LegacyXlsWorksheetLayout layout) {
             uint? firstRow = null;
             uint? lastRow = null;
             ushort? firstColumn = null;
@@ -1129,13 +1244,17 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             if (!firstRow.HasValue || !lastRow.HasValue || !firstColumn.HasValue || !lastColumn.HasValue) {
-                return BuildDimensionsPayload(0, 0, 0, 0);
+                return default;
             }
 
-            return BuildDimensionsPayload(firstRow.Value, lastRow.Value + 1U, firstColumn.Value, checked((ushort)(lastColumn.Value + 1)));
+            return new LegacyXlsDimensions(
+                firstRow.Value,
+                checked(lastRow.Value + 1U),
+                firstColumn.Value,
+                checked((ushort)(lastColumn.Value + 1)));
         }
 
-        private static byte[] BuildDimensionsPayload(IReadOnlyList<LegacyXlsCell> cells) {
+        private static LegacyXlsDimensions GetWorksheetDimensions(IReadOnlyList<LegacyXlsCell> cells) {
             uint? firstRow = null;
             uint? lastRow = null;
             ushort? firstColumn = null;
@@ -1145,8 +1264,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             return firstRow.HasValue && lastRow.HasValue && firstColumn.HasValue && lastColumn.HasValue
-                ? BuildDimensionsPayload(firstRow.Value, lastRow.Value + 1U, firstColumn.Value, checked((ushort)(lastColumn.Value + 1)))
-                : BuildDimensionsPayload(0, 0, 0, 0);
+                ? new LegacyXlsDimensions(
+                    firstRow.Value,
+                    checked(lastRow.Value + 1U),
+                    firstColumn.Value,
+                    checked((ushort)(lastColumn.Value + 1)))
+                : default;
         }
 
         private static void IncludeDimension(ref uint? firstRow, ref uint? lastRow, ref ushort? firstColumn, ref ushort? lastColumn, ushort row, ushort column) {
@@ -1156,12 +1279,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             lastColumn = lastColumn.HasValue ? (ushort)Math.Max(lastColumn.Value, column) : column;
         }
 
-        private static byte[] BuildDimensionsPayload(uint firstRow, uint rowAfterLast, ushort firstColumn, ushort columnAfterLast) {
+        private static byte[] BuildDimensionsPayload(LegacyXlsDimensions dimensions) {
             using var stream = new MemoryStream();
-            WriteUInt32(stream, firstRow);
-            WriteUInt32(stream, rowAfterLast);
-            WriteUInt16(stream, firstColumn);
-            WriteUInt16(stream, columnAfterLast);
+            WriteUInt32(stream, dimensions.FirstRow);
+            WriteUInt32(stream, dimensions.RowAfterLast);
+            WriteUInt16(stream, dimensions.FirstColumn);
+            WriteUInt16(stream, dimensions.ColumnAfterLast);
             WriteUInt16(stream, 0);
             return stream.ToArray();
         }
@@ -1319,34 +1442,72 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return stream.ToArray();
         }
 
-        private static byte[] BuildRowPayload(LegacyXlsRowLayout row) {
+        private static byte[] BuildRowPayload(LegacyXlsWorksheetRow row) {
             using var stream = new MemoryStream();
             WriteUInt16(stream, row.Row);
+            WriteUInt16(stream, row.Cells.Count == 0 ? (ushort)0 : row.Cells[0].Column);
+            WriteUInt16(stream, row.Cells.Count == 0
+                ? (ushort)0
+                : checked((ushort)(row.Cells[row.Cells.Count - 1].Column + 1)));
+            WriteUInt16(stream, checked((ushort)Math.Round((row.Layout?.Height ?? 12.75d) * 20d)));
             WriteUInt16(stream, 0);
-            WriteUInt16(stream, 1);
-            WriteUInt16(stream, checked((ushort)Math.Round((row.Height ?? 15d) * 20d)));
             WriteUInt16(stream, 0);
-            WriteUInt16(stream, 0);
-            ushort options = (ushort)(row.OutlineLevel & 0x07);
-            if (row.Collapsed) {
+            ushort options = (ushort)(0x0100 | ((row.Layout?.OutlineLevel ?? 0) & 0x07));
+            if (row.Layout?.Collapsed == true) {
                 options |= 0x0010;
             }
 
-            if (row.Hidden) {
+            if (row.Layout?.Hidden == true) {
                 options |= 0x0020;
             }
 
-            if (row.CustomHeight || row.Height.HasValue) {
+            if (row.Layout is LegacyXlsRowLayout layout && (layout.CustomHeight || layout.Height.HasValue)) {
                 options |= 0x0040;
             }
 
-            if (row.CustomFormat) {
+            if (row.Layout?.CustomFormat == true) {
                 options |= 0x0080;
             }
 
             WriteUInt16(stream, options);
-            WriteUInt16(stream, row.CustomFormat ? (ushort)(row.StyleIndex & 0x0fff) : (ushort)0x0100);
+            WriteUInt16(stream, row.Layout?.CustomFormat == true
+                ? (ushort)(row.Layout.Value.StyleIndex & 0x0fff)
+                : (ushort)0);
             return stream.ToArray();
+        }
+
+        private static byte[] BuildDbCellPayload(
+            long firstRowPosition,
+            IReadOnlyList<long> firstCellPositions,
+            long dbCellPosition) {
+            byte[] payload = new byte[checked(4 + (firstCellPositions.Count * 2))];
+            if (firstCellPositions.Count == 0) {
+                return payload;
+            }
+
+            WriteUInt32(payload, 0, checked((uint)(dbCellPosition - firstRowPosition)));
+            long priorPosition = firstRowPosition + 20;
+            for (int index = 0; index < firstCellPositions.Count; index++) {
+                long offset = firstCellPositions[index] - priorPosition;
+                WriteUInt16(payload, 4 + (index * 2), checked((ushort)offset));
+                priorPosition = firstCellPositions[index];
+            }
+            return payload;
+        }
+
+        private static void PatchIndexRecord(
+            Stream stream,
+            long indexRecordPosition,
+            long defaultColumnWidthPosition,
+            IReadOnlyList<uint> dbCellPositions) {
+            long endPosition = stream.Position;
+            stream.Position = indexRecordPosition + 4 + 12;
+            WriteUInt32(stream, checked((uint)defaultColumnWidthPosition));
+            for (int index = 0; index < dbCellPositions.Count; index++) {
+                stream.Position = indexRecordPosition + 4 + 16 + (index * 4L);
+                WriteUInt32(stream, dbCellPositions[index]);
+            }
+            stream.Position = endPosition;
         }
 
         private static IEnumerable<byte[]> BuildMergeCellsPayloads(IReadOnlyList<LegacyXlsMergedRange> ranges) {
@@ -1418,26 +1579,34 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 ExtractPrinterSettingsPayload(sheet.WorksheetPart));
         }
 
-        private static void WritePageSetupRecords(Stream stream, LegacyXlsWorksheetPageSetup pageSetup) {
-            if (pageSetup.PrintHeadings.HasValue) {
-                WriteRecord(stream, 0x002a, BuildUInt16Payload(pageSetup.PrintHeadings.Value ? (ushort)1 : (ushort)0));
-            }
-
-            if (pageSetup.PrintGridLines.HasValue) {
-                WriteRecord(stream, 0x002b, BuildUInt16Payload(pageSetup.PrintGridLines.Value ? (ushort)1 : (ushort)0));
-            }
-
-            if (pageSetup.GridLinesSet.HasValue) {
-                WriteRecord(stream, 0x0082, BuildUInt16Payload(pageSetup.GridLinesSet.Value ? (ushort)1 : (ushort)0));
-            }
-
-            if (pageSetup.HorizontalCentered.HasValue) {
-                WriteRecord(stream, 0x0083, BuildUInt16Payload(pageSetup.HorizontalCentered.Value ? (ushort)1 : (ushort)0));
-            }
-
-            if (pageSetup.VerticalCentered.HasValue) {
-                WriteRecord(stream, 0x0084, BuildUInt16Payload(pageSetup.VerticalCentered.Value ? (ushort)1 : (ushort)0));
-            }
+        private static void WritePageSetupRecords(
+            Stream stream,
+            LegacyXlsWorksheetPageSetup pageSetup,
+            double? defaultRowHeight,
+            bool defaultRowsHidden) {
+            WriteRecord(stream, 0x002a, BuildUInt16Payload(
+                pageSetup.PrintHeadings == true ? (ushort)1 : (ushort)0));
+            WriteRecord(stream, 0x002b, BuildUInt16Payload(
+                pageSetup.PrintGridLines == true ? (ushort)1 : (ushort)0));
+            WriteRecord(stream, 0x0082, BuildUInt16Payload(
+                pageSetup.GridLinesSet == false ? (ushort)0 : (ushort)1));
+            WriteRecord(stream, 0x0080, new byte[8]);
+            WriteRecord(stream, 0x0225, BuildDefaultRowHeightPayload(
+                defaultRowHeight ?? 12.75d,
+                defaultRowsHidden));
+            WriteRecord(stream, 0x0081, TryBuildWorksheetOptionsPayload(pageSetup, out byte[]? worksheetOptionsPayload)
+                ? worksheetOptionsPayload!
+                : BuildUInt16Payload(0x0104));
+            WriteRecord(stream, 0x0014, string.IsNullOrEmpty(pageSetup.HeaderText)
+                ? Array.Empty<byte>()
+                : BuildUnicodeStringPayload(pageSetup.HeaderText!));
+            WriteRecord(stream, 0x0015, string.IsNullOrEmpty(pageSetup.FooterText)
+                ? Array.Empty<byte>()
+                : BuildUnicodeStringPayload(pageSetup.FooterText!));
+            WriteRecord(stream, 0x0083, BuildUInt16Payload(
+                pageSetup.HorizontalCentered == true ? (ushort)1 : (ushort)0));
+            WriteRecord(stream, 0x0084, BuildUInt16Payload(
+                pageSetup.VerticalCentered == true ? (ushort)1 : (ushort)0));
 
             if (pageSetup.LeftMargin.HasValue) {
                 WriteRecord(stream, 0x0026, BuildDoublePayload(pageSetup.LeftMargin.Value));
@@ -1459,21 +1628,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 WriteRecord(stream, 0x004d, pageSetup.PrinterSettingsPayload);
             }
 
-            if (pageSetup.HasSetupRecord) {
-                WriteRecord(stream, 0x00a1, BuildSetupPayload(pageSetup));
-            }
-
-            if (TryBuildWorksheetOptionsPayload(pageSetup, out byte[]? worksheetOptionsPayload)) {
-                WriteRecord(stream, 0x0081, worksheetOptionsPayload!);
-            }
-
-            if (!string.IsNullOrEmpty(pageSetup.HeaderText)) {
-                WriteRecord(stream, 0x0014, BuildUnicodeStringPayload(pageSetup.HeaderText!));
-            }
-
-            if (!string.IsNullOrEmpty(pageSetup.FooterText)) {
-                WriteRecord(stream, 0x0015, BuildUnicodeStringPayload(pageSetup.FooterText!));
-            }
+            WriteRecord(stream, 0x00a1, pageSetup.HasSetupRecord
+                ? BuildSetupPayload(pageSetup)
+                : BuildDefaultDirectSetupPayload());
 
             if (pageSetup.HasHeaderFooterExtensionRecord) {
                 WriteRecord(stream, 0x089c, BuildHeaderFooterExtensionPayload(pageSetup));
@@ -1538,45 +1695,27 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         private static void WriteWorkbookProtectionRecords(Stream stream, ExcelDocument document) {
             WorkbookProtection? protection = document.WorkbookRoot.GetFirstChild<WorkbookProtection>();
-            if (protection == null) {
-                return;
-            }
-
-            if (protection.LockStructure?.Value == true) {
-                WriteRecord(stream, 0x0012, BuildUInt16Payload(1));
-            }
-
-            ushort? passwordHash = ParseLegacyHashOrThrow(protection.WorkbookPassword?.Value, "workbook protection password");
-            if (passwordHash.HasValue) {
-                WriteRecord(stream, 0x0013, BuildUInt16Payload(passwordHash.Value));
-            }
-
-            if (protection.LockWindows?.Value == true) {
-                WriteRecord(stream, 0x0019, BuildUInt16Payload(1));
-            }
-
-            if (protection.LockRevision?.Value is bool lockRevision) {
-                WriteRecord(stream, 0x01af, BuildUInt16Payload(lockRevision ? (ushort)1 : (ushort)0));
-            }
-
-            ushort? revisionPasswordHash = ParseLegacyHashOrThrow(protection.RevisionsPassword?.Value, "workbook revision protection password");
-            if (revisionPasswordHash.HasValue) {
-                WriteRecord(stream, 0x01bc, BuildUInt16Payload(revisionPasswordHash.Value));
-            }
+            WriteRecord(stream, 0x0019, BuildUInt16Payload(
+                protection?.LockWindows?.Value == true ? (ushort)1 : (ushort)0));
+            WriteRecord(stream, 0x0012, BuildUInt16Payload(
+                protection?.LockStructure?.Value == true ? (ushort)1 : (ushort)0));
+            ushort? passwordHash = ParseLegacyHashOrThrow(protection?.WorkbookPassword?.Value, "workbook protection password");
+            WriteRecord(stream, 0x0013, BuildUInt16Payload(passwordHash ?? 0));
+            WriteRecord(stream, 0x01af, BuildUInt16Payload(
+                protection?.LockRevision?.Value == true ? (ushort)1 : (ushort)0));
+            ushort? revisionPasswordHash = ParseLegacyHashOrThrow(protection?.RevisionsPassword?.Value, "workbook revision protection password");
+            WriteRecord(stream, 0x01bc, BuildUInt16Payload(revisionPasswordHash ?? 0));
         }
 
-        private static void WriteWorkbookFileSharingRecord(Stream stream, ExcelDocument document) {
+        private static void WriteWorkbookFileSharingRecords(Stream stream, ExcelDocument document) {
             FileSharing? fileSharing = document.WorkbookRoot.GetFirstChild<FileSharing>();
             if (fileSharing == null) {
+                WriteRecord(stream, 0x005c, BuildWriteAccessPayload("OfficeIMO"));
                 return;
             }
 
+            WriteRecord(stream, 0x005c, BuildWriteAccessPayload(fileSharing.UserName?.Value ?? "OfficeIMO"));
             WriteRecord(stream, 0x005b, BuildFileSharingPayload(fileSharing));
-            ushort? passwordHash = ParseLegacyHashOrThrow(GetFileSharingReservationPassword(fileSharing), "write-reservation password");
-            string? userName = fileSharing.UserName?.Value;
-            if (!passwordHash.HasValue && !string.IsNullOrWhiteSpace(userName)) {
-                WriteRecord(stream, 0x005c, BuildWriteAccessPayload(userName!));
-            }
         }
 
         private static byte[] BuildFileSharingPayload(FileSharing fileSharing) {
@@ -2505,6 +2644,48 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             internal byte OutlineLevel { get; }
 
             internal bool Collapsed { get; }
+        }
+
+        private sealed class LegacyXlsWorksheetRow {
+            internal LegacyXlsWorksheetRow(
+                ushort row,
+                IReadOnlyList<LegacyXlsCell> cells,
+                LegacyXlsRowLayout? layout) {
+                Row = row;
+                Cells = cells;
+                Layout = layout;
+            }
+
+            internal ushort Row { get; }
+
+            internal IReadOnlyList<LegacyXlsCell> Cells { get; }
+
+            internal LegacyXlsRowLayout? Layout { get; }
+        }
+
+        private readonly struct LegacyXlsDimensions {
+            internal LegacyXlsDimensions(
+                uint firstRow,
+                uint rowAfterLast,
+                ushort firstColumn,
+                ushort columnAfterLast) {
+                FirstRow = firstRow;
+                RowAfterLast = rowAfterLast;
+                FirstColumn = firstColumn;
+                ColumnAfterLast = columnAfterLast;
+            }
+
+            internal uint FirstRow { get; }
+
+            internal uint RowAfterLast { get; }
+
+            internal ushort FirstColumn { get; }
+
+            internal ushort ColumnAfterLast { get; }
+
+            internal int RowBlockCount => RowAfterLast <= FirstRow
+                ? 0
+                : checked((int)((RowAfterLast - FirstRow + DirectRowsPerDbCellBlock - 1U) / DirectRowsPerDbCellBlock));
         }
 
         private readonly struct LegacyXlsMergedRange {

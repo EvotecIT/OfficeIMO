@@ -72,14 +72,15 @@ reported separately because this processor has asymmetric CPU domains.
 
 | Rows | Affinity | OfficeIMO median | NPOI median | Paired ratio median | P25-P75 |
 | ---: | --- | ---: | ---: | ---: | ---: |
-| 2,500 | `0xFFFF` | 7.136 ms | 11.320 ms | 0.7789 | 0.4801-1.1657 |
-| 2,500 | `0xFFFF0000` | 7.624 ms | 9.418 ms | 0.7962 | 0.6415-0.9053 |
-| 25,000 | `0xFFFF` | 53.690 ms | 117.876 ms | 0.4612 | 0.3674-0.5472 |
-| 25,000 | `0xFFFF0000` | 52.163 ms | 113.954 ms | 0.4822 | 0.3727-0.5328 |
+| 2,500 | `0xFFFF` | 8.369 ms | 10.230 ms | 0.8922 | 0.6874-1.4090 |
+| 2,500 | `0xFFFF0000` | 7.860 ms | 9.116 ms | 0.8337 | 0.5924-0.9542 |
+| 25,000 | `0xFFFF` | 48.939 ms | 121.644 ms | 0.4014 | 0.3485-0.4950 |
+| 25,000 | `0xFFFF0000` | 49.367 ms | 107.442 ms | 0.4545 | 0.3505-0.5844 |
 
-The 25,000-row result is a clear lead in both domains. At 2,500 rows the median
-also favors OfficeIMO, but the `0xFFFF` interquartile range crosses parity, so
-that lane should be described as noisy rather than a decisive win.
+The 25,000-row result is a clear lead in both domains. At 2,500 rows the medians
+also favor OfficeIMO, but the `0xFFFF` interquartile range crosses parity, so the
+small-workload result should be described as CPU-sensitive rather than a broad
+decisive win.
 
 ## Direction
 

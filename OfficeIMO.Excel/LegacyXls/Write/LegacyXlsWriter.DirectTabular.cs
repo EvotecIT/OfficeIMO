@@ -79,9 +79,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 .GroupBy(static cell => cell.Row)
                 .Select(static group => new DirectCellRow(group.Key, group.ToArray()))
                 .ToArray();
-            int dbCellCount = checked((rows.Length + DirectRowsPerDbCellBlock - 1) / DirectRowsPerDbCellBlock);
+            LegacyXlsDimensions dimensions = GetWorksheetDimensions(cells);
             long indexRecordPosition = stream.Position;
-            WriteRecord(stream, 0x020b, BuildDirectIndexPayload(cells, dbCellCount));
+            WriteRecord(stream, 0x020b, BuildWorksheetIndexPayload(cells, dimensions.RowBlockCount));
 
             WriteRecord(stream, 0x000d, BuildInt16Payload(1));
             WriteRecord(stream, 0x000c, BuildUInt16Payload(100));
@@ -100,12 +100,22 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             WriteRecord(stream, 0x0083, BuildUInt16Payload(0));
             WriteRecord(stream, 0x0084, BuildUInt16Payload(0));
             WriteRecord(stream, 0x00a1, BuildDefaultDirectSetupPayload());
+            long defaultColumnWidthPosition = stream.Position;
             WriteRecord(stream, 0x0055, BuildUInt16Payload(8));
-            WriteRecord(stream, 0x0200, BuildDimensionsPayload(cells));
+            WriteRecord(stream, 0x0200, BuildDimensionsPayload(dimensions));
 
-            var dbCellPositions = new List<uint>(dbCellCount);
-            for (int blockStart = 0; blockStart < rows.Length; blockStart += DirectRowsPerDbCellBlock) {
-                int blockCount = Math.Min(DirectRowsPerDbCellBlock, rows.Length - blockStart);
+            var dbCellPositions = new List<uint>(dimensions.RowBlockCount);
+            int rowIndex = 0;
+            for (int blockIndex = 0; blockIndex < dimensions.RowBlockCount; blockIndex++) {
+                uint blockFirstRow = checked(dimensions.FirstRow + ((uint)blockIndex * DirectRowsPerDbCellBlock));
+                uint blockRowAfterLast = Math.Min(
+                    checked(blockFirstRow + DirectRowsPerDbCellBlock),
+                    dimensions.RowAfterLast);
+                int blockStart = rowIndex;
+                while (rowIndex < rows.Length && rows[rowIndex].Row < blockRowAfterLast) {
+                    rowIndex++;
+                }
+                int blockCount = rowIndex - blockStart;
                 long firstRowPosition = stream.Position;
                 for (int index = 0; index < blockCount; index++) {
                     WriteRecord(stream, 0x0208, BuildDirectRowPayload(rows[blockStart + index]));
@@ -119,34 +129,17 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
                 long dbCellPosition = stream.Position;
                 dbCellPositions.Add(checked((uint)dbCellPosition));
-                WriteRecord(stream, 0x00d7, BuildDirectDbCellPayload(firstRowPosition, firstCellPositions, dbCellPosition));
+                WriteRecord(stream, 0x00d7, BuildDbCellPayload(firstRowPosition, firstCellPositions, dbCellPosition));
             }
 
             WriteRecord(stream, 0x023e, [
                 0xb6, 0x06, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
             ]);
-            WriteRecord(stream, 0x001d, [
-                0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-            ]);
+            WriteRecord(stream, 0x001d, BuildDefaultSelectionPayload());
             WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
-            long endPosition = stream.Position;
-            for (int index = 0; index < dbCellPositions.Count; index++) {
-                stream.Position = indexRecordPosition + 4 + 16 + (index * 4L);
-                WriteUInt32(stream, dbCellPositions[index]);
-            }
-            stream.Position = endPosition;
-        }
-
-        private static byte[] BuildDirectIndexPayload(IReadOnlyList<LegacyXlsCell> cells, int dbCellCount) {
-            byte[] payload = new byte[checked(16 + (dbCellCount * 4))];
-            if (cells.Count != 0) {
-                WriteUInt32(payload, 4, cells[0].Row);
-                WriteUInt32(payload, 8, checked((uint)cells[cells.Count - 1].Row + 1U));
-            }
-            return payload;
+            PatchIndexRecord(stream, indexRecordPosition, defaultColumnWidthPosition, dbCellPositions);
         }
 
         private static byte[] BuildDirectRowPayload(DirectCellRow row) {
@@ -160,26 +153,16 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return payload;
         }
 
-        private static byte[] BuildDirectDbCellPayload(
-            long firstRowPosition,
-            IReadOnlyList<long> firstCellPositions,
-            long dbCellPosition) {
-            byte[] payload = new byte[checked(4 + (firstCellPositions.Count * 2))];
-            WriteUInt32(payload, 0, checked((uint)(dbCellPosition - firstRowPosition)));
-            long priorPosition = firstRowPosition + 20;
-            for (int index = 0; index < firstCellPositions.Count; index++) {
-                long offset = firstCellPositions[index] - priorPosition;
-                WriteUInt16(payload, 4 + (index * 2), checked((ushort)offset));
-                priorPosition = firstCellPositions[index];
-            }
-            return payload;
-        }
-
         private static byte[] BuildDefaultDirectSetupPayload() => [
             0x01, 0x00, 0x64, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
             0x02, 0x00, 0x2c, 0x01, 0x2c, 0x01, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0xe0, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0xe0, 0x3f, 0x01, 0x00
+        ];
+
+        private static byte[] BuildDefaultSelectionPayload() => [
+            0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         ];
 
         private static byte[] BuildCountryPayload() => [0x01, 0x00, 0x01, 0x00];

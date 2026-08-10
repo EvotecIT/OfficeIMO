@@ -4,26 +4,20 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static partial class LegacyXlsWriter {
         private static void WriteWorkbookOptionRecords(Stream stream, ExcelDocument document) {
             WorkbookProperties? properties = document.WorkbookRoot.GetFirstChild<WorkbookProperties>();
-            if (properties == null) {
-                return;
-            }
+            WriteRecord(stream, 0x0040, BuildUInt16Payload(
+                properties?.BackupFile?.Value == true ? (ushort)1 : (ushort)0));
+            WriteRecord(stream, 0x008d, BuildUInt16Payload(
+                properties?.ShowObjects?.Value is ObjectDisplayValues showObjects
+                    ? ToHiddenObjectsMode(showObjects)
+                    : (ushort)0));
+        }
 
-            if (properties.BackupFile?.Value is bool backupFile) {
-                WriteRecord(stream, 0x0040, BuildUInt16Payload(backupFile ? (ushort)1 : (ushort)0));
-            }
-
-            ushort? bookBoolFlags = BuildBookBoolFlags(properties);
-            if (bookBoolFlags.HasValue) {
-                WriteRecord(stream, 0x00da, BuildUInt16Payload(bookBoolFlags.Value));
-            }
-
-            if (properties.ShowObjects?.Value is ObjectDisplayValues showObjects) {
-                WriteRecord(stream, 0x008d, BuildUInt16Payload(ToHiddenObjectsMode(showObjects)));
-            }
-
-            if (properties.RefreshAllConnections?.Value == true) {
-                WriteRecord(stream, 0x01b7, Array.Empty<byte>());
-            }
+        private static void WriteWorkbookPostCalculationOptionRecords(Stream stream, ExcelDocument document) {
+            WorkbookProperties? properties = document.WorkbookRoot.GetFirstChild<WorkbookProperties>();
+            WriteRecord(stream, 0x01b7, BuildUInt16Payload(
+                properties?.RefreshAllConnections?.Value == true ? (ushort)1 : (ushort)0));
+            WriteRecord(stream, 0x00da, BuildUInt16Payload(
+                properties == null ? (ushort)0 : BuildBookBoolFlags(properties) ?? 0));
         }
 
         private static ushort? BuildBookBoolFlags(WorkbookProperties properties) {

@@ -1,4 +1,5 @@
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.LegacyXls;
 using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
@@ -107,9 +108,9 @@ namespace OfficeIMO.Tests {
             table.Columns.Add("A", typeof(string));
             table.Columns.Add("B", typeof(string));
             table.Columns.Add("C", typeof(string));
-            table.Rows.Add(DBNull.Value, DBNull.Value, DBNull.Value);
-            table.Rows.Add(DBNull.Value, DBNull.Value, DBNull.Value);
-            table.Rows.Add(DBNull.Value, DBNull.Value, DBNull.Value);
+            for (int row = 0; row < 65; row++) {
+                table.Rows.Add(DBNull.Value, DBNull.Value, DBNull.Value);
+            }
             var dataSet = new DataSet();
             dataSet.Tables.Add(table);
             using ExcelDocument document = ExcelDocument.Create();
@@ -124,6 +125,12 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             Assert.True(document.HasDeferredDirectDataSetImport);
+            AssertBiffIndexMatchesDimensions(
+                workbook,
+                expectedDataFirstRow: 0,
+                expectedDataRowAfterLast: 0,
+                expectedDimensionFirstRow: 0,
+                expectedDimensionRowAfterLast: 65);
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
                 workbook,
                 new ExcelReadOptions { HasHeaderRow = false });
@@ -135,7 +142,17 @@ namespace OfficeIMO.Tests {
                 Assert.True(reader.IsDBNull(2));
                 rowCount++;
             }
-            Assert.Equal(3, rowCount);
+            Assert.Equal(65, rowCount);
+
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+            try {
+                File.WriteAllBytes(path, workbook);
+                AssertWorkbookOpensViaExcelComWhenAvailable(
+                    path,
+                    "The direct BIFF8 workbook with empty coordinate bands failed to open in desktop Excel.");
+            } finally {
+                TryDelete(path);
+            }
         }
 
         [Fact]
@@ -182,6 +199,84 @@ namespace OfficeIMO.Tests {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 document.SaveAsync(destination, ExcelFileFormat.Xls, cancellationToken: cancellation.Token));
             Assert.Equal(0, destination.Length);
+        }
+
+        [Fact]
+        public void LegacyXls_GeneralWriter_OpensInDesktopExcelAndRoundTripsValues() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+            try {
+                using ExcelDocument document = ExcelDocument.Create();
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Value");
+                for (int row = 2; row <= 256; row++) {
+                    sheet.CellValue(row, 1, row - 1);
+                }
+
+                document.Save(path, new ExcelSaveOptions { DisableFastPackageWriter = true });
+
+                Assert.NotEqual(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
+                AssertWorkbookOpensViaExcelComWhenAvailable(
+                    path,
+                    "The general BIFF8 workbook failed to open in desktop Excel.");
+                using (LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(path)) {
+                    Assert.False(result.Workbook.HasRefreshAllMarker);
+                }
+                using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path);
+                Assert.Equal("Value", reader.GetName(0));
+                Assert.True(reader.Read());
+                Assert.Equal(1, reader.GetInt32(0));
+            } finally {
+                TryDelete(path);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_GeneralWriter_IndexesSparseCoordinateBandsAndFormattingOnlyRows() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Sparse");
+            sheet.CellValue(10, 1, "First");
+            sheet.SetRowHeight(65, 21d);
+            sheet.CellValue(100, 1, "Last");
+
+            byte[] workbook = document.ToBytes(
+                ExcelFileFormat.Xls,
+                new ExcelSaveOptions { DisableFastPackageWriter = true });
+
+            AssertBiffIndexMatchesDimensions(
+                workbook,
+                expectedDataFirstRow: 9,
+                expectedDataRowAfterLast: 100,
+                expectedDimensionFirstRow: 9,
+                expectedDimensionRowAfterLast: 100);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+                workbook,
+                new ExcelReadOptions { HasHeaderRow = false });
+            Assert.True(reader.Read());
+            Assert.Equal("First", reader.GetString(0));
+            int rowCount = 1;
+            while (reader.Read()) {
+                rowCount++;
+            }
+            Assert.Equal(91, rowCount);
+        }
+
+        [Fact]
+        public void LegacyXls_GeneralWriter_LeavesIndexDataBoundsEmptyForFormattingOnlySheet() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("FormattingOnly");
+            sheet.SetColumnWidth(1, 18d);
+            sheet.SetRowHeight(65, 21d);
+
+            byte[] workbook = document.ToBytes(
+                ExcelFileFormat.Xls,
+                new ExcelSaveOptions { DisableFastPackageWriter = true });
+
+            AssertBiffIndexMatchesDimensions(
+                workbook,
+                expectedDataFirstRow: 0,
+                expectedDataRowAfterLast: 0,
+                expectedDimensionFirstRow: 0,
+                expectedDimensionRowAfterLast: 65);
         }
 
         private static void AssertSingleValue(string path, int expected) {

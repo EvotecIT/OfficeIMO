@@ -114,7 +114,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return true;
 
                 case BiffRecordType.RefreshAll:
-                    workbook.SetHasRefreshAllMarker();
+                    if (record.Payload.Length == 0
+                        || (TryReadBoolean(record, diagnostics, out bool refreshAll) && refreshAll)) {
+                        workbook.SetHasRefreshAllMarker();
+                    }
                     workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.RefreshAll, record.Offset, record.Type);
                     return true;
 
