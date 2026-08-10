@@ -253,7 +253,7 @@ internal static partial class PdfWriter {
             PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(image.EncodedBytes);
             var imageStyle = new PdfImageStyle {
                 Fit = OfficeImageFit.Stretch,
-                RotationAngle = projection.RotationDegrees,
+                RotationAngle = -projection.RotationDegrees,
                 AlternativeText = image.AlternativeText
             };
             if (projection.HasCrop) {
@@ -288,7 +288,7 @@ internal static partial class PdfWriter {
             pageImage.RotationCenterY = originTopY - projection.RotationCenterY;
             pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
             currentPage!.Images.Add(pageImage);
-            pageImage.InlineDrawToken = "\n%OIMO_INLINE_IMAGE_" + currentPage.Images.Count.ToString("D6", CultureInfo.InvariantCulture) + "\n";
+            pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage);
             sb.Append(pageImage.InlineDrawToken);
             if (!_suppressCanvasAccessibilityWrappers && !string.IsNullOrWhiteSpace(pageImage.AlternativeText)) {
                 int? markedContentId = RegisterFigureStructureElement(pageImage.AlternativeText!, _canvasStructureParentElementIndex);

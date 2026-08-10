@@ -101,8 +101,8 @@ public static class OfficeVisualPlacementExtensions {
         double topPoints = 0D) {
         if (slide == null) throw new ArgumentNullException(nameof(slide));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
-        ValidateNonNegativeFinite(leftPoints, nameof(leftPoints));
-        ValidateNonNegativeFinite(topPoints, nameof(topPoints));
+        ValidateFinite(leftPoints, nameof(leftPoints));
+        ValidateFinite(topPoints, nameof(topPoints));
         using var stream = new MemoryStream(conversion.GetPlacementBytes(), writable: false);
         PowerPointPicture picture = slide.AddPicture(
             stream,
@@ -111,7 +111,6 @@ public static class OfficeVisualPlacementExtensions {
             PowerPointUnits.FromPoints(topPoints),
             PowerPointUnits.FromPoints(conversion.WidthPoints),
             PowerPointUnits.FromPoints(conversion.HeightPoints));
-        picture.Name = ResolveTitle(conversion);
         if (conversion.IsDecorative) {
             picture.Decorative = true;
         } else {
@@ -262,9 +261,9 @@ public static class OfficeVisualPlacementExtensions {
         return name + extension;
     }
 
-    private static void ValidateNonNegativeFinite(double value, string parameterName) {
-        if (value < 0D || double.IsNaN(value) || double.IsInfinity(value)) {
-            throw new ArgumentOutOfRangeException(parameterName, value, "Value must be non-negative and finite.");
+    private static void ValidateFinite(double value, string parameterName) {
+        if (double.IsNaN(value) || double.IsInfinity(value)) {
+            throw new ArgumentOutOfRangeException(parameterName, value, "Value must be finite.");
         }
     }
 }
