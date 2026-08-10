@@ -586,10 +586,14 @@ internal static partial class PdfWriter {
             double clipTop = clipBottomY + clipHeight;
             for (int i = images.Count - 1; i >= startIndex; i--) {
                 PageImage image = images[i];
-                double x1 = System.Math.Max(image.X, clipX);
-                double y1 = System.Math.Max(image.Y, clipBottomY);
-                double x2 = System.Math.Min(image.X + image.W, clipRight);
-                double y2 = System.Math.Min(image.Y + image.H, clipTop);
+                double effectiveX = image.EffectiveX ?? image.X;
+                double effectiveY = image.EffectiveY ?? image.Y;
+                double effectiveW = image.EffectiveW ?? image.W;
+                double effectiveH = image.EffectiveH ?? image.H;
+                double x1 = System.Math.Max(effectiveX, clipX);
+                double y1 = System.Math.Max(effectiveY, clipBottomY);
+                double x2 = System.Math.Min(effectiveX + effectiveW, clipRight);
+                double y2 = System.Math.Min(effectiveY + effectiveH, clipTop);
                 if (x2 <= x1 || y2 <= y1) {
                     if (!string.IsNullOrEmpty(image.InlineDrawToken)) {
                         sb.Replace(image.InlineDrawToken, string.Empty);

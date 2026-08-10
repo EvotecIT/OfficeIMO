@@ -11,7 +11,8 @@ internal static class PdfTransparencyGroupDictionaryBuilder {
         IReadOnlyList<(string Name, int Id)> fontResources,
         IReadOnlyList<(string Name, int Id)> xObjects,
         IReadOnlyList<(string Name, int Id)> graphicsStates,
-        IReadOnlyList<(string Name, int Id)> shadings) {
+        IReadOnlyList<(string Name, int Id)> shadings,
+        int? structParents = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NonNegative(contentLength, nameof(contentLength));
@@ -20,9 +21,12 @@ internal static class PdfTransparencyGroupDictionaryBuilder {
         PdfPageDictionaryBuilder.AppendResourcePart(resources, "XObject", xObjects);
         PdfPageDictionaryBuilder.AppendResourcePart(resources, "ExtGState", graphicsStates);
         PdfPageDictionaryBuilder.AppendResourcePart(resources, "Shading", shadings);
+        string structureEntry = structParents.HasValue
+            ? " /StructParents " + structParents.Value.ToString(CultureInfo.InvariantCulture)
+            : string.Empty;
         return "<< /Type /XObject /Subtype /Form /FormType 1 /BBox [0 0 "
             + Format(width) + " " + Format(height) + "] /Group << /S /Transparency /I true /K false >> /Resources <<"
-            + resources + " >> /Length " + contentLength.ToString(CultureInfo.InvariantCulture) + " >>";
+            + resources + " >>" + structureEntry + " /Length " + contentLength.ToString(CultureInfo.InvariantCulture) + " >>";
     }
 
     private static string Format(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);

@@ -341,6 +341,58 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasClip_KeepsImagesWhoseTransformedDrawingBoundsIntersectTheClip() {
+        var drawing = new OfficeDrawing(20D, 20D)
+            .AddImage(
+                CreateMinimalRgbPng(),
+                "image/png",
+                new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 20D, 20D)));
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 120D,
+                PageHeight = 120D,
+                MarginLeft = 0D,
+                MarginRight = 0D,
+                MarginTop = 0D,
+                MarginBottom = 0D,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Clip(60D, 10D, 20D, 80D, clipped =>
+                clipped.Drawing(drawing, 10D, 10D, 80D, 80D)))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
+        Assert.Contains("4 0 0 4", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CanvasClip_KeepsEffectImagesWhenOnlyTheRotatedFootprintIntersects() {
+        var source = new OfficeDrawing(60D, 50D)
+            .AddImage(
+                CreateMinimalRgbPng(),
+                "image/png",
+                new OfficeImageProjection(new OfficeImagePlacement(10D, 20D, 40D, 10D), rotationDegrees: 45D));
+        var drawing = new OfficeDrawing(100D, 50D)
+            .AddEffectDrawing(source, OfficeTransform.Translate(40D, 0D));
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 120D,
+                PageHeight = 120D,
+                MarginLeft = 0D,
+                MarginRight = 0D,
+                MarginTop = 0D,
+                MarginBottom = 0D,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Clip(0D, 18D, 120D, 2D, clipped =>
+                clipped.Drawing(drawing, 10D, 10D, 100D, 50D)))
+            .ToBytes();
+
+        Assert.Contains("/Im1 Do", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Drawing_AllowsHorizontalAndVerticalLineBounds() {
         var drawing = new OfficeDrawing(100, 70)
             .AddShape(OfficeShape.Line(0, 0, 80, 0), 10, 10)
