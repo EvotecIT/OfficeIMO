@@ -171,6 +171,9 @@ public sealed partial class PdfReadPage {
         if (placements.Count > 0) {
             IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(resources, 0, placements, colorizeImageMasks: true);
             for (int i = 0; i < placements.Count; i++) {
+                if (IsInvisibleImagePlacement(placements[i], localPageHeight, localPageWidth, localPageHeight)) {
+                    continue;
+                }
                 PdfExtractedImage? image = FindImage(images, placements[i]);
                 if (image == null || !image.IsImageFile) {
                     groupDrawing = null!;
@@ -300,7 +303,7 @@ public sealed partial class PdfReadPage {
             }
         }
         if (activeClip.HasValue) {
-            projectedBounds = PdfPageClipPath.ResolveActiveClip(projectedBounds, activeClip.Value);
+            projectedBounds = PdfPageClipPath.ResolveActiveClip(activeClip.Value, projectedBounds);
         }
         if (projectedBounds.Width <= 0D || projectedBounds.Height <= 0D) {
             return Type3TransparencyGroupDrawingResult.Invisible;
