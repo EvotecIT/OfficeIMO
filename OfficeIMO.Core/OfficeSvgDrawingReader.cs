@@ -129,12 +129,12 @@ public static partial class OfficeSvgDrawingReader {
             viewHeight = viewBox[3];
             viewportWidth = viewWidth;
             viewportHeight = viewHeight;
-            if (OfficeImageReader.TryIdentifyByContent(bytes, ".svg", out OfficeImageInfo viewportInfo)
-                && viewportInfo.Width > 0
-                && viewportInfo.Height > 0) {
-                viewportWidth = viewportInfo.Width * 96D / Math.Max(1D, viewportInfo.DpiX);
-                viewportHeight = viewportInfo.Height * 96D / Math.Max(1D, viewportInfo.DpiY);
-            }
+            bool hasViewportWidth = OfficeImageReader.TryParseSvgLength(root.Attribute("width")?.Value, out double declaredWidth);
+            bool hasViewportHeight = OfficeImageReader.TryParseSvgLength(root.Attribute("height")?.Value, out double declaredHeight);
+            if (hasViewportWidth) viewportWidth = declaredWidth;
+            if (hasViewportHeight) viewportHeight = declaredHeight;
+            if (hasViewportWidth && !hasViewportHeight) viewportHeight = declaredWidth * viewHeight / viewWidth;
+            if (!hasViewportWidth && hasViewportHeight) viewportWidth = declaredHeight * viewWidth / viewHeight;
             return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels)
                 && IsSupportedSvgViewport(viewportWidth, viewportHeight, maximumViewportDimension, maximumViewportPixels);
         }

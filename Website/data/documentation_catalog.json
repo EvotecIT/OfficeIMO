@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 164,
-    "productionComponentCount": 97,
-    "testProjectCount": 31,
+    "projectCount": 166,
+    "productionComponentCount": 98,
+    "testProjectCount": 32,
     "benchmarkProjectCount": 15,
     "validationProjectCount": 22,
     "apiReferenceCount": 21,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 40488
+    "conceptualWordCount": 40537
   },
   "categories": [
     {
@@ -42,7 +42,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 4
+      "componentCount": 5
     }
   ],
   "components": [
@@ -99,6 +99,19 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AsciiDoc.Pdf"
     },
     {
+      "name": "OfficeIMO.ChartForgeX",
+      "packageId": "OfficeIMO.ChartForgeX",
+      "category": "Specialized components",
+      "description": "Optional typed bridge from ChartForgeX visual artifacts to OfficeIMO Word, Excel, PowerPoint, PDF, and drawing surfaces.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.ChartForgeX/OfficeIMO.ChartForgeX.csproj",
+      "sourceFileCount": 10,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.ChartForgeX"
+    },
+    {
       "name": "OfficeIMO.Confluence",
       "packageId": "OfficeIMO.Confluence",
       "category": "Foundations and integrations",
@@ -118,7 +131,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 358,
+      "sourceFileCount": 361,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -222,7 +235,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 958,
+      "sourceFileCount": 960,
       "referencingTestProjectCount": 9,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -690,7 +703,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 936,
+      "sourceFileCount": 941,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",

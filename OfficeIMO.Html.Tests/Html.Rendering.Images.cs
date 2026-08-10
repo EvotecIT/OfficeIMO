@@ -23,12 +23,12 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        HtmlRenderDrawing image = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(), item => item.Source == "img#svg-image");
+        HtmlRenderDrawing image = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderDrawing>(), item => item.Source == "img#svg-image");
         string exportedSvg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
 
         Assert.Equal(200D, image.Width, 3);
         Assert.Equal(100D, image.Height, 3);
-        Assert.Single(image.Drawing.Shapes);
+        Assert.Single(EnumerateDrawingElements(image.Drawing).OfType<OfficeDrawingShape>());
         Assert.Contains("<rect", exportedSvg, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/svg+xml", exportedSvg, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
