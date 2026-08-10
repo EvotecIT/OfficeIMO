@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
@@ -328,6 +330,7 @@ public sealed partial class PdfReadPage {
             Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources);
             bool usesFillPaint = false;
             bool usesStrokePaint = false;
+            bool usesDashedInheritedShadingStroke = false;
             _ = PdfPageContentVisualParser.Parse(
                 content,
                 GetPageSize().Width,
@@ -345,9 +348,28 @@ public sealed partial class PdfReadPage {
                 primitiveVisitor: primitive => {
                     usesFillPaint |= primitive.HasFillPaint;
                     usesStrokePaint |= primitive.HasStrokePaint;
+                    usesDashedInheritedShadingStroke |=
+                        primitive.HasStrokePaint &&
+                        primitive.StrokeDashStyle != OfficeStrokeDashStyle.Solid &&
+                        initialStrokePattern?.ShadingPattern.HasValue == true;
                 },
                 retainPrimitiveData: false,
-                unsupportedShadingTransformVisitor: () => supported = false);
+                unsupportedShadingTransformVisitor: () => {
+                    supported = false;
+                    AddRenderDiagnostic(
+                        diagnostics,
+                        seen,
+                        PdfRenderCapabilities.UnsupportedShadingId,
+                        "type3-shading-paint");
+                });
+            if (usesDashedInheritedShadingStroke) {
+                AddRenderDiagnostic(
+                    diagnostics,
+                    seen,
+                    PdfRenderCapabilities.UnsupportedShadingId,
+                    initialStrokePattern?.Name ?? "type3-shading-stroke");
+                return false;
+            }
             if ((usesFillPaint && initialFillPattern.HasValue && !HasUsableInheritedPattern(initialFillPattern)) ||
                 (usesStrokePaint && initialStrokePattern.HasValue && !HasUsableInheritedPattern(initialStrokePattern))) {
                 PdfPagePatternSelection? unsupported = usesFillPaint && initialFillPattern.HasValue && !HasUsableInheritedPattern(initialFillPattern)
