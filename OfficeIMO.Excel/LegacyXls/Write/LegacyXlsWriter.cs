@@ -3,8 +3,10 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Core.Internal;
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static partial class LegacyXlsWriter {
@@ -16,6 +18,52 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             if (document == null) throw new ArgumentNullException(nameof(document));
 
             byte[] workbookStream = BuildWorkbookStream(document);
+            return BuildCompoundFile(document, workbookStream);
+        }
+
+        internal static bool TryWriteDirectTabularWorkbook(
+            ExcelDocument document,
+            ExcelDirectTabularSource source,
+            CancellationToken cancellationToken,
+            out byte[] workbookBytes) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            if (source == null) throw new ArgumentNullException(nameof(source));
+
+            Stopwatch? stageWatch = document.Execution.OnTiming == null ? null : Stopwatch.StartNew();
+            ExcelSheet? sheet = document.GetOrCreateDeferredDirectTabularSheet(source.SheetName);
+            if (sheet == null) {
+                workbookBytes = Array.Empty<byte>();
+                return false;
+            }
+            ExcelSheet[] sheets = [sheet];
+
+            if (!TryExtractDirectCells(source, cancellationToken, out List<LegacyXlsCell>? directCells)) {
+                workbookBytes = Array.Empty<byte>();
+                return false;
+            }
+            ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.ExtractCells");
+
+            byte[] workbookStream = BuildDirectTabularWorkbookStream(document, sheet, directCells);
+            ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildWorkbookStream");
+            workbookBytes = BuildCompoundFile(document, workbookStream);
+            ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildCompoundFile");
+            return true;
+        }
+
+        private static void ReportDirectWriteTiming(
+            ExcelDocument document,
+            Stopwatch? stopwatch,
+            string operation) {
+            if (stopwatch == null) {
+                return;
+            }
+
+            TimeSpan elapsed = stopwatch.Elapsed;
+            stopwatch.Restart();
+            document.Execution.ReportTiming(operation, elapsed);
+        }
+
+        private static byte[] BuildCompoundFile(ExcelDocument document, byte[] workbookStream) {
             IReadOnlyList<OfficeCompoundStream> propertyStreams = LegacyOlePropertySetWriter.CreateDocumentPropertyStreams(document);
             var streams = new List<OfficeCompoundStream>(propertyStreams.Count + 1) {
                 new OfficeCompoundStream(GetWorkbookStreamName(document.LegacyXlsSourceCompoundFile), workbookStream)
@@ -103,6 +151,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 WriteRecord(stream, 0x00e0, cellFormatPayload);
             }
 
+            foreach (byte[] stylePayload in styleTable.StyleRecords) {
+                WriteRecord(stream, 0x0293, stylePayload);
+            }
+
             foreach (TableStyleRecord tableStyleRecord in CreateTableStyleRecords(document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet)) {
                 WriteRecord(stream, tableStyleRecord.RecordType, tableStyleRecord.Payload);
             }
@@ -157,8 +209,74 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 WriteUInt32(stream, unchecked((uint)sheetOffset));
                 stream.Position = currentPosition;
             }
-
             return stream.ToArray();
+        }
+
+        private static bool TryExtractDirectCells(
+            ExcelDirectTabularSource source,
+            CancellationToken cancellationToken,
+            out List<LegacyXlsCell> cells) {
+            const ushort DefaultDirectCellStyleIndex = 15;
+            IExcelSheetTabularRowSource rows = source.Rows;
+            int rowOffset = source.IncludeHeaders ? 1 : 0;
+            int totalRows = checked(rows.RowCount + rowOffset);
+            if (totalRows > 65_536 || rows.ColumnCount > 256) {
+                throw new NotSupportedException("Native XLS saving supports the BIFF8 worksheet limit of 65,536 rows and 256 columns.");
+            }
+
+            int capacity = Math.Min(checked(totalRows * rows.ColumnCount), 1_048_576);
+            cells = new List<LegacyXlsCell>(capacity);
+            if (source.IncludeHeaders) {
+                for (int column = 0; column < rows.ColumnCount; column++) {
+                    cells.Add(LegacyXlsCell.Text(
+                        row: 0,
+                        column: checked((ushort)column),
+                        styleIndex: DefaultDirectCellStyleIndex,
+                        rows.GetColumnName(column)));
+                }
+            }
+
+            for (int row = 0; row < rows.RowCount; row++) {
+                if ((row & 1023) == 0) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+
+                ushort legacyRow = checked((ushort)(row + rowOffset));
+                for (int column = 0; column < rows.ColumnCount; column++) {
+                    ExcelDirectTabularValue value = ExcelDirectTabularValue.Normalize(rows.GetValue(row, column));
+                    ushort legacyColumn = checked((ushort)column);
+                    switch (value.Kind) {
+                        case ExcelDirectTabularValueKind.Empty:
+                            break;
+                        case ExcelDirectTabularValueKind.Text:
+                            cells.Add(LegacyXlsCell.Text(legacyRow, legacyColumn, DefaultDirectCellStyleIndex, value.Text ?? string.Empty));
+                            break;
+                        case ExcelDirectTabularValueKind.Boolean:
+                            cells.Add(LegacyXlsCell.Boolean(legacyRow, legacyColumn, DefaultDirectCellStyleIndex, value.Boolean));
+                            break;
+                        case ExcelDirectTabularValueKind.Number:
+                            cells.Add(LegacyXlsCell.Number(legacyRow, legacyColumn, DefaultDirectCellStyleIndex, value.Number));
+                            break;
+                        default:
+                            cells = null!;
+                            return false;
+                    }
+                }
+            }
+
+            if (totalRows != 0 && rows.ColumnCount != 0) {
+                ushort lastRow = checked((ushort)(totalRows - 1));
+                ushort lastColumn = checked((ushort)(rows.ColumnCount - 1));
+                if (cells.Count == 0 || cells[0].Row != 0 || cells[0].Column != 0) {
+                    cells.Insert(0, LegacyXlsCell.Blank(0, 0, DefaultDirectCellStyleIndex));
+                }
+                if ((lastRow != 0 || lastColumn != 0)
+                    && (cells[cells.Count - 1].Row != lastRow || cells[cells.Count - 1].Column != lastColumn)) {
+                    cells.Add(LegacyXlsCell.Blank(lastRow, lastColumn, DefaultDirectCellStyleIndex));
+                }
+            }
+
+            return true;
         }
 
         private static void WriteWorksheet(
@@ -263,42 +381,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             WriteWorksheetCalculationRecords(stream, sheet);
             WriteWorksheetPhoneticInfoRecords(stream, sheet);
 
-            foreach (LegacyXlsCell cell in cells) {
-                switch (cell.Kind) {
-                    case LegacyXlsCellKind.Blank:
-                        WriteRecord(stream, 0x0201, BuildBlankPayload(cell.Row, cell.Column, cell.StyleIndex));
-                        break;
-                    case LegacyXlsCellKind.Number:
-                        WriteRecord(stream, 0x0203, BuildNumberPayload(cell.Row, cell.Column, cell.NumberValue, cell.StyleIndex));
-                        break;
-                    case LegacyXlsCellKind.FormulaNumber:
-                        WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(cell.Row, cell.Column, cell.NumberValue, cell.StyleIndex, cell.FormulaTokens, cell.FormulaExtraData));
-                        WriteFormulaFollowUpRecords(stream, cell);
-                        break;
-                    case LegacyXlsCellKind.FormulaBoolean:
-                        WriteRecord(stream, 0x0006, BuildFormulaBooleanPayload(cell.Row, cell.Column, cell.BooleanValue, cell.StyleIndex, cell.FormulaTokens, cell.FormulaExtraData));
-                        WriteFormulaFollowUpRecords(stream, cell);
-                        break;
-                    case LegacyXlsCellKind.FormulaText:
-                        WriteRecord(stream, 0x0006, BuildFormulaStringPayload(cell.Row, cell.Column, cell.StyleIndex, cell.FormulaTokens, cell.FormulaExtraData));
-                        WriteFormulaCachedStringRecords(stream, cell.TextValue ?? string.Empty);
-                        WriteFormulaFollowUpRecords(stream, cell);
-                        break;
-                    case LegacyXlsCellKind.FormulaError:
-                        WriteRecord(stream, 0x0006, BuildFormulaErrorPayload(cell.Row, cell.Column, cell.ErrorValue, cell.StyleIndex, cell.FormulaTokens, cell.FormulaExtraData));
-                        WriteFormulaFollowUpRecords(stream, cell);
-                        break;
-                    case LegacyXlsCellKind.Boolean:
-                        WriteRecord(stream, 0x0205, BuildBoolErrPayload(cell.Row, cell.Column, cell.BooleanValue, cell.StyleIndex));
-                        break;
-                    case LegacyXlsCellKind.Error:
-                        WriteRecord(stream, 0x0205, BuildErrorPayload(cell.Row, cell.Column, cell.ErrorValue, cell.StyleIndex));
-                        break;
-                    case LegacyXlsCellKind.Text:
-                        WriteRecord(stream, 0x00fd, BuildLabelSstPayload(cell.Row, cell.Column, cell.StyleIndex, sharedStrings.GetIndex(sheetIndex, cell.Row, cell.Column)));
-                        break;
-                }
-            }
+            WriteCellRecords(stream, sheetIndex, cells, sharedStrings);
 
             if (LegacyXlsAutoFilterWriter.TryCreateAutoFilterInfoPayload(sheet, out byte[]? autoFilterInfoPayload)) {
                 WriteRecord(stream, 0x009d, autoFilterInfoPayload!);
@@ -344,6 +427,50 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             WriteRecord(stream, 0x000a, Array.Empty<byte>());
+        }
+
+        private static void WriteCellRecords(
+            Stream stream,
+            int sheetIndex,
+            IReadOnlyList<LegacyXlsCell> cells,
+            LegacyXlsSharedStringTable sharedStrings) {
+            byte[] fixedCellRecord = new byte[18];
+            foreach (LegacyXlsCell cell in cells) {
+                switch (cell.Kind) {
+                    case LegacyXlsCellKind.Blank:
+                        WriteBlankCellRecord(stream, fixedCellRecord, cell.Row, cell.Column, cell.StyleIndex);
+                        break;
+                    case LegacyXlsCellKind.Number:
+                        WriteNumberCellRecord(stream, fixedCellRecord, cell.Row, cell.Column, cell.NumberValue, cell.StyleIndex);
+                        break;
+                    case LegacyXlsCellKind.FormulaNumber:
+                        WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(cell.Row, cell.Column, cell.NumberValue, cell.StyleIndex, cell.FormulaTokens, cell.FormulaExtraData));
+                        WriteFormulaFollowUpRecords(stream, cell);
+                        break;
+                    case LegacyXlsCellKind.FormulaBoolean:
+                        WriteRecord(stream, 0x0006, BuildFormulaBooleanPayload(cell.Row, cell.Column, cell.BooleanValue, cell.StyleIndex, cell.FormulaTokens, cell.FormulaExtraData));
+                        WriteFormulaFollowUpRecords(stream, cell);
+                        break;
+                    case LegacyXlsCellKind.FormulaText:
+                        WriteRecord(stream, 0x0006, BuildFormulaStringPayload(cell.Row, cell.Column, cell.StyleIndex, cell.FormulaTokens, cell.FormulaExtraData));
+                        WriteFormulaCachedStringRecords(stream, cell.TextValue ?? string.Empty);
+                        WriteFormulaFollowUpRecords(stream, cell);
+                        break;
+                    case LegacyXlsCellKind.FormulaError:
+                        WriteRecord(stream, 0x0006, BuildFormulaErrorPayload(cell.Row, cell.Column, cell.ErrorValue, cell.StyleIndex, cell.FormulaTokens, cell.FormulaExtraData));
+                        WriteFormulaFollowUpRecords(stream, cell);
+                        break;
+                    case LegacyXlsCellKind.Boolean:
+                        WriteBoolErrorCellRecord(stream, fixedCellRecord, cell.Row, cell.Column, cell.BooleanValue ? (byte)1 : (byte)0, isError: false, cell.StyleIndex);
+                        break;
+                    case LegacyXlsCellKind.Error:
+                        WriteBoolErrorCellRecord(stream, fixedCellRecord, cell.Row, cell.Column, cell.ErrorValue, isError: true, cell.StyleIndex);
+                        break;
+                    case LegacyXlsCellKind.Text:
+                        WriteLabelSstCellRecord(stream, fixedCellRecord, cell.Row, cell.Column, cell.StyleIndex, sharedStrings.GetIndex(cell));
+                        break;
+                }
+            }
         }
 
         private static List<LegacyXlsCell> ExtractCells(
@@ -1006,6 +1133,20 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             return BuildDimensionsPayload(firstRow.Value, lastRow.Value + 1U, firstColumn.Value, checked((ushort)(lastColumn.Value + 1)));
+        }
+
+        private static byte[] BuildDimensionsPayload(IReadOnlyList<LegacyXlsCell> cells) {
+            uint? firstRow = null;
+            uint? lastRow = null;
+            ushort? firstColumn = null;
+            ushort? lastColumn = null;
+            foreach (LegacyXlsCell cell in cells) {
+                IncludeDimension(ref firstRow, ref lastRow, ref firstColumn, ref lastColumn, cell.Row, cell.Column);
+            }
+
+            return firstRow.HasValue && lastRow.HasValue && firstColumn.HasValue && lastColumn.HasValue
+                ? BuildDimensionsPayload(firstRow.Value, lastRow.Value + 1U, firstColumn.Value, checked((ushort)(lastColumn.Value + 1)))
+                : BuildDimensionsPayload(0, 0, 0, 0);
         }
 
         private static void IncludeDimension(ref uint? firstRow, ref uint? lastRow, ref ushort? firstColumn, ref ushort? lastColumn, ushort row, ushort column) {
@@ -1819,6 +1960,40 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             stream.Write(payload, 0, payload.Length);
         }
 
+        private static void WriteBlankCellRecord(Stream stream, byte[] buffer, ushort row, ushort column, ushort styleIndex) {
+            WriteFixedCellRecordHeader(buffer, 0x0201, payloadLength: 6, row, column, styleIndex);
+            stream.Write(buffer, 0, 10);
+        }
+
+        private static void WriteNumberCellRecord(Stream stream, byte[] buffer, ushort row, ushort column, double value, ushort styleIndex) {
+            WriteFixedCellRecordHeader(buffer, 0x0203, payloadLength: 14, row, column, styleIndex);
+            ulong bits = unchecked((ulong)BitConverter.DoubleToInt64Bits(value));
+            WriteUInt32(buffer, 10, unchecked((uint)bits));
+            WriteUInt32(buffer, 14, unchecked((uint)(bits >> 32)));
+            stream.Write(buffer, 0, 18);
+        }
+
+        private static void WriteBoolErrorCellRecord(Stream stream, byte[] buffer, ushort row, ushort column, byte value, bool isError, ushort styleIndex) {
+            WriteFixedCellRecordHeader(buffer, 0x0205, payloadLength: 8, row, column, styleIndex);
+            buffer[10] = value;
+            buffer[11] = isError ? (byte)1 : (byte)0;
+            stream.Write(buffer, 0, 12);
+        }
+
+        private static void WriteLabelSstCellRecord(Stream stream, byte[] buffer, ushort row, ushort column, ushort styleIndex, uint sharedStringIndex) {
+            WriteFixedCellRecordHeader(buffer, 0x00fd, payloadLength: 10, row, column, styleIndex);
+            WriteUInt32(buffer, 10, sharedStringIndex);
+            stream.Write(buffer, 0, 14);
+        }
+
+        private static void WriteFixedCellRecordHeader(byte[] buffer, ushort type, ushort payloadLength, ushort row, ushort column, ushort styleIndex) {
+            WriteUInt16(buffer, 0, type);
+            WriteUInt16(buffer, 2, payloadLength);
+            WriteUInt16(buffer, 4, row);
+            WriteUInt16(buffer, 6, column);
+            WriteUInt16(buffer, 8, styleIndex);
+        }
+
         private static void WriteUInt16(Stream stream, ushort value) {
             stream.WriteByte((byte)(value & 0xff));
             stream.WriteByte((byte)((value >> 8) & 0xff));
@@ -2129,7 +2304,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 byte[]? formulaExtraData,
                 byte[]? arrayFormulaPayload,
                 byte[]? sharedFormulaPayload,
-                IReadOnlyList<LegacyXlsTextFormattingRun>? textFormattingRuns) {
+                IReadOnlyList<LegacyXlsTextFormattingRun>? textFormattingRuns,
+                uint sharedStringIndex = uint.MaxValue) {
                 Row = row;
                 Column = column;
                 StyleIndex = styleIndex;
@@ -2143,6 +2319,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 ArrayFormulaPayload = arrayFormulaPayload ?? Array.Empty<byte>();
                 SharedFormulaPayload = sharedFormulaPayload ?? Array.Empty<byte>();
                 TextFormattingRuns = textFormattingRuns ?? Array.Empty<LegacyXlsTextFormattingRun>();
+                SharedStringIndex = sharedStringIndex;
             }
 
             internal ushort Row { get; }
@@ -2170,6 +2347,25 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             internal byte[] SharedFormulaPayload { get; }
 
             internal IReadOnlyList<LegacyXlsTextFormattingRun> TextFormattingRuns { get; }
+
+            internal uint SharedStringIndex { get; }
+
+            internal LegacyXlsCell WithSharedStringIndex(uint sharedStringIndex) =>
+                new LegacyXlsCell(
+                    Row,
+                    Column,
+                    StyleIndex,
+                    Kind,
+                    TextValue,
+                    NumberValue,
+                    BooleanValue,
+                    ErrorValue,
+                    FormulaTokens,
+                    FormulaExtraData,
+                    ArrayFormulaPayload,
+                    SharedFormulaPayload,
+                    TextFormattingRuns,
+                    sharedStringIndex);
 
             internal static LegacyXlsCell Blank(ushort row, ushort column, ushort styleIndex) =>
                 new LegacyXlsCell(row, column, styleIndex, LegacyXlsCellKind.Blank, null, 0, false, 0, null, null, null, null, null);

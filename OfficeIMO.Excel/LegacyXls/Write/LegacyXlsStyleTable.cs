@@ -10,15 +10,19 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private LegacyXlsStyleTable(
             Dictionary<uint, ushort> styleIndexMap,
             IReadOnlyList<byte[]> formatRecords,
-            IReadOnlyList<byte[]> cellFormatRecords) {
+            IReadOnlyList<byte[]> cellFormatRecords,
+            IReadOnlyList<byte[]> styleRecords) {
             _styleIndexMap = styleIndexMap;
             FormatRecords = formatRecords;
             CellFormatRecords = cellFormatRecords;
+            StyleRecords = styleRecords;
         }
 
         internal IReadOnlyList<byte[]> FormatRecords { get; }
 
         internal IReadOnlyList<byte[]> CellFormatRecords { get; }
+
+        internal IReadOnlyList<byte[]> StyleRecords { get; }
 
         internal static LegacyXlsStyleTable Create(ExcelDocument document, IReadOnlyList<ExcelSheet> sheets, LegacyXlsFontTable fontTable) {
             if (document == null) throw new ArgumentNullException(nameof(document));
@@ -41,7 +45,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             var map = new Dictionary<uint, ushort>();
             var formatRecordsById = new Dictionary<ushort, byte[]>();
-            var cellFormatRecords = new List<byte[]>();
+            var cellFormatRecords = new List<byte[]>(BuildRequiredStyleXfPayloads());
 
             foreach (uint openXmlStyleIndex in openXmlStyleIndexes) {
                 CellFormat? cellFormat = openXmlStyleIndex < openXmlCellFormats.Count
@@ -67,8 +71,14 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return new LegacyXlsStyleTable(
                 map,
                 formatRecordsById.OrderBy(pair => pair.Key).Select(pair => pair.Value).ToArray(),
-                cellFormatRecords);
+                cellFormatRecords,
+                [BuildNormalStylePayload()]);
         }
+
+        internal static LegacyXlsStyleTable CreateDirectTabular(
+            ExcelDocument document,
+            LegacyXlsFontTable fontTable) =>
+            Create(document, Array.Empty<ExcelSheet>(), fontTable);
 
         internal ushort GetBiffStyleIndex(uint? openXmlStyleIndex) {
             uint index = openXmlStyleIndex ?? 0U;
@@ -311,7 +321,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static byte ToVerticalAlignmentCode(uint openXmlStyleIndex, VerticalAlignmentValues? value) {
-            if (!value.HasValue) return 0;
+            if (!value.HasValue) return 2;
             if (value.Value == VerticalAlignmentValues.Top) return 0;
             if (value.Value == VerticalAlignmentValues.Center) return 1;
             if (value.Value == VerticalAlignmentValues.Bottom) return 2;
@@ -513,6 +523,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             WriteUInt16(payload, 0, fontIndex);
             WriteUInt16(payload, 2, numberFormatId);
             WriteUInt16(payload, 4, protection.Options);
+            payload[6] = 0x20;
             ushort attributes = 0;
             uint sideBits = 0;
             uint topBottomAndFillBits = 0;
@@ -530,7 +541,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 ushort fillColors = checked((ushort)((fill.BackgroundColorIndex << 7) | fill.ForegroundColorIndex));
                 WriteUInt16(payload, 18, fillColors);
             } else {
-                WriteUInt16(payload, 18, 0x2080);
+                WriteUInt16(payload, 18, 0x20c0);
             }
 
             if (border.HasBorder) {
@@ -571,6 +582,36 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             WriteUInt32(payload, 14, topBottomAndFillBits);
             return payload;
         }
+
+        private static IReadOnlyList<byte[]> BuildRequiredStyleXfPayloads() => [
+            BuildStyleXfPayload(0, 0x0000),
+            BuildStyleXfPayload(1, 0xf400),
+            BuildStyleXfPayload(1, 0xf400),
+            BuildStyleXfPayload(2, 0xf400),
+            BuildStyleXfPayload(2, 0xf400),
+            BuildStyleXfPayload(0, 0xf400),
+            BuildStyleXfPayload(0, 0xf400),
+            BuildStyleXfPayload(0, 0xf400),
+            BuildStyleXfPayload(0, 0xf400),
+            BuildStyleXfPayload(0, 0xf400),
+            BuildStyleXfPayload(0, 0xf400),
+            BuildStyleXfPayload(0, 0xf400),
+            BuildStyleXfPayload(0, 0xf400),
+            BuildStyleXfPayload(0, 0xf400),
+            BuildStyleXfPayload(0, 0xf400)
+        ];
+
+        private static byte[] BuildStyleXfPayload(ushort fontIndex, ushort attributes) {
+            byte[] payload = [
+                0x00, 0x00, 0x00, 0x00, 0xf5, 0xff, 0x20, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x20
+            ];
+            WriteUInt16(payload, 0, fontIndex);
+            WriteUInt16(payload, 8, attributes);
+            return payload;
+        }
+
+        private static byte[] BuildNormalStylePayload() => [0x00, 0x80, 0x00, 0xff];
 
         private static bool FormatRecordMatches(byte[] record, ushort formatId, string formatCode) {
             byte[] expected = BuildFormatPayload(formatId, formatCode);

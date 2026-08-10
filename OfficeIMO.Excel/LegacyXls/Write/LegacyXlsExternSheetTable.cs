@@ -107,6 +107,18 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return new LegacyXlsExternSheetTable(sheetNames, rangeIndexes, externalSheetIndexes, externalNameIndexes, supportingLinkRecords, BuildPayload(entries));
         }
 
+        internal static LegacyXlsExternSheetTable CreateDirectTabular(string sheetName) {
+            if (string.IsNullOrEmpty(sheetName)) throw new ArgumentException("Worksheet name is required.", nameof(sheetName));
+
+            return new LegacyXlsExternSheetTable(
+                [sheetName],
+                new Dictionary<string, ushort>(StringComparer.Ordinal),
+                new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase),
+                new Dictionary<string, ExternalNameIndex>(StringComparer.OrdinalIgnoreCase),
+                [new SupportingLinkRecord(0x01ae, BuildSelfSupBookPayload(1))],
+                BuildPayload([new ExternSheetEntry(0, 0, 0)]));
+        }
+
         internal static bool SupportsDeclaredExternalWorkbookLinks(WorkbookPart workbookPart, out string? reason) {
             if (workbookPart == null) throw new ArgumentNullException(nameof(workbookPart));
 
