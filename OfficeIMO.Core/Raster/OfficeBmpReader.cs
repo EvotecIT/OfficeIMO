@@ -34,7 +34,8 @@ public static class OfficeBmpReader {
 
             int pixelOffset = ReadInt32LittleEndian(bytes, 10);
             int dibHeaderSize = ReadInt32LittleEndian(bytes, 14);
-            if (dibHeaderSize < BitmapInfoHeaderSize || pixelOffset < BitmapFileHeaderSize + dibHeaderSize || pixelOffset >= bytes.Length) {
+            if (!OfficeDibHeaderLayout.IsSupportedWindowsInfoHeaderSize(dibHeaderSize) ||
+                pixelOffset < BitmapFileHeaderSize + dibHeaderSize || pixelOffset >= bytes.Length) {
                 return false;
             }
 

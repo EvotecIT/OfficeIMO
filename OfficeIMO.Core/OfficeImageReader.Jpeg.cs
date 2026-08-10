@@ -1,8 +1,11 @@
 using System;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeImageReader {
+    private const string JpegXmpIdentifier = "http://ns.adobe.com/xap/1.0/\0";
+
     private static bool TryReadJpeg(byte[] data, out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         if (data.Length < 4 || data[0] != 0xFF || data[1] != 0xD8) {
@@ -118,6 +121,7 @@ public static partial class OfficeImageReader {
         bool inScan = false;
         bool seenExif = false;
         bool seenJfif = false;
+        bool seenXmp = false;
         byte[][]? iccSegments = null;
         int offset = 2;
         while (offset < data.Length) {
@@ -177,6 +181,20 @@ public static partial class OfficeImageReader {
                     return false;
                 }
                 seenExif = true;
+            } else if (marker == 0xE1 && HasJpegSegmentPrefix(
+                data,
+                segmentStart,
+                segmentDataLength,
+                JpegXmpIdentifier)) {
+                int packetOffset = segmentStart + JpegXmpIdentifier.Length;
+                int packetLength = segmentDataLength - JpegXmpIdentifier.Length;
+                if (seenXmp || !OfficeXmpPacketValidator.TryValidate(
+                    data,
+                    packetOffset,
+                    packetLength)) {
+                    return false;
+                }
+                seenXmp = true;
             } else if (marker == 0xE2 && HasJpegSegmentPrefix(
                 data,
                 segmentStart,

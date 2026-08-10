@@ -175,11 +175,18 @@ public partial class DrawingTests {
         WriteInt32LittleEndian(undersizedDeclaration, 2, bmp.Length - 1);
         byte[] reservedField = (byte[])bmp.Clone();
         reservedField[6] = 1;
+        byte[] inventedDibHeader = new byte[59];
+        Buffer.BlockCopy(bmp, 0, inventedDibHeader, 0, 54);
+        WriteInt32LittleEndian(inventedDibHeader, 2, inventedDibHeader.Length);
+        WriteInt32LittleEndian(inventedDibHeader, 10, 55);
+        WriteInt32LittleEndian(inventedDibHeader, 14, 41);
+        inventedDibHeader[57] = 255;
 
         Assert.True(OfficeImageReader.TryValidateContent(bmp, "valid.bmp", out _));
         Assert.False(OfficeImageReader.TryValidateContent(oversizedDeclaration, "truncated.bmp", out _));
         Assert.False(OfficeImageReader.TryValidateContent(undersizedDeclaration, "trailing.bmp", out _));
         Assert.False(OfficeImageReader.TryValidateContent(reservedField, "reserved.bmp", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(inventedDibHeader, "invented-header.bmp", out _));
     }
 
     [Fact]

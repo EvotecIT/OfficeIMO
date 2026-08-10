@@ -50,7 +50,7 @@ namespace OfficeIMO.Core.Internal {
                 int read = deflate.Read(buffer, 0, buffer.Length);
                 if (read == 0) break;
                 if (output.Length > maximumOutputBytes - read) {
-                    throw new InvalidDataException(
+                    throw new OfficeDecompressionSizeLimitException(
                         $"The decompressed zlib stream exceeds {maximumOutputBytes} bytes.");
                 }
                 output.Write(buffer, 0, read);

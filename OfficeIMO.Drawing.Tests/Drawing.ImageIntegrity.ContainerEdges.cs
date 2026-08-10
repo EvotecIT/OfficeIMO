@@ -23,6 +23,23 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void CompleteContentValidationChecksIconBitfieldMasks() {
+        byte[] valid = CreateBitfieldIconDib(3, 0xF800, 0x07E0, 0x001F, 0);
+        byte[] zeroMask = CreateBitfieldIconDib(3, 0, 0x07E0, 0x001F, 0);
+        byte[] overlapping = CreateBitfieldIconDib(3, 0xF800, 0xF800, 0x001F, 0);
+        byte[] nonContiguous = CreateBitfieldIconDib(3, 0xA000, 0x07E0, 0x001F, 0);
+        byte[] outsideBitDepth = CreateBitfieldIconDib(3, 0xF8000000, 0x07E0, 0x001F, 0);
+        byte[] missingAlpha = CreateBitfieldIconDib(6, 0x7C00, 0x03E0, 0x001F, 0);
+
+        Assert.True(OfficeImageReader.TryValidateContent(CreateIcon(valid), "bitfields.ico", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(CreateIcon(zeroMask), "zero-mask.ico", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(CreateIcon(overlapping), "overlap.ico", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(CreateIcon(nonContiguous), "split-mask.ico", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(CreateIcon(outsideBitDepth), "wide-mask.ico", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(CreateIcon(missingAlpha), "missing-alpha.ico", out _));
+    }
+
+    [Fact]
     public void CompleteContentValidationChecksRecognizableJfifHeaders() {
         byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         int jfifOffset = FindAsciiSequence(jpeg, "JFIF\0");
@@ -81,6 +98,34 @@ public partial class DrawingTests {
         byte[] malformed = CreateExtendedWebpWithXmp(simple, Encoding.UTF8.GetBytes("<x:xmpmeta>"));
         Assert.True(OfficeImageReader.TryValidateContent(valid, "metadata.webp", out _));
         Assert.False(OfficeImageReader.TryValidateContent(malformed, "malformed-metadata.webp", out _));
+    }
+
+    [Fact]
+    public void CompleteContentValidationChecksRecognizableJpegXmpPackets() {
+        var image = new OfficeRasterImage(1, 1, OfficeColor.White);
+        byte[] valid = OfficeJpegCodec.Encode(image, new OfficeJpegEncodeOptions {
+            Metadata = new OfficeJpegMetadata(
+                xmp: Encoding.UTF8.GetBytes("<x:xmpmeta xmlns:x='adobe:ns:meta/'/>"))
+        });
+        byte[] malformed = OfficeJpegCodec.Encode(image, new OfficeJpegEncodeOptions {
+            Metadata = new OfficeJpegMetadata(xmp: Encoding.UTF8.GetBytes("<x:xmpmeta>"))
+        });
+        byte[] invalidUtf8 = OfficeJpegCodec.Encode(image, new OfficeJpegEncodeOptions {
+            Metadata = new OfficeJpegMetadata(xmp: new byte[] { 0xC3, 0x28 })
+        });
+
+        Assert.True(OfficeImageReader.TryValidateContent(valid, "metadata.jpg", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(malformed, "malformed-metadata.jpg", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(invalidUtf8, "invalid-utf8.jpg", out _));
+
+        int xmpOffset = FindAsciiSequence(valid, "http://ns.adobe.com/xap/1.0/\0");
+        int segmentOffset = xmpOffset - 4;
+        int segmentLength = valid[xmpOffset - 2] << 8 | valid[xmpOffset - 1];
+        byte[] duplicate = valid.Take(segmentOffset)
+            .Concat(valid.Skip(segmentOffset).Take(segmentLength + 2))
+            .Concat(valid.Skip(segmentOffset))
+            .ToArray();
+        Assert.False(OfficeImageReader.TryValidateContent(duplicate, "duplicate-xmp.jpg", out _));
     }
 
     [Fact]
@@ -209,6 +254,31 @@ public partial class DrawingTests {
         WriteInt32LittleEndian(dib, 20, xorBytes);
         WriteInt32LittleEndian(dib, 32, 1);
         dib[headerSize + paletteBytes] = packedPixel;
+        return dib;
+    }
+
+    private static byte[] CreateBitfieldIconDib(
+        int compression,
+        uint red,
+        uint green,
+        uint blue,
+        uint alpha) {
+        const int headerSize = 40;
+        int maskCount = compression == 6 ? 4 : 3;
+        const int xorBytes = 4;
+        const int andMaskBytes = 4;
+        var dib = new byte[headerSize + maskCount * 4 + xorBytes + andMaskBytes];
+        WriteInt32LittleEndian(dib, 0, headerSize);
+        WriteInt32LittleEndian(dib, 4, 1);
+        WriteInt32LittleEndian(dib, 8, 2);
+        WriteUInt16LittleEndian(dib, 12, 1);
+        WriteUInt16LittleEndian(dib, 14, 16);
+        WriteInt32LittleEndian(dib, 16, compression);
+        WriteInt32LittleEndian(dib, 20, xorBytes);
+        WriteInt32LittleEndian(dib, 40, unchecked((int)red));
+        WriteInt32LittleEndian(dib, 44, unchecked((int)green));
+        WriteInt32LittleEndian(dib, 48, unchecked((int)blue));
+        if (maskCount == 4) WriteInt32LittleEndian(dib, 52, unchecked((int)alpha));
         return dib;
     }
 

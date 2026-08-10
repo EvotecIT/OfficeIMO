@@ -289,6 +289,9 @@ public static class OfficeArtBlipStoreEntryReader {
                 storedData,
                 maximumDecodedImageBytes,
                 uncompressedSize == 0 ? null : unchecked((int)uncompressedSize));
+        } catch (OfficeDecompressionSizeLimitException) {
+            wasRejectedBySizeLimit = true;
+            return Array.Empty<byte>();
         } catch (Exception exception) when (exception is InvalidDataException
                                             || exception is IOException
                                             || exception is NotSupportedException

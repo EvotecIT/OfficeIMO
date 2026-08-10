@@ -1,14 +1,10 @@
 using System;
-using System.IO;
-using System.Text;
-using System.Xml;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeImageReader {
     private const int MaximumWebpExifBytes = 1024 * 1024;
-    private const int MaximumWebpXmpBytes = 1024 * 1024;
-    private static readonly UTF8Encoding StrictWebpUtf8 = new(false, true);
 
     private static bool TryReadWebp(byte[] data, out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
@@ -129,7 +125,7 @@ public static partial class OfficeImageReader {
                 exifLength = chunkSize;
             } else if (chunkType == "XMP ") {
                 if (!extended || seenXmp || (!hasImage && !hasAnimationFrame) ||
-                    !HasValidWebpXmp(data, chunkDataOffset, chunkSize)) return false;
+                    !OfficeXmpPacketValidator.TryValidate(data, chunkDataOffset, chunkSize)) return false;
                 seenXmp = true;
             }
 
@@ -167,31 +163,6 @@ public static partial class OfficeImageReader {
 
         info = new OfficeImageInfo(OfficeImageFormat.Webp, width, height, dpiX, dpiY);
         return width > 0 && height > 0;
-    }
-
-    private static bool HasValidWebpXmp(byte[] data, int offset, int length) {
-        if (length <= 0 || length > MaximumWebpXmpBytes) return false;
-        try {
-            string xml = StrictWebpUtf8.GetString(data, offset, length);
-            var settings = new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
-                XmlResolver = null,
-                MaxCharactersInDocument = MaximumWebpXmpBytes
-            };
-            using var input = new StringReader(xml);
-            using XmlReader reader = XmlReader.Create(input, settings);
-            bool foundXmpRoot = false;
-            while (reader.Read()) {
-                if (reader.NodeType != XmlNodeType.Element || reader.Depth != 0) continue;
-                foundXmpRoot =
-                    (reader.LocalName == "xmpmeta" && reader.NamespaceURI == "adobe:ns:meta/") ||
-                    (reader.LocalName == "RDF" && reader.NamespaceURI == "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
-                if (!foundXmpRoot) return false;
-            }
-            return foundXmpRoot;
-        } catch (Exception exception) when (exception is DecoderFallbackException || exception is XmlException) {
-            return false;
-        }
     }
 
     private static bool TryReadWebpAnimationFrame(

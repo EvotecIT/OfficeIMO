@@ -164,7 +164,8 @@ internal static class OfficePngContainerValidator {
                         seenGamma = true;
                         break;
                     case "cHRM":
-                        if (!seenHeader || seenPalette || seenImageData || seenChromaticities || length != 32) {
+                        if (!seenHeader || seenPalette || seenImageData || seenChromaticities || length != 32 ||
+                            !HasValidChromaticities(bytes, dataOffset)) {
                             failureReason = "PNG bytes contain an invalid or misplaced cHRM chunk.";
                             return false;
                         }
@@ -338,6 +339,23 @@ internal static class OfficePngContainerValidator {
                 break;
         }
         return day >= 1 && day <= daysInMonth;
+    }
+
+    private static bool HasValidChromaticities(byte[] bytes, int offset) {
+        var coordinates = new uint[8];
+        for (int index = 0; index < coordinates.Length; index++) {
+            uint value = ReadBigEndianUInt32(bytes, offset + index * 4);
+            if (value > int.MaxValue) return false;
+            coordinates[index] = value;
+        }
+
+        if (coordinates[1] == 0) return false;
+        for (int index = 0; index < coordinates.Length; index += 2) {
+            uint x = coordinates[index];
+            uint y = coordinates[index + 1];
+            if (x > 100000U || y > 100000U - x) return false;
+        }
+        return true;
     }
 
     private static bool HasValidBackground(

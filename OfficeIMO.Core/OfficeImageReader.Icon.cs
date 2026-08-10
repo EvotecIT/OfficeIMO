@@ -71,7 +71,9 @@ public static partial class OfficeImageReader {
             paletteEntries = bitsPerPixel <= 8 ? 1L << bitsPerPixel : 0L;
             pixelOffset = headerSize + paletteEntries * paletteEntrySize;
         } else {
-            if (!IsSupportedIconDibHeaderSize(headerSize) || headerSize > payload.Length) return false;
+            if (!OfficeDibHeaderLayout.IsSupportedWindowsInfoHeaderSize(headerSize) || headerSize > payload.Length) {
+                return false;
+            }
             width = ReadInt32LittleEndian(payload, 4);
             storedHeight = ReadInt32LittleEndian(payload, 8);
             planes = ReadUInt16LittleEndian(payload, 12);
@@ -95,6 +97,7 @@ public static partial class OfficeImageReader {
             ((compression == 3 || compression == 6) && bitsPerPixel != 16 && bitsPerPixel != 32)) {
             return false;
         }
+        if (!HasValidIconBitfieldMasks(payload, headerSize, compression, bitsPerPixel)) return false;
 
         height = storedHeight / 2;
         if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out _) ||
@@ -123,9 +126,38 @@ public static partial class OfficeImageReader {
                    (int)paletteEntries);
     }
 
-    private static bool IsSupportedIconDibHeaderSize(int headerSize) =>
-        headerSize == 40 || headerSize == 52 || headerSize == 56 ||
-        headerSize == 108 || headerSize == 124;
+    private static bool HasValidIconBitfieldMasks(
+        byte[] payload,
+        int headerSize,
+        int compression,
+        int bitsPerPixel) {
+        if (compression != 3 && compression != 6) return true;
+        if (compression == 6 && headerSize == 52) return false;
+
+        bool hasAlphaMask = compression == 6 || headerSize >= 56;
+        int maskCount = hasAlphaMask ? 4 : 3;
+        const int maskOffset = 40;
+        if (payload.Length < maskOffset + maskCount * 4) return false;
+
+        uint red = ReadUInt32LittleEndian(payload, maskOffset);
+        uint green = ReadUInt32LittleEndian(payload, maskOffset + 4);
+        uint blue = ReadUInt32LittleEndian(payload, maskOffset + 8);
+        uint alpha = hasAlphaMask ? ReadUInt32LittleEndian(payload, maskOffset + 12) : 0;
+        if (!IsValidIconBitfieldMask(red, bitsPerPixel) ||
+            !IsValidIconBitfieldMask(green, bitsPerPixel) ||
+            !IsValidIconBitfieldMask(blue, bitsPerPixel) ||
+            (compression == 6 || alpha != 0) && !IsValidIconBitfieldMask(alpha, bitsPerPixel)) {
+            return false;
+        }
+        return (red & green) == 0 && (red & blue) == 0 && (green & blue) == 0 &&
+               (alpha == 0 || ((alpha & red) == 0 && (alpha & green) == 0 && (alpha & blue) == 0));
+    }
+
+    private static bool IsValidIconBitfieldMask(uint mask, int bitsPerPixel) {
+        if (mask == 0 || bitsPerPixel < 32 && (mask >> bitsPerPixel) != 0) return false;
+        while ((mask & 1) == 0) mask >>= 1;
+        return (mask & (mask + 1)) == 0;
+    }
 
     private static bool HasValidIndexedIconPixels(
         byte[] payload,

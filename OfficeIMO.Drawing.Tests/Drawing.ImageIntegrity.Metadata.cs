@@ -33,15 +33,38 @@ public partial class DrawingTests {
     public void PngContainerRequiresOneCompleteChromaticitiesChunkBeforePaletteAndImageData() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] chromaticities = new byte[32];
+        int[] coordinates = { 31270, 32900, 64000, 33000, 30000, 60000, 15000, 6000 };
+        for (int index = 0; index < coordinates.Length; index++) {
+            WriteBigEndianInt32(chromaticities, index * 4, coordinates[index]);
+        }
         byte[] withChromaticities = InsertPngChunkBefore(png, "IDAT", "cHRM", chromaticities);
         byte[] duplicate = InsertPngChunkBefore(withChromaticities, "IDAT", "cHRM", chromaticities);
         byte[] misplaced = InsertPngChunkBefore(png, "IEND", "cHRM", chromaticities);
         byte[] wrongLength = InsertPngChunkBefore(png, "IDAT", "cHRM", new byte[31]);
+        byte[] outOfIntegerRange = (byte[])chromaticities.Clone();
+        WriteBigEndianInt32(outOfIntegerRange, 0, unchecked((int)0xFFFFFFFF));
+        byte[] impossiblePair = (byte[])chromaticities.Clone();
+        WriteBigEndianInt32(impossiblePair, 0, 80000);
+        WriteBigEndianInt32(impossiblePair, 4, 30000);
+        byte[] zeroWhiteY = (byte[])chromaticities.Clone();
+        WriteBigEndianInt32(zeroWhiteY, 4, 0);
 
         Assert.True(OfficeImageReader.TryValidateContent(withChromaticities, "chromaticities.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(duplicate, "duplicate-chromaticities.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(misplaced, "misplaced-chromaticities.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(wrongLength, "short-chromaticities.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "cHRM", outOfIntegerRange),
+            "large-chromaticities.png",
+            out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "cHRM", impossiblePair),
+            "impossible-chromaticities.png",
+            out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "cHRM", zeroWhiteY),
+            "zero-white-y.png",
+            out _));
     }
 
     [Fact]
