@@ -18,14 +18,33 @@ namespace OfficeIMO.Excel {
                 Stream packageDestination = positionReportingDestination ?? stream;
                 using var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true);
                 WritePackagePreamble(archive, model, stylePlan, includeSharedStrings: false);
-                return WriteDataReaderWorksheet(
+                DirectDataSetSheetModel sheet = model.Sheets[0];
+                int rowCount = WriteDataReaderWorksheet(
                     archive,
-                    model.Sheets[0],
+                    sheet,
                     reader,
                     model.DateTimeOffsetWriteStrategy,
                     model.DateSystem,
                     columnWritePlans[0],
                     ct);
+                if (sheet.HasTable) {
+                    string sheetIndexText = InvariantNumberText.Get(sheet.Index);
+                    WriteTextEntry(
+                        archive,
+                        "xl/worksheets/_rels/sheet" + sheetIndexText + ".xml.rels",
+                        "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+                        "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+                        "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/table\" Target=\"../tables/table" + sheetIndexText + ".xml\"/>" +
+                        "</Relationships>");
+                    string range = ExcelSheet.BuildObjectExportRange(
+                        1,
+                        sheet.Table.ColumnCount,
+                        rowCount,
+                        sheet.IncludeHeaders);
+                    WriteTable(archive, sheet, range);
+                }
+
+                return rowCount;
             }
 
             private static int WriteDataReaderWorksheet(
@@ -114,7 +133,12 @@ namespace OfficeIMO.Excel {
                     rowCount++;
                 }
 
-                writer.Write("</sheetData></worksheet>");
+                writer.Write("</sheetData>");
+                if (sheet.HasTable) {
+                    writer.Write("<tableParts count=\"1\"><tablePart r:id=\"rId1\"/></tableParts>");
+                }
+
+                writer.Write("</worksheet>");
                 return rowCount;
             }
 

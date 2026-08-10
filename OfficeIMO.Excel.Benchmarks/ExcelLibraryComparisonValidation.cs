@@ -121,6 +121,19 @@ internal static partial class ExcelLibraryComparisonRunner {
             var worksheetPart = (WorksheetPart)workbookPart.GetPartById(relationshipId);
             var worksheet = worksheetPart.Worksheet
                 ?? throw new InvalidOperationException($"{scenario} / {library} generated sheet '{sheetName}' without worksheet XML.");
+            if (IsDataReaderTableScenario(scenario)) {
+                foreach (var tablePart in worksheetPart.TableDefinitionParts) {
+                    var table = tablePart.Table
+                        ?? throw new InvalidOperationException($"{scenario} / {library} generated an empty table definition.");
+                    cells.Add(
+                        "TABLE:" + sheetName
+                        + "|NAME:" + (table.Name?.Value ?? string.Empty)
+                        + "|REF:" + (table.Reference?.Value ?? string.Empty)
+                        + "|AUTOFILTER:" + (table.AutoFilter?.Reference?.Value ?? string.Empty)
+                        + "|STYLE:" + (table.TableStyleInfo?.Name?.Value ?? string.Empty));
+                }
+            }
+
             var sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) {
                 continue;
@@ -163,6 +176,7 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static WorkbookFeatureSnapshot CreateFeatureSnapshot(WorkbookPart workbookPart) {
         int tables = 0;
+        int styledTables = 0;
         int autoFilters = 0;
         int frozenPanes = 0;
         int conditionalFormats = 0;
@@ -177,6 +191,8 @@ internal static partial class ExcelLibraryComparisonRunner {
             }
 
             tables += worksheetPart.TableDefinitionParts.Count();
+            styledTables += worksheetPart.TableDefinitionParts.Count(part =>
+                !string.IsNullOrWhiteSpace(part.Table?.TableStyleInfo?.Name?.Value));
             autoFilters += worksheet.Descendants<AutoFilter>().Count();
             autoFilters += worksheetPart.TableDefinitionParts.Count(part => part.Table?.AutoFilter != null);
             frozenPanes += worksheet.Descendants<Pane>().Count(static pane =>
@@ -191,6 +207,7 @@ internal static partial class ExcelLibraryComparisonRunner {
 
         return new WorkbookFeatureSnapshot(
             tables,
+            styledTables,
             autoFilters,
             frozenPanes,
             conditionalFormats,
@@ -227,11 +244,14 @@ internal static partial class ExcelLibraryComparisonRunner {
             RealWorldDataValidationScenario => new(DataValidations: true),
             RealWorldChartsScenario => new(Charts: true),
             RealWorldPivotTableScenario => new(PivotTables: true),
+            "write-datareader-table" => new(Tables: true, StyledTables: true, AutoFilters: true),
+            "write-datareader-table-autofit" => new(Tables: true, StyledTables: true, AutoFilters: true, CustomWidthColumns: true),
             _ => default
         };
 
         var missing = new List<string>();
         AddMissingFeature(missing, requirement.Tables, features.Tables, "table");
+        AddMissingFeature(missing, requirement.StyledTables, features.StyledTables, "table style");
         AddMissingFeature(missing, requirement.AutoFilters, features.AutoFilters, "AutoFilter");
         AddMissingFeature(missing, requirement.FrozenPanes, features.FrozenPanes, "frozen pane");
         AddMissingFeature(missing, requirement.ConditionalFormats, features.ConditionalFormats, "conditional formatting");
@@ -253,6 +273,10 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static bool IsSparseNullScenario(string scenario)
         => scenario.Contains("sparse", StringComparison.Ordinal);
+
+    private static bool IsDataReaderTableScenario(string scenario)
+        => string.Equals(scenario, "write-datareader-table", StringComparison.Ordinal)
+           || string.Equals(scenario, "write-datareader-table-autofit", StringComparison.Ordinal);
 
     private static bool IsFeatureWorkbookScenario(string scenario)
         => scenario.StartsWith("report-", StringComparison.Ordinal)
@@ -344,6 +368,7 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private readonly record struct WorkbookFeatureSnapshot(
         int Tables,
+        int StyledTables,
         int AutoFilters,
         int FrozenPanes,
         int ConditionalFormats,
@@ -354,6 +379,7 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private readonly record struct WorkbookFeatureRequirement(
         bool Tables = false,
+        bool StyledTables = false,
         bool AutoFilters = false,
         bool FrozenPanes = false,
         bool ConditionalFormats = false,

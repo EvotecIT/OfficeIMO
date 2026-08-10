@@ -216,17 +216,15 @@ internal static partial class ExcelLibraryComparisonRunner {
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-table", warmupIterations, measuredIterations, [
-            new LibraryComparisonCase("OfficeIMO.Excel", "Stream a DataTable-backed IDataReader as a styled table through the normal worksheet API and save.", () => OfficeImoWriteDataReaderTable(salesDataTable)),
+            new LibraryComparisonCase("OfficeIMO.Excel", "Stream a DataTable-backed IDataReader as a styled table through the package-native API and save.", () => OfficeImoWriteDataReaderTable(salesDataTable)),
             new LibraryComparisonCase("ClosedXML", "Import the same prepared data as a styled worksheet table and save.", () => ClosedXmlWriteDataTable(salesDataTable, includeTable: true)),
-            new LibraryComparisonCase("EPPlus", "Import the same prepared data as a styled worksheet table and save.", () => EpPlusWriteDataTable(salesDataTable, includeTable: true)),
-            new LibraryComparisonCase("MiniExcel", "Stream the same DataTable-backed IDataReader and save.", () => MiniExcelWriteDataReaderTable(salesDataTable))
+            new LibraryComparisonCase("EPPlus", "Import the same prepared data as a styled worksheet table and save.", () => EpPlusWriteDataTable(salesDataTable, includeTable: true))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-table-autofit", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Stream a DataTable-backed IDataReader as a styled table, AutoFit, and save.", () => OfficeImoWriteDataReaderTable(salesDataTable, autoFit: true)),
             new LibraryComparisonCase("ClosedXML", "Import the same prepared data as a styled worksheet table, adjust columns, and save.", () => ClosedXmlWriteDataTable(salesDataTable, includeTable: true, autoFit: true)),
-            new LibraryComparisonCase("EPPlus", "Import the same prepared data as a styled worksheet table, autofit columns, and save.", () => EpPlusWriteDataTable(salesDataTable, includeTable: true, autoFit: true)),
-            new LibraryComparisonCase("MiniExcel", "Stream the same DataTable-backed IDataReader with table styling and auto-width configuration.", () => MiniExcelWriteDataReaderTable(salesDataTable, autoFit: true))
+            new LibraryComparisonCase("EPPlus", "Import the same prepared data as a styled worksheet table, autofit columns, and save.", () => EpPlusWriteDataTable(salesDataTable, includeTable: true, autoFit: true))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-plain", warmupIterations, measuredIterations, [
@@ -810,17 +808,15 @@ internal static partial class ExcelLibraryComparisonRunner {
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-datareader-table", warmupIterations, measuredIterations, [
-            new PackageProfileCase("OfficeIMO.Excel", "Stream a DataTable-backed IDataReader as a styled table through the normal worksheet API and save.", () => OfficeImoWriteDataReaderTableBytes(salesDataTable)),
+            new PackageProfileCase("OfficeIMO.Excel", "Stream a DataTable-backed IDataReader as a styled table through the package-native API and save.", () => OfficeImoWriteDataReaderTableBytes(salesDataTable)),
             new PackageProfileCase("ClosedXML", "Import the same prepared data as a styled worksheet table and save.", () => ClosedXmlWriteDataTableBytes(salesDataTable, includeTable: true)),
-            new PackageProfileCase("EPPlus", "Import the same prepared data as a styled worksheet table and save.", () => EpPlusWriteDataTableBytes(salesDataTable, includeTable: true)),
-            new PackageProfileCase("MiniExcel", "Stream the same DataTable-backed IDataReader and save.", () => MiniExcelWriteDataReaderTableBytes(salesDataTable))
+            new PackageProfileCase("EPPlus", "Import the same prepared data as a styled worksheet table and save.", () => EpPlusWriteDataTableBytes(salesDataTable, includeTable: true))
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-datareader-table-autofit", warmupIterations, measuredIterations, [
             new PackageProfileCase("OfficeIMO.Excel", "Stream a DataTable-backed IDataReader as a styled table, AutoFit, and save.", () => OfficeImoWriteDataReaderTableBytes(salesDataTable, autoFit: true)),
             new PackageProfileCase("ClosedXML", "Import the same prepared data as a styled worksheet table, adjust columns, and save.", () => ClosedXmlWriteDataTableBytes(salesDataTable, includeTable: true, autoFit: true)),
-            new PackageProfileCase("EPPlus", "Import the same prepared data as a styled worksheet table, autofit columns, and save.", () => EpPlusWriteDataTableBytes(salesDataTable, includeTable: true, autoFit: true)),
-            new PackageProfileCase("MiniExcel", "Stream the same DataTable-backed IDataReader with table styling and auto-width configuration.", () => MiniExcelWriteDataReaderTableBytes(salesDataTable, autoFit: true))
+            new PackageProfileCase("EPPlus", "Import the same prepared data as a styled worksheet table, autofit columns, and save.", () => EpPlusWriteDataTableBytes(salesDataTable, includeTable: true, autoFit: true))
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-datareader-plain", warmupIterations, measuredIterations, [
@@ -1715,6 +1711,22 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteDataReaderTableBytes(DataTable dataTable, bool autoFit = false) {
         using var stream = new MemoryStream();
+        if (!autoFit) {
+            using var reader = dataTable.CreateDataReader();
+            ExcelDocument.WriteDataReader(
+                stream,
+                reader,
+                new ExcelTabularWriteOptions {
+                    SheetName = "Data",
+                    CreateTable = true,
+                    TableName = "SalesData",
+                    TableStyle = ExcelTableStyle.TableStyleMedium2,
+                    IncludeCellReferences = false,
+                    UseSharedStrings = false
+                });
+            return stream.ToArray();
+        }
+
         using (var document = ExcelDocument.Create(stream))
         using (var reader = dataTable.CreateDataReader()) {
             var sheet = document.AddWorksheet("Data");
@@ -2212,13 +2224,6 @@ internal static partial class ExcelLibraryComparisonRunner {
             excelType: MiniExcelLibs.ExcelType.XLSX,
             configuration: CreateMiniExcelConfiguration(includeTable: includeTable));
         return stream.ToArray();
-    }
-
-    private static int MiniExcelWriteDataReaderTable(DataTable dataTable, bool autoFit = false)
-        => ByteCount(MiniExcelWriteDataReaderTableBytes(dataTable, autoFit));
-
-    private static byte[] MiniExcelWriteDataReaderTableBytes(DataTable dataTable, bool autoFit = false) {
-        return MiniExcelWriteDataReaderBytes(dataTable, includeTable: true, autoFit: autoFit);
     }
 
     private static int MiniExcelWriteDataReaderPlain(DataTable dataTable)

@@ -18,6 +18,7 @@ Reader benchmark code lives in `OfficeIMO.Reader.Benchmarks`.
 - `officeimo.excel.library-comparison.json`: local opt-in comparison across matching library surfaces.
 - `officeimo.excel.npoi-comparison-current.json`: the current checked opt-in NPOI verification artifact for equivalent `.xlsx` row/cell writes and `.xls` read lanes, including scalar values, formulas, metadata, conditional formatting, AutoFilter range, style signals, and embedded pictures. The runner also supports XLS write comparisons through the paired command below. NPOI stays outside normal solution restore/build.
 - `officeimo.excel.npoi-verification-notes.md`: benchmark-only scope notes for the opt-in NPOI runner.
+- `officeimo.excel.datareader-table-2026-08-10.md`: dual-CPU evidence for package-native streaming `IDataReader` table writes, including the equivalent-contract validation policy.
 - `comparison-current\officeimo.excel.comparison-suite-manifest.json`: release-style suite manifest.
 - `comparison-current\officeimo.excel.comparison-summary.md|csv|json`: one-table decision summary with speed, allocation, and package-size ratios.
 - `readme-current\officeimo.csv.comparison.json|officeimo.excel.comparison.json`: compact, PSPublishModule-compatible selections that generate the benchmark README tables.

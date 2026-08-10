@@ -32,10 +32,13 @@ try {
                 dataReaderPackage,
                 dataReader,
                 new ExcelTabularWriteOptions {
+                    CreateTable = true,
+                    TableName = "AotDataReader",
                     IncludeCellReferences = false,
                     UseSharedStrings = false
                 });
-            if (dataReaderResult.Range != "A1:D3" || dataReaderResult.RowCount != 2) {
+            if (dataReaderResult.Range != "A1:D3" || dataReaderResult.RowCount != 2 ||
+                dataReaderResult.TableName != "AotDataReader") {
                 throw new InvalidOperationException("The AOT-safe DataReader writer returned an unexpected range.");
             }
 
