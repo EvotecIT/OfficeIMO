@@ -14,7 +14,7 @@ public sealed partial class PdfReadPage {
         }
 
         if (primitive.ClipPath.HasValue) {
-            shapeClip = PdfPageClipPath.ResolveActiveClip(shapeClip, primitive.ClipPath.Value);
+            shapeClip = PdfPageClipPath.ResolveActiveClip(primitive.ClipPath.Value, shapeClip);
         }
         if (!TryFitClipToDrawing(shapeClip, drawing.Width, drawing.Height, out PdfPageClipPath fitted)) return;
         OfficeClipPath? clip = fitted.ToOfficeClipPath(fitted.X, fitted.Y);
@@ -52,7 +52,7 @@ public sealed partial class PdfReadPage {
 
         PdfPageClipPath strokeBounds = PdfPageClipPath.Rectangle(left, top, width, height);
         if (primitive.ClipPath.HasValue) {
-            strokeBounds = PdfPageClipPath.ResolveActiveClip(strokeBounds, primitive.ClipPath.Value);
+            strokeBounds = PdfPageClipPath.ResolveActiveClip(primitive.ClipPath.Value, strokeBounds);
         }
         if (!TryFitClipToDrawing(strokeBounds, drawing.Width, drawing.Height, out PdfPageClipPath fitted)) return;
 

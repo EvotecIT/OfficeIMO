@@ -514,6 +514,7 @@ public sealed partial class PdfReadPage {
                          initialFillPatternBaseColorSpace: initialFillPatternBaseColorSpace,
                          initialStrokePattern: initialStrokePattern,
                          initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
+                         initialClipPath: initialClipPath,
                          tilingPatterns: tilingPatterns,
                 shadingPatterns: shadingPatterns)) {
                 if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
@@ -532,17 +533,34 @@ public sealed partial class PdfReadPage {
                     supported = false;
                     continue;
                 }
-                if (form.Dictionary.Items.ContainsKey("Group") &&
-                    !IsSupportedType3TransparencyGroup(form.Dictionary)) {
-                    supported = false;
-                    continue;
+                Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, form.Dictionary);
+                PdfPageClipPath? formClipPath = invocation.ClipPath;
+                if (form.Dictionary.Items.ContainsKey("Group")) {
+                    if (!IsSupportedType3TransparencyGroup(form.Dictionary)) {
+                        supported = false;
+                        continue;
+                    }
+                    (double Width, double Height) visualPageSize = GetVisualPageSize();
+                    Type3TransparencyGroupDrawingResult boundsResult = TryGetVisibleType3TransparencyGroupBounds(
+                        form.Dictionary,
+                        formTransform,
+                        invocation.ClipPath,
+                        visualPageSize.Width,
+                        visualPageSize.Height,
+                        out PdfPageClipPath groupBounds);
+                    if (boundsResult == Type3TransparencyGroupDrawingResult.Invisible) continue;
+                    if (boundsResult == Type3TransparencyGroupDrawingResult.Unsupported) {
+                        supported = false;
+                        continue;
+                    }
+                    formClipPath = groupBounds;
                 }
                 PdfDictionary formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? value) ? value : null) ?? resources;
                 if (!CanProjectType3GlyphProgram(
                         form,
                         formResources,
-                        ApplyFormMatrix(invocation.Transform, form.Dictionary),
-                        invocation.ClipPath,
+                        formTransform,
+                        formClipPath,
                         requireImageMask,
                         invocation.FillPattern,
                         invocation.FillPatternBaseColorSpace,
@@ -609,6 +627,13 @@ public sealed partial class PdfReadPage {
                 invocation.FillColor,
                 invocation.FillOpacity,
                 paintOrder: invocation.PaintOrder);
+        }
+
+        if (requireImageMask) {
+            (double Width, double Height) visualPageSize = GetVisualPageSize();
+            if (IsInvisibleImagePlacement(placement, visualPageSize.Height, visualPageSize.Width, visualPageSize.Height)) {
+                return true;
+            }
         }
 
         IReadOnlyList<PdfExtractedImage> images;
