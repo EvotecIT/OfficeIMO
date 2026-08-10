@@ -216,7 +216,10 @@ public sealed partial class PdfReadPage {
                             out OfficeRadialGradient? strokeRadialGradient);
                         if (item.Primitive.HasStrokePaint &&
                             glyph.StrokePattern?.ShadingPattern.HasValue == true &&
-                            item.Primitive.StrokeDashStyle != OfficeStrokeDashStyle.Solid) {
+                            (item.Primitive.StrokeDashStyle != OfficeStrokeDashStyle.Solid ||
+                             !PdfPageContentVisualParser.IsSupportedShadingStrokeTransform(
+                                 glyph.StrokePattern.Value.ShadingPattern.Value,
+                                 glyph.StrokePattern.Value.PaintTransform))) {
                             return false;
                         }
                         localPrimitives[primitiveIndex] = (

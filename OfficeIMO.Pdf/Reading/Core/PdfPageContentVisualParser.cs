@@ -96,6 +96,22 @@ internal static class PdfPageContentVisualParser {
         return IsRepresentableRadialShadingTransform(Matrix2D.Multiply(paintTransform, pattern.Matrix));
     }
 
+    internal static bool IsSupportedShadingStrokeTransform(PdfPageShadingPatternResource pattern, Matrix2D paintTransform) {
+        if (!pattern.IsSupported) return false;
+        if (!pattern.Shading.IsRadial) return true;
+        if (!IsSupportedShadingTransform(pattern, paintTransform)) return false;
+        Matrix2D transform = Matrix2D.Multiply(paintTransform, pattern.Matrix);
+        double firstLengthSquared = (transform.A * transform.A) + (transform.B * transform.B);
+        double secondLengthSquared = (transform.C * transform.C) + (transform.D * transform.D);
+        double scale = Math.Max(firstLengthSquared, secondLengthSquared);
+        double dot = (transform.A * transform.C) + (transform.B * transform.D);
+        double orthogonalityTolerance = Math.Sqrt(firstLengthSquared * secondLengthSquared) * 0.000000001D;
+        return firstLengthSquared > 0D &&
+               secondLengthSquared > 0D &&
+               Math.Abs(firstLengthSquared - secondLengthSquared) <= scale * 0.000000001D &&
+               Math.Abs(dot) <= orthogonalityTolerance;
+    }
+
     private static bool IsRepresentableRadialShadingTransform(Matrix2D transform) {
         double firstLengthSquared = (transform.A * transform.A) + (transform.B * transform.B);
         double secondLengthSquared = (transform.C * transform.C) + (transform.D * transform.D);
@@ -645,7 +661,7 @@ internal static class PdfPageContentVisualParser {
 
                 if (stroke && _state.StrokePattern.HasValue) {
                     CreateShadingGradients(_state.StrokePattern.Value, x, y, width, height, out strokeGradient, out strokeRadialGradient);
-                    RejectUnsupportedDashedShadingStroke(ref strokeGradient, ref strokeRadialGradient);
+                    RejectUnsupportedShadingStroke(ref strokeGradient, ref strokeRadialGradient);
                 }
 
                 AddPrimitive(PdfPageVisualPrimitive.Rectangle(
@@ -686,7 +702,7 @@ internal static class PdfPageContentVisualParser {
                     _state.StrokePattern.HasValue &&
                     TryGetPathBounds(out double strokePathX, out double strokePathY, out double strokePathWidth, out double strokePathHeight)) {
                     CreateShadingGradients(_state.StrokePattern.Value, strokePathX, strokePathY, strokePathWidth, strokePathHeight, out strokeGradient, out strokeRadialGradient);
-                    RejectUnsupportedDashedShadingStroke(ref strokeGradient, ref strokeRadialGradient);
+                    RejectUnsupportedShadingStroke(ref strokeGradient, ref strokeRadialGradient);
                 }
 
                 IReadOnlyList<OfficePathCommand> pathCommands = fill && _retainPrimitiveData
@@ -1152,7 +1168,7 @@ internal static class PdfPageContentVisualParser {
                 double lineWidth = Math.Abs(x2 - x1);
                 double lineHeight = Math.Abs(y2 - y1);
                 CreateShadingGradients(_state.StrokePattern.Value, lineX, lineY, lineWidth, lineHeight, out strokeGradient, out strokeRadialGradient);
-                RejectUnsupportedDashedShadingStroke(ref strokeGradient, ref strokeRadialGradient);
+                RejectUnsupportedShadingStroke(ref strokeGradient, ref strokeRadialGradient);
             }
 
             AddPrimitive(PdfPageVisualPrimitive.Line(
@@ -1173,11 +1189,15 @@ internal static class PdfPageContentVisualParser {
                 _state.StrokeWidth > 0D ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _state.StrokeOpacity) : null));
         }
 
-        private void RejectUnsupportedDashedShadingStroke(
+        private void RejectUnsupportedShadingStroke(
             ref OfficeLinearGradient? strokeGradient,
             ref OfficeRadialGradient? strokeRadialGradient) {
-            if (_state.StrokeDashStyle == OfficeStrokeDashStyle.Solid ||
-                (strokeGradient == null && strokeRadialGradient == null)) return;
+            if (strokeGradient == null && strokeRadialGradient == null) return;
+            bool unsupportedDash = _state.StrokeDashStyle != OfficeStrokeDashStyle.Solid;
+            bool unsupportedRadialTransform = _state.StrokePattern.HasValue &&
+                _state.StrokePattern.Value.Shading.IsRadial &&
+                !IsSupportedShadingStrokeTransform(_state.StrokePattern.Value, _state.Transform);
+            if (!unsupportedDash && !unsupportedRadialTransform) return;
             strokeGradient = null;
             strokeRadialGradient = null;
             _unsupportedShadingTransformVisitor?.Invoke();
