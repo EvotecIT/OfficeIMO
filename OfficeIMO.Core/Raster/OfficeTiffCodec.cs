@@ -131,7 +131,15 @@ public static partial class OfficeTiffCodec {
                     int tag = ReadUInt16(encodedBytes, entryOffset, littleEndian);
                     int type = ReadUInt16(encodedBytes, entryOffset + 2, littleEndian);
                     uint count = ReadUInt32(encodedBytes, entryOffset + 4, littleEndian);
-                    if (count == 0 || count > int.MaxValue || entries.ContainsKey(tag)) return false;
+                    if (count == 0 || count > int.MaxValue || entries.ContainsKey(tag) ||
+                        !HasValidEntryValueRange(
+                            encodedBytes,
+                            type,
+                            (int)count,
+                            entryOffset + 8,
+                            littleEndian)) {
+                        return false;
+                    }
                     entries.Add(tag, new TiffEntry(type, (int)count, entryOffset + 8));
                 }
 
@@ -528,6 +536,45 @@ public static partial class OfficeTiffCodec {
         uint value = ReadUInt32(data, offset, littleEndian);
         if (value > int.MaxValue) throw new FormatException("TIFF offset exceeds supported integer bounds.");
         return (int)value;
+    }
+
+    private static bool HasValidEntryValueRange(
+        byte[] data,
+        int type,
+        int count,
+        int valueFieldOffset,
+        bool littleEndian) {
+        int itemSize;
+        switch (type) {
+            case 1:  // BYTE
+            case 2:  // ASCII
+            case 6:  // SBYTE
+            case 7:  // UNDEFINED
+                itemSize = 1;
+                break;
+            case 3:  // SHORT
+            case 8:  // SSHORT
+                itemSize = 2;
+                break;
+            case 4:  // LONG
+            case 9:  // SLONG
+            case 11: // FLOAT
+                itemSize = 4;
+                break;
+            case 5:  // RATIONAL
+            case 10: // SRATIONAL
+            case 12: // DOUBLE
+                itemSize = 8;
+                break;
+            default:
+                return false;
+        }
+
+        long byteCount = (long)count * itemSize;
+        if (byteCount <= 4) return HasBytes(data, valueFieldOffset, 4);
+        if (byteCount > int.MaxValue) return false;
+        int valueOffset = ReadOffset(data, valueFieldOffset, littleEndian);
+        return HasBytes(data, valueOffset, (int)byteCount);
     }
 
     private static int ReadUInt16(byte[] data, int offset, bool littleEndian) {

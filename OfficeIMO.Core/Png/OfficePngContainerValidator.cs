@@ -1,5 +1,7 @@
 using System;
+using System.IO;
 using System.Text;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
 
@@ -25,6 +27,7 @@ internal static class OfficePngContainerValidator {
             bool seenTransparency = false;
             bool seenPhysicalDimensions = false;
             bool seenStandardRgb = false;
+            bool seenIccProfile = false;
             int bitDepth = 0;
             int colorType = 0;
             int paletteEntries = 0;
@@ -124,12 +127,20 @@ internal static class OfficePngContainerValidator {
                         seenPhysicalDimensions = true;
                         break;
                     case "sRGB":
-                        if (!seenHeader || seenPalette || seenImageData || seenStandardRgb || length != 1 ||
+                        if (!seenHeader || seenPalette || seenImageData || seenStandardRgb || seenIccProfile || length != 1 ||
                             bytes[dataOffset] > 3) {
                             failureReason = "PNG bytes contain an invalid or misplaced sRGB chunk.";
                             return false;
                         }
                         seenStandardRgb = true;
+                        break;
+                    case "iCCP":
+                        if (!seenHeader || seenPalette || seenImageData || seenIccProfile || seenStandardRgb ||
+                            !HasValidIccProfile(bytes, dataOffset, length)) {
+                            failureReason = "PNG bytes contain an invalid or misplaced iCCP chunk.";
+                            return false;
+                        }
+                        seenIccProfile = true;
                         break;
                     case "IDAT":
                         if (!seenHeader || imageDataEnded || (colorType == 3 && !seenPalette)) {
@@ -181,6 +192,46 @@ internal static class OfficePngContainerValidator {
         }
         return true;
     }
+
+    private static bool HasValidIccProfile(byte[] bytes, int offset, int length) {
+        if (length < 9) return false;
+        int nameLength = 0;
+        while (nameLength < length && nameLength < 80 && bytes[offset + nameLength] != 0) {
+            byte value = bytes[offset + nameLength];
+            if (!IsValidKeywordByte(value) ||
+                (value == (byte)' ' && (nameLength == 0 || bytes[offset + nameLength - 1] == (byte)' '))) {
+                return false;
+            }
+            nameLength++;
+        }
+        if (nameLength < 1 || nameLength > 79 || nameLength >= length ||
+            bytes[offset + nameLength - 1] == (byte)' ') {
+            return false;
+        }
+
+        int compressionMethodOffset = offset + nameLength + 1;
+        if (compressionMethodOffset >= offset + length || bytes[compressionMethodOffset] != 0) return false;
+        int compressedOffset = compressionMethodOffset + 1;
+        int compressedLength = offset + length - compressedOffset;
+        if (compressedLength < 6) return false;
+        var compressed = new byte[compressedLength];
+        Buffer.BlockCopy(bytes, compressedOffset, compressed, 0, compressedLength);
+        try {
+            return OfficeZlibCodec.Decompress(
+                compressed,
+                OfficeRasterGuards.MaximumEncodedBytes).Length > 0;
+        } catch (Exception exception) when (
+            exception is ArgumentException ||
+            exception is FormatException ||
+            exception is InvalidDataException ||
+            exception is NotSupportedException ||
+            exception is OverflowException) {
+            return false;
+        }
+    }
+
+    private static bool IsValidKeywordByte(byte value) =>
+        value >= 32 && value <= 126 || value >= 161;
 
     private static bool IsValidColorLayout(int colorType, int bitDepth) {
         switch (colorType) {
