@@ -234,6 +234,98 @@ public class PdfAcroFormAuthoringTests {
         Assert.Equal(script, action.JavaScript);
     }
 
+    [Fact]
+    public void Create_AccountsForExistingWidgetJavaScriptInAggregateLimits() {
+        const string existingScript = "app.alert('existing');";
+        const string newScript = "app.alert('new');";
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Existing widget action budget")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "existing",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            X = 72,
+            Y = 600,
+            Width = 100,
+            Height = 24,
+            JavaScript = existingScript
+        })).ToBytes();
+
+        var countOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScripts = 1 } };
+        PdfReadLimitException countException = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Open(authored, countOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+                Name = "new",
+                Kind = PdfFormFieldCreationKind.PushButton,
+                JavaScript = newScript
+            })));
+        Assert.Equal(PdfReadLimitKind.JavaScripts, countException.Kind);
+        Assert.Equal(2, countException.Actual);
+
+        long existingBytes = PdfJavaScriptStringEncoding.EncodeUnicode(existingScript, nameof(existingScript)).LongLength;
+        long newBytes = PdfJavaScriptStringEncoding.EncodeUnicode(newScript, nameof(newScript)).LongLength;
+        var byteOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits {
+                MaxJavaScripts = 2,
+                MaxTotalJavaScriptBytes = existingBytes + newBytes - 1L
+            }
+        };
+        PdfReadLimitException byteException = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Open(authored, byteOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+                Name = "new",
+                Kind = PdfFormFieldCreationKind.PushButton,
+                JavaScript = newScript
+            })));
+        Assert.Equal(PdfReadLimitKind.JavaScriptBytes, byteException.Kind);
+        Assert.Equal(existingBytes + newBytes, byteException.Actual);
+    }
+
+    [Fact]
+    public void ChoiceCreation_PreservesEmptyOptionsAndHonorsLegacyRawFlags() {
+        const int comboFlag = 131072;
+        const int editFlag = 262144;
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Choice compatibility")).ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "empty",
+                Kind = PdfFormFieldCreationKind.Choice,
+                X = 72,
+                Y = 600,
+                Width = 140,
+                Height = 24
+            })
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "legacyCombo",
+                Kind = PdfFormFieldCreationKind.Choice,
+                X = 72,
+                Y = 560,
+                Width = 140,
+                Height = 24,
+                FieldFlags = comboFlag,
+                ChoiceOptions = new[] { "One", "Two" },
+                Value = "Two"
+            })
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "legacyEditableCombo",
+                Kind = PdfFormFieldCreationKind.Choice,
+                X = 72,
+                Y = 520,
+                Width = 140,
+                Height = 24,
+                FieldFlags = comboFlag | editFlag,
+                ChoiceOptions = new[] { "One", "Two" },
+                Value = "Custom"
+            }));
+
+        PdfFormField empty = result.Fields.Single(static field => field.Name == "empty");
+        Assert.Empty(empty.Options);
+        Assert.Equal(string.Empty, empty.Value);
+        Assert.False(empty.IsCombo);
+        Assert.True(result.Fields.Single(static field => field.Name == "legacyCombo").IsCombo);
+        PdfFormField editable = result.Fields.Single(static field => field.Name == "legacyEditableCombo");
+        Assert.True(editable.IsCombo);
+        Assert.True(editable.IsEditableChoice);
+        Assert.Equal("Custom", editable.Value);
+    }
+
     private static byte[] BuildWidgetJavaScriptStreamPdf(string source) {
         byte[] script = PdfJavaScriptStringEncoding.EncodeUnicode(source, nameof(source));
         using var output = new MemoryStream();

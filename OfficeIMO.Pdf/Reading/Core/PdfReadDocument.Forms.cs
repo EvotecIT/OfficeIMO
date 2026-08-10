@@ -1,7 +1,9 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
-    private IReadOnlyList<PdfFormField> ExtractFormFields() {
+    private IReadOnlyList<PdfFormField> ExtractFormFields(out int javaScriptCount, out long javaScriptBytes) {
+        javaScriptCount = 0;
+        javaScriptBytes = 0L;
         PdfDictionary? acroForm = GetAcroFormDictionary();
         if (acroForm is null ||
             !acroForm.Items.TryGetValue("Fields", out var fieldsObject) ||
@@ -21,6 +23,9 @@ public sealed partial class PdfReadDocument {
         for (int i = 0; i < fields.Items.Count; i++) {
             ReadFormField(fields.Items[i], null, inherited, result, visited, widgetPageNumbers, actionBudget, depth: 1);
         }
+
+        javaScriptCount = actionBudget.Count;
+        javaScriptBytes = actionBudget.TotalBytes;
 
         return result.Count == 0 ? Array.Empty<PdfFormField>() : result.AsReadOnly();
     }

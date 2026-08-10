@@ -9,7 +9,7 @@ internal static partial class PdfAcroFormEditor {
         PdfReadDocument source = PdfReadDocument.Open(pdf, readOptions);
         if (source.AcroFormXfa is not null) throw new NotSupportedException("Transactional AcroForm editing does not modify XFA packets. Remove or convert XFA before editing the AcroForm field tree.");
 
-        var session = new PdfAcroFormEditSession(source.ReadOptions.Limits);
+        var session = new PdfAcroFormEditSession(source.ReadOptions.Limits, source.FormWidgetJavaScriptCount, source.FormWidgetJavaScriptBytes);
         edit(session);
         if (session.Commands.Count == 0) throw new ArgumentException("At least one AcroForm edit command is required.", nameof(edit));
         string[] fieldNames = session.Commands.SelectMany(GetCommandFieldNames).Distinct(StringComparer.Ordinal).ToArray();
@@ -27,11 +27,13 @@ internal static partial class PdfAcroFormEditor {
         if (refillValues.Count > 0) output = PdfFormFiller.FillFieldsWithinPlannedRewrite(output, ToFieldValues(refillValues));
         if (flattenNames.Count > 0) output = PdfFormFiller.FlattenFieldsWithinPlannedRewrite(output, flattenNames);
 
-        PdfDocumentInfo saved = PdfInspector.Inspect(output);
+        PdfReadOptions savedReadOptions = PdfReadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
+        PdfDocumentInfo saved = PdfInspector.Inspect(output, savedReadOptions);
         IReadOnlyList<string> calculationOrder = ReadCalculationOrder(output);
         ValidateReadback(saved, calculationOrder, session.Commands);
         var preservationOptions = new PdfRewritePreservationOptions {
-            OriginalReadOptions = readOptions,
+            OriginalReadOptions = source.ReadOptions,
+            RewrittenReadOptions = savedReadOptions,
             PreserveForms = false,
             PreserveAnnotations = false,
             PreserveRevisionStructure = false,

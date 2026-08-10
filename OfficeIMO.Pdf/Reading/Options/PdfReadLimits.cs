@@ -77,13 +77,13 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum nested PDF name-tree depth. Default: 128.</summary>
     public int MaxNameTreeDepth { get; init; } = DefaultMaxNameTreeDepth;
 
-    /// <summary>Maximum decoded source bytes retained for one document-level JavaScript action. Default: 4,000,000.</summary>
+    /// <summary>Maximum decoded source bytes retained for one named or widget JavaScript action. Default: 4,000,000.</summary>
     public int MaxJavaScriptBytes { get; init; } = DefaultMaxJavaScriptBytes;
 
-    /// <summary>Maximum named document-level JavaScript entries discovered in one PDF. Default: 10,000.</summary>
+    /// <summary>Maximum JavaScript entries discovered in one PDF action surface. Default: 10,000.</summary>
     public int MaxJavaScripts { get; init; } = DefaultMaxJavaScripts;
 
-    /// <summary>Maximum aggregate decoded source bytes retained for document-level JavaScript. Default: 32 MiB.</summary>
+    /// <summary>Maximum aggregate decoded source bytes retained for one PDF JavaScript action surface. Default: 32 MiB.</summary>
     public long MaxTotalJavaScriptBytes { get; init; } = DefaultMaxTotalJavaScriptBytes;
 
     /// <summary>Maximum attachment records discovered across name trees, associated files, and annotations. Default: 100,000.</summary>

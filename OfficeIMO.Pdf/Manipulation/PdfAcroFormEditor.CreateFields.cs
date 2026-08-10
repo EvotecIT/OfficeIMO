@@ -210,11 +210,19 @@ internal static partial class PdfAcroFormEditor {
     }
 
     private static string ResolveInitialValue(PdfFormFieldCreateOptions options) {
-        if ((options.Kind == PdfFormFieldCreationKind.Choice || options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) && string.IsNullOrEmpty(options.Value)) {
+        if ((options.Kind == PdfFormFieldCreationKind.RadioButtonGroup ||
+             options.Kind == PdfFormFieldCreationKind.Choice && options.ChoiceOptions.Count > 0) &&
+            string.IsNullOrEmpty(options.Value)) {
             return options.ChoiceOptions[0];
         }
         return options.Value;
     }
+
+    private static bool IsChoiceComboBox(PdfFormFieldCreateOptions options) =>
+        options.IsComboBox || (options.FieldFlags & FieldFlagCombo) != 0;
+
+    private static bool IsEditableChoice(PdfFormFieldCreateOptions options) =>
+        options.Style?.IsEditableChoice == true || (options.FieldFlags & FieldFlagEdit) != 0;
 
     private static PdfArray CreateColorArray(PdfColor color) => CreateNumberArray(color.R, color.G, color.B);
 

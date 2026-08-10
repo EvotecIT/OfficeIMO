@@ -7,8 +7,12 @@ public sealed class PdfAcroFormEditSession {
     private int _javaScriptCount;
     private long _javaScriptBytes;
     /// <summary>Creates a standalone edit session. Documents normally create sessions through <see cref="PdfDocumentForms.Edit(Action{PdfAcroFormEditSession})"/>.</summary>
-    public PdfAcroFormEditSession() : this(new PdfReadLimits()) { }
-    internal PdfAcroFormEditSession(PdfReadLimits limits) { _limits = limits; }
+    public PdfAcroFormEditSession() : this(new PdfReadLimits(), 0, 0L) { }
+    internal PdfAcroFormEditSession(PdfReadLimits limits, int javaScriptCount, long javaScriptBytes) {
+        _limits = limits;
+        _javaScriptCount = javaScriptCount;
+        _javaScriptBytes = javaScriptBytes;
+    }
     /// <summary>Creates a text, checkbox, choice, radio-button, push-button, or empty signature field.</summary>
     public PdfAcroFormEditSession Create(PdfFormFieldCreateOptions options) {
         Guard.NotNull(options, nameof(options));

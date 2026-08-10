@@ -24,6 +24,8 @@ public sealed partial class PdfReadDocument {
     private readonly PdfDocumentOpenAction? _openAction;
     private readonly PdfPortfolioInfo? _portfolio;
     private readonly IReadOnlyList<PdfFormField> _formFields;
+    private readonly int _formWidgetJavaScriptCount;
+    private readonly long _formWidgetJavaScriptBytes;
     private readonly string? _acroFormDefaultAppearance;
     private readonly int? _acroFormQuadding;
     private readonly bool? _acroFormNeedAppearances;
@@ -33,6 +35,8 @@ public sealed partial class PdfReadDocument {
     internal Dictionary<int, PdfIndirectObject> Objects => _objects;
     internal string TrailerRaw => _trailerRaw;
     internal PdfReadOptions ReadOptions => _options;
+    internal int FormWidgetJavaScriptCount => _formWidgetJavaScriptCount;
+    internal long FormWidgetJavaScriptBytes => _formWidgetJavaScriptBytes;
 
     private PdfReadDocument(
         Dictionary<int, PdfIndirectObject> objects,
@@ -60,7 +64,7 @@ public sealed partial class PdfReadDocument {
         _acroFormDefaultAppearance = ExtractAcroFormText("DA");
         _acroFormQuadding = ExtractAcroFormInteger("Q");
         _acroFormXfa = ExtractAcroFormXfaInfo();
-        _formFields = ExtractFormFields();
+        _formFields = ExtractFormFields(out _formWidgetJavaScriptCount, out _formWidgetJavaScriptBytes);
         _acroFormNeedAppearances = ExtractAcroFormBoolean("NeedAppearances");
         _acroFormSignatureFlags = ExtractAcroFormInteger("SigFlags");
         CatalogPageMode = ExtractCatalogName("PageMode");
