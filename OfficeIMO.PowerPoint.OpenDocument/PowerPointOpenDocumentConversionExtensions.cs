@@ -48,11 +48,14 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     try {
                         byte[] imageBytes = picture.GetImageBytes();
                         string imageFileName = FileNameForContentType(picture.ContentType);
-                        if (!OdfImagePayloadValidator.CanPreserve(imageBytes, imageFileName)) {
+                        if (!OdfImagePayloadValidator.TryResolvePreservedFileName(
+                            imageBytes,
+                            imageFileName,
+                            out string storedFileName)) {
                             unsupportedPictures++;
                             continue;
                         }
-                        OdpImage converted = targetSlide.AddImage(imageBytes, imageFileName, ToOdfRect(picture), picture.Name);
+                        OdpImage converted = targetSlide.AddImage(imageBytes, storedFileName, ToOdfRect(picture), picture.Name);
                         CopyShapeAppearance(picture, converted, effective);
                         if (picture.CropLeftRatio > 0D || picture.CropTopRatio > 0D || picture.CropRightRatio > 0D || picture.CropBottomRatio > 0D) {
                             converted.Crop = new OdfInsets(

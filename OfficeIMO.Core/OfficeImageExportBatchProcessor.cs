@@ -286,48 +286,80 @@ public static class OfficeImageExportBatchProcessor {
         var tracker = new OfficeImageExportBatchTracker(options);
         var gate = new SemaphoreSlim(1, 1);
         var reentryScope = new AsyncLocal<AsyncConsumerReentryScope?>();
-        return async (result, token) => {
-            using CancellationTokenSource? linked = CreateLinkedCancellationSource(cancellationToken, token);
-            CancellationToken effectiveToken = linked?.Token ?? (token.CanBeCanceled ? token : cancellationToken);
+        return (result, token) => {
             AsyncConsumerReentryScope? inheritedScope = reentryScope.Value;
             if (inheritedScope != null && inheritedScope.IsCallbackActive && !inheritedScope.AllowsSynchronousReentry) {
-                throw new InvalidOperationException(
+                return Task.FromException(new InvalidOperationException(
                     "Forked or deferred reentry into an image export consumer is not supported. " +
-                    "Await the guarded consumer directly from the synchronous portion of the callback.");
+                    "Await the guarded consumer directly from the synchronous portion of the callback."));
             }
             bool ownsGate = inheritedScope == null || !inheritedScope.AllowsSynchronousReentry;
-            if (ownsGate) await gate.WaitAsync(effectiveToken).ConfigureAwait(false);
+            Task invocation = InvokeGuardedAsyncConsumer(
+                options,
+                consumer,
+                tracker,
+                gate,
+                reentryScope,
+                result,
+                cancellationToken,
+                token,
+                expectedOutputCount,
+                ownsGate);
+            if (!ownsGate && inheritedScope != null) inheritedScope.TrackNestedInvocation(invocation);
+            return invocation;
+        };
+    }
+
+    private static async Task InvokeGuardedAsyncConsumer(
+        OfficeImageExportOptions options,
+        OfficeImageExportAsyncConsumer consumer,
+        OfficeImageExportBatchTracker tracker,
+        SemaphoreSlim gate,
+        AsyncLocal<AsyncConsumerReentryScope?> reentryScope,
+        OfficeImageExportResult result,
+        CancellationToken cancellationToken,
+        CancellationToken invocationToken,
+        int? expectedOutputCount,
+        bool ownsGate) {
+        using CancellationTokenSource? linked = CreateLinkedCancellationSource(cancellationToken, invocationToken);
+        CancellationToken effectiveToken = linked?.Token ??
+            (invocationToken.CanBeCanceled ? invocationToken : cancellationToken);
+        if (ownsGate) await gate.WaitAsync(effectiveToken).ConfigureAwait(false);
+        try {
+            cancellationToken.ThrowIfCancellationRequested();
+            invocationToken.ThrowIfCancellationRequested();
+            if (result == null) throw new ArgumentNullException(nameof(result));
+            result.Require(options.Policy);
+            int sequenceIndex = tracker.Count;
+            tracker.Add(result);
+            var scope = new AsyncConsumerReentryScope(Environment.CurrentManagedThreadId);
+            AsyncConsumerReentryScope? previousScope = reentryScope.Value;
+            reentryScope.Value = scope;
+            Task callback;
             try {
-                cancellationToken.ThrowIfCancellationRequested();
-                token.ThrowIfCancellationRequested();
-                if (result == null) throw new ArgumentNullException(nameof(result));
-                result.Require(options.Policy);
-                int sequenceIndex = tracker.Count;
-                tracker.Add(result);
-                var scope = new AsyncConsumerReentryScope(Environment.CurrentManagedThreadId);
-                AsyncConsumerReentryScope? previousScope = reentryScope.Value;
-                reentryScope.Value = scope;
-                Task callback;
-                try {
-                    callback = consumer(result.WithSequence(sequenceIndex, expectedOutputCount), effectiveToken);
-                    if (callback == null) throw new InvalidOperationException("The image export consumer returned a null task.");
-                } finally {
-                    scope.EndSynchronousInvocation();
-                    reentryScope.Value = previousScope;
-                }
+                callback = consumer(result.WithSequence(sequenceIndex, expectedOutputCount), effectiveToken);
+                if (callback == null) throw new InvalidOperationException("The image export consumer returned a null task.");
+            } finally {
+                scope.EndSynchronousInvocation();
+                reentryScope.Value = previousScope;
+            }
+            try {
                 try {
                     await callback.ConfigureAwait(false);
                 } finally {
-                    scope.EndCallback();
+                    await scope.AwaitNestedInvocationsAsync().ConfigureAwait(false);
                 }
             } finally {
-                if (ownsGate) gate.Release();
+                scope.EndCallback();
             }
-        };
+        } finally {
+            if (ownsGate) gate.Release();
+        }
     }
 
     private sealed class AsyncConsumerReentryScope {
         private readonly int _managedThreadId;
+        private readonly List<Task> _nestedInvocations = new();
         private int _synchronousInvocation = 1;
         private int _callbackActive = 1;
 
@@ -341,6 +373,16 @@ public static class OfficeImageExportBatchProcessor {
 
         internal void EndSynchronousInvocation() =>
             Interlocked.Exchange(ref _synchronousInvocation, 0);
+
+        internal void TrackNestedInvocation(Task invocation) {
+            lock (_nestedInvocations) _nestedInvocations.Add(invocation);
+        }
+
+        internal Task AwaitNestedInvocationsAsync() {
+            Task[] invocations;
+            lock (_nestedInvocations) invocations = _nestedInvocations.ToArray();
+            return invocations.Length == 0 ? Task.CompletedTask : Task.WhenAll(invocations);
+        }
 
         internal void EndCallback() => Interlocked.Exchange(ref _callbackActive, 0);
     }

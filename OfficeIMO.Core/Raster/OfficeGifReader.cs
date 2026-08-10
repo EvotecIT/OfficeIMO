@@ -64,6 +64,12 @@ public static class OfficeGifReader {
                     return false;
                 }
             }
+            if (validateAllFrames &&
+                (globalColorTable == null
+                    ? backgroundColorIndex != 0
+                    : backgroundColorIndex >= globalColorTable.Length)) {
+                return false;
+            }
 
             OfficeColor backgroundColor = default;
             OfficeRasterImage? canvas = null;

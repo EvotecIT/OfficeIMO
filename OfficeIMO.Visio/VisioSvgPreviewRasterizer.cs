@@ -44,6 +44,7 @@ namespace OfficeIMO.Visio {
             if (data == null || data.Length == 0) {
                 return false;
             }
+            cancellationToken.ThrowIfCancellationRequested();
 
             XDocument document;
             try {
@@ -73,7 +74,11 @@ namespace OfficeIMO.Visio {
                 diagnosticSink,
                 diagnosticSource,
                 cancellationToken);
-            SvgRenderContext context = SvgRenderContext.Create(root, new SvgPaintBounds(viewLeft, viewTop, viewWidth, viewHeight), imageResolver);
+            SvgRenderContext context = SvgRenderContext.Create(
+                root,
+                new SvgPaintBounds(viewLeft, viewTop, viewWidth, viewHeight),
+                imageResolver,
+                cancellationToken);
             double rootOpacity = SvgPaint.ReadOwnOpacity(root, context);
             if (rootOpacity <= 0D) {
                 return false;

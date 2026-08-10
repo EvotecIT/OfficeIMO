@@ -86,7 +86,8 @@ public static partial class OfficeImageReader {
                 seenIccProfile = true;
             } else if (chunkType == "ALPH") {
                 if (!extended || seenAlphaChunk || hasImage || seenAnimationControl || hasAnimationFrame ||
-                    exifOffset != 0 || seenXmp || chunkSize == 0 || (extendedFlags & 0x02) != 0) {
+                    exifOffset != 0 || seenXmp || !HasValidWebpAlphaHeader(data, chunkDataOffset, chunkSize) ||
+                    (extendedFlags & 0x02) != 0) {
                     return false;
                 }
                 seenAlphaChunk = true;
@@ -189,7 +190,7 @@ public static partial class OfficeImageReader {
             }
 
             if (chunkType == "ALPH") {
-                if (seenAlpha || seenImage || chunkSize == 0) return false;
+                if (seenAlpha || seenImage || !HasValidWebpAlphaHeader(data, chunkDataOffset, chunkSize)) return false;
                 seenAlpha = true;
             } else if (chunkType == "VP8 " || chunkType == "VP8L") {
                 if (seenImage || seenAlpha && chunkType == "VP8L" || !TryReadWebpImageHeader(
@@ -206,6 +207,14 @@ public static partial class OfficeImageReader {
         }
 
         return chunkOffset == frameEnd && seenImage;
+    }
+
+    private static bool HasValidWebpAlphaHeader(byte[] data, int offset, int length) {
+        if (length < 2) return false;
+        byte control = data[offset];
+        // Compression method 0 is the only defined value, preprocessing values 2-3 are reserved,
+        // and the two high bits are reserved for future use.
+        return (control & 0xC3) == 0 && (control & 0x30) <= 0x10;
     }
 
     private static bool TryReadWebpImageHeader(

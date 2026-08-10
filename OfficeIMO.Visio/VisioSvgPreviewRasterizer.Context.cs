@@ -38,12 +38,20 @@ namespace OfficeIMO.Visio {
 
             internal OfficeFillRule CurrentFillRule { get; private set; } = OfficeFillRule.NonZero;
 
-            internal bool RenderBudgetExceeded => _renderBudgetExceeded || StyleSheet.SelectorBudgetExceeded;
+            internal bool RenderBudgetExceeded => _renderBudgetExceeded || StyleSheet.BudgetExceeded;
 
             internal int UnsupportedFeatureCount { get; private set; }
 
-            internal static SvgRenderContext Create(XElement root, SvgPaintBounds viewportBounds, Func<string, byte[]?>? imageResolver = null) =>
-                new(SvgStyleSheet.Parse(root), ReadDefinitions(root), imageResolver, viewportBounds);
+            internal static SvgRenderContext Create(
+                XElement root,
+                SvgPaintBounds viewportBounds,
+                Func<string, byte[]?>? imageResolver,
+                System.Threading.CancellationToken cancellationToken) =>
+                new(
+                    SvgStyleSheet.Parse(root, cancellationToken),
+                    ReadDefinitions(root, cancellationToken),
+                    imageResolver,
+                    viewportBounds);
 
             internal bool TryGetDefinition(string id, out XElement? definition) =>
                 _definitions.TryGetValue(id, out definition);
@@ -130,9 +138,12 @@ namespace OfficeIMO.Visio {
                 return bytes != null && bytes.Length > 0;
             }
 
-            private static Dictionary<string, XElement> ReadDefinitions(XElement root) {
+            private static Dictionary<string, XElement> ReadDefinitions(
+                XElement root,
+                System.Threading.CancellationToken cancellationToken) {
                 Dictionary<string, XElement> definitions = new(StringComparer.Ordinal);
                 foreach (XElement element in root.Descendants()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string? id = element.Attribute("id")?.Value;
                     if (!string.IsNullOrWhiteSpace(id) && !definitions.ContainsKey(id!)) {
                         definitions[id!] = element;

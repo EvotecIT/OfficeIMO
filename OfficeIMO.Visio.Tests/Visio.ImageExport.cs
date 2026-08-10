@@ -120,6 +120,24 @@ public class VisioImageExport {
     }
 
     [Fact]
+    public void EmbeddedSvgPreviewBoundsStylesheetParsingBeforeBuildingRuleObjects() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><style>");
+        for (int index = 0; index <= 10000; index++) {
+            svg.Append(".rule").Append(index).Append("{fill:red}");
+        }
+        svg.Append("</style><rect class='rule0' width='10' height='10'/></svg>");
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.False(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg.ToString()), null, null, null, null, null,
+            diagnostics, "stylesheet-budget.svg", default, out OfficeRasterImage? image));
+        Assert.Null(image);
+        Assert.Contains(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
     public void EmbeddedSvgPreviewCountsClipPathNodesAgainstTheElementBudget() {
         var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><defs><clipPath id='c'>");
         for (int index = 0; index <= 100000; index++) svg.Append("<g/>");

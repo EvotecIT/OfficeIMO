@@ -336,15 +336,25 @@ public static partial class WordRtfConverterExtensions {
         foreach (WordStoryRootCandidate storyRoot in storyRoots) {
             foreach (Paragraph paragraph in storyRoot.Root.Descendants<Paragraph>()) {
                 if (!visitedParagraphs.Add(paragraph)) continue;
+                bool paragraphOmitted = storyRoot.OmittedByConverter ||
+                                        !IsParagraphConvertedFromStoryRoot(storyRoot.Root, paragraph);
                 foreach ((Run Run, bool OmittedByConverter) runCandidate in EnumerateConvertibleWordRuns(paragraph)) {
                     if (!visitedRuns.Add(runCandidate.Run)) continue;
                     var candidate = new WordParagraph(document, paragraph, runCandidate.Run);
                     foreach (WordImage image in candidate.EnumerateImages()) {
-                        yield return (image, storyRoot.OmittedByConverter || runCandidate.OmittedByConverter);
+                        yield return (image, paragraphOmitted || runCandidate.OmittedByConverter);
                     }
                 }
             }
         }
+    }
+
+    private static bool IsParagraphConvertedFromStoryRoot(OpenXmlElement root, Paragraph paragraph) {
+        if (root is Document) return true;
+        // The Word-to-RTF bridge reads only the direct paragraph collections exposed by
+        // headers, footers, notes, and comments. Nested table/text-box paragraphs are inventoried
+        // for diagnostics but are not emitted by those specialized story converters.
+        return ReferenceEquals(paragraph.Parent, root);
     }
 
     private static IEnumerable<WordStoryRootCandidate> EnumerateConvertibleWordStoryRoots(WordDocument document) {

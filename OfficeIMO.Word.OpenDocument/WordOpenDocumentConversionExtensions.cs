@@ -265,10 +265,13 @@ public static partial class WordOpenDocumentConversionExtensions {
                 WordInlineImageSnapshot image = run.InlineImage;
                 try {
                     string fileName = image.FileName ?? "image.png";
-                    if (!OdfImagePayloadValidator.CanPreserve(bytes, fileName)) {
+                    if (!OdfImagePayloadValidator.TryResolvePreservedFileName(
+                        bytes,
+                        fileName,
+                        out string storedFileName)) {
                         throw new NotSupportedException("The Word image payload is incomplete or unsupported.");
                     }
-                    target.AddImage(bytes, image.FileName ?? "image.png",
+                    target.AddImage(bytes, storedFileName,
                         OdfLength.Points(image.Width ?? 72D), OdfLength.Points(image.Height ?? 72D),
                         image.IsInline ? OdtImageAnchor.Inline : OdtImageAnchor.Paragraph);
                     images++;

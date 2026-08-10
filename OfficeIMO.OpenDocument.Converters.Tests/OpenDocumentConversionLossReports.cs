@@ -320,7 +320,8 @@ public sealed class OpenDocumentConversionLossReportTests {
             word.OpenXmlDocument.MainDocumentPart!.ImageParts.Single().FeedData(image);
         }
         OdfConversionResult<OdtDocument> wordConversion = word.ToOpenDocumentResult();
-        Assert.Single(wordConversion.Value.Paragraphs.SelectMany(paragraph => paragraph.Images));
+        OdtImage wordImage = Assert.Single(wordConversion.Value.Paragraphs.SelectMany(paragraph => paragraph.Images));
+        Assert.EndsWith(".webp", wordImage.Path, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(wordConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
 
@@ -333,7 +334,9 @@ public sealed class OpenDocumentConversionLossReportTests {
             presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single().ImageParts.Single().FeedData(image);
         }
         OdfConversionResult<OdpPresentation> presentationConversion = presentation.ToOpenDocumentResult();
-        Assert.Single(Assert.Single(presentationConversion.Value.Slides).Shapes.OfType<OdpImage>());
+        OdpImage presentationImage = Assert.Single(
+            Assert.Single(presentationConversion.Value.Slides).Shapes.OfType<OdpImage>());
+        Assert.EndsWith(".webp", presentationImage.Path, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(presentationConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
     }

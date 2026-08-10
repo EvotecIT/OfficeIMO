@@ -203,8 +203,46 @@ namespace OfficeIMO.Tests {
             Assert.False(OfficeImageReader.TryValidateContent(malformed, "reserved-descriptor.gif", out _));
         }
 
+        [Fact]
+        public void CompleteContentValidationRejectsBackgroundIndexesOutsideTheGlobalColorTable() {
+            byte[] malformed = CreateIndexedGif(
+                1,
+                1,
+                new[] { OfficeColor.Red, OfficeColor.Lime },
+                new byte[] { 0 },
+                backgroundColorIndex: 2);
+
+            Assert.True(OfficeGifReader.TryDecodeFrame(malformed, 0, out _, out _));
+            Assert.False(OfficeImageReader.TryValidateContent(malformed, "background-index.gif", out _));
+        }
+
+        [Fact]
+        public void CompleteContentValidationRequiresZeroBackgroundIndexWithoutAGlobalColorTable() {
+            byte[] malformed = CreateGifWithOnlyALocalColorTable(backgroundColorIndex: 1);
+
+            Assert.True(OfficeGifReader.TryDecodeFrame(malformed, 0, out _, out _));
+            Assert.False(OfficeImageReader.TryValidateContent(malformed, "local-palette.gif", out _));
+        }
+
         private static byte[] CreateSinglePixelGif() =>
             Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+
+        private static byte[] CreateGifWithOnlyALocalColorTable(byte backgroundColorIndex) {
+            byte[] source = CreateSinglePixelGif();
+            const int logicalScreenLength = 13;
+            const int colorTableLength = 6;
+            const int imageDescriptorLength = 10;
+            int sourceDescriptorOffset = logicalScreenLength + colorTableLength;
+            var result = new List<byte>(source.Length);
+            result.AddRange(source.Take(logicalScreenLength));
+            result[10] &= 0x7F;
+            result[11] = backgroundColorIndex;
+            result.AddRange(source.Skip(sourceDescriptorOffset).Take(imageDescriptorLength));
+            result[result.Count - 1] |= 0x80;
+            result.AddRange(source.Skip(logicalScreenLength).Take(colorTableLength));
+            result.AddRange(source.Skip(sourceDescriptorOffset + imageDescriptorLength));
+            return result.ToArray();
+        }
 
         private static byte[] CreateTwoFrameGif() => CreateTwoFrameGif(out _);
 

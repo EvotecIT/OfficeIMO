@@ -386,6 +386,28 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_Rtf_Image_Diagnostics_Report_Images_In_Skipped_Header_Tables() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        using WordDocument word = WordDocument.Create();
+        word.Sections[0].AddHeadersAndFooters();
+        WordTableCell cell = word.Sections[0].Header.Default!
+            .AddTable(1, 1)
+            .Rows[0]
+            .Cells[0];
+        using (var stream = new MemoryStream(png, writable: false)) {
+            cell.Paragraphs[0].AddImage(stream, "header-table.png", 16, 16);
+        }
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        RtfConversionDiagnostic diagnostic = Assert.Single(
+            conversion.Report.Diagnostics,
+            item => item.Code == "WordRtfImagesOmitted");
+        Assert.Equal(1, diagnostic.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+    }
+
+    [Fact]
     public void Word_Rtf_Image_Diagnostics_Include_Hyperlink_Image_Runs() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();

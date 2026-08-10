@@ -24,6 +24,7 @@ internal static class OfficePngContainerValidator {
             bool seenPalette = false;
             bool seenTransparency = false;
             bool seenPhysicalDimensions = false;
+            bool seenStandardRgb = false;
             int bitDepth = 0;
             int colorType = 0;
             int paletteEntries = 0;
@@ -121,6 +122,14 @@ internal static class OfficePngContainerValidator {
                             return false;
                         }
                         seenPhysicalDimensions = true;
+                        break;
+                    case "sRGB":
+                        if (!seenHeader || seenPalette || seenImageData || seenStandardRgb || length != 1 ||
+                            bytes[dataOffset] > 3) {
+                            failureReason = "PNG bytes contain an invalid or misplaced sRGB chunk.";
+                            return false;
+                        }
+                        seenStandardRgb = true;
                         break;
                     case "IDAT":
                         if (!seenHeader || imageDataEnded || (colorType == 3 && !seenPalette)) {

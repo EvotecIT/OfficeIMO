@@ -141,6 +141,22 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void PngContainerRequiresOneWellFormedStandardRgbChunkBeforePaletteAndImageData() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] withStandardRgb = InsertPngChunkBefore(png, "IDAT", "sRGB", new byte[] { 0 });
+        byte[] wrongLength = InsertPngChunkBefore(png, "IDAT", "sRGB", Array.Empty<byte>());
+        byte[] duplicate = InsertPngChunkBefore(withStandardRgb, "IDAT", "sRGB", new byte[] { 1 });
+        byte[] misplaced = InsertPngChunkBefore(png, "IEND", "sRGB", new byte[] { 0 });
+        byte[] invalidIntent = InsertPngChunkBefore(png, "IDAT", "sRGB", new byte[] { 4 });
+
+        Assert.True(OfficeImageReader.TryValidateContent(withStandardRgb, "valid-srgb.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(wrongLength, "wrong-length-srgb.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(duplicate, "duplicate-srgb.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(misplaced, "misplaced-srgb.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(invalidIntent, "invalid-intent-srgb.png", out _));
+    }
+
+    [Fact]
     public void CompleteContentValidationHonorsBmpDeclaredFileSizeAndReservedFields() {
         byte[] bmp = new byte[58];
         bmp[0] = (byte)'B';
@@ -334,6 +350,18 @@ public partial class DrawingTests {
         Assert.False(OfficeImageReader.TryIdentifyByContent(inconsistent, "inconsistent.webp", out _));
     }
 
+    [Theory]
+    [InlineData(0x01)]
+    [InlineData(0x20)]
+    [InlineData(0x40)]
+    public void WebpAlphaChunksRejectReservedHeaderValues(int invalidControl) {
+        byte[] valid = CreateAlphaWebp(control: 0);
+        byte[] invalid = CreateAlphaWebp((byte)invalidControl);
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(valid, "valid-alpha.webp", out _));
+        Assert.False(OfficeImageReader.TryIdentifyByContent(invalid, "invalid-alpha.webp", out _));
+    }
+
     [Fact]
     public void ApngValidationBoundsAggregateDecodedFramePixels() {
         byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
@@ -420,6 +448,38 @@ public partial class DrawingTests {
             name: "outer"), cancellation.Token);
 
         Assert.Equal(new[] { 0, 1 }, observed);
+    }
+
+    [Fact]
+    public async Task GuardedAsyncConsumerKeepsDiscardedSynchronousReentryInsideTheGate() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        var innerStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseInner = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var laterStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        OfficeImageExportAsyncConsumer? accept = null;
+        accept = OfficeImageExportBatchProcessor.CreateGuardedAsyncConsumer(
+            new OfficeImageExportOptions { MaximumOutputCount = 3 },
+            async (result, token) => {
+                if (result.Name == "outer") {
+                    _ = accept!(CreateResult("inner", png), token);
+                } else if (result.Name == "inner") {
+                    innerStarted.TrySetResult(true);
+                    await releaseInner.Task.ConfigureAwait(false);
+                } else {
+                    laterStarted.TrySetResult(true);
+                }
+            });
+
+        Task outer = accept(CreateResult("outer", png), default);
+        await innerStarted.Task;
+        Assert.False(outer.IsCompleted);
+        Task later = accept(CreateResult("later", png), default);
+        Assert.False(laterStarted.Task.IsCompleted);
+
+        releaseInner.TrySetResult(true);
+        await outer;
+        await later;
+        Assert.True(laterStarted.Task.IsCompletedSuccessfully);
     }
 
     [Fact]
@@ -522,6 +582,29 @@ public partial class DrawingTests {
 
     private static OfficeImageExportResult CreateResult(string name, byte[] png) =>
         new(OfficeImageExportFormat.Png, 1, 1, png, name: name);
+
+    private static byte[] CreateAlphaWebp(byte control) {
+        byte[] lossy = Convert.FromBase64String(
+            "UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoCAAIAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=");
+        var bytes = new List<byte>(lossy.Length + 32) {
+            (byte)'R', (byte)'I', (byte)'F', (byte)'F', 0, 0, 0, 0,
+            (byte)'W', (byte)'E', (byte)'B', (byte)'P'
+        };
+        bytes.AddRange(CreateWebpChunk("VP8X", new byte[] { 0x10, 0, 0, 0, 1, 0, 0, 1, 0, 0 }));
+        bytes.AddRange(CreateWebpChunk("ALPH", new byte[] { control, 0xFF }));
+        bytes.AddRange(lossy.Skip(12));
+        byte[] result = bytes.ToArray();
+        WriteInt32LittleEndian(result, 4, result.Length - 8);
+        return result;
+    }
+
+    private static byte[] CreateWebpChunk(string type, byte[] data) {
+        byte[] chunk = new byte[8 + data.Length + (data.Length & 1)];
+        System.Text.Encoding.ASCII.GetBytes(type, 0, 4, chunk, 0);
+        WriteInt32LittleEndian(chunk, 4, data.Length);
+        Buffer.BlockCopy(data, 0, chunk, 8, data.Length);
+        return chunk;
+    }
 
     private static byte[] CreateTwoFrameApng(byte[] png) {
         int idatOffset = FindPngChunk(png, "IDAT");

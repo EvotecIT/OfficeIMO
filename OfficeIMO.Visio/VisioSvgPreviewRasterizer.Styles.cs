@@ -1,39 +1,76 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
     internal static partial class VisioSvgPreviewRasterizer {
         private sealed class SvgStyleSheet {
             private const int MaximumSelectorEvaluations = 100000;
+            private const int MaximumStylesheetCharacters = 1000000;
+            private const int MaximumStyleRules = 10000;
+            private const int MaximumStyleDeclarations = 100000;
+            private const int MaximumStyleSelectors = 100000;
+            private const int MaximumStyleRuleDeclarationCopies = 100000;
             private readonly List<SvgStyleRule> _rules;
             private readonly List<SvgVisualEffectRule> _visualEffectRules;
             private readonly Dictionary<XElement, Dictionary<string, string>> _styleCache = new();
             private readonly Dictionary<XElement, bool> _visualEffectCache = new();
+            private readonly bool _parseBudgetExceeded;
             private int _selectorEvaluations;
 
-            private SvgStyleSheet(List<SvgStyleRule> rules, List<SvgVisualEffectRule> visualEffectRules) {
+            private SvgStyleSheet(
+                List<SvgStyleRule> rules,
+                List<SvgVisualEffectRule> visualEffectRules,
+                bool parseBudgetExceeded) {
                 _rules = rules;
                 _visualEffectRules = visualEffectRules;
+                _parseBudgetExceeded = parseBudgetExceeded;
             }
 
-            internal static SvgStyleSheet Parse(XElement root) {
+            internal static SvgStyleSheet Parse(XElement root, CancellationToken cancellationToken) {
                 List<SvgStyleRule> rules = new();
                 List<SvgVisualEffectRule> visualEffectRules = new();
                 int sourceOrder = 0;
+                int stylesheetCharacters = 0;
+                int ruleCount = 0;
+                int declarationCount = 0;
+                int selectorCount = 0;
+                int ruleDeclarationCopies = 0;
+                bool parseBudgetExceeded = false;
                 foreach (XElement styleElement in root.Descendants()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (!string.Equals(styleElement.Name.LocalName, "style", StringComparison.OrdinalIgnoreCase)) {
                         continue;
                     }
 
-                    ReadRules(styleElement.Value, rules, visualEffectRules, ref sourceOrder);
+                    string css = styleElement.Value;
+                    if (css.Length > MaximumStylesheetCharacters - stylesheetCharacters) {
+                        parseBudgetExceeded = true;
+                        break;
+                    }
+                    stylesheetCharacters += css.Length;
+                    ReadRules(
+                        css,
+                        rules,
+                        visualEffectRules,
+                        ref sourceOrder,
+                        ref ruleCount,
+                        ref declarationCount,
+                        ref selectorCount,
+                        ref ruleDeclarationCopies,
+                        cancellationToken,
+                        ref parseBudgetExceeded);
+                    if (parseBudgetExceeded) break;
                 }
 
-                return new SvgStyleSheet(rules, visualEffectRules);
+                return new SvgStyleSheet(rules, visualEffectRules, parseBudgetExceeded);
             }
 
             internal bool SelectorBudgetExceeded { get; private set; }
+
+            internal bool BudgetExceeded => _parseBudgetExceeded || SelectorBudgetExceeded;
 
             internal Dictionary<string, string> CreateStyle(XElement element) {
                 if (_styleCache.TryGetValue(element, out Dictionary<string, string>? cached)) return cached;
@@ -68,14 +105,21 @@ namespace OfficeIMO.Visio {
                 string? css,
                 List<SvgStyleRule> rules,
                 List<SvgVisualEffectRule> visualEffectRules,
-                ref int sourceOrder) {
+                ref int sourceOrder,
+                ref int ruleCount,
+                ref int declarationCount,
+                ref int selectorCount,
+                ref int ruleDeclarationCopies,
+                CancellationToken cancellationToken,
+                ref bool budgetExceeded) {
                 if (string.IsNullOrWhiteSpace(css)) {
                     return;
                 }
 
-                string normalized = RemoveComments(css!);
+                string normalized = RemoveComments(css!, cancellationToken);
                 int index = 0;
                 while (index < normalized.Length) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     int open = normalized.IndexOf('{', index);
                     if (open < 0) {
                         break;
@@ -86,12 +130,31 @@ namespace OfficeIMO.Visio {
                         break;
                     }
 
+                    if (ruleCount >= MaximumStyleRules) {
+                        budgetExceeded = true;
+                        break;
+                    }
+                    ruleCount++;
                     string selectorList = normalized.Substring(index, open - index);
-                    Dictionary<string, string> declarations = ParseDeclarations(normalized.Substring(open + 1, close - open - 1));
+                    string declarationText = normalized.Substring(open + 1, close - open - 1);
+                    int candidateDeclarations = CountListItems(declarationText, ';');
+                    int candidateSelectors = CountListItems(selectorList, ',');
+                    if (candidateDeclarations > MaximumStyleDeclarations - declarationCount ||
+                        candidateSelectors > MaximumStyleSelectors - selectorCount ||
+                        (long)candidateDeclarations * candidateSelectors >
+                        MaximumStyleRuleDeclarationCopies - ruleDeclarationCopies) {
+                        budgetExceeded = true;
+                        break;
+                    }
+                    declarationCount += candidateDeclarations;
+                    selectorCount += candidateSelectors;
+                    ruleDeclarationCopies += candidateDeclarations * candidateSelectors;
+                    Dictionary<string, string> declarations = ParseDeclarations(declarationText);
                     if (declarations.Count > 0) {
                         int ruleOrder = sourceOrder++;
                         string[] selectors = selectorList.Split(',');
                         for (int i = 0; i < selectors.Length; i++) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             if ((declarations.ContainsKey("filter") || declarations.ContainsKey("mask")) &&
                                 !string.IsNullOrWhiteSpace(selectors[i])) {
                                 visualEffectRules.Add(new SvgVisualEffectRule(
@@ -107,6 +170,15 @@ namespace OfficeIMO.Visio {
 
                     index = close + 1;
                 }
+            }
+
+            private static int CountListItems(string value, char separator) {
+                if (string.IsNullOrWhiteSpace(value)) return 0;
+                int count = 1;
+                for (int index = 0; index < value.Length; index++) {
+                    if (value[index] == separator) count++;
+                }
+                return count;
             }
 
             internal bool HasActiveVisualEffect(XElement element) {
@@ -261,7 +333,7 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            private static string RemoveComments(string css) {
+            private static string RemoveComments(string css, CancellationToken cancellationToken) {
                 int start = css.IndexOf("/*", StringComparison.Ordinal);
                 if (start < 0) {
                     return css;
@@ -270,6 +342,7 @@ namespace OfficeIMO.Visio {
                 StringBuilder builder = new(css.Length);
                 int index = 0;
                 while (index < css.Length) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     start = css.IndexOf("/*", index, StringComparison.Ordinal);
                     if (start < 0) {
                         builder.Append(css, index, css.Length - index);
