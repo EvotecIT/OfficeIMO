@@ -174,7 +174,7 @@ internal static partial class PdfWriter {
             bool markedContent;
             int? structElementIndex = AppendDrawingMarkedContentBegin(style, out markedContent);
             bool previousSuppressAccessibilityWrappers = _suppressCanvasAccessibilityWrappers;
-            if (markedContent) {
+            if (markedContent || style.Decorative) {
                 _suppressCanvasAccessibilityWrappers = true;
             }
             try {

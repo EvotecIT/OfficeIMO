@@ -139,6 +139,45 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasDrawing_UsesOneOuterFigureForNestedImageAccessibility() {
+        var drawing = new OfficeDrawing(20D, 20D)
+            .AddImage(
+                CreateMinimalRgbPng(),
+                "image/png",
+                new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 20D, 20D)),
+                "Nested image alternative text");
+
+        foreach (double size in new[] { 20D, 40D }) {
+            byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+                .TaggedPdfCatalogMarkers()
+                .Canvas(canvas => canvas.Drawing(
+                    drawing,
+                    10D,
+                    10D,
+                    size,
+                    size,
+                    new PdfDrawingStyle { AlternativeText = "Outer drawing alternative text" }))
+                .ToBytes();
+
+            PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+            PdfStructureElementInfo figure = Assert.Single(tagged.StructureElements, element => element.StructureType == "Figure");
+            Assert.Equal("Outer drawing alternative text", figure.AlternateText);
+            Assert.Equal(1, CountOccurrences(Encoding.ASCII.GetString(bytes), "/Figure <<"));
+
+            byte[] decorative = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+                .Canvas(canvas => canvas.Drawing(
+                    drawing,
+                    10D,
+                    10D,
+                    size,
+                    size,
+                    new PdfDrawingStyle { Decorative = true }))
+                .ToBytes();
+            Assert.DoesNotContain("/Figure << /Alt", Encoding.ASCII.GetString(decorative), StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void CanvasText_RendersAtFixedTopLeftCoordinatesWithoutMovingFlowContent() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 240,

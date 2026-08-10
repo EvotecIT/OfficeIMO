@@ -219,6 +219,21 @@ public partial class PdfDocumentComplianceAssessmentTests {
     }
 
     [Fact]
+    public void DecorativeDrawingSuppressesNestedImageSemanticsWithoutTaggedStructure() {
+        var projection = new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 24D, 12D));
+        OfficeDrawing drawing = new OfficeDrawing(24D, 12D)
+            .AddImage(PdfPngTestImages.CreateRgbPng(1, 1), "image/png", projection, "Nested image alternative text");
+
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Drawing(drawing, style: new PdfDrawingStyle { Decorative = true })
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+        Assert.DoesNotContain("/Figure << /Alt", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("4E657374656420696D61676520616C7465726E61746976652074657874", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TaggedDecorativeShapeAndDrawingEmitArtifactMarkedContent() {
         OfficeDrawing drawing = new OfficeDrawing(36, 18)
             .AddShape(CreateComplianceShape(36, 18), 0, 0);

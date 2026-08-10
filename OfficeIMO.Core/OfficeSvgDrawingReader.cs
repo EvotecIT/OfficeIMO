@@ -68,9 +68,10 @@ public static partial class OfficeSvgDrawingReader {
             if (root == null || !string.Equals(root.Name.LocalName, "svg", StringComparison.OrdinalIgnoreCase)) return false;
             if (root.Descendants().Take(maximumElements + 1).Count() > maximumElements) return false;
             if (!TryResolveViewport(bytes, root, maximumViewportDimension, maximumViewportPixels,
-                    out double viewX, out double viewY, out double width, out double height)) return false;
+                    out double viewX, out double viewY, out double viewWidth, out double viewHeight,
+                    out double viewportWidth, out double viewportHeight)) return false;
 
-            var result = new OfficeDrawing(width, height);
+            var scene = new OfficeDrawing(viewWidth, viewHeight);
             int visited = 0;
             int pathCommands = 0;
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
@@ -78,12 +79,24 @@ public static partial class OfficeSvgDrawingReader {
             var references = new SvgElementReferenceRegistry(definitions);
             var context = ResolvePaintContext(root, SvgPaintContext.Default, paintServers, ref unsupportedFeatureCount);
             OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
-            AddChildren(root, result, context, paintServers, references, rootTransform, viewX, viewY,
+            AddChildren(root, scene, context, paintServers, references, rootTransform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, 0,
                 ref visited, ref pathCommands, ref unsupportedFeatureCount);
             if (visited > maximumElements) return false;
-            drawing = result;
-            return IsSupportedSvgViewport(width, height, maximumViewportDimension, maximumViewportPixels);
+            if (Math.Abs(viewportWidth - viewWidth) < 0.000001D && Math.Abs(viewportHeight - viewHeight) < 0.000001D) {
+                drawing = scene;
+            } else {
+                if (!TryParsePreserveAspectRatio(root.Attribute("preserveAspectRatio")?.Value, out SvgAspectAlignment alignment, out bool slice)) {
+                    alignment = SvgAspectAlignment.XMidYMid;
+                    slice = false;
+                    unsupportedFeatureCount++;
+                }
+                var viewport = new OfficeDrawing(viewportWidth, viewportHeight)
+                    .AddEffectDrawing(scene, ResolveViewportTransform(viewWidth, viewHeight, viewportWidth, viewportHeight, alignment, slice));
+                drawing = new OfficeDrawing(viewportWidth, viewportHeight)
+                    .AddClippedDrawing(viewport, 0D, 0D, OfficeClipPath.Rectangle(viewportWidth, viewportHeight));
+            }
+            return IsSupportedSvgViewport(viewportWidth, viewportHeight, maximumViewportDimension, maximumViewportPixels);
         } catch (XmlException) {
             return false;
         } catch (InvalidOperationException) {
@@ -100,25 +113,36 @@ public static partial class OfficeSvgDrawingReader {
         double maximumViewportPixels,
         out double viewX,
         out double viewY,
-        out double width,
-        out double height) {
+        out double viewWidth,
+        out double viewHeight,
+        out double viewportWidth,
+        out double viewportHeight) {
         viewX = viewY = 0D;
-        width = height = 0D;
+        viewWidth = viewHeight = viewportWidth = viewportHeight = 0D;
         if (TryParseNumberList(root.Attribute("viewBox")?.Value, out IReadOnlyList<double> viewBox)
             && viewBox.Count == 4
             && viewBox[2] > 0D
             && viewBox[3] > 0D) {
             viewX = viewBox[0];
             viewY = viewBox[1];
-            width = viewBox[2];
-            height = viewBox[3];
-            return IsSupportedSvgViewport(width, height, maximumViewportDimension, maximumViewportPixels);
+            viewWidth = viewBox[2];
+            viewHeight = viewBox[3];
+            viewportWidth = viewWidth;
+            viewportHeight = viewHeight;
+            if (OfficeImageReader.TryIdentifyByContent(bytes, ".svg", out OfficeImageInfo viewportInfo)
+                && viewportInfo.Width > 0
+                && viewportInfo.Height > 0) {
+                viewportWidth = viewportInfo.Width * 96D / Math.Max(1D, viewportInfo.DpiX);
+                viewportHeight = viewportInfo.Height * 96D / Math.Max(1D, viewportInfo.DpiY);
+            }
+            return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels)
+                && IsSupportedSvgViewport(viewportWidth, viewportHeight, maximumViewportDimension, maximumViewportPixels);
         }
 
         if (!OfficeImageReader.TryIdentify(bytes, ".svg", out OfficeImageInfo info) || info.Width <= 0 || info.Height <= 0) return false;
-        width = info.Width * 96D / Math.Max(1D, info.DpiX);
-        height = info.Height * 96D / Math.Max(1D, info.DpiY);
-        return IsSupportedSvgViewport(width, height, maximumViewportDimension, maximumViewportPixels);
+        viewWidth = viewportWidth = info.Width * 96D / Math.Max(1D, info.DpiX);
+        viewHeight = viewportHeight = info.Height * 96D / Math.Max(1D, info.DpiY);
+        return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels);
     }
 
     private static bool IsSupportedSvgViewport(

@@ -80,6 +80,13 @@ public sealed class OfficeVisualIntegrationTests {
 
         var markupSource = new OfficeVisualSource(System.Text.Encoding.UTF8.GetString(svg));
         Assert.Equal(svg, markupSource.GetSvgBytes());
+
+        const string rectangularViewport = "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='#2563eb'/></svg>";
+        OfficeVisualConversionResult rectangular = new OfficeVisualSource(rectangularViewport).ToOfficeVisual();
+        Assert.Equal(150D, rectangular.WidthPoints, 6);
+        Assert.Equal(75D, rectangular.HeightPoints, 6);
+        Assert.Equal(150D, rectangular.Drawing.Width, 6);
+        Assert.Equal(75D, rectangular.Drawing.Height, 6);
     }
 
     [Fact]
@@ -189,6 +196,7 @@ public sealed class OfficeVisualIntegrationTests {
         artifact.Accessibility.AsDecorative();
         OfficeVisualConversionResult visual = artifact.ToOfficeVisual(new OfficeVisualConversionOptions { WidthPoints = 300D });
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-decorative-" + Guid.NewGuid().ToString("N") + ".pptx");
+        string wordPath = Path.ChangeExtension(path, ".docx");
         try {
             using var presentation = PowerPointPresentation.Create(path);
             PowerPointPicture picture = presentation.AddSlide().AddVisualArtifact(visual, 36D, 54D);
@@ -196,8 +204,14 @@ public sealed class OfficeVisualIntegrationTests {
             Assert.True(picture.Decorative);
             Assert.Null(picture.Title);
             Assert.Null(picture.Description);
+
+            using var document = WordDocument.Create(wordPath);
+            WordImage image = document.AddParagraph().AddVisualArtifact(visual);
+            Assert.Null(image.Title);
+            Assert.True(string.IsNullOrEmpty(image.Description));
         } finally {
             if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(wordPath)) File.Delete(wordPath);
         }
     }
 
