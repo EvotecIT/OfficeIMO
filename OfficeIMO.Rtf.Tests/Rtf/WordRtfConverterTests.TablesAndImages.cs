@@ -286,6 +286,40 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_Rtf_Bridge_Uses_Alternate_Content_Fallback_For_Unsupported_Choice() {
+        byte[] png = CreateOnePixelPng();
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        using (var stream = new MemoryStream(png, writable: false)) {
+            paragraph.AddImage(stream, "embedded.png", 16, 16, description: "Fallback image");
+        }
+        paragraph.AddImage(
+            new Uri("https://example.test/fallback.png"),
+            16,
+            16,
+            description: "Fallback external image");
+
+        Run run = Assert.IsType<Run>(paragraph._run);
+        List<WordDrawing> drawings = run.Elements<WordDrawing>().ToList();
+        foreach (WordDrawing drawing in drawings) drawing.Remove();
+        var choice = new AlternateContentChoice { Requires = "future" };
+        choice.AddNamespaceDeclaration("future", "urn:officeimo:unsupported-word-feature");
+        choice.Append(new Run());
+        var fallback = new AlternateContentFallback();
+        fallback.Append(drawings);
+        run.Append(new AlternateContent(choice, fallback));
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        Assert.Equal("Fallback image", Assert.IsType<RtfImage>(Assert.Single(conversion.Value.Blocks)).Description);
+        RtfConversionDiagnostic omitted = Assert.Single(
+            conversion.Report.Diagnostics,
+            diagnostic => diagnostic.Code == "WordRtfImagesOmitted");
+        Assert.Equal(1, omitted.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+    }
+
+    [Fact]
     public void Rtf_Word_Bridge_Normalizes_Raw_Dib_To_Png() {
         RtfDocument rtf = RtfDocument.Create();
         rtf.AddImage(RtfImageFormat.Dib, CreateOnePixelDib());

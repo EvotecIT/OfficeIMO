@@ -21,6 +21,8 @@ Word/RTF result conversions now validate and inventory images across the documen
 
 Word-to-ODT and PowerPoint-to-ODP conversion now preserves only images that pass `OfficeImageReader.TryValidateContent(...)`. Valid payloads with misleading extensions are stored under the detected format; corrupt, truncated, unsupported, and general WebP payloads outside OfficeIMO's managed decoder subset are omitted and reported as unsupported. Inspect the returned `OdfConversionResult<T>.Report`, call `RequireNoLoss()`, or set the conversion option `LossPolicy` when image loss must fail the conversion.
 
+Direct ODT and ODP byte-array `AddImage(...)` methods now validate complete image content. When the filename has a recognized image extension, it must agree with the detected format. These methods throw `ArgumentException` for corrupt, truncated, or mislabeled payloads instead of creating an OpenDocument package entry whose media type does not match its bytes.
+
 ## OfficeIMO 3.2: one PDF authoring and operation model
 
 `PdfDocument` no longer duplicates every heading, paragraph, table, image, form,

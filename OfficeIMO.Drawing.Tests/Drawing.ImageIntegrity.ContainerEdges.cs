@@ -200,6 +200,22 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void CompleteContentValidationChecksBitmapV5EmbeddedProfileRanges() {
+        byte[] valid = CreateBitmapV5WithEmbeddedProfile();
+        byte[] outOfRange = (byte[])valid.Clone();
+        WriteInt32LittleEndian(outOfRange, 126, outOfRange.Length + 4);
+        byte[] overlapsPixels = (byte[])valid.Clone();
+        WriteInt32LittleEndian(overlapsPixels, 126, 124);
+        byte[] malformedProfile = (byte[])valid.Clone();
+        malformedProfile[144 + 36] = (byte)'X';
+
+        Assert.True(OfficeImageReader.TryValidateContent(valid, "profile.bmp", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(outOfRange, "out-of-range-profile.bmp", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(overlapsPixels, "overlapping-profile.bmp", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(malformedProfile, "malformed-profile.bmp", out _));
+    }
+
+    [Fact]
     public void CompleteContentValidationRejectsMalformedJpegExifAndIccProfiles() {
         var image = new OfficeRasterImage(1, 1, OfficeColor.White);
         byte[] exif = {
@@ -331,6 +347,34 @@ public partial class DrawingTests {
         byte[] result = bytes.ToArray();
         WriteInt32LittleEndian(result, 4, result.Length - 8);
         return result;
+    }
+
+    private static byte[] CreateBitmapV5WithEmbeddedProfile() {
+        const int fileHeaderSize = 14;
+        const int dibHeaderSize = 124;
+        const int pixelOffset = fileHeaderSize + dibHeaderSize;
+        const int pixelLength = 4;
+        const int profileOffset = 144;
+        byte[] profile = CreateMinimalIccProfile();
+        var bytes = new byte[profileOffset + profile.Length];
+        bytes[0] = (byte)'B';
+        bytes[1] = (byte)'M';
+        WriteInt32LittleEndian(bytes, 2, bytes.Length);
+        WriteInt32LittleEndian(bytes, 10, pixelOffset);
+        WriteInt32LittleEndian(bytes, 14, dibHeaderSize);
+        WriteInt32LittleEndian(bytes, 18, 1);
+        WriteInt32LittleEndian(bytes, 22, 1);
+        WriteUInt16LittleEndian(bytes, 26, 1);
+        WriteUInt16LittleEndian(bytes, 28, 24);
+        WriteInt32LittleEndian(bytes, 34, pixelLength);
+        WriteInt32LittleEndian(bytes, 70, unchecked((int)0x4D424544));
+        WriteInt32LittleEndian(bytes, 126, profileOffset - fileHeaderSize);
+        WriteInt32LittleEndian(bytes, 130, profile.Length);
+        bytes[pixelOffset] = 0xFF;
+        bytes[pixelOffset + 1] = 0xFF;
+        bytes[pixelOffset + 2] = 0xFF;
+        Buffer.BlockCopy(profile, 0, bytes, profileOffset, profile.Length);
+        return bytes;
     }
 
     private static byte[] AddDanglingNestedTiffIfdPointer(byte[] source) {

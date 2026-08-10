@@ -9,12 +9,15 @@ internal static class OdfImageStore {
         if (data.Length == 0) throw new ArgumentException("Image data cannot be empty.", nameof(data));
         if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Image file name cannot be empty.", nameof(fileName));
 
-        string extension;
-        if (!OdfImageFormats.TryNormalizeStoredExtension(fileName, out extension)) {
-            if (!OfficeImageReader.TryIdentifyByContent(data, fileName, out OfficeImageInfo info) ||
-                !OdfImageFormats.TryGetExtension(info.Format, out extension)) {
-                throw new NotSupportedException("Supported image formats are PNG, JPEG, GIF, SVG, BMP, TIFF, and WebP.");
-            }
+        if (!OfficeImageReader.TryValidateContent(data, fileName, out OfficeImageInfo info)) {
+            throw new ArgumentException("Image data must contain a complete supported image payload.", nameof(data));
+        }
+        if (!OdfImageFormats.TryGetExtension(info.Format, out string extension)) {
+            throw new NotSupportedException("Supported image formats are PNG, JPEG, GIF, SVG, BMP, TIFF, and WebP.");
+        }
+        if (OdfImageFormats.TryNormalizeStoredExtension(fileName, out string declaredExtension) &&
+            !string.Equals(declaredExtension, extension, StringComparison.Ordinal)) {
+            throw new ArgumentException("Image file extension does not match the detected payload format.", nameof(fileName));
         }
         OdfImageFormats.TryGetMediaType(extension, out string mediaType);
         string hash;

@@ -69,10 +69,8 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                DocumentFormat.OpenXml.OpenXmlCompositeElement? branch = alternateContent
-                    .ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
-                branch ??= alternateContent.ChildElements
-                    .OfType<AlternateContentFallback>().FirstOrDefault();
+                DocumentFormat.OpenXml.OpenXmlCompositeElement? branch =
+                    WordAlternateContentResolver.SelectBranch(alternateContent);
                 if (branch == null) continue;
                 foreach (DocumentFormat.OpenXml.OpenXmlElement branchChild in branch.ChildElements) {
                     yield return branchChild;
@@ -163,23 +161,18 @@ namespace OfficeIMO.Word {
                     // Legacy text boxes wrapped in AlternateContent (Word 2007)
                     bool choiceHasOnlyShape = false;
                     foreach (var ac in _run.ChildElements.OfType<AlternateContent>()) {
-                        var choice = ac.ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
-                        if (choice is not null) {
-                            bool choiceHasTextBox = choice.Descendants<Wps.TextBoxInfo2>().Any() || choice.Descendants<V.TextBox>().Any();
-                            if (choiceHasTextBox) {
+                        DocumentFormat.OpenXml.OpenXmlCompositeElement? branch =
+                            WordAlternateContentResolver.SelectBranch(ac);
+                        if (branch is not null) {
+                            bool branchHasTextBox = branch.Descendants<Wps.TextBoxInfo2>().Any() || branch.Descendants<V.TextBox>().Any();
+                            if (branchHasTextBox) {
                                 return new WordTextBox(_document, _paragraph, _run);
                             }
-                            bool hasShape = choice.Descendants<Wps.WordprocessingShape>().Any() ||
-                                choice.Descendants<V.Shape>().Any(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any());
+                            bool hasShape = branch.Descendants<Wps.WordprocessingShape>().Any() ||
+                                branch.Descendants<V.Shape>().Any(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any());
                             if (hasShape) {
                                 choiceHasOnlyShape = true;
                                 continue;
-                            }
-                        }
-                        var fallback = ac.ChildElements.OfType<AlternateContentFallback>().FirstOrDefault();
-                        if (fallback is not null) {
-                            if (fallback.Descendants<Wps.TextBoxInfo2>().Any() || fallback.Descendants<V.TextBox>().Any()) {
-                                return new WordTextBox(_document, _paragraph, _run);
                             }
                         }
                     }
@@ -219,20 +212,10 @@ namespace OfficeIMO.Word {
                     var drawing = _run.ChildElements.OfType<WordDrawing>().FirstOrDefault();
                     if (drawing is null) {
                         foreach (var ac in _run.ChildElements.OfType<AlternateContent>()) {
-                            var choice = ac.ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
-                            if (choice is not null) {
-                                drawing = choice.Descendants<WordDrawing>().FirstOrDefault();
-                                if (drawing is not null) {
-                                    break;
-                                }
-                            }
-                            var fallback = ac.ChildElements.OfType<AlternateContentFallback>().FirstOrDefault();
-                            if (fallback is not null) {
-                                drawing = fallback.Descendants<WordDrawing>().FirstOrDefault();
-                                if (drawing is not null) {
-                                    break;
-                                }
-                            }
+                            DocumentFormat.OpenXml.OpenXmlCompositeElement? branch =
+                                WordAlternateContentResolver.SelectBranch(ac);
+                            drawing = branch?.Descendants<WordDrawing>().FirstOrDefault();
+                            if (drawing is not null) break;
                         }
                     }
                     if (drawing is not null) {

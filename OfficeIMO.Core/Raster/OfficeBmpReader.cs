@@ -8,7 +8,10 @@ namespace OfficeIMO.Drawing;
 public static class OfficeBmpReader {
     private const int BitmapFileHeaderSize = 14;
     private const int BitmapInfoHeaderSize = 40;
+    private const int BitmapV5HeaderSize = 124;
     private const int BiRgbCompression = 0;
+    private const uint ProfileLinked = 0x4C494E4B;
+    private const uint ProfileEmbedded = 0x4D424544;
 
     /// <summary>
     /// Attempts to decode an uncompressed BMP image into an RGBA raster buffer.
@@ -53,7 +56,9 @@ public static class OfficeBmpReader {
             if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out _)) return false;
             bool topDown = signedHeight < 0;
             int rowStride = checked(((width * bitsPerPixel) + 31) / 32 * 4);
-            if (pixelOffset + ((long)rowStride * height) > bytes.Length) {
+            long pixelLength = (long)rowStride * height;
+            if (pixelOffset + pixelLength > bytes.Length ||
+                !HasValidV5Profile(bytes, dibHeaderSize, pixelOffset, pixelLength)) {
                 return false;
             }
 
@@ -89,6 +94,42 @@ public static class OfficeBmpReader {
 
     private static uint ReadUInt32LittleEndian(byte[] bytes, int offset) =>
         (uint)(bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24));
+
+    private static bool HasValidV5Profile(
+        byte[] bytes,
+        int dibHeaderSize,
+        int pixelOffset,
+        long pixelLength) {
+        if (dibHeaderSize != BitmapV5HeaderSize) return true;
+
+        const int colorSpaceTypeOffset = BitmapFileHeaderSize + 56;
+        uint colorSpaceType = ReadUInt32LittleEndian(bytes, colorSpaceTypeOffset);
+        if (colorSpaceType != ProfileLinked && colorSpaceType != ProfileEmbedded) return true;
+
+        uint relativeProfileOffset = ReadUInt32LittleEndian(bytes, BitmapFileHeaderSize + 112);
+        uint declaredProfileSize = ReadUInt32LittleEndian(bytes, BitmapFileHeaderSize + 116);
+        if (relativeProfileOffset < BitmapV5HeaderSize || relativeProfileOffset > int.MaxValue ||
+            declaredProfileSize == 0 || declaredProfileSize > int.MaxValue) {
+            return false;
+        }
+
+        int profileOffset = checked(BitmapFileHeaderSize + (int)relativeProfileOffset);
+        int profileSize = (int)declaredProfileSize;
+        if (profileOffset > bytes.Length - profileSize) return false;
+        int profileEnd = profileOffset + profileSize;
+        long pixelEnd = pixelOffset + pixelLength;
+        if (profileOffset < pixelEnd && profileEnd > pixelOffset) return false;
+
+        if (colorSpaceType == ProfileEmbedded) {
+            return OfficeIccProfileValidator.TryValidate(bytes, profileOffset, profileSize);
+        }
+
+        if (bytes[profileEnd - 1] != 0) return false;
+        for (int index = profileOffset; index < profileEnd - 1; index++) {
+            if (bytes[index] == 0) return false;
+        }
+        return true;
+    }
 
     private static bool HasNonZeroAlpha(byte[] bytes, int pixelOffset, int width, int height, int rowStride) {
         for (int y = 0; y < height; y++) {

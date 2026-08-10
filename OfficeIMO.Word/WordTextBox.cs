@@ -686,6 +686,7 @@ namespace OfficeIMO.Word {
 
             AlternateContent alternateContent1 = new AlternateContent();
             AlternateContentChoice alternateContentChoice1 = new AlternateContentChoice() { Requires = "wps" };
+            alternateContentChoice1.AddNamespaceDeclaration("wps", WordAlternateContentResolver.WordprocessingShapeNamespaceUri);
 
             DocumentFormat.OpenXml.Wordprocessing.Drawing drawing1;
             if (wrapTextImage == WordImageTextWrapping.InLineWithText) {

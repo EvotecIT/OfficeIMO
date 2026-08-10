@@ -188,7 +188,7 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
 
     [Fact]
     public void FlatImageExtractionPreservesSupportedMimeType() {
-        byte[] webp = { 0x52, 0x49, 0x46, 0x46, 0x04, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50 };
+        byte[] webp = OfficeWebpCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         OdtDocument document = OdtDocument.Create();
         document.AddParagraph().AddImage(webp, "pixel.webp",
             OdfLength.Centimeters(1), OdfLength.Centimeters(1));
@@ -223,6 +223,27 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         OdtImage image = reopened.Paragraphs.Single().Images.Single();
         Assert.EndsWith(".tiff", image.Path, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(tiff, image.GetImageBytes());
+    }
+
+    [Fact]
+    public void ImageStorageRejectsMismatchedOrMalformedSupportedPayloads() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] truncatedTiff = OfficeRasterImageEncoder.Encode(
+            new OfficeRasterImage(1, 1, OfficeColor.White),
+            OfficeImageExportFormat.Tiff);
+        Array.Resize(ref truncatedTiff, truncatedTiff.Length - 1);
+        OdtDocument document = OdtDocument.Create();
+
+        Assert.Throws<ArgumentException>(() => document.AddParagraph().AddImage(
+            png,
+            "photo.tiff",
+            OdfLength.Centimeters(1),
+            OdfLength.Centimeters(1)));
+        Assert.Throws<ArgumentException>(() => document.AddParagraph().AddImage(
+            truncatedTiff,
+            "broken.tiff",
+            OdfLength.Centimeters(1),
+            OdfLength.Centimeters(1)));
     }
 
     [Fact]
