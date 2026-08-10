@@ -263,8 +263,7 @@ namespace OfficeIMO.Word.Html {
                     size = pctWidth;
                     thisType = TableWidthUnitValues.Pct;
                 } else {
-                    var parser = new CssParser();
-                    var decl = parser.ParseDeclaration($"x:{widthText}");       
+                    var decl = ParseInlineDeclaration($"x:{widthText}");
                     if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int w)) {
                         size = w;
                         thisType = TableWidthUnitValues.Dxa;
@@ -393,8 +392,7 @@ namespace OfficeIMO.Word.Html {
                                 wordTable.Width = pctWidth;
                                 wordTable.WidthType = WordTableWidthUnit.Pct;
                             } else {
-                                var parser = new CssParser();
-                                var decl = parser.ParseDeclaration($"x:{value}");
+                                var decl = ParseInlineDeclaration($"x:{value}");
                                 if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int w)) {
                                     wordTable.Width = w;
                                     wordTable.WidthType = WordTableWidthUnit.Dxa;
@@ -402,32 +400,27 @@ namespace OfficeIMO.Word.Html {
                             }
                             break;
                         case "padding": {
-                                var parser = new CssParser();
-                                var decl = parser.ParseDeclaration($"x:{value}");
+                                var decl = ParseInlineDeclaration($"x:{value}");
                                 if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int p)) padTop = padRight = padBottom = padLeft = p;
                                 break;
                             }
                         case "padding-top": {
-                                var parser = new CssParser();
-                                var decl = parser.ParseDeclaration($"x:{value}");
+                                var decl = ParseInlineDeclaration($"x:{value}");
                                 if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pt)) padTop = pt;
                                 break;
                             }
                         case "padding-right": {
-                                var parser = new CssParser();
-                                var decl = parser.ParseDeclaration($"x:{value}");
+                                var decl = ParseInlineDeclaration($"x:{value}");
                                 if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pr)) padRight = pr;
                                 break;
                             }
                         case "padding-bottom": {
-                                var parser = new CssParser();
-                                var decl = parser.ParseDeclaration($"x:{value}");
+                                var decl = ParseInlineDeclaration($"x:{value}");
                                 if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pb)) padBottom = pb;
                                 break;
                             }
                         case "padding-left": {
-                                var parser = new CssParser();
-                                var decl = parser.ParseDeclaration($"x:{value}");
+                                var decl = ParseInlineDeclaration($"x:{value}");
                                 if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pl)) padLeft = pl;
                                 break;
                             }
@@ -524,8 +517,7 @@ namespace OfficeIMO.Word.Html {
                 return TryRoundTableCellSpacingTwips(pixels * 15, out twips);
             }
 
-            var parser = new CssParser();
-            var decl = parser.ParseDeclaration($"x:{token}");
+            var decl = ParseInlineDeclaration($"x:{token}");
             if (TryConvertToTwipAllowNegative(decl.GetProperty("x")?.RawValue, out twips)) {
                 return twips >= 0 && twips <= short.MaxValue;
             }
@@ -730,8 +722,7 @@ namespace OfficeIMO.Word.Html {
                                 cell.Width = pctWidth;
                                 cell.WidthType = WordTableWidthUnit.Pct;
                             } else {
-                                var parser = new CssParser();
-                                var decl = parser.ParseDeclaration($"x:{value}");
+                                var decl = ParseInlineDeclaration($"x:{value}");
                                 if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int w)) {
                                     cell.Width = w;
                                     cell.WidthType = WordTableWidthUnit.Dxa;
