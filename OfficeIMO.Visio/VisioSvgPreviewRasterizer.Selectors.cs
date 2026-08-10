@@ -104,7 +104,24 @@ namespace OfficeIMO.Visio {
                     string.Equals(candidate.Name.LocalName, name, StringComparison.Ordinal));
                 if (attribute == null) return SelectorMatch.NoMatch;
                 if (equals < 0) return SelectorMatch.Match;
-                string expected = trimmed.Substring(equals + 1).Trim().Trim('"', '\'');
+                string rawExpected = trimmed.Substring(equals + 1).Trim();
+                if (rawExpected.Length == 0) return SelectorMatch.Unsupported;
+                string expected;
+                if (rawExpected[0] == '"' || rawExpected[0] == '\'') {
+                    char quote = rawExpected[0];
+                    int closeQuote = rawExpected.IndexOf(quote, 1);
+                    if (closeQuote < 0 || rawExpected.Substring(closeQuote + 1).Trim().Length > 0) {
+                        // Attribute-selector value modifiers (for example `i` or `s`) are not
+                        // evaluated by this preview matcher. Keep them uncertain so active visual
+                        // effects are reported instead of silently treated as unmatched.
+                        return SelectorMatch.Unsupported;
+                    }
+                    expected = rawExpected.Substring(1, closeQuote - 1);
+                } else {
+                    int whitespace = rawExpected.IndexOfAny(new[] { ' ', '\t', '\r', '\n', '\f' });
+                    if (whitespace >= 0) return SelectorMatch.Unsupported;
+                    expected = rawExpected;
+                }
                 return string.Equals(attribute.Value, expected, StringComparison.Ordinal)
                     ? SelectorMatch.Match
                     : SelectorMatch.NoMatch;

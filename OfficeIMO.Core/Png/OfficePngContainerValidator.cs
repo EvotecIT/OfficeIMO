@@ -26,6 +26,7 @@ internal static class OfficePngContainerValidator {
             bool seenPalette = false;
             bool seenTransparency = false;
             bool seenPhysicalDimensions = false;
+            bool seenGamma = false;
             bool seenStandardRgb = false;
             bool seenIccProfile = false;
             int bitDepth = 0;
@@ -125,6 +126,14 @@ internal static class OfficePngContainerValidator {
                             return false;
                         }
                         seenPhysicalDimensions = true;
+                        break;
+                    case "gAMA":
+                        if (!seenHeader || seenPalette || seenImageData || seenGamma || length != 4 ||
+                            ReadBigEndianUInt32(bytes, dataOffset) == 0) {
+                            failureReason = "PNG bytes contain an invalid or misplaced gAMA chunk.";
+                            return false;
+                        }
+                        seenGamma = true;
                         break;
                     case "sRGB":
                         if (!seenHeader || seenPalette || seenImageData || seenStandardRgb || seenIccProfile || length != 1 ||

@@ -1,6 +1,8 @@
 namespace OfficeIMO.Word.Rtf;
 
 using OfficeIMO.Drawing;
+using System.Collections.Generic;
+using System.Linq;
 
 public static partial class WordRtfConverterExtensions {
     private const double PixelsPerTwip = 96D / 1440D;
@@ -17,12 +19,29 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static bool TryCopyImageBlocks(WordParagraph source, Func<RtfImage, RtfImage> addImage) {
+        if (source._paragraph.ChildElements.Any(child =>
+                child is not DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties &&
+                child is not DocumentFormat.OpenXml.Wordprocessing.Run)) {
+            return false;
+        }
+
+        List<DocumentFormat.OpenXml.Wordprocessing.Run> runs = source._paragraph
+            .Elements<DocumentFormat.OpenXml.Wordprocessing.Run>()
+            .ToList();
+        if (runs.Any(run => !string.IsNullOrEmpty(
+                new WordParagraph(source._document, source._paragraph, run).Text))) {
+            return false;
+        }
+
         bool copied = false;
-        foreach (WordImage wordImage in source.EnumerateImages()) {
-            RtfImage? image = CreateRtfImage(wordImage, out _);
-            if (image == null) continue;
-            CopyImage(image, addImage(image));
-            copied = true;
+        foreach (DocumentFormat.OpenXml.Wordprocessing.Run sourceRun in runs) {
+            var run = new WordParagraph(source._document, source._paragraph, sourceRun);
+            foreach (WordImage wordImage in run.EnumerateImages()) {
+                RtfImage? image = CreateRtfImage(wordImage, out _);
+                if (image == null) continue;
+                CopyImage(image, addImage(image));
+                copied = true;
+            }
         }
         return copied;
     }

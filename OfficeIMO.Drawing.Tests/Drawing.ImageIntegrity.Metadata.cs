@@ -7,6 +7,23 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Fact]
+    public void PngContainerRequiresOnePositiveGammaChunkBeforePaletteAndImageData() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] gamma = { 0, 0, 0xB1, 0x8F };
+        byte[] withGamma = InsertPngChunkBefore(png, "IDAT", "gAMA", gamma);
+        byte[] duplicate = InsertPngChunkBefore(withGamma, "IDAT", "gAMA", gamma);
+        byte[] misplaced = InsertPngChunkBefore(png, "IEND", "gAMA", gamma);
+        byte[] zero = InsertPngChunkBefore(png, "IDAT", "gAMA", new byte[4]);
+        byte[] wrongLength = InsertPngChunkBefore(png, "IDAT", "gAMA", new byte[3]);
+
+        Assert.True(OfficeImageReader.TryValidateContent(withGamma, "gamma.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(duplicate, "duplicate-gamma.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(misplaced, "misplaced-gamma.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(zero, "zero-gamma.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(wrongLength, "short-gamma.png", out _));
+    }
+
+    [Fact]
     public void PngContainerRequiresOneWellFormedIccProfileBeforePaletteAndImageData() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] compressedProfile = {

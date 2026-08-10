@@ -125,7 +125,7 @@ namespace OfficeIMO.Visio {
                         break;
                     }
 
-                    int close = normalized.IndexOf('}', open + 1);
+                    int close = FindMatchingBrace(normalized, open, cancellationToken);
                     if (close < 0) {
                         break;
                     }
@@ -135,8 +135,24 @@ namespace OfficeIMO.Visio {
                         break;
                     }
                     ruleCount++;
-                    string selectorList = normalized.Substring(index, open - index);
+                    string selectorList = normalized.Substring(index, open - index).Trim();
                     string declarationText = normalized.Substring(open + 1, close - open - 1);
+                    if (IsNestedRuleAtRule(selectorList)) {
+                        ReadRules(
+                            declarationText,
+                            rules,
+                            visualEffectRules,
+                            ref sourceOrder,
+                            ref ruleCount,
+                            ref declarationCount,
+                            ref selectorCount,
+                            ref ruleDeclarationCopies,
+                            cancellationToken,
+                            ref budgetExceeded);
+                        if (budgetExceeded) break;
+                        index = close + 1;
+                        continue;
+                    }
                     int candidateDeclarations = CountListItems(declarationText, ';');
                     int candidateSelectors = CountListItems(selectorList, ',');
                     if (candidateDeclarations > MaximumStyleDeclarations - declarationCount ||
@@ -170,6 +186,48 @@ namespace OfficeIMO.Visio {
 
                     index = close + 1;
                 }
+            }
+
+            private static int FindMatchingBrace(string value, int open, CancellationToken cancellationToken) {
+                int depth = 1;
+                char quote = '\0';
+                bool escaped = false;
+                for (int index = open + 1; index < value.Length; index++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    char current = value[index];
+                    if (quote != '\0') {
+                        if (escaped) {
+                            escaped = false;
+                        } else if (current == '\\') {
+                            escaped = true;
+                        } else if (current == quote) {
+                            quote = '\0';
+                        }
+                        continue;
+                    }
+                    if (current == '"' || current == '\'') {
+                        quote = current;
+                    } else if (current == '{') {
+                        depth++;
+                    } else if (current == '}' && --depth == 0) {
+                        return index;
+                    }
+                }
+                return -1;
+            }
+
+            private static bool IsNestedRuleAtRule(string prelude) {
+                if (prelude.Length == 0 || prelude[0] != '@') return false;
+                int end = 1;
+                while (end < prelude.Length && (char.IsLetter(prelude[end]) || prelude[end] == '-')) end++;
+                string name = prelude.Substring(1, end - 1);
+                return string.Equals(name, "media", StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(name, "supports", StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(name, "layer", StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(name, "container", StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(name, "scope", StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(name, "document", StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(name, "starting-style", StringComparison.OrdinalIgnoreCase);
             }
 
             private static int CountListItems(string value, char separator) {

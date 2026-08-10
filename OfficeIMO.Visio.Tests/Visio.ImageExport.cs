@@ -251,6 +251,8 @@ public class VisioImageExport {
     [InlineData("<style>svg > rect { mask: url(#mask); }</style>", "")]
     [InlineData("<style>* { filter: url(#blur); }</style>", "")]
     [InlineData("<style>[data-effect] { mask: url(#mask); }</style>", "data-effect='true'")]
+    [InlineData("<style>[data-mode=\"on\" i] { filter: url(#blur); }</style>", "data-mode='ON'")]
+    [InlineData("<style>@media all { .target { filter: url(#blur); } }</style>", "class='target'")]
     [InlineData("<style>rect:last-child { filter: url(#blur); }</style>", "")]
     [InlineData("<style>.maybe:nth-child(2) { filter: url(#blur); }</style>", "class='maybe'")]
     [InlineData("<style>#target { filter:url(#blur); } .c.c.c.c.c.c.c.c.c.c { filter:none; }</style>", "id='target' class='c'")]
