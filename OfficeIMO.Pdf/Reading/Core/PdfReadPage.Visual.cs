@@ -431,8 +431,7 @@ public sealed partial class PdfReadPage {
         var activeType3Glyphs = new HashSet<PdfStream>();
         renderedType3PaintOrders ??= new HashSet<double>();
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
-        var tilingPatternResourceCache =
-            new Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>();
+        var tilingPatternResourceCache = new TilingPatternResourceCache();
         string content = GetContentStreamContent(pageContentBudget);
         if (content.Length > 0) {
             CollectVisualPrimitivesAndForms(
@@ -499,7 +498,7 @@ public sealed partial class PdfReadPage {
         Action<PdfPageVisualPrimitive, PdfPageDrawingEffect>? type3PrimitiveVisitor = null,
         Action<OfficeDrawing, OfficeTransform, double, PdfContentOrderKey?, PdfPageDrawingEffect>? type3GroupVisitor = null,
         Action<PdfPageGraphicsStateResource, Matrix2D>? graphicsStateVisitor = null,
-        Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache = null,
+        TilingPatternResourceCache? tilingPatternResourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
         PdfContentOrderKey? contentOrderPrefix = null) {

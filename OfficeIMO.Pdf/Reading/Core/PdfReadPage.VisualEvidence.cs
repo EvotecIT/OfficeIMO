@@ -9,8 +9,7 @@ public sealed partial class PdfReadPage {
         var textOutputBudget = CreateTextOutputBudget();
         var visibilityBudget = new VisualGeometryBudget();
         var patternPaintCache = new Dictionary<PdfPageTilingPatternResource, bool>();
-        var tilingPatternResourceCache =
-            new Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>();
+        var tilingPatternResourceCache = new TilingPatternResourceCache();
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
         var pageContentBudget = new PageContentBudget(this);
