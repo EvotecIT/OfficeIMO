@@ -29,6 +29,7 @@ public sealed partial class PdfDocument {
         Pages = new PdfDocumentPages(this);
         Read = new PdfDocumentReader(this);
         Text = new PdfDocumentTextEditor(this);
+        Images = new PdfDocumentImageEditor(this);
         Stamp = new PdfDocumentStamper(this);
         Forms = new PdfDocumentForms(this);
         Attachments = new PdfDocumentAttachments(this);
@@ -135,6 +136,9 @@ public sealed partial class PdfDocument {
 
     /// <summary>Existing-page text search and editing operations.</summary>
     public PdfDocumentTextEditor Text { get; }
+
+    /// <summary>Existing-page image placement discovery and editing operations.</summary>
+    public PdfDocumentImageEditor Images { get; }
 
     /// <summary>Existing-document embedded and associated file editing operations.</summary>
     public PdfDocumentAttachments Attachments { get; }

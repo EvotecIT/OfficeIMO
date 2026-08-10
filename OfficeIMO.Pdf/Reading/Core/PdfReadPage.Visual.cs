@@ -954,12 +954,9 @@ public sealed partial class PdfReadPage {
             OfficeStrokeLineJoin? strokeLineJoin = ReadStrokeLineJoin(state);
             OfficeBlendMode? blendMode = ReadBlendMode(state);
             bool hasUnsupportedBlendMode = state.Items.ContainsKey("BM") && !blendMode.HasValue;
-            bool hasSoftMask = state.Items.ContainsKey("SMask");
-            PdfPageSoftMaskResource? softMask = hasSoftMask ? ReadSoftMask(state) : null;
-            bool clearsSoftMask = hasSoftMask &&
-                state.Items.TryGetValue("SMask", out PdfObject? authoredSoftMask) &&
-                ResolveObject(authoredSoftMask) is PdfName { Name: "None" };
-            bool unsupportedSoftMask = hasSoftMask && !clearsSoftMask && softMask == null;
+            bool? softMaskEnabled = ReadSoftMaskEnabled(state);
+            PdfPageSoftMaskResource? softMask = softMaskEnabled == true ? ReadSoftMask(state) : null;
+            bool unsupportedSoftMask = softMaskEnabled == true && softMask == null;
             bool unsupportedTextRestampEffect = HasUnsupportedTextRestampEffect(state);
             if (fillOpacity.HasValue ||
                 strokeOpacity.HasValue ||
@@ -971,8 +968,8 @@ public sealed partial class PdfReadPage {
                 hasUnsupportedBlendMode ||
                 unsupportedSoftMask ||
                 unsupportedTextRestampEffect ||
-                hasSoftMask) {
-                result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, blendMode, hasSoftMask, softMask, unsupportedSoftMask, hasUnsupportedBlendMode, unsupportedTextRestampEffect);
+                softMaskEnabled.HasValue) {
+                result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, blendMode, softMaskEnabled, softMask, unsupportedSoftMask, hasUnsupportedBlendMode, unsupportedTextRestampEffect);
             }
         }
 

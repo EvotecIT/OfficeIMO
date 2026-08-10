@@ -57,12 +57,14 @@ internal static class PdfPageXObjectInvocationParser {
         Action? unsupportedColorVisitor = null,
         Action<string>? visibleFontVisitor = null,
         Action<string>? patternInvocationVisitor = null,
-        Action<PdfPageGraphicsStateResource>? graphicsStateVisitor = null) {
+        Action<PdfPageGraphicsStateResource>? graphicsStateVisitor = null,
+        OfficeBlendMode initialBlendMode = OfficeBlendMode.Normal,
+        bool initialHasSoftMask = false) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor);
+        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor, initialBlendMode, initialHasSoftMask);
         return parser.Parse();
     }
 
@@ -152,13 +154,15 @@ internal static class PdfPageXObjectInvocationParser {
             Action? unsupportedColorVisitor,
             Action<string>? visibleFontVisitor,
             Action<string>? patternInvocationVisitor,
-            Action<PdfPageGraphicsStateResource>? graphicsStateVisitor) {
+            Action<PdfPageGraphicsStateResource>? graphicsStateVisitor,
+            OfficeBlendMode initialBlendMode,
+            bool initialHasSoftMask) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
             _colorSpaces = colorSpaces;
             _optionalContentVisibility = optionalContentVisibility;
-            _initialState = GraphicsState.Create(baseTransform, initialFillColor, initialFillColorSpace, initialFillOpacity, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin);
+            _initialState = GraphicsState.Create(baseTransform, initialFillColor, initialFillColorSpace, initialFillOpacity, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, initialBlendMode, initialHasSoftMask);
             _state = _initialState;
             _pageHeight = pageHeight;
             _paintOrderBase = paintOrderBase;
@@ -761,7 +765,7 @@ internal static class PdfPageXObjectInvocationParser {
                         _args.Count >= 1 &&
                         _args[_args.Count - 1] is string name &&
                         !string.IsNullOrEmpty(name)) {
-                        _invocations.Add(new PdfPageXObjectInvocation(name, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder));
+                        _invocations.Add(new PdfPageXObjectInvocation(name, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder, _state.BlendMode, _state.HasSoftMask));
                     }
 
                     break;
@@ -771,7 +775,7 @@ internal static class PdfPageXObjectInvocationParser {
                         var inlineImage = new PdfPageInlineImage(
                             "__inline" + (++_inlineImageIndex).ToString(CultureInfo.InvariantCulture),
                             stream);
-                        _invocations.Add(new PdfPageXObjectInvocation(inlineImage, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder));
+                        _invocations.Add(new PdfPageXObjectInvocation(inlineImage, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder, _state.BlendMode, _state.HasSoftMask));
                     }
 
                     break;
@@ -954,7 +958,7 @@ internal static class PdfPageXObjectInvocationParser {
             if (!HasHiddenContent()) _graphicsStateVisitor?.Invoke(resource);
             if (!HasHiddenContent() &&
                 ((resource.BlendMode.HasValue && resource.BlendMode.Value != OfficeBlendMode.Normal) ||
-                 (resource.HasSoftMask && resource.SoftMask != null) ||
+                 (resource.SoftMaskEnabled == true && resource.SoftMask != null) ||
                  resource.HasUnsupportedSoftMask ||
                  resource.HasUnsupportedBlendMode)) {
                 _unsupportedGraphicsEffectVisitor?.Invoke();
@@ -1215,7 +1219,9 @@ internal static class PdfPageXObjectInvocationParser {
             double strokeWidth,
             OfficeStrokeDashStyle? strokeDashStyle,
             OfficeStrokeLineCap? strokeLineCap,
-            OfficeStrokeLineJoin? strokeLineJoin) {
+            OfficeStrokeLineJoin? strokeLineJoin,
+            OfficeBlendMode blendMode,
+            bool hasSoftMask) {
             Transform = transform;
             ClipPath = clipPath;
             FillColor = fillColor;
@@ -1228,6 +1234,8 @@ internal static class PdfPageXObjectInvocationParser {
             StrokeDashStyle = strokeDashStyle;
             StrokeLineCap = strokeLineCap;
             StrokeLineJoin = strokeLineJoin;
+            BlendMode = blendMode;
+            HasSoftMask = hasSoftMask;
         }
 
         public Matrix2D Transform { get; }
@@ -1254,8 +1262,12 @@ internal static class PdfPageXObjectInvocationParser {
 
         public OfficeStrokeLineJoin? StrokeLineJoin { get; }
 
+        public OfficeBlendMode BlendMode { get; }
+
+        public bool HasSoftMask { get; }
+
         public static GraphicsState Create(Matrix2D transform) =>
-            Create(transform, null, PdfPageColorSpaceKind.DeviceGray, null, null, null, PdfPageColorSpaceKind.DeviceGray, null, null, null, null, null);
+            Create(transform, null, PdfPageColorSpaceKind.DeviceGray, null, null, null, PdfPageColorSpaceKind.DeviceGray, null, null, null, null, null, OfficeBlendMode.Normal, false);
 
         public static GraphicsState Create(
             Matrix2D transform,
@@ -1269,7 +1281,9 @@ internal static class PdfPageXObjectInvocationParser {
             double? strokeWidth,
             OfficeStrokeDashStyle? strokeDashStyle,
             OfficeStrokeLineCap? strokeLineCap,
-            OfficeStrokeLineJoin? strokeLineJoin) =>
+            OfficeStrokeLineJoin? strokeLineJoin,
+            OfficeBlendMode blendMode,
+            bool hasSoftMask) =>
             new GraphicsState(
                 transform,
                 clipPath,
@@ -1282,31 +1296,33 @@ internal static class PdfPageXObjectInvocationParser {
                 strokeWidth.HasValue ? ResolveStrokeWidth(strokeWidth.Value) : 1D,
                 strokeDashStyle,
                 strokeLineCap,
-                strokeLineJoin);
+                strokeLineJoin,
+                blendMode,
+                hasSoftMask);
 
-        public GraphicsState WithTransform(Matrix2D transform) => new GraphicsState(transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin);
+        public GraphicsState WithTransform(Matrix2D transform) => new GraphicsState(transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, BlendMode, HasSoftMask);
 
-        public GraphicsState WithClipPath(PdfPageClipPath clipPath) => new GraphicsState(Transform, clipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin);
+        public GraphicsState WithClipPath(PdfPageClipPath clipPath) => new GraphicsState(Transform, clipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, BlendMode, HasSoftMask);
 
-        public GraphicsState WithFillColor(OfficeColor color) => new GraphicsState(Transform, ClipPath, color, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin);
+        public GraphicsState WithFillColor(OfficeColor color) => new GraphicsState(Transform, ClipPath, color, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, BlendMode, HasSoftMask);
 
-        public GraphicsState WithFillColor(OfficeColor color, PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, color, colorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin);
+        public GraphicsState WithFillColor(OfficeColor color, PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, color, colorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, BlendMode, HasSoftMask);
 
-        public GraphicsState WithFillColorSpace(PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, FillColor, colorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin);
+        public GraphicsState WithFillColorSpace(PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, FillColor, colorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, BlendMode, HasSoftMask);
 
-        public GraphicsState WithStrokeColor(OfficeColor color) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, color, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin);
+        public GraphicsState WithStrokeColor(OfficeColor color) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, color, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, BlendMode, HasSoftMask);
 
-        public GraphicsState WithStrokeColor(OfficeColor color, PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, color, colorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin);
+        public GraphicsState WithStrokeColor(OfficeColor color, PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, color, colorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, BlendMode, HasSoftMask);
 
-        public GraphicsState WithStrokeColorSpace(PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, colorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin);
+        public GraphicsState WithStrokeColorSpace(PdfPageColorSpace colorSpace) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, colorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, BlendMode, HasSoftMask);
 
-        public GraphicsState WithStrokeWidth(double strokeWidth) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, strokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin);
+        public GraphicsState WithStrokeWidth(double strokeWidth) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, strokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, BlendMode, HasSoftMask);
 
-        public GraphicsState WithStrokeDashStyle(OfficeStrokeDashStyle? strokeDashStyle) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, strokeDashStyle, StrokeLineCap, StrokeLineJoin);
+        public GraphicsState WithStrokeDashStyle(OfficeStrokeDashStyle? strokeDashStyle) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, strokeDashStyle, StrokeLineCap, StrokeLineJoin, BlendMode, HasSoftMask);
 
-        public GraphicsState WithStrokeLineCap(OfficeStrokeLineCap? strokeLineCap) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, strokeLineCap, StrokeLineJoin);
+        public GraphicsState WithStrokeLineCap(OfficeStrokeLineCap? strokeLineCap) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, strokeLineCap, StrokeLineJoin, BlendMode, HasSoftMask);
 
-        public GraphicsState WithStrokeLineJoin(OfficeStrokeLineJoin? strokeLineJoin) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, strokeLineJoin);
+        public GraphicsState WithStrokeLineJoin(OfficeStrokeLineJoin? strokeLineJoin) => new GraphicsState(Transform, ClipPath, FillColor, FillColorSpace, FillOpacity, StrokeColor, StrokeColorSpace, StrokeOpacity, StrokeWidth, StrokeDashStyle, StrokeLineCap, strokeLineJoin, BlendMode, HasSoftMask);
 
         public GraphicsState WithGraphicsStateResource(PdfPageGraphicsStateResource resource) =>
             new GraphicsState(
@@ -1321,7 +1337,9 @@ internal static class PdfPageXObjectInvocationParser {
                 resource.StrokeWidth.HasValue ? ResolveStrokeWidth(resource.StrokeWidth.Value) : StrokeWidth,
                 resource.StrokeDashStyle ?? StrokeDashStyle,
                 resource.StrokeLineCap ?? StrokeLineCap,
-                resource.StrokeLineJoin ?? StrokeLineJoin);
+                resource.StrokeLineJoin ?? StrokeLineJoin,
+                resource.BlendMode ?? BlendMode,
+                resource.SoftMaskEnabled ?? HasSoftMask);
     }
 }
 
@@ -1340,7 +1358,9 @@ internal readonly struct PdfPageXObjectInvocation {
         OfficeStrokeDashStyle? strokeDashStyle,
         OfficeStrokeLineCap? strokeLineCap,
         OfficeStrokeLineJoin? strokeLineJoin,
-        double paintOrder = 0D) {
+        double paintOrder = 0D,
+        OfficeBlendMode blendMode = OfficeBlendMode.Normal,
+        bool hasSoftMask = false) {
         Name = name;
         InlineImage = null;
         Transform = transform;
@@ -1356,6 +1376,8 @@ internal readonly struct PdfPageXObjectInvocation {
         StrokeLineCap = strokeLineCap;
         StrokeLineJoin = strokeLineJoin;
         PaintOrder = paintOrder;
+        BlendMode = blendMode;
+        HasSoftMask = hasSoftMask;
     }
 
     public PdfPageXObjectInvocation(
@@ -1372,7 +1394,9 @@ internal readonly struct PdfPageXObjectInvocation {
         OfficeStrokeDashStyle? strokeDashStyle,
         OfficeStrokeLineCap? strokeLineCap,
         OfficeStrokeLineJoin? strokeLineJoin,
-        double paintOrder = 0D) {
+        double paintOrder = 0D,
+        OfficeBlendMode blendMode = OfficeBlendMode.Normal,
+        bool hasSoftMask = false) {
         Name = inlineImage.ResourceName;
         InlineImage = inlineImage;
         Transform = transform;
@@ -1388,6 +1412,8 @@ internal readonly struct PdfPageXObjectInvocation {
         StrokeLineCap = strokeLineCap;
         StrokeLineJoin = strokeLineJoin;
         PaintOrder = paintOrder;
+        BlendMode = blendMode;
+        HasSoftMask = hasSoftMask;
     }
 
     public string Name { get; }
@@ -1419,4 +1445,8 @@ internal readonly struct PdfPageXObjectInvocation {
     public OfficeStrokeLineJoin? StrokeLineJoin { get; }
 
     public double PaintOrder { get; }
+
+    public OfficeBlendMode BlendMode { get; }
+
+    public bool HasSoftMask { get; }
 }

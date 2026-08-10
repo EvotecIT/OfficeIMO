@@ -1100,7 +1100,9 @@ internal static partial class ResourceResolver {
             transparencyMaskResolved,
             directStreamIdentity,
             isImageMask,
-            imageMaskColor ?? OfficeColor.Black);
+            imageMaskColor ?? OfficeColor.Black,
+            stream.Dictionary.Items.ContainsKey("Decode"),
+            stream.Dictionary.Items.ContainsKey("DecodeParms") || stream.Dictionary.Items.ContainsKey("DP"));
     }
 
     private static string? GetTransparencyMaskKind(PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {

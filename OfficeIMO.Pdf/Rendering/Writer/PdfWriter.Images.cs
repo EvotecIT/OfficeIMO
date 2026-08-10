@@ -207,6 +207,30 @@ internal static partial class PdfWriter {
         return true;
     }
 
+    internal static bool TryGetJpegComponentCount(byte[] data, out int componentCount) {
+        componentCount = 0;
+        if (data == null || data.Length < 4 || data[0] != 0xFF || data[1] != 0xD8) return false;
+        int offset = 2;
+        while (offset < data.Length) {
+            if (data[offset] != 0xFF) return false;
+            while (offset < data.Length && data[offset] == 0xFF) offset++;
+            if (offset >= data.Length) return false;
+            byte marker = data[offset++];
+            if (marker == 0xD9 || marker == 0xDA) return false;
+            if (marker == 0x01 || (marker >= 0xD0 && marker <= 0xD7)) continue;
+            if (marker == 0x00 || marker == 0xD8 || offset + 2 > data.Length) return false;
+            int segmentLength = (data[offset] << 8) | data[offset + 1];
+            if (segmentLength < 2 || (long)offset + segmentLength > data.Length) return false;
+            if (marker is 0xC0 or 0xC1 or 0xC2 or 0xC3 or 0xC5 or 0xC6 or 0xC7 or 0xC9 or 0xCA or 0xCB or 0xCD or 0xCE or 0xCF) {
+                if (segmentLength < 8) return false;
+                componentCount = data[offset + 7];
+                return componentCount > 0;
+            }
+            offset += segmentLength;
+        }
+        return false;
+    }
+
     private static bool TryValidatePngPassThroughData(byte[] compressedData, int width, int height, int colors, out string? unsupportedReason) {
         if (!TryDecodePngData(compressedData, out byte[] decoded, out unsupportedReason)) {
             return false;
@@ -795,11 +819,21 @@ internal static partial class PdfWriter {
 
         int pixelWidth = info.Width > 0 ? info.Width : Math.Max(1, (int)Math.Round(fallbackWidth));
         int pixelHeight = info.Height > 0 ? info.Height : Math.Max(1, (int)Math.Round(fallbackHeight));
+        string colorSpace = "/DeviceRGB";
+        if (TryGetJpegComponentCount(data, out int componentCount)) {
+            if (componentCount == 1) colorSpace = "/DeviceGray";
+            else if (componentCount == 4) colorSpace = "/DeviceCMYK";
+            else if (componentCount != 3) {
+                unsupportedReason = "JPEG component count is not supported for PDF embedding.";
+                image = new PdfImageStream();
+                return false;
+            }
+        }
         image = new PdfImageStream {
             Data = data,
             PixelWidth = pixelWidth,
             PixelHeight = pixelHeight,
-            DictionarySuffix = " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode"
+            DictionarySuffix = " /ColorSpace " + colorSpace + " /BitsPerComponent 8 /Filter /DCTDecode"
         };
         return true;
     }

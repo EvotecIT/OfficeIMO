@@ -629,6 +629,39 @@ Replacement uses the closest standard PDF font unless the caller selects one;
 `PdfTextEditResult.Warnings` reports source-font substitutions that can change
 metrics or letterforms.
 
+### Find and edit existing page images
+
+Image placement coordinates also use PDF points from the page bottom-left.
+Discover placements through the editor, then remove, replace, or move one exact
+invocation without deleting overlapping text, paths, annotations, or unrelated
+images:
+
+```csharp
+PdfDocument document = PdfDocument.Open("contract.pdf");
+PdfImagePlacement logo = document.Images.Find(
+    new PdfPageRegion(pageNumber: 1, x: 36, y: 720, width: 180, height: 60)).Single();
+
+PdfImageEditResult updated = document.Images.Replace(
+    logo,
+    File.ReadAllBytes("new-logo.png"),
+    new PdfImageEditOptions { Layer = PdfImageEditLayer.AboveExistingContent });
+
+PdfImagePlacement replacement = updated.Document.Images.Find(
+    new PdfPageRegion(1, 36, 720, 180, 60)).Single();
+
+updated.Document.Images.Move(replacement, deltaX: 12, deltaY: -8)
+    .Document
+    .Save("contract-with-new-logo.pdf");
+```
+
+`Images.Add(...)` fits a new image to a page region. Replacement and movement
+preserve position, size, and rotation when the source transform is portable;
+callers explicitly choose whether rewritten content is above or behind existing
+page content. The editor fails closed for ambiguous placements and for source
+clipping, opacity, skew/reflection, unresolved transparency, image-mask, raw
+payload, or inline-image semantics that cannot be reproduced safely. Exact
+XObject removal remains available for rotated and skewed placements.
+
 ### Fill and flatten a PDF form
 
 ```csharp
