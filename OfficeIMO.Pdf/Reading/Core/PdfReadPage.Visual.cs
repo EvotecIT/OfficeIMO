@@ -708,8 +708,11 @@ public sealed partial class PdfReadPage {
                 if (requireSupportedType3Content && formDictionary.Items.ContainsKey("Group")) {
                     if (!allowSupportedType3TransparencyGroups ||
                         type3GroupVisitor == null ||
-                        !IsSupportedType3TransparencyGroup(formDictionary) ||
-                        !TryCreateType3TransparencyGroupDrawing(
+                        !IsSupportedType3TransparencyGroup(formDictionary)) {
+                        type3GlyphBudget.RecordFailure();
+                        continue;
+                    }
+                    Type3TransparencyGroupDrawingResult groupResult = TryCreateType3TransparencyGroupDrawing(
                             decodedFormContent,
                             formDictionary,
                             formResources,
@@ -731,10 +734,12 @@ public sealed partial class PdfReadPage {
                             contentNestingDepth,
                             formOrderPrefix,
                             out OfficeDrawing? groupDrawing,
-                            out OfficeTransform groupTransform)) {
+                            out OfficeTransform groupTransform);
+                    if (groupResult == Type3TransparencyGroupDrawingResult.Unsupported) {
                         type3GlyphBudget.RecordFailure();
                         continue;
                     }
+                    if (groupResult == Type3TransparencyGroupDrawingResult.Invisible) continue;
                     type3GroupVisitor(groupDrawing, groupTransform, invocation.PaintOrder, formOrderPrefix, PdfPageDrawingEffect.Default);
                     continue;
                 }
