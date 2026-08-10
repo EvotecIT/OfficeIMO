@@ -410,6 +410,24 @@ public class CsvMappingTests
     }
 
     [Fact]
+    public void Parallel_Automatic_Mapping_Falls_Back_When_Typed_Getters_Are_Unsupported()
+    {
+        using var reader = new ThrowingGetValuesDataReader(
+            ["Id", "Name"],
+            [[1, "Alpha"], [2, "Beta"]],
+            throwOnTypedGetters: true);
+
+        Person[] rows = reader.RowsAsParallel<Person>(
+            new ParallelRowMappingOptions {
+                MaxDegreeOfParallelism = 2,
+                BatchSize = 1
+            }).ToArray();
+
+        Assert.Equal(new[] { 1, 2 }, rows.Select(row => row.Id));
+        Assert.Equal(new[] { "Alpha", "Beta" }, rows.Select(row => row.Name));
+    }
+
+    [Fact]
     public void Degree_One_Cancellation_Happens_Before_Invoking_The_Factory()
     {
         using var cancellation = new CancellationTokenSource();

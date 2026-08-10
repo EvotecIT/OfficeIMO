@@ -291,6 +291,8 @@ internal sealed class AutomaticRowMappingPlan<
                 } catch (InvalidCastException) {
                 } catch (FormatException) {
                 } catch (OverflowException) {
+                } catch (NotSupportedException) {
+                } catch (NotImplementedException) {
                 }
             }
             object value = reader.GetValue(ordinal);

@@ -47,6 +47,42 @@ public sealed class ParallelRowMappingOptions {
 
 /// <summary>Ordered parallel typed projections over forward-only data readers.</summary>
 public static class ParallelRowMappingExtensions {
+    internal static bool TryCreateIndependentSnapshotPlan(
+        IDataRecord reader,
+        out bool[] cloneColumns) {
+        cloneColumns = new bool[reader.FieldCount];
+        for (int ordinal = 0; ordinal < cloneColumns.Length; ordinal++) {
+            Type fieldType;
+            try {
+                fieldType = reader.GetFieldType(ordinal);
+            } catch (NotSupportedException) {
+                return false;
+            } catch (NotImplementedException) {
+                return false;
+            }
+
+            Type type = Nullable.GetUnderlyingType(fieldType) ?? fieldType;
+            if (!IsIndependentFieldType(fieldType)) return false;
+            cloneColumns[ordinal] = type == typeof(byte[]) || type == typeof(char[]);
+        }
+        return true;
+    }
+
+    private static bool IsIndependentFieldType(Type fieldType) {
+        Type type = Nullable.GetUnderlyingType(fieldType) ?? fieldType;
+        if (type.IsEnum || type.IsPrimitive) return true;
+        if (type == typeof(string) || type == typeof(decimal) ||
+            type == typeof(DateTime) || type == typeof(DateTimeOffset) ||
+            type == typeof(TimeSpan) || type == typeof(Guid) ||
+            type == typeof(DBNull) || type == typeof(byte[]) || type == typeof(char[])) {
+            return true;
+        }
+#if NET6_0_OR_GREATER
+        if (type == typeof(DateOnly) || type == typeof(TimeOnly)) return true;
+#endif
+        return false;
+    }
+
     internal static IEnumerable<T> RowsAsParallelValues<T>(
         this DbDataReader reader,
         Func<object?[], T> map,
@@ -739,9 +775,13 @@ public static class ParallelRowMappingExtensions {
     }
 
     private sealed class RowSnapshotSchema {
+        private const DynamicallyAccessedMemberTypes CapturedFieldTypeMembers =
+            DynamicallyAccessedMemberTypes.PublicFields |
+            DynamicallyAccessedMemberTypes.PublicProperties;
+
         private RowSnapshotSchema(
             string[] names,
-            Type[] fieldTypes,
+            RowSnapshotFieldType[] fieldTypes,
             string[] dataTypeNames,
             CultureInfo culture) {
             Names = names;
@@ -751,7 +791,7 @@ public static class ParallelRowMappingExtensions {
         }
 
         internal string[] Names { get; }
-        internal Type[] FieldTypes { get; }
+        internal RowSnapshotFieldType[] FieldTypes { get; }
         internal string[] DataTypeNames { get; }
         internal CultureInfo Culture { get; }
         internal bool HasOnlyIndependentFieldTypes { get; private set; }
@@ -759,12 +799,12 @@ public static class ParallelRowMappingExtensions {
         internal static RowSnapshotSchema? TryCapture(DbDataReader reader) {
             int fieldCount = reader.FieldCount;
             var names = new string[fieldCount];
-            var fieldTypes = new Type[fieldCount];
+            var fieldTypes = new RowSnapshotFieldType[fieldCount];
             var dataTypeNames = new string[fieldCount];
             try {
                 for (int ordinal = 0; ordinal < fieldCount; ordinal++) {
                     names[ordinal] = reader.GetName(ordinal);
-                    fieldTypes[ordinal] = reader.GetFieldType(ordinal);
+                    fieldTypes[ordinal] = new RowSnapshotFieldType(reader.GetFieldType(ordinal));
                     dataTypeNames[ordinal] = reader.GetDataTypeName(ordinal);
                 }
             } catch (NotSupportedException) {
@@ -776,39 +816,22 @@ public static class ParallelRowMappingExtensions {
                 ? metadata.MappingCulture
                 : CultureInfo.InvariantCulture;
             var schema = new RowSnapshotSchema(names, fieldTypes, dataTypeNames, culture) {
-                HasOnlyIndependentFieldTypes = fieldTypes.All(IsIndependentFieldType)
+                HasOnlyIndependentFieldTypes = fieldTypes.All(
+                    fieldType => IsIndependentFieldType(fieldType.Value))
             };
             return schema;
         }
 
         internal static bool ReaderHasOnlyIndependentFieldTypes(DbDataReader reader) {
-            for (int ordinal = 0; ordinal < reader.FieldCount; ordinal++) {
-                Type fieldType;
-                try {
-                    fieldType = reader.GetFieldType(ordinal);
-                } catch (NotSupportedException) {
-                    return false;
-                } catch (NotImplementedException) {
-                    return false;
-                }
-                if (!IsIndependentFieldType(fieldType)) return false;
-            }
-            return true;
+            return TryCreateIndependentSnapshotPlan(reader, out _);
         }
 
-        private static bool IsIndependentFieldType(Type fieldType) {
-            Type type = Nullable.GetUnderlyingType(fieldType) ?? fieldType;
-            if (type.IsEnum || type.IsPrimitive) return true;
-            if (type == typeof(string) || type == typeof(decimal) ||
-                type == typeof(DateTime) || type == typeof(DateTimeOffset) ||
-                type == typeof(TimeSpan) || type == typeof(Guid) ||
-                type == typeof(DBNull) || type == typeof(byte[]) || type == typeof(char[])) {
-                return true;
-            }
-#if NET6_0_OR_GREATER
-            if (type == typeof(DateOnly) || type == typeof(TimeOnly)) return true;
-#endif
-            return false;
+        internal sealed class RowSnapshotFieldType {
+            internal RowSnapshotFieldType(
+                [DynamicallyAccessedMembers(CapturedFieldTypeMembers)] Type value) => Value = value;
+
+            [DynamicallyAccessedMembers(CapturedFieldTypeMembers)]
+            internal Type Value { get; }
         }
     }
 
@@ -842,7 +865,10 @@ public static class ParallelRowMappingExtensions {
         public IDataReader GetData(int i) => throw new NotSupportedException(
             "Nested data readers are not eligible for independent parallel row snapshots.");
         public string GetDataTypeName(int i) => _schema.DataTypeNames[ValidateOrdinal(i)];
-        public Type GetFieldType(int i) => _schema.FieldTypes[ValidateOrdinal(i)];
+        [return: DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicFields |
+            DynamicallyAccessedMemberTypes.PublicProperties)]
+        public Type GetFieldType(int i) => _schema.FieldTypes[ValidateOrdinal(i)].Value;
         public string GetName(int i) => _schema.Names[ValidateOrdinal(i)];
 
         public int GetOrdinal(string name) {

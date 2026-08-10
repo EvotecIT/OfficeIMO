@@ -117,6 +117,25 @@ public class CsvParallelWriteTests
     }
 
     [Fact]
+    public void WriteDataReaderParallel_SnapshotsUnsafeProviderValuesSequentially()
+    {
+        var shared = new MutableFormattable();
+        using var reader = new ThrowingGetValuesDataReader(
+            ["Value"],
+            [[shared], [shared], [shared]],
+            rowIndex => shared.Value = ((char)('A' + rowIndex)).ToString(CultureInfo.InvariantCulture));
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+
+        CsvDocument.WriteDataReaderParallel(
+            writer,
+            reader,
+            new CsvSaveOptions { NewLine = "\n" },
+            new CsvWriteParallelOptions { MaxDegreeOfParallelism = 2, BatchSize = 3 });
+
+        Assert.Equal("Value\nA\nB\nC\n", writer.ToString());
+    }
+
+    [Fact]
     public void WriteDataReaderParallel_EmptyReaderMatchesSequentialHeader()
     {
         using var table = new DataTable("Empty");
@@ -363,6 +382,15 @@ public class CsvParallelWriteTests
             throw new InvalidOperationException("format failed");
 
         public override string ToString() => throw new InvalidOperationException("format failed");
+    }
+
+    private sealed class MutableFormattable : IFormattable
+    {
+        internal string Value { get; set; } = string.Empty;
+
+        public string ToString(string? format, IFormatProvider? formatProvider) => Value;
+
+        public override string ToString() => Value;
     }
 
     private sealed class CancelingFormattable : IFormattable

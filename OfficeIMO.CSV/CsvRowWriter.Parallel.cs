@@ -5,6 +5,7 @@ using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using OfficeIMO.Data;
 
 namespace OfficeIMO.CSV;
 
@@ -20,8 +21,9 @@ public sealed partial class CsvRowWriter
     /// <remarks>
     /// Data readers are consumed by one thread. Only detached row formatting runs
     /// concurrently, so providers do not need to support concurrent access. The
-    /// pipeline retains at most two row batches. Custom values and format providers
-    /// used during formatting must be safe for concurrent read-only use.
+    /// pipeline retains at most two row batches and clones mutable byte and character
+    /// arrays before formatting. Readers that expose custom or otherwise unsafe field
+    /// types use the established sequential writer to preserve provider-owned values.
     /// </remarks>
     public void WriteDataReaderParallel(
         IDataReader reader,
@@ -48,6 +50,14 @@ public sealed partial class CsvRowWriter
         if (fieldCount <= 0)
         {
             throw new InvalidOperationException("Data reader must expose at least one field.");
+        }
+
+        if (!ParallelRowMappingExtensions.TryCreateIndependentSnapshotPlan(
+                reader,
+                out bool[] cloneColumns))
+        {
+            WriteDataReader(reader, cancellationToken);
+            return;
         }
 
         var columns = new string[fieldCount];
@@ -79,6 +89,7 @@ public sealed partial class CsvRowWriter
                 reader,
                 currentRows,
                 fieldCount,
+                cloneColumns,
                 ref useBulkValues,
                 cancellationToken);
             while (currentRowCount != 0)
@@ -98,6 +109,7 @@ public sealed partial class CsvRowWriter
                             reader,
                             nextRows,
                             fieldCount,
+                            cloneColumns,
                             ref useBulkValues,
                             cancellationToken,
                             formattingTasks)
@@ -142,6 +154,7 @@ public sealed partial class CsvRowWriter
         IDataReader reader,
         object[][] rows,
         int fieldCount,
+        bool[] cloneColumns,
         ref bool useBulkValues,
         CancellationToken cancellationToken,
         Task[]? concurrentFormattingTasks = null)
@@ -161,6 +174,7 @@ public sealed partial class CsvRowWriter
             object[] values = rows[rowCount];
             if (useBulkValues && TryGetReaderValues(reader, values))
             {
+                CloneMutableParallelValues(values, cloneColumns);
                 rowCount++;
                 continue;
             }
@@ -171,10 +185,32 @@ public sealed partial class CsvRowWriter
                 values[fieldIndex] = reader.GetValue(fieldIndex);
             }
 
+            CloneMutableParallelValues(values, cloneColumns);
+
             rowCount++;
         }
 
         return rowCount;
+    }
+
+    private static void CloneMutableParallelValues(object[] values, bool[] cloneColumns)
+    {
+        for (int fieldIndex = 0; fieldIndex < cloneColumns.Length; fieldIndex++)
+        {
+            if (!cloneColumns[fieldIndex])
+            {
+                continue;
+            }
+
+            if (values[fieldIndex] is byte[] bytes)
+            {
+                values[fieldIndex] = (byte[])bytes.Clone();
+            }
+            else if (values[fieldIndex] is char[] characters)
+            {
+                values[fieldIndex] = (char[])characters.Clone();
+            }
+        }
     }
 
     private Task[] StartFormattingParallelBatch(
