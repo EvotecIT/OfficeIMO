@@ -17,11 +17,8 @@ internal static partial class CsvParser
 #if NET8_0_OR_GREATER
     private const int DefaultTextDataReaderBatchRowCapacity = 128;
     private const int MaximumTextDataReaderBatchRowCapacity = 4096;
-    private const int LargeTextParallelBatchRowCapacity = 3584;
-    private const int LargeTextParallelBatchThreshold = 8 * 1024 * 1024;
 
-    internal static int GetPreferredTextParallelBatchSize(int textLength) =>
-        textLength < LargeTextParallelBatchThreshold ? 2048 : LargeTextParallelBatchRowCapacity;
+    internal static int GetPreferredTextParallelBatchSize() => 2048;
 
     private static bool CanUseTextDataReaderBatchAvx2(CsvLoadOptions options, int sourceColumnCount) =>
         Avx2.IsSupported &&

@@ -154,9 +154,12 @@ enumeration. OfficeIMO keeps those contracts separate too:
 - `CsvParallelCrossoverBenchmarks` measures the same contract at 25,000 rows.
   Keeping it separate allows enough fixed invocations per iteration without
   multiplying the sustained workload.
-- `CsvParallelOfficeTuningBenchmarks` varies only OfficeIMO's public batch size
-  and worker limit. It intentionally has no competitor ratio because those are
-  OfficeIMO implementation choices, not different semantic contracts.
+- `CsvParallelOfficeTuningBenchmarks` and
+  `CsvParallelCrossoverTuningBenchmarks` vary only OfficeIMO's public batch
+  size and worker limit at 100,000 and 25,000 rows respectively. The row
+  counts stay in separate benchmark types so ranks never compare different
+  workloads. These diagnostics intentionally have no competitor ratio because
+  the parameters are OfficeIMO implementation choices.
 
 All typed lanes resolve the same headers, materialize the same objects in
 source order, and pass a property-by-property preflight.
@@ -171,6 +174,7 @@ dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj 
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvParallelCrossoverBenchmarks*" --job short
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvParallelScalingBenchmarks*" --job short
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvParallelOfficeTuningBenchmarks*" --job short
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvParallelCrossoverTuningBenchmarks*" --job short
 ```
 
 Parallel materialization is not presented as a universal parser ranking. It
@@ -212,7 +216,7 @@ dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj 
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --compare-typed-parallel-paired 60 0xFFFF0000 adaptive 16 16 100000 High
 ```
 
-## Dated Sep feature snapshot (2026-08-08)
+## Dated Sep feature snapshots (2026-08-08 and 2026-08-10)
 
 The current focused runs used .NET 10, BenchmarkDotNet 0.15.8, workstation GC, the
 Windows High performance power plan, and an AMD Ryzen 9 9950X3D2 with 32
@@ -226,12 +230,12 @@ logical processor in each L3 domain. Both processors showed phase changes or
 multimodal results in some methods, so overlapping confidence intervals are
 reported as equality.
 
-The final candidate assemblies were SHA-256
+The 2026-08-08 candidate assemblies were SHA-256
 `10614E89447791035A6EFCDBCB8D23BF60EF4AD60F1F56ABEB38B1AE4760EBB7`
 for `OfficeIMO.CSV.Benchmarks.dll` and
 `C29F7E11878A2AD92073B2925CD6F8FE23048705BF7C554AD156826FB64C341C`
-for `OfficeIMO.CSV.dll`. These hashes bind the numbers to the measured local
-candidate even though the worktree did not have a commit for the changes.
+for `OfficeIMO.CSV.dll`. These hashes bind the 2026-08-08 sequential, trim,
+span, and 25,000-row parallel numbers to that measured local candidate.
 
 The existing hash-pinned Mark Pflug 65K decoded-string lane was also run as
 100 rotating paired samples after ten warmups:
@@ -287,15 +291,25 @@ Equivalent public ordered-parallel typed materialization, DOP 16:
 | ---: | --- | ---: | ---: | ---: | ---: | --- |
 | 25,000 | `0xFFFF` | 5.523 ms (5.270-5.776) | 5.776 ms (5.413-6.138) | 9.81 MB | 9.89 MB | equal; OfficeIMO mean 4.4% lower |
 | 25,000 | `0xFFFF0000` | 5.883 ms (5.300-6.467) | 5.197 ms (4.897-5.497) | 9.81 MB | 9.89 MB | equal; Sep mean 11.7% lower |
-| 100,000 | `0xFFFF` | 24.44 ms (22.69-26.19) | 26.10 ms (24.02-28.18) | 39.29 MB | 39.38 MB | equal; OfficeIMO mean 6.4% lower |
-| 100,000 | `0xFFFF0000` | 23.48 ms (21.63-25.34) | 25.19 ms (22.84-27.54) | 39.29 MB | 39.37 MB | equal; OfficeIMO mean 6.8% lower |
+| 100,000 | `0xFFFF` | 23.67 ms (22.00-25.34) | 23.84 ms (22.39-25.29) | 39.29 MB | 39.38 MB | equal; OfficeIMO mean 0.7% lower |
+| 100,000 | `0xFFFF0000` | 22.24 ms (20.72-23.76) | 21.74 ms (20.03-23.45) | 39.30 MB | 39.37 MB | equal; Sep mean 2.2% lower |
 
 OfficeIMO now exposes the missing ordered-parallel capability and is equal to
-Sep at both measured sizes on this fixture. OfficeIMO has the lower 100,000-row
-mean on both domains, while the 25,000-row mean winner changes by domain. Its
-pooled result buffers also put managed allocation slightly below Sep in all
-four rows while clearing reference-containing buffers and honoring ordering,
-cancellation, exception, and disposal contracts.
+Sep at both measured sizes on this fixture. The 100,000-row results were refreshed
+on 2026-08-10 after an OfficeIMO-only fixed-work sweep showed that 2,048-row
+batches were 13-16% faster than the previous 3,584-row default on both L3
+domains. The final three-launch competitor run remained a tie: the mean winner
+changed by domain and all 99.9% intervals overlap. OfficeIMO's pooled result
+buffers also put managed allocation slightly below Sep in all four rows while
+clearing reference-containing buffers and honoring ordering, cancellation,
+exception, and disposal contracts.
+
+The refreshed 2026-08-10 100,000-row results used SHA-256
+`059F48B634BA2DC3B591D50B005782767565BC235994BF4257BEF012A413BC20`
+for `OfficeIMO.CSV.Benchmarks.dll` and
+`FB24E005C297C48B4B3A3B8CB18D512B747150C18E79F5F2C82765CC54E6F97C`
+for `OfficeIMO.CSV.dll`. Each active tuning parameter was separately
+preflighted against every expected property before its timing run.
 
 This host was also under sustained unrelated CPU load. A fresh 60-sample
 symmetric ABBA/BAAB diagnostic reported OfficeIMO/Sep wall-time medians of

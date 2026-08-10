@@ -39,7 +39,7 @@ internal static partial class CsvParser
                 : null;
         }
 
-        internal int PreferredParallelBatchSize => GetPreferredTextParallelBatchSize(_text.Length);
+        internal int PreferredParallelBatchSize => GetPreferredTextParallelBatchSize();
 
         internal bool CanTakeParallelBatch => !_disposed && _batch is not null && !_batch.HasStarted;
 

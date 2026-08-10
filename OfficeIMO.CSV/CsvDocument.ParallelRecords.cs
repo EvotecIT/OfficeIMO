@@ -303,7 +303,7 @@ public sealed partial class CsvDocument
             ?? throw new InvalidOperationException("The CSV record factory builder returned null.");
         ParallelRowMappingOptions options = parallelOptions ?? new ParallelRowMappingOptions();
         int degreeOfParallelism = options.GetDegreeOfParallelism();
-        int batchSize = options.GetBatchSize(CsvParser.GetPreferredTextParallelBatchSize(text.Length));
+        int batchSize = options.GetBatchSize(CsvParser.GetPreferredTextParallelBatchSize());
         if (degreeOfParallelism == 1)
         {
             bool sequentialRemainderNeeded = false;

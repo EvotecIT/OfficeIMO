@@ -340,7 +340,38 @@ public class CsvParallelOfficeTuningBenchmarks {
     public int DegreeOfParallelism { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _fixture = CsvTypedMaterializationFixture.Create(100_000);
+    public void Setup() {
+        _fixture = CsvTypedMaterializationFixture.Create(100_000);
+        _fixture.ValidateOfficeParallel(
+            _fixture.OfficeIMORecordParallel(DegreeOfParallelism, BatchSize));
+    }
+
+    [Benchmark]
+    public CsvBenchmarkRow[] OfficeIMORecordParallel() =>
+        _fixture.OfficeIMORecordParallel(DegreeOfParallelism, BatchSize);
+}
+
+/// <summary>
+/// Fixed-work production tuning for OfficeIMO's 25,000-row ordered-parallel crossover.
+/// Kept separate from the sustained workload so ranks never compare different row counts.
+/// </summary>
+[MemoryDiagnoser]
+[RankColumn]
+public class CsvParallelCrossoverTuningBenchmarks {
+    private CsvTypedMaterializationFixture _fixture = null!;
+
+    [Params(1024, 2048, 3072, 3584, 4096)]
+    public int BatchSize { get; set; }
+
+    [Params(16)]
+    public int DegreeOfParallelism { get; set; }
+
+    [GlobalSetup]
+    public void Setup() {
+        _fixture = CsvTypedMaterializationFixture.Create(25_000);
+        _fixture.ValidateOfficeParallel(
+            _fixture.OfficeIMORecordParallel(DegreeOfParallelism, BatchSize));
+    }
 
     [Benchmark]
     public CsvBenchmarkRow[] OfficeIMORecordParallel() =>
@@ -462,6 +493,9 @@ internal sealed class CsvTypedMaterializationFixture {
         Validate(nameof(OfficeIMOParallel), officeRows);
         Validate(nameof(SepParallel), sepRows);
     }
+
+    internal void ValidateOfficeParallel(CsvBenchmarkRow[] officeRows) =>
+        Validate(nameof(OfficeIMORecordParallel), officeRows);
 
     internal void ValidateSequential(
         CsvBenchmarkRow[] rowsAsRows,
