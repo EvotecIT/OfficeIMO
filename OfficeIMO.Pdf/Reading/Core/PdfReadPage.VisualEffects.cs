@@ -62,18 +62,17 @@ public sealed partial class PdfReadPage {
         }
         OfficeSoftMaskMode mode = modeName.Name == "Luminosity" ? OfficeSoftMaskMode.Luminosity : OfficeSoftMaskMode.Alpha;
         OfficeColor backdrop = OfficeColor.Transparent;
-        if (mask.Items.TryGetValue("BC", out PdfObject? backdropObject)) {
+        if (mode == OfficeSoftMaskMode.Luminosity &&
+            mask.Items.TryGetValue("BC", out PdfObject? backdropObject)) {
             if (ResolveEffectObject(backdropObject) is not PdfArray components) return null;
             IReadOnlyList<double> values = ReadNumberArray(components);
             int expectedComponents = groupColorSpace?.Name == "DeviceGray"
                 ? 1
                 : groupColorSpace?.Name == "DeviceRGB" ? 3 : values.Count;
             if ((expectedComponents != 1 && expectedComponents != 3) || values.Count != expectedComponents) return null;
-            if (mode == OfficeSoftMaskMode.Luminosity) {
-                backdrop = values.Count == 1
-                    ? OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[0]), ToColorByte(values[0]))
-                    : OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[1]), ToColorByte(values[2]));
-            }
+            backdrop = values.Count == 1
+                ? OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[0]), ToColorByte(values[0]))
+                : OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[1]), ToColorByte(values[2]));
         }
         return new PdfPageSoftMaskResource(group, mode, backdrop);
     }
@@ -90,6 +89,26 @@ public sealed partial class PdfReadPage {
             current = indirect.Value;
         }
         return current is PdfReference ? null : current;
+    }
+
+    private bool CanDecodeType3SoftMask(
+        PdfPageSoftMaskResource? resource,
+        PageContentBudget pageContentBudget,
+        HashSet<PdfStream> validatedGroups) {
+        if (resource == null || !validatedGroups.Add(resource.Group)) return true;
+        if (Filters.StreamDecoder.GetUnsupportedFilters(resource.Group.Dictionary, _objects).Count != 0) return false;
+        try {
+            _ = pageContentBudget.Decode(resource.Group);
+            return true;
+        } catch (PdfReadLimitException) {
+            throw;
+        } catch (IOException) {
+            return false;
+        } catch (InvalidDataException) {
+            return false;
+        } catch (NotSupportedException) {
+            return false;
+        }
     }
 
     private IReadOnlyList<PdfPageDrawingEffectTransition> GetGraphicsEffectTransitions(Matrix2D pageTransform, double pageHeight, PageContentBudget? pageContentBudget = null) {
@@ -353,7 +372,9 @@ public sealed partial class PdfReadPage {
             paintOrderOffset: -transformedOffset,
             useLogicalTextFilters: false,
             textOutputBudget: textOutputBudget,
-            pageContentBudget: pageContentBudget);
+            pageContentBudget: pageContentBudget,
+            contentOrderPrefix: PdfContentOrderKey.Root,
+            contentOrderOffset: -transformedOffset);
         for (int i = 0; i < spans.Count; i++) {
             if (renderedType3PaintOrders.Contains(spans[i].PaintOrder)) continue;
             elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));

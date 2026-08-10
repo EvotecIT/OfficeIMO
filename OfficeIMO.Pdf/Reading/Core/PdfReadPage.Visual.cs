@@ -106,6 +106,10 @@ public sealed partial class PdfReadPage {
 
     private static void SortDrawingElements(List<PdfPageDrawingElement> elements) {
         elements.Sort(static (left, right) => {
+            if (left.ContentOrderKey != null && right.ContentOrderKey != null) {
+                int contentOrder = left.ContentOrderKey.CompareTo(right.ContentOrderKey);
+                if (contentOrder != 0) return contentOrder;
+            }
             int order = left.PaintOrder.CompareTo(right.PaintOrder);
             return order != 0 ? order : left.Sequence.CompareTo(right.Sequence);
         });
@@ -1207,7 +1211,9 @@ public sealed partial class PdfReadPage {
                 paintOrderOffset: -transformedAppearanceContentOffset,
                 useLogicalTextFilters: false,
                 textOutputBudget: textOutputBudget,
-                pageContentBudget: pageContentBudget);
+                pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root,
+                contentOrderOffset: -transformedAppearanceContentOffset);
             for (int textIndex = 0; textIndex < textSpans.Count; textIndex++) {
                 if (renderedType3PaintOrders.Contains(textSpans[textIndex].PaintOrder)) continue;
                 elements.Add(PdfPageDrawingElement.FromText(textSpans[textIndex], elements.Count));
@@ -1411,7 +1417,9 @@ public sealed partial class PdfReadPage {
                 paintOrderOffset: -transformedContentOffset,
                 useLogicalTextFilters: false,
                 textOutputBudget: textOutputBudget,
-                pageContentBudget: pageContentBudget);
+                pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root,
+                contentOrderOffset: -transformedContentOffset);
         }
 
         return spans.Count == 0 ? Array.Empty<PdfTextSpan>() : spans.AsReadOnly();
@@ -2020,6 +2028,7 @@ public sealed partial class PdfReadPage {
 
         internal PdfContentOrderKey? ContentOrderKey => Kind switch {
             PdfPageDrawingElementKind.Primitive => Primitive.ContentOrderKey,
+            PdfPageDrawingElementKind.Text => TextSpan?.ContentOrderKey,
             PdfPageDrawingElementKind.Image => ImagePlacement?.ContentOrderKey,
             _ => null
         };

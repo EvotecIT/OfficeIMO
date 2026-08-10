@@ -168,6 +168,8 @@ public sealed partial class PdfReadPage {
             }
 
             bool supported = true;
+            var validatedSoftMaskGroups = new HashSet<PdfStream>();
+            var softMaskValidationBudget = new PageContentBudget(this);
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources);
             var patternSupport = new Dictionary<string, bool>(StringComparer.Ordinal);
@@ -210,6 +212,11 @@ public sealed partial class PdfReadPage {
                          unsupportedTextVisitor: () => supported = false,
                          unsupportedGraphicsEffectVisitor: () => supported = false,
                          allowSupportedGraphicsEffects: true,
+                         graphicsStateVisitor: resource => {
+                             if (!CanDecodeType3SoftMask(resource.SoftMask, softMaskValidationBudget, validatedSoftMaskGroups)) {
+                                 supported = false;
+                             }
+                         },
                          unsupportedColorVisitor: () => supported = false,
                          patternInvocationVisitor: name => {
                              if (!patternSupport.TryGetValue(name, out bool canProject)) {

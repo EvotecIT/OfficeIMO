@@ -34,6 +34,8 @@ public sealed partial class PdfReadPage {
         var glyphPrimitives = new List<(PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect)>();
         var glyphImages = new List<(PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect)>();
         var extractedImageCache = new Dictionary<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor), PdfExtractedImage>();
+        var validatedSoftMaskGroups = new HashSet<PdfStream>();
+        var softMaskValidationBudget = new PageContentBudget(this);
         double nextPaintOrder = invocation.PaintOrder;
         double paintOrderLimit = invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.5D);
         for (int i = 0; i < invocation.Glyphs.Count; i++) {
@@ -115,6 +117,14 @@ public sealed partial class PdfReadPage {
                     return false;
                 }
                 SortGraphicsEffectTransitions(localEffects);
+                for (int effectIndex = 0; effectIndex < localEffects.Count; effectIndex++) {
+                    if (!CanDecodeType3SoftMask(
+                            localEffects[effectIndex].Effect.SoftMask,
+                            softMaskValidationBudget,
+                            validatedSoftMaskGroups)) {
+                        return false;
+                    }
+                }
                 for (int primitiveIndex = 0; primitiveIndex < localPrimitives.Count; primitiveIndex++) {
                     (PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect) item = localPrimitives[primitiveIndex];
                     PdfPageDrawingEffect inherited = ResolveDrawingEffect(localEffects, item.Primitive.PaintOrder, contentOrderKey: item.Primitive.ContentOrderKey);
