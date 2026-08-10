@@ -9,6 +9,25 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class SpreadsheetWorkbookSemanticsConversionTests {
     [Fact]
+    public void ExcelBackslashDefinedNameIsPreservedExactlyInOds() {
+        using ExcelDocument source = ExcelDocument.Create();
+        source.AddWorksheet("Data");
+        source.SetNamedRange("\\Rate", "'Data'!A1", save: false,
+            validationMode: ExcelDefinedNameValidationMode.Strict);
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+
+        OdsNamedRange namedRange = Assert.Single(conversion.Value.NamedRanges);
+        Assert.Equal("\\Rate", namedRange.Name);
+        OdsDocument persisted = OdsDocument.Load(new MemoryStream(conversion.Value.ToBytes()));
+        Assert.True(persisted.Validate().IsValid);
+        Assert.Equal("\\Rate", Assert.Single(persisted.NamedRanges).Name);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "sheet-local-named-ranges"
+            && mapping.Status == OdfConversionMappingStatus.Approximated);
+    }
+
+    [Fact]
     public void ExcelNamedRangeHyperlinksFollowCollisionSafeOdsNames() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet north = source.AddWorksheet("North");

@@ -84,6 +84,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         ref int hyperlinks,
         ref int externalHyperlinks,
         ref int unsupportedHyperlinks,
+        ref int unsupportedHyperlinkBehaviors,
         ref int approximatedRuns,
         ref int skippedBasicFormatting,
         ref int unsupportedWritingModes,
@@ -125,6 +126,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     } else if (node.Kind == OdpInlineNodeKind.Hyperlink) {
                         OdpHyperlink hyperlink = node.Hyperlink!;
                         unsupportedMeasurements += ApplyOdpHyperlink(hyperlink, sourceParagraph, targetRun, options);
+                        if (!string.IsNullOrWhiteSpace(hyperlink.TargetFrameName)
+                            || !string.IsNullOrWhiteSpace(hyperlink.ShowBehavior)) {
+                            unsupportedHyperlinkBehaviors++;
+                        }
                         if (TryResolveSlideFragment(hyperlink.Href, slides, out int targetSlideIndex)) {
                             pendingInternalLinks.Add((targetRun, targetSlideIndex));
                             hyperlinks++;

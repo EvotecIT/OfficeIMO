@@ -106,6 +106,16 @@ public sealed class OdpHyperlink {
             Dirty();
         }
     }
+    /// <summary>ODF target frame behavior, if authored.</summary>
+    public string? TargetFrameName {
+        get => (string?)_element.Attribute(OdfNamespaces.Office + "target-frame-name");
+        set { _element.SetAttributeValue(OdfNamespaces.Office + "target-frame-name", NormalizeOptional(value)); Dirty(); }
+    }
+    /// <summary>Raw XLink show behavior, if authored.</summary>
+    public string? ShowBehavior {
+        get => (string?)_element.Attribute(OdfNamespaces.XLink + "show");
+        set { _element.SetAttributeValue(OdfNamespaces.XLink + "show", NormalizeOptional(value)); Dirty(); }
+    }
     /// <summary>Referenced text style name.</summary>
     public string? StyleName { get => (string?)_element.Attribute(OdfNamespaces.Text + "style-name"); set { _element.SetAttributeValue(OdfNamespaces.Text + "style-name", value); Dirty(); } }
     /// <summary>Explicit or inherited bold state.</summary>
@@ -146,5 +156,6 @@ public sealed class OdpHyperlink {
         OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Text, StyleName); if (style == null) return null;
         foreach (OdfStyle candidate in _presentation.Styles.Resolve(style)) { string? value = selector(candidate); if (value != null) return value; } return null;
     }
+    private static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
     private void Dirty() => _presentation.MarkPartDirty("content.xml");
 }

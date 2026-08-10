@@ -472,8 +472,8 @@ namespace OfficeIMO.Excel {
         /// Throws in Strict mode when input is invalid.
         /// Rules:
         /// - 1..255 characters
-        /// - First char must be a letter or underscore
-        /// - Allowed characters: letters, digits, underscore, period
+        /// - First char must be a letter, underscore, or backslash
+        /// - Allowed characters: letters, digits, underscore, period, backslash
         /// - Cannot look like a cell reference (e.g., A1, AA10) or an R1C1 reference
         /// - Cannot be TRUE or FALSE (case-insensitive)
         /// </summary>
@@ -504,9 +504,9 @@ namespace OfficeIMO.Excel {
             if (mode == ExcelDefinedNameValidationMode.Strict) {
                 if (name.Length > MaximumDefinedNameLength)
                     throw new System.ArgumentException($"Defined name '{name}' exceeds maximum length of {MaximumDefinedNameLength} characters (actual {name.Length}).", nameof(name));
-                if (!char.IsLetter(name[0]) && name[0] != '_')
-                    throw new System.ArgumentException($"Defined name '{name}' must start with a letter or underscore.", nameof(name));
-                if (name.Any(ch => !char.IsLetterOrDigit(ch) && ch != '_' && ch != '.'))
+                if (!char.IsLetter(name[0]) && name[0] != '_' && name[0] != '\\')
+                    throw new System.ArgumentException($"Defined name '{name}' must start with a letter, underscore, or backslash.", nameof(name));
+                if (name.Any(ch => !char.IsLetterOrDigit(ch) && ch != '_' && ch != '.' && ch != '\\'))
                     throw new System.ArgumentException($"Defined name '{name}' contains characters that Excel does not allow.", nameof(name));
                 if (string.Equals(name, "TRUE", System.StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, "FALSE", System.StringComparison.OrdinalIgnoreCase))
@@ -519,11 +519,11 @@ namespace OfficeIMO.Excel {
             // Trim spaces and replace invalid chars
             var sb = new System.Text.StringBuilder(name.Length);
             foreach (char ch in name.Trim()) {
-                if (char.IsLetterOrDigit(ch) || ch == '_' || ch == '.') sb.Append(ch);
+                if (char.IsLetterOrDigit(ch) || ch == '_' || ch == '.' || ch == '\\') sb.Append(ch);
                 else { sb.Append('_'); }
             }
             if (sb.Length == 0) { sb.Append('_'); }
-            if (!char.IsLetter(sb[0]) && sb[0] != '_') { sb.Insert(0, '_'); }
+            if (!char.IsLetter(sb[0]) && sb[0] != '_' && sb[0] != '\\') { sb.Insert(0, '_'); }
 
             // Disallow TRUE/FALSE exactly (case-insensitive)
             var normalized = sb.ToString();

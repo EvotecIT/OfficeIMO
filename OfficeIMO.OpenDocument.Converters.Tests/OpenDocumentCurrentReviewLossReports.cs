@@ -668,6 +668,39 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
+    public void OdpHyperlinkTargetBehaviorIsReportedWhileTheTargetIsPreserved() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpHyperlink hyperlink = source.AddSlide("Source")
+            .AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2))
+            .AddParagraph()
+            .AddHyperlink("Docs", "https://example.test/docs");
+        hyperlink.TargetFrameName = "_blank";
+        hyperlink.ShowBehavior = "new";
+
+        OdpPresentation persisted = OdpPresentation.Load(new MemoryStream(source.ToBytes()));
+        Assert.True(persisted.Validate().IsValid);
+        OdpHyperlink persistedHyperlink = persisted.Slides.Single().Shapes.OfType<OdpTextBox>().Single()
+            .Paragraphs.Single().InlineNodes.Single().Hyperlink!;
+        Assert.Equal("_blank", persistedHyperlink.TargetFrameName);
+        Assert.Equal("new", persistedHyperlink.ShowBehavior);
+
+        OdfConversionResult<PowerPointPresentation> conversion =
+            persisted.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+
+        Assert.Equal("https://example.test/docs", target.Slides.Single()
+            .TextBoxes.Single().Paragraphs.Single().Runs.Single().Hyperlink!.ToString());
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "hyperlink-target-behavior"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() =>
+            persisted.ToPowerPointPresentationResult(new PowerPointOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
+            }));
+    }
+
+    [Fact]
     public void OdpInternalSlideLinkCreatesAnInternalPowerPointRelationship() {
         OdpPresentation source = OdpPresentation.Create();
         source.AddSlide("First").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2))

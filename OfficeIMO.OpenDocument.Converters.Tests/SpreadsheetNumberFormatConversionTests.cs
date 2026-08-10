@@ -112,6 +112,39 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     }
 
     [Fact]
+    public void EmptyValidationMessagesPreserveDisplayFlagsAndErrorStyle() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.ValidationWholeNumber("A1", ExcelDataValidationOperator.GreaterThan, 0);
+        sheet.SetDataValidationMessages("A1", new ExcelDataValidationMessageOptions {
+            ShowInputMessage = true,
+            ShowErrorMessage = false,
+            ErrorStyle = ExcelDataValidationErrorStyle.Warning,
+            PreserveShowMessageFlags = true
+        });
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdsValidation validation = Assert.Single(conversion.Value.Validations);
+        Assert.True(validation.HasHelpMessage);
+        Assert.True(validation.ShowHelpMessage);
+        Assert.True(validation.HasErrorMessage);
+        Assert.False(validation.ShowErrorMessage);
+        Assert.Equal(OdsValidationMessageType.Warning, validation.ErrorMessageType);
+
+        OdsDocument persisted = OdsDocument.Load(new MemoryStream(conversion.Value.ToBytes()));
+        Assert.True(persisted.Validate().IsValid);
+        using ExcelDocument roundTrip = persisted.ToExcelDocumentResult().Value;
+        ExcelDataValidationInfo actual = Assert.Single(roundTrip.Sheets.Single().GetDataValidations());
+        Assert.True(actual.ShowInputMessage);
+        Assert.False(actual.ShowErrorMessage);
+        Assert.Equal("warning", actual.ErrorStyle);
+        Assert.True(string.IsNullOrEmpty(actual.PromptTitle));
+        Assert.True(string.IsNullOrEmpty(actual.Prompt));
+        Assert.True(string.IsNullOrEmpty(actual.ErrorTitle));
+        Assert.True(string.IsNullOrEmpty(actual.Error));
+    }
+
+    [Fact]
     public void OdsNumericFalseAllowEmptyCellProjectsToExcelAllowBlankFalse() {
         OdsDocument source = OdsDocument.Create();
         OdsValidation validation = source.AddValidation(

@@ -173,7 +173,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
         int textBoxes = 0, paragraphs = 0, textRuns = 0, hyperlinks = 0, externalHyperlinks = 0, pictures = 0, tables = 0, basicShapes = 0;
         int notes = 0, transitions = 0, unsupportedTransitions = 0, unsupportedShapes = 0, unsupportedPictures = 0, transformedShapes = 0;
-        int listParagraphs = 0, approximatedRuns = 0, unsupportedHyperlinks = 0, skippedBasicFormatting = 0, skippedNotes = 0, noteContainers = 0;
+        int listParagraphs = 0, approximatedRuns = 0, unsupportedHyperlinks = 0, unsupportedHyperlinkBehaviors = 0;
+        int skippedBasicFormatting = 0, skippedNotes = 0, noteContainers = 0;
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
         int unsupportedWritingModes = 0;
         var pendingInternalLinks = new List<(PowerPointTextRun Run, int SlideIndex)>();
@@ -204,7 +205,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     CopyOdpParagraphsToPowerPoint(sourceParagraphs,
                         paragraphTexts => converted.SetParagraphs(paragraphTexts), source.Slides,
                         pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
-                        ref externalHyperlinks, ref unsupportedHyperlinks, ref approximatedRuns,
+                        ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
                         ref skippedBasicFormatting, ref unsupportedWritingModes, ref unsupportedMeasurements);
                     textBoxes++;
                 } else if (shape is OdpImage image) {
@@ -259,7 +260,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                             CopyOdpParagraphsToPowerPoint(cell.Paragraphs,
                                 paragraphTexts => converted.GetCell(row, column).SetParagraphs(paragraphTexts), source.Slides,
                                 pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
-                                ref externalHyperlinks, ref unsupportedHyperlinks, ref approximatedRuns,
+                                ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
                                 ref skippedBasicFormatting, ref unsupportedWritingModes, ref unsupportedMeasurements);
                             if (cell.RowSpan > 1 || cell.ColumnSpan > 1) merges.Add((row, column, cell.RowSpan, cell.ColumnSpan));
                         }
@@ -309,7 +310,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     CopyOdpParagraphsToPowerPoint(noteParagraphs,
                         paragraphTexts => targetSlide.Notes.SetParagraphs(paragraphTexts), source.Slides,
                         pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
-                        ref externalHyperlinks, ref unsupportedHyperlinks, ref approximatedRuns,
+                        ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
                         ref skippedBasicFormatting, ref unsupportedWritingModes, ref unsupportedMeasurements);
                     notes++;
                 }
@@ -343,6 +344,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "Vertical and unsupported ODF writing modes cannot be represented by the PowerPoint paragraph model.");
         AddUnsupported(report, "hyperlinks", unsupportedHyperlinks,
             "Hyperlink targets that could not be resolved as slides or valid URI references were omitted.");
+        AddUnsupported(report, "hyperlink-target-behavior", unsupportedHyperlinkBehaviors,
+            "ODF target-frame-name and XLink show behavior have no equivalent in PowerPoint run hyperlinks and were omitted.");
         if (skippedBasicFormatting > 0) report.Add("basic-formatting", OdfConversionMappingStatus.Skipped, skippedBasicFormatting,
             "Common text, fill, and outline formatting was omitted because IncludeBasicFormatting is disabled.");
         if (skippedNotes > 0) report.Add("speaker-notes", OdfConversionMappingStatus.Skipped, skippedNotes,

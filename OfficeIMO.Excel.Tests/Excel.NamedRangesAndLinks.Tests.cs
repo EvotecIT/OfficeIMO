@@ -13,6 +13,9 @@ namespace OfficeIMO.Tests {
         public void DefinedNameNormalizationReturnsTheNameThatWillBeEmitted() {
             Assert.Equal("_R1C1", ExcelDocument.NormalizeDefinedName("R1C1"));
             Assert.Equal("Sales_Total", ExcelDocument.NormalizeDefinedName("Sales Total"));
+            Assert.Equal("\\Rate", ExcelDocument.NormalizeDefinedName("\\Rate"));
+            Assert.Equal("\\Rate", ExcelDocument.NormalizeDefinedName(
+                "\\Rate", ExcelDefinedNameValidationMode.Strict));
             Assert.Throws<ArgumentException>(() => ExcelDocument.NormalizeDefinedName(
                 "R1C1", ExcelDefinedNameValidationMode.Strict));
         }

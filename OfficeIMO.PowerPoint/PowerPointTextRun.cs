@@ -236,14 +236,27 @@ namespace OfficeIMO.PowerPoint {
                     nameof(targetSlide));
             }
 
-            if (!ownerPart.Parts.Any(pair => ReferenceEquals(
-                    pair.OpenXmlPart, targetSlide.SlidePart))) {
-                ownerPart.AddPart(targetSlide.SlidePart);
+            string relationshipId;
+            if (ownerPart is NotesSlidePart
+                && !ReferenceEquals(_slidePart, targetSlide.SlidePart)) {
+                Uri targetUri = PowerPointHyperlinkResolver.CreatePartRelativeUri(
+                    ownerPart, targetSlide.SlidePart);
+                HyperlinkRelationship relationship = ownerPart.HyperlinkRelationships
+                    .FirstOrDefault(candidate => !candidate.IsExternal
+                        && candidate.Uri == targetUri)
+                    ?? ownerPart.AddHyperlinkRelationship(targetUri, false);
+                relationshipId = relationship.Id;
+            } else {
+                if (!ownerPart.Parts.Any(pair => ReferenceEquals(
+                        pair.OpenXmlPart, targetSlide.SlidePart))) {
+                    ownerPart.AddPart(targetSlide.SlidePart);
+                }
+                relationshipId = ownerPart.GetIdOfPart(targetSlide.SlidePart);
             }
 
             A.RunProperties props = EnsureRunProperties();
             var hyperlink = new A.HyperlinkOnClick {
-                Id = ownerPart.GetIdOfPart(targetSlide.SlidePart),
+                Id = relationshipId,
                 Action = "ppaction://hlinksldjump"
             };
             if (!string.IsNullOrWhiteSpace(tooltip)) {

@@ -11,14 +11,20 @@ public sealed class PowerPointNotesInteractionTests {
         try {
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
                 PowerPointSlide slide = presentation.AddSlide();
+                PowerPointSlide target = presentation.AddSlide();
                 PowerPointTextRun run = slide.Notes.SetParagraphs(new[] { "Linked note" })
                     .Single().Runs.Single();
                 NotesSlidePart notesPart = slide.SlidePart.NotesSlidePart!;
                 string backlinkId = notesPart.GetIdOfPart(slide.SlidePart);
 
-                run.SetHyperlink(slide);
-                Assert.Equal(backlinkId, run.Run.RunProperties!
-                    .GetFirstChild<DocumentFormat.OpenXml.Drawing.HyperlinkOnClick>()!.Id!.Value);
+                run.SetHyperlink(target);
+                string internalRelationshipId = run.Run.RunProperties!
+                    .GetFirstChild<DocumentFormat.OpenXml.Drawing.HyperlinkOnClick>()!.Id!.Value!;
+                HyperlinkRelationship internalRelationship = Assert.Single(notesPart.HyperlinkRelationships);
+                Assert.Equal(internalRelationshipId, internalRelationship.Id);
+                Assert.False(internalRelationship.IsExternal);
+                Assert.Equal("#slide-2", run.Hyperlink!.ToString());
+                Assert.Equal(backlinkId, notesPart.GetIdOfPart(slide.SlidePart));
 
                 run.SetHyperlink("https://example.test/note");
                 Assert.Same(slide.SlidePart, notesPart.SlidePart);
@@ -32,7 +38,7 @@ public sealed class PowerPointNotesInteractionTests {
             }
 
             using PowerPointPresentation reopened = PowerPointPresentation.Load(path);
-            PowerPointSlide actual = reopened.Slides.Single();
+            PowerPointSlide actual = reopened.Slides[0];
             Assert.Same(actual.SlidePart, actual.SlidePart.NotesSlidePart!.SlidePart);
             Assert.Equal("Linked note", actual.Notes.Paragraphs.Single().Text);
             Assert.Empty(reopened.ValidateDocument());

@@ -90,7 +90,12 @@ public sealed class OdsValidation {
 
     /// <summary>Sets the optional input help shown when a validated cell is selected.</summary>
     public void SetHelpMessage(string? title, string? text, bool display = true) {
-        SetMessage(OdfNamespaces.Table + "help-message", title, text, display, null);
+        SetMessage(OdfNamespaces.Table + "help-message", title, text, display, null, preserveEmpty: false);
+    }
+
+    /// <summary>Ensures an input-help element exists even when it has no title or body.</summary>
+    public void EnsureHelpMessage(bool display = true) {
+        SetMessage(OdfNamespaces.Table + "help-message", null, null, display, null, preserveEmpty: true);
     }
 
     /// <summary>Sets the optional error shown when the entered value fails validation.</summary>
@@ -99,7 +104,15 @@ public sealed class OdsValidation {
         string? text,
         OdsValidationMessageType messageType = OdsValidationMessageType.Stop,
         bool display = true) {
-        SetMessage(OdfNamespaces.Table + "error-message", title, text, display, FormatMessageType(messageType));
+        SetMessage(OdfNamespaces.Table + "error-message", title, text, display, FormatMessageType(messageType), preserveEmpty: false);
+    }
+
+    /// <summary>Ensures an error-message element exists even when it has no title or body.</summary>
+    public void EnsureErrorMessage(
+        OdsValidationMessageType messageType = OdsValidationMessageType.Stop,
+        bool display = true) {
+        SetMessage(OdfNamespaces.Table + "error-message", null, null, display,
+            FormatMessageType(messageType), preserveEmpty: true);
     }
 
     /// <summary>Input-help title, if present.</summary>
@@ -131,9 +144,10 @@ public sealed class OdsValidation {
         }
     }
 
-    private void SetMessage(XName name, string? title, string? text, bool display, string? messageType) {
+    private void SetMessage(XName name, string? title, string? text, bool display,
+        string? messageType, bool preserveEmpty) {
         XElement? message = _element.Element(name);
-        if (title == null && text == null) {
+        if (!preserveEmpty && title == null && text == null) {
             message?.Remove();
             Dirty();
             return;

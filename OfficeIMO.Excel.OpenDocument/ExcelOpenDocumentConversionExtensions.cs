@@ -223,13 +223,18 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     }
                     if (validation.PromptTitle != null || validation.Prompt != null) {
                         convertedValidation.SetHelpMessage(validation.PromptTitle, validation.Prompt, validation.ShowInputMessage);
+                    } else if (validation.ShowInputMessage) {
+                        convertedValidation.EnsureHelpMessage();
                     }
+                    OdsValidationMessageType messageType = ParseOdsValidationMessageType(validation.ErrorStyle);
                     if (validation.ErrorTitle != null || validation.Error != null) {
                         convertedValidation.SetErrorMessage(
                             validation.ErrorTitle,
                             validation.Error,
-                            ParseOdsValidationMessageType(validation.ErrorStyle),
+                            messageType,
                             validation.ShowErrorMessage);
+                    } else if (validation.ShowErrorMessage || messageType != OdsValidationMessageType.Stop) {
+                        convertedValidation.EnsureErrorMessage(messageType, validation.ShowErrorMessage);
                     }
                     convertedValidations++;
                 }
