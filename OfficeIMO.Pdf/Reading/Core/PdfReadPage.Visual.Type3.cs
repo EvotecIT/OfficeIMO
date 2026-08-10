@@ -179,8 +179,7 @@ public sealed partial class PdfReadPage {
                           !IsUsableInheritedPattern(glyph.StrokePattern)))) {
                         return false;
                     }
-                    if ((glyph.FillPattern.HasValue && (localImages.Count > 0 || localImagePlacements.Count > 0)) ||
-                        ((glyph.FillPattern.HasValue || glyph.StrokePattern.HasValue) && localGroups.Count > 0)) {
+                    if ((glyph.FillPattern.HasValue || glyph.StrokePattern.HasValue) && localGroups.Count > 0) {
                         return false;
                     }
                     for (int imageIndex = 0; imageIndex < localImages.Count; imageIndex++) {
@@ -269,6 +268,24 @@ public sealed partial class PdfReadPage {
                     }
                 }
 
+                if (type3.IsUncolored && glyph.FillPattern.HasValue && localImages.Count > 0) {
+                    for (int imageIndex = 0; imageIndex < localImages.Count; imageIndex++) {
+                        (PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect) image = localImages[imageIndex];
+                        if (!image.Image.IsImageMask ||
+                            !TryCreateInheritedPatternImageMaskDrawing(
+                                glyph.FillPattern,
+                                image.Placement,
+                                image.Image,
+                                pageWidth,
+                                pageHeight,
+                                out OfficeDrawing? maskedPattern)) {
+                            return false;
+                        }
+                        localGroups.Add((maskedPattern, image.Placement.PaintOrder, image.Placement.ContentOrderKey, image.Effect));
+                    }
+                    localImages.Clear();
+                }
+
                 if (!TryPublishType3GlyphContent(
                         localPrimitives,
                         localImages,
@@ -296,6 +313,74 @@ public sealed partial class PdfReadPage {
             (OfficeDrawing Drawing, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect) group = glyphGroups[i];
             groupVisitor!(group.Drawing, group.PaintOrder, group.ContentOrderKey, group.Effect);
         }
+        return true;
+    }
+
+    private static bool TryCreateInheritedPatternImageMaskDrawing(
+        PdfPagePatternSelection? selection,
+        PdfImagePlacement placement,
+        PdfExtractedImage image,
+        double pageWidth,
+        double pageHeight,
+        out OfficeDrawing drawing) {
+        drawing = new OfficeDrawing(pageWidth, pageHeight);
+        if (!selection.HasValue || !image.IsImageMask ||
+            !TryCreateImageProjection(placement, pageHeight, pageWidth, pageHeight, out OfficeImageProjection projection)) {
+            return false;
+        }
+
+        (double left, double top, double right, double bottom) = projection.GetDestinationBounds();
+        double width = right - left;
+        double height = bottom - top;
+        if (width <= 0D || height <= 0D) return false;
+
+        if (!TryCreateInheritedTilingPatternPaint(selection, pageHeight, null, out PdfPageTilingPatternPaint? tilingPaint)) {
+            return false;
+        }
+        var paintBounds = PdfPageVisualPrimitive.Rectangle(
+            left,
+            top,
+            width,
+            height,
+            OfficeColor.Black,
+            null,
+            0D,
+            OfficeStrokeDashStyle.Solid,
+            null,
+            null,
+            null,
+            null,
+            placement.ClipPath,
+            placement.PaintOrder);
+        CreateInheritedShadingGradients(
+            selection,
+            paintBounds,
+            pageHeight,
+            out OfficeLinearGradient? fillGradient,
+            out OfficeRadialGradient? fillRadialGradient);
+        paintBounds = paintBounds.WithPaints(
+            OfficeColor.Black,
+            tilingPaint,
+            fillGradient,
+            fillRadialGradient,
+            OfficeColor.Black,
+            null,
+            null,
+            null);
+
+        var patternDrawing = new OfficeDrawing(pageWidth, pageHeight);
+        AddVisualPrimitive(patternDrawing, paintBounds);
+        if (patternDrawing.Elements.Count == 0) return false;
+
+        var maskDrawing = new OfficeDrawing(pageWidth, pageHeight);
+        AddImagePlacement(maskDrawing, pageHeight, placement, image);
+        if (maskDrawing.Elements.Count == 0) return false;
+
+        drawing.AddEffectDrawing(
+            patternDrawing,
+            OfficeTransform.Identity,
+            OfficeBlendMode.Normal,
+            new OfficeDrawingSoftMask(maskDrawing));
         return true;
     }
 
