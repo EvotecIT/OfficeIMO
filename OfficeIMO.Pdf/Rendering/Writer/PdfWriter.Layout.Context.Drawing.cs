@@ -172,7 +172,10 @@ internal static partial class PdfWriter {
         private int? DrawDrawingAt(DrawingBlock block, PdfDrawingStyle style, double containerX, double containerWidth, double topY) {
             double xDrawing = GetAlignedObjectX(containerX, containerWidth, block.Drawing.Width, style.Align);
             bool markedContent;
-            int? structElementIndex = AppendDrawingMarkedContentBegin(style, out markedContent);
+            int? structElementIndex = AppendDrawingMarkedContentBegin(
+                style,
+                out markedContent,
+                recordDrawingEvidence: !ChildImagesOwnDrawingAccessibility(block.Drawing, style));
             bool previousSuppressAccessibilityWrappers = _suppressCanvasAccessibilityWrappers;
             if (markedContent || style.Decorative) {
                 _suppressCanvasAccessibilityWrappers = true;
@@ -250,7 +253,7 @@ internal static partial class PdfWriter {
 
         private void DrawDrawingImageAt(OfficeDrawingImage image, double originX, double originTopY) {
             OfficeImageProjection projection = image.Projection;
-            PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(image.EncodedBytes);
+            PdfDocument.PreparedImage prepared = PrepareDrawingImage(image);
             var imageStyle = new PdfImageStyle {
                 Fit = OfficeImageFit.Stretch,
                 RotationAngle = -projection.RotationDegrees,
@@ -297,6 +300,28 @@ internal static partial class PdfWriter {
             }
 
             pageDirty = true;
+        }
+
+        private static PdfDocument.PreparedImage PrepareDrawingImage(OfficeDrawingImage image) {
+            bool isSvg = OfficeImageInfo.FromMimeType(image.ContentType) == OfficeImageFormat.Svg ||
+                (OfficeImageReader.TryIdentifyByContent(image.EncodedBytes, null, out OfficeImageInfo imageInfo) && imageInfo.Format == OfficeImageFormat.Svg);
+            if (!isSvg) return PdfDocument.PrepareImageBytes(image.EncodedBytes);
+
+            if (!OfficeSvgDrawingReader.TryRead(image.EncodedBytes, out OfficeDrawing? vector, out int unsupportedFeatureCount) ||
+                vector == null || unsupportedFeatureCount != 0) {
+                throw new NotSupportedException("OfficeIMO.Pdf cannot rasterize this SVG drawing image because it contains unsupported SVG features.");
+            }
+
+            const double maximumRasterPixels = 16_000_000D;
+            double desiredScale = Math.Max(
+                1D,
+                Math.Max(image.Projection.Width / vector.Width, image.Projection.Height / vector.Height));
+            double safeScale = Math.Sqrt(maximumRasterPixels / Math.Max(1D, vector.Width * vector.Height));
+            byte[] png = OfficeDrawingRasterRenderer.ToPng(
+                vector,
+                Math.Min(desiredScale, safeScale),
+                OfficeColor.Transparent);
+            return PdfDocument.PrepareImageBytes(png);
         }
 
         private void DrawDrawingTextAt(OfficeDrawingText text, double x, double topY) {
@@ -369,7 +394,25 @@ internal static partial class PdfWriter {
             return PdfAlign.Left;
         }
 
-        private int? AppendDrawingMarkedContentBegin(PdfDrawingStyle style, out bool markedContent) {
+        private static bool ChildImagesOwnDrawingAccessibility(OfficeDrawing drawing, PdfDrawingStyle style) {
+            if (style.Decorative || !string.IsNullOrWhiteSpace(style.AlternativeText) || drawing.Elements.Count == 0) return false;
+            for (int i = 0; i < drawing.Elements.Count; i++) {
+                OfficeDrawingElement element = drawing.Elements[i];
+                if (element is OfficeDrawingImage image) {
+                    if (string.IsNullOrWhiteSpace(image.AlternativeText)) return false;
+                } else if (element is OfficeDrawingGroup group) {
+                    if (!ChildImagesOwnDrawingAccessibility(group.InnerDrawing, style)) return false;
+                } else if (element is OfficeDrawingEffectGroup effectGroup) {
+                    if (!ChildImagesOwnDrawingAccessibility(effectGroup.InnerDrawing, style)) return false;
+                } else {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private int? AppendDrawingMarkedContentBegin(PdfDrawingStyle style, out bool markedContent, bool recordDrawingEvidence = true) {
             EnsurePage();
 
             if (_suppressCanvasAccessibilityWrappers) {
@@ -377,7 +420,9 @@ internal static partial class PdfWriter {
                 return null;
             }
 
-            currentPage!.Drawings.Add(new PdfGeneratedDrawingAccessibilityEvidence(!string.IsNullOrWhiteSpace(style.AlternativeText), style.Decorative));
+            if (recordDrawingEvidence) {
+                currentPage!.Drawings.Add(new PdfGeneratedDrawingAccessibilityEvidence(!string.IsNullOrWhiteSpace(style.AlternativeText), style.Decorative));
+            }
 
             if (style.Decorative) {
                 AppendArtifactBegin(sb, emitGeneratedStructure);

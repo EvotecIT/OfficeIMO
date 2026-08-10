@@ -67,7 +67,7 @@ public static class OfficeVisualPlacementExtensions {
         int offsetYPixels = 0) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
-        return sheet.AddImage(
+        ExcelImage image = sheet.AddImage(
             row,
             column,
             conversion.GetPlacementBytes(),
@@ -76,9 +76,11 @@ public static class OfficeVisualPlacementExtensions {
             ToPixels(conversion.HeightPoints),
             offsetXPixels,
             offsetYPixels,
-            ResolveTitle(conversion),
-            conversion.AlternativeText,
+            name: null,
+            altText: conversion.AlternativeText,
             lockAspectRatio: true);
+        if (!conversion.IsDecorative) image.Title = ResolveTitle(conversion);
+        return image;
     }
 
     /// <summary>Renders and inserts a ChartForgeX artifact as an SVG image on a PowerPoint slide.</summary>

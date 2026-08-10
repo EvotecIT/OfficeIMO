@@ -25,4 +25,14 @@ public sealed class DrawingSvgReaderViewportTests {
         Assert.Equal(10.25D, drawing!.Width, 6);
         Assert.Equal(5.125D, drawing.Height, 6);
     }
+
+    [Fact]
+    public void SvgReaderPreservesFractionalIntrinsicDimensionsWithoutViewBox() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='0.4in' height='0.2in'><rect width='100%' height='100%'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing));
+        Assert.NotNull(drawing);
+        Assert.Equal(38.4D, drawing!.Width, 6);
+        Assert.Equal(19.2D, drawing.Height, 6);
+    }
 }

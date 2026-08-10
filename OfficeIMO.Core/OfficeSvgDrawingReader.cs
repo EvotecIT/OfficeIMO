@@ -139,6 +139,14 @@ public static partial class OfficeSvgDrawingReader {
                 && IsSupportedSvgViewport(viewportWidth, viewportHeight, maximumViewportDimension, maximumViewportPixels);
         }
 
+        bool hasIntrinsicWidth = OfficeImageReader.TryParseSvgLength(root.Attribute("width")?.Value, out double intrinsicWidth);
+        bool hasIntrinsicHeight = OfficeImageReader.TryParseSvgLength(root.Attribute("height")?.Value, out double intrinsicHeight);
+        if (hasIntrinsicWidth && hasIntrinsicHeight) {
+            viewWidth = viewportWidth = intrinsicWidth;
+            viewHeight = viewportHeight = intrinsicHeight;
+            return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels);
+        }
+
         if (!OfficeImageReader.TryIdentify(bytes, ".svg", out OfficeImageInfo info) || info.Width <= 0 || info.Height <= 0) return false;
         viewWidth = viewportWidth = info.Width * 96D / Math.Max(1D, info.DpiX);
         viewHeight = viewportHeight = info.Height * 96D / Math.Max(1D, info.DpiY);
