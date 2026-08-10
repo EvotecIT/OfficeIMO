@@ -39,7 +39,7 @@ public static class OfficeVisualPlacementExtensions {
             conversion.HeightPoints / PointsPerOfficePixel,
             wrapping,
             conversion.AlternativeText);
-        image.Title = ResolveTitle(conversion);
+        if (!conversion.IsDecorative) image.Title = ResolveTitle(conversion);
         return image;
     }
 

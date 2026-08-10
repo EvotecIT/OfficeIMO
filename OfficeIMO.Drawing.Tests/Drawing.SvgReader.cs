@@ -32,6 +32,23 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderUsesRootViewportDimensionsAndFitsTheViewBoxCoordinates() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='100' viewBox='0 0 100 100'>"
+            + "<rect width='100' height='100' fill='red'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        Assert.Equal(200D, drawing!.Width);
+        Assert.Equal(100D, drawing.Height);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.Equal(0, raster.GetPixel(10, 50).A);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(100, 50));
+        Assert.Equal(0, raster.GetPixel(190, 50).A);
+    }
+
+    [Fact]
     public void SvgReaderResolvesPercentageGeometryAgainstTheViewport() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='10 20 200 100'>"
             + "<rect x='10%' y='20%' width='50%' height='25%' fill='red'/>"

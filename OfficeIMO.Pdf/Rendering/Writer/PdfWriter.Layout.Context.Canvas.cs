@@ -334,18 +334,25 @@ internal static partial class PdfWriter {
 
             bool markedContent;
             int? structElementIndex = AppendDrawingMarkedContentBegin(style, out markedContent);
-            double scaleX = item.Width / block.Drawing.Width;
-            double scaleY = item.Height / block.Drawing.Height;
-            bool scaled = Math.Abs(scaleX - 1D) > 0.0001D || Math.Abs(scaleY - 1D) > 0.0001D;
-            if (scaled) {
-                var scaledDrawing = new OfficeDrawing(item.Width, item.Height)
-                    .AddEffectDrawing(block.Drawing, OfficeTransform.Scale(scaleX, scaleY));
-                DrawDrawingElements(scaledDrawing, item.X, topY);
-            } else {
-                DrawDrawingElements(block.Drawing, item.X, topY);
+            bool previousSuppressAccessibilityWrappers = _suppressCanvasAccessibilityWrappers;
+            if (markedContent || style.Decorative) {
+                _suppressCanvasAccessibilityWrappers = true;
             }
-
-            AppendDrawingMarkedContentEnd(markedContent);
+            try {
+                double scaleX = item.Width / block.Drawing.Width;
+                double scaleY = item.Height / block.Drawing.Height;
+                bool scaled = Math.Abs(scaleX - 1D) > 0.0001D || Math.Abs(scaleY - 1D) > 0.0001D;
+                if (scaled) {
+                    var scaledDrawing = new OfficeDrawing(item.Width, item.Height)
+                        .AddEffectDrawing(block.Drawing, OfficeTransform.Scale(scaleX, scaleY));
+                    DrawDrawingElements(scaledDrawing, item.X, topY);
+                } else {
+                    DrawDrawingElements(block.Drawing, item.X, topY);
+                }
+            } finally {
+                _suppressCanvasAccessibilityWrappers = previousSuppressAccessibilityWrappers;
+                AppendDrawingMarkedContentEnd(markedContent);
+            }
             if (!string.IsNullOrEmpty(block.LinkUri)) {
                 currentPage.Annotations.Add(new LinkAnnotation {
                     X1 = item.X,
