@@ -557,7 +557,8 @@ public sealed partial class PdfReadPage {
                                      softMaskValidationBudget,
                                      validatedSoftMaskGroups,
                                      type3GlyphBudget,
-                                     depth + 1)) {
+                                     depth + 1,
+                                     activeStreams)) {
                                  supported = false;
                              }
                          },

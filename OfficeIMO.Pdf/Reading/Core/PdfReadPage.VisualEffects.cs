@@ -96,7 +96,8 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         Dictionary<PdfStream, int> validatedGroups,
         Type3GlyphBudget type3GlyphBudget,
-        int contentNestingDepth) {
+        int contentNestingDepth,
+        HashSet<PdfStream>? activeType3Glyphs = null) {
         var nestingDepth = new SoftMaskNestingDepth(contentNestingDepth);
         return CanDecodeType3SoftMask(
             resource,
@@ -105,7 +106,7 @@ public sealed partial class PdfReadPage {
             type3GlyphBudget,
             new HashSet<PdfStream>(),
             new HashSet<PdfStream>(),
-            new HashSet<PdfStream>(),
+            activeType3Glyphs ?? new HashSet<PdfStream>(),
             contentNestingDepth,
             nestingDepth);
     }
@@ -186,6 +187,8 @@ public sealed partial class PdfReadPage {
         Dictionary<string, Func<byte[], double>> widthProviders = resources == null
             ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
             : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
+        var validationDiagnostics = new List<PdfRenderCapabilityDiagnostic>();
+        var validationDiagnosticKeys = new HashSet<string>(StringComparer.Ordinal);
         IReadOnlyList<PdfPageXObjectInvocation> invocations = PdfPageXObjectInvocationParser.Parse(
             content,
             baseTransform,
@@ -203,29 +206,23 @@ public sealed partial class PdfReadPage {
                     PdfPageType3GlyphInvocation glyph = invocation.Glyphs[glyphIndex];
                     if (glyph.Font.Type3 is not PdfType3FontResource type3 ||
                         !type3.TryGetGlyph(glyph.CharacterCode, out PdfStream glyphStream) ||
-                        Filters.StreamDecoder.GetUnsupportedFilters(glyphStream.Dictionary, _objects).Count != 0 ||
-                        !activeType3Glyphs.Add(glyphStream)) {
+                        !CanProjectType3GlyphProgram(
+                            glyphStream,
+                            type3.Resources,
+                            Matrix2D.Multiply(glyph.Transform, type3.FontMatrix),
+                            glyph.ClipPath,
+                            type3.IsUncolored,
+                            glyph.FillPattern,
+                            glyph.FillPatternBaseColorSpace,
+                            glyph.StrokePattern,
+                            glyph.StrokePatternBaseColorSpace,
+                            pageContentBudget,
+                            type3GlyphBudget,
+                            activeType3Glyphs,
+                            validationDiagnostics,
+                            validationDiagnosticKeys,
+                            contentNestingDepth + 1)) {
                         supported = false;
-                        continue;
-                    }
-                    try {
-                        string glyphContent = PdfEncoding.Latin1GetString(pageContentBudget.Decode(glyphStream));
-                        if (!CanDecodeType3SoftMasksInContent(
-                                glyphContent,
-                                type3.Resources,
-                                Matrix2D.Multiply(glyph.Transform, type3.FontMatrix),
-                                pageContentBudget,
-                                validatedGroups,
-                                type3GlyphBudget,
-                                activeGroups,
-                                activeForms,
-                                activeType3Glyphs,
-                                contentNestingDepth + 1,
-                                nestingDepth)) {
-                            supported = false;
-                        }
-                    } finally {
-                        activeType3Glyphs.Remove(glyphStream);
                     }
                 }
                 return supported;
