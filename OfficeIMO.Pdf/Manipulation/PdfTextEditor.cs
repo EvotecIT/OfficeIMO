@@ -11,7 +11,7 @@ internal static class PdfTextEditor {
         ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
         IReadOnlyList<PdfTextSpan> selected = document.Pages[region.PageNumber - 1]
             .GetTextSpans()
-            .Where(span => ContainsCenter(region, GetBounds(span)))
+            .Where(span => IsSafelyEditableSpan(span) && ContainsCenter(region, GetBounds(span)))
             .ToArray();
         return BuildRegionText(selected);
     }
@@ -33,6 +33,7 @@ internal static class PdfTextEditor {
 
     internal static TextMutationResult Replace(byte[] pdf, PdfPageRegion region, string text, PdfTextEditOptions? options, PdfReadOptions? readOptions) {
         Guard.NotNull(text, nameof(text));
+        EnsureRegionIsSafelyEditable(pdf, region, readOptions);
         PdfRegionText detected = Inspect(pdf, region, readOptions);
         PdfTextEditOptions snapshot = (options ?? new PdfTextEditOptions()).Snapshot();
         PdfResolvedTextStyle style = ResolveStyle(snapshot, detected);
@@ -47,6 +48,7 @@ internal static class PdfTextEditor {
     internal static TextMutationResult Move(byte[] pdf, PdfPageRegion source, double deltaX, double deltaY, PdfTextEditOptions? options, PdfReadOptions? readOptions) {
         ValidateFinite(deltaX, nameof(deltaX));
         ValidateFinite(deltaY, nameof(deltaY));
+        EnsureRegionIsSafelyEditable(pdf, source, readOptions);
         PdfRegionText detected = Inspect(pdf, source, readOptions);
         if (detected.Spans.Count == 0 || detected.Text.Length == 0) return new TextMutationResult(pdf.ToArray(), 0, Array.Empty<string>());
         PdfResolvedTextStyle style = ResolveStyle((options ?? new PdfTextEditOptions()).Snapshot(), detected);
@@ -62,30 +64,46 @@ internal static class PdfTextEditor {
         IReadOnlyList<TextSearchHit> hits = FindHits(pdf, text, searchOptions, readOptions);
         if (hits.Count == 0) return new TextMutationResult(pdf.ToArray(), 0, Array.Empty<string>());
 
-        var byUnit = hits.GroupBy(static hit => hit.Unit).ToArray();
-        PdfRedactionArea[] areas = byUnit
-            .Select(group => {
-                TextSearchHit first = group.First();
-                return new PdfRedactionArea(first.PageNumber, first.Unit.Bounds.X, first.Unit.Bounds.Y, first.Unit.Bounds.Width, first.Unit.Bounds.Height);
+        var rewrites = new Dictionary<PageSpanKey, List<SpanTextEdit>>();
+        for (int hitIndex = 0; hitIndex < hits.Count; hitIndex++) {
+            TextSearchHit hit = hits[hitIndex];
+            for (int segmentIndex = 0; segmentIndex < hit.Segments.Length; segmentIndex++) {
+                TextSourceSegment segment = hit.Segments[segmentIndex];
+                var key = new PageSpanKey(hit.PageNumber, segment.Span);
+                if (!rewrites.TryGetValue(key, out List<SpanTextEdit>? edits)) {
+                    edits = new List<SpanTextEdit>();
+                    rewrites.Add(key, edits);
+                }
+                edits.Add(new SpanTextEdit(segment.Start, segment.Length, segmentIndex == 0 ? replacement : string.Empty));
+            }
+        }
+
+        PdfRedactionArea[] areas = rewrites.Keys
+            .Select(static key => {
+                SpanBounds bounds = GetBounds(key.Span);
+                return new PdfRedactionArea(key.PageNumber, bounds.X, bounds.Y, bounds.Width, bounds.Height);
             })
             .ToArray();
-        TextRemovalResult removal = RemoveTextPreservingUnmatchedSpans(pdf, areas, readOptions);
+        TextRemovalResult removal = RemoveTextPreservingUnmatchedSpans(pdf, areas, readOptions, rewrites.Keys.ToArray());
         byte[] current = removal.Bytes;
         PdfTextEditOptions snapshot = (editOptions ?? new PdfTextEditOptions()).Snapshot();
         var warnings = new List<string>(removal.Warnings);
-        foreach (IGrouping<TextSearchUnit, TextSearchHit> group in byUnit.OrderBy(static group => group.First().PageNumber).ThenByDescending(static group => group.Key.BaselineY).ThenBy(static group => group.Key.BaselineX)) {
-            TextSearchUnit unit = group.Key;
-            string rewritten = ReplaceOccurrences(unit.Text, group.Select(static hit => hit.StartIndex).OrderBy(static index => index).ToArray(), text.Length, replacement);
-            PdfRegionText detected = BuildRegionText(unit.Spans);
+        foreach (KeyValuePair<PageSpanKey, List<SpanTextEdit>> rewrite in rewrites
+            .OrderBy(static item => item.Key.PageNumber)
+            .ThenByDescending(static item => item.Key.Span.Y)
+            .ThenBy(static item => item.Key.Span.X)) {
+            PdfTextSpan sourceSpan = rewrite.Key.Span;
+            string rewritten = ApplySpanEdits(sourceSpan.Text, rewrite.Value);
+            PdfRegionText detected = BuildRegionText(new[] { sourceSpan });
             PdfResolvedTextStyle style = ResolveStyle(snapshot, detected);
             warnings.AddRange(BuildSubstitutionWarnings(detected, style.Font));
-            if (rewritten.Length > 0) current = StampLines(current, group.First().PageNumber, unit.BaselineX, unit.BaselineY, rewritten, style, readOptions);
+            if (rewritten.Length > 0) current = StampLines(current, rewrite.Key.PageNumber, sourceSpan.X, sourceSpan.Y, rewritten, style, readOptions);
         }
 
         return new TextMutationResult(current, hits.Count, warnings);
     }
 
-    private static TextRemovalResult RemoveTextPreservingUnmatchedSpans(byte[] pdf, IReadOnlyList<PdfRedactionArea> areas, PdfReadOptions? readOptions) {
+    private static TextRemovalResult RemoveTextPreservingUnmatchedSpans(byte[] pdf, IReadOnlyList<PdfRedactionArea> areas, PdfReadOptions? readOptions, IReadOnlyList<PageSpanKey>? exactTargets = null) {
         PdfReadDocument before = PdfReadDocument.Open(pdf, readOptions);
         int[] affectedPages = areas.Select(static area => area.PageNumber).Distinct().ToArray();
         var original = new List<PageTextSpanSnapshot>();
@@ -96,13 +114,19 @@ internal static class PdfTextEditor {
             for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
                 PdfTextSpan span = spans[spanIndex];
                 SpanBounds bounds = GetBounds(span);
-                bool targeted = areas.Any(area => area.PageNumber == pageNumber && ContainsCenter(area, bounds));
+                bool targeted = exactTargets is null
+                    ? areas.Any(area => area.PageNumber == pageNumber && ContainsCenter(area, bounds))
+                    : exactTargets.Any(target => target.PageNumber == pageNumber && SameExactSourceSpan(span, target.Span));
+                if (targeted && !IsSafelyEditableSpan(span)) {
+                    throw new NotSupportedException("The selected region contains invisible or clipped text whose rendering state cannot be recreated safely.");
+                }
                 original.Add(new PageTextSpanSnapshot(pageNumber, span, targeted));
             }
         }
 
         byte[] removed = PdfRedactionApplier.RemoveTextInAreas(pdf, areas, readOptions: readOptions);
-        PdfReadDocument after = PdfReadDocument.Open(removed, readOptions);
+        PdfReadOptions afterReadOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, removed.LongLength);
+        PdfReadDocument after = PdfReadDocument.Open(removed, afterReadOptions);
         var remainingByPage = affectedPages.ToDictionary(
             static page => page,
             page => after.Pages[page - 1].GetTextSpans().ToList());
@@ -120,6 +144,9 @@ internal static class PdfTextEditor {
         var warnings = new List<string>();
         for (int index = 0; index < missing.Count; index++) {
             PageTextSpanSnapshot snapshot = missing[index];
+            if (!IsSafelyEditableSpan(snapshot.Span)) {
+                throw new NotSupportedException("The text edit would require recreating invisible or clipped source text without its original rendering state.");
+            }
             PdfRegionText detected = BuildRegionText(new[] { snapshot.Span });
             PdfResolvedTextStyle style = ResolveStyle(new PdfTextEditOptions(), detected);
             warnings.AddRange(BuildSubstitutionWarnings(detected, style.Font));
@@ -142,22 +169,28 @@ internal static class PdfTextEditor {
         var hits = new List<TextSearchHit>();
         for (int pageIndex = 0; pageIndex < pages.Length; pageIndex++) {
             int pageNumber = pages[pageIndex];
-            IReadOnlyList<PdfTextSpan> spans = document.Pages[pageNumber - 1].GetTextSpans();
-            List<TextLayoutEngine.TextLine> lines = TextLayoutEngine.BuildLines(spans);
+            IReadOnlyList<PdfTextSpan> spans = document.Pages[pageNumber - 1]
+                .GetTextSpans()
+                .Where(IsSafelyEditableSpan)
+                .ToArray();
+            List<TextLayoutEngine.TextLine> lines = TextLayoutEngine.BuildLines(spans, new TextLayoutEngine.Options { SplitWideSameBaselineRuns = true });
             for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
                 TextLayoutEngine.TextLine line = lines[lineIndex];
-                if (line.Spans.Count == 0 || line.Text.Length == 0) continue;
-                var unit = new TextSearchUnit(line.Text, line.Spans, GetCombinedBounds(line.Spans));
+                if (line.Spans.Count == 0) continue;
+                var unit = new TextSearchUnit(line.Spans);
+                if (unit.Text.Length == 0) continue;
                 int start = 0;
                 while (start <= unit.Text.Length - text.Length) {
                     int found = unit.Text.IndexOf(text, start, comparison);
                     if (found < 0) break;
                     start = found + Math.Max(1, text.Length);
                     if (snapshot.WholeWords && !HasWordBoundaries(unit.Text, found, text.Length)) continue;
-                    PdfRegionText detected = BuildRegionText(line.Spans);
-                    SpanBounds matchBounds = SliceUnitBounds(unit, found, text.Length);
+                    IReadOnlyList<TextSourceSegment> segments = unit.GetSourceSegments(found, text.Length);
+                    if (segments.Count == 0) continue;
+                    PdfRegionText detected = BuildRegionText(new[] { segments[0].Span });
+                    SpanBounds matchBounds = GetCombinedSegmentBounds(segments);
                     var match = new PdfTextMatch(pageNumber, unit.Text.Substring(found, text.Length), matchBounds.X, matchBounds.Y, matchBounds.Width, matchBounds.Height, detected.FontSize, detected.SuggestedFont, detected.SourceFont, detected.Color, detected.RotationDegrees);
-                    hits.Add(new TextSearchHit(pageNumber, unit, found, match));
+                    hits.Add(new TextSearchHit(pageNumber, segments, match));
                 }
             }
         }
@@ -196,6 +229,7 @@ internal static class PdfTextEditor {
         double normalY = -Math.Cos(radians) * style.FontSize * 1.15D;
         for (int index = 0; index < lines.Length; index++) {
             if (lines[index].Length == 0) continue;
+            PdfReadOptions effectiveReadOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, current.LongLength);
             current = PdfStamper.StampText(current, lines[index], new PdfTextStampOptions {
                 PageNumbers = new[] { pageNumber },
                 X = x + normalX * index,
@@ -204,7 +238,7 @@ internal static class PdfTextEditor {
                 FontSize = style.FontSize,
                 Color = style.Color,
                 RotationDegrees = style.RotationDegrees
-            }, readOptions);
+            }, effectiveReadOptions);
         }
         return current;
     }
@@ -244,27 +278,21 @@ internal static class PdfTextEditor {
 
     private static SpanBounds GetBounds(PdfTextSpan span) => SliceBounds(span, 0, Math.Max(1, span.Text.Length));
 
-    private static SpanBounds GetCombinedBounds(IReadOnlyList<PdfTextSpan> spans) {
-        SpanBounds first = GetBounds(spans[0]);
-        double left = first.X;
-        double bottom = first.Y;
-        double right = first.X + first.Width;
-        double top = first.Y + first.Height;
-        for (int index = 1; index < spans.Count; index++) {
-            SpanBounds current = GetBounds(spans[index]);
-            left = Math.Min(left, current.X);
-            bottom = Math.Min(bottom, current.Y);
-            right = Math.Max(right, current.X + current.Width);
-            top = Math.Max(top, current.Y + current.Height);
+    private static SpanBounds GetCombinedSegmentBounds(IReadOnlyList<TextSourceSegment> segments) {
+        SpanBounds combined = SliceBounds(segments[0].Span, segments[0].Start, segments[0].Length);
+        double left = combined.X;
+        double bottom = combined.Y;
+        double right = combined.X + combined.Width;
+        double top = combined.Y + combined.Height;
+        for (int index = 1; index < segments.Count; index++) {
+            TextSourceSegment segment = segments[index];
+            SpanBounds bounds = SliceBounds(segment.Span, segment.Start, segment.Length);
+            left = Math.Min(left, bounds.X);
+            bottom = Math.Min(bottom, bounds.Y);
+            right = Math.Max(right, bounds.X + bounds.Width);
+            top = Math.Max(top, bounds.Y + bounds.Height);
         }
         return new SpanBounds(left, bottom, Math.Max(0.1D, right - left), Math.Max(0.1D, top - bottom));
-    }
-
-    private static SpanBounds SliceUnitBounds(TextSearchUnit unit, int start, int length) {
-        double textLength = Math.Max(1, unit.Text.Length);
-        double x = unit.Bounds.X + unit.Bounds.Width * start / textLength;
-        double width = Math.Max(0.1D, unit.Bounds.Width * length / textLength);
-        return new SpanBounds(x, unit.Bounds.Y, width, unit.Bounds.Height);
     }
 
     private static SpanBounds SliceBounds(PdfTextSpan span, int start, int length) {
@@ -312,6 +340,15 @@ internal static class PdfTextEditor {
         Math.Abs(EffectiveFontSize(left) - EffectiveFontSize(right)) <= 0.2D &&
         Math.Abs(left.RotationDegrees - right.RotationDegrees) <= 0.2D;
 
+    private static bool SameExactSourceSpan(PdfTextSpan left, PdfTextSpan right) =>
+        SameTextPlacement(left, right) &&
+        Math.Abs(left.Advance - right.Advance) <= 0.2D &&
+        Math.Abs(left.PaintOrder - right.PaintOrder) <= 0.0001D &&
+        string.Equals(left.FontResource, right.FontResource, StringComparison.Ordinal) &&
+        string.Equals(left.BaseFont, right.BaseFont, StringComparison.Ordinal) &&
+        Nullable.Equals(left.Color, right.Color) &&
+        left.IsVisible == right.IsVisible;
+
     private static bool HasWordBoundaries(string text, int start, int length) {
         bool left = start == 0 || !IsWordCharacter(text[start - 1]);
         int end = start + length;
@@ -321,24 +358,40 @@ internal static class PdfTextEditor {
 
     private static bool IsWordCharacter(char value) => char.IsLetterOrDigit(value) || value == '_';
 
-    private static string ReplaceOccurrences(string source, int[] starts, int sourceLength, string replacement) {
-        var builder = new System.Text.StringBuilder(source.Length + Math.Max(0, replacement.Length - sourceLength) * starts.Length);
+    private static string ApplySpanEdits(string source, IReadOnlyList<SpanTextEdit> edits) {
+        SpanTextEdit[] ordered = edits.OrderBy(static edit => edit.Start).ToArray();
+        var builder = new System.Text.StringBuilder(source.Length);
         int cursor = 0;
-        for (int index = 0; index < starts.Length; index++) {
-            int start = starts[index];
-            if (start < cursor) continue;
-            builder.Append(source, cursor, start - cursor);
-            builder.Append(replacement);
-            cursor = start + sourceLength;
+        for (int index = 0; index < ordered.Length; index++) {
+            SpanTextEdit edit = ordered[index];
+            if (edit.Start < cursor) continue;
+            builder.Append(source, cursor, edit.Start - cursor);
+            builder.Append(edit.Replacement);
+            cursor = edit.Start + edit.Length;
         }
         builder.Append(source, cursor, source.Length - cursor);
         return builder.ToString();
     }
 
+    private static bool IsSafelyEditableSpan(PdfTextSpan span) => span.IsVisible && !span.ClipPath.HasValue && !string.IsNullOrEmpty(span.Text);
+
     private static void ValidateRegionPage(byte[] pdf, PdfPageRegion region, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(region, nameof(region));
         ValidatePage(region.PageNumber, PdfReadDocument.Open(pdf, readOptions).Pages.Count, nameof(region));
+    }
+
+    private static void EnsureRegionIsSafelyEditable(byte[] pdf, PdfPageRegion region, PdfReadOptions? readOptions) {
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(region, nameof(region));
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
+        bool containsUnsafeText = document.Pages[region.PageNumber - 1]
+            .GetTextSpans()
+            .Any(span => !IsSafelyEditableSpan(span) && ContainsCenter(region, GetBounds(span)));
+        if (containsUnsafeText) {
+            throw new NotSupportedException("The selected region contains invisible or clipped text whose rendering state cannot be recreated safely.");
+        }
     }
 
     private static void ValidatePage(int pageNumber, int pageCount, string paramName) {
@@ -400,25 +453,91 @@ internal static class PdfTextEditor {
     }
 
     private sealed class TextSearchUnit {
-        internal TextSearchUnit(string text, IReadOnlyList<PdfTextSpan> spans, SpanBounds bounds) {
-            Text = text;
-            Spans = spans.ToArray();
-            Bounds = bounds;
-            BaselineX = Spans.Min(static span => span.X);
-            BaselineY = Spans.OrderBy(static span => span.X).First().Y;
+        private readonly TextCharacterSource?[] _sources;
+
+        internal TextSearchUnit(IReadOnlyList<PdfTextSpan> spans) {
+            PdfTextSpan[] orderedSpans = spans.OrderBy(static span => span.X).ThenByDescending(static span => span.Y).ToArray();
+            var text = new System.Text.StringBuilder();
+            var sources = new List<TextCharacterSource?>();
+            PdfTextSpan? previous = null;
+            for (int spanIndex = 0; spanIndex < orderedSpans.Length; spanIndex++) {
+                PdfTextSpan span = orderedSpans[spanIndex];
+                if (previous != null && NeedsSyntheticSpace(previous, span, text)) {
+                    text.Append(' ');
+                    sources.Add(null);
+                }
+                for (int characterIndex = 0; characterIndex < span.Text.Length; characterIndex++) {
+                    text.Append(span.Text[characterIndex]);
+                    sources.Add(new TextCharacterSource(span, characterIndex));
+                }
+                previous = span;
+            }
+            Text = text.ToString();
+            _sources = sources.ToArray();
         }
         internal string Text { get; }
-        internal IReadOnlyList<PdfTextSpan> Spans { get; }
-        internal SpanBounds Bounds { get; }
-        internal double BaselineX { get; }
-        internal double BaselineY { get; }
+
+        internal List<TextSourceSegment> GetSourceSegments(int start, int length) {
+            var segments = new List<TextSourceSegment>();
+            TextSourceSegment? current = null;
+            int end = Math.Min(_sources.Length, start + length);
+            for (int index = start; index < end; index++) {
+                TextCharacterSource? source = _sources[index];
+                if (!source.HasValue) continue;
+                if (current.HasValue &&
+                    ReferenceEquals(current.Value.Span, source.Value.Span) &&
+                    current.Value.Start + current.Value.Length == source.Value.CharacterIndex) {
+                    current = new TextSourceSegment(current.Value.Span, current.Value.Start, current.Value.Length + 1);
+                    segments[segments.Count - 1] = current.Value;
+                } else {
+                    current = new TextSourceSegment(source.Value.Span, source.Value.CharacterIndex, 1);
+                    segments.Add(current.Value);
+                }
+            }
+            return segments;
+        }
+
+        private static bool NeedsSyntheticSpace(PdfTextSpan previous, PdfTextSpan current, System.Text.StringBuilder text) {
+            if (text.Length == 0 || char.IsWhiteSpace(text[text.Length - 1]) || (current.Text.Length > 0 && char.IsWhiteSpace(current.Text[0]))) return false;
+            if (previous.LogicalTrailingSpace || current.LogicalLeadingSpace) return true;
+            double gap = current.X - (previous.X + Math.Max(0D, previous.Advance));
+            return gap > Math.Max(1D, Math.Min(EffectiveFontSize(previous), EffectiveFontSize(current)) * 0.18D);
+        }
     }
 
     private sealed class TextSearchHit {
-        internal TextSearchHit(int pageNumber, TextSearchUnit unit, int startIndex, PdfTextMatch match) { PageNumber = pageNumber; Unit = unit; StartIndex = startIndex; Match = match; }
+        internal TextSearchHit(int pageNumber, IReadOnlyList<TextSourceSegment> segments, PdfTextMatch match) { PageNumber = pageNumber; Segments = segments.ToArray(); Match = match; }
         internal int PageNumber { get; }
-        internal TextSearchUnit Unit { get; }
-        internal int StartIndex { get; }
+        internal TextSourceSegment[] Segments { get; }
         internal PdfTextMatch Match { get; }
+    }
+
+    private readonly struct TextCharacterSource {
+        internal TextCharacterSource(PdfTextSpan span, int characterIndex) { Span = span; CharacterIndex = characterIndex; }
+        internal PdfTextSpan Span { get; }
+        internal int CharacterIndex { get; }
+    }
+
+    private readonly struct TextSourceSegment {
+        internal TextSourceSegment(PdfTextSpan span, int start, int length) { Span = span; Start = start; Length = length; }
+        internal PdfTextSpan Span { get; }
+        internal int Start { get; }
+        internal int Length { get; }
+    }
+
+    private readonly struct SpanTextEdit {
+        internal SpanTextEdit(int start, int length, string replacement) { Start = start; Length = length; Replacement = replacement; }
+        internal int Start { get; }
+        internal int Length { get; }
+        internal string Replacement { get; }
+    }
+
+    private readonly struct PageSpanKey : IEquatable<PageSpanKey> {
+        internal PageSpanKey(int pageNumber, PdfTextSpan span) { PageNumber = pageNumber; Span = span; }
+        internal int PageNumber { get; }
+        internal PdfTextSpan Span { get; }
+        public bool Equals(PageSpanKey other) => PageNumber == other.PageNumber && ReferenceEquals(Span, other.Span);
+        public override bool Equals(object? obj) => obj is PageSpanKey other && Equals(other);
+        public override int GetHashCode() { unchecked { return (PageNumber * 397) ^ System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(Span); } }
     }
 }
