@@ -43,6 +43,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(CodeGlyphXProjectPath)' == '' Or !Exists('$(CodeGlyphXProjectPath)')">
-    <PackageReference Include="CodeGlyphX" Version="[1.6.0,3.0.0)" />
+    <PackageReference Include="CodeGlyphX" Version="[2.1.0, 3.0.0)" />
   </ItemGroup>
 </Project>
