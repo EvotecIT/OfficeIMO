@@ -78,8 +78,8 @@ public sealed partial class PdfReadPage {
             type3GlyphBudget,
             (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
             (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
-            (group, paintOrder, contentOrderKey, effect) => elements.Add(
-                PdfPageDrawingElement.FromGroup(group, paintOrder, contentOrderKey, elements.Count).WithEffect(effect)));
+            (group, transform, paintOrder, contentOrderKey, effect) => elements.Add(
+                PdfPageDrawingElement.FromGroup(group, transform, paintOrder, contentOrderKey, elements.Count).WithEffect(effect)));
         for (int i = 0; i < primitives.Count; i++) {
             elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
         }
@@ -162,7 +162,7 @@ public sealed partial class PdfReadPage {
                 AddImagePlacement(drawing, pageHeight, element.ImagePlacement!, element.Image!);
                 break;
             case PdfPageDrawingElementKind.Group:
-                drawing.AddEffectDrawing(element.GroupDrawing!, OfficeTransform.Identity);
+                drawing.AddEffectDrawing(element.GroupDrawing!, element.GroupTransform);
                 break;
         }
     }
@@ -383,7 +383,7 @@ public sealed partial class PdfReadPage {
         Type3GlyphBudget? type3GlyphBudget = null,
         Action<PdfImagePlacement, PdfExtractedImage, PdfPageDrawingEffect>? type3ImageVisitor = null,
         Action<PdfPageVisualPrimitive, PdfPageDrawingEffect>? type3PrimitiveVisitor = null,
-        Action<OfficeDrawing, double, PdfContentOrderKey?, PdfPageDrawingEffect>? type3GroupVisitor = null) {
+        Action<OfficeDrawing, OfficeTransform, double, PdfContentOrderKey?, PdfPageDrawingEffect>? type3GroupVisitor = null) {
         textOutputBudget ??= CreateTextOutputBudget();
         pageContentBudget ??= new PageContentBudget(this);
         var primitives = new List<PdfPageVisualPrimitive>();
@@ -458,7 +458,7 @@ public sealed partial class PdfReadPage {
         Action<string>? unrenderedPatternVisitor = null,
         Action<PdfImagePlacement, PdfExtractedImage, PdfPageDrawingEffect>? type3ImageVisitor = null,
         Action<PdfPageVisualPrimitive, PdfPageDrawingEffect>? type3PrimitiveVisitor = null,
-        Action<OfficeDrawing, double, PdfContentOrderKey?, PdfPageDrawingEffect>? type3GroupVisitor = null,
+        Action<OfficeDrawing, OfficeTransform, double, PdfContentOrderKey?, PdfPageDrawingEffect>? type3GroupVisitor = null,
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
@@ -689,7 +689,7 @@ public sealed partial class PdfReadPage {
                         type3GlyphBudget.RecordFailure();
                         continue;
                     }
-                    type3GroupVisitor(groupDrawing, invocation.PaintOrder, formOrderPrefix, PdfPageDrawingEffect.Default);
+                    type3GroupVisitor(groupDrawing, OfficeTransform.Identity, invocation.PaintOrder, formOrderPrefix, PdfPageDrawingEffect.Default);
                     continue;
                 }
                 CollectVisualPrimitivesAndForms(
@@ -1365,7 +1365,7 @@ public sealed partial class PdfReadPage {
                 allowSupportedType3TransparencyGroups: true,
                 type3ImageVisitor: (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
                 type3PrimitiveVisitor: (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
-                type3GroupVisitor: (group, paintOrder, key, effect) => elements.Add(PdfPageDrawingElement.FromGroup(group, paintOrder, key, elements.Count).WithEffect(effect)),
+                type3GroupVisitor: (group, transform, paintOrder, key, effect) => elements.Add(PdfPageDrawingElement.FromGroup(group, transform, paintOrder, key, elements.Count).WithEffect(effect)),
                 textOutputBudget: textOutputBudget,
                 pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root);
@@ -2173,6 +2173,7 @@ public sealed partial class PdfReadPage {
             PdfImagePlacement? imagePlacement,
             PdfExtractedImage? image,
             OfficeDrawing? groupDrawing,
+            OfficeTransform groupTransform,
             PdfContentOrderKey? groupContentOrderKey,
             PdfPageDrawingEffect effect) {
             Kind = kind;
@@ -2183,21 +2184,25 @@ public sealed partial class PdfReadPage {
             ImagePlacement = imagePlacement;
             Image = image;
             GroupDrawing = groupDrawing;
+            GroupTransform = groupTransform;
             GroupContentOrderKey = groupContentOrderKey;
             Effect = effect;
         }
 
         public static PdfPageDrawingElement FromPrimitive(PdfPageVisualPrimitive primitive, int sequence) =>
-            new PdfPageDrawingElement(PdfPageDrawingElementKind.Primitive, primitive.PaintOrder, sequence, primitive, null, null, null, null, null, PdfPageDrawingEffect.Default);
+            new PdfPageDrawingElement(PdfPageDrawingElementKind.Primitive, primitive.PaintOrder, sequence, primitive, null, null, null, null, OfficeTransform.Identity, null, PdfPageDrawingEffect.Default);
 
         public static PdfPageDrawingElement FromText(PdfTextSpan textSpan, int sequence) =>
-            new PdfPageDrawingElement(PdfPageDrawingElementKind.Text, textSpan.PaintOrder, sequence, default, textSpan, null, null, null, null, PdfPageDrawingEffect.Default);
+            new PdfPageDrawingElement(PdfPageDrawingElementKind.Text, textSpan.PaintOrder, sequence, default, textSpan, null, null, null, OfficeTransform.Identity, null, PdfPageDrawingEffect.Default);
 
         public static PdfPageDrawingElement FromImage(PdfImagePlacement imagePlacement, PdfExtractedImage image, int sequence) =>
-            new PdfPageDrawingElement(PdfPageDrawingElementKind.Image, imagePlacement.PaintOrder, sequence, default, null, imagePlacement, image, null, null, PdfPageDrawingEffect.Default);
+            new PdfPageDrawingElement(PdfPageDrawingElementKind.Image, imagePlacement.PaintOrder, sequence, default, null, imagePlacement, image, null, OfficeTransform.Identity, null, PdfPageDrawingEffect.Default);
 
         public static PdfPageDrawingElement FromGroup(OfficeDrawing groupDrawing, double paintOrder, PdfContentOrderKey? contentOrderKey, int sequence) =>
-            new PdfPageDrawingElement(PdfPageDrawingElementKind.Group, paintOrder, sequence, default, null, null, null, groupDrawing, contentOrderKey, PdfPageDrawingEffect.Default);
+            FromGroup(groupDrawing, OfficeTransform.Identity, paintOrder, contentOrderKey, sequence);
+
+        public static PdfPageDrawingElement FromGroup(OfficeDrawing groupDrawing, OfficeTransform transform, double paintOrder, PdfContentOrderKey? contentOrderKey, int sequence) =>
+            new PdfPageDrawingElement(PdfPageDrawingElementKind.Group, paintOrder, sequence, default, null, null, null, groupDrawing, transform, contentOrderKey, PdfPageDrawingEffect.Default);
 
         public PdfPageDrawingElementKind Kind { get; }
 
@@ -2215,6 +2220,8 @@ public sealed partial class PdfReadPage {
 
         public OfficeDrawing? GroupDrawing { get; }
 
+        public OfficeTransform GroupTransform { get; }
+
         private PdfContentOrderKey? GroupContentOrderKey { get; }
 
         public PdfPageDrawingEffect Effect { get; }
@@ -2228,7 +2235,7 @@ public sealed partial class PdfReadPage {
         };
 
         public PdfPageDrawingElement WithEffect(PdfPageDrawingEffect effect) =>
-            new PdfPageDrawingElement(Kind, PaintOrder, Sequence, Primitive, TextSpan, ImagePlacement, Image, GroupDrawing, GroupContentOrderKey, effect);
+            new PdfPageDrawingElement(Kind, PaintOrder, Sequence, Primitive, TextSpan, ImagePlacement, Image, GroupDrawing, GroupTransform, GroupContentOrderKey, effect);
     }
 
 }

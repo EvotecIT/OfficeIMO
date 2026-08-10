@@ -76,8 +76,8 @@ public sealed partial class PdfReadPage {
                 PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
             type3PrimitiveVisitor: (primitive, effect) => elements.Add(
                 PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
-            type3GroupVisitor: (drawing, paintOrder, key, effect) => elements.Add(
-                PdfPageDrawingElement.FromGroup(drawing, paintOrder, key, elements.Count).WithEffect(effect)),
+            type3GroupVisitor: (drawing, transform, paintOrder, key, effect) => elements.Add(
+                PdfPageDrawingElement.FromGroup(drawing, transform, paintOrder, key, elements.Count).WithEffect(effect)),
             tilingPatternResourceCache: tilingPatternResourceCache,
             textOutputBudget: textOutputBudget,
             pageContentBudget: pageContentBudget,

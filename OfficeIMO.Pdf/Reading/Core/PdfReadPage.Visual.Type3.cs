@@ -20,7 +20,7 @@ public sealed partial class PdfReadPage {
         int contentNestingDepth,
         Action<PdfImagePlacement, PdfExtractedImage, PdfPageDrawingEffect>? imageVisitor,
         Action<PdfPageVisualPrimitive, PdfPageDrawingEffect>? primitiveEffectVisitor,
-        Action<OfficeDrawing, double, PdfContentOrderKey?, PdfPageDrawingEffect>? groupVisitor,
+        Action<OfficeDrawing, OfficeTransform, double, PdfContentOrderKey?, PdfPageDrawingEffect>? groupVisitor,
         PdfContentOrderKey? contentOrderPrefix) {
         if (invocation.Glyphs.Count == 0) return false;
 
@@ -34,7 +34,7 @@ public sealed partial class PdfReadPage {
 
         var glyphPrimitives = new List<(PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect)>();
         var glyphImages = new List<(PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect)>();
-        var glyphGroups = new List<(OfficeDrawing Drawing, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)>();
+        var glyphGroups = new List<(OfficeDrawing Drawing, OfficeTransform Transform, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)>();
         var extractedImageCache = new Dictionary<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor), PdfExtractedImage>();
         var validatedSoftMaskGroups = new HashSet<PdfStream>();
         var softMaskValidationBudget = new PageContentBudget(this);
@@ -49,7 +49,7 @@ public sealed partial class PdfReadPage {
                 PdfContentOrderKey glyphOrderPrefix = (contentOrderPrefix ?? PdfContentOrderKey.Root).Append(i);
                 var localPrimitives = new List<(PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect)>();
                 var localImages = new List<(PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect)>();
-                var localGroups = new List<(OfficeDrawing Drawing, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)>();
+                var localGroups = new List<(OfficeDrawing Drawing, OfficeTransform Transform, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)>();
                 var localImagePlacements = new List<PdfImagePlacement>();
                 int failureVersion = type3GlyphBudget.FailureVersion;
                 string glyphContent;
@@ -99,7 +99,7 @@ public sealed partial class PdfReadPage {
                         requireNestedType3Uncolored: type3.IsUncolored,
                         type3ImageVisitor: (placement, image, effect) => localImages.Add((placement, image, effect)),
                         type3PrimitiveVisitor: (primitive, effect) => localPrimitives.Add((primitive, effect)),
-                        type3GroupVisitor: (drawing, paintOrder, key, effect) => localGroups.Add((drawing, paintOrder, key, effect)),
+                        type3GroupVisitor: (drawing, transform, paintOrder, key, effect) => localGroups.Add((drawing, transform, paintOrder, key, effect)),
                         tilingPatternResourceCache: tilingPatternResourceCache,
                         textOutputBudget: textOutputBudget,
                         pageContentBudget: pageContentBudget,
@@ -145,9 +145,9 @@ public sealed partial class PdfReadPage {
                     localImages[imageIndex] = (item.Placement, item.Image, item.Effect.OverlayOn(inherited));
                 }
                 for (int groupIndex = 0; groupIndex < localGroups.Count; groupIndex++) {
-                    (OfficeDrawing Drawing, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect) item = localGroups[groupIndex];
+                    (OfficeDrawing Drawing, OfficeTransform Transform, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect) item = localGroups[groupIndex];
                     PdfPageDrawingEffect inherited = ResolveDrawingEffect(localEffects, item.PaintOrder, contentOrderKey: item.ContentOrderKey);
-                    localGroups[groupIndex] = (item.Drawing, item.PaintOrder, item.ContentOrderKey, item.Effect.OverlayOn(inherited));
+                    localGroups[groupIndex] = (item.Drawing, item.Transform, item.PaintOrder, item.ContentOrderKey, item.Effect.OverlayOn(inherited));
                 }
 
                 CollectImagePlacementsAndForms(
@@ -278,10 +278,11 @@ public sealed partial class PdfReadPage {
                                 image.Image,
                                 pageWidth,
                                 pageHeight,
-                                out OfficeDrawing? maskedPattern)) {
+                                out OfficeDrawing? maskedPattern,
+                                out OfficeTransform maskedPatternTransform)) {
                             return false;
                         }
-                        localGroups.Add((maskedPattern, image.Placement.PaintOrder, image.Placement.ContentOrderKey, image.Effect));
+                        localGroups.Add((maskedPattern, maskedPatternTransform, image.Placement.PaintOrder, image.Placement.ContentOrderKey, image.Effect));
                     }
                     localImages.Clear();
                 }
@@ -310,8 +311,8 @@ public sealed partial class PdfReadPage {
         }
         for (int i = 0; i < glyphImages.Count; i++) imageVisitor!(glyphImages[i].Placement, glyphImages[i].Image, glyphImages[i].Effect);
         for (int i = 0; i < glyphGroups.Count; i++) {
-            (OfficeDrawing Drawing, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect) group = glyphGroups[i];
-            groupVisitor!(group.Drawing, group.PaintOrder, group.ContentOrderKey, group.Effect);
+            (OfficeDrawing Drawing, OfficeTransform Transform, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect) group = glyphGroups[i];
+            groupVisitor!(group.Drawing, group.Transform, group.PaintOrder, group.ContentOrderKey, group.Effect);
         }
         return true;
     }
@@ -322,8 +323,10 @@ public sealed partial class PdfReadPage {
         PdfExtractedImage image,
         double pageWidth,
         double pageHeight,
-        out OfficeDrawing drawing) {
-        drawing = new OfficeDrawing(pageWidth, pageHeight);
+        out OfficeDrawing drawing,
+        out OfficeTransform drawingTransform) {
+        drawing = new OfficeDrawing(1D, 1D);
+        drawingTransform = OfficeTransform.Identity;
         if (!selection.HasValue || !image.IsImageMask ||
             !TryCreateImageProjection(placement, pageHeight, pageWidth, pageHeight, out OfficeImageProjection projection)) {
             return false;
@@ -334,14 +337,24 @@ public sealed partial class PdfReadPage {
         double height = bottom - top;
         if (width <= 0D || height <= 0D) return false;
 
+        PdfPageClipPath projectedBounds = PdfPageClipPath.Rectangle(left, top, width, height);
+        if (placement.ClipPath.HasValue) {
+            projectedBounds = PdfPageClipPath.ResolveActiveClip(projectedBounds, placement.ClipPath.Value);
+        }
+        if (!TryFitClipToDrawing(projectedBounds, pageWidth, pageHeight, out PdfPageClipPath fitted)) {
+            return false;
+        }
+        drawing = new OfficeDrawing(fitted.Width, fitted.Height);
+        drawingTransform = OfficeTransform.Translate(fitted.X, fitted.Y);
+
         if (!TryCreateInheritedTilingPatternPaint(selection, pageHeight, null, out PdfPageTilingPatternPaint? tilingPaint)) {
             return false;
         }
-        var paintBounds = PdfPageVisualPrimitive.Rectangle(
-            left,
-            top,
-            width,
-            height,
+        var globalPaintBounds = PdfPageVisualPrimitive.Rectangle(
+            fitted.X,
+            fitted.Y,
+            fitted.Width,
+            fitted.Height,
             OfficeColor.Black,
             null,
             0D,
@@ -350,30 +363,69 @@ public sealed partial class PdfReadPage {
             null,
             null,
             null,
-            placement.ClipPath,
+            null,
             placement.PaintOrder);
         CreateInheritedShadingGradients(
             selection,
-            paintBounds,
+            globalPaintBounds,
             pageHeight,
             out OfficeLinearGradient? fillGradient,
             out OfficeRadialGradient? fillRadialGradient);
-        paintBounds = paintBounds.WithPaints(
-            OfficeColor.Black,
-            tilingPaint,
-            fillGradient,
-            fillRadialGradient,
+        PdfPageTilingPatternPaint? localTilingPaint = tilingPaint == null
+            ? null
+            : new PdfPageTilingPatternPaint(
+                tilingPaint.Resource,
+                tilingPaint.Transform.Then(OfficeTransform.Translate(-fitted.X, -fitted.Y)),
+                tilingPaint.Tint,
+                tilingPaint.Opacity);
+        var localPaintBounds = PdfPageVisualPrimitive.Rectangle(
+            0D,
+            0D,
+            fitted.Width,
+            fitted.Height,
             OfficeColor.Black,
             null,
+            0D,
+            OfficeStrokeDashStyle.Solid,
             null,
-            null);
+            null,
+            null,
+            null,
+            null,
+            placement.PaintOrder).WithPaints(
+                OfficeColor.Black,
+                localTilingPaint,
+                fillGradient,
+                fillRadialGradient,
+                OfficeColor.Black,
+                null,
+                null,
+                null);
 
-        var patternDrawing = new OfficeDrawing(pageWidth, pageHeight);
-        AddVisualPrimitive(patternDrawing, paintBounds);
+        var patternDrawing = new OfficeDrawing(fitted.Width, fitted.Height);
+        AddVisualPrimitive(patternDrawing, localPaintBounds);
         if (patternDrawing.Elements.Count == 0) return false;
 
-        var maskDrawing = new OfficeDrawing(pageWidth, pageHeight);
-        AddImagePlacement(maskDrawing, pageHeight, placement, image);
+        var maskDrawing = new OfficeDrawing(fitted.Width, fitted.Height);
+        OfficeImageProjection localProjection = projection.Translate(-fitted.X, -fitted.Y);
+        if (fitted.IsRectangle) {
+            maskDrawing.AddImage(
+                image.Bytes,
+                image.MimeType,
+                localProjection,
+                opacity: placement.ImageOpacity ?? 1D);
+        } else {
+            OfficeClipPath? localClip = fitted.ToOfficeClipPath(fitted.X, fitted.Y);
+            if (localClip == null) return false;
+            maskDrawing.AddClippedImage(
+                image.Bytes,
+                image.MimeType,
+                localProjection,
+                0D,
+                0D,
+                localClip,
+                opacity: placement.ImageOpacity ?? 1D);
+        }
         if (maskDrawing.Elements.Count == 0) return false;
 
         drawing.AddEffectDrawing(
@@ -463,12 +515,12 @@ public sealed partial class PdfReadPage {
     private static bool TryPublishType3GlyphContent(
         List<(PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect)> localPrimitives,
         List<(PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect)> localImages,
-        List<(OfficeDrawing Drawing, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)> localGroups,
+        List<(OfficeDrawing Drawing, OfficeTransform Transform, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)> localGroups,
         ref double nextPaintOrder,
         double paintOrderLimit,
         List<(PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect)> targetPrimitives,
         List<(PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect)> targetImages,
-        List<(OfficeDrawing Drawing, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)> targetGroups) {
+        List<(OfficeDrawing Drawing, OfficeTransform Transform, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)> targetGroups) {
         var items = new List<Type3GlyphPaintItem>(localPrimitives.Count + localImages.Count + localGroups.Count);
         for (int i = 0; i < localPrimitives.Count; i++) {
             items.Add(new Type3GlyphPaintItem(localPrimitives[i].Primitive.PaintOrder, localPrimitives[i].Primitive.ContentOrderKey, Type3GlyphPaintItemKind.Primitive, i, i));
@@ -496,8 +548,8 @@ public sealed partial class PdfReadPage {
                 (PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect) image = localImages[item.Index];
                 targetImages.Add((image.Placement.WithPaintOrder(nextPaintOrder), image.Image, image.Effect));
             } else if (item.Kind == Type3GlyphPaintItemKind.Group) {
-                (OfficeDrawing Drawing, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect) group = localGroups[item.Index];
-                targetGroups.Add((group.Drawing, nextPaintOrder, group.ContentOrderKey, group.Effect));
+                (OfficeDrawing Drawing, OfficeTransform Transform, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect) group = localGroups[item.Index];
+                targetGroups.Add((group.Drawing, group.Transform, nextPaintOrder, group.ContentOrderKey, group.Effect));
             } else {
                 (PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect) primitive = localPrimitives[item.Index];
                 targetPrimitives.Add((primitive.Primitive.WithPaintOrder(nextPaintOrder), primitive.Effect));

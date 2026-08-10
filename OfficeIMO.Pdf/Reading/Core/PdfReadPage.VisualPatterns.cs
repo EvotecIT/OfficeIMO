@@ -238,7 +238,7 @@ public sealed partial class PdfReadPage {
             unrenderedPatternVisitor: _ => type3GlyphBudget.RecordFailure(),
             type3ImageVisitor: (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
             type3PrimitiveVisitor: (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
-            type3GroupVisitor: (group, paintOrder, key, effect) => elements.Add(PdfPageDrawingElement.FromGroup(group, paintOrder, key, elements.Count).WithEffect(effect)),
+            type3GroupVisitor: (group, transform, paintOrder, key, effect) => elements.Add(PdfPageDrawingElement.FromGroup(group, transform, paintOrder, key, elements.Count).WithEffect(effect)),
             textOutputBudget: textOutputBudget,
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: PdfContentOrderKey.Root);

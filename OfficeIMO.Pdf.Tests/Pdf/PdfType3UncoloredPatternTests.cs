@@ -707,6 +707,32 @@ public class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void RenderPage_CropsRepeatedPatternedImageMaskGroupsToStencilBounds() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 1000 Td (A) Tj ET BT /FType3 18 Tf 1500 1000 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q",
+            glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
+            pageWidth: 2000D,
+            pageHeight: 2000D,
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x")
+            });
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeDrawingEffectGroup[] groups = drawing.Elements.OfType<OfficeDrawingEffectGroup>().ToArray();
+
+        Assert.Equal(2, groups.Length);
+        Assert.All(groups, group => {
+            Assert.InRange(group.Drawing.Width, 0.1D, 20D);
+            Assert.InRange(group.Drawing.Height, 0.1D, 20D);
+        });
+        Assert.True(groups[1].Transform.OffsetX - groups[0].Transform.OffsetX > 1000D);
+    }
+
+    [Fact]
     public void RenderPage_UsesOuterAxialShadingPatternForImageMaskOnUncoloredType3Glyph() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
@@ -846,13 +872,17 @@ public class PdfType3UncoloredPatternTests {
         string catalogEntries = "",
         string pageResourceEntries = "",
         string patternResourceEntries = "/P1 7 0 R",
+        double pageWidth = 240D,
+        double pageHeight = 200D,
         IReadOnlyList<string>? extraObjects = null) {
+        string pageWidthText = pageWidth.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        string pageHeightText = pageHeight.ToString(System.Globalization.CultureInfo.InvariantCulture);
         string pageResources = invokeThroughForm
             ? "<< /Pattern << " + patternResourceEntries + " >> /XObject << /Fm1 8 0 R >> " + pageColorSpaceResources + " " + pageResourceEntries + " >>"
             : "<< /Font << /FType3 5 0 R >> /Pattern << " + patternResourceEntries + " >> " + pageColorSpaceResources + " " + pageResourceEntries + " >>";
         var objects = new List<string> {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R " + catalogEntries + " >>\nendobj",
-            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 " + pageWidthText + " " + pageHeightText + "] >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources " + pageResources + " /Contents 4 0 R >>\nendobj",
             StreamObject(4, "<<", pageContent),
             "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 2 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources " + glyphResources + " >>\nendobj",
@@ -864,7 +894,7 @@ public class PdfType3UncoloredPatternTests {
         if (invokeThroughForm) {
             objects.Add(StreamObject(
                 8,
-                "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Resources << " + formResourceEntries + " >> " + formDictionaryEntries,
+                "<< /Type /XObject /Subtype /Form /BBox [0 0 " + pageWidthText + " " + pageHeightText + "] /Resources << " + formResourceEntries + " >> " + formDictionaryEntries,
                 formContent ?? "BT /FType3 18 Tf 20 100 Td (A) Tj ET"));
         }
         if (extraObjects != null) objects.AddRange(extraObjects);
