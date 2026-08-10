@@ -798,7 +798,8 @@ internal static class PdfPageXObjectInvocationParser {
                                     : (OfficeColor?)null;
                             PdfPageTilingPatternResource? tilingPattern = ResolveTilingPattern(fillPatternName);
                             PdfPageShadingPatternResource? shadingPattern = ResolveShadingPattern(fillPatternName);
-                            if (!IsValidPatternSelection(tilingPattern, shadingPattern, _patternState.FillBaseColorSpace, tint, CountPatternComponents())) {
+                            if (!HasHiddenContent() &&
+                                !IsValidPatternSelection(tilingPattern, shadingPattern, _patternState.FillBaseColorSpace, tint, CountPatternComponents())) {
                                 _invalidPatternSelectionVisitor?.Invoke();
                             }
                             _patternState = _patternState.WithFill(
@@ -834,7 +835,8 @@ internal static class PdfPageXObjectInvocationParser {
                                     : (OfficeColor?)null;
                             PdfPageTilingPatternResource? tilingPattern = ResolveTilingPattern(strokePatternName);
                             PdfPageShadingPatternResource? shadingPattern = ResolveShadingPattern(strokePatternName);
-                            if (!IsValidPatternSelection(tilingPattern, shadingPattern, _patternState.StrokeBaseColorSpace, tint, CountPatternComponents())) {
+                            if (!HasHiddenContent() &&
+                                !IsValidPatternSelection(tilingPattern, shadingPattern, _patternState.StrokeBaseColorSpace, tint, CountPatternComponents())) {
                                 _invalidPatternSelectionVisitor?.Invoke();
                             }
                             _patternState = _patternState.WithStroke(
