@@ -60,6 +60,7 @@ namespace OfficeIMO.PowerPoint {
                         new ColorMapOverride(new A.MasterColorMapping()));
                 }
 
+                EnsureSlideRelationship(notesPart);
                 EnsureNotesMasterRelationship(notesPart);
 
                 if (notesPart.NotesSlide == null) {
@@ -73,6 +74,13 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 return notesPart.NotesSlide!;
+            }
+        }
+
+        private void EnsureSlideRelationship(NotesSlidePart notesPart) {
+            if (!notesPart.Parts.Any(pair => ReferenceEquals(
+                    pair.OpenXmlPart, _slidePart))) {
+                notesPart.AddPart(_slidePart);
             }
         }
 

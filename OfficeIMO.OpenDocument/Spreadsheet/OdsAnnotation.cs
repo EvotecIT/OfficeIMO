@@ -67,11 +67,24 @@ public sealed class OdsAnnotation {
         } else if (element == null) {
             XElement? firstParagraph = _element.Elements().FirstOrDefault(IsAnnotationTextBlock);
             var added = new XElement(name, value);
-            if (firstParagraph == null) _element.Add(added); else firstParagraph.AddBeforeSelf(added);
+            XElement? date = _element.Element(OdfNamespaces.Dc + "date");
+            if (name == OdfNamespaces.Dc + "creator" && date != null) date.AddBeforeSelf(added);
+            else if (firstParagraph == null) _element.Add(added);
+            else firstParagraph.AddBeforeSelf(added);
         } else {
             element.Value = value;
         }
+        EnsureCreatorPrecedesDate();
         Dirty();
+    }
+
+    private void EnsureCreatorPrecedesDate() {
+        XElement? creator = _element.Element(OdfNamespaces.Dc + "creator");
+        XElement? date = _element.Element(OdfNamespaces.Dc + "date");
+        if (creator == null || date == null
+            || creator.NodesAfterSelf().Contains(date)) return;
+        creator.Remove();
+        date.AddBeforeSelf(creator);
     }
 
     private static IEnumerable<string> ReadTextBlocks(XElement container) {

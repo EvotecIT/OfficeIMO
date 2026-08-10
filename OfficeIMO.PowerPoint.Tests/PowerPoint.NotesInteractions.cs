@@ -6,6 +6,42 @@ namespace OfficeIMO.Tests;
 
 public sealed class PowerPointNotesInteractionTests {
     [Fact]
+    public void NoteRunHyperlinkCleanupPreservesTheOwningSlideBacklink() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
+        try {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTextRun run = slide.Notes.SetParagraphs(new[] { "Linked note" })
+                    .Single().Runs.Single();
+                NotesSlidePart notesPart = slide.SlidePart.NotesSlidePart!;
+                string backlinkId = notesPart.GetIdOfPart(slide.SlidePart);
+
+                run.SetHyperlink(slide);
+                Assert.Equal(backlinkId, run.Run.RunProperties!
+                    .GetFirstChild<DocumentFormat.OpenXml.Drawing.HyperlinkOnClick>()!.Id!.Value);
+
+                run.SetHyperlink("https://example.test/note");
+                Assert.Same(slide.SlidePart, notesPart.SlidePart);
+                Assert.Equal(backlinkId, notesPart.GetIdOfPart(slide.SlidePart));
+
+                run.ClearHyperlink();
+                Assert.Same(slide.SlidePart, notesPart.SlidePart);
+                Assert.Equal(backlinkId, notesPart.GetIdOfPart(slide.SlidePart));
+                Assert.Empty(presentation.ValidateDocument());
+                presentation.Save();
+            }
+
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(path);
+            PowerPointSlide actual = reopened.Slides.Single();
+            Assert.Same(actual.SlidePart, actual.SlidePart.NotesSlidePart!.SlidePart);
+            Assert.Equal("Linked note", actual.Notes.Paragraphs.Single().Text);
+            Assert.Empty(reopened.ValidateDocument());
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void NoteRunSoundsUseNotesPartRelationshipsAndRoundTrip() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
         byte[] clickBytes = CreateWave(1);

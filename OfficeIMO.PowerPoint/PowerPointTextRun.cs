@@ -300,7 +300,7 @@ namespace OfficeIMO.PowerPoint {
             if (ownerPart == null) return;
             foreach (string relationshipId in relationshipIds) {
                 RemoveHyperlinkRelationshipIfUnused(ownerPart,
-                    relationshipId);
+                    relationshipId, _slidePart);
             }
             foreach (string soundRelationshipId in soundRelationshipIds) {
                 PowerPointEmbeddedSound.RemoveIfUnused(ownerPart,
@@ -309,9 +309,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void RemoveHyperlinkRelationshipIfUnused(
-            OpenXmlPart ownerPart, string relationshipId) {
+            OpenXmlPart ownerPart, string relationshipId,
+            SlidePart? owningSlidePart) {
             if (ReferencesRelationship(ownerPart.RootElement,
                     relationshipId)) return;
+            if (ownerPart is NotesSlidePart
+                && owningSlidePart != null
+                && ownerPart.Parts.Any(pair => string.Equals(
+                        pair.RelationshipId, relationshipId,
+                        StringComparison.Ordinal)
+                    && ReferenceEquals(pair.OpenXmlPart,
+                        owningSlidePart))) return;
             HyperlinkRelationship? external = ownerPart
                 .HyperlinkRelationships.FirstOrDefault(relationship =>
                     string.Equals(relationship.Id, relationshipId,

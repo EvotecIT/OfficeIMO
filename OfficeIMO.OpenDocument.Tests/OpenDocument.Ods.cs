@@ -13,7 +13,21 @@ public class OpenDocumentOdsTests {
         OdsCell cell = document.AddSheet("Data").Cell(3, 2);
         DateTimeOffset timestamp = new DateTimeOffset(2026, 8, 9, 10, 30, 0, TimeSpan.FromHours(2));
 
-        cell.AddAnnotation("Review  this\tvalue\nbefore release", "Alice", timestamp, "note-17");
+        OdsAnnotation authored = cell.AddAnnotation(
+            "Review  this\tvalue\nbefore release", date: timestamp,
+            name: "note-17");
+        authored.Creator = "Alice";
+        authored.Creator = null;
+        authored.Creator = "Alice";
+
+        XElement raw = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Office + "annotation").Single();
+        Assert.Equal(new[] {
+            OdfNamespaces.Dc + "creator",
+            OdfNamespaces.Dc + "date",
+            OdfNamespaces.Text + "p"
+        }, raw.Elements().Select(element => element.Name));
+        Assert.True(document.Validate().IsValid);
 
         Assert.Equal(new OdsUsedRange(3, 2, 3, 2), document.Sheets.Single().UsedRange);
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(document.ToBytes()));
