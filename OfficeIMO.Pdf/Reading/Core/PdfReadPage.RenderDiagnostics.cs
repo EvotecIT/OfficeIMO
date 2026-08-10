@@ -364,7 +364,8 @@ public sealed partial class PdfReadPage {
                         seen,
                         PdfRenderCapabilities.UnsupportedShadingId,
                         "type3-shading-paint");
-                });
+                },
+                requireExactType3ShadingProjection: true);
             if (usesUnsupportedInheritedShadingStroke) {
                 AddRenderDiagnostic(
                     diagnostics,
@@ -447,7 +448,7 @@ public sealed partial class PdfReadPage {
                                      canProject = true;
                                 } else if (!requireImageMask &&
                                            shadingPatterns.TryGetValue(name, out PdfPageShadingPatternResource shadingPattern)) {
-                                    canProject = shadingPattern.IsSupported;
+                                    canProject = shadingPattern.SupportsExactType3Projection;
                                      CollectShadingCapabilityDiagnostics(
                                          resources,
                                          Array.Empty<string>(),
@@ -517,7 +518,7 @@ public sealed partial class PdfReadPage {
 
     private static bool HasUsableInheritedPattern(PdfPagePatternSelection? selection) {
         if (!selection.HasValue) return false;
-        if (selection.Value.ShadingPattern.HasValue) return selection.Value.ShadingPattern.Value.IsSupported;
+        if (selection.Value.ShadingPattern.HasValue) return selection.Value.ShadingPattern.Value.SupportsExactType3Projection;
         if (selection.Value.TilingPattern is not PdfPageTilingPatternResource pattern) return false;
         return !pattern.Uncolored || selection.Value.Tint.HasValue;
     }

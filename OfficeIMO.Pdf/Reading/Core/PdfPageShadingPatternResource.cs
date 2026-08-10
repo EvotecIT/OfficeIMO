@@ -14,4 +14,6 @@ internal readonly struct PdfPageShadingPatternResource {
     public Matrix2D Matrix { get; }
 
     public bool IsSupported { get; }
+
+    public bool SupportsExactType3Projection => IsSupported && Shading.SupportsExactType3Projection;
 }

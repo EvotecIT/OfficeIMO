@@ -329,7 +329,7 @@ public sealed partial class PdfReadPage {
 
     private static bool IsUsableInheritedPattern(PdfPagePatternSelection? selection) {
         if (!selection.HasValue) return true;
-        if (selection.Value.ShadingPattern.HasValue) return selection.Value.ShadingPattern.Value.IsSupported;
+        if (selection.Value.ShadingPattern.HasValue) return selection.Value.ShadingPattern.Value.SupportsExactType3Projection;
         PdfPageTilingPatternResource? pattern = selection.Value.TilingPattern;
         return pattern != null && (!pattern.Uncolored || selection.Value.Tint.HasValue);
     }
