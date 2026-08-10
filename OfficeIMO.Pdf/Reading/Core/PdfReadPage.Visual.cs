@@ -132,6 +132,38 @@ public sealed partial class PdfReadPage {
             return;
         }
 
+        if (element.Kind == PdfPageDrawingElementKind.Group &&
+            element.GroupDrawing != null &&
+            element.GroupTransform.TryInvert(out OfficeTransform inverseGroupTransform)) {
+            OfficeDrawingSoftMask? groupSoftMask = null;
+            if (element.Effect.SoftMask != null) {
+                Matrix2D softMaskTransform = element.Effect.SoftMaskTransform ?? pageTransform;
+                var inverseGroupMatrix = new Matrix2D(
+                    inverseGroupTransform.M11,
+                    inverseGroupTransform.M12,
+                    inverseGroupTransform.M21,
+                    inverseGroupTransform.M22,
+                    inverseGroupTransform.OffsetX,
+                    inverseGroupTransform.OffsetY);
+                groupSoftMask = GetOrCreateSoftMask(
+                    element.Effect.SoftMask,
+                    element.GroupDrawing.Width,
+                    element.GroupDrawing.Height,
+                    Matrix2D.Multiply(inverseGroupMatrix, softMaskTransform),
+                    softMasks,
+                    activeSoftMasks,
+                    textOutputBudget,
+                    pageContentBudget,
+                    type3GlyphBudget);
+            }
+            drawing.AddEffectDrawing(
+                element.GroupDrawing,
+                element.GroupTransform,
+                element.Effect.BlendMode,
+                groupSoftMask);
+            return;
+        }
+
         var isolated = new OfficeDrawing(drawing.Width, drawing.Height);
         AddDrawingElementCore(isolated, pageHeight, element);
         if (isolated.Elements.Count == 0) return;

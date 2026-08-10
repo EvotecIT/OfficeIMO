@@ -733,6 +733,63 @@ public class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void RenderPage_KeepsBlendedPatternedImageMaskGroupsCropped() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 1000 Td (A) Tj ET BT /FType3 18 Tf 1500 1000 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Multiply gs q 500 0 0 700 0 0 cm /Im1 Do Q",
+            glyphResources: "<< /ExtGState << /Multiply << /BM /Multiply >> >> /XObject << /Im1 8 0 R >> >>",
+            pageWidth: 2000D,
+            pageHeight: 2000D,
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x")
+            });
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeDrawingEffectGroup[] groups = drawing.Elements.OfType<OfficeDrawingEffectGroup>().ToArray();
+
+        Assert.Equal(2, groups.Length);
+        Assert.All(groups, group => {
+            Assert.InRange(group.Drawing.Width, 0.1D, 20D);
+            Assert.InRange(group.Drawing.Height, 0.1D, 20D);
+            Assert.Equal(OfficeBlendMode.Multiply, group.BlendMode);
+        });
+        Assert.True(groups[1].Transform.OffsetX - groups[0].Transform.OffsetX > 1000D);
+    }
+
+    [Fact]
+    public void RenderPage_KeepsSoftMaskedPatternedImageMaskGroupsCropped() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 1000 Td (A) Tj ET BT /FType3 18 Tf 1500 1000 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Masked gs q 500 0 0 700 0 0 cm /Im1 Do Q",
+            glyphResources: "<< /ExtGState << /Masked << /SMask << /S /Alpha /G 9 0 R >> >> >> /XObject << /Im1 8 0 R >> >>",
+            pageWidth: 2000D,
+            pageHeight: 2000D,
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x"),
+                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 2000 2000] /Group << /S /Transparency /CS /DeviceRGB >> /Resources << >>", "1 g 0 0 2000 2000 re f")
+            });
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeDrawingEffectGroup[] groups = drawing.Elements.OfType<OfficeDrawingEffectGroup>().ToArray();
+
+        Assert.Equal(2, groups.Length);
+        Assert.All(groups, group => {
+            Assert.InRange(group.Drawing.Width, 0.1D, 20D);
+            Assert.InRange(group.Drawing.Height, 0.1D, 20D);
+            OfficeDrawingSoftMask softMask = Assert.IsType<OfficeDrawingSoftMask>(group.SoftMask);
+            Assert.InRange(softMask.Drawing.Width, 0.1D, 20D);
+            Assert.InRange(softMask.Drawing.Height, 0.1D, 20D);
+        });
+        Assert.True(groups[1].Transform.OffsetX - groups[0].Transform.OffsetX > 1000D);
+    }
+
+    [Fact]
     public void RenderPage_UsesOuterAxialShadingPatternForImageMaskOnUncoloredType3Glyph() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
