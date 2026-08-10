@@ -55,12 +55,13 @@ internal static class PdfPageContentVisualParser {
         bool retainPrimitiveData = true,
         bool scaleStrokeWidthWithTransform = false,
         Action? unsupportedShadingTransformVisitor = null,
-        bool requireExactType3ShadingProjection = false) {
+        bool requireExactType3ShadingProjection = false,
+        Action<string>? authoredShadingInvocationVisitor = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, unsupportedShadingTransformVisitor, requireExactType3ShadingProjection);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, unsupportedShadingTransformVisitor, requireExactType3ShadingProjection, authoredShadingInvocationVisitor);
         return parser.Parse();
     }
 
@@ -200,6 +201,7 @@ internal static class PdfPageContentVisualParser {
         private readonly bool _scaleStrokeWidthWithTransform;
         private readonly Action? _unsupportedShadingTransformVisitor;
         private readonly bool _requireExactType3ShadingProjection;
+        private readonly Action<string>? _authoredShadingInvocationVisitor;
         private readonly List<object> _args = new List<object>(8);
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
         private readonly Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase)> _tilingStack = new Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase)>();
@@ -253,7 +255,8 @@ internal static class PdfPageContentVisualParser {
             bool retainPrimitiveData,
             bool scaleStrokeWidthWithTransform,
             Action? unsupportedShadingTransformVisitor,
-            bool requireExactType3ShadingProjection) {
+            bool requireExactType3ShadingProjection,
+            Action<string>? authoredShadingInvocationVisitor) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -275,6 +278,7 @@ internal static class PdfPageContentVisualParser {
             _scaleStrokeWidthWithTransform = scaleStrokeWidthWithTransform;
             _unsupportedShadingTransformVisitor = unsupportedShadingTransformVisitor;
             _requireExactType3ShadingProjection = requireExactType3ShadingProjection;
+            _authoredShadingInvocationVisitor = authoredShadingInvocationVisitor;
             _primitives = primitiveVisitor == null ? new List<PdfPageVisualPrimitive>() : null;
             GraphicsState initialState = initialFillColor.HasValue
                 ? GraphicsState.Default.WithFillColor(initialFillColor.Value, initialFillColorSpace)
@@ -819,8 +823,9 @@ internal static class PdfPageContentVisualParser {
         }
 
         private void PaintShading(string shadingName, double paintOrder) {
-            if (HasHiddenContent() ||
-                _shadings == null ||
+            if (HasHiddenContent()) return;
+            _authoredShadingInvocationVisitor?.Invoke(shadingName);
+            if (_shadings == null ||
                 !_shadings.TryGetValue(shadingName, out PdfPageShadingResource shading) ||
                 !TryGetShadingPaintBounds(out double x, out double y, out double width, out double height)) {
                 return;

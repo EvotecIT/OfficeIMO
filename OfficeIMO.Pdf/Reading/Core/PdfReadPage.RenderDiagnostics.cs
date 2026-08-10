@@ -393,7 +393,10 @@ public sealed partial class PdfReadPage {
                         PdfRenderCapabilities.UnsupportedShadingId,
                         "type3-shading-paint");
                 },
-                requireExactType3ShadingProjection: true);
+                requireExactType3ShadingProjection: true,
+                authoredShadingInvocationVisitor: requireImageMask
+                    ? _ => supported = false
+                    : null);
             if (usesUnsupportedInheritedShadingStroke) {
                 AddRenderDiagnostic(
                     diagnostics,
