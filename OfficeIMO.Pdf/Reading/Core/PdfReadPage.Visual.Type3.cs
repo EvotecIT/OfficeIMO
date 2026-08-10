@@ -271,17 +271,16 @@ public sealed partial class PdfReadPage {
                 if (type3.IsUncolored && glyph.FillPattern.HasValue && localImages.Count > 0) {
                     for (int imageIndex = 0; imageIndex < localImages.Count; imageIndex++) {
                         (PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect) image = localImages[imageIndex];
-                        if (!image.Image.IsImageMask ||
-                            !TryCreateInheritedPatternImageMaskDrawing(
+                        Type3PatternImageMaskDrawingResult result = TryCreateInheritedPatternImageMaskDrawing(
                                 glyph.FillPattern,
                                 image.Placement,
                                 image.Image,
                                 pageWidth,
                                 pageHeight,
                                 out OfficeDrawing? maskedPattern,
-                                out OfficeTransform maskedPatternTransform)) {
-                            return false;
-                        }
+                                out OfficeTransform maskedPatternTransform);
+                        if (result == Type3PatternImageMaskDrawingResult.Unsupported) return false;
+                        if (result == Type3PatternImageMaskDrawingResult.Invisible) continue;
                         localGroups.Add((maskedPattern, maskedPatternTransform, image.Placement.PaintOrder, image.Placement.ContentOrderKey, image.Effect));
                     }
                     localImages.Clear();
@@ -317,7 +316,7 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static bool TryCreateInheritedPatternImageMaskDrawing(
+    private static Type3PatternImageMaskDrawingResult TryCreateInheritedPatternImageMaskDrawing(
         PdfPagePatternSelection? selection,
         PdfImagePlacement placement,
         PdfExtractedImage image,
@@ -327,28 +326,30 @@ public sealed partial class PdfReadPage {
         out OfficeTransform drawingTransform) {
         drawing = new OfficeDrawing(1D, 1D);
         drawingTransform = OfficeTransform.Identity;
-        if (!selection.HasValue || !image.IsImageMask ||
-            !TryCreateImageProjection(placement, pageHeight, pageWidth, pageHeight, out OfficeImageProjection projection)) {
-            return false;
+        if (!selection.HasValue || !image.IsImageMask) return Type3PatternImageMaskDrawingResult.Unsupported;
+        if (!TryCreateImageProjection(placement, pageHeight, pageWidth, pageHeight, out OfficeImageProjection projection)) {
+            return IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight)
+                ? Type3PatternImageMaskDrawingResult.Invisible
+                : Type3PatternImageMaskDrawingResult.Unsupported;
         }
 
         (double left, double top, double right, double bottom) = projection.GetDestinationBounds();
         double width = right - left;
         double height = bottom - top;
-        if (width <= 0D || height <= 0D) return false;
+        if (width <= 0D || height <= 0D) return Type3PatternImageMaskDrawingResult.Unsupported;
 
         PdfPageClipPath projectedBounds = PdfPageClipPath.Rectangle(left, top, width, height);
         if (placement.ClipPath.HasValue) {
             projectedBounds = PdfPageClipPath.ResolveActiveClip(projectedBounds, placement.ClipPath.Value);
         }
         if (!TryFitClipToDrawing(projectedBounds, pageWidth, pageHeight, out PdfPageClipPath fitted)) {
-            return false;
+            return Type3PatternImageMaskDrawingResult.Invisible;
         }
         drawing = new OfficeDrawing(fitted.Width, fitted.Height);
         drawingTransform = OfficeTransform.Translate(fitted.X, fitted.Y);
 
         if (!TryCreateInheritedTilingPatternPaint(selection, pageHeight, null, out PdfPageTilingPatternPaint? tilingPaint)) {
-            return false;
+            return Type3PatternImageMaskDrawingResult.Unsupported;
         }
         var globalPaintBounds = PdfPageVisualPrimitive.Rectangle(
             fitted.X,
@@ -404,7 +405,7 @@ public sealed partial class PdfReadPage {
 
         var patternDrawing = new OfficeDrawing(fitted.Width, fitted.Height);
         AddVisualPrimitive(patternDrawing, localPaintBounds);
-        if (patternDrawing.Elements.Count == 0) return false;
+        if (patternDrawing.Elements.Count == 0) return Type3PatternImageMaskDrawingResult.Unsupported;
 
         var maskDrawing = new OfficeDrawing(fitted.Width, fitted.Height);
         OfficeImageProjection localProjection = projection.Translate(-fitted.X, -fitted.Y);
@@ -416,7 +417,7 @@ public sealed partial class PdfReadPage {
                 opacity: placement.ImageOpacity ?? 1D);
         } else {
             OfficeClipPath? localClip = fitted.ToOfficeClipPath(fitted.X, fitted.Y);
-            if (localClip == null) return false;
+            if (localClip == null) return Type3PatternImageMaskDrawingResult.Unsupported;
             maskDrawing.AddClippedImage(
                 image.Bytes,
                 image.MimeType,
@@ -426,14 +427,45 @@ public sealed partial class PdfReadPage {
                 localClip,
                 opacity: placement.ImageOpacity ?? 1D);
         }
-        if (maskDrawing.Elements.Count == 0) return false;
+        if (maskDrawing.Elements.Count == 0) return Type3PatternImageMaskDrawingResult.Unsupported;
 
         drawing.AddEffectDrawing(
             patternDrawing,
             OfficeTransform.Identity,
             OfficeBlendMode.Normal,
             new OfficeDrawingSoftMask(maskDrawing));
-        return true;
+        return Type3PatternImageMaskDrawingResult.Success;
+    }
+
+    private static bool IsInvisibleImagePlacement(
+        PdfImagePlacement placement,
+        double pageHeight,
+        double drawingWidth,
+        double drawingHeight) {
+        if (!IsFinite(placement.X) || !IsFinite(placement.Y) ||
+            !IsFinite(placement.Width) || !IsFinite(placement.Height) ||
+            placement.Width <= 0D || placement.Height <= 0D) return false;
+        PdfPageClipPath bounds = PdfPageClipPath.Rectangle(
+            placement.X,
+            pageHeight - placement.Y - placement.Height,
+            placement.Width,
+            placement.Height);
+        if (placement.ClipPath.HasValue) {
+            bounds = PdfPageClipPath.ResolveActiveClip(bounds, placement.ClipPath.Value);
+        }
+        return !HasVisibleOverlap(
+            bounds.X,
+            bounds.Y,
+            bounds.Width,
+            bounds.Height,
+            drawingWidth,
+            drawingHeight);
+    }
+
+    private enum Type3PatternImageMaskDrawingResult {
+        Success,
+        Invisible,
+        Unsupported
     }
 
     private static bool TryCreateInheritedTilingPatternPaint(
