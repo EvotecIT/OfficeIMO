@@ -237,6 +237,7 @@ public static class OfficeVisioVisualConversionExtensions {
         if (options.UseNaturalPageSize) {
             page.Width = Math.Max(page.Width, width);
             page.Height = Math.Max(page.Height, height);
+            page.CenterContent();
         } else {
             page.FitToContent(0.5D);
         }
@@ -362,6 +363,7 @@ public static class OfficeVisioVisualConversionExtensions {
         OfficeVisioVisualConversionReport report) {
         foreach (VisualArtifactInterchangeEdge message in messages) {
             VisioConnector connector = page.Connectors.Single(item => string.Equals(item.Id, ids.Message(message.Id), StringComparison.Ordinal));
+            ApplySequenceMessageDirection(connector, message.Direction, message.Id, report);
             connector.Data["CFX.Id"] = message.Id;
             if (options.IncludeShapeData) {
                 var data = new Dictionary<string, string?>(StringComparer.Ordinal);
@@ -383,6 +385,32 @@ public static class OfficeVisioVisualConversionExtensions {
                 connector.AddHyperlink(message.Href!, message.Tooltip);
             }
         }
+    }
+
+    private static void ApplySequenceMessageDirection(
+        VisioConnector connector,
+        string? direction,
+        string messageId,
+        OfficeVisioVisualConversionReport report) {
+        EndArrow arrow = connector.EndArrow ?? EndArrow.Triangle;
+        if (arrow == EndArrow.None) arrow = EndArrow.Triangle;
+        connector.BeginArrow = EndArrow.None;
+        connector.EndArrow = arrow;
+        if (string.IsNullOrWhiteSpace(direction) || string.Equals(direction, "Forward", StringComparison.OrdinalIgnoreCase)) return;
+        if (string.Equals(direction, "None", StringComparison.OrdinalIgnoreCase)) {
+            connector.EndArrow = EndArrow.None;
+            return;
+        }
+        if (string.Equals(direction, "Backward", StringComparison.OrdinalIgnoreCase)) {
+            connector.BeginArrow = arrow;
+            connector.EndArrow = EndArrow.None;
+            return;
+        }
+        if (string.Equals(direction, "Bidirectional", StringComparison.OrdinalIgnoreCase)) {
+            connector.BeginArrow = arrow;
+            return;
+        }
+        report.Warn($"Sequence message '{messageId}' direction '{direction}' was normalized to a forward Visio connector.");
     }
 
     private static void ApplySequenceAnnotationData(
