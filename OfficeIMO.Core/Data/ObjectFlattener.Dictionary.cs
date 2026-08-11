@@ -18,28 +18,36 @@ namespace OfficeIMO.Data {
 
                 string path = string.IsNullOrEmpty(prefix) ? name! : prefix + "." + name;
                 if (ShouldIgnorePath(path, opts.Ignore)) continue;
-                if (!IsExplicitPathRelevant(path, opts.Columns)) continue;
+                bool materializePath = IsPathSelectedForMaterialization(path, opts);
+                bool expand = opts.ExpandProperties.Contains(name!) || opts.ExpandProperties.Contains(path);
+                bool traversePath = expand && CanContainSelectedDescendant(path, opts);
+                if (!materializePath && !traversePath) continue;
 
                 object? value = entry.Value;
                 if (value == null) {
-                    SetColumnValue(dict, path, ApplyNullPolicy(path, null, opts), opts);
+                    if (materializePath) {
+                        SetColumnValue(dict, path, ApplyNullPolicy(path, null, opts), opts);
+                    }
                     continue;
                 }
 
-                bool expand = opts.ExpandProperties.Contains(name!) || opts.ExpandProperties.Contains(path);
                 if (expand && !IsSimple(value.GetType()) && depth + 1 < opts.MaxDepth) {
-                    if (opts.IncludeFullObjects) SetColumnValue(dict, path, value, opts);
-                    FlattenInternal(value, dict, path, depth + 1, opts, activeObjects);
+                    if (opts.IncludeFullObjects && materializePath) SetColumnValue(dict, path, value, opts);
+                    if (traversePath) FlattenInternal(value, dict, path, depth + 1, opts, activeObjects);
                     continue;
                 }
 
                 if (value is IEnumerable enumerable && value is not string) {
-                    EnsureColumnCapacity(dict, path, opts);
-                    SetColumnValue(dict, path, HandleCollection(path, enumerable, opts), opts);
+                    if (materializePath) {
+                        EnsureColumnCapacity(dict, path, opts);
+                        SetColumnValue(dict, path, HandleCollection(path, enumerable, opts), opts);
+                    }
                     continue;
                 }
 
-                SetColumnValue(dict, path, ApplyFormatting(path, value, opts), opts);
+                if (materializePath) {
+                    SetColumnValue(dict, path, ApplyFormatting(path, value, opts), opts);
+                }
             }
         }
     }

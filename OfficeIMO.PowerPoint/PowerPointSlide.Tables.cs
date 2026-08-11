@@ -298,11 +298,22 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentNullException(nameof(columns));
             }
 
-            var items = data.ToList();
-            var columnList = columns.ToList();
+            var columnList = MaterializeObjectTableItemsBounded(
+                columns,
+                MaximumObjectTableColumns,
+                $"PowerPoint AddTable exceeds the {MaximumObjectTableColumns}-column materialization limit.");
             if (columnList.Count == 0) {
                 throw new ArgumentException("At least one column is required.", nameof(columns));
             }
+
+            int maximumDataRows = checked((int)Math.Max(
+                0L,
+                MaximumObjectTableCells / columnList.Count - (includeHeaders ? 1L : 0L)));
+            var items = MaterializeObjectTableItemsBounded(
+                data,
+                maximumDataRows,
+                $"PowerPoint AddTable exceeds the {MaximumObjectTableCells}-cell materialization limit.");
+            EnsureObjectTableCellLimit(items.Count, columnList.Count, includeHeaders, MaximumObjectTableCells);
 
             int totalRows = items.Count + (includeHeaders ? 1 : 0);
             if (totalRows == 0) {
@@ -332,6 +343,25 @@ namespace OfficeIMO.PowerPoint {
 
             ApplyColumnWidths(table, width, columnList);
             return table;
+        }
+
+        private static List<TItem> MaterializeObjectTableItemsBounded<TItem>(
+            IEnumerable<TItem> source,
+            int maximumItems,
+            string limitMessage) {
+            int capacity = source is IReadOnlyCollection<TItem> readOnlyCollection
+                ? readOnlyCollection.Count
+                : source is ICollection<TItem> collection
+                    ? collection.Count
+                    : 0;
+            if (capacity > maximumItems) throw new InvalidDataException(limitMessage);
+
+            var items = capacity > 0 ? new List<TItem>(capacity) : new List<TItem>();
+            foreach (TItem item in source) {
+                if (items.Count >= maximumItems) throw new InvalidDataException(limitMessage);
+                items.Add(item);
+            }
+            return items;
         }
 
         /// <summary>

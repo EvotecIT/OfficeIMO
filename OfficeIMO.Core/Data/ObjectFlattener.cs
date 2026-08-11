@@ -291,15 +291,15 @@ namespace OfficeIMO.Data {
 
         private static void FlattenInternalCore(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts, HashSet<object> activeObjects, Type type) {
 
-            bool hasExplicitColumns = opts.Columns != null && opts.Columns.Length > 0;
-            int dictionaryItemLimit = hasExplicitColumns
+            bool hasSelectionRules = (opts.Columns != null && opts.Columns.Length > 0)
+                || opts.IncludeProperties.Length > 0
+                || opts.ExcludeProperties.Length > 0
+                || opts.Ignore.Length > 0;
+            int dictionaryItemLimit = hasSelectionRules
                 ? opts.MaxCollectionItems
                 : Math.Min(opts.MaxCollectionItems, opts.MaxColumns);
-            Func<object?, bool>? includeDictionaryKey = hasExplicitColumns
-                ? key => !string.IsNullOrWhiteSpace(key?.ToString())
-                    && IsExplicitPathRelevant(
-                        string.IsNullOrEmpty(prefix) ? key!.ToString()! : prefix + "." + key,
-                        opts.Columns)
+            Func<object?, bool>? includeDictionaryKey = hasSelectionRules
+                ? key => IsDictionaryEntryRelevant(key, prefix, opts)
                 : null;
             if (ObjectDictionaryAdapter.TryGetEntries(
                     obj,
@@ -326,22 +326,27 @@ namespace OfficeIMO.Data {
             foreach (var prop in props) {
                 var path = string.IsNullOrEmpty(prefix) ? prop.Name : prefix + "." + prop.Name;
                 if (ShouldIgnorePath(path, opts.Ignore)) continue;
-                if (!IsExplicitPathRelevant(path, opts.Columns)) continue;
+                bool expand = opts.ExpandProperties.Contains(prop.Name) || opts.ExpandProperties.Contains(path);
+                bool mapsCollection = opts.CollectionMapColumns.ContainsKey(path);
+                bool materializePath = IsPathSelectedForMaterialization(path, opts);
+                bool traversePath = (expand || mapsCollection) && CanContainSelectedDescendant(path, opts);
+                if (!materializePath && !traversePath) continue;
 
                 var value = prop.GetValue(obj);
 
-                bool expand = opts.ExpandProperties.Contains(prop.Name) || opts.ExpandProperties.Contains(path);
                 bool isCollection = value is IEnumerable && value is not string;
 
                 if (value == null) {
-                    SetColumnValue(dict, path, ApplyNullPolicy(path, null, opts), opts);
+                    if (materializePath) {
+                        SetColumnValue(dict, path, ApplyNullPolicy(path, null, opts), opts);
+                    }
                     continue;
                 }
 
                 if (isCollection) {
-                    if (opts.CollectionMapColumns.TryGetValue(path, out var map)) {
+                    if (traversePath && opts.CollectionMapColumns.TryGetValue(path, out var map)) {
                         MapCollectionToColumns(path, (IEnumerable)value, map, dict, opts);
-                    } else {
+                    } else if (materializePath) {
                         EnsureColumnCapacity(dict, path, opts);
                         SetColumnValue(dict, path, HandleCollection(path, (IEnumerable)value, opts), opts);
                     }
@@ -349,15 +354,17 @@ namespace OfficeIMO.Data {
                 }
 
                 if (!expand || IsSimple(prop.PropertyType)) {
-                    SetColumnValue(dict, path, ApplyFormatting(path, value, opts), opts);
+                    if (materializePath) {
+                        SetColumnValue(dict, path, ApplyFormatting(path, value, opts), opts);
+                    }
                     continue;
                 }
 
-                if (opts.IncludeFullObjects) {
+                if (opts.IncludeFullObjects && materializePath) {
                     SetColumnValue(dict, path, value, opts);
                 }
 
-                if (depth + 1 < opts.MaxDepth) {
+                if (traversePath && depth + 1 < opts.MaxDepth) {
                     FlattenInternal(value, dict, path, depth + 1, opts, activeObjects);
                 }
             }
@@ -384,13 +391,19 @@ namespace OfficeIMO.Data {
                 }
                 for (int i = 0; i < tuple.Length; i++) {
                     var path = string.IsNullOrEmpty(prefix) ? $"Item{i + 1}" : $"{prefix}.Item{i + 1}";
-                    if (!IsExplicitPathRelevant(path, opts.Columns)) continue;
+                    bool materializePath = IsPathSelectedForMaterialization(path, opts);
+                    bool traversePath = CanContainSelectedDescendant(path, opts);
+                    if (!materializePath && !traversePath) continue;
                     var val = tuple[i];
                     if (val == null) {
-                        SetColumnValue(dict, path, ApplyNullPolicy(path, null, opts), opts);
+                        if (materializePath) {
+                            SetColumnValue(dict, path, ApplyNullPolicy(path, null, opts), opts);
+                        }
                     } else if (IsSimple(val.GetType())) {
-                        SetColumnValue(dict, path, ApplyFormatting(path, val, opts), opts);
-                    } else {
+                        if (materializePath) {
+                            SetColumnValue(dict, path, ApplyFormatting(path, val, opts), opts);
+                        }
+                    } else if (traversePath) {
                         FlattenInternal(val, dict, path, depth + 1, opts, activeObjects);
                     }
                 }
@@ -412,16 +425,22 @@ namespace OfficeIMO.Data {
                     }
 
                     var path = string.IsNullOrEmpty(prefix) ? $"Item{idx}" : $"{prefix}.Item{idx}";
-                    if (!IsExplicitPathRelevant(path, opts.Columns)) {
+                    bool materializePath = IsPathSelectedForMaterialization(path, opts);
+                    bool traversePath = CanContainSelectedDescendant(path, opts);
+                    if (!materializePath && !traversePath) {
                         idx++;
                         continue;
                     }
                     object? value = field.GetValue(current);
                     if (value == null) {
-                        SetColumnValue(dict, path, ApplyNullPolicy(path, null, opts), opts);
+                        if (materializePath) {
+                            SetColumnValue(dict, path, ApplyNullPolicy(path, null, opts), opts);
+                        }
                     } else if (IsSimple(value.GetType())) {
-                        SetColumnValue(dict, path, ApplyFormatting(path, value, opts), opts);
-                    } else {
+                        if (materializePath) {
+                            SetColumnValue(dict, path, ApplyFormatting(path, value, opts), opts);
+                        }
+                    } else if (traversePath) {
                         FlattenInternal(value, dict, path, depth + tupleDepth + 1, opts, activeObjects);
                     }
                     idx++;
@@ -457,7 +476,7 @@ namespace OfficeIMO.Data {
 
                 var colPath = basePath + "." + key;
                 if (ShouldIgnorePath(colPath, opts.Ignore)) continue;
-                if (!IsExplicitPathRelevant(colPath, opts.Columns)) continue;
+                if (!IsPathSelectedForMaterialization(colPath, opts)) continue;
                 EnsureColumnCapacity(dict, colPath, opts);
                 var value = accessors.GetValue(item);
                 SetColumnValue(dict, colPath, ApplyFormatting(colPath, value, opts), opts);
@@ -468,26 +487,33 @@ namespace OfficeIMO.Data {
             foreach (var prop in props) {
                 var path = string.IsNullOrEmpty(prefix) ? prop.Name : prefix + "." + prop.Name;
                 if (ShouldIgnorePath(path, opts.Ignore)) continue;
-                if (!IsExplicitPathRelevant(path, opts.Columns)) continue;
+                bool mapsCollection = opts.CollectionMapColumns.ContainsKey(path);
+                bool materializePath = IsPathSelectedForMaterialization(path, opts);
+                bool traversePath = mapsCollection && CanContainSelectedDescendant(path, opts);
+                if (!materializePath && !traversePath) continue;
 
                 var value = prop.GetValue(obj);
 
                 if (value == null) {
-                    SetColumnValue(dict, path, ApplyNullPolicy(path, null, opts), opts);
+                    if (materializePath) {
+                        SetColumnValue(dict, path, ApplyNullPolicy(path, null, opts), opts);
+                    }
                     continue;
                 }
 
                 if (value is IEnumerable enumerable && value is not string) {
-                    if (opts.CollectionMapColumns.TryGetValue(path, out var map)) {
+                    if (traversePath && opts.CollectionMapColumns.TryGetValue(path, out var map)) {
                         MapCollectionToColumns(path, enumerable, map, dict, opts);
-                    } else {
+                    } else if (materializePath) {
                         EnsureColumnCapacity(dict, path, opts);
                         SetColumnValue(dict, path, HandleCollection(path, enumerable, opts), opts);
                     }
                     continue;
                 }
 
-                SetColumnValue(dict, path, ApplyFormatting(path, value, opts), opts);
+                if (materializePath) {
+                    SetColumnValue(dict, path, ApplyFormatting(path, value, opts), opts);
+                }
             }
         }
 
@@ -651,19 +677,64 @@ namespace OfficeIMO.Data {
             }
         }
 
-        private static bool IsExplicitPathRelevant(string path, string[]? columns) {
-            if (columns == null || columns.Length == 0) return true;
+        private static bool IsPathSelectedForMaterialization(string path, ObjectFlattenerOptions options) {
+            if (ShouldIgnorePath(path, options.Ignore)) return false;
+            if (options.Columns != null && options.Columns.Length > 0
+                && !ContainsPath(options.Columns, path)) return false;
+            if (ContainsPathOrLastSegment(options.ExcludeProperties, path)) return false;
+            if (options.IncludeProperties.Length > 0
+                && !ContainsPathOrLastSegment(options.IncludeProperties, path)) return false;
+            return true;
+        }
 
-            foreach (string column in columns) {
-                if (string.IsNullOrWhiteSpace(column)) continue;
-                if (string.Equals(path, column, StringComparison.OrdinalIgnoreCase)) return true;
-                if (column.Length > path.Length
-                    && column.StartsWith(path, StringComparison.OrdinalIgnoreCase)
-                    && column[path.Length] == '.') {
-                    return true;
-                }
+        private static bool CanContainSelectedDescendant(string path, ObjectFlattenerOptions options) {
+            if (options.Columns != null && options.Columns.Length > 0
+                && !ContainsDescendantPath(options.Columns, path)) return false;
+
+            if (options.IncludeProperties.Length == 0) return true;
+            foreach (string include in options.IncludeProperties) {
+                if (string.IsNullOrWhiteSpace(include)) continue;
+                if (include.IndexOf('.') < 0) return true;
+                if (include.Length > path.Length
+                    && include.StartsWith(path, StringComparison.OrdinalIgnoreCase)
+                    && include[path.Length] == '.') return true;
             }
+            return false;
+        }
 
+        private static bool IsDictionaryEntryRelevant(object? key, string prefix, ObjectFlattenerOptions options) {
+            string? name = key?.ToString();
+            if (string.IsNullOrWhiteSpace(name)) return false;
+            string path = string.IsNullOrEmpty(prefix) ? name! : prefix + "." + name;
+            if (IsPathSelectedForMaterialization(path, options)) return true;
+            bool expand = options.ExpandProperties.Contains(name!) || options.ExpandProperties.Contains(path);
+            return expand && CanContainSelectedDescendant(path, options);
+        }
+
+        private static bool ContainsPath(string[] values, string path) {
+            foreach (string value in values) {
+                if (string.Equals(value, path, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
+        }
+
+        private static bool ContainsPathOrLastSegment(string[] values, string path) {
+            if (values.Length == 0) return false;
+            string segment = LastSegment(path);
+            foreach (string value in values) {
+                if (string.Equals(value, path, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(value, segment, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
+        }
+
+        private static bool ContainsDescendantPath(string[] values, string path) {
+            foreach (string value in values) {
+                if (string.IsNullOrWhiteSpace(value)) continue;
+                if (value.Length > path.Length
+                    && value.StartsWith(path, StringComparison.OrdinalIgnoreCase)
+                    && value[path.Length] == '.') return true;
+            }
             return false;
         }
 

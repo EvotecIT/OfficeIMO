@@ -164,10 +164,45 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Alice", values["Name"]);
         }
 
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void ObjectFlattenerAppliesIncludeAndExcludeBeforeColumnLimit(bool useInclude) {
+            var options = new ObjectFlattenerOptions { MaxColumns = 1 };
+            if (useInclude) {
+                options.IncludeProperties = new[] { "Name" };
+            } else {
+                options.ExcludeProperties = new[] { "Status" };
+            }
+
+            Dictionary<string, object?> values = new ObjectFlattener().Flatten(
+                new ObjectFlattenerWideRow { Name = "Alice", Status = "Active" }, options);
+
+            Assert.Single(values);
+            Assert.Equal("Alice", values["Name"]);
+        }
+
         [Fact]
         public void ObjectFlattenerExplicitColumnsProjectsDictionarySubsetBeforeColumnLimit() {
             var options = new ObjectFlattenerOptions {
                 Columns = new[] { "Name" },
+                MaxColumns = 1
+            };
+            var row = new Dictionary<string, object?> {
+                ["Status"] = "Active",
+                ["Name"] = "Alice"
+            };
+
+            Dictionary<string, object?> values = new ObjectFlattener().Flatten(row, options);
+
+            Assert.Single(values);
+            Assert.Equal("Alice", values["Name"]);
+        }
+
+        [Fact]
+        public void ObjectFlattenerAppliesDictionaryIgnoreBeforeColumnLimit() {
+            var options = new ObjectFlattenerOptions {
+                Ignore = new[] { "Status" },
                 MaxColumns = 1
             };
             var row = new Dictionary<string, object?> {

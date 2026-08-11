@@ -111,6 +111,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExplicitBindingTableStopsColumnEnumerationAtHardLimit() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+
+            Assert.Throws<InvalidDataException>(() => slide.AddTable(
+                new[] { 1 },
+                InfiniteColumns()));
+        }
+
+        [Fact]
+        public void ExplicitBindingTableStopsRowEnumerationAtCellLimit() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTableColumn<int>[] columns = Enumerable.Range(0, 1_024)
+                .Select(index => PowerPointTableColumn<int>.Create("Column" + index, value => value))
+                .ToArray();
+
+            Assert.Throws<InvalidDataException>(() => slide.AddTable(InfiniteRows(), columns));
+        }
+
+        [Fact]
 
         public void CanManipulateTableCellsAndPreserveStyle() {
 
@@ -483,6 +506,19 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        private static IEnumerable<PowerPointTableColumn<int>> InfiniteColumns() {
+            int index = 0;
+            while (true) {
+                int columnIndex = index++;
+                yield return PowerPointTableColumn<int>.Create("Column" + columnIndex, value => value);
+            }
+        }
+
+        private static IEnumerable<int> InfiniteRows() {
+            int value = 0;
+            while (true) yield return value++;
         }
 
         private sealed class SalesRow {
