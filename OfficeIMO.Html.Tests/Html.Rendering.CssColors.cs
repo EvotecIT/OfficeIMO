@@ -5,6 +5,13 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData("color-mix(in srgb, red -10%, blue)")]
+    [InlineData("color-mix(in srgb, red 110%, blue)")]
+    public void HtmlCssColors_RejectOutOfRangeColorMixPercentages(string value) {
+        Assert.False(OfficeColor.TryParseCss(value, out _));
+    }
+
     [Fact]
     public void HtmlRenderer_UsesSharedHslPaintAcrossTheSceneAndExporters() {
         const string html = "<div id='css-color' style='width:30px;height:14px;"

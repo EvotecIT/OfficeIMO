@@ -521,6 +521,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ReportDuplicateRadioValueFallback(source, staticGroupKey);
             return false;
         }
+        if (fieldKind == HtmlRenderFormFieldKind.RadioButton && _mixedDisabledRadioGroupKeys.TryGetValue(element, out staticGroupKey)) {
+            ReportMixedDisabledRadioGroupFallback(source, staticGroupKey);
+            return false;
+        }
 
         int nodeId = GetSemanticNodeId(element);
         string mappingName = NormalizeControlText(element.GetAttribute("name"));
@@ -541,6 +545,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool multiple = tag == "select" && element.HasAttribute("multiple");
 
         if (fieldKind == HtmlRenderFormFieldKind.Choice) {
+            if (element.QuerySelectorAll("option").Any(HtmlFormControlSemantics.IsOptionEffectivelyDisabled)) {
+                ReportDisabledChoiceOptionFallback(source);
+                return false;
+            }
             ResolveChoiceFieldValues(element, out options, out optionValues, out values, out bool hasDuplicateSelectedValues);
             if (multiple && hasDuplicateSelectedValues) {
                 ReportDuplicateSelectedChoiceValueFallback(source);
@@ -628,6 +636,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             OfficeConversionLossKind.Approximation);
     }
 
+    private void ReportMixedDisabledRadioGroupFallback(string source, string groupKey) {
+        if (!_reportedStaticRadioGroups.Add(groupKey)) return;
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.RadioMixedDisabledStateStaticFallback,
+            "An HTML radio group mixing enabled and disabled options was rendered as static content because PDF radio widgets cannot preserve disabled state per option.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            "group=" + groupKey.Substring(groupKey.LastIndexOf('\n') + 1),
+            OfficeConversionLossKind.Approximation);
+    }
+
     private void ReportZeroMaximumLengthFallback(string source) {
         _diagnostics.Add(
             ComponentName,
@@ -647,6 +667,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlDiagnosticSeverity.Warning,
             source,
             "duplicate selected option values",
+            OfficeConversionLossKind.Approximation);
+    }
+
+    private void ReportDisabledChoiceOptionFallback(string source) {
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.ChoiceDisabledOptionStaticFallback,
+            "An HTML select containing disabled options was rendered as static content because PDF choice fields cannot preserve disabled state per option.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            "disabled option",
             OfficeConversionLossKind.Approximation);
     }
 
@@ -709,6 +740,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private void IdentifyStaticRadioGroups() {
         _staticRadioGroupKeys.Clear();
+        _mixedDisabledRadioGroupKeys.Clear();
         IElement[] radios = _document.QuerySelectorAll("input")
             .Where(element => NormalizeInputType(element) == "radio")
             .Where(element => NormalizeControlText(element.GetAttribute("name")).Length > 0)
@@ -721,9 +753,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bool hasDuplicateValue = members
                 .GroupBy(element => HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty, StringComparer.Ordinal)
                 .Any(values => values.Skip(1).Any());
-                if (!hasDuplicateValue) continue;
+                bool hasDisabled = members.Any(HtmlFormControlSemantics.IsEffectivelyDisabled);
+                bool hasEnabled = members.Any(element => !HtmlFormControlSemantics.IsEffectivelyDisabled(element));
+                if (!hasDuplicateValue && !(hasDisabled && hasEnabled)) continue;
                 string key = HtmlRenderStyleResolver.DescribeSource(members[0]) + "\n" + group.Key;
-                foreach (IElement element in members) _staticRadioGroupKeys[element] = key;
+                foreach (IElement element in members) {
+                    if (hasDuplicateValue) _staticRadioGroupKeys[element] = key;
+                    if (hasDisabled && hasEnabled) _mixedDisabledRadioGroupKeys[element] = key;
+                }
             }
         }
     }

@@ -210,7 +210,8 @@ internal static class HtmlCssPageSettingsResolver {
             return;
         }
 
-        string size = FindTopLevelDeclaration(body, "size");
+        HtmlCssPageDeclaration sizeDeclaration = FindTopLevelDeclarationWithPriority(body, "size");
+        string size = sizeDeclaration.Value;
         bool appliesToBasePage = pageName == null && selector == HtmlCssPageSelector.Generic;
         bool validSize = size.Length == 0
             || appliesToBasePage && TryApplyPageSize(size, options)
@@ -221,12 +222,12 @@ internal static class HtmlCssPageSettingsResolver {
         }
 
         var geometry = new HtmlCssPageGeometryDeclaration(
-            size,
-            FindTopLevelDeclaration(body, "margin"),
-            FindTopLevelDeclaration(body, "margin-top"),
-            FindTopLevelDeclaration(body, "margin-right"),
-            FindTopLevelDeclaration(body, "margin-bottom"),
-            FindTopLevelDeclaration(body, "margin-left"));
+            sizeDeclaration,
+            FindTopLevelDeclarationWithPriority(body, "margin"),
+            FindTopLevelDeclarationWithPriority(body, "margin-top"),
+            FindTopLevelDeclarationWithPriority(body, "margin-right"),
+            FindTopLevelDeclarationWithPriority(body, "margin-bottom"),
+            FindTopLevelDeclarationWithPriority(body, "margin-left"));
         IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> marginBoxes = ExtractMarginBoxes(body, selectorText, options, diagnostics);
         if (marginBoxes.Count > 0 || !geometry.IsEmpty) pageRules.Add(new HtmlCssPageRule(pageName, selector, marginBoxes, geometry));
     }
@@ -332,8 +333,9 @@ internal static class HtmlCssPageSettingsResolver {
 
     private static HtmlCssPageMarginTemplate CreateMarginTemplate(HtmlCssPageMarginPosition position, HtmlCssGeneratedContentTemplate content, string body, HtmlRenderOptions options) {
         string family = HtmlRenderCssValues.FontFamilyList(FindTopLevelDeclaration(body, "font-family"), options.DefaultFontFamily);
+        string fontSizeValue = FindTopLevelDeclaration(body, "font-size");
         double fontSize = options.DefaultFontSize;
-        HtmlRenderCssValues.TryLength(FindTopLevelDeclaration(body, "font-size"), options.DefaultFontSize, options.DefaultFontSize, options.DefaultFontSize, options.PageWidth, options.PageHeight, out fontSize);
+        HtmlRenderCssValues.TryLength(fontSizeValue, options.DefaultFontSize, options.DefaultFontSize, options.DefaultFontSize, options.PageWidth, options.PageHeight, out fontSize);
         if (fontSize <= 0D) fontSize = options.DefaultFontSize;
         OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
         string weight = FindTopLevelDeclaration(body, "font-weight");
@@ -342,7 +344,7 @@ internal static class HtmlCssPageSettingsResolver {
         if (style.StartsWith("italic", StringComparison.OrdinalIgnoreCase) || style.StartsWith("oblique", StringComparison.OrdinalIgnoreCase)) fontStyle |= OfficeFontStyle.Italic;
         OfficeColor color = HtmlRenderCssValues.TryColor(FindTopLevelDeclaration(body, "color"), out OfficeColor parsedColor) ? parsedColor : OfficeColor.Black;
         OfficeTextAlignment alignment = ResolveMarginAlignment(position, FindTopLevelDeclaration(body, "text-align"));
-        return new HtmlCssPageMarginTemplate(position, content, new OfficeFontInfo(family, fontSize, fontStyle), color, alignment);
+        return new HtmlCssPageMarginTemplate(position, content, new OfficeFontInfo(family, fontSize, fontStyle), color, alignment, fontSizeValue);
     }
 
     private static OfficeTextAlignment ResolveMarginAlignment(HtmlCssPageMarginPosition position, string value) {
@@ -402,13 +404,16 @@ internal static class HtmlCssPageSettingsResolver {
         return -1;
     }
 
-    private static string FindTopLevelDeclaration(string body, string propertyName) {
+    private static string FindTopLevelDeclaration(string body, string propertyName) =>
+        FindTopLevelDeclarationWithPriority(body, propertyName).Value;
+
+    private static HtmlCssPageDeclaration FindTopLevelDeclarationWithPriority(string body, string propertyName) {
         body = HtmlComputedStyleEngine.StripCssCommentsOutsideStrings(body);
         int start = 0;
         int depth = 0;
         char quote = '\0';
-        string resolved = string.Empty;
-        bool resolvedImportant = false;
+        var resolved = new HtmlCssPageDeclaration(string.Empty, false, -1);
+        int declarationOrder = 0;
         for (int index = 0; index <= body.Length; index++) {
             char current = index < body.Length ? body[index] : ';';
             if (quote != '\0') {
@@ -425,13 +430,13 @@ internal static class HtmlCssPageSettingsResolver {
                 if (separator > 0 && string.Equals(declaration.Substring(0, separator).Trim(), propertyName, StringComparison.OrdinalIgnoreCase)) {
                     string value = declaration.Substring(separator + 1).Trim();
                     bool important = TryStripImportant(ref value);
-                    if (important || !resolvedImportant) {
-                        resolved = value;
-                        resolvedImportant = important;
+                    if (important || !resolved.IsImportant) {
+                        resolved = new HtmlCssPageDeclaration(value, important, declarationOrder);
                     }
                 }
 
                 start = index + 1;
+                declarationOrder++;
             }
         }
 

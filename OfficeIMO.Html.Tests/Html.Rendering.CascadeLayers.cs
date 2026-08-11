@@ -7,6 +7,15 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlCascadeLayers_InlineImportantOutranksLayeredAuthorImportant() {
+        const string html = "<style>@layer base { #target { color:blue !important; } }</style><p id='target' style='color:red !important'>Inline</p>";
+
+        HtmlRenderText text = Assert.Single(HtmlRenderTestDriver.Render(html).Pages[0].Visuals.OfType<HtmlRenderText>(), item => item.Text == "Inline");
+
+        Assert.Equal(OfficeColor.Red, text.Color);
+    }
+
+    [Fact]
     public void HtmlCascadeLayers_ApplyNormalAndImportantPrecedenceBeforeSpecificity() {
         const string html = """
             <style>

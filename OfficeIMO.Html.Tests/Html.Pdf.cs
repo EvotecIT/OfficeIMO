@@ -154,6 +154,31 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_MixedDisabledRadioGroupUsesTruthfulStaticFallback() {
+        const string html = "<label><input type='radio' name='delivery' value='email'>Email</label><label><input type='radio' name='delivery' value='post' disabled checked>Post</label>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals), visual => visual is HtmlRenderFormField);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.RadioMixedDisabledStateStaticFallback);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+    }
+
+    [Fact]
+    public void HtmlToPdf_SelectWithDisabledOptionsUsesTruthfulStaticFallback() {
+        const string html = "<select name='country'><option value='PL' selected>Poland</option><optgroup label='Unavailable' disabled><option value='DE'>Germany</option></optgroup></select>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals), visual => visual is HtmlRenderFormField);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ChoiceDisabledOptionStaticFallback);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.Contains("Poland", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_CheckBoxPreservesUnicodeExportValueSeparatelyFromAppearanceState() {
         const string html = "<input type='checkbox' name='choice' value='caf\u00E9' checked>";
 

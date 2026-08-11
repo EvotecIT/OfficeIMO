@@ -101,6 +101,12 @@ public static partial class HtmlComputedStyleEngine {
             return isImportant;
         }
 
+        if (isImportant) {
+            bool existingInline = ReferenceEquals(existing.Specificity, Specificity.Inline);
+            bool candidateInline = ReferenceEquals(specificity, Specificity.Inline);
+            if (existingInline != candidateInline) return candidateInline;
+        }
+
         if ((existing.LayerOrder != null) != (layerOrder != null)) {
             return isImportant ? layerOrder != null : layerOrder == null;
         }

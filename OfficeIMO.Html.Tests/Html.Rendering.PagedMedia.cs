@@ -46,6 +46,39 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPagedMedia_PreservesImportantGeometryAcrossMatchingPageRules() {
+        const string html = """
+            <style>
+              @page report { size:200px 120px !important; margin:10px !important; }
+              @page report { size:300px 180px; margin:20px; margin-left:30px; }
+            </style>
+            <section style="page:report">Body</section>
+            """;
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal((200D, 120D), (page.Width, page.Height));
+        Assert.Equal((10D, 10D, 10D, 10D), (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_ResolvesMarginBoxViewportUnitsAgainstMatchedPageMaster() {
+        const string html = """
+            <style>
+              @page { size:300px 180px; margin:30px; }
+              @page report { size:200px 120px; @top-center { content:"Report"; font-size:10vw; } }
+            </style>
+            <section style="page:report">Body</section>
+            """;
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+        HtmlRenderText margin = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.SemanticRole == "page-margin" && text.Text == "Report");
+
+        Assert.Equal(200D, page.Width);
+        Assert.Equal(20D, margin.Font.Size, 3);
+    }
+
+    [Fact]
     public void HtmlPagedMedia_IgnoresCommentsBeforePageDeclarations() {
         const string html = "<style>@page{/* geometry */ size:200px 100px;/* spacing */ margin:10px}</style><p>Body</p>";
 

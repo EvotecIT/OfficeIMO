@@ -191,9 +191,11 @@ public readonly partial struct OfficeColor {
         int separator = FindLastTopLevelWhitespace(candidate);
         if (separator >= 0) {
             string suffix = candidate.Substring(separator).Trim();
-            if (suffix.EndsWith("%", StringComparison.Ordinal)
-                && TryFiniteDouble(suffix.Substring(0, suffix.Length - 1).Trim(), out double number)) {
-                percentage = Clamp(number, 0D, 100D);
+            if (suffix.EndsWith("%", StringComparison.Ordinal)) {
+                if (!TryFiniteDouble(suffix.Substring(0, suffix.Length - 1).Trim(), out double number)
+                    || number < 0D
+                    || number > 100D) return false;
+                percentage = number;
                 candidate = candidate.Substring(0, separator).Trim();
             }
         }
