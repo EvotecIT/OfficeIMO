@@ -47,8 +47,12 @@ public static partial class OfficeVisioVisualConversionExtensions {
         VisualArtifactInterchangeEnvelope envelope,
         OfficeVisioVisualConversionReport report,
         bool flow) {
-        if (flow) return;
         foreach (VisualArtifactInterchangeNode node in envelope.Nodes) {
+            if (node.Details.Count > 0) {
+                report.Warn(OfficeVisioVisualDiagnosticCode.DetailsNotRendered, OfficeVisioVisualEntityKind.Node, node.Id, "details",
+                    $"Node '{node.Id}' detail rows remain in the CFX envelope and, when enabled, Shape Data because the editable native Visio shape does not render them.");
+            }
+            if (flow) continue;
             if (node.Topology!.Artwork != null) {
                 report.Warn(OfficeVisioVisualDiagnosticCode.ArtworkNotProjected, OfficeVisioVisualEntityKind.Node, node.Id, "artwork",
                     $"Node '{node.Id}' portable artwork remains in the CFX envelope because the native graph projection selected an editable Visio stencil.");
@@ -62,6 +66,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
                     $"Node '{node.Id}' display mode '{node.Topology.DisplayMode}' was normalized to an editable native Visio graph shape.");
             }
         }
+        if (flow) return;
         foreach (VisualArtifactInterchangeGroup group in envelope.Groups) {
             if (!string.IsNullOrWhiteSpace(group.Topology!.IconId) || !string.IsNullOrWhiteSpace(group.Topology.Symbol)) {
                 report.Warn(OfficeVisioVisualDiagnosticCode.ArtworkNotProjected, OfficeVisioVisualEntityKind.Group, group.Id, "headerArtwork",
@@ -78,6 +83,27 @@ public static partial class OfficeVisioVisualConversionExtensions {
                 topology.Emphasis != TopologyEdgeEmphasis.Normal) {
                 report.Warn(OfficeVisioVisualDiagnosticCode.EdgePresentationNormalized, OfficeVisioVisualEntityKind.Edge, edge.Id, "edgePresentation",
                     $"Edge '{edge.Id}' advanced routing or presentation remains in the CFX envelope because native Visio graph layout recomputed the connector.");
+            }
+        }
+    }
+
+    private static void ReportSequenceSemanticFidelity(
+        VisualArtifactInterchangeEnvelope envelope,
+        OfficeVisioVisualConversionReport report) {
+        foreach (VisualArtifactInterchangeNode participant in envelope.Nodes) {
+            if (!string.IsNullOrWhiteSpace(participant.IconId) || !string.IsNullOrWhiteSpace(participant.Symbol) || !string.IsNullOrWhiteSpace(participant.Badge)) {
+                report.Warn(OfficeVisioVisualDiagnosticCode.ArtworkNotProjected, OfficeVisioVisualEntityKind.Participant, participant.Id, "participantAdornment",
+                    $"Sequence participant '{participant.Id}' icon, symbol, or badge remains in the CFX envelope and, when enabled, Shape Data because the native Visio participant does not render those adornments.");
+            }
+            if (participant.Details.Count > 0) {
+                report.Warn(OfficeVisioVisualDiagnosticCode.DetailsNotRendered, OfficeVisioVisualEntityKind.Participant, participant.Id, "details",
+                    $"Sequence participant '{participant.Id}' detail rows remain in the CFX envelope and, when enabled, Shape Data because the native Visio participant does not render them.");
+            }
+        }
+        foreach (VisualArtifactInterchangeEdge message in envelope.Edges) {
+            if (!string.IsNullOrWhiteSpace(message.SourceLabel) || !string.IsNullOrWhiteSpace(message.TargetLabel)) {
+                report.Warn(OfficeVisioVisualDiagnosticCode.EndpointLabelsNotRendered, OfficeVisioVisualEntityKind.Message, message.Id, "endpointLabels",
+                    $"Sequence message '{message.Id}' endpoint labels remain in the CFX envelope and, when enabled, Shape Data because the native Visio message does not render endpoint labels.");
             }
         }
     }

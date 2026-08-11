@@ -208,13 +208,13 @@ public static partial class OfficeVisioVisualConversionExtensions {
         for (int index = 0; index < projection.Annotations.Count; index++) {
             VisualArtifactInterchangeAnnotation annotation = projection.Annotations[index];
             string prefix = "CFX.ActivationEvent." + (index + 1).ToString(CultureInfo.InvariantCulture) + ".";
-            shape.SetShapeData(prefix + "Id", annotation.Id);
-            shape.SetShapeData(prefix + "Kind", annotation.Kind);
-            shape.SetShapeData(prefix + "State", annotation.Sequence!.ActivationState!.Value.ToString(CultureInfo.InvariantCulture));
-            shape.SetShapeData(prefix + "StepIndex", annotation.StartIndex!.Value.ToString(CultureInfo.InvariantCulture));
-            foreach (KeyValuePair<string, string> extension in annotation.Extensions) {
-                shape.SetShapeData(prefix + "Extension." + extension.Key, extension.Value);
-            }
+            var data = new Dictionary<string, string?>(StringComparer.Ordinal);
+            AddValue(data, prefix + "Id", annotation.Id);
+            AddValue(data, prefix + "Kind", annotation.Kind);
+            AddValue(data, prefix + "State", annotation.Sequence!.ActivationState!.Value.ToString(CultureInfo.InvariantCulture));
+            AddValue(data, prefix + "StepIndex", annotation.StartIndex!.Value.ToString(CultureInfo.InvariantCulture));
+            AddExtensionData(data, prefix + "Extension.", annotation.Extensions, report, "sequence activation event '" + annotation.Id + "'");
+            foreach (KeyValuePair<string, string?> item in data) shape.SetShapeData(item.Key, item.Value);
         }
     }
 }
