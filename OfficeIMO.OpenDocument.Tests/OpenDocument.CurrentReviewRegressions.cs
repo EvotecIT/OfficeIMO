@@ -1,9 +1,10 @@
-using OfficeIMO.OpenDocument.Testing;
 using System;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+using OfficeIMO.Drawing;
+using OfficeIMO.OpenDocument.Testing;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;
@@ -187,7 +188,7 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
 
     [Fact]
     public void FlatImageExtractionPreservesSupportedMimeType() {
-        byte[] webp = { 0x52, 0x49, 0x46, 0x46, 0x04, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50 };
+        byte[] webp = OfficeWebpCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         OdtDocument document = OdtDocument.Create();
         document.AddParagraph().AddImage(webp, "pixel.webp",
             OdfLength.Centimeters(1), OdfLength.Centimeters(1));
@@ -200,6 +201,126 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         OdtImage image = reopened.Paragraphs.Single().Images.Single();
         Assert.EndsWith(".webp", image.Path, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(webp, image.GetImageBytes());
+    }
+
+    [Fact]
+    public void FlatImageExtractionPreservesDeclaredTiffMedia() {
+        byte[] tiff = OfficeRasterImageEncoder.Encode(
+            new OfficeRasterImage(1, 1, OfficeColor.White),
+            OfficeImageExportFormat.Tiff);
+        OdtDocument document = OdtDocument.Create();
+        document.AddParagraph().AddImage(
+            tiff,
+            "pixel.tif",
+            OdfLength.Centimeters(1),
+            OdfLength.Centimeters(1));
+        using var stream = new MemoryStream();
+
+        document.SaveFlatXml(stream);
+        stream.Position = 0;
+        OdtDocument reopened = OdtDocument.LoadFlatXml(stream);
+
+        OdtImage image = reopened.Paragraphs.Single().Images.Single();
+        Assert.EndsWith(".tiff", image.Path, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(tiff, image.GetImageBytes());
+    }
+
+    [Fact]
+    public void ImageStorageRejectsMismatchedOrMalformedSupportedPayloads() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] truncatedTiff = OfficeRasterImageEncoder.Encode(
+            new OfficeRasterImage(1, 1, OfficeColor.White),
+            OfficeImageExportFormat.Tiff);
+        Array.Resize(ref truncatedTiff, truncatedTiff.Length - 1);
+        OdtDocument document = OdtDocument.Create();
+
+        Assert.Throws<ArgumentException>(() => document.AddParagraph().AddImage(
+            png,
+            "photo.tiff",
+            OdfLength.Centimeters(1),
+            OdfLength.Centimeters(1)));
+        Assert.Throws<ArgumentException>(() => document.AddParagraph().AddImage(
+            truncatedTiff,
+            "broken.tiff",
+            OdfLength.Centimeters(1),
+            OdfLength.Centimeters(1)));
+    }
+
+    [Fact]
+    public void FlatImageExtractionRejectsMalformedRecognizableTiffContent() {
+        byte[] tiff = OfficeRasterImageEncoder.Encode(
+            new OfficeRasterImage(1, 1, OfficeColor.White),
+            OfficeImageExportFormat.Tiff);
+        Array.Resize(ref tiff, tiff.Length - 1);
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph().AddImage(
+            png,
+            "pixel.png",
+            OdfLength.Centimeters(1),
+            OdfLength.Centimeters(1));
+        XDocument flat = source.ToFlatXml();
+        XElement imageElement = Assert.Single(flat.Descendants(OdfNamespaces.Draw + "image"));
+        imageElement.SetAttributeValue(OdfNamespaces.Draw + "mime-type", "image/tiff");
+        imageElement.Element(OdfNamespaces.Office + "binary-data")!.Value = Convert.ToBase64String(tiff);
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        Assert.Throws<InvalidDataException>(() => OdtDocument.LoadFlatXml(stream));
+    }
+
+    [Fact]
+    public void FlatImageExtractionNormalizesDeclaredMediaToDetectedContent() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph().AddImage(
+            png,
+            "pixel.png",
+            OdfLength.Centimeters(1),
+            OdfLength.Centimeters(1));
+        XDocument flat = source.ToFlatXml();
+        XElement imageElement = Assert.Single(flat.Descendants(OdfNamespaces.Draw + "image"));
+        imageElement.SetAttributeValue(OdfNamespaces.Draw + "mime-type", "image/tiff");
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        OdtDocument reopened = OdtDocument.LoadFlatXml(stream);
+
+        OdtImage image = reopened.Paragraphs.Single().Images.Single();
+        Assert.EndsWith(".png", image.Path, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(png, image.GetImageBytes());
+    }
+
+    [Fact]
+    public void FlatImageExtractionRejectsDetectedFormatsWithoutAnOpenDocumentMapping() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] icon = new byte[22 + png.Length];
+        icon[2] = 1;
+        icon[4] = 1;
+        icon[6] = 1;
+        icon[7] = 1;
+        icon[10] = 1;
+        icon[12] = 32;
+        WriteUInt32LittleEndian(icon, 14, png.Length);
+        WriteUInt32LittleEndian(icon, 18, 22);
+        Buffer.BlockCopy(png, 0, icon, 22, png.Length);
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph().AddImage(
+            png,
+            "pixel.png",
+            OdfLength.Centimeters(1),
+            OdfLength.Centimeters(1));
+        XDocument flat = source.ToFlatXml();
+        XElement imageElement = Assert.Single(flat.Descendants(OdfNamespaces.Draw + "image"));
+        imageElement.SetAttributeValue(OdfNamespaces.Draw + "mime-type", "image/png");
+        imageElement.Element(OdfNamespaces.Office + "binary-data")!.Value = Convert.ToBase64String(icon);
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+
+        Assert.Throws<InvalidDataException>(() => OdtDocument.LoadFlatXml(stream));
     }
 
     [Fact]
@@ -638,6 +759,13 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         XElement secondRow = firstRow.ElementsAfterSelf(OdfNamespaces.Table + "table-row").First();
         firstRow.Remove();
         secondRow.AddBeforeSelf(new XElement(OdfNamespaces.Table + "table-header-rows", firstRow));
+    }
+
+    private static void WriteUInt32LittleEndian(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+        bytes[offset + 2] = (byte)(value >> 16);
+        bytes[offset + 3] = (byte)(value >> 24);
     }
 
     private static byte[] RewriteWithoutManifestVersion(byte[] sourceBytes, string partVersion) {

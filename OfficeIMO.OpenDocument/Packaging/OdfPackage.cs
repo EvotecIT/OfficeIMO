@@ -404,13 +404,9 @@ internal sealed class OdfPackage {
 
     private static string GuessMediaType(string path) {
         string extension = Path.GetExtension(path).ToLowerInvariant();
+        if (OdfImageFormats.TryGetMediaType(extension, out string imageMediaType)) return imageMediaType;
         switch (extension) {
             case ".xml": return "text/xml";
-            case ".png": return "image/png";
-            case ".jpg":
-            case ".jpeg": return "image/jpeg";
-            case ".gif": return "image/gif";
-            case ".svg": return "image/svg+xml";
             default: return string.Empty;
         }
     }

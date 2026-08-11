@@ -28,6 +28,15 @@ public sealed class ImageExportProviderVisualBaselineTests {
         AssertBaseline("epub-premium-chapter.png", RenderEpub());
     }
 
+    [Fact]
+    public void VisualBaselineOracleRejectsInvalidPngContainerIntegrity() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        png[29] ^= 0x01;
+
+        Assert.Throws<InvalidOperationException>(() =>
+            VisualBaselineTestSupport.DecodePng(png, "Corrupt visual baseline."));
+    }
+
     private static byte[] RenderWord() {
         using var stream = new MemoryStream();
         using WordDocument document = WordDocument.Create(stream);
@@ -41,6 +50,15 @@ public sealed class ImageExportProviderVisualBaselineTests {
             .SetColor(OfficeColor.FromRgb(30, 64, 175));
         document.AddParagraph("Polished previews with predictable output.")
             .SetFontFamily(PortableFontFamily);
+        using (var image = new MemoryStream(CreateVisualBadge())) {
+            document.AddParagraph().AddImage(
+                image,
+                "delivery-status.png",
+                120,
+                40,
+                WordImageTextWrapping.InLineWithText,
+                "Delivery status visualization");
+        }
         return document.ToImage()
             .WithFont(PortableFontFamily, PortableRegularFont.Value)
             .WithFont(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold)
@@ -71,12 +89,33 @@ public sealed class ImageExportProviderVisualBaselineTests {
         evidence.Bold = true;
         evidence.FontName = PortableFontFamily;
         evidence.Color = "155E75";
+        slide.AddShapePoints(OfficePresetShapeType.RoundRectangle, 28, 178, 174, 46)
+            .Fill("DBEAFE")
+            .Stroke("2563EB", 1D);
+        using (var image = new MemoryStream(CreateVisualBadge())) {
+            slide.AddPicture(
+                image,
+                OfficeImageFormat.Png,
+                PowerPointUnits.FromPoints(260),
+                PowerPointUnits.FromPoints(178),
+                PowerPointUnits.FromPoints(150),
+                PowerPointUnits.FromPoints(50));
+        }
         return slide.ToImage()
             .WithFont(PortableFontFamily, PortableRegularFont.Value)
             .WithFont(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold)
             .AsPng()
             .Export()
             .Bytes;
+    }
+
+    private static byte[] CreateVisualBadge() {
+        var image = new OfficeRasterImage(150, 50, OfficeColor.FromRgb(239, 246, 255));
+        var canvas = new OfficeRasterCanvas(image);
+        canvas.FillRectangle(8, 8, 92, 14, OfficeColor.FromRgb(37, 99, 235));
+        canvas.FillRectangle(8, 28, 128, 14, OfficeColor.FromRgb(16, 185, 129));
+        canvas.FillRectangle(106, 8, 30, 14, OfficeColor.FromRgb(251, 191, 36));
+        return OfficePngWriter.Encode(image);
     }
 
     private static byte[] RenderHtml() {

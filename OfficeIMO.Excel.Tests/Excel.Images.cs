@@ -333,12 +333,66 @@ namespace OfficeIMO.Tests {
             Assert.Equal("image/tiff", imagePart.ContentType);
         }
 
+        [Fact]
+        public void Test_ExcelImage_FromFile_RejectsBytesThatOnlyMatchTheExtension() {
+            string workbookPath = Path.Combine(_directoryWithFiles, "ExcelImage.InvalidExtension.xlsx");
+            string imagePath = Path.Combine(_directoryWithFiles, "not-an-image.png");
+            File.WriteAllText(imagePath, "not an image");
+
+            using ExcelDocument document = ExcelDocument.Create(workbookPath);
+            ExcelSheet sheet = document.AddWorksheet("Images");
+
+            Assert.Throws<ArgumentException>(() =>
+                sheet.AddImageFromFile(2, 2, imagePath, widthPixels: 32, heightPixels: 32));
+            Assert.Empty(sheet.Images);
+        }
+
+        [Fact]
+        public void Test_ExcelImage_FromFile_RejectsRecognizableButTruncatedGif() {
+            string workbookPath = Path.Combine(_directoryWithFiles, "ExcelImage.TruncatedGif.xlsx");
+            string imagePath = Path.Combine(_directoryWithFiles, "truncated.gif");
+            File.WriteAllBytes(imagePath, new byte[] {
+                (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a',
+                1, 0, 1, 0, 0, 0, 0
+            });
+
+            using ExcelDocument document = ExcelDocument.Create(workbookPath);
+            ExcelSheet sheet = document.AddWorksheet("Images");
+
+            Assert.Throws<ArgumentException>(() =>
+                sheet.AddImageFromFile(2, 2, imagePath, widthPixels: 32, heightPixels: 32));
+            Assert.Empty(sheet.Images);
+        }
+
+        [Fact]
+        public void Test_ExcelImage_FromFile_RejectsJpegWithoutScanData() {
+            string workbookPath = Path.Combine(_directoryWithFiles, "ExcelImage.MarkerOnlyJpeg.xlsx");
+            string imagePath = Path.Combine(_directoryWithFiles, "marker-only.jpg");
+            File.WriteAllBytes(imagePath, new byte[] {
+                0xFF, 0xD8,
+                0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01, 0x01, 0x11, 0x00,
+                0xFF, 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F, 0x00,
+                0xFF, 0xD9
+            });
+
+            using ExcelDocument document = ExcelDocument.Create(workbookPath);
+            ExcelSheet sheet = document.AddWorksheet("Images");
+
+            Assert.Throws<ArgumentException>(() =>
+                sheet.AddImageFromFile(2, 2, imagePath, widthPixels: 32, heightPixels: 32));
+            Assert.Empty(sheet.Images);
+        }
+
         [Theory]
         [InlineData("Sample.svg", "image/svg+xml")]
         [InlineData("sample.emf", "image/x-emf")]
         public void Test_ExcelImage_FromFile_MapsDetectedVectorContentType(string imageName, string expectedContentType) {
             string filePath = Path.Combine(_directoryWithFiles, $"ExcelImage.FromFile.{imageName}.xlsx");
             string imagePath = Path.Combine(_directoryWithImages, imageName);
+            if (string.Equals(Path.GetExtension(imageName), ".emf", StringComparison.OrdinalIgnoreCase)) {
+                imagePath = Path.Combine(_directoryWithFiles, imageName);
+                File.WriteAllBytes(imagePath, CreateCompleteImageTestEmf(2, 2));
+            }
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Images");
@@ -351,6 +405,30 @@ namespace OfficeIMO.Tests {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
             var imagePart = spreadsheet.WorkbookPart!.WorksheetParts.First().DrawingsPart!.ImageParts.Single();
             Assert.Equal(expectedContentType, imagePart.ContentType);
+        }
+
+        private static byte[] CreateCompleteImageTestEmf(int width, int height) {
+            var bytes = new byte[108];
+            WriteImageTestInt32LittleEndian(bytes, 0, 1);
+            WriteImageTestInt32LittleEndian(bytes, 4, 88);
+            WriteImageTestInt32LittleEndian(bytes, 16, width);
+            WriteImageTestInt32LittleEndian(bytes, 20, height);
+            WriteImageTestInt32LittleEndian(bytes, 40, 0x464D4520);
+            WriteImageTestInt32LittleEndian(bytes, 44, 0x00010000);
+            WriteImageTestInt32LittleEndian(bytes, 48, bytes.Length);
+            WriteImageTestInt32LittleEndian(bytes, 52, 2);
+            bytes[56] = 1;
+            WriteImageTestInt32LittleEndian(bytes, 88, 14);
+            WriteImageTestInt32LittleEndian(bytes, 92, 20);
+            WriteImageTestInt32LittleEndian(bytes, 104, 20);
+            return bytes;
+        }
+
+        private static void WriteImageTestInt32LittleEndian(byte[] bytes, int offset, int value) {
+            bytes[offset] = (byte)value;
+            bytes[offset + 1] = (byte)(value >> 8);
+            bytes[offset + 2] = (byte)(value >> 16);
+            bytes[offset + 3] = (byte)(value >> 24);
         }
 
         [Fact]

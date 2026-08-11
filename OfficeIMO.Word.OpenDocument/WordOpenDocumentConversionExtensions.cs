@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Word;
 
@@ -263,7 +264,14 @@ public static partial class WordOpenDocumentConversionExtensions {
             if (options.IncludeImages && run.InlineImage?.Bytes is { Length: > 0 } bytes) {
                 WordInlineImageSnapshot image = run.InlineImage;
                 try {
-                    target.AddImage(bytes, image.FileName ?? "image.png",
+                    string fileName = image.FileName ?? "image.png";
+                    if (!OdfImagePayloadValidator.TryResolvePreservedFileName(
+                        bytes,
+                        fileName,
+                        out string storedFileName)) {
+                        throw new NotSupportedException("The Word image payload is incomplete or unsupported.");
+                    }
+                    target.AddImage(bytes, storedFileName,
                         OdfLength.Points(image.Width ?? 72D), OdfLength.Points(image.Height ?? 72D),
                         image.IsInline ? OdtImageAnchor.Inline : OdtImageAnchor.Paragraph);
                     images++;

@@ -109,7 +109,6 @@ namespace OfficeIMO.Visio {
             VisioSvgSaveOptions? options,
             CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            cancellationToken.ThrowIfCancellationRequested();
             VisioSvgSaveOptions resolved = options?.Clone() ?? new VisioSvgSaveOptions();
             if (document.Pages.Count == 0) {
                 throw new InvalidOperationException("The document does not contain any pages to export.");
@@ -127,22 +126,25 @@ namespace OfficeIMO.Visio {
             VisioSvgSaveOptions? options,
             CancellationToken cancellationToken = default) {
             if (page == null) throw new ArgumentNullException(nameof(page));
-            cancellationToken.ThrowIfCancellationRequested();
             VisioSvgSaveOptions resolved = options?.Clone() ?? new VisioSvgSaveOptions();
-            resolved.CancellationToken = cancellationToken;
-            var diagnostics = new List<OfficeImageExportDiagnostic>();
-            VisioImageExportFontDiagnostics.Append(page, resolved.Fonts, diagnostics, "Visio page");
-            resolved.ImageDiagnostics = diagnostics;
-            resolved.ImageDiagnosticSource = "Visio page";
-            byte[] bytes = Encoding.UTF8.GetBytes(VisioSvgRenderer.Render(page, resolved));
-            return new OfficeImageExportResult(
+            var canonical = new VisioImageExportOptions {
+                Scale = resolved.PixelsPerInch / 96D,
+                BackgroundColor = resolved.BackgroundColor ?? OfficeColor.Transparent,
+                RenderText = resolved.RenderText,
+                Fonts = resolved.Fonts.Clone(),
+                RenderStencilArtwork = resolved.RenderStencilArtwork,
+                RenderConnectorLabels = resolved.RenderConnectorLabels,
+                ResolveConnectorLabelOverlaps = resolved.ResolveConnectorLabelOverlaps,
+                IncludeSvgXmlDeclaration = resolved.IncludeXmlDeclaration,
+                ImageCodec = resolved.ImageCodec
+            };
+            return VisioImageExportEngine.Render(
+                page,
                 OfficeImageExportFormat.Svg,
-                Math.Max(1, (int)Math.Ceiling(Math.Max(page.Width, 0.01D) * resolved.PixelsPerInch)),
-                Math.Max(1, (int)Math.Ceiling(Math.Max(page.Height, 0.01D) * resolved.PixelsPerInch)),
-                bytes,
+                canonical,
                 page.Name,
                 "Visio page",
-                diagnostics);
+                cancellationToken);
         }
     }
 }

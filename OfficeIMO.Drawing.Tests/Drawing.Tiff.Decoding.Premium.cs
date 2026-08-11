@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Core.Internal;
+using System.IO.Compression;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -101,6 +102,43 @@ public sealed class DrawingPremiumTiffDecodingTests {
         Assert.Null(image);
     }
 
+    [Fact]
+    public void TiffDecoder_RequiresExactRawDeflateStripConsumption() {
+        byte[] tiff = CreateTiff(
+            width: 2,
+            height: 1,
+            photometric: 1,
+            samples: 1,
+            pixels: new byte[] { 0, 255 },
+            rawDeflate: true);
+        Assert.True(OfficeTiffCodec.TryDecode(tiff, out OfficeRasterImage? image));
+        Assert.NotNull(image);
+
+        int stripByteCountOffset = FindEntryValueOffset(tiff, 279);
+        int stripByteCount = ReadUInt32(tiff, stripByteCountOffset);
+        Array.Resize(ref tiff, tiff.Length + 1);
+        tiff[tiff.Length - 1] = 0x5A;
+        WriteUInt32(tiff, stripByteCountOffset, stripByteCount + 1);
+
+        Assert.False(OfficeTiffCodec.TryDecode(tiff, out _));
+        Assert.False(OfficeImageReader.TryValidateContent(tiff, "trailing-raw-deflate.tiff", out _));
+    }
+
+    [Fact]
+    public void TiffDecoder_RejectsRawDeflateStoredUnderAdobeDeflateTag() {
+        byte[] tiff = CreateTiff(
+            width: 2,
+            height: 1,
+            photometric: 1,
+            samples: 1,
+            pixels: new byte[] { 0, 255 },
+            rawDeflate: true);
+        WriteUInt32(tiff, FindEntryValueOffset(tiff, 259), (int)OfficeTiffCompression.Deflate);
+
+        Assert.False(OfficeTiffCodec.TryDecode(tiff, out _));
+        Assert.False(OfficeImageReader.TryValidateContent(tiff, "raw-adobe-deflate.tiff", out _));
+    }
+
     private static byte[] CreateTiff(
         int width,
         int height,
@@ -110,7 +148,8 @@ public sealed class DrawingPremiumTiffDecodingTests {
         int predictor = 1,
         int[]? colorMap = null,
         bool includeSamplesPerPixel = true,
-        int? inkSet = null) {
+        int? inkSet = null,
+        bool rawDeflate = false) {
         byte[] predicted = pixels.ToArray();
         if (predictor == 2) {
             int rowBytes = width * samples;
@@ -122,7 +161,7 @@ public sealed class DrawingPremiumTiffDecodingTests {
                 }
             }
         }
-        byte[] strip = OfficeZlibCodec.Compress(predicted);
+        byte[] strip = rawDeflate ? CompressRawDeflate(predicted) : OfficeZlibCodec.Compress(predicted);
 
         int entryCount =
             (colorMap == null ? 10 : 11) -
@@ -153,7 +192,7 @@ public sealed class DrawingPremiumTiffDecodingTests {
             3,
             samples,
             samples > 2 ? bitsOffset : samples == 2 ? 8 | 8 << 16 : 8);
-        WriteEntry(output, ref entry, 259, 3, 1, (int)OfficeTiffCompression.Deflate);
+        WriteEntry(output, ref entry, 259, 3, 1, rawDeflate ? 32946 : (int)OfficeTiffCompression.Deflate);
         WriteEntry(output, ref entry, 262, 3, 1, photometric);
         WriteEntry(output, ref entry, 273, 4, 1, stripOffset);
         if (includeSamplesPerPixel) {
@@ -183,6 +222,31 @@ public sealed class DrawingPremiumTiffDecodingTests {
         Buffer.BlockCopy(strip, 0, output, stripOffset, strip.Length);
         return output;
     }
+
+    private static byte[] CompressRawDeflate(byte[] input) {
+        using var output = new MemoryStream();
+        using (var deflate = new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true)) {
+            deflate.Write(input, 0, input.Length);
+        }
+        return output.ToArray();
+    }
+
+    private static int FindEntryValueOffset(byte[] tiff, int expectedTag) {
+        int ifdOffset = ReadUInt32(tiff, 4);
+        int entryCount = tiff[ifdOffset] | tiff[ifdOffset + 1] << 8;
+        for (int index = 0; index < entryCount; index++) {
+            int entryOffset = ifdOffset + 2 + index * 12;
+            int tag = tiff[entryOffset] | tiff[entryOffset + 1] << 8;
+            if (tag == expectedTag) return entryOffset + 8;
+        }
+        throw new InvalidOperationException("TIFF entry was not found.");
+    }
+
+    private static int ReadUInt32(byte[] input, int offset) =>
+        input[offset] |
+        input[offset + 1] << 8 |
+        input[offset + 2] << 16 |
+        input[offset + 3] << 24;
 
     private static void WriteEntry(
         byte[] output,

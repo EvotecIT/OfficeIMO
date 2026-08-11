@@ -7,6 +7,9 @@ internal static class OfficeRasterGuards {
     internal const int MaximumEncodedBytes = 128 * 1024 * 1024;
     internal const long MaximumDecodedBytes = 256L * 1024L * 1024L;
 
+    internal static bool IsEncodedPayloadWithinLimits(int length) =>
+        length > 0 && length <= MaximumEncodedBytes;
+
     public static void EnsurePayloadWithinLimits(int length, string message) {
         if (length < 0 || length > MaximumEncodedBytes) throw new FormatException(message);
     }

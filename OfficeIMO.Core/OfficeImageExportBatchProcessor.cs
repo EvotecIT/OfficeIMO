@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -153,6 +154,8 @@ public static class OfficeImageExportBatchProcessor {
 
     /// <summary>
     /// Wraps an asynchronous consumer with cancellation, diagnostic policy, and aggregate batch-budget enforcement.
+    /// Consumer callbacks are serialized. Direct synchronous callback reentry is supported; forked or deferred
+    /// reentry is rejected so inherited execution context cannot bypass serialization.
     /// </summary>
     public static OfficeImageExportAsyncConsumer CreateGuardedAsyncConsumer(
         OfficeImageExportOptions options,
@@ -263,13 +266,16 @@ public static class OfficeImageExportBatchProcessor {
         CancellationToken cancellationToken,
         int? expectedOutputCount) {
         var tracker = new OfficeImageExportBatchTracker(options);
+        var gate = new object();
         return result => {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (result == null) throw new ArgumentNullException(nameof(result));
-            result.Require(options.Policy);
-            int sequenceIndex = tracker.Count;
-            tracker.Add(result);
-            consumer(result.WithSequence(sequenceIndex, expectedOutputCount));
+            lock (gate) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (result == null) throw new ArgumentNullException(nameof(result));
+                result.Require(options.Policy);
+                int sequenceIndex = tracker.Count;
+                tracker.Add(result);
+                consumer(result.WithSequence(sequenceIndex, expectedOutputCount));
+            }
         };
     }
 
@@ -279,14 +285,147 @@ public static class OfficeImageExportBatchProcessor {
         CancellationToken cancellationToken,
         int? expectedOutputCount) {
         var tracker = new OfficeImageExportBatchTracker(options);
-        return async (result, token) => {
+        var gate = new SemaphoreSlim(1, 1);
+        var reentryScope = new AsyncLocal<AsyncConsumerReentryScope?>();
+        return (result, token) => {
+            AsyncConsumerReentryScope? inheritedScope = reentryScope.Value;
+            bool allowsSynchronousReentry = inheritedScope?.AllowsSynchronousReentry == true;
+            if (inheritedScope != null && !allowsSynchronousReentry) {
+                return Task.FromException(new InvalidOperationException(
+                    "Forked or deferred reentry into an image export consumer is not supported. " +
+                    "Await the guarded consumer directly from the synchronous portion of the callback."));
+            }
+            if (allowsSynchronousReentry) {
+                return inheritedScope!.EnqueueNestedInvocation(() => InvokeGuardedAsyncConsumer(
+                    options,
+                    consumer,
+                    tracker,
+                    gate,
+                    reentryScope,
+                    result,
+                    cancellationToken,
+                    token,
+                    expectedOutputCount,
+                    ownsGate: false));
+            }
+            return InvokeGuardedAsyncConsumer(
+                options,
+                consumer,
+                tracker,
+                gate,
+                reentryScope,
+                result,
+                cancellationToken,
+                token,
+                expectedOutputCount,
+                ownsGate: true);
+        };
+    }
+
+    private static async Task InvokeGuardedAsyncConsumer(
+        OfficeImageExportOptions options,
+        OfficeImageExportAsyncConsumer consumer,
+        OfficeImageExportBatchTracker tracker,
+        SemaphoreSlim gate,
+        AsyncLocal<AsyncConsumerReentryScope?> reentryScope,
+        OfficeImageExportResult result,
+        CancellationToken cancellationToken,
+        CancellationToken invocationToken,
+        int? expectedOutputCount,
+        bool ownsGate) {
+        using CancellationTokenSource? linked = CreateLinkedCancellationSource(cancellationToken, invocationToken);
+        CancellationToken effectiveToken = linked?.Token ??
+            (invocationToken.CanBeCanceled ? invocationToken : cancellationToken);
+        if (ownsGate) await gate.WaitAsync(effectiveToken).ConfigureAwait(false);
+        try {
             cancellationToken.ThrowIfCancellationRequested();
-            token.ThrowIfCancellationRequested();
+            invocationToken.ThrowIfCancellationRequested();
             if (result == null) throw new ArgumentNullException(nameof(result));
             result.Require(options.Policy);
             int sequenceIndex = tracker.Count;
             tracker.Add(result);
-            await consumer(result.WithSequence(sequenceIndex, expectedOutputCount), token).ConfigureAwait(false);
-        };
+            var scope = new AsyncConsumerReentryScope(Environment.CurrentManagedThreadId);
+            AsyncConsumerReentryScope? previousScope = reentryScope.Value;
+            reentryScope.Value = scope;
+            Task callback;
+            try {
+                try {
+                    callback = consumer(result.WithSequence(sequenceIndex, expectedOutputCount), effectiveToken);
+                    if (callback == null) throw new InvalidOperationException("The image export consumer returned a null task.");
+                } finally {
+                    scope.EndSynchronousInvocation();
+                    reentryScope.Value = previousScope;
+                }
+            } catch {
+                try {
+                    await scope.AwaitNestedInvocationsAsync().ConfigureAwait(false);
+                } catch {
+                    // Preserve the synchronous callback exception after observing and draining reentries.
+                }
+                throw;
+            }
+            ExceptionDispatchInfo? callbackFailure = null;
+            try {
+                await callback.ConfigureAwait(false);
+            } catch (Exception exception) {
+                callbackFailure = ExceptionDispatchInfo.Capture(exception);
+            }
+            try {
+                await scope.AwaitNestedInvocationsAsync().ConfigureAwait(false);
+            } catch when (callbackFailure != null) {
+                // The callback is the primary operation. Drain and observe nested failures without
+                // replacing its exception; nested failures still surface when the callback succeeds.
+            }
+            callbackFailure?.Throw();
+        } finally {
+            if (ownsGate) gate.Release();
+        }
+    }
+
+    private sealed class AsyncConsumerReentryScope {
+        private readonly int _managedThreadId;
+        private readonly List<Task> _nestedInvocations = new();
+        private Task _nestedTail = Task.CompletedTask;
+        private int _synchronousInvocation = 1;
+
+        internal AsyncConsumerReentryScope(int managedThreadId) => _managedThreadId = managedThreadId;
+
+        internal bool AllowsSynchronousReentry =>
+            Volatile.Read(ref _synchronousInvocation) != 0 &&
+            Environment.CurrentManagedThreadId == _managedThreadId;
+
+        internal void EndSynchronousInvocation() =>
+            Interlocked.Exchange(ref _synchronousInvocation, 0);
+
+        internal Task EnqueueNestedInvocation(Func<Task> invocationFactory) {
+            lock (_nestedInvocations) {
+                Task invocation = InvokeAfterAsync(_nestedTail, invocationFactory);
+                _nestedTail = invocation;
+                _nestedInvocations.Add(invocation);
+                return invocation;
+            }
+        }
+
+        internal Task AwaitNestedInvocationsAsync() {
+            Task[] invocations;
+            lock (_nestedInvocations) invocations = _nestedInvocations.ToArray();
+            return invocations.Length == 0 ? Task.CompletedTask : Task.WhenAll(invocations);
+        }
+
+        private static async Task InvokeAfterAsync(Task previous, Func<Task> invocationFactory) {
+            try {
+                await previous.ConfigureAwait(false);
+            } catch {
+                // Preserve each invocation's own result while allowing the serialized queue to drain.
+            }
+            await invocationFactory().ConfigureAwait(false);
+        }
+    }
+
+    private static CancellationTokenSource? CreateLinkedCancellationSource(
+        CancellationToken first,
+        CancellationToken second) {
+        if (!first.CanBeCanceled || !second.CanBeCanceled || first == second) return null;
+        return CancellationTokenSource.CreateLinkedTokenSource(first, second);
     }
 }

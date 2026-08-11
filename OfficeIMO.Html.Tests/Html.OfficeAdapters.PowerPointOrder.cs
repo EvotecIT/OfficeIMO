@@ -37,7 +37,7 @@ public class HtmlOfficeAdaptersPowerPointOrder {
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox firstText = slide.AddTextBoxPoints("First text", 30, 40, 180, 35);
         using (var image = new MemoryStream(Convert.FromBase64String(
-                   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEAQH/69DjmQAAAABJRU5ErkJggg=="))) {
+                   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg=="))) {
             slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 60, 90, 70, 50).Name = "Middle picture";
         }
 

@@ -120,7 +120,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlFloatImage_UsesIntrinsicAspectRatioWithoutConsumingTheLine() {
-        const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+        const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
         string html = "<p style='width:100px;margin:0;font-size:10px;line-height:10px'>"
             + "<img id='float-image' src='data:image/png;base64," + png + "' style='float:left;height:20px'>"
             + "Image text wraps beside the intrinsic image and then returns to full width.</p>";

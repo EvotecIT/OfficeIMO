@@ -238,7 +238,7 @@ public class OfficeImageExportOptions {
             throw new ArgumentOutOfRangeException(nameof(logicalHeight));
         }
 
-        double scale = Scale;
+        double scale = TargetDpi.HasValue ? TargetDpi.Value / LogicalUnitsPerInch : Scale;
         if (MaximumOutputWidth.HasValue) {
             scale = Math.Min(scale, GetCeilingSafeMaximumScale(logicalWidth, MaximumOutputWidth.Value));
         }

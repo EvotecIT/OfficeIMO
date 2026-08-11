@@ -10,7 +10,7 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed class WordHtmlAsyncResourceContracts {
     private static readonly byte[] OnePixelPng = Convert.FromBase64String(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZlFQAAAAASUVORK5CYII=");
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=");
 
     [Fact]
     public async Task AsyncImportAwaitsRemoteImagesBeforeDocumentProjection() {

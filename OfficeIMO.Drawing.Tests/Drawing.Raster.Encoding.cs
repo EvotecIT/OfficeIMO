@@ -242,6 +242,47 @@ public sealed class DrawingRasterEncodingTests {
         Assert.False(OfficeTiffCodec.TryDecode(tiff, out _));
     }
 
+    [Fact]
+    public void OfficeTiffDecoderValidatesTheCompleteIfdChain() {
+        byte[] first = OfficeTiffCodec.Encode(CreateSampleImage());
+        byte[] second = OfficeTiffCodec.Encode(CreateSampleImage());
+        int firstIfdOffset = ReadLittleEndian(first, 4);
+        int firstEntryCount = first[firstIfdOffset] | first[firstIfdOffset + 1] << 8;
+        int firstNextIfdPointerOffset = firstIfdOffset + 2 + firstEntryCount * 12;
+        int secondIfdOffset = first.Length;
+        int secondOffsetAdjustment = secondIfdOffset - 8;
+        byte[] chained = new byte[first.Length + second.Length - 8];
+        Buffer.BlockCopy(first, 0, chained, 0, first.Length);
+        Buffer.BlockCopy(second, 8, chained, secondIfdOffset, second.Length - 8);
+        WriteLittleEndian(chained, firstNextIfdPointerOffset, secondIfdOffset);
+        int secondEntryCount = chained[secondIfdOffset] | chained[secondIfdOffset + 1] << 8;
+        for (int index = 0; index < secondEntryCount; index++) {
+            int entryOffset = secondIfdOffset + 2 + index * 12;
+            int tag = chained[entryOffset] | chained[entryOffset + 1] << 8;
+            int type = chained[entryOffset + 2] | chained[entryOffset + 3] << 8;
+            int count = ReadLittleEndian(chained, entryOffset + 4);
+            int byteCount = type == 3 ? count * 2 : type == 5 ? count * 8 : count * 4;
+            if (byteCount > 4 || tag == 273) {
+                WriteLittleEndian(
+                    chained,
+                    entryOffset + 8,
+                    ReadLittleEndian(chained, entryOffset + 8) + secondOffsetAdjustment);
+            }
+        }
+
+        Assert.True(OfficeTiffCodec.TryDecode(chained, out OfficeRasterImage? firstPage));
+        Assert.NotNull(firstPage);
+
+        byte[] cyclic = (byte[])first.Clone();
+        WriteLittleEndian(cyclic, firstNextIfdPointerOffset, firstIfdOffset);
+        Assert.False(OfficeTiffCodec.TryDecode(cyclic, out _));
+
+        byte[] truncated = chained.Take(chained.Length - 1).ToArray();
+        Assert.False(OfficeTiffCodec.TryDecode(truncated, out OfficeRasterImage? partial));
+        Assert.Null(partial);
+        Assert.False(OfficeImageReader.TryValidateContent(truncated, "truncated-chain.tiff", out _));
+    }
+
     [Theory]
     [InlineData(OfficeImageExportFormat.Png, OfficeImageFormat.Png)]
     [InlineData(OfficeImageExportFormat.Jpeg, OfficeImageFormat.Jpeg)]

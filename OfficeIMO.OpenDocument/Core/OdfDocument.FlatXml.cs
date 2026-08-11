@@ -131,7 +131,21 @@ public abstract partial class OdfDocument {
             catch (FormatException ex) { throw new InvalidDataException("Flat OpenDocument image contains invalid base64 data.", ex); }
             if (data.LongLength > options.MaxEntryUncompressedBytes) throw new InvalidDataException("Flat OpenDocument image exceeds MaxEntryUncompressedBytes.");
             string? mediaType = (string?)image.Attribute(OdfNamespaces.Draw + "mime-type");
-            string extension = ImageExtension(mediaType, data);
+            string extension;
+            if (OfficeImageReader.TryValidateContent(data, fileName: null, out OfficeImageInfo imageInfo)) {
+                if (!OdfImageFormats.TryGetExtension(imageInfo.Format, out string detectedExtension)) {
+                    throw new InvalidDataException("Flat OpenDocument image content uses unsupported detected format '" + imageInfo.Format + "'.");
+                }
+                extension = detectedExtension;
+            } else if (OfficeImageReader.TryIdentifyByContent(data, fileName: null, out OfficeImageInfo identifiedInfo)) {
+                throw new InvalidDataException(
+                    "Flat OpenDocument image contains malformed or incomplete '" + identifiedInfo.Format + "' content.");
+            } else if (OdfImageFormats.TryGetFormat(mediaType, out OfficeImageFormat declaredFormat) &&
+                       OdfImageFormats.TryGetExtension(declaredFormat, out string declaredExtension)) {
+                extension = declaredExtension;
+            } else {
+                throw new InvalidDataException("Flat OpenDocument image has neither a supported media type nor identifiable image content.");
+            }
             if (extension == ".svg") {
                 if (!OfficeSvgDrawingReader.TryRead(data, out OfficeDrawing? drawing) || drawing == null) {
                     throw new InvalidDataException("Flat OpenDocument SVG image is not a supported bounded vector image.");
@@ -139,44 +153,13 @@ public abstract partial class OdfDocument {
                 data = Encoding.UTF8.GetBytes(OfficeDrawingSvgExporter.ToSvg(drawing));
             }
             string path = "Pictures/flat-image" + index++.ToString(CultureInfo.InvariantCulture) + extension;
-            package.AddOrReplaceEntry(path, data, ImageMediaType(extension));
+            OdfImageFormats.TryGetMediaType(extension, out string resolvedMediaType);
+            package.AddOrReplaceEntry(path, data, resolvedMediaType);
             image.SetAttributeValue(OdfNamespaces.XLink + "href", path);
             image.SetAttributeValue(OdfNamespaces.XLink + "type", "simple");
             image.SetAttributeValue(OdfNamespaces.XLink + "show", "embed");
             image.SetAttributeValue(OdfNamespaces.XLink + "actuate", "onLoad");
             binary.Remove();
-        }
-    }
-
-    private static string DetectImageExtension(byte[] data) {
-        if (data.Length >= 8 && data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47) return ".png";
-        if (data.Length >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF) return ".jpg";
-        if (data.Length >= 6 && data[0] == 0x47 && data[1] == 0x49 && data[2] == 0x46) return ".gif";
-        if (data.Length >= 2 && data[0] == 0x42 && data[1] == 0x4D) return ".bmp";
-        return ".bin";
-    }
-
-    private static string ImageExtension(string? mediaType, byte[] data) {
-        switch ((mediaType ?? string.Empty).Trim().ToLowerInvariant()) {
-            case "image/png": return ".png";
-            case "image/jpeg": return ".jpg";
-            case "image/gif": return ".gif";
-            case "image/svg+xml": return ".svg";
-            case "image/bmp": return ".bmp";
-            case "image/webp": return ".webp";
-            default: return DetectImageExtension(data);
-        }
-    }
-
-    private static string ImageMediaType(string extension) {
-        switch (extension) {
-            case ".png": return "image/png";
-            case ".jpg": return "image/jpeg";
-            case ".gif": return "image/gif";
-            case ".svg": return "image/svg+xml";
-            case ".bmp": return "image/bmp";
-            case ".webp": return "image/webp";
-            default: return "application/octet-stream";
         }
     }
 

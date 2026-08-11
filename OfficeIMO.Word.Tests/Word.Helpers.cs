@@ -16,12 +16,22 @@ public partial class Word {
     [InlineData("Kulek.jpg", OfficeImageFormat.Jpeg)]
     [InlineData("BackgroundImage.png", OfficeImageFormat.Png)]
     [InlineData("saturn.tif", OfficeImageFormat.Tiff)]
-    [InlineData("sample.emf", OfficeImageFormat.Emf)]
     public void Test_GetImageСharacteristics(string filename, OfficeImageFormat expectedType) {
         var filePath = Path.Combine(_directoryWithImages, filename);
         using var imageStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         var imageСharacteristics = Helpers.GetImageCharacteristics(imageStream, filename);
         Assert.Equal(expectedType, imageСharacteristics.Type);
+    }
+
+    [Fact]
+    public void Test_GetImageCharacteristics_ForCompleteEmf() {
+        using var imageStream = new MemoryStream(CreateCompleteEmf());
+
+        var imageCharacteristics = Helpers.GetImageCharacteristics(imageStream, "sample.emf");
+
+        Assert.Equal(OfficeImageFormat.Emf, imageCharacteristics.Type);
+        Assert.Equal(2, imageCharacteristics.Width);
+        Assert.Equal(2, imageCharacteristics.Height);
     }
 
     [Fact]
@@ -72,6 +82,23 @@ public partial class Word {
         WriteUInt16LittleEndian(wmf, 44, 0x0201);
         WriteInt32LittleEndian(wmf, 50, 3);
         return wmf;
+    }
+
+    private static byte[] CreateCompleteEmf() {
+        var emf = new byte[108];
+        WriteInt32LittleEndian(emf, 0, 1);
+        WriteInt32LittleEndian(emf, 4, 88);
+        WriteInt32LittleEndian(emf, 16, 2);
+        WriteInt32LittleEndian(emf, 20, 2);
+        WriteInt32LittleEndian(emf, 40, 0x464D4520);
+        WriteInt32LittleEndian(emf, 44, 0x00010000);
+        WriteInt32LittleEndian(emf, 48, emf.Length);
+        WriteInt32LittleEndian(emf, 52, 2);
+        WriteUInt16LittleEndian(emf, 56, 1);
+        WriteInt32LittleEndian(emf, 88, 14);
+        WriteInt32LittleEndian(emf, 92, 20);
+        WriteInt32LittleEndian(emf, 104, 20);
+        return emf;
     }
 
     private static void WriteInt16LittleEndian(byte[] data, int offset, short value) {

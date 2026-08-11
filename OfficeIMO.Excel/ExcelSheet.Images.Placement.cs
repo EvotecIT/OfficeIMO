@@ -40,11 +40,10 @@ namespace OfficeIMO.Excel {
             if (!File.Exists(path)) throw new FileNotFoundException($"Image file '{path}' was not found.", path);
 
             byte[] bytes = File.ReadAllBytes(path);
-            OfficeImageReader.TryIdentify(bytes, path, out OfficeImageInfo info);
+            OfficeImageInfo info = RequireImageContent(bytes, path, nameof(path));
             var (resolvedWidth, resolvedHeight) = ResolveImageSize(info, widthPixels, heightPixels, scalePercent);
-            string contentType = info.Format == OfficeImageFormat.Unknown ? ContentTypeFromExtension(path) : info.MimeType;
 
-            ExcelImage image = AddImage(row, column, bytes, contentType, resolvedWidth, resolvedHeight, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
+            ExcelImage image = AddImage(row, column, bytes, info.MimeType, resolvedWidth, resolvedHeight, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
             ApplyImageMetadata(image, title, rotationDegrees);
             return image;
         }
@@ -119,7 +118,7 @@ namespace OfficeIMO.Excel {
                 remoteImageOptions,
                 cancellationToken).ConfigureAwait(false);
             byte[] bytes = remote.ToBytes();
-            OfficeImageReader.TryIdentify(bytes, remote.FileName, out OfficeImageInfo info);
+            OfficeImageInfo info = RequireImageContent(bytes, remote.FileName, nameof(url));
             var (resolvedWidth, resolvedHeight) = ResolveImageSize(info, widthPixels, heightPixels, scalePercent);
             ExcelImage image = AddImage(row, column, bytes, ResolveImageContentType(remote.ContentType, info),
                 resolvedWidth, resolvedHeight, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
@@ -182,7 +181,6 @@ namespace OfficeIMO.Excel {
             ExcelImagePlacement placement = ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0) {
             if (imageBytes == null || imageBytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(imageBytes));
             var (startRow, startColumn, endRow, endColumn) = ParseImageRange(range);
-
             ExcelImage? image = null;
             WriteLock(() => {
                 DrawingsPart drawingPart = GetOrCreateDrawingsPart();
@@ -253,7 +251,6 @@ namespace OfficeIMO.Excel {
             if (yPixels < 0) throw new ArgumentOutOfRangeException(nameof(yPixels));
             if (widthPixels <= 0) throw new ArgumentOutOfRangeException(nameof(widthPixels));
             if (heightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(heightPixels));
-
             ExcelImage? image = null;
             WriteLock(() => {
                 DrawingsPart drawingPart = GetOrCreateDrawingsPart();
@@ -307,9 +304,8 @@ namespace OfficeIMO.Excel {
             if (!File.Exists(path)) throw new FileNotFoundException($"Image file '{path}' was not found.", path);
 
             byte[] bytes = File.ReadAllBytes(path);
-            OfficeImageReader.TryIdentify(bytes, path, out OfficeImageInfo info);
-            string contentType = info.Format == OfficeImageFormat.Unknown ? ContentTypeFromExtension(path) : info.MimeType;
-            return AddImageToRange(range, bytes, contentType, offsetXPixels, offsetYPixels, endOffsetXPixels, endOffsetYPixels,
+            OfficeImageInfo info = RequireImageContent(bytes, path, nameof(path));
+            return AddImageToRange(range, bytes, info.MimeType, offsetXPixels, offsetYPixels, endOffsetXPixels, endOffsetYPixels,
                 name, altText, title, lockAspectRatio, placement, rotationDegrees);
         }
 
@@ -369,7 +365,7 @@ namespace OfficeIMO.Excel {
                 remoteImageOptions,
                 cancellationToken).ConfigureAwait(false);
             byte[] bytes = remote.ToBytes();
-            OfficeImageReader.TryIdentify(bytes, remote.FileName, out OfficeImageInfo info);
+            OfficeImageInfo info = RequireImageContent(bytes, remote.FileName, nameof(url));
             return AddImageToRange(range, bytes, ResolveImageContentType(remote.ContentType, info), offsetXPixels,
                 offsetYPixels, endOffsetXPixels, endOffsetYPixels, name, altText, title, lockAspectRatio, placement, rotationDegrees);
         }
@@ -574,28 +570,19 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static string ContentTypeFromExtension(string path) {
-            return OfficeImageReader.FromExtension(path) switch {
-                OfficeImageFormat.Png => "image/png",
-                OfficeImageFormat.Jpeg => "image/jpeg",
-                OfficeImageFormat.Gif => "image/gif",
-                OfficeImageFormat.Bmp => "image/bmp",
-                OfficeImageFormat.Tiff => "image/tiff",
-                OfficeImageFormat.Svg => "image/svg+xml",
-                OfficeImageFormat.Emf => "image/x-emf",
-                OfficeImageFormat.Wmf => "image/x-wmf",
-                OfficeImageFormat.Icon => "image/x-icon",
-                OfficeImageFormat.Pcx => "image/x-pcx",
-                _ => "application/octet-stream"
-            };
-        }
-
         private static string ResolveImageContentType(string? declaredContentType, OfficeImageInfo detectedInfo) {
             if (detectedInfo.Format != OfficeImageFormat.Unknown) {
                 return detectedInfo.MimeType;
             }
 
             return string.IsNullOrWhiteSpace(declaredContentType) ? "application/octet-stream" : declaredContentType!;
+        }
+
+        private static OfficeImageInfo RequireImageContent(byte[] bytes, string? fileName, string parameterName) {
+            if (!OfficeImageReader.TryValidateContent(bytes, fileName, out OfficeImageInfo info)) {
+                throw new ArgumentException("Image bytes do not contain a complete supported image.", parameterName);
+            }
+            return info;
         }
 
         private static EnumValue<Xdr.EditAsValues> ToEditAsValue(ExcelImagePlacement placement) {

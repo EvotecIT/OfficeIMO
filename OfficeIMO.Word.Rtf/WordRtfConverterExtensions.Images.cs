@@ -1,37 +1,64 @@
 namespace OfficeIMO.Word.Rtf;
 
+using OfficeIMO.Drawing;
+using System.Collections.Generic;
+using System.Linq;
+
 public static partial class WordRtfConverterExtensions {
     private const double PixelsPerTwip = 96D / 1440D;
     private const double TwipsPerPixel = 1440D / 96D;
 
     private static bool TryCopyImageBlock(WordParagraph source, RtfDocument destination) {
         if (!string.IsNullOrEmpty(source.Text)) return false;
-
-        RtfImage? image = CreateRtfImage(source);
-        if (image == null) return false;
-
-        CopyImage(image, destination.AddImage(image.Format, image.Data));
-        return true;
+        return TryCopyImageBlocks(source, image => destination.AddImage(image.Format, image.Data));
     }
 
     private static bool TryCopyImageBlock(WordParagraph source, RtfSection destination) {
         if (!string.IsNullOrEmpty(source.Text)) return false;
-
-        RtfImage? image = CreateRtfImage(source);
-        if (image == null) return false;
-
-        CopyImage(image, destination.AddImage(image.Format, image.Data));
-        return true;
+        return TryCopyImageBlocks(source, image => destination.AddImage(image.Format, image.Data));
     }
 
-    private static RtfImage? CreateRtfImage(WordParagraph source) {
-        if (!source.IsImage || source.Image == null || source.Image.IsExternal) {
+    private static bool TryCopyImageBlocks(WordParagraph source, Func<RtfImage, RtfImage> addImage) {
+        if (source._paragraph.ChildElements.Any(child =>
+                child is not DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties &&
+                child is not DocumentFormat.OpenXml.Wordprocessing.Run)) {
+            return false;
+        }
+
+        List<DocumentFormat.OpenXml.Wordprocessing.Run> runs = source._paragraph
+            .Elements<DocumentFormat.OpenXml.Wordprocessing.Run>()
+            .ToList();
+        if (runs.Any(run => !string.IsNullOrEmpty(
+                new WordParagraph(source._document, source._paragraph, run).Text))) {
+            return false;
+        }
+
+        bool copied = false;
+        foreach (DocumentFormat.OpenXml.Wordprocessing.Run sourceRun in runs) {
+            var run = new WordParagraph(source._document, source._paragraph, sourceRun);
+            foreach (WordImage wordImage in run.EnumerateImages()) {
+                RtfImage? image = CreateRtfImage(wordImage, out _, out _);
+                if (image == null) continue;
+                CopyImage(image, addImage(image));
+                copied = true;
+            }
+        }
+        return copied;
+    }
+
+    private static RtfImage? CreateRtfImage(
+        WordImage source,
+        out OfficeImageFormat sourceFormat,
+        out bool animationDiscarded) {
+        sourceFormat = OfficeImageFormat.Unknown;
+        animationDiscarded = false;
+        if (source.IsExternal) {
             return null;
         }
 
         byte[] bytes;
         try {
-            bytes = source.Image.ToBytes();
+            bytes = source.ToBytes();
         } catch (InvalidOperationException) {
             return null;
         }
@@ -40,12 +67,22 @@ public static partial class WordRtfConverterExtensions {
             return null;
         }
 
-        var image = new RtfImage(DetectRtfImageFormat(bytes, source.Image.FileName), bytes) {
-            SourceWidth = ToNullableInt(source.Image.Width),
-            SourceHeight = ToNullableInt(source.Image.Height),
-            DesiredWidthTwips = ToTwips(source.Image.Width),
-            DesiredHeightTwips = ToTwips(source.Image.Height),
-            Description = source.Image.Description
+        if (!TryCreateRtfImagePayload(
+                bytes,
+                source.FileName,
+                out RtfImageFormat format,
+                out byte[] payload,
+                out sourceFormat,
+                out animationDiscarded)) {
+            return null;
+        }
+
+        var image = new RtfImage(format, payload) {
+            SourceWidth = ToNullableInt(source.Width),
+            SourceHeight = ToNullableInt(source.Height),
+            DesiredWidthTwips = ToTwips(source.Width),
+            DesiredHeightTwips = ToTwips(source.Height),
+            Description = source.Description
         };
         return image;
     }
@@ -69,74 +106,104 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void AppendImage(WordParagraph paragraph, RtfImage image) {
-        if (!CanWriteToWord(image)) {
+        if (!TryGetWordImagePayload(image, out byte[] payload, out string fileName)) {
             return;
         }
 
-        using var stream = new MemoryStream(image.Data);
+        using var stream = new MemoryStream(payload);
         paragraph.AddImage(
             stream,
-            GetImageFileName(image.Format),
+            fileName,
             ToPixels(image.DesiredWidthTwips),
             ToPixels(image.DesiredHeightTwips),
             WordImageTextWrapping.InLineWithText,
             image.Description ?? string.Empty);
     }
 
-    private static bool CanWriteToWord(RtfImage image) {
-        return image.Data.Length > 0 &&
-            (image.Format == RtfImageFormat.Png ||
-             image.Format == RtfImageFormat.Jpeg ||
-             image.Format == RtfImageFormat.Dib ||
-             image.Format == RtfImageFormat.Wmf ||
-             image.Format == RtfImageFormat.Emf);
+    private static bool CanWriteToWord(RtfImage image) =>
+        TryGetWordImagePayload(image, out _, out _);
+
+    private static bool TryCreateRtfImagePayload(
+        byte[] bytes,
+        string? fileName,
+        out RtfImageFormat format,
+        out byte[] payload,
+        out OfficeImageFormat sourceFormat,
+        out bool animationDiscarded) {
+        format = RtfImageFormat.Unknown;
+        payload = Array.Empty<byte>();
+        sourceFormat = OfficeImageFormat.Unknown;
+        animationDiscarded = false;
+        if (OfficeImageReader.TryValidateContent(bytes, fileName, out OfficeImageInfo info)) {
+            sourceFormat = info.Format;
+            switch (info.Format) {
+                case OfficeImageFormat.Png:
+                    format = RtfImageFormat.Png;
+                    payload = bytes;
+                    return true;
+                case OfficeImageFormat.Jpeg:
+                    format = RtfImageFormat.Jpeg;
+                    payload = bytes;
+                    return true;
+                case OfficeImageFormat.Wmf:
+                    format = RtfImageFormat.Wmf;
+                    payload = bytes;
+                    return true;
+                case OfficeImageFormat.Emf:
+                    format = RtfImageFormat.Emf;
+                    payload = bytes;
+                    return true;
+                default:
+                    if (OfficeImagePngConverter.TryConvertToPng(
+                            bytes,
+                            options: null,
+                            out byte[] normalized,
+                            out OfficeRasterDecodeInfo decodeInfo)) {
+                        format = RtfImageFormat.Png;
+                        payload = normalized;
+                        animationDiscarded = decodeInfo.AnimationDiscarded;
+                        return true;
+                    }
+                    break;
+            }
+        }
+
+        if (string.Equals(Path.GetExtension(fileName), ".dib", StringComparison.OrdinalIgnoreCase) &&
+            OfficeImagePngConverter.TryConvertDibToPng(bytes, out byte[] dibPng)) {
+            format = RtfImageFormat.Png;
+            payload = dibPng;
+            return true;
+        }
+        return false;
     }
 
-    private static RtfImageFormat DetectRtfImageFormat(byte[] bytes, string? fileName) {
-        if (bytes.Length >= 8 &&
-            bytes[0] == 0x89 &&
-            bytes[1] == 0x50 &&
-            bytes[2] == 0x4E &&
-            bytes[3] == 0x47 &&
-            bytes[4] == 0x0D &&
-            bytes[5] == 0x0A &&
-            bytes[6] == 0x1A &&
-            bytes[7] == 0x0A) {
-            return RtfImageFormat.Png;
+    private static bool TryGetWordImagePayload(RtfImage image, out byte[] payload, out string fileName) {
+        payload = Array.Empty<byte>();
+        fileName = string.Empty;
+        if (image.Data.Length == 0) return false;
+
+        if (image.Format == RtfImageFormat.Dib) {
+            if (!OfficeImagePngConverter.TryConvertDibToPng(image.Data, out payload)) return false;
+            fileName = "rtf-image.png";
+            return true;
         }
 
-        if (bytes.Length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) {
-            return RtfImageFormat.Jpeg;
-        }
-
-        string extension = Path.GetExtension(fileName ?? string.Empty).ToLowerInvariant();
-        switch (extension) {
-            case ".png":
-                return RtfImageFormat.Png;
-            case ".jpg":
-            case ".jpeg":
-                return RtfImageFormat.Jpeg;
-            case ".bmp":
-            case ".dib":
-                return RtfImageFormat.Dib;
-            case ".wmf":
-                return RtfImageFormat.Wmf;
-            case ".emf":
-                return RtfImageFormat.Emf;
-            default:
-                return RtfImageFormat.Unknown;
-        }
-    }
-
-    private static string GetImageFileName(RtfImageFormat format) {
-        string extension = format switch {
-            RtfImageFormat.Jpeg => "jpg",
-            RtfImageFormat.Dib => "bmp",
-            RtfImageFormat.Wmf => "wmf",
-            RtfImageFormat.Emf => "emf",
-            _ => "png"
+        OfficeImageFormat expected = image.Format switch {
+            RtfImageFormat.Png => OfficeImageFormat.Png,
+            RtfImageFormat.Jpeg => OfficeImageFormat.Jpeg,
+            RtfImageFormat.Wmf => OfficeImageFormat.Wmf,
+            RtfImageFormat.Emf => OfficeImageFormat.Emf,
+            _ => OfficeImageFormat.Unknown
         };
-        return "rtf-image." + extension;
+        if (expected == OfficeImageFormat.Unknown ||
+            !OfficeImageReader.TryValidateContent(image.Data, OfficeImageInfo.GetDefaultExtension(expected), out OfficeImageInfo info) ||
+            info.Format != expected) {
+            return false;
+        }
+
+        payload = image.Data;
+        fileName = "rtf-image" + OfficeImageInfo.GetDefaultExtension(expected);
+        return true;
     }
 
     private static int? ToNullableInt(double? value) {

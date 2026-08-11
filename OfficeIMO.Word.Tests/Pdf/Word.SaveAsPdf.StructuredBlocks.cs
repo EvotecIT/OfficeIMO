@@ -1383,7 +1383,7 @@ public partial class Word {
 
     private static void AddPngImagePart(WordDocument document, string relationshipId) {
         ImagePart imagePart = document._wordprocessingDocument.MainDocumentPart!.AddImagePart(ImagePartType.Png, relationshipId);
-        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=");
+        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=");
         using Stream stream = imagePart.GetStream(FileMode.Create, FileAccess.Write);
         stream.Write(png, 0, png.Length);
     }

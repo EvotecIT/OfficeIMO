@@ -9,6 +9,20 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIMO package in an application to the same `3.2.x` version and perform a clean restore after changing versions.
 
+## OfficeIMO 3.2: complete image validation at ingestion boundaries
+
+Excel file and URL image methods now validate the complete bounded payload instead of trusting a filename extension or image header. They throw `ArgumentException` for truncated, corrupt, or unsupported content that older versions could package. When a valid image has a misleading filename extension or remote content type, OfficeIMO uses the format detected from its payload.
+
+Applications that intentionally import opaque package bytes can keep using the byte-array `AddImage(...)` overload with an explicit content type. That is the low-level package path; it does not turn invalid content into a renderable image. Use `OfficeImageReader.TryValidateContent(...)` before ingestion when the application needs to report validation failures itself.
+
+Direct `OfficeImageExportResult` construction now applies the same complete-content check. A recognizable header is no longer enough: truncated, corrupt, undecodable, or dimension-mismatched bytes throw `ArgumentException`. Call `OfficeImageReader.TryValidateContent(...)` before construction when the application needs to handle invalid output without an exception.
+
+Word/RTF result conversions now validate and inventory images across the document body, section headers and footers, fields, revisions, notes, and comments. Images that the target format cannot emit remain in the conversion report instead of disappearing silently. Use `ToRtfDocumentResult(...)` or `ToWordDocumentResult(...)`, inspect `Report`, and call `RequireNoLoss()` when omitted image content must stop the workflow.
+
+Word-to-ODT and PowerPoint-to-ODP conversion now preserves only images that pass `OfficeImageReader.TryValidateContent(...)`. Valid payloads with misleading extensions are stored under the detected format; corrupt, truncated, unsupported, and general WebP payloads outside OfficeIMO's managed decoder subset are omitted and reported as unsupported. Inspect the returned `OdfConversionResult<T>.Report`, call `RequireNoLoss()`, or set the conversion option `LossPolicy` when image loss must fail the conversion.
+
+Direct ODT and ODP byte-array `AddImage(...)` methods now validate complete image content. When the filename has a recognized image extension, it must agree with the detected format. These methods throw `ArgumentException` for corrupt, truncated, or mislabeled payloads instead of creating an OpenDocument package entry whose media type does not match its bytes.
+
 ## OfficeIMO 3.2: one PDF authoring and operation model
 
 `PdfDocument` no longer duplicates every heading, paragraph, table, image, form,

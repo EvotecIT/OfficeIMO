@@ -151,15 +151,15 @@ public sealed class OpenDocumentHardeningTests {
     }
 
     [Fact]
-    public void TruncatedMediaRemainsOpaqueAndNeverExecutesOrFetchesContent() {
+    public void TruncatedMediaIsRejectedBeforePackageStorage() {
         byte[] truncated = { 0x89, 0x50, 0x4E, 0x47, 0x00 };
         OdtDocument document = OdtDocument.Create();
-        document.AddParagraph("Image").AddImage(truncated, "broken.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
 
-        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
-
-        Assert.Equal(truncated, Assert.Single(reopened.ContentBlocks[0].Paragraph!.Images).GetImageBytes());
-        Assert.True(reopened.Validate().IsValid);
+        Assert.Throws<ArgumentException>(() => document.AddParagraph("Image").AddImage(
+            truncated,
+            "broken.png",
+            OdfLength.Centimeters(1),
+            OdfLength.Centimeters(1)));
     }
 
     [Fact]
