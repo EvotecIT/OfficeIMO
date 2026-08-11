@@ -93,6 +93,23 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_ClipsImplicitUnsupportedIccFallbackComponentsToRange() {
+        byte[] unsupportedProfile = PdfIccProfiles.SrgbIec6196621;
+        unsupportedProfile[16] = (byte)'G';
+        unsupportedProfile[17] = (byte)'R';
+        unsupportedProfile[18] = (byte)'A';
+        unsupportedProfile[19] = (byte)'Y';
+        byte[] pdf = BuildIccContentPdf(
+            unsupportedProfile,
+            "/N 1 /Range [0.2 0.8]",
+            "0 scn");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Equal(OfficeColor.FromRgb(51, 51, 51), Assert.Single(drawing.Shapes).Shape.FillColor);
+    }
+
+    [Fact]
     public void RenderPage_ScalesIndexedIccPaletteIntoDeclaredRange() {
         byte[] pdf = BuildIccContentPdf(
             PdfIccProfiles.SrgbIec6196621,

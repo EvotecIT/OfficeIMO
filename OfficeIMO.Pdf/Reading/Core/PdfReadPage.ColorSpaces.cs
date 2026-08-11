@@ -97,7 +97,7 @@ public sealed partial class PdfReadPage {
             return true;
         }
 
-        colorSpace = PdfPageColorSpace.IccBased(kind);
+        colorSpace = PdfPageColorSpace.IccFallback(kind, ranges);
         return true;
     }
 
