@@ -717,6 +717,17 @@ public sealed partial class PdfReadPage {
                           activeType3PaintChannelStreams,
                           pageContentBudget,
                           type3GlyphBudget),
+                      softMaskVisibilityResolver: (softMask, transform) => !IsSoftMaskEntirelyTransparent(
+                          softMask,
+                          transform,
+                          resources,
+                          pageWidth,
+                          pageHeight,
+                          type3PaintChannelCache,
+                          activeType3PaintChannelStreams,
+                          pageContentBudget,
+                          type3GlyphBudget,
+                          contentNestingDepth + 1),
                       pageWidth: pageWidth)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {

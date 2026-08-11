@@ -233,7 +233,7 @@ public sealed partial class PdfReadPage {
 
     private bool IsPaintSuppressedByTransparentSoftMask(
         PdfPageDrawingEffect effect,
-        PdfDictionary parentResources,
+        PdfDictionary? parentResources,
         Matrix2D fallbackTransform,
         double pageWidth,
         double pageHeight,
@@ -259,7 +259,7 @@ public sealed partial class PdfReadPage {
     private bool IsSoftMaskEntirelyTransparent(
         PdfPageSoftMaskResource softMask,
         Matrix2D transform,
-        PdfDictionary parentResources,
+        PdfDictionary? parentResources,
         double pageWidth,
         double pageHeight,
         Type3PaintChannelCache cache,
@@ -269,7 +269,9 @@ public sealed partial class PdfReadPage {
         int depth) {
         if (HasVisibleSoftMaskBackdrop(softMask)) return false;
         PdfDictionary maskResources = ResolveDictionary(
-            softMask.Group.Dictionary.Items.TryGetValue("Resources", out PdfObject? value) ? value : null) ?? parentResources;
+            softMask.Group.Dictionary.Items.TryGetValue("Resources", out PdfObject? value) ? value : null) ??
+            parentResources ??
+            new PdfDictionary();
         var maskState = new PdfPageXObjectPaintState(
             transform,
             clipPath: null,
