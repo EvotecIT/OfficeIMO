@@ -11,7 +11,7 @@ internal sealed class PdfImageColorSpaceNormalization {
     private readonly PdfPageColorSpace _colorSpace;
     private readonly OfficeIccColorProfile? _iccProfile;
     private readonly PdfImageColorSpaceNormalization? _alternateNormalization;
-    private readonly Func<IReadOnlyList<double>, IReadOnlyList<double>?>? _tintTransform;
+    private readonly PdfColorSpaceTintTransform? _tintTransform;
     private readonly double[] _componentRanges;
 
     private PdfImageColorSpaceNormalization(
@@ -20,10 +20,10 @@ internal sealed class PdfImageColorSpaceNormalization {
         OfficeIccColorProfile? iccProfile = null,
         double[]? componentRanges = null,
         PdfImageColorSpaceNormalization? alternateNormalization = null,
-        Func<IReadOnlyList<double>, IReadOnlyList<double>?>? tintTransform = null,
+        PdfColorSpaceTintTransform? tintTransform = null,
         int? sourceColorCount = null,
         bool usesIccApproximation = false) {
-        _colorSpace = usesIccApproximation ? PdfPageColorSpace.IccFallback(colorSpace) : colorSpace;
+        _colorSpace = usesIccApproximation ? PdfPageColorSpace.IccFallback(colorSpace, componentRanges) : colorSpace;
         SourceColorCount = sourceColorCount ?? iccProfile?.ComponentCount ?? colorSpace.ComponentCount;
         PngColorType = pngColorType;
         _iccProfile = iccProfile;
@@ -41,21 +41,25 @@ internal sealed class PdfImageColorSpaceNormalization {
 
     internal bool RequiresColorConversion => _iccProfile != null || _alternateNormalization != null ||
         _colorSpace.Kind is PdfPageColorSpaceKind.CalGray or PdfPageColorSpaceKind.CalRgb or
-        PdfPageColorSpaceKind.Lab or PdfPageColorSpaceKind.Indexed;
+        PdfPageColorSpaceKind.Lab or PdfPageColorSpaceKind.Indexed || HasNonUnitComponentRange();
 
     internal bool UsesIccApproximation { get; }
 
-    internal double[] CreateComponentBuffer() => new double[SourceColorCount];
+    internal PdfImageColorConversionBuffer CreateConversionBuffer() =>
+        new PdfImageColorConversionBuffer(
+            SourceColorCount,
+            _alternateNormalization?.CreateConversionBuffer());
 
     internal bool TryConvertPixel(
         byte[] samples,
         int offset,
         PdfImageDecodeTransform? decodeTransform,
-        double[] components,
+        PdfImageColorConversionBuffer conversionBuffer,
         out OfficeColor color) {
         color = OfficeColor.Black;
-        if (components == null || components.Length < SourceColorCount ||
+        if (conversionBuffer == null || conversionBuffer.Components.Length < SourceColorCount ||
             offset < 0 || offset > samples.Length - SourceColorCount) return false;
+        double[] components = conversionBuffer.Components;
         for (int component = 0; component < SourceColorCount; component++) {
             double value = decodeTransform == null
                 ? samples[offset + component] / 255D
@@ -63,10 +67,16 @@ internal sealed class PdfImageColorSpaceNormalization {
             if (decodeTransform == null) value = MapUnitToComponentRange(component, value);
             components[component] = value;
         }
-        return TryConvertComponents(components, out color);
+        return TryConvertComponents(components, conversionBuffer, out color);
     }
 
-    internal bool TryConvertComponents(IReadOnlyList<double> components, out OfficeColor color) {
+    internal bool TryConvertComponents(IReadOnlyList<double> components, out OfficeColor color) =>
+        TryConvertComponents(components, CreateConversionBuffer(), out color);
+
+    internal bool TryConvertComponents(
+        IReadOnlyList<double> components,
+        PdfImageColorConversionBuffer conversionBuffer,
+        out OfficeColor color) {
         color = OfficeColor.Black;
         if (components == null || components.Count < SourceColorCount) return false;
         if (_iccProfile != null) {
@@ -81,10 +91,14 @@ internal sealed class PdfImageColorSpaceNormalization {
         }
         if (_alternateNormalization != null) {
             double[] clippedComponents = ClipComponentsToRanges(components);
-            IReadOnlyList<double>? alternateComponents = _tintTransform == null
-                ? clippedComponents
-                : _tintTransform(clippedComponents);
-            return alternateComponents != null && _alternateNormalization.TryConvertComponents(alternateComponents, out color);
+            PdfImageColorConversionBuffer? alternateBuffer = conversionBuffer.Alternate;
+            if (alternateBuffer == null) return false;
+            IReadOnlyList<double> alternateComponents = clippedComponents;
+            if (_tintTransform != null) {
+                alternateComponents = alternateBuffer.Components;
+                if (!_tintTransform(clippedComponents, alternateBuffer.Components)) return false;
+            }
+            return _alternateNormalization.TryConvertComponents(alternateComponents, alternateBuffer, out color);
         }
         if (_colorSpace.Kind == PdfPageColorSpaceKind.DeviceCmyk) {
             byte cyan = ToByte(components[0]);
@@ -102,6 +116,14 @@ internal sealed class PdfImageColorSpaceNormalization {
 
     internal double MapLookupByteToComponent(int component, byte value) =>
         MapUnitToComponentRange(component, value / 255D);
+
+    private bool HasNonUnitComponentRange() {
+        for (int component = 0; component < SourceColorCount; component++) {
+            int offset = component * 2;
+            if (_componentRanges[offset] != 0D || _componentRanges[offset + 1] != 1D) return true;
+        }
+        return false;
+    }
 
     private double[] ClipComponentsToRanges(IReadOnlyList<double> components) {
         double[] clipped = components as double[] ?? new double[SourceColorCount];
@@ -289,13 +311,14 @@ internal sealed class PdfImageColorSpaceNormalization {
                 out byte[] lookup) || lookup.Length < lookupLength) return false;
         var palette = new OfficeColor[paletteCount];
         var components = new double[baseColorSpace.SourceColorCount];
+        PdfImageColorConversionBuffer conversionBuffer = baseColorSpace.CreateConversionBuffer();
         for (int entry = 0; entry < paletteCount; entry++) {
             for (int component = 0; component < components.Length; component++) {
                 components[component] = baseColorSpace.MapLookupByteToComponent(
                     component,
                     lookup[entry * components.Length + component]);
             }
-            if (!baseColorSpace.TryConvertComponents(components, out palette[entry])) return false;
+            if (!baseColorSpace.TryConvertComponents(components, conversionBuffer, out palette[entry])) return false;
         }
         normalization = new PdfImageColorSpaceNormalization(
             PdfPageColorSpace.Indexed(palette, baseColorSpace.UsesIccApproximation),
@@ -323,7 +346,7 @@ internal sealed class PdfImageColorSpaceNormalization {
                 alternate.SourceColorCount,
                 objects,
                 maxDecodedStreamBytes,
-                out Func<IReadOnlyList<double>, IReadOnlyList<double>?> transform)) return false;
+                out PdfColorSpaceTintTransform transform)) return false;
         normalization = new PdfImageColorSpaceNormalization(
             kind,
             2,

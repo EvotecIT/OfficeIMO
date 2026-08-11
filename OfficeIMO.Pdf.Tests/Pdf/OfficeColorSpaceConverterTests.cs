@@ -61,10 +61,16 @@ public class OfficeColorSpaceConverterTests {
         badSignature[36] = (byte)'x';
         byte[] authoredLutTransform = PdfIccProfiles.SrgbIec6196621;
         RenameTag(authoredLutTransform, "desc", "A2B0");
+        byte[] outputProfile = PdfIccProfiles.SrgbIec6196621;
+        WriteSignature(outputProfile, 12, "prtr");
+        byte[] deviceLinkProfile = PdfIccProfiles.SrgbIec6196621;
+        WriteSignature(deviceLinkProfile, 12, "link");
 
         Assert.False(OfficeIccColorProfile.TryCreate(cmykProfile, out _));
         Assert.False(OfficeIccColorProfile.TryCreate(badSignature, out _));
         Assert.False(OfficeIccColorProfile.TryCreate(authoredLutTransform, out _));
+        Assert.False(OfficeIccColorProfile.TryCreate(outputProfile, out _));
+        Assert.False(OfficeIccColorProfile.TryCreate(deviceLinkProfile, out _));
         Assert.False(OfficeIccColorProfile.TryCreate(null!, out _));
     }
 
@@ -323,6 +329,21 @@ public class OfficeColorSpaceConverterTests {
         output0 = Math.Pow(Math.Min(1D, 0.5D * m0 + 0.1D), 1.25D);
         output1 = Math.Pow(Math.Min(1D, 0.5D * m1 + 0.1D), 1.5D);
         output2 = Math.Pow(Math.Min(1D, 0.5D * m2 + 0.1D), 1.75D);
+    }
+
+    [Fact]
+    public void IccGrayProfile_RequiresValidMediaWhitePoint() {
+        byte[] missingWhitePoint = PdfIccProfiles.SrgbIec6196621;
+        WriteSignature(missingWhitePoint, 16, "GRAY");
+        RenameTag(missingWhitePoint, "rTRC", "kTRC");
+        RenameTag(missingWhitePoint, "wtpt", "desc");
+        byte[] nonpositiveWhitePoint = PdfIccProfiles.SrgbIec6196621;
+        WriteSignature(nonpositiveWhitePoint, 16, "GRAY");
+        RenameTag(nonpositiveWhitePoint, "rTRC", "kTRC");
+        WriteS15Fixed16(nonpositiveWhitePoint, FindTagOffset(nonpositiveWhitePoint, "wtpt") + 8, 0D);
+
+        Assert.False(OfficeIccColorProfile.TryCreate(missingWhitePoint, out _));
+        Assert.False(OfficeIccColorProfile.TryCreate(nonpositiveWhitePoint, out _));
     }
 
     private static int FindTagOffset(byte[] profile, string signature) {

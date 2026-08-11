@@ -330,7 +330,7 @@ namespace OfficeIMO.Word {
             // Insert the new row after the last row
             var insertedRow = lastRow.InsertAfterSelf(clonedRow);
 
-            return new WordTableRow(this, insertedRow, _document);
+            return GetOrCreateRow(insertedRow, initializeCells: true);
         }
 
         /// <summary>

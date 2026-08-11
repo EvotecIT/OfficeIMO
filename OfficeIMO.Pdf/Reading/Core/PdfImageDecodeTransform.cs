@@ -25,6 +25,43 @@ internal sealed class PdfImageDecodeTransform {
         return TryCreate(dictionary, 1, objects, out var transform) ? transform : null;
     }
 
+    internal static bool IsIdentityColorDecodeOrAbsent(
+        PdfDictionary dictionary,
+        int componentCount,
+        Dictionary<int, PdfIndirectObject> objects) {
+        if (componentCount <= 0 || !dictionary.Items.TryGetValue("Decode", out PdfObject? decodeObject)) {
+            return componentCount > 0;
+        }
+
+        PdfObject? resolved = ResolveReferenceChain(decodeObject, objects);
+        if (resolved is PdfNull) return true;
+        if (resolved is not PdfArray decodeArray || decodeArray.Items.Count != componentCount * 2) return false;
+
+        for (int component = 0; component < componentCount; component++) {
+            if (ResolveReferenceChain(decodeArray.Items[component * 2], objects) is not PdfNumber { Value: 0D } ||
+                ResolveReferenceChain(decodeArray.Items[component * 2 + 1], objects) is not PdfNumber { Value: 1D }) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static PdfObject? ResolveReferenceChain(
+        PdfObject? value,
+        Dictionary<int, PdfIndirectObject> objects) {
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        PdfObject? resolved = value;
+        while (resolved is PdfReference reference) {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
+                !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject indirect)) {
+                return null;
+            }
+            resolved = indirect.Value;
+        }
+        return resolved;
+    }
+
     internal byte TransformColorComponent(byte sample, int componentIndex) {
         double decoded = TransformColorComponentValue(sample, componentIndex);
         return ClampToByte(decoded * 255D);

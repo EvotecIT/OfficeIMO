@@ -2,6 +2,8 @@ using System.Text;
 
 namespace OfficeIMO.Pdf;
 
+internal delegate bool PdfColorSpaceTintTransform(IReadOnlyList<double> components, double[] output);
+
 /// <summary>Resolves the bounded tint functions shared by content and image color-space projection.</summary>
 internal static class PdfColorSpaceFunctionResolver {
     internal static bool TryCreateTintTransform(
@@ -10,7 +12,7 @@ internal static class PdfColorSpaceFunctionResolver {
         int outputCount,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
-        out Func<IReadOnlyList<double>, IReadOnlyList<double>?> transform) {
+        out PdfColorSpaceTintTransform transform) {
         transform = null!;
         PdfObject? resolved = PdfObjectLookup.Resolve(objects, value);
         PdfDictionary? dictionary = resolved switch {
@@ -35,14 +37,15 @@ internal static class PdfColorSpaceFunctionResolver {
                 c0.Any(value => !IsFinite(value)) || c1.Any(value => !IsFinite(value)) ||
                 !IsFinite(exponent) || exponent <= 0D ||
                 !HasUnitFunctionBounds(dictionary, inputCount, outputCount, requireRange: false, objects)) return false;
-            transform = components => EvaluateType2(components, c0, c1, exponent);
+            bool clipOutputsToUnitRange = dictionary.Items.ContainsKey("Range");
+            transform = (components, output) => EvaluateType2(components, output, c0, c1, exponent, clipOutputsToUnitRange);
             return true;
         }
 
         if (functionType == 4 && resolved is PdfStream calculator &&
             HasUnitFunctionBounds(dictionary, inputCount, outputCount, requireRange: true, objects) &&
             TryReadBoundedCalculatorProgram(calculator, inputCount, outputCount, objects, maxDecodedStreamBytes, out int duplicateCount)) {
-            transform = components => EvaluateIdentity(components, inputCount, outputCount, duplicateCount);
+            transform = (components, output) => EvaluateIdentity(components, output, inputCount, outputCount, duplicateCount);
             return true;
         }
 
@@ -91,26 +94,37 @@ internal static class PdfColorSpaceFunctionResolver {
         return outputCount == duplicateCount + 1;
     }
 
-    private static double[]? EvaluateType2(
+    private static bool EvaluateType2(
         IReadOnlyList<double> components,
+        double[] output,
         double[] c0,
         double[] c1,
-        double exponent) {
-        if (components.Count < 1 || !IsFinite(components[0])) return null;
+        double exponent,
+        bool clipOutputsToUnitRange) {
+        if (components.Count < 1 || output.Length < c0.Length || !IsFinite(components[0])) return false;
         double factor = Math.Pow(Clamp01(components[0]), exponent);
-        var result = new double[c0.Length];
-        for (int index = 0; index < result.Length; index++) result[index] = c0[index] + factor * (c1[index] - c0[index]);
-        return result;
+        for (int index = 0; index < c0.Length; index++) {
+            double value = c0[index] + factor * (c1[index] - c0[index]);
+            output[index] = clipOutputsToUnitRange ? Clamp01(value) : value;
+        }
+        return true;
     }
 
-    private static double[]? EvaluateIdentity(
+    private static bool EvaluateIdentity(
         IReadOnlyList<double> components,
+        double[] output,
         int inputCount,
         int outputCount,
         int duplicateCount) {
-        if (components.Count < inputCount || components.Take(inputCount).Any(value => !IsFinite(value))) return null;
-        if (duplicateCount == 0) return components.Take(outputCount).Select(Clamp01).ToArray();
-        return Enumerable.Repeat(Clamp01(components[0]), outputCount).ToArray();
+        if (components.Count < inputCount || output.Length < outputCount) return false;
+        for (int index = 0; index < inputCount; index++) if (!IsFinite(components[index])) return false;
+        if (duplicateCount == 0) {
+            for (int index = 0; index < outputCount; index++) output[index] = Clamp01(components[index]);
+        } else {
+            double value = Clamp01(components[0]);
+            for (int index = 0; index < outputCount; index++) output[index] = value;
+        }
+        return true;
     }
 
     private static int? TryReadInteger(PdfObject? value, Dictionary<int, PdfIndirectObject> objects) {

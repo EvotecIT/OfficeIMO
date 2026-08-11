@@ -20,9 +20,11 @@ namespace OfficeIMO.Excel.Fluent {
 
             var opts = new ObjectFlattenerOptions();
             configure?.Invoke(opts);
+            opts.MaxColumns = System.Math.Min(opts.MaxColumns, A1.MaxColumns);
             var flattener = new ObjectFlattener();
 
-            ObjectTableProjection projection = flattener.FlattenRows(items, opts, "TableFrom");
+            ObjectTableProjection projection = flattener.FlattenRows(
+                items, opts, "TableFrom", headerRowCount: 1, enforceEmptyProjectionLimits: false);
             IReadOnlyList<System.Collections.Generic.Dictionary<string, object?>> rows = projection.Rows;
             if (rows.Count == 0) {
                 Sheet.Cell(_row, 1, "(no data)");
@@ -69,10 +71,6 @@ namespace OfficeIMO.Excel.Fluent {
                 _row++;
             }
             Sheet.CellValues(cells);
-            for (int i = 0; i < paths.Count; i++) {
-                Sheet.CellBold(headerRow, i + 1, true);
-                Sheet.CellBackground(headerRow, i + 1, _theme.KeyFillHex);
-            }
 
             int lastRow = _row - 1;
             string start = $"A{headerRow}";
