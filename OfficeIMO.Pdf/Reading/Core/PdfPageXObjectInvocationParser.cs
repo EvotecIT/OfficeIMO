@@ -745,6 +745,7 @@ internal static class PdfPageXObjectInvocationParser {
                 case "sh":
                     if (!HasHiddenContent() &&
                         !IsCurrentPaintSuppressedBySoftMask() &&
+                        (_state.FillOpacity ?? 1D) > 0D &&
                         IsCurrentClipPotentiallyVisible() &&
                         _args.Count >= 1 &&
                         _args[_args.Count - 1] is string shadingName &&
