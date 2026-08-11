@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using global::ChartForgeX.Topology;
 using global::ChartForgeX.VisualArtifacts;
 using OfficeIMO.ChartForgeX;
 using OfficeIMO.Visio;
@@ -150,6 +151,39 @@ public sealed class OfficeVisioVisualIntegrationTests {
     }
 
     [Fact]
+    public void SequenceProjectionPreservesForwardBackwardBidirectionalAndUndirectedMessages() {
+        var envelope = new VisualArtifactInterchangeEnvelope { Id = "message-directions", Kind = VisualArtifactKind.Sequence };
+        envelope.Nodes.Add(Participant("caller", "Caller", "Actor", 0));
+        envelope.Nodes.Add(Participant("service", "Service", "Control", 1));
+        envelope.Edges.Add(Message("forward", "caller", "service", "Forward", 0));
+        envelope.Edges.Add(Message("backward", "caller", "service", "Backward", 1));
+        envelope.Edges.Add(Message("both", "caller", "service", "Both", 2));
+        envelope.Edges.Add(Message("none", "caller", "service", "None", 3));
+        envelope.Edges[0].Direction = "Forward";
+        envelope.Edges[0].Kind = "Async";
+        envelope.Edges[1].Direction = "Backward";
+        envelope.Edges[1].LineStyle = "Dashed";
+        envelope.Edges[2].Direction = "Bidirectional";
+        envelope.Edges[2].Kind = "Event";
+        envelope.Edges[3].Direction = "None";
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
+
+        VisioConnector forward = result.Page.Connectors.Single(connector => connector.Id == "forward");
+        VisioConnector backward = result.Page.Connectors.Single(connector => connector.Id == "backward");
+        VisioConnector both = result.Page.Connectors.Single(connector => connector.Id == "both");
+        VisioConnector none = result.Page.Connectors.Single(connector => connector.Id == "none");
+        Assert.Equal(EndArrow.None, forward.BeginArrow);
+        Assert.Equal(EndArrow.Arrow, forward.EndArrow);
+        Assert.Equal(EndArrow.Arrow, backward.BeginArrow);
+        Assert.Equal(EndArrow.None, backward.EndArrow);
+        Assert.Equal(EndArrow.Arrow, both.BeginArrow);
+        Assert.Equal(EndArrow.Arrow, both.EndArrow);
+        Assert.Equal(EndArrow.None, none.BeginArrow);
+        Assert.Equal(EndArrow.None, none.EndArrow);
+    }
+
+    [Fact]
     public void SequencePreservesLateAnnotationRowsAndDeterministicOpenActivations() {
         var envelope = new VisualArtifactInterchangeEnvelope { Id = "late-rows", Kind = VisualArtifactKind.Sequence };
         envelope.Nodes.Add(Participant("caller", "Caller", "Actor", 0));
@@ -206,6 +240,9 @@ public sealed class OfficeVisioVisualIntegrationTests {
         envelope.Nodes.Add(Participant("caller", "Caller", "Actor", 0));
         envelope.Nodes.Add(Participant("service", "Service", "Control", 1));
         envelope.Edges.Add(Message("call", "caller", "service", "Call", 0));
+        var note = new VisualArtifactInterchangeAnnotation { Id = "note", Kind = "SequenceNote", Text = "Natural page note", StartIndex = 0, EndIndex = 0 };
+        note.TargetIds.Add("service");
+        envelope.Annotations.Add(note);
 
         OfficeVisioVisualConversionResult fitted = envelope.ToOfficeVisio();
         OfficeVisioVisualConversionResult natural = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { UseNaturalPageSize = true, PixelsPerInch = 100D });
@@ -213,6 +250,30 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.True(fitted.Page.Width < natural.Page.Width);
         Assert.True(fitted.Page.Width < 9D);
         Assert.True(natural.Page.Width >= 24D);
+        VisioShapeBounds naturalBounds = natural.Page.GetContentBounds();
+        Assert.True(Math.Abs(naturalBounds.CenterX - natural.Page.Width / 2D) < 0.001D);
+        Assert.True(Math.Abs(naturalBounds.CenterY - natural.Page.Height / 2D) < 0.001D);
+    }
+
+    [Fact]
+    public void SourceGraphIdCollisionsAreRemappedByTheInterchangeOwnerBeforeVisioProjection() {
+        TopologyChart topology = TopologyChart.Create();
+        topology.LayoutMode = TopologyLayoutMode.Manual;
+        topology.Groups.Add(new TopologyGroup { Id = "shared", Label = "Group", X = 0, Y = 0, Width = 400, Height = 200 });
+        topology.Nodes.Add(new TopologyNode { Id = "shared", Label = "Source", GroupId = "shared", X = 30, Y = 70, Width = 100, Height = 50 });
+        topology.Nodes.Add(new TopologyNode { Id = "target", Label = "Target", GroupId = "shared", X = 220, Y = 70, Width = 100, Height = 50 });
+        topology.Edges.Add(new TopologyEdge { Id = "shared", SourceNodeId = "shared", TargetNodeId = "target" });
+
+        OfficeVisioVisualConversionResult result = topology.ToVisualArtifact().ToOfficeVisio();
+
+        Assert.Equal(result.Envelope.Groups.Count + result.Envelope.Nodes.Count + result.Envelope.Edges.Count,
+            result.Envelope.Groups.Select(group => group.Id)
+                .Concat(result.Envelope.Nodes.Select(node => node.Id))
+                .Concat(result.Envelope.Edges.Select(edge => edge.Id))
+                .Distinct(StringComparer.Ordinal)
+                .Count());
+        Assert.Equal(result.Envelope.Nodes.Single(node => node.Label == "Source").Id,
+            result.Envelope.Edges.Single().SourceId);
     }
 
     [Fact]
