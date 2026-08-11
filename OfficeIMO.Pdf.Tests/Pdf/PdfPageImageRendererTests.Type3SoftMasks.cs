@@ -84,6 +84,7 @@ public partial class PdfPageImageRendererTests {
     [Theory]
     [InlineData("/Bad gs /Sh1 sh", true)]
     [InlineData("0 0 10 10 re W n 20 20 10 10 re W n /Bad gs /Sh1 sh", false)]
+    [InlineData("600 600 10 10 re W n /Bad gs /Sh1 sh", false)]
     public void RenderPage_ValidatesNestedSoftMaskWhenDirectShadingPaints(string maskContent, bool expectFallback) {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
@@ -421,6 +422,21 @@ public partial class PdfPageImageRendererTests {
         string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /CS /DeviceRGB >> /Resources << /Font << /FText 9 0 R >> >>", "1 1 1 rg 0 0 500 700 re f BT /FText 48 Tf 3 Tr 25 200 Td (A) Tj ET");
         string ordinaryFont = "9 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /HelveticaNeue /Encoding /WinAnsiEncoding >>\nendobj";
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, outerState, outerMask, ordinaryFont);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_IgnoresTransparentUnsupportedTextInsideType3SoftMask() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
+        string outerState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Luminosity /G 8 0 R >> >>\nendobj";
+        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /CS /DeviceRGB >> /Resources << /Font << /FText 9 0 R >> /ExtGState << /Zero 10 0 R >> >>", "1 1 1 rg 0 0 500 700 re f /Zero gs BT /FText 48 Tf 25 200 Td (A) Tj ET");
+        string unsupportedFont = "9 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /HelveticaNeue /Encoding /WinAnsiEncoding >>\nendobj";
+        string transparentFill = "10 0 obj\n<< /Type /ExtGState /ca 0 >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, outerState, outerMask, unsupportedFont, transparentFill);
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
 

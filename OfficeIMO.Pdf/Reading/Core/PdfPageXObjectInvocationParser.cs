@@ -1240,9 +1240,17 @@ internal static class PdfPageXObjectInvocationParser {
             return false;
         }
 
-        private bool IsCurrentClipPotentiallyVisible() =>
-            !_state.ClipPath.HasValue ||
-            (_state.ClipPath.Value.Width > 0D && _state.ClipPath.Value.Height > 0D);
+        private bool IsCurrentClipPotentiallyVisible() {
+            if (_pageWidth.HasValue) {
+                return PdfReadPage.HasPositiveVisibleClipArea(
+                    _state.ClipPath,
+                    _pageWidth.Value,
+                    _pageHeight);
+            }
+
+            return !_state.ClipPath.HasValue ||
+                   (_state.ClipPath.Value.Width > 0D && _state.ClipPath.Value.Height > 0D);
+        }
 
         private bool IsCurrentPaintSuppressedBySoftMask() =>
             _softMask != null &&
