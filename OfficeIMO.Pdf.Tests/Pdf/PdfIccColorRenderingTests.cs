@@ -138,6 +138,20 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_ClipsType2TintOutputsToDeclaredRange() {
+        byte[] pdf = BuildIccContentPdf(
+            PdfIccProfiles.SrgbIec6196621,
+            "/N 1 /Alternate [/Separation /Spot [/Lab << /WhitePoint [1 1 1] >>] 7 0 R]",
+            "1 scn",
+            extraObjects: "7 0 obj\n<< /FunctionType 2 /Domain [0 1] /Range [0 1 0 1 0 1] /C0 [50 0 0] /C1 [50 0 0] /N 1 >>\nendobj\n");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeColor expected = OfficeColorSpaceConverter.FromLab(1D, 0D, 0D, 1D, 1D, 1D);
+        Assert.Equal(expected, Assert.Single(drawing.Shapes).Shape.FillColor);
+    }
+
+    [Fact]
     public void ExtractImages_AppliesEmbeddedMatrixTrcProfileAndDefaultIccRangeDecode() {
         byte[] profile = PdfIccProfiles.SrgbIec6196621;
         SwapTagPayload(profile, "rXYZ", "bXYZ");
