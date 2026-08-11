@@ -573,17 +573,18 @@ namespace OfficeIMO.Visio.Diagrams {
 
         private void AddClusterRecord(VisioGraphClusterRecord record) {
             if (record == null) throw new ArgumentNullException(nameof(record));
+            string clusterId = RequireId(record.Id, nameof(record.Id), "Cluster id");
             IReadOnlyList<string> nodeIds = NormalizeZoneNodeIds(record.NodeIds, nameof(record.NodeIds), "Cluster node id");
-            Cluster(record.Id, record.Text, nodeIds.ToArray());
-            ZoneItem zone = GetKnownZone(record.Id, nameof(record.Id));
+            Cluster(clusterId, record.Text, nodeIds.ToArray());
+            ZoneItem zone = GetKnownZone(clusterId, nameof(record.Id));
             zone.FillColor = record.FillColor;
             zone.LineColor = record.LineColor;
             foreach (KeyValuePair<string, string?> item in record.ShapeData) {
-                ZoneShapeData(record.Id, item.Key, item.Value);
+                ZoneShapeData(clusterId, item.Key, item.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(record.HyperlinkAddress)) {
-                ZoneHyperlink(record.Id, record.HyperlinkAddress!, record.HyperlinkDescription, record.HyperlinkSubAddress);
+                ZoneHyperlink(clusterId, record.HyperlinkAddress!, record.HyperlinkDescription, record.HyperlinkSubAddress);
             }
         }
 
