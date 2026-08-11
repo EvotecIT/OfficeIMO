@@ -918,6 +918,88 @@ public class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void RenderPage_ClipsShearedPatternedImageMaskToRectangularGlyphClip() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 0 0 250 700 re W n q 0 700 -500 0 500 0 cm /Im1 Do Q",
+            glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForNonRenderablePatternedImageMaskPayload() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q",
+            glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 2147483647 /Height 2147483647 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.DoesNotContain(drawing.Elements, element => element is OfficeDrawingEffectGroup);
+    }
+
+    [Fact]
+    public void RenderPages_TransformsAnnotationAppearanceBeforePatternMaskDiagnostics() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: string.Empty,
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 q 500 100 0 700 0 0 cm /Im1 Do Q",
+            glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
+            pageDictionaryEntries: "/Annots [9 0 R]",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x"),
+                "9 0 obj\n<< /Type /Annot /Subtype /Stamp /Rect [20 20 80 80] /AP << /N 10 0 R >> >>\nendobj",
+                StreamObject(10, "<< /Type /XObject /Subtype /Form /BBox [300 300 360 360] /Resources << /Font << /FType3 5 0 R >> /Pattern << /P1 7 0 R >> >>", "/Pattern cs /P1 scn BT /FType3 18 Tf 300 320 Td (A) Tj ET")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPages_AppliesFormBoundingBoxBeforePatternMaskDiagnostics() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn /Fm1 Do",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            invokeThroughForm: true,
+            glyphContent: "500 0 d0 q 500 100 0 700 0 0 cm /Im1 Do Q",
+            glyphResources: "<< /XObject << /Im1 9 0 R >> >>",
+            formContent: "BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            formBoundingBox: "[0 0 10 10]",
+            extraObjects: new[] {
+                StreamObject(9, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
     public void RenderPage_DiagnosesVisibleUnsupportedPatternedImageMaskWithOffsetCropBox() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 320 150 Td (A) Tj ET",
@@ -1055,6 +1137,7 @@ public class PdfType3UncoloredPatternTests {
         string? formContent = null,
         string formResourceEntries = "/Font << /FType3 5 0 R >>",
         string formDictionaryEntries = "",
+        string? formBoundingBox = null,
         string catalogEntries = "",
         string pageResourceEntries = "",
         string pageDictionaryEntries = "",
@@ -1079,9 +1162,10 @@ public class PdfType3UncoloredPatternTests {
                 : "7 0 obj\n" + patternDictionary + " >>\nendobj"
         };
         if (invokeThroughForm) {
+            string formBox = formBoundingBox ?? "[0 0 " + pageWidthText + " " + pageHeightText + "]";
             objects.Add(StreamObject(
                 8,
-                "<< /Type /XObject /Subtype /Form /BBox [0 0 " + pageWidthText + " " + pageHeightText + "] /Resources << " + formResourceEntries + " >> " + formDictionaryEntries,
+                "<< /Type /XObject /Subtype /Form /BBox " + formBox + " /Resources << " + formResourceEntries + " >> " + formDictionaryEntries,
                 formContent ?? "BT /FType3 18 Tf 20 100 Td (A) Tj ET"));
         }
         if (extraObjects != null) objects.AddRange(extraObjects);
