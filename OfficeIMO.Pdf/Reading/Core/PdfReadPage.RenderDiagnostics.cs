@@ -574,6 +574,17 @@ public sealed partial class PdfReadPage {
                     supported = false;
                     continue;
                 }
+                if (ResolveXObjectPaintChannels(
+                        resources,
+                        invocation.Name,
+                        invocation.Transform,
+                        invocation.ClipPath,
+                        surfaceWidth,
+                        surfaceHeight,
+                        type3PaintChannelCache,
+                        activeType3PaintChannelStreams) == PdfType3PaintChannels.None) {
+                    continue;
+                }
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, form.Dictionary);
                 PdfPageClipPath? formClipPath = invocation.ClipPath;
                 PdfPagePatternSelection? formFillPattern = invocation.FillPattern;
