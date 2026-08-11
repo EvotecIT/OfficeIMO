@@ -761,7 +761,7 @@ public sealed partial class PdfReadPage {
 
     private bool CanProjectType3ImageInvocation(
         PdfPageXObjectInvocation invocation,
-        PdfDictionary resources,
+        PdfDictionary? resources,
         bool requireImageMask,
         PdfPagePatternSelection? inheritedFillPattern,
         List<PdfRenderCapabilityDiagnostic> diagnostics,
@@ -786,7 +786,7 @@ public sealed partial class PdfReadPage {
                 invocation.PaintOrder);
         } else {
             if (!TryGetImageXObject(resources, invocation.Name, out int objectNumber, out int directStreamIdentity)) return false;
-            PdfDictionary? xObjects = ResolveDictionary(resources.Items.TryGetValue("XObject", out PdfObject? xObjectValue) ? xObjectValue : null);
+            PdfDictionary? xObjects = ResolveDictionary(resources?.Items.TryGetValue("XObject", out PdfObject? xObjectValue) == true ? xObjectValue : null);
             if (xObjects?.Items.TryGetValue(invocation.Name, out PdfObject? imageValue) != true ||
                 ResolveObject(imageValue) is not PdfStream imageStream) return false;
             imageDictionary = imageStream.Dictionary;

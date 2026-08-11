@@ -273,11 +273,25 @@ public sealed partial class PdfReadPage {
 
         for (int index = 0; index < invocations.Count; index++) {
             PdfPageXObjectInvocation invocation = invocations[index];
-            if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) continue;
+            if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
+                (double Width, double Height) visualPageSize = GetVisualPageSize();
+                if (!CanProjectType3ImageInvocation(
+                        invocation,
+                        resources,
+                        requireImageMask: false,
+                        inheritedFillPattern: null,
+                        diagnostics: validationDiagnostics,
+                        seen: validationDiagnosticKeys,
+                        projectionPageWidth: visualPageSize.Width,
+                        projectionPageHeight: visualPageSize.Height)) {
+                    return false;
+                }
+                continue;
+            }
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream form) || !activeForms.Add(form)) return false;
             try {
                 if (Filters.StreamDecoder.GetUnsupportedFilters(form.Dictionary, _objects).Count != 0) return false;
-                if (form.Dictionary.Items.ContainsKey("Group") && !IsSupportedType3TransparencyGroup(form.Dictionary)) return false;
+                if (form.Dictionary.Items.ContainsKey("Group")) return false;
                 string formContent = WrapFormContentWithBoundingBoxClip(
                     PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)),
                     form.Dictionary);
