@@ -708,6 +708,9 @@ public sealed partial class PdfReadPage {
                 PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
                 bool projectsType3TransparencyGroup = requireSupportedType3Content && formDictionary.Items.ContainsKey("Group");
                 if (projectsType3TransparencyGroup) {
+                    if ((invocation.FillOpacity ?? 1D) <= 0D) {
+                        continue;
+                    }
                     Type3TransparencyGroupDrawingResult boundsResult = TryGetVisibleType3TransparencyGroupBounds(
                         formDictionary,
                         formTransform,

@@ -462,16 +462,22 @@ public sealed partial class PdfReadPage {
             pageHeight - placement.Y - placement.Height,
             placement.Width,
             placement.Height);
-        if (placement.ClipPath.HasValue) {
-            bounds = PdfPageClipPath.ResolveActiveClip(bounds, placement.ClipPath.Value);
+        var geometryBudget = new VisualGeometryBudget();
+        VisualPath? placementPath = VisualPath.FromClip(bounds, geometryBudget);
+        VisualPath? drawingPath = VisualPath.FromClip(
+            PdfPageClipPath.Rectangle(0D, 0D, drawingWidth, drawingHeight),
+            geometryBudget);
+        if (placementPath == null || drawingPath == null || geometryBudget.Exceeded) {
+            return false;
         }
-        return !HasVisibleOverlap(
-            bounds.X,
-            bounds.Y,
-            bounds.Width,
-            bounds.Height,
-            drawingWidth,
-            drawingHeight);
+
+        var visiblePaths = new List<VisualPath> { placementPath, drawingPath };
+        if (placement.ClipPath.HasValue) {
+            VisualPath? clipPath = VisualPath.FromClip(placement.ClipPath.Value, geometryBudget);
+            if (clipPath == null || geometryBudget.Exceeded) return false;
+            visiblePaths.Add(clipPath);
+        }
+        return !VisualPath.HasPositiveAreaIntersection(visiblePaths, geometryBudget) && !geometryBudget.Exceeded;
     }
 
     private enum Type3PatternImageMaskDrawingResult {
