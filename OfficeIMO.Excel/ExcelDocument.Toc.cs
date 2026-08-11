@@ -79,10 +79,20 @@ namespace OfficeIMO.Excel {
             }
             int rowsEnd = r - 1;
 
-            if (styled && rowsEnd >= rowsStart) {
-                string endCol = includeNamedRanges ? "C" : "B";
-                string tableRange = $"A{headerRow}:{endCol}{rowsEnd}";
-                toc.AddTable(tableRange, hasHeader: true, name: "TOC_Items", style: ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
+            if (styled) {
+                int endColumn = includeNamedRanges ? 3 : 2;
+                if (rowsEnd >= rowsStart) {
+                    string endCol = includeNamedRanges ? "C" : "B";
+                    string tableRange = $"A{headerRow}:{endCol}{rowsEnd}";
+                    toc.AddTable(tableRange, hasHeader: true, name: "TOC_Items", style: ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
+                } else {
+                    // With no data rows there is no table to own the header appearance.
+                    // Keep the styled contract explicit and readable for this empty state.
+                    for (int column = 1; column <= endColumn; column++) {
+                        toc.CellBold(headerRow, column, true);
+                        toc.CellBackground(headerRow, column, "#F2F2F2");
+                    }
+                }
                 try { toc.Freeze(topRows: headerRow, leftCols: 0); } catch { }
                 toc.AutoFitColumns();
             }

@@ -325,6 +325,128 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void EmptyTableOfContents_KeepsReadableStyledHeaders() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                doc.AddTableOfContents(sheetName: "Index", styled: true);
+                doc.Save();
+            }
+
+            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+                var worksheet = ss.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var headerCells = worksheet.Descendants<Cell>()
+                    .Where(cell => cell.CellReference?.Value == "A3" || cell.CellReference?.Value == "B3")
+                    .ToList();
+
+                Assert.Equal(2, headerCells.Count);
+                Assert.All(headerCells, cell => Assert.NotNull(cell.StyleIndex));
+            }
+
+            using (ExcelDocument doc = ExcelDocument.Load(filePath)) {
+                ExcelCellStyleSnapshot firstHeader = doc.Sheets[0].GetCellStyle(3, 1);
+                ExcelCellStyleSnapshot secondHeader = doc.Sheets[0].GetCellStyle(3, 2);
+                Assert.True(firstHeader.Bold);
+                Assert.True(secondHeader.Bold);
+                Assert.EndsWith("F2F2F2", firstHeader.FillColorArgb, StringComparison.OrdinalIgnoreCase);
+                Assert.EndsWith("F2F2F2", secondHeader.FillColorArgb, StringComparison.OrdinalIgnoreCase);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Composer_TableFrom_ManagedSvgResolvesBuiltInHeaderStyle() {
+            using var doc = ExcelDocument.Create();
+            ExcelSheet? report = null;
+            doc.Compose("Report", c => {
+                report = c.Sheet;
+                c.TableFrom(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
+                c.Finish(autoFitColumns: false);
+            });
+
+            string svg = report!.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            string accentArgb = Assert.IsType<string>(doc.ResolveThemeColorArgb(4U));
+            string expectedAccent = accentArgb.Substring(accentArgb.Length - 6);
+
+            int headerTextIndex = svg.IndexOf(">Name</text>", StringComparison.Ordinal);
+            Assert.True(headerTextIndex > 0);
+            int headerElementStart = svg.LastIndexOf("<text ", headerTextIndex, StringComparison.Ordinal);
+            Assert.True(headerElementStart >= 0);
+            string headerTextElement = svg.Substring(headerElementStart, headerTextIndex - headerElementStart);
+            Assert.Contains("font-weight=\"700\"", headerTextElement, StringComparison.Ordinal);
+            Assert.Contains("fill=\"#FFFFFF\"", headerTextElement, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains($"fill=\"#{expectedAccent}\"", svg, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Composer_TableFrom_ManagedSvgPreservesDirectHeaderStyle() {
+            using var doc = ExcelDocument.Create();
+            ExcelSheet? report = null;
+            doc.Compose("Report", c => {
+                report = c.Sheet;
+                c.TableFrom(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
+                c.Finish(autoFitColumns: false);
+            });
+            report!.Range("A1").SetFillColor("C00000").SetFontColor("FFFF00");
+
+            string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+
+            int headerTextIndex = svg.IndexOf(">Name</text>", StringComparison.Ordinal);
+            Assert.True(headerTextIndex > 0);
+            int headerElementStart = svg.LastIndexOf("<text ", headerTextIndex, StringComparison.Ordinal);
+            Assert.True(headerElementStart >= 0);
+            string headerTextElement = svg.Substring(headerElementStart, headerTextIndex - headerElementStart);
+            Assert.Contains("fill=\"#FFFF00\"", headerTextElement, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("font-weight=\"700\"", headerTextElement, StringComparison.Ordinal);
+            Assert.Contains("fill=\"#C00000\"", svg, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Composer_TableFrom_ManagedSvgKeepsTableBoldWhenOnlyDirectFillIsSet() {
+            using var doc = ExcelDocument.Create();
+            ExcelSheet? report = null;
+            doc.Compose("Report", c => {
+                report = c.Sheet;
+                c.TableFrom(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
+                c.Finish(autoFitColumns: false);
+            });
+            report!.Range("A1").SetFillColor("C00000");
+
+            string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+
+            int headerTextIndex = svg.IndexOf(">Name</text>", StringComparison.Ordinal);
+            Assert.True(headerTextIndex > 0);
+            int headerElementStart = svg.LastIndexOf("<text ", headerTextIndex, StringComparison.Ordinal);
+            Assert.True(headerElementStart >= 0);
+            string headerTextElement = svg.Substring(headerElementStart, headerTextIndex - headerElementStart);
+            Assert.Contains("font-weight=\"700\"", headerTextElement, StringComparison.Ordinal);
+            Assert.Contains("fill=\"#FFFFFF\"", headerTextElement, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("fill=\"#C00000\"", svg, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Composer_TableFrom_ManagedSvgPreservesNonBoldDarkHeaderContract() {
+            using var doc = ExcelDocument.Create();
+            ExcelSheet? report = null;
+            doc.Compose("Report", c => {
+                report = c.Sheet;
+                c.TableFrom(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleDark8);
+                c.Finish(autoFitColumns: false);
+            });
+
+            string svg = report!.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+
+            int headerTextIndex = svg.IndexOf(">Name</text>", StringComparison.Ordinal);
+            Assert.True(headerTextIndex > 0);
+            int headerElementStart = svg.LastIndexOf("<text ", headerTextIndex, StringComparison.Ordinal);
+            Assert.True(headerElementStart >= 0);
+            string headerTextElement = svg.Substring(headerElementStart, headerTextIndex - headerElementStart);
+            Assert.DoesNotContain("font-weight=\"700\"", headerTextElement, StringComparison.Ordinal);
+            Assert.Contains("fill=\"#FFFFFF\"", headerTextElement, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Composer_ColumnTableFrom_SummarizeOverflowPreservesMoreColumn() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             var rows = new[] {
