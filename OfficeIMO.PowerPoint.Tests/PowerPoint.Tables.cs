@@ -111,6 +111,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObjectTableAppliesSelectionBeforeExplicitColumnLimit() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            var rows = new[] {
+                new System.Collections.Generic.Dictionary<string, object?> {
+                    ["Name"] = "Alice",
+                    ["Status"] = "Active"
+                }
+            };
+
+            PowerPointTable table = slide.AddTable(rows, options => {
+                options.Columns = new[] { "Name", "Status" };
+                options.ExcludeProperties = new[] { "Status" };
+                options.MaxColumns = 1;
+            });
+
+            Assert.Equal(1, table.Columns);
+            Assert.Equal("Name", table.GetCell(0, 0).Text);
+            Assert.Equal("Alice", table.GetCell(1, 0).Text);
+        }
+
+        [Fact]
+        public void ObjectTableStopsStreamingRowsAtCellLimit() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            int enumeratedRows = 0;
+
+            System.Collections.Generic.IEnumerable<System.Collections.Generic.Dictionary<string, object?>> Rows() {
+                while (true) {
+                    enumeratedRows++;
+                    var row = new System.Collections.Generic.Dictionary<string, object?>();
+                    for (int column = 0; column < 100; column++) row["Column" + column] = column;
+                    yield return row;
+                }
+            }
+
+            Assert.Throws<InvalidDataException>(() => slide.AddTable(Rows(), options => {
+                options.MaxRows = 5;
+                options.MaxCells = 250;
+            }));
+            Assert.Equal(2, enumeratedRows);
+        }
+
+        [Fact]
         public void ExplicitBindingTableStopsColumnEnumerationAtHardLimit() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

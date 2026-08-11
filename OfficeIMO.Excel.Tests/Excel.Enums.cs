@@ -81,6 +81,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObjectFlattenerResolvePathsStopsEnumerationAtColumnLimit() {
+            int enumeratedPaths = 0;
+
+            IEnumerable<string> Paths() {
+                while (true) yield return "Column" + enumeratedPaths++;
+            }
+
+            Assert.Throws<System.IO.InvalidDataException>(() =>
+                new ObjectFlattener().ResolvePaths(
+                    Paths(),
+                    new ObjectFlattenerOptions { MaxColumns = 1 }));
+            Assert.Equal(2, enumeratedPaths);
+        }
+
+        [Fact]
         public void ObjectFlattenerGetPathsAppliesSelectionAndOrdering() {
             var flattener = new ObjectFlattener();
             var opts = new ObjectFlattenerOptions {
@@ -233,6 +248,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObjectFlattenerStopsRecursiveTypePathDiscoveryAtColumnLimit() {
+            var options = new ObjectFlattenerOptions {
+                MaxColumns = 1,
+                MaxDepth = 12
+            };
+            options.ExpandProperties.Add(nameof(ObjectFlattenerRecursiveType.Left));
+            options.ExpandProperties.Add(nameof(ObjectFlattenerRecursiveType.Right));
+
+            Assert.Throws<System.IO.InvalidDataException>(() =>
+                new ObjectFlattener().GetPaths(typeof(ObjectFlattenerRecursiveType), options));
+        }
+
+        [Fact]
         public void ObjectFlattenerExplicitColumnsRejectsResolvedDistinctPathsBeyondLimit() {
             var options = new ObjectFlattenerOptions {
                 Columns = new[] { "Name", "Status" },
@@ -289,6 +317,14 @@ namespace OfficeIMO.Tests {
             }
 
             public bool WasRightRead() => _rightWasRead;
+        }
+
+        private sealed class ObjectFlattenerRecursiveType {
+            public ObjectFlattenerRecursiveType? Left { get; set; }
+
+            public ObjectFlattenerRecursiveType? Right { get; set; }
+
+            public int Value { get; set; }
         }
 
         private sealed class ObjectFlattenerSelectionPathRow {

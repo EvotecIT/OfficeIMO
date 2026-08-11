@@ -161,44 +161,6 @@ namespace OfficeIMO.Data {
         private static readonly ConcurrentDictionary<CollectionMapAccessorKey, CollectionMapAccessors> _collectionMapAccessorCache = new();
         private static readonly ConcurrentDictionary<Type, FieldInfo[]> _valueTupleFieldCache = new();
 
-        internal static List<T> MaterializeRowsBounded<T>(
-            IEnumerable<T> source,
-            ObjectFlattenerOptions options,
-            string consumerName) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (options == null) throw new ArgumentNullException(nameof(options));
-            if (options.MaxRows <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(options.MaxRows),
-                    "MaxRows must be greater than zero.");
-            }
-
-            int capacity = source is IReadOnlyCollection<T> readOnly
-                ? readOnly.Count
-                : source is ICollection<T> collection
-                    ? collection.Count
-                    : 0;
-            if (capacity > options.MaxRows) {
-                throw new InvalidDataException(
-                    $"{consumerName} exceeds the {options.MaxRows}-row materialization limit.");
-            }
-            var rows = capacity > 0 ? new List<T>(capacity) : new List<T>();
-            if (source is IReadOnlyList<T> readOnlyList) {
-                for (int index = 0; index < readOnlyList.Count; index++) {
-                    rows.Add(readOnlyList[index]);
-                }
-                return rows;
-            }
-
-            foreach (T item in source) {
-                if (rows.Count >= options.MaxRows) {
-                    throw new InvalidDataException(
-                        $"{consumerName} exceeds the {options.MaxRows}-row materialization limit.");
-                }
-                rows.Add(item);
-            }
-            return rows;
-        }
-
         /// <summary>
         /// Flattens <paramref name="item"/> into a dictionary according to <paramref name="opts"/>.
         /// </summary>
@@ -213,7 +175,7 @@ namespace OfficeIMO.Data {
             Type sourceType = source.GetType();
             int capacity = ObjectDictionaryAdapter.IsDictionaryType(sourceType)
                 ? 0
-                : GetInitialFlattenCapacity(sourceType, opts);
+                : Math.Min(GetInitialFlattenCapacity(sourceType, opts), opts.MaxColumns);
             var result = new Dictionary<string, object?>(capacity, StringComparer.OrdinalIgnoreCase);
             FlattenInternal(source, result, string.Empty, 0, opts, new HashSet<object>(ObjectReferenceComparer.Instance));
             if (result.Count > opts.MaxColumns) {
@@ -237,7 +199,7 @@ namespace OfficeIMO.Data {
             if (type == null) throw new ArgumentNullException(nameof(type));
             if (opts == null) throw new ArgumentNullException(nameof(opts));
             ValidateLimits(opts);
-            var paths = new List<string>(GetInitialFlattenCapacity(type, opts));
+            var paths = new List<string>(Math.Min(GetInitialFlattenCapacity(type, opts), opts.MaxColumns));
             BuildPaths(type, string.Empty, 0, opts, paths);
             return ResolvePaths(paths, opts);
         }
@@ -248,8 +210,21 @@ namespace OfficeIMO.Data {
         public List<string> ResolvePaths(IEnumerable<string> paths, ObjectFlattenerOptions opts) {
             if (paths == null) throw new ArgumentNullException(nameof(paths));
             if (opts == null) throw new ArgumentNullException(nameof(opts));
-            List<string> input = paths.Where(path => !string.IsNullOrWhiteSpace(path)).ToList();
-            List<string> filtered = ApplySelection(input, opts);
+            ValidateLimits(opts);
+            var filtered = new List<string>();
+            var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string path in paths) {
+                if (string.IsNullOrWhiteSpace(path)
+                    || !IsPathSelectedForMaterialization(path, opts)
+                    || !added.Add(path)) {
+                    continue;
+                }
+                if (filtered.Count >= opts.MaxColumns) {
+                    throw new InvalidDataException(
+                        $"Resolved paths exceed the {opts.MaxColumns}-column limit.");
+                }
+                filtered.Add(path);
+            }
             if (opts.Columns != null && opts.Columns.Length > 0) {
                 return ApplyExplicitColumnOrdering(filtered, opts.Columns, opts.MaxColumns);
             }
@@ -534,8 +509,7 @@ namespace OfficeIMO.Data {
 
                 for (int i = 1; i <= itemCount; i++) {
                     var path = string.IsNullOrEmpty(prefix) ? $"Item{i}" : $"{prefix}.Item{i}";
-                    if (!ShouldIgnorePath(path, opts.Ignore))
-                        paths.Add(path);
+                    AddTypePathBounded(paths, path, opts);
                 }
                 return;
             }
@@ -551,17 +525,29 @@ namespace OfficeIMO.Data {
                 if (ShouldIgnorePath(path, opts.Ignore)) continue;
                 bool expand = opts.ExpandProperties.Contains(prop.Name) || opts.ExpandProperties.Contains(path);
                 bool isCollection = typeof(IEnumerable).IsAssignableFrom(prop.PropertyType) && prop.PropertyType != typeof(string);
+                bool materializePath = IsPathSelectedForMaterialization(path, opts);
+                bool traversePath = expand && !IsSimple(prop.PropertyType) && CanContainSelectedDescendant(path, opts);
+                if (!materializePath && !traversePath) continue;
                 if (isCollection) {
-                    paths.Add(path);
+                    if (materializePath) AddTypePathBounded(paths, path, opts);
                     continue;
                 }
-                if (!expand || opts.IncludeFullObjects || IsSimple(prop.PropertyType)) {
-                    paths.Add(path);
+                if (materializePath && (!expand || opts.IncludeFullObjects || IsSimple(prop.PropertyType))) {
+                    AddTypePathBounded(paths, path, opts);
                 }
-                if (expand && !IsSimple(prop.PropertyType)) {
+                if (traversePath) {
                     BuildPaths(prop.PropertyType, path, depth + 1, opts, paths);
                 }
             }
+        }
+
+        private static void AddTypePathBounded(List<string> paths, string path, ObjectFlattenerOptions opts) {
+            if (!IsPathSelectedForMaterialization(path, opts)) return;
+            if (paths.Count >= opts.MaxColumns) {
+                throw new InvalidDataException(
+                    $"Object path discovery exceeds the {opts.MaxColumns}-column limit.");
+            }
+            paths.Add(path);
         }
 
         private static FieldInfo[] GetValueTupleFields(Type valueTupleType)
@@ -853,9 +839,7 @@ namespace OfficeIMO.Data {
         private static void BuildPathsWithoutExpansion(string prefix, ObjectFlattenerOptions opts, List<string> paths, ObjectFlattenerProperty[] props) {
             foreach (var prop in props) {
                 var path = string.IsNullOrEmpty(prefix) ? prop.Name : prefix + "." + prop.Name;
-                if (!ShouldIgnorePath(path, opts.Ignore)) {
-                    paths.Add(path);
-                }
+                AddTypePathBounded(paths, path, opts);
             }
         }
 
@@ -1056,48 +1040,6 @@ namespace OfficeIMO.Data {
             foreach (var p in pinnedLastMatches) if (set.Add(p)) result.Add(p);
 
             return result;
-        }
-
-        private static List<string> ApplySelection(List<string> input, ObjectFlattenerOptions opts) {
-            if (input == null || input.Count == 0) return new List<string>();
-
-            if (opts.Ignore.Length == 0
-                && opts.ExcludeProperties.Length == 0
-                && opts.IncludeProperties.Length == 0
-                && (opts.Columns == null || opts.Columns.Length == 0)) {
-                return new List<string>(input);
-            }
-
-            HashSet<string>? exclude = opts.ExcludeProperties.Length > 0
-                ? new HashSet<string>(opts.ExcludeProperties, StringComparer.OrdinalIgnoreCase)
-                : null;
-            HashSet<string>? include = opts.IncludeProperties.Length > 0
-                ? new HashSet<string>(opts.IncludeProperties, StringComparer.OrdinalIgnoreCase)
-                : null;
-            var filtered = new List<string>(input.Count);
-            foreach (string path in input) {
-                if (ShouldIgnorePath(path, opts.Ignore)) {
-                    continue;
-                }
-                string? segment = null;
-                if (exclude != null) {
-                    segment = LastSegment(path);
-                    if (exclude.Contains(path) || exclude.Contains(segment)) {
-                        continue;
-                    }
-                }
-
-                if (include != null) {
-                    segment ??= LastSegment(path);
-                    if (!include.Contains(path) && !include.Contains(segment)) {
-                        continue;
-                    }
-                }
-
-                filtered.Add(path);
-            }
-
-            return filtered;
         }
 
         private static List<string> ApplyExplicitColumnOrdering(List<string> input, string[] columns, int maxColumns) {

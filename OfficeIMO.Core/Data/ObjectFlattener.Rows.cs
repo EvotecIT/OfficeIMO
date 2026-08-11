@@ -19,30 +19,33 @@ namespace OfficeIMO.Data {
             if (headerRowCount < 0) throw new ArgumentOutOfRangeException(nameof(headerRowCount));
             ValidateLimits(options);
 
-            List<T> items = MaterializeRowsBounded(source, options, consumerName);
-            if (items.Count == 0 && !enforceEmptyProjectionLimits) {
-                return new ObjectTableProjection(
-                    new List<Dictionary<string, object?>>(),
-                    new List<string>());
+            int knownRowCount = source is IReadOnlyCollection<T> readOnlyCollection
+                ? readOnlyCollection.Count
+                : source is ICollection<T> collection
+                    ? collection.Count
+                    : 0;
+            if (knownRowCount > options.MaxRows) {
+                throw new InvalidDataException(
+                    $"{consumerName} exceeds the {options.MaxRows}-row materialization limit.");
             }
 
-            var rows = new List<Dictionary<string, object?>>(items.Count);
+            var rows = knownRowCount > 0
+                ? new List<Dictionary<string, object?>>(Math.Min(knownRowCount, 4096))
+                : new List<Dictionary<string, object?>>();
             var discoveredColumns = new List<string>();
             var discoveredColumnSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             List<string>? explicitColumns = null;
-            if (options.Columns != null && options.Columns.Length > 0) {
-                var explicitColumnCandidates = new List<string>(Math.Min(options.Columns.Length, options.MaxColumns));
-                AddExplicitColumnsBounded(explicitColumnCandidates, options, consumerName);
-                explicitColumns = ResolvePaths(explicitColumnCandidates, options);
-            }
+            bool hasExplicitColumns = options.Columns != null && options.Columns.Length > 0;
 
-            if (items.Count == 0) {
-                if (explicitColumns == null && !ObjectDictionaryAdapter.IsDictionaryType(typeof(T))) {
-                    discoveredColumns.AddRange(GetPaths(typeof(T), options));
+            foreach (T item in source) {
+                if (rows.Count >= options.MaxRows) {
+                    throw new InvalidDataException(
+                        $"{consumerName} exceeds the {options.MaxRows}-row materialization limit.");
                 }
-            }
+                if (hasExplicitColumns && explicitColumns == null) {
+                    explicitColumns = ResolveExplicitColumns(options, consumerName);
+                }
 
-            foreach (T item in items) {
                 Dictionary<string, object?> row = Flatten(item, options);
                 rows.Add(row);
                 foreach (string path in row.Keys) {
@@ -62,6 +65,17 @@ namespace OfficeIMO.Data {
                     consumerName);
             }
 
+            if (rows.Count == 0) {
+                if (!enforceEmptyProjectionLimits) {
+                    return new ObjectTableProjection(rows, new List<string>());
+                }
+                if (hasExplicitColumns) {
+                    explicitColumns = ResolveExplicitColumns(options, consumerName);
+                } else if (!ObjectDictionaryAdapter.IsDictionaryType(typeof(T))) {
+                    discoveredColumns.AddRange(GetPaths(typeof(T), options));
+                }
+            }
+
             List<string> columns = explicitColumns ?? ResolvePaths(discoveredColumns, options);
             if (columns.Count > options.MaxColumns) {
                 throw new InvalidDataException(
@@ -71,6 +85,14 @@ namespace OfficeIMO.Data {
             return new ObjectTableProjection(rows, columns);
         }
 
+        private List<string> ResolveExplicitColumns(
+            ObjectFlattenerOptions options,
+            string consumerName) {
+            var explicitColumnCandidates = new List<string>(Math.Min(options.Columns!.Length, options.MaxColumns));
+            AddExplicitColumnsBounded(explicitColumnCandidates, options, consumerName);
+            return ResolvePaths(explicitColumnCandidates, options);
+        }
+
         private static void AddExplicitColumnsBounded(
             List<string> columns,
             ObjectFlattenerOptions options,
@@ -78,6 +100,9 @@ namespace OfficeIMO.Data {
             var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string column in options.Columns!) {
                 if (string.IsNullOrWhiteSpace(column) || !added.Add(column)) {
+                    continue;
+                }
+                if (!IsPathSelectedForMaterialization(column, options)) {
                     continue;
                 }
                 if (columns.Count >= options.MaxColumns) {
