@@ -23,7 +23,7 @@ internal sealed class SequenceVisioIdMap {
             _messages.Add(message.Id, Allocate(message.Id, "message-", "-from", "-to"));
         }
         foreach (VisualArtifactInterchangeAnnotation annotation in annotations) {
-            string[] helpers = annotation.Kind.StartsWith("SequenceBlock:", StringComparison.Ordinal)
+            string[] helpers = annotation.Role == VisualArtifactInterchangeAnnotationRole.SequenceBlock
                 ? new[] { "-label" }
                 : Array.Empty<string>();
             _annotations.Add(annotation.Id, Allocate(annotation.Id, "annotation-", helpers));
