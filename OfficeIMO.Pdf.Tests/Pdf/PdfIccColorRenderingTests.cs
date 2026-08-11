@@ -1,6 +1,6 @@
 using System.Globalization;
-using System.IO.Compression;
 using System.Text;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -307,13 +307,7 @@ public class PdfIccColorRenderingTests {
         return output.ToArray();
     }
 
-    private static byte[] Compress(byte[] bytes) {
-        using var output = new MemoryStream();
-        using (var compression = new ZLibStream(output, CompressionLevel.SmallestSize, leaveOpen: true)) {
-            compression.Write(bytes, 0, bytes.Length);
-        }
-        return output.ToArray();
-    }
+    private static byte[] Compress(byte[] bytes) => OfficeZlibCodec.Compress(bytes);
 
     private static void SwapTagPayload(byte[] profile, string firstSignature, string secondSignature) {
         (int Offset, int Length) first = FindTag(profile, firstSignature);
