@@ -1659,6 +1659,39 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(24, 94));
     }
 
+    [Theory]
+    [InlineData("/Pattern", "/Bogus /P2 scn", "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >>")]
+    [InlineData("/PatternRgb [ /Pattern /DeviceRGB ]", "/Bogus 1 0 0 /P2 scn", "<< /Type /Pattern /PatternType 1 /PaintType 2 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >>")]
+    public void RenderPage_FailsClosedForNonnumericNestedPatternSelectionOperands(
+        string nestedColorSpace,
+        string nestedSelection,
+        string nestedPatternDictionary) {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");
+        string outerPattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /ColorSpace << /Nested " + nestedColorSpace + " >> /Pattern << /P2 8 0 R >> >>", "/Nested cs " + nestedSelection + " 0 0 10 10 re f");
+        string nestedPattern = BuildStreamObject(8, nestedPatternDictionary, "1 0 0 rg 0 0 10 10 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, outerPattern, nestedPattern);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
+    public void RenderPage_AccountsForPatternDepthOnStrictCacheHits() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> /XObject << /Fm1 8 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 250 700 re f /Fm1 Do");
+        string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >>", "1 0 0 rg 0 0 10 10 re f");
+        string form = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700]", "/Pattern cs /P1 scn 250 0 250 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, pattern, form);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxContentNestingDepth = 2 }
+        });
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.ContentNestingDepth, exception.Kind);
+        Assert.Equal(2, exception.Limit);
+    }
+
     [Fact]
     public void RenderPage_DoesNotReusePermissivePatternCacheForType3Validation() {
         string resources = "5 0 obj\n<< /Font << /FType3 6 0 R /FBase 9 0 R >> /Pattern << /P1 8 0 R >> >>\nendobj";

@@ -1403,7 +1403,8 @@ internal static class PdfPageXObjectInvocationParser {
         private int CountPatternComponents() {
             int count = 0;
             for (int index = 0; index < _args.Count - 1; index++) {
-                if (_args[index] is double) count++;
+                if (_args[index] is not double) return -1;
+                count++;
             }
             return count;
         }
