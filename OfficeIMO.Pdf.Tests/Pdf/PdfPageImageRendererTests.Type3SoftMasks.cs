@@ -386,6 +386,32 @@ public partial class PdfPageImageRendererTests {
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
+    [Fact]
+    public void RenderPage_UsesSeparateTextBudgetForSoftMaskValidation() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 1 0 0 rg 0 0 500 700 re f");
+        string outerState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Luminosity /G 8 0 R >> >>\nendobj";
+        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /CS /DeviceRGB >> /Resources << /Font << /FText 9 0 R >> >>", "BT /FText 300 Tf 25 200 Td (A) Tj ET");
+        string ordinaryFont = "9 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            "<< /Font << /FType3 5 0 R >> >>",
+            type3Font,
+            glyphA,
+            outerState,
+            outerMask,
+            ordinaryFont);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            // The live output contains the page Type 3 character and one mask character.
+            // Validation receives its own budget and must not charge either character twice.
+            Limits = new PdfReadLimits { MaxDecodedTextCharacters = 2 }
+        });
+
+        OfficeDrawing drawing = document.Pages[0].ToDrawing();
+
+        Assert.Contains(drawing.Elements, element => element is OfficeDrawingEffectGroup { SoftMask: not null });
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
