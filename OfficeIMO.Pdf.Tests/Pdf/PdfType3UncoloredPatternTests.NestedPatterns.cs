@@ -51,9 +51,11 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.True(painted.A > 0);
     }
 
-    [Fact]
-    public void RenderPage_FailsClosedForDeferredMalformedHiddenPatternSelection() {
-        const string glyphContent = "500 0 d0 /OC /Hidden BDC /Pattern cs 1 /P2 scn EMC 0 0 500 700 re f";
+    [Theory]
+    [InlineData("500 0 d0 /OC /Hidden BDC /Pattern cs 1 /P2 scn EMC 0 0 500 700 re f")]
+    [InlineData("500 0 d0 /OC /Hidden BDC /Pattern cs 1 sc EMC 0 0 500 700 re f")]
+    [InlineData("500 0 d0 /OC /Hidden BDC /Pattern CS 1 SC EMC 60 w 30 30 440 640 re S")]
+    public void RenderPage_FailsClosedForDeferredMalformedHiddenPatternSelection(string glyphContent) {
         string[] objects = {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [9 0 R] /D << /OFF [9 0 R] >> >> >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj",
