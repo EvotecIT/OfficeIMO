@@ -25,18 +25,60 @@ internal static partial class ResourceResolver {
         if (dctFilter == DctFilterDeclaration.Chained) return false;
         bool isDct = dctFilter == DctFilterDeclaration.Single;
         if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(effectiveColorSpace, bitsPerComponent, objects, maxDecodedStreamBytes)) {
-            return !isDct;
+            if (isDct) return false;
+            int indexedChannels = PdfImageMaskSemantics.HasSoftMask(image, objects) ||
+                PdfImageColorKeyMask.Create(image, 1, objects) is not null
+                ? 4
+                : 3;
+            return CanAllocateProjectedImageBuffer(image, indexedChannels, maxDecodedStreamBytes);
         }
         if (bitsPerComponent != 8) return false;
 
         string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
-        return PdfImageColorSpaceNormalization.TryResolve(
-            effectiveColorSpace,
-            colorSpaceName,
-            objects,
+        if (!PdfImageColorSpaceNormalization.TryResolve(
+                effectiveColorSpace,
+                colorSpaceName,
+                objects,
+                maxDecodedStreamBytes,
+                out PdfImageColorSpaceNormalization normalization)) {
+            return false;
+        }
+
+        if (isDct) {
+            return CanPassThroughDctImage(image, normalization, objects);
+        }
+
+        int baseChannels = normalization.RequiresColorConversion || normalization.SourceColorCount == 4
+            ? 3
+            : normalization.SourceColorCount;
+        if (baseChannels is not (1 or 3)) return false;
+        int channels = PdfImageMaskSemantics.HasSoftMask(image, objects) ||
+            PdfImageColorKeyMask.Create(image, normalization.SourceColorCount, objects) is not null
+            ? baseChannels + 1
+            : baseChannels;
+        return CanAllocateProjectedImageBuffer(image, channels, maxDecodedStreamBytes);
+    }
+
+    private static bool CanPassThroughDctImage(
+        PdfDictionary image,
+        PdfImageColorSpaceNormalization normalization,
+        Dictionary<int, PdfIndirectObject> objects) =>
+        !normalization.RequiresColorConversion &&
+        PdfImageDecodeTransform.IsIdentityColorDecodeOrAbsent(image, normalization.SourceColorCount, objects);
+
+    private static bool CanAllocateProjectedImageBuffer(
+        PdfDictionary image,
+        int channels,
+        int maxDecodedStreamBytes) {
+        int width = (int)(image.Get<PdfNumber>("Width")?.Value ?? 0);
+        int height = (int)(image.Get<PdfNumber>("Height")?.Value ?? 0);
+        return PdfImageBufferLimits.TryGetScanlineBufferSize(
+            width,
+            height,
+            channels,
             maxDecodedStreamBytes,
-            out PdfImageColorSpaceNormalization normalization) &&
-            (!isDct || !normalization.RequiresColorConversion);
+            out _,
+            out _);
     }
 
     private static DctFilterDeclaration ClassifyDctFilter(

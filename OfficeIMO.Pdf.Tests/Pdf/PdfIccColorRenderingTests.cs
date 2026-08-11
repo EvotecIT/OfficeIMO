@@ -388,6 +388,31 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void DctPassThroughRejectsNonIdentityDecodeForRgbIccFallback() {
+        byte[] unsupportedProfile = PdfIccProfiles.SrgbIec6196621;
+        unsupportedProfile[12] = (byte)'p';
+        unsupportedProfile[13] = (byte)'r';
+        unsupportedProfile[14] = (byte)'t';
+        unsupportedProfile[15] = (byte)'r';
+        var source = new OfficeRasterImage(1, 1, OfficeColor.Red);
+        byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions {
+            Quality = 100,
+            Subsampling = OfficeJpegSubsampling.Y444
+        });
+        byte[] pdf = BuildIccImagePdf(
+            unsupportedProfile,
+            jpeg,
+            "/N 3 /Alternate /DeviceRGB",
+            imageEntries: "/Filter /DCTDecode /Decode [1 0 1 0 1 0]");
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        Assert.Contains(
+            document.Pages[0].GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+        Assert.False(Assert.Single(PdfImageExtractor.ExtractImages(pdf)).IsImageFile);
+    }
+
+    [Fact]
     public void RenderDiagnostics_RejectsChainedDctBeforeClaimingIccProjection() {
         byte[] pdf = BuildIccImagePdf(
             PdfIccProfiles.SrgbIec6196621,
@@ -404,6 +429,8 @@ public class PdfIccColorRenderingTests {
     [Fact]
     public void ImageCapabilityAcceptsIndirectSingletonDctForDeviceRgbPassThrough() {
         var image = new PdfDictionary();
+        image.Items["Width"] = new PdfNumber(1);
+        image.Items["Height"] = new PdfNumber(1);
         image.Items["BitsPerComponent"] = new PdfNumber(8);
         image.Items["ColorSpace"] = new PdfName("DeviceRGB");
         image.Items["Filter"] = new PdfReference(7, 0);
@@ -419,6 +446,83 @@ public class PdfIccColorRenderingTests {
             resources: null,
             objects,
             PdfReadLimits.DefaultMaxDecodedStreamBytes));
+    }
+
+    [Fact]
+    public void ImageCapabilityAcceptsIdentityAndIndirectNullDecodeForDctPassThrough() {
+        var image = new PdfDictionary();
+        image.Items["Width"] = new PdfNumber(1);
+        image.Items["Height"] = new PdfNumber(1);
+        image.Items["BitsPerComponent"] = new PdfNumber(8);
+        image.Items["ColorSpace"] = new PdfName("DeviceRGB");
+        image.Items["Filter"] = new PdfName("DCTDecode");
+        var identityDecode = new PdfArray();
+        for (int component = 0; component < 3; component++) {
+            identityDecode.Items.Add(new PdfNumber(0));
+            identityDecode.Items.Add(new PdfNumber(1));
+        }
+        image.Items["Decode"] = identityDecode;
+
+        Assert.True(ResourceResolver.CanProjectImageColorSpace(
+            image,
+            resources: null,
+            new Dictionary<int, PdfIndirectObject>(),
+            PdfReadLimits.DefaultMaxDecodedStreamBytes));
+
+        image.Items["Decode"] = new PdfReference(9, 0);
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [9] = new PdfIndirectObject(9, 0, new PdfReference(10, 0)),
+            [10] = new PdfIndirectObject(10, 0, PdfNull.Instance)
+        };
+        Assert.True(ResourceResolver.CanProjectImageColorSpace(
+            image,
+            resources: null,
+            objects,
+            PdfReadLimits.DefaultMaxDecodedStreamBytes));
+    }
+
+    [Fact]
+    public void ImageCapabilityRejectsMalformedDctDecode() {
+        var image = new PdfDictionary();
+        image.Items["Width"] = new PdfNumber(1);
+        image.Items["Height"] = new PdfNumber(1);
+        image.Items["BitsPerComponent"] = new PdfNumber(8);
+        image.Items["ColorSpace"] = new PdfName("DeviceRGB");
+        image.Items["Filter"] = new PdfName("DCTDecode");
+        var malformedDecode = new PdfArray();
+        malformedDecode.Items.Add(new PdfNumber(0));
+        malformedDecode.Items.Add(new PdfNumber(1));
+        image.Items["Decode"] = malformedDecode;
+
+        Assert.False(ResourceResolver.CanProjectImageColorSpace(
+            image,
+            resources: null,
+            new Dictionary<int, PdfIndirectObject>(),
+            PdfReadLimits.DefaultMaxDecodedStreamBytes));
+    }
+
+    [Theory]
+    [InlineData(false, 6)]
+    [InlineData(true, 8)]
+    public void CalGrayProjectionHonorsCallerLimitForExpandedScanlineBuffer(bool withSoftMask, int maxDecodedStreamBytes) {
+        PdfStream stream = CreateCalGrayImageStream(width: 2, height: 1, withSoftMask);
+        var objects = new Dictionary<int, PdfIndirectObject>();
+
+        Assert.False(ResourceResolver.CanProjectImageColorSpace(
+            stream.Dictionary,
+            resources: null,
+            objects,
+            maxDecodedStreamBytes));
+
+        PdfExtractedImage image = ResourceResolver.BuildExtractedImage(
+            pageNumber: 1,
+            resourceName: "Im1",
+            objectNumber: 5,
+            directStreamIdentity: 0,
+            stream,
+            objects,
+            maxDecodedStreamBytes: maxDecodedStreamBytes);
+        Assert.False(image.IsImageFile);
     }
 
     [Fact]
@@ -809,6 +913,38 @@ public class PdfIccColorRenderingTests {
         output.Write(compressedProfile, 0, compressedProfile.Length);
         WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
+    }
+
+    private static PdfStream CreateCalGrayImageStream(int width, int height, bool withSoftMask) {
+        var whitePoint = new PdfArray();
+        whitePoint.Items.Add(new PdfNumber(0.9505));
+        whitePoint.Items.Add(new PdfNumber(1));
+        whitePoint.Items.Add(new PdfNumber(1.089));
+        var calGrayDictionary = new PdfDictionary();
+        calGrayDictionary.Items["WhitePoint"] = whitePoint;
+        var colorSpace = new PdfArray();
+        colorSpace.Items.Add(new PdfName("CalGray"));
+        colorSpace.Items.Add(calGrayDictionary);
+
+        var imageDictionary = new PdfDictionary();
+        imageDictionary.Items["Type"] = new PdfName("XObject");
+        imageDictionary.Items["Subtype"] = new PdfName("Image");
+        imageDictionary.Items["Width"] = new PdfNumber(width);
+        imageDictionary.Items["Height"] = new PdfNumber(height);
+        imageDictionary.Items["BitsPerComponent"] = new PdfNumber(8);
+        imageDictionary.Items["ColorSpace"] = colorSpace;
+        if (withSoftMask) {
+            var softMaskDictionary = new PdfDictionary();
+            softMaskDictionary.Items["Type"] = new PdfName("XObject");
+            softMaskDictionary.Items["Subtype"] = new PdfName("Image");
+            softMaskDictionary.Items["Width"] = new PdfNumber(width);
+            softMaskDictionary.Items["Height"] = new PdfNumber(height);
+            softMaskDictionary.Items["BitsPerComponent"] = new PdfNumber(8);
+            softMaskDictionary.Items["ColorSpace"] = new PdfName("DeviceGray");
+            imageDictionary.Items["SMask"] = new PdfStream(softMaskDictionary, new byte[width * height]);
+        }
+
+        return new PdfStream(imageDictionary, new byte[width * height]);
     }
 
     private static byte[] Compress(byte[] bytes) => OfficeZlibCodec.Compress(bytes);
