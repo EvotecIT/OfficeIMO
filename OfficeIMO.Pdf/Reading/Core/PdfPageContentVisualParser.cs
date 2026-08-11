@@ -828,9 +828,15 @@ internal static class PdfPageContentVisualParser {
         }
 
         private static List<OfficeGradientStop> ClipGradientStops(IReadOnlyList<OfficeGradientStop> stops, double start, double end) {
-            var result = new List<OfficeGradientStop>(stops.Count + 2) {
-                new OfficeGradientStop(0D, EvaluateGradientColor(stops, start))
-            };
+            var result = new List<OfficeGradientStop>(stops.Count + 2);
+            bool retainedStart = false;
+            for (int index = 0; index < stops.Count; index++) {
+                if (stops[index].Offset != start) continue;
+                result.Add(new OfficeGradientStop(0D, stops[index].Color));
+                retainedStart = true;
+            }
+            if (!retainedStart) result.Add(new OfficeGradientStop(0D, EvaluateGradientColor(stops, start)));
+
             double span = end - start;
             for (int i = 0; i < stops.Count; i++) {
                 double offset = stops[i].Offset;
@@ -838,7 +844,14 @@ internal static class PdfPageContentVisualParser {
                     result.Add(new OfficeGradientStop((offset - start) / span, stops[i].Color));
                 }
             }
-            result.Add(new OfficeGradientStop(1D, EvaluateGradientColor(stops, end)));
+
+            bool retainedEnd = false;
+            for (int index = 0; index < stops.Count; index++) {
+                if (stops[index].Offset != end) continue;
+                result.Add(new OfficeGradientStop(1D, stops[index].Color));
+                retainedEnd = true;
+            }
+            if (!retainedEnd) result.Add(new OfficeGradientStop(1D, EvaluateGradientColor(stops, end)));
             return result;
         }
 

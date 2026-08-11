@@ -599,8 +599,13 @@ public sealed partial class PdfReadPage {
         if (!dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) ||
             !TryReadColorSpaceResource(colorSpaceObject, out PdfPageColorSpace colorSpace)) return false;
 
+        IReadOnlyList<double> shadingDomain = dictionary.Items.TryGetValue("Domain", out PdfObject? shadingDomainObject)
+            ? ReadNumberArray(shadingDomainObject)
+            : new[] { 0D, 1D };
+        if (shadingDomain.Count != 2 || !IsFinite(shadingDomain[0]) || !IsFinite(shadingDomain[1]) || shadingDomain[0] == shadingDomain[1]) return false;
+
         PdfObject? functionObject = dictionary.Items.TryGetValue("Function", out PdfObject? authoredFunction) ? authoredFunction : null;
-        if (!TryReadShadingStops(functionObject, colorSpace, out IReadOnlyList<OfficeGradientStop> stops)) {
+        if (!TryReadShadingStops(functionObject, colorSpace, shadingDomain[0], shadingDomain[1], out IReadOnlyList<OfficeGradientStop> stops)) {
             return false;
         }
 
@@ -617,120 +622,92 @@ public sealed partial class PdfReadPage {
         return false;
     }
 
-    private bool TryReadShadingStops(PdfObject? functionObject, PdfPageColorSpace colorSpace, out IReadOnlyList<OfficeGradientStop> stops) {
+    private bool TryReadShadingStops(
+        PdfObject? functionObject,
+        PdfPageColorSpace colorSpace,
+        double domainStart,
+        double domainEnd,
+        out IReadOnlyList<OfficeGradientStop> stops) {
         stops = Array.Empty<OfficeGradientStop>();
-        PdfObject? resolved = ResolveObject(functionObject);
-        if (resolved is PdfArray functionArray) {
-            if (functionArray.Items.Count != 1) return false;
-            resolved = ResolveObject(functionArray.Items[0]);
-        }
-        if (resolved is not PdfDictionary function) return false;
+        if (!PdfColorSpaceFunctionResolver.TryCreateShadingFunction(
+                functionObject,
+                colorSpace.ComponentCount,
+                _objects,
+                _limits.MaxDecodedStreamBytes,
+                out PdfColorFunction function)) return false;
 
-        int? functionType = TryReadInteger(function.Items.TryGetValue("FunctionType", out PdfObject? typeObject) ? typeObject : null);
-        if (functionType == 2) {
-            if (!TryReadType2FunctionColors(function, colorSpace, reversed: false, out OfficeColor start, out OfficeColor end)) return false;
-            stops = new[] { new OfficeGradientStop(0D, start), new OfficeGradientStop(1D, end) };
-            return true;
-        }
-        if (functionType != 3 || !function.Items.TryGetValue("Functions", out PdfObject? functionsObject)) return false;
-
-        PdfArray? functions = ResolveArray(functionsObject);
-        if (functions == null || functions.Items.Count < 2 || functions.Items.Count > 32) return false;
-        IReadOnlyList<double> bounds = function.Items.TryGetValue("Bounds", out PdfObject? boundsObject)
-            ? ReadNumberArray(boundsObject)
-            : Array.Empty<double>();
-        if (bounds.Count != functions.Items.Count - 1) return false;
-        IReadOnlyList<double> domain = function.Items.TryGetValue("Domain", out PdfObject? domainObject)
-            ? ReadNumberArray(domainObject)
-            : Array.Empty<double>();
-        if (!HasValidFunctionIntervals(domain, 1)) return false;
-        double domainStart = domain[0];
-        double domainEnd = domain[1];
-        IReadOnlyList<double> encode = function.Items.TryGetValue("Encode", out PdfObject? encodeObject)
-            ? ReadNumberArray(encodeObject)
-            : Array.Empty<double>();
-        if (!HasFiniteFunctionPairs(encode, functions.Items.Count)) return false;
-        if (function.Items.TryGetValue("Range", out PdfObject? rangeObject) &&
-            !HasValidFunctionIntervals(ReadNumberArray(rangeObject), colorSpace.ComponentCount)) return false;
-        if (bounds.Any(value => !IsFinite(value) || value <= domainStart || value >= domainEnd)) return false;
-        for (int index = 1; index < bounds.Count; index++) if (bounds[index] <= bounds[index - 1]) return false;
-
-        var result = new List<OfficeGradientStop>(functions.Items.Count + 1);
-        PdfDictionary? first = ResolveFunctionDictionary(functions.Items[0]);
-        if (!TryReadType2FunctionColors(first, colorSpace, IsFunctionReversed(encode, 0), out OfficeColor firstStart, out OfficeColor firstEnd)) return false;
-        result.Add(new OfficeGradientStop(0D, firstStart));
-        OfficeColor previousEnd = firstEnd;
-        for (int i = 0; i < bounds.Count; i++) {
-            double offset = Clamp01((bounds[i] - domainStart) / (domainEnd - domainStart));
-            if (offset < result[result.Count - 1].Offset) return false;
-            result.Add(new OfficeGradientStop(offset, previousEnd));
-            PdfDictionary? next = ResolveFunctionDictionary(functions.Items[i + 1]);
-            if (!TryReadType2FunctionColors(next, colorSpace, IsFunctionReversed(encode, i + 1), out OfficeColor nextStart, out OfficeColor nextEnd)) return false;
-            if (nextStart != previousEnd) {
-                result.Add(new OfficeGradientStop(offset, nextStart));
+        var inputs = new SortedSet<double> { domainStart, domainEnd };
+        var discontinuities = new HashSet<double>(function.Discontinuities);
+        foreach (double functionBoundary in function.Domain) {
+            if (TryGetShadingOffset(functionBoundary, domainStart, domainEnd, out double offset) && offset > 0D && offset < 1D) {
+                inputs.Add(functionBoundary);
             }
-            previousEnd = nextEnd;
         }
-        result.Add(new OfficeGradientStop(1D, previousEnd));
+        foreach (double breakpoint in function.Breakpoints) {
+            if (TryGetShadingOffset(breakpoint, domainStart, domainEnd, out double offset) && offset > 0D && offset < 1D) {
+                inputs.Add(breakpoint);
+            }
+        }
+
+        var result = new List<OfficeGradientStop>(inputs.Count * 2);
+        foreach ((double input, double offset) in inputs
+                     .Select(input => (Input: input, Offset: PdfColorFunction.Interpolate(input, domainStart, domainEnd, 0D, 1D)))
+                     .Where(static item => IsFinite(item.Offset))
+                     .OrderBy(static item => item.Offset)) {
+            double boundedOffset = Clamp01(offset);
+            if (discontinuities.Contains(input)) {
+                if (boundedOffset == 0D) {
+                    if (!TryEvaluateShadingColor(function, input, colorSpace, out OfficeColor endpointColor)) return false;
+                    AddShadingStop(result, boundedOffset, endpointColor);
+                } else {
+                    double previousInput = NextRepresentableToward(input, domainStart);
+                    if (!TryEvaluateShadingColor(function, previousInput, colorSpace, out OfficeColor previousColor)) return false;
+                    AddShadingStop(result, boundedOffset, previousColor);
+                }
+
+                double followingInput = boundedOffset < 1D
+                    ? NextRepresentableToward(input, domainEnd)
+                    : input;
+                if (!TryEvaluateShadingColor(function, followingInput, colorSpace, out OfficeColor followingColor)) return false;
+                AddShadingStop(result, boundedOffset, followingColor);
+                continue;
+            }
+
+            if (!TryEvaluateShadingColor(function, input, colorSpace, out OfficeColor color)) return false;
+            AddShadingStop(result, boundedOffset, color);
+        }
+
+        if (result.Count < 2) return false;
         stops = result.AsReadOnly();
         return true;
     }
 
-    private bool TryReadType2FunctionColors(PdfDictionary? function, PdfPageColorSpace colorSpace, bool reversed, out OfficeColor start, out OfficeColor end) {
-        start = OfficeColor.Black;
-        end = OfficeColor.Black;
-        if (function == null || TryReadInteger(function.Items.TryGetValue("FunctionType", out PdfObject? type) ? type : null) != 2) return false;
-        IReadOnlyList<double> domain = function.Items.TryGetValue("Domain", out PdfObject? domainObject)
-            ? ReadNumberArray(domainObject)
-            : Array.Empty<double>();
-        if (!HasValidFunctionIntervals(domain, 1) ||
-            !function.Items.TryGetValue("N", out PdfObject? exponentObject) ||
-            ResolveObject(exponentObject) is not PdfNumber exponent ||
-            !IsFinite(exponent.Value) || exponent.Value <= 0D) return false;
-        IReadOnlyList<double> c0 = function.Items.TryGetValue("C0", out PdfObject? c0Object)
-            ? ReadNumberArray(c0Object)
-            : new[] { 0D };
-        IReadOnlyList<double> c1 = function.Items.TryGetValue("C1", out PdfObject? c1Object)
-            ? ReadNumberArray(c1Object)
-            : new[] { 1D };
-        if (c0.Count != colorSpace.ComponentCount || c1.Count != colorSpace.ComponentCount ||
-            !colorSpace.TryConvertColor(c0, out OfficeColor c0Color) ||
-            !colorSpace.TryConvertColor(c1, out OfficeColor c1Color)) return false;
-        if (function.Items.TryGetValue("Range", out PdfObject? rangeObject) &&
-            !HasValidFunctionIntervals(ReadNumberArray(rangeObject), colorSpace.ComponentCount)) return false;
-        start = reversed ? c1Color : c0Color;
-        end = reversed ? c0Color : c1Color;
-        return true;
+    private static bool TryEvaluateShadingColor(
+        PdfColorFunction function,
+        double input,
+        PdfPageColorSpace colorSpace,
+        out OfficeColor color) {
+        color = OfficeColor.Black;
+        double[]? components = function.Evaluate(new[] { input });
+        return components != null && colorSpace.TryConvertColor(components, out color);
     }
 
-    private static bool HasValidFunctionIntervals(IReadOnlyList<double> values, int count) {
-        if (values.Count != count * 2) return false;
-        for (int index = 0; index < count; index++) {
-            double minimum = values[index * 2];
-            double maximum = values[index * 2 + 1];
-            if (!IsFinite(minimum) || !IsFinite(maximum) || maximum <= minimum) return false;
-        }
-        return true;
+    private static bool TryGetShadingOffset(double input, double domainStart, double domainEnd, out double offset) {
+        offset = PdfColorFunction.Interpolate(input, domainStart, domainEnd, 0D, 1D);
+        return IsFinite(offset);
     }
 
-    private static bool HasFiniteFunctionPairs(IReadOnlyList<double> values, int count) {
-        if (values.Count != count * 2) return false;
-        for (int index = 0; index < values.Count; index++) if (!IsFinite(values[index])) return false;
-        return true;
+    private static double NextRepresentableToward(double value, double toward) {
+        if (value == toward) return value;
+        if (value == 0D) return toward > 0D ? double.Epsilon : -double.Epsilon;
+        long bits = BitConverter.DoubleToInt64Bits(value);
+        bits += (toward > value) == (value > 0D) ? 1L : -1L;
+        return BitConverter.Int64BitsToDouble(bits);
     }
 
-    private static bool IsFunctionReversed(IReadOnlyList<double> encode, int functionIndex) {
-        int offset = functionIndex * 2;
-        return encode.Count > offset + 1 && encode[offset] > encode[offset + 1];
-    }
-
-    private PdfDictionary? ResolveFunctionDictionary(PdfObject? functionObject) {
-        PdfObject? resolved = ResolveObject(functionObject);
-        if (resolved is PdfArray array && array.Items.Count > 0) {
-            resolved = ResolveObject(array.Items[0]);
-        }
-
-        return resolved is PdfDictionary dictionary ? dictionary : null;
+    private static void AddShadingStop(List<OfficeGradientStop> stops, double offset, OfficeColor color) {
+        if (stops.Count > 0 && stops[stops.Count - 1].Offset == offset && stops[stops.Count - 1].Color == color) return;
+        stops.Add(new OfficeGradientStop(offset, color));
     }
 
     private static byte ToColorByte(double value) =>
