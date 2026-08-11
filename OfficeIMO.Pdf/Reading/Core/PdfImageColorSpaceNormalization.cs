@@ -16,6 +16,7 @@ internal sealed class PdfImageColorSpaceNormalization {
     private readonly int _evaluationCost;
     private readonly long _maximumEvaluationWork;
     private readonly OfficeIccRenderingIntent _renderingIntent;
+    private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
 
     private PdfImageColorSpaceNormalization(
         PdfPageColorSpace colorSpace,
@@ -28,7 +29,8 @@ internal sealed class PdfImageColorSpaceNormalization {
         bool usesIccApproximation = false,
         int evaluationCost = 0,
         long maximumEvaluationWork = 0L,
-        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric) {
+        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null) {
         _colorSpace = usesIccApproximation ? PdfPageColorSpace.IccFallback(colorSpace) : colorSpace;
         SourceColorCount = sourceColorCount ?? iccProfile?.ComponentCount ?? colorSpace.ComponentCount;
         PngColorType = pngColorType;
@@ -39,6 +41,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         _evaluationCost = Math.Max(0, evaluationCost);
         _maximumEvaluationWork = Math.Max(0L, maximumEvaluationWork);
         _renderingIntent = renderingIntent;
+        _outputIntentColorTransform = outputIntentColorTransform;
         UsesIccApproximation = usesIccApproximation;
     }
 
@@ -48,7 +51,7 @@ internal sealed class PdfImageColorSpaceNormalization {
 
     internal PdfPageColorSpaceKind Kind => _colorSpace.Kind;
 
-    internal bool RequiresColorConversion => _iccProfile != null || _alternateNormalization != null ||
+    internal bool RequiresColorConversion => _outputIntentColorTransform != null || _iccProfile != null || _alternateNormalization != null ||
         _colorSpace.Kind is PdfPageColorSpaceKind.CalGray or PdfPageColorSpaceKind.CalRgb or
         PdfPageColorSpaceKind.Lab or PdfPageColorSpaceKind.Indexed;
 
@@ -81,6 +84,14 @@ internal sealed class PdfImageColorSpaceNormalization {
     }
 
     internal bool TryConvertComponents(IReadOnlyList<double> components, out OfficeColor color) {
+        if (!TryConvertComponentsCore(components, out color)) return false;
+        if (_outputIntentColorTransform != null) {
+            color = _outputIntentColorTransform.Apply(color, _renderingIntent);
+        }
+        return true;
+    }
+
+    private bool TryConvertComponentsCore(IReadOnlyList<double> components, out OfficeColor color) {
         color = OfficeColor.Black;
         if (components == null || components.Count < SourceColorCount) return false;
         if (_iccProfile != null) {
@@ -113,6 +124,23 @@ internal sealed class PdfImageColorSpaceNormalization {
         }
         return _colorSpace.TryConvertColor(components, out color);
     }
+
+    private PdfImageColorSpaceNormalization WithOutputIntent(
+        PdfOutputIntentColorTransform? outputIntentColorTransform,
+        OfficeIccRenderingIntent renderingIntent) =>
+        new PdfImageColorSpaceNormalization(
+            _colorSpace,
+            PngColorType,
+            _iccProfile,
+            _componentRanges,
+            _alternateNormalization,
+            _tintTransform,
+            SourceColorCount,
+            UsesIccApproximation,
+            _evaluationCost,
+            _maximumEvaluationWork,
+            renderingIntent,
+            outputIntentColorTransform);
 
     internal double MapLookupByteToComponent(int component, byte value) =>
         MapUnitToComponentRange(component, value / 255D);
@@ -151,6 +179,28 @@ internal sealed class PdfImageColorSpaceNormalization {
         OfficeIccRenderingIntent renderingIntent,
         out PdfImageColorSpaceNormalization normalization) =>
         TryResolve(colorSpaceObj, colorSpaceName, objects, maxDecodedStreamBytes, renderingIntent, depth: 0, out normalization);
+
+    internal static bool TryResolve(
+        PdfObject? colorSpaceObj,
+        string colorSpaceName,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
+        OfficeIccRenderingIntent renderingIntent,
+        PdfOutputIntentColorTransform? outputIntentColorTransform,
+        out PdfImageColorSpaceNormalization normalization) {
+        if (!TryResolve(
+                colorSpaceObj,
+                colorSpaceName,
+                objects,
+                maxDecodedStreamBytes,
+                renderingIntent,
+                depth: 0,
+                out normalization)) return false;
+        if (outputIntentColorTransform != null) {
+            normalization = normalization.WithOutputIntent(outputIntentColorTransform, renderingIntent);
+        }
+        return true;
+    }
 
     private static bool TryResolve(
         PdfObject? colorSpaceObj,

@@ -48,12 +48,13 @@ internal static class PdfPageXObjectInvocationParser {
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
         OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PdfPaintColorSelection? initialFillColorSelection = null,
-        PdfPaintColorSelection? initialStrokeColorSelection = null) {
+        PdfPaintColorSelection? initialStrokeColorSelection = null,
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection);
+        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform);
         return parser.Parse();
     }
 
@@ -98,6 +99,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly int _maxOperations;
         private readonly int _maxNestingDepth;
         private readonly int _maxOperands;
+        private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
 
         public Parser(
             string content,
@@ -125,18 +127,42 @@ internal static class PdfPageXObjectInvocationParser {
             int maxOperands,
             OfficeIccRenderingIntent initialRenderingIntent,
             PdfPaintColorSelection? initialFillColorSelection,
-            PdfPaintColorSelection? initialStrokeColorSelection) {
+            PdfPaintColorSelection? initialStrokeColorSelection,
+            PdfOutputIntentColorTransform? outputIntentColorTransform) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
             _colorSpaces = colorSpaces;
             _optionalContentVisibility = optionalContentVisibility;
-            _initialState = GraphicsState.Create(baseTransform, initialFillColor, initialFillColorSpace, initialFillOpacity, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, initialRenderingIntent);
-            _state = _initialState;
-            _initialFillColorSelection = initialFillColorSelection;
-            _initialStrokeColorSelection = initialStrokeColorSelection;
-            _fillColorSelection = initialFillColorSelection;
-            _strokeColorSelection = initialStrokeColorSelection;
+            GraphicsState initialState = GraphicsState.Create(baseTransform, initialFillColor, initialFillColorSpace, initialFillOpacity, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, initialRenderingIntent);
+            PdfPaintColorSelection? effectiveFillColorSelection = initialFillColorSelection;
+            if (!initialFillColor.HasValue &&
+                effectiveFillColorSelection == null &&
+                outputIntentColorTransform != null &&
+                PdfPaintColorSelection.TryCreateDefaultBlack(
+                    initialRenderingIntent,
+                    outputIntentColorTransform,
+                    out effectiveFillColorSelection,
+                    out OfficeColor defaultFillColor)) {
+                initialState = initialState.WithFillColor(defaultFillColor, PdfPageColorSpaceKind.DeviceGray);
+            }
+            PdfPaintColorSelection? effectiveStrokeColorSelection = initialStrokeColorSelection;
+            if (!initialStrokeColor.HasValue &&
+                effectiveStrokeColorSelection == null &&
+                outputIntentColorTransform != null &&
+                PdfPaintColorSelection.TryCreateDefaultBlack(
+                    initialRenderingIntent,
+                    outputIntentColorTransform,
+                    out effectiveStrokeColorSelection,
+                    out OfficeColor defaultStrokeColor)) {
+                initialState = initialState.WithStrokeColor(defaultStrokeColor, PdfPageColorSpaceKind.DeviceGray);
+            }
+            _initialState = initialState;
+            _state = initialState;
+            _initialFillColorSelection = effectiveFillColorSelection;
+            _initialStrokeColorSelection = effectiveStrokeColorSelection;
+            _fillColorSelection = effectiveFillColorSelection;
+            _strokeColorSelection = effectiveStrokeColorSelection;
             _pageHeight = pageHeight;
             _paintOrderBase = paintOrderBase;
             _paintOrderScale = paintOrderScale;
@@ -144,6 +170,7 @@ internal static class PdfPageXObjectInvocationParser {
             _maxOperations = maxOperations;
             _maxNestingDepth = maxNestingDepth;
             _maxOperands = maxOperands;
+            _outputIntentColorTransform = outputIntentColorTransform;
         }
 
         public IReadOnlyList<PdfPageXObjectInvocation> Parse() {
@@ -441,7 +468,8 @@ internal static class PdfPageXObjectInvocationParser {
                             _state.FillColorSpace,
                             _state.RenderingIntent,
                             out _fillColorSelection,
-                            out OfficeColor fillColor)) {
+                            out OfficeColor fillColor,
+                            _outputIntentColorTransform)) {
                         _state = _state.WithFillColor(fillColor);
                     }
 
@@ -453,50 +481,45 @@ internal static class PdfPageXObjectInvocationParser {
                             _state.StrokeColorSpace,
                             _state.RenderingIntent,
                             out _strokeColorSelection,
-                            out OfficeColor strokeColor)) {
+                            out OfficeColor strokeColor,
+                            _outputIntentColorTransform)) {
                         _state = _state.WithStrokeColor(strokeColor);
                     }
 
                     break;
                 case "rg":
                     if (_args.Count >= 3) {
-                        _fillColorSelection = null;
-                        _state = _state.WithFillColor(ReadRgb(_args.Count - 3), PdfPageColorSpaceKind.DeviceRgb);
+                        SetDirectFillColor(PdfPageColorSpaceKind.DeviceRgb);
                     }
 
                     break;
                 case "RG":
                     if (_args.Count >= 3) {
-                        _strokeColorSelection = null;
-                        _state = _state.WithStrokeColor(ReadRgb(_args.Count - 3), PdfPageColorSpaceKind.DeviceRgb);
+                        SetDirectStrokeColor(PdfPageColorSpaceKind.DeviceRgb);
                     }
 
                     break;
                 case "g":
                     if (_args.Count >= 1) {
-                        _fillColorSelection = null;
-                        _state = _state.WithFillColor(ReadGray(_args.Count - 1), PdfPageColorSpaceKind.DeviceGray);
+                        SetDirectFillColor(PdfPageColorSpaceKind.DeviceGray);
                     }
 
                     break;
                 case "G":
                     if (_args.Count >= 1) {
-                        _strokeColorSelection = null;
-                        _state = _state.WithStrokeColor(ReadGray(_args.Count - 1), PdfPageColorSpaceKind.DeviceGray);
+                        SetDirectStrokeColor(PdfPageColorSpaceKind.DeviceGray);
                     }
 
                     break;
                 case "k":
                     if (_args.Count >= 4) {
-                        _fillColorSelection = null;
-                        _state = _state.WithFillColor(ReadCmyk(_args.Count - 4), PdfPageColorSpaceKind.DeviceCmyk);
+                        SetDirectFillColor(PdfPageColorSpaceKind.DeviceCmyk);
                     }
 
                     break;
                 case "K":
                     if (_args.Count >= 4) {
-                        _strokeColorSelection = null;
-                        _state = _state.WithStrokeColor(ReadCmyk(_args.Count - 4), PdfPageColorSpaceKind.DeviceCmyk);
+                        SetDirectStrokeColor(PdfPageColorSpaceKind.DeviceCmyk);
                     }
 
                     break;
@@ -838,20 +861,32 @@ internal static class PdfPageXObjectInvocationParser {
             return colorSpace.ComponentCount;
         }
 
-        private OfficeColor ReadRgb(int startIndex) =>
-            OfficeColor.FromRgb(ToByte(NumberAt(startIndex)), ToByte(NumberAt(startIndex + 1)), ToByte(NumberAt(startIndex + 2)));
-
-        private OfficeColor ReadGray(int index) {
-            byte value = ToByte(NumberAt(index));
-            return OfficeColor.FromRgb(value, value, value);
+        private void SetDirectFillColor(PdfPageColorSpace colorSpace) {
+            _fillColorSelection = null;
+            if (PdfPaintColorSelection.TryCreate(
+                    _args,
+                    colorSpace,
+                    _state.RenderingIntent,
+                    out PdfPaintColorSelection? selection,
+                    out OfficeColor color,
+                    _outputIntentColorTransform)) {
+                _fillColorSelection = selection;
+                _state = _state.WithFillColor(color, colorSpace);
+            }
         }
 
-        private OfficeColor ReadCmyk(int startIndex) {
-            return OfficeColorSpaceConverter.FromCmyk(
-                NumberAt(startIndex),
-                NumberAt(startIndex + 1),
-                NumberAt(startIndex + 2),
-                NumberAt(startIndex + 3));
+        private void SetDirectStrokeColor(PdfPageColorSpace colorSpace) {
+            _strokeColorSelection = null;
+            if (PdfPaintColorSelection.TryCreate(
+                    _args,
+                    colorSpace,
+                    _state.RenderingIntent,
+                    out PdfPaintColorSelection? selection,
+                    out OfficeColor color,
+                    _outputIntentColorTransform)) {
+                _strokeColorSelection = selection;
+                _state = _state.WithStrokeColor(color, colorSpace);
+            }
         }
 
         private bool TryReadColorSpace(string name, out PdfPageColorSpace colorSpace) {

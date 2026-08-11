@@ -87,7 +87,14 @@ public sealed partial class PdfReadDocument {
     }
 
     private PdfReadPage CreateReadPage(int objectNumber, PdfDictionary pageDictionary) =>
-        new PdfReadPage(objectNumber, pageDictionary, _objects, _options.Limits, DemandTextExtraction, DemandContentExtraction);
+        new PdfReadPage(
+            objectNumber,
+            pageDictionary,
+            _objects,
+            _options.Limits,
+            DemandTextExtraction,
+            DemandContentExtraction,
+            _outputIntentColorTransform);
 
     private HashSet<int> CollectReachableLeafCandidates(PdfDictionary pagesRoot) {
         var set = new HashSet<int>();

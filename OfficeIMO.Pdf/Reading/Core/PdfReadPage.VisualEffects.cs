@@ -134,7 +134,8 @@ public sealed partial class PdfReadPage {
                      _limits.MaxContentOperations,
                      _limits.MaxContentNestingDepth,
                      _limits.MaxContentOperands,
-                     initialRenderingIntent)) {
+                     initialRenderingIntent,
+                     outputIntentColorTransform: EffectiveOutputIntentColorTransform)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream) || !activeForms.Add(formStream)) continue;
             PdfPageDrawingEffect inherited = ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect);
             try {

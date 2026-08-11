@@ -141,14 +141,28 @@ public sealed partial class OfficeIccColorProfile {
             XyzValue mediaWhite = TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue authoredMediaWhite) && authoredMediaWhite.IsPositive
                 ? authoredMediaWhite
                 : whitePoint;
-            IPcsToDeviceTransform?[]? outputTransforms = TryReadPcsToDeviceTransforms(
-                profileBytes,
-                tags,
-                expectedOutputChannels: 3,
-                pcsIsLab: false,
-                out IPcsToDeviceTransform?[] parsedOutputTransforms)
-                    ? parsedOutputTransforms
-                    : null;
+            IPcsToDeviceTransform?[]? outputTransforms;
+            if (HasAuthoredPcsToDeviceTransform(tags)) {
+                outputTransforms = TryReadPcsToDeviceTransforms(
+                    profileBytes,
+                    tags,
+                    expectedOutputChannels: 3,
+                    pcsIsLab: false,
+                    out IPcsToDeviceTransform?[] parsedOutputTransforms)
+                        ? parsedOutputTransforms
+                        : null;
+            } else {
+                outputTransforms = MatrixTrcPcsToDeviceTransform.TryCreate(
+                    redCurve,
+                    greenCurve,
+                    blueCurve,
+                    redColumn,
+                    greenColumn,
+                    blueColumn,
+                    out MatrixTrcPcsToDeviceTransform inverse)
+                        ? new IPcsToDeviceTransform?[] { inverse, null, null }
+                        : null;
+            }
             profile = new OfficeIccColorProfile(
                 3,
                 redCurve,
@@ -321,6 +335,11 @@ public sealed partial class OfficeIccColorProfile {
         tags.ContainsKey(AToB0TagSignature) ||
         tags.ContainsKey(AToB1TagSignature) ||
         tags.ContainsKey(AToB2TagSignature);
+
+    private static bool HasAuthoredPcsToDeviceTransform(Dictionary<uint, TagRange> tags) =>
+        tags.ContainsKey(BToA0TagSignature) ||
+        tags.ContainsKey(BToA1TagSignature) ||
+        tags.ContainsKey(BToA2TagSignature);
 
     private static bool TryReadXyzTag(byte[] bytes, Dictionary<uint, TagRange> tags, uint signature, out XyzValue value) {
         value = default;
@@ -700,6 +719,65 @@ public sealed partial class OfficeIccColorProfile {
                 _ => value
             };
             return Clamp01(IsFinite(result) ? result : 0D);
+        }
+
+        internal bool IsInvertible {
+            get {
+                if (_functionType == 0 && _values.Length == 0) return true;
+                if (_functionType == -1) return _values[0] > 0D;
+                if (_functionType == -2) {
+                    for (int index = 1; index < _values.Length; index++) {
+                        if (_values[index] < _values[index - 1]) return false;
+                    }
+                    return _values[_values.Length - 1] - _values[0] > 1E-9D;
+                }
+
+                double a = _values.Length > 1 ? _values[1] : 1D;
+                double b = _values.Length > 2 ? _values[2] : 0D;
+                double c = _values.Length > 3 ? _values[3] : 0D;
+                double d = _values.Length > 4 ? _values[4] : 0D;
+                double e = _values.Length > 5 ? _values[5] : 0D;
+                double f = _values.Length > 6 ? _values[6] : 0D;
+                if (a <= 0D || (_functionType >= 3 && c < 0D)) return false;
+                if (_functionType >= 3 && d >= 0D && d <= 1D) {
+                    double baseValue = (a * d) + b;
+                    if (baseValue < 0D) return false;
+                    double lower = (c * d) + (_functionType == 4 ? f : 0D);
+                    double upper = Math.Pow(baseValue, _values[0]) + (_functionType == 4 ? e : 0D);
+                    if (!IsFinite(lower) || !IsFinite(upper) ||
+                        Math.Abs(upper - lower) > 2D / 65536D) return false;
+                }
+                return Evaluate(1D) - Evaluate(0D) > 1E-9D;
+            }
+        }
+
+        internal double EvaluateInverse(double value) {
+            value = Clamp01(value);
+            if (_functionType == 0 && _values.Length == 0) return value;
+            if (_functionType == -1) return Clamp01(Math.Pow(value, 1D / _values[0]));
+            if (_functionType == -2) {
+                int lower = 0;
+                int upper = _values.Length - 1;
+                if (value <= _values[lower]) return 0D;
+                if (value >= _values[upper]) return 1D;
+                while (upper - lower > 1) {
+                    int middle = lower + ((upper - lower) / 2);
+                    if (_values[middle] <= value) lower = middle;
+                    else upper = middle;
+                }
+                double span = _values[upper] - _values[lower];
+                double fraction = span <= 1E-15D ? 0D : (value - _values[lower]) / span;
+                return Clamp01((lower + fraction) / (_values.Length - 1D));
+            }
+
+            double low = 0D;
+            double high = 1D;
+            for (int iteration = 0; iteration < 28; iteration++) {
+                double middle = (low + high) * 0.5D;
+                if (Evaluate(middle) < value) low = middle;
+                else high = middle;
+            }
+            return (low + high) * 0.5D;
         }
     }
 }

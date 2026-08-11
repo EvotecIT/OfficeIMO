@@ -124,6 +124,9 @@ public static class PdfRenderCapabilities {
     internal const string IccMatrixColorSpaceId = "render.colorspace.icc-matrix-trc";
     internal const string IccLutColorSpaceId = "render.colorspace.icc-lut8-lut16";
     internal const string IccMabColorSpaceId = "render.colorspace.icc-mab";
+    internal const string IccOutputIntentId = "render.colorspace.icc-output-intent";
+    internal const string UnsupportedIccOutputIntentId = "render.colorspace.icc-output-intent-unsupported";
+    internal const string OutputIntentTransparencyId = "render.colorspace.icc-output-intent-transparency-simplified";
     internal const string TilingPatternId = "render.resource.tiling-pattern";
     internal const string BlendModeId = "render.resource.blend-mode";
     internal const string SoftMaskId = "render.resource.soft-mask";
@@ -155,6 +158,9 @@ public static class PdfRenderCapabilities {
             Entry(IccMatrixColorSpaceId, "color", "Matrix/TRC ICCBased color spaces", PdfRenderSupportLevel.Supported, "Bounded RGB and Gray matrix/TRC ICC profiles are applied through the shared managed color engine."),
             Entry(IccLutColorSpaceId, "color", "LUT8/LUT16 ICCBased color spaces", PdfRenderSupportLevel.Supported, "Bounded RGB and CMYK A2B0/A2B1/A2B2 transforms are applied through the shared managed color engine: LUT8 with Lab PCS, and LUT16 with XYZ or Lab PCS."),
             Entry(IccMabColorSpaceId, "color", "ICC v4 mAB ICCBased color spaces", PdfRenderSupportLevel.Supported, "Bounded RGB and CMYK A2B0/A2B1/A2B2 mAB transforms are applied through the shared managed color engine."),
+            Entry(IccOutputIntentId, "color", "ICC destination output intents", PdfRenderSupportLevel.Supported, "Catalog destination profiles with bounded RGB matrix/TRC or RGB/CMYK B2A0/B2A1/B2A2 mBA output transforms are soft-proofed through the shared managed color engine for content without explicit PDF transparency composition."),
+            Entry(UnsupportedIccOutputIntentId, "color", "Unsupported ICC destination output intent", PdfRenderSupportLevel.Simplified, "The catalog output intent is retained for inspection, but its destination profile is malformed or outside the managed output-transform contract, so page colors are rendered without output-profile soft proofing."),
+            Entry(OutputIntentTransparencyId, "color", "Output intent with explicit PDF transparency", PdfRenderSupportLevel.Simplified, "The page uses blend modes, opacity, soft masks, transparency groups, or image masks. Colors remain in their authored space because output-profile conversion before transparency composition would be inaccurate."),
             Entry(IccColorSpaceId, "color", "Unsupported ICCBased profile fallback", PdfRenderSupportLevel.Simplified, "ICCBased colors whose embedded profile is unsupported use their declared alternate or component-count device fallback."),
             Entry("render.colorspace.indexed-content", "color", "Indexed content-paint color spaces", PdfRenderSupportLevel.Supported, "Bounded Indexed palettes are projected for path, text, pattern, and nested-form painting."),
             Entry("render.colorspace.indexed-image", "color", "Indexed image color spaces", PdfRenderSupportLevel.Supported, "Indexed image palettes are decoded and projected through shared Drawing images."),
@@ -164,7 +170,7 @@ public static class PdfRenderCapabilities {
             Entry(FlatnessId, "operator", "i flatness operator", PdfRenderSupportLevel.Simplified, "The flatness value is accepted but the shared Drawing renderer selects its own curve tolerance."),
             Entry(MarkedPointId, "operator", "MP and DP marked-point operators", PdfRenderSupportLevel.Simplified, "Marked-point metadata has no visual projection and is ignored."),
             Entry(MiterLimitId, "operator", "M miter-limit operator", PdfRenderSupportLevel.Simplified, "The miter limit is accepted but the shared Drawing renderer uses its own miter behavior."),
-            Entry(RenderingIntentId, "operator", "ri and image rendering intents", PdfRenderSupportLevel.Supported, "Perceptual, relative colorimetric, saturation, and absolute colorimetric intents select authored ICC transforms and propagate through graphics state, nested forms, text, color-managed DCT/JPEG and other normalized images, indexed palettes, shadings, tiling patterns, and soft-mask groups."),
+            Entry(RenderingIntentId, "operator", "ri and image rendering intents", PdfRenderSupportLevel.Supported, "Perceptual, relative colorimetric, saturation, and absolute colorimetric intents select authored ICC transforms and propagate through graphics state, nested forms, text, color-managed DCT/JPEG and other normalized images, indexed palettes, output-intent soft proofing, shadings, tiling patterns, and soft-mask groups."),
             Entry(Type3MetricsId, "operator", "d0 and d1 Type 3 glyph metric operators", PdfRenderSupportLevel.Unsupported, "Type 3 glyph programs are not executed by the managed renderer."),
             Entry(UnknownOperatorId, "operator", "Unknown content-stream operator", PdfRenderSupportLevel.Unsupported, "The content-stream operator is not recognized by the managed renderer and is skipped."),
             Entry("render.resource.extgstate-alpha", "resource", "ExtGState alpha, line width, dash, cap, and join", PdfRenderSupportLevel.Supported, "Supported ExtGState painting values are projected."),

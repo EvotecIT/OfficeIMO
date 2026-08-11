@@ -6,6 +6,19 @@ public sealed partial class PdfReadPage {
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var activeForms = new HashSet<PdfStream>();
         var pageContentBudget = new PageContentBudget(this);
+        if (_outputIntentColorTransform != null && !_outputIntentColorTransform.IsSupported) {
+            AddRenderDiagnostic(
+                diagnostics,
+                seen,
+                PdfRenderCapabilities.UnsupportedIccOutputIntentId,
+                _outputIntentColorTransform.Subject);
+        } else if (_outputIntentColorTransform != null && _hasOutputIntentCompositionInteraction?.Value == true) {
+            AddRenderDiagnostic(
+                diagnostics,
+                seen,
+                PdfRenderCapabilities.OutputIntentTransparencyId,
+                _outputIntentColorTransform.Subject);
+        }
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         CollectRenderCapabilityDiagnostics(GetContentStreamContent(pageContentBudget), resources, diagnostics, seen, activeForms, pageContentBudget, 0);
         CollectAnnotationCapabilityDiagnostics(diagnostics, seen);
@@ -275,7 +288,12 @@ public sealed partial class PdfReadPage {
             return;
         }
 
-        if (ResourceResolver.CanProjectImageColorSpace(image, resources, _objects, _limits.MaxDecodedStreamBytes)) {
+        if (ResourceResolver.CanProjectImageColorSpace(
+                image,
+                resources,
+                _objects,
+                _limits.MaxDecodedStreamBytes,
+                EffectiveOutputIntentColorTransform)) {
             PdfObject? diagnosticColorSpace = colorSpaceObject;
             if (ResolveObject(colorSpaceObject) is PdfName resourceName) {
                 PdfDictionary? colorSpaces = ResolveDictionary(resources?.Items.TryGetValue("ColorSpace", out PdfObject? value) == true ? value : null);

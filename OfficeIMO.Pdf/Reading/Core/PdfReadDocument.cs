@@ -28,6 +28,7 @@ public sealed partial class PdfReadDocument {
     private readonly bool? _acroFormNeedAppearances;
     private readonly int? _acroFormSignatureFlags;
     private readonly PdfAcroFormXfaInfo? _acroFormXfa;
+    private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
 
     internal Dictionary<int, PdfIndirectObject> Objects => _objects;
     internal string TrailerRaw => _trailerRaw;
@@ -41,6 +42,10 @@ public sealed partial class PdfReadDocument {
         PdfReadOptions? options) {
         _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfReadOptions();
         Security = security;
+        _outputIntentColorTransform = PdfOutputIntentColorTransform.TryCreate(
+            FindCatalog(),
+            _objects,
+            _options.Limits.MaxDecodedStreamBytes);
         Pages = CollectPages();
         RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, FindCatalog(), Pages, _options));
         _metadata = ExtractMetadata();

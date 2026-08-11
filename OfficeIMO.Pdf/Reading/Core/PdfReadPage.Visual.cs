@@ -443,7 +443,8 @@ public sealed partial class PdfReadPage {
             retainPrimitiveData: retainPrimitiveData,
             initialRenderingIntent: initialRenderingIntent,
             initialFillColorSelection: initialFillColorSelection,
-            initialStrokeColorSelection: initialStrokeColorSelection);
+            initialStrokeColorSelection: initialStrokeColorSelection,
+            outputIntentColorTransform: EffectiveOutputIntentColorTransform);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -471,7 +472,8 @@ public sealed partial class PdfReadPage {
                       maxOperands: _limits.MaxContentOperands,
                       initialRenderingIntent: initialRenderingIntent,
                       initialFillColorSelection: initialFillColorSelection,
-                      initialStrokeColorSelection: initialStrokeColorSelection)) {
+                      initialStrokeColorSelection: initialStrokeColorSelection,
+                      outputIntentColorTransform: EffectiveOutputIntentColorTransform)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 continue;
             }
@@ -719,7 +721,7 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static bool TryEvaluateShadingColor(
+    private bool TryEvaluateShadingColor(
         PdfColorFunction function,
         double input,
         PdfPageColorSpace colorSpace,
@@ -727,7 +729,9 @@ public sealed partial class PdfReadPage {
         out OfficeColor color) {
         color = OfficeColor.Black;
         double[]? components = function.Evaluate(new[] { input });
-        return components != null && colorSpace.TryConvertColor(components, renderingIntent, out color);
+        if (components == null || !colorSpace.TryConvertColor(components, renderingIntent, out color)) return false;
+        if (EffectiveOutputIntentColorTransform != null) color = EffectiveOutputIntentColorTransform.Apply(color, renderingIntent);
+        return true;
     }
 
     private static bool TryGetShadingOffset(double input, double domainStart, double domainEnd, out double offset) {

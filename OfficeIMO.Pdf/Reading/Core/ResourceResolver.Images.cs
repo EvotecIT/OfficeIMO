@@ -7,19 +7,22 @@ internal static partial class ResourceResolver {
         PdfDictionary image,
         PdfDictionary? resources,
         Dictionary<int, PdfIndirectObject> objects,
-        int maxDecodedStreamBytes) =>
+        int maxDecodedStreamBytes,
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null) =>
         CanProjectImageColorSpace(
             new PdfStream(image, Array.Empty<byte>()),
             resources,
             objects,
-            maxDecodedStreamBytes);
+            maxDecodedStreamBytes,
+            outputIntentColorTransform);
 
     /// <summary>Determines whether the managed image projection can normalize an authored image color space.</summary>
     internal static bool CanProjectImageColorSpace(
         PdfStream image,
         PdfDictionary? resources,
         Dictionary<int, PdfIndirectObject> objects,
-        int maxDecodedStreamBytes) {
+        int maxDecodedStreamBytes,
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null) {
         PdfDictionary dictionary = image.Dictionary;
         if (Filters.StreamDecoder.GetUnsupportedFilters(dictionary, objects).Contains("MalformedFilterDeclaration")) {
             return false;
@@ -39,6 +42,12 @@ internal static partial class ResourceResolver {
         if (width <= 0 || height <= 0) return false;
 
         bool isDctFilterChain = IsDctFilterChain(dictionary, objects);
+        OfficeIccRenderingIntent renderingIntent = PdfRenderingIntentResolver.Read(
+            dictionary,
+            "Intent",
+            objects,
+            OfficeIccRenderingIntent.RelativeColorimetric);
+        bool hasSupportedOutputIntent = outputIntentColorTransform?.IsSupported == true;
         if (HasTrailingDctFilter(dictionary, objects) && !isDctFilterChain) {
             return false;
         }
@@ -68,6 +77,8 @@ internal static partial class ResourceResolver {
                 colorSpaceName,
                 objects,
                 maxDecodedStreamBytes,
+                renderingIntent,
+                outputIntentColorTransform,
                 out PdfImageColorSpaceNormalization normalization)) {
             return false;
         }
@@ -87,7 +98,8 @@ internal static partial class ResourceResolver {
         }
         string? transparencyMaskKind = GetTransparencyMaskKind(dictionary, objects);
         return !isDctFilterChain ||
-               !RequiresDctColorNormalization(dictionary, colorSpaceName, transparencyMaskKind, objects) ||
+               (!hasSupportedOutputIntent &&
+                !RequiresDctColorNormalization(dictionary, colorSpaceName, transparencyMaskKind, objects)) ||
                TryDecodeDctImage(
                    image,
                    width,

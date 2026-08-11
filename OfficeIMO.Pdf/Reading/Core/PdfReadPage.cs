@@ -14,6 +14,8 @@ public sealed partial class PdfReadPage {
     private readonly PdfReadLimits _limits;
     private readonly Action? _demandTextExtraction;
     private readonly Action<string>? _demandContentExtraction;
+    private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
+    private readonly Lazy<bool>? _hasOutputIntentCompositionInteraction;
 
     internal PdfReadPage(int objectNumber, PdfDictionary pageDict, Dictionary<int, PdfIndirectObject> objects)
         : this(objectNumber, pageDict, objects, new PdfReadLimits()) { }
@@ -24,7 +26,8 @@ public sealed partial class PdfReadPage {
         Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits,
         Action? demandTextExtraction = null,
-        Action<string>? demandContentExtraction = null) {
+        Action<string>? demandContentExtraction = null,
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null) {
         ObjectNumber = objectNumber;
         _pageDict = pageDict;
         _objects = objects;
@@ -32,7 +35,18 @@ public sealed partial class PdfReadPage {
         _maxDecodedStreamBytes = limits.MaxDecodedStreamBytes;
         _demandTextExtraction = demandTextExtraction;
         _demandContentExtraction = demandContentExtraction;
+        _outputIntentColorTransform = outputIntentColorTransform;
+        _hasOutputIntentCompositionInteraction = outputIntentColorTransform == null
+            ? null
+            : new Lazy<bool>(
+                HasOutputIntentCompositionInteraction,
+                System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
     }
+
+    private PdfOutputIntentColorTransform? EffectiveOutputIntentColorTransform =>
+        _outputIntentColorTransform != null && _hasOutputIntentCompositionInteraction?.Value != true
+            ? _outputIntentColorTransform
+            : null;
 
     /// <summary>Underlying object number for the page.</summary>
     public int ObjectNumber { get; }
@@ -333,7 +347,7 @@ public sealed partial class PdfReadPage {
     private IReadOnlyList<PdfExtractedImage> GetImagesForResources(PdfDictionary? resources, int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements, bool colorizeImageMasks = false) {
         var images = resources == null
             ? new List<PdfExtractedImage>()
-            : new List<PdfExtractedImage>(ResourceResolver.GetImageXObjectsForResources(resources, _objects, pageNumber, imagePlacements, colorizeImageMasks, _limits));
+            : new List<PdfExtractedImage>(ResourceResolver.GetImageXObjectsForResources(resources, _objects, pageNumber, imagePlacements, colorizeImageMasks, _limits, EffectiveOutputIntentColorTransform));
         if (imagePlacements is not null) {
             for (int i = 0; i < imagePlacements.Count; i++) {
                 PdfImagePlacement placement = imagePlacements[i];
@@ -352,7 +366,8 @@ public sealed partial class PdfReadPage {
                     placement.InlineImageResources ?? resources,
                     colorizeImageMasks,
                     _limits.MaxDecodedStreamBytes,
-                    placement.RenderingIntent));
+                    placement.RenderingIntent,
+                    EffectiveOutputIntentColorTransform));
             }
         }
 
@@ -535,7 +550,8 @@ public sealed partial class PdfReadPage {
             decodeWithFontWithinLimit: DecodeWithFontWithinLimit,
             initialRenderingIntent: initialRenderingIntent,
             initialFillColorSelection: initialFillColorSelection,
-            initialStrokeColorSelection: initialStrokeColorSelection));
+            initialStrokeColorSelection: initialStrokeColorSelection,
+            outputIntentColorTransform: EffectiveOutputIntentColorTransform));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -559,7 +575,8 @@ public sealed partial class PdfReadPage {
                      maxOperands: _limits.MaxContentOperands,
                      initialRenderingIntent: initialRenderingIntent,
                      initialFillColorSelection: initialFillColorSelection,
-                     initialStrokeColorSelection: initialStrokeColorSelection)) {
+                     initialStrokeColorSelection: initialStrokeColorSelection,
+                     outputIntentColorTransform: EffectiveOutputIntentColorTransform)) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -650,7 +667,8 @@ public sealed partial class PdfReadPage {
                       maxNestingDepth: _limits.MaxContentNestingDepth,
                       maxOperands: _limits.MaxContentOperands,
                       initialRenderingIntent: initialRenderingIntent,
-                      initialFillColorSelection: initialFillColorSelection)) {
+                      initialFillColorSelection: initialFillColorSelection,
+                      outputIntentColorTransform: EffectiveOutputIntentColorTransform)) {
             Matrix2D invocationTransform = invocation.Transform;
             if (invocation.InlineImage != null) {
                 placements.Add(BuildImagePlacement(

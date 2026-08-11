@@ -158,6 +158,97 @@ public sealed partial class OfficeIccColorProfile {
         bool TryTransform(XyzValue pcsXyz, XyzValue whitePoint, out DeviceComponentValues components);
     }
 
+    private sealed class MatrixTrcPcsToDeviceTransform : IPcsToDeviceTransform {
+        private readonly ToneCurve _redCurve;
+        private readonly ToneCurve _greenCurve;
+        private readonly ToneCurve _blueCurve;
+        private readonly double _m00;
+        private readonly double _m01;
+        private readonly double _m02;
+        private readonly double _m10;
+        private readonly double _m11;
+        private readonly double _m12;
+        private readonly double _m20;
+        private readonly double _m21;
+        private readonly double _m22;
+
+        private MatrixTrcPcsToDeviceTransform(
+            ToneCurve redCurve,
+            ToneCurve greenCurve,
+            ToneCurve blueCurve,
+            double m00,
+            double m01,
+            double m02,
+            double m10,
+            double m11,
+            double m12,
+            double m20,
+            double m21,
+            double m22) {
+            _redCurve = redCurve;
+            _greenCurve = greenCurve;
+            _blueCurve = blueCurve;
+            _m00 = m00;
+            _m01 = m01;
+            _m02 = m02;
+            _m10 = m10;
+            _m11 = m11;
+            _m12 = m12;
+            _m20 = m20;
+            _m21 = m21;
+            _m22 = m22;
+        }
+
+        internal static bool TryCreate(
+            ToneCurve redCurve,
+            ToneCurve greenCurve,
+            ToneCurve blueCurve,
+            XyzValue red,
+            XyzValue green,
+            XyzValue blue,
+            out MatrixTrcPcsToDeviceTransform transform) {
+            transform = null!;
+            if (!redCurve.IsInvertible || !greenCurve.IsInvertible || !blueCurve.IsInvertible) return false;
+            double determinant =
+                (red.X * ((green.Y * blue.Z) - (blue.Y * green.Z))) -
+                (green.X * ((red.Y * blue.Z) - (blue.Y * red.Z))) +
+                (blue.X * ((red.Y * green.Z) - (green.Y * red.Z)));
+            if (!IsFinite(determinant) || Math.Abs(determinant) < 1E-12D) return false;
+            double inverse = 1D / determinant;
+            transform = new MatrixTrcPcsToDeviceTransform(
+                redCurve,
+                greenCurve,
+                blueCurve,
+                ((green.Y * blue.Z) - (blue.Y * green.Z)) * inverse,
+                ((blue.X * green.Z) - (green.X * blue.Z)) * inverse,
+                ((green.X * blue.Y) - (blue.X * green.Y)) * inverse,
+                ((blue.Y * red.Z) - (red.Y * blue.Z)) * inverse,
+                ((red.X * blue.Z) - (blue.X * red.Z)) * inverse,
+                ((blue.X * red.Y) - (red.X * blue.Y)) * inverse,
+                ((red.Y * green.Z) - (green.Y * red.Z)) * inverse,
+                ((green.X * red.Z) - (red.X * green.Z)) * inverse,
+                ((red.X * green.Y) - (green.X * red.Y)) * inverse);
+            return true;
+        }
+
+        public bool TryTransform(XyzValue pcsXyz, XyzValue whitePoint, out DeviceComponentValues components) {
+            double redLinear = (_m00 * pcsXyz.X) + (_m01 * pcsXyz.Y) + (_m02 * pcsXyz.Z);
+            double greenLinear = (_m10 * pcsXyz.X) + (_m11 * pcsXyz.Y) + (_m12 * pcsXyz.Z);
+            double blueLinear = (_m20 * pcsXyz.X) + (_m21 * pcsXyz.Y) + (_m22 * pcsXyz.Z);
+            if (!IsFinite(redLinear) || !IsFinite(greenLinear) || !IsFinite(blueLinear)) {
+                components = default;
+                return false;
+            }
+            components = new DeviceComponentValues(
+                3,
+                _redCurve.EvaluateInverse(Clamp01(redLinear)),
+                _greenCurve.EvaluateInverse(Clamp01(greenLinear)),
+                _blueCurve.EvaluateInverse(Clamp01(blueLinear)),
+                0D);
+            return true;
+        }
+    }
+
     private readonly struct DeviceComponentValues : IReadOnlyList<double> {
         private readonly double _component0;
         private readonly double _component1;

@@ -6,6 +6,48 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class OfficeColorSpaceConverterTests {
     [Fact]
+    public void MatrixTrcIccProfile_SynthesizesBoundedInverseOutputTransform() {
+        Assert.True(OfficeIccColorProfile.TryCreate(
+            PdfIccProfiles.SrgbIec6196621,
+            out OfficeIccColorProfile? profile));
+        OfficeColor source = OfficeColor.FromRgb(42, 117, 203);
+
+        Assert.True(profile!.HasOutputTransform);
+        Assert.True(profile.TryConvertToDevice(
+            source,
+            OfficeIccRenderingIntent.RelativeColorimetric,
+            out double[] components));
+        Assert.Equal(3, components.Length);
+        Assert.True(profile.TrySoftProof(
+            source,
+            OfficeIccRenderingIntent.RelativeColorimetric,
+            out OfficeColor proofed));
+        Assert.InRange(Math.Abs(proofed.R - source.R), 0, 2);
+        Assert.InRange(Math.Abs(proofed.G - source.G), 0, 2);
+        Assert.InRange(Math.Abs(proofed.B - source.B), 0, 2);
+    }
+
+    [Fact]
+    public void MatrixTrcIccProfile_DoesNotInvertDiscontinuousParametricCurves() {
+        byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;
+        int curveOffset = FindTagOffset(profileBytes, "rTRC");
+        WriteSignature(profileBytes, curveOffset, "para");
+        Array.Clear(profileBytes, curveOffset + 4, 8);
+        profileBytes[curveOffset + 9] = 4;
+        WriteS15Fixed16(profileBytes, curveOffset + 12, 1D);
+        WriteS15Fixed16(profileBytes, curveOffset + 16, 1D);
+        WriteS15Fixed16(profileBytes, curveOffset + 20, 0D);
+        WriteS15Fixed16(profileBytes, curveOffset + 24, 1D);
+        WriteS15Fixed16(profileBytes, curveOffset + 28, 0.5D);
+        WriteS15Fixed16(profileBytes, curveOffset + 32, 0.1D);
+        WriteS15Fixed16(profileBytes, curveOffset + 36, 0D);
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.False(profile!.HasOutputTransform);
+        Assert.False(profile.TryConvertToDevice(OfficeColor.Red, out _));
+    }
+
+    [Fact]
     public void CalibratedRgb_AppliesGammaAndColumnMajorMatrix() {
         OfficeColor color = OfficeColorSpaceConverter.FromCalibratedRgb(
             0.5D,
@@ -447,12 +489,19 @@ public class OfficeColorSpaceConverterTests {
         byte[] malformed = IccMabTestProfiles.CreateCmykLab8Bidirectional();
         int outputTransformOffset = IccMabTestProfiles.FindOutputTransformOffset(malformed);
         malformed[outputTransformOffset + 9] = 3;
+        byte[] malformedMatrixProfile = IccMabTestProfiles.AddRgbXyzOutputTransform(PdfIccProfiles.SrgbIec6196621);
+        int matrixOutputTransformOffset = FindTagOffset(malformedMatrixProfile, "B2A0");
+        malformedMatrixProfile[matrixOutputTransformOffset + 9] = 2;
 
         Assert.True(OfficeIccColorProfile.TryCreate(malformed, out OfficeIccColorProfile? malformedProfile));
         Assert.False(malformedProfile!.HasOutputTransform);
         Assert.False(malformedProfile.TryConvertToDevice(OfficeColor.Red, out double[] malformedComponents));
         Assert.Empty(malformedComponents);
         Assert.False(malformedProfile.TrySoftProof(OfficeColor.Red, out _));
+
+        Assert.True(OfficeIccColorProfile.TryCreate(malformedMatrixProfile, out OfficeIccColorProfile? malformedMatrix));
+        Assert.False(malformedMatrix!.HasOutputTransform);
+        Assert.False(malformedMatrix.TryConvertToDevice(OfficeColor.Red, out _));
 
         Assert.True(OfficeIccColorProfile.TryCreate(IccMabTestProfiles.CreateCmykLab8(), out OfficeIccColorProfile? inputOnlyProfile));
         Assert.False(inputOnlyProfile!.HasOutputTransform);

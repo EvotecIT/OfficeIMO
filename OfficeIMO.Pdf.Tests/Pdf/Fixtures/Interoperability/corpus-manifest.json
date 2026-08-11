@@ -221,7 +221,7 @@
       "expectedAnnotationActionTypes": [],
       "expectedRepairCodes": [],
       "expectedRenderSucceeded": true,
-      "expectedRenderDiagnosticCodes": [],
+      "expectedRenderDiagnosticCodes": [ "render.colorspace.icc-output-intent-unsupported" ],
       "expectedMutationMode": "AppendOnly",
       "features": [ "verapdf", "pdfa-1b", "devicen", "calculator-tint-transform" ]
     },
