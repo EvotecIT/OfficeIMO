@@ -49,6 +49,27 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("B", PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(wide).ToPdf(new HtmlPdfSaveOptions())).ExtractText(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HtmlRender_PositionsLetterAndWordSpacingWithoutCollapsingSearchableSpaces() {
+        const string normal = "<p style='margin:0;font-family:Consolas;font-size:14px'>A B</p>";
+        const string spaced = "<p style='margin:0;font-family:Consolas;font-size:14px;letter-spacing:2px;word-spacing:6px'>A B</p>";
+
+        HtmlRenderDocument normalRender = HtmlRenderTestDriver.Render(normal);
+        HtmlRenderDocument spacedRender = HtmlRenderTestDriver.Render(spaced);
+        double normalAdvance = EnumerateTextOverflowVisuals(normalRender.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .Sum(text => text.TextAdvanceWidth ?? text.Width);
+        IReadOnlyList<HtmlRenderText> spacedGlyphs = EnumerateTextOverflowVisuals(spacedRender.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .ToList();
+
+        Assert.Equal(new[] { "A", " ", "B" }, spacedGlyphs.Select(glyph => glyph.Text).ToArray());
+        Assert.True(spacedGlyphs.Sum(glyph => glyph.TextAdvanceWidth ?? glyph.Width) > normalAdvance + 10D);
+        Assert.True(spacedGlyphs[2].X - spacedGlyphs[0].X > normalAdvance / 2D);
+        string pdfText = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(spaced).ToPdf(new HtmlPdfSaveOptions())).ExtractText();
+        Assert.Contains("A B", pdfText, StringComparison.Ordinal);
+    }
+
     private static IEnumerable<HtmlRenderVisual> EnumerateTextOverflowVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals) {
             yield return visual;

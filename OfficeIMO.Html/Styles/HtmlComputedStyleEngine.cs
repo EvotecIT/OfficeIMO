@@ -20,6 +20,7 @@ public static partial class HtmlComputedStyleEngine {
         "font-style",
         "font-weight",
         "line-height",
+        "letter-spacing",
         "list-style",
         "list-style-type",
         "tab-size",
@@ -29,7 +30,8 @@ public static partial class HtmlComputedStyleEngine {
         "text-transform",
         "visibility",
         "widows",
-        "white-space"
+        "white-space",
+        "word-spacing"
     };
     private static readonly HashSet<string> SupportedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "background",
@@ -126,6 +128,7 @@ public static partial class HtmlComputedStyleEngine {
         "grid-template-rows",
         "height",
         "left",
+        "letter-spacing",
         "line-height",
         "list-style",
         "list-style-type",
@@ -187,6 +190,7 @@ public static partial class HtmlComputedStyleEngine {
         "width",
         "widows",
         "word-break",
+        "word-spacing",
         "line-clamp",
         "-webkit-line-clamp",
         "z-index"

@@ -334,7 +334,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 string paintToken = paragraphStyle.PreserveWhitespace && normalizedToken.IndexOf('\t') >= 0
                     ? ExpandTabs(normalizedToken, run.Style, line.Width)
                     : normalizedToken;
-                double measured = MeasureText(paintToken, run.Style.Font);
+                double measured = MeasureInlineText(paintToken, run.Style);
                 if (!paragraphStyle.PreventTextWrapping && !whitespace && measured > width && AllowsEmergencyTokenBreak(run.Style)) {
                     AddBrokenToken(lines, ref line, run, paintToken, normalizedLogicalToken, width, visibleTokenStart);
                     continue;
@@ -373,14 +373,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private string ExpandTabs(string value, HtmlRenderBoxStyle style, double currentWidth) {
         if (value.IndexOf('\t') < 0) return value;
-        double spaceWidth = Math.Max(0.01D, MeasureText(" ", style.Font));
+        double spaceWidth = Math.Max(0.01D, MeasureInlineText(" ", style));
         double stopWidth = Math.Max(spaceWidth, style.TabSize * spaceWidth);
         double cursor = Math.Max(0D, currentWidth);
         var expanded = new StringBuilder();
         foreach (char character in value) {
             if (character != '\t') {
                 expanded.Append(character);
-                cursor += MeasureText(character.ToString(), style.Font);
+                cursor += MeasureInlineText(character.ToString(), style);
                 continue;
             }
             double nextStop = (Math.Floor(cursor / stopWidth) + 1D) * stopWidth;
@@ -406,7 +406,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ellipsisRun = segment.Run;
             line.RemoveAt(line.Segments.Count - 1);
             double remainingWidth = Math.Max(0D, availableWidth - line.Width);
-            double ellipsisWidth = MeasureText("\u2026", segment.Run.Style.Font);
+            double ellipsisWidth = MeasureInlineText("\u2026", segment.Run.Style);
             if (ellipsisWidth > remainingWidth + 0.0001D) continue;
 
             var paint = new StringBuilder();
@@ -415,7 +415,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             IReadOnlyList<string> logicalElements = OfficeTextElements.Split(segment.LogicalText);
             for (int index = 0; index < paintElements.Count; index++) {
                 string candidate = paint.ToString() + paintElements[index];
-                if (MeasureText(candidate, segment.Run.Style.Font) + ellipsisWidth > remainingWidth + 0.0001D) break;
+                if (MeasureInlineText(candidate, segment.Run.Style) + ellipsisWidth > remainingWidth + 0.0001D) break;
                 paint.Append(paintElements[index]);
                 if (index < logicalElements.Count) logical.Append(logicalElements[index]);
             }
@@ -424,7 +424,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string logicalText = logical.ToString() + "\u2026";
             line.Add(new InlineSegment(
                 text,
-                MeasureText(text, segment.Run.Style.Font),
+                MeasureInlineText(text, segment.Run.Style),
                 segment.Run,
                 logicalText,
                 logicalEndProgress: completeLogicalProgress));
@@ -432,7 +432,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (ellipsisRun != null) {
-            double ellipsisWidth = MeasureText("\u2026", ellipsisRun.Style.Font);
+            double ellipsisWidth = MeasureInlineText("\u2026", ellipsisRun.Style);
             if (ellipsisWidth <= availableWidth + 0.0001D) {
                 line.Add(new InlineSegment("\u2026", ellipsisWidth, ellipsisRun, "\u2026", logicalEndProgress: completeLogicalProgress));
             }
@@ -481,7 +481,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int index = 0; index < paintElements.Count; index++) {
             string value = paintElements[index];
             string logicalValue = index < logicalElements.Count ? logicalElements[index] : OfficeArabicTextShaper.ToLogicalText(value);
-            double charWidth = MeasureText(value, run.Style.Font);
+            double charWidth = MeasureInlineText(value, run.Style);
             if (part.Length > 0 && partWidth + charWidth > width) {
                 if (line.HasFlowContent) {
                     TrimTrailingWhitespace(line);
@@ -543,6 +543,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(font);
         OfficeTextMeasurementStyle style = measurer.CreateStyle(font, 72D);
         return measurer.MeasureWidth(value, style);
+    }
+
+    private double MeasureInlineText(string value, HtmlRenderBoxStyle style) {
+        double measured = MeasureText(value, style.Font);
+        IReadOnlyList<string> elements = OfficeTextElements.Split(value);
+        if (elements.Count == 0) return measured;
+        measured += style.LetterSpacing * elements.Count;
+        measured += style.WordSpacing * elements.Count(IsWhitespaceToken);
+        return Math.Max(0.01D, measured);
     }
 
     private string? ResolveSafeLink(string? rawHref, IElement element) {

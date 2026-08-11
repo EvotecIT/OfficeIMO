@@ -18,6 +18,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private IReadOnlyList<InlinePaintSegment> ResolveInlinePaintSegments(InlineSegment segment, double x) {
+        if (!segment.BidiResolved
+            && (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D || Math.Abs(segment.Run.Style.WordSpacing) > 0.0001D)) {
+            if (!OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)) {
+                return ResolveSpacedPaintSegments(segment, x);
+            }
+        }
         if (segment.BidiResolved ||
             !OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)) {
             return new[] { new InlinePaintSegment(segment.Text, x, segment.Width, 0) };
@@ -36,6 +42,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
             cursor += group.Width;
         }
         return result.OrderBy(static item => item.LogicalOrder).ToArray();
+    }
+
+    private IReadOnlyList<InlinePaintSegment> ResolveSpacedPaintSegments(InlineSegment segment, double x) {
+        var result = new List<InlinePaintSegment>();
+        double cursor = x;
+        IReadOnlyList<string> elements = OfficeTextElements.Split(segment.Text);
+        int start = 0;
+        while (start < elements.Count) {
+            bool whitespace = IsWhitespaceToken(elements[start]);
+            int end = start + 1;
+            while (end < elements.Count && IsWhitespaceToken(elements[end]) == whitespace) end++;
+            string text = string.Concat(elements.Skip(start).Take(end - start));
+            double advance = MeasureInlineText(text, segment.Run.Style);
+            result.Add(new InlinePaintSegment(text, cursor, advance, start));
+            cursor += advance;
+            start = end;
+        }
+        return result;
     }
 
     private IReadOnlyList<InlineDirectionalGroup> ResolveDirectionalGroups(InlineSegment segment) {

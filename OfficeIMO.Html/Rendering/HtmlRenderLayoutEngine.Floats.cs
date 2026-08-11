@@ -343,7 +343,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             textAdvanceWidth: paintSegment.Width,
                             bidiVisualOrderResolved: segment.BidiResolved));
                     }
-                    HtmlRenderVisual textVisual = segment.BidiResolved ||
+                    HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||
                         OfficeTextElements.ContainsRightToLeft(segment.Text) || OfficeTextElements.ContainsBidiControl(segment.Text)
                         ? new HtmlRenderLogicalTextGroup(
                             OfficeTextElements.ContainsBidiControl(segment.LogicalText)

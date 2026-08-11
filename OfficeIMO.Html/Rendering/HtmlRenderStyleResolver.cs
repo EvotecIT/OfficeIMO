@@ -95,6 +95,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             Color = ResolveColor(computed.GetValue("color"), parent?.Color ?? OfficeColor.Black),
             Alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
             LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
+            LetterSpacing = ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
+            WordSpacing = ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
             PreserveWhitespace = IsPreformatted(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
             PreventTextWrapping = PreventsTextWrapping(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
@@ -162,6 +164,16 @@ internal sealed partial class HtmlRenderStyleResolver {
             && parsed >= 0D && !double.IsNaN(parsed) && !double.IsInfinity(parsed)
             ? Math.Min(parsed, 100D)
             : 8D;
+    }
+
+    private double ResolveTextSpacing(string value, double fontSize, double inherited) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited;
+        if (normalized == "normal") return 0D;
+        return TryResolveLength(normalized, fontSize, fontSize, _options.DefaultFontSize, out double parsed)
+            && !double.IsNaN(parsed) && !double.IsInfinity(parsed)
+            ? Math.Max(-fontSize, Math.Min(fontSize * 10D, parsed))
+            : 0D;
     }
 
     private static string ResolveTextOverflow(string value) {
