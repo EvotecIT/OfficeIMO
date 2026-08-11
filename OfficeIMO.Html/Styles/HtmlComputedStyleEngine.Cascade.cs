@@ -90,6 +90,13 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private static bool ShouldReplace(CascadedProperty existing, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder) {
+        // Inheritance happens after the cascade. A value copied from the parent is therefore
+        // only a fallback for this element and must never outrank a declaration that matches
+        // the element, including a declaration inside a cascade layer.
+        if (ReferenceEquals(existing.Specificity, Specificity.Inherited)) {
+            return true;
+        }
+
         if (existing.IsImportant != isImportant) {
             return isImportant;
         }

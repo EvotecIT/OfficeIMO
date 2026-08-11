@@ -91,6 +91,35 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_GridAutoPlacementKeepsSpanningControlRowAfterPriorRows() {
+        const string html = """
+            <form style="display:grid;width:320px;grid-template-columns:1fr 1fr;gap:8px">
+              <label for="reviewer">Reviewer</label>
+              <label for="decision">Decision</label>
+              <input id="reviewer" name="reviewer" value="Ada" style="height:27px">
+              <select id="decision" name="decision" style="height:27px"><option selected>Approved</option></select>
+              <div style="grid-column:1 / span 2;display:grid;grid-template-columns:1fr 1fr;align-items:center;min-height:18px">
+                <label style="display:flex;align-items:center;min-height:18px"><input id="verified" type="checkbox" name="verified" checked style="width:12px;height:12px;flex:0 0 12px"><span>Verified</span></label>
+                <label style="display:flex;align-items:center;min-height:18px"><input id="managed" type="radio" name="lane" checked style="width:12px;height:12px;flex:0 0 12px"><span>Managed</span></label>
+              </div>
+            </form>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 360D });
+        HtmlRenderVisual[] scene = EnumerateRenderVisuals(rendered.Pages[0].Visuals).ToArray();
+        HtmlRenderShape reviewer = scene.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source == "input#reviewer")
+            .OrderByDescending(shape => shape.Height)
+            .First();
+        HtmlRenderShape verified = scene.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source == "input#verified")
+            .OrderByDescending(shape => shape.Height)
+            .First();
+
+        Assert.True(verified.Y >= reviewer.Y + reviewer.Height, $"Expected the spanning control row below the text field, but reviewer={reviewer.Y:F1}-{reviewer.Y + reviewer.Height:F1} and verified={verified.Y:F1}.");
+    }
+
+    [Fact]
     public void HtmlRendering_SizedSingleSelectWithoutSelectionRendersBlank() {
         const string html = "<select size='2'><option>First choice</option><option>Second choice</option></select>";
 

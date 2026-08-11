@@ -147,6 +147,16 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlBackgroundColorAlpha_FlowsThroughThePdfDrawingAdapter() {
+        const string html = "<div style='width:80px;height:40px;background:rgba(255,255,255,.2)'>Alpha</div>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions());
+        string rawPdf = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/Type /ExtGState /ca 0.2 /CA 1", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlSvgBackgroundRepeat_UsesSharedVectorTilesAcrossPngSvgAndSearchablePdf() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>"
             + "<rect width='5' height='10' fill='red'/><rect x='5' width='5' height='10' fill='blue'/></svg>";

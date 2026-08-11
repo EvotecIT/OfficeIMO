@@ -26,6 +26,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlCascadeLayers_ElementDeclarationOverridesInheritedValueFromOutsideLayers() {
+        const string html = """
+            <style>
+              @layer components;
+              body { color:red; font-size:12px; }
+              @layer components { .title { color:blue; font-size:28px; } }
+            </style>
+            <h1 class="title">Layered heading</h1>
+            """;
+        var document = HtmlDocumentParser.ParseDocument(html);
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.QuerySelector(".title")!];
+
+        Assert.Equal("rgba(0, 0, 255, 1)", style.GetValue("color"));
+        Assert.Equal("28px", style.GetValue("font-size"));
+    }
+
+    [Fact]
     public void HtmlCascadeLayers_KeepNestedAndAnonymousLayerOrderDeterministic() {
         const string html = """
             <style>

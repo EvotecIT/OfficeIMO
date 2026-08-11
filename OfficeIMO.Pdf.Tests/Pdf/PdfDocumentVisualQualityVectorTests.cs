@@ -193,6 +193,30 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void VectorShape_RendersColorChannelAlphaAsExtGStateOpacity() {
+        var shape = OfficeShape.Rectangle(90, 24);
+        shape.FillColor = OfficeColor.FromRgba(255, 255, 255, 51);
+        shape.StrokeColor = OfficeColor.FromRgba(70, 130, 180, 153);
+        shape.StrokeWidth = 1.5;
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30
+            })
+            .Shape(shape)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("<< /Type /ExtGState /ca 0.2 /CA 0.6 >>", content);
+        Assert.Contains("/ExtGState << /GS1 ", content);
+    }
+
+    [Fact]
     public void VectorShape_RendersSharedClipPathBeforePainting() {
         var shape = OfficeShape.Rectangle(90, 40);
         shape.FillColor = OfficeColor.WhiteSmoke;
