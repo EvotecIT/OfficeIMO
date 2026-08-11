@@ -252,7 +252,7 @@ public static partial class HtmlComputedStyleEngine {
         var pseudoElements = new Dictionary<IElement, HtmlPseudoElementStylePair>();
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) {
-            ComputeElement(root, null, ruleIndex, computed, pseudoElements, includePseudoElements, budget, environment, environment.Width, Array.Empty<ContainerQueryContext>());
+            ComputeElement(root, null, ruleIndex, computed, pseudoElements, includePseudoElements, budget, environment, environment.Width, environment.Height, Array.Empty<ContainerQueryContext>());
         }
 
         return new HtmlComputedStyleSet(computed, pseudoElements);
@@ -326,6 +326,7 @@ public static partial class HtmlComputedStyleEngine {
         HtmlCssProcessingBudget budget,
         MediaEnvironment environment,
         double containingWidth,
+        double? containingHeight,
         IReadOnlyList<ContainerQueryContext> containerContexts) {
         var properties = new Dictionary<string, CascadedProperty>(StringComparer.OrdinalIgnoreCase);
         if (parent != null) {
@@ -359,10 +360,11 @@ public static partial class HtmlComputedStyleEngine {
         if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements, budget, containerContexts, environment);
 
         double elementWidth = ResolveContainerElementWidth(style, containingWidth, environment);
-        IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, environment, containerContexts);
+        double? elementHeight = ResolveContainerElementHeight(style, containingHeight, environment);
+        IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, elementHeight, containerContexts);
 
         foreach (IElement child in element.Children) {
-            ComputeElement(child, style, rules, computed, pseudoElements, includePseudoElements, budget, environment, elementWidth, childContainerContexts);
+            ComputeElement(child, style, rules, computed, pseudoElements, includePseudoElements, budget, environment, elementWidth, elementHeight, childContainerContexts);
         }
     }
 

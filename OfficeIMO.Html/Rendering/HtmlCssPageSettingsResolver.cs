@@ -201,10 +201,13 @@ internal static class HtmlCssPageSettingsResolver {
         }
 
         string size = FindTopLevelDeclaration(body, "size");
-        if (pageName == null && selector == HtmlCssPageSelector.Generic) {
-            if (size.Length > 0 && !TryApplyPageSize(size, options)) {
-                diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSizeUnsupported, "The @page size declaration could not be mapped to a supported physical page size.", HtmlDiagnosticSeverity.Warning, "@page", size);
-            }
+        bool appliesToBasePage = pageName == null && selector == HtmlCssPageSelector.Generic;
+        bool validSize = size.Length == 0
+            || appliesToBasePage && TryApplyPageSize(size, options)
+            || !appliesToBasePage && TryResolvePageSize(size, options.PageWidth, options.PageHeight, options.DefaultFontSize, out _, out _);
+        if (!validSize) {
+            string source = selectorText.Length == 0 ? "@page" : "@page " + selectorText;
+            diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSizeUnsupported, "The @page size declaration could not be mapped to a supported physical page size.", HtmlDiagnosticSeverity.Warning, source, size);
         }
 
         var geometry = new HtmlCssPageGeometryDeclaration(

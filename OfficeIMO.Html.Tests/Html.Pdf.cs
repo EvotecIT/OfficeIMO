@@ -62,6 +62,24 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_ChoiceFieldsPreserveExportValuesAndDuplicateDisplayLabels() {
+        const string html = """
+            <select name="country">
+              <option value="US">Same label</option>
+              <option value="CA" selected>Same label</option>
+            </select>
+            """;
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+
+        Assert.Equal("CA", field.Value);
+        Assert.Equal(new[] { "US", "CA" }, field.Options.Select(option => option.ExportValue).ToArray());
+        Assert.Equal(new[] { "Same label", "Same label" }, field.Options.Select(option => option.DisplayText).ToArray());
+        Assert.Contains("Same label", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_CanKeepStaticFormControlPaint() {
         const string html = "<label>Name <input name='name' value='Static Ada'></label>";
         var options = new HtmlPdfSaveOptions { InteractiveFormControls = false };

@@ -528,6 +528,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string value = HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty;
         IReadOnlyList<string> values = Array.Empty<string>();
         IReadOnlyList<string> options = Array.Empty<string>();
+        IReadOnlyList<string> optionValues = Array.Empty<string>();
         string? radioOption = null;
         bool selected = fieldKind == HtmlRenderFormFieldKind.CheckBox || fieldKind == HtmlRenderFormFieldKind.RadioButton
             ? HtmlFormControlSemantics.IsEffectivelyChecked(element)
@@ -535,7 +536,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool multiple = tag == "select" && element.HasAttribute("multiple");
 
         if (fieldKind == HtmlRenderFormFieldKind.Choice) {
-            ResolveChoiceFieldValues(element, out options, out values);
+            ResolveChoiceFieldValues(element, out options, out optionValues, out values);
             value = values.FirstOrDefault() ?? string.Empty;
         } else if (fieldKind == HtmlRenderFormFieldKind.RadioButton) {
             radioOption = ResolveRadioOptionToken(element, name, value, nodeId);
@@ -563,6 +564,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             value,
             values,
             options,
+            optionValues,
             radioOption,
             selected,
             readOnly,
@@ -623,28 +625,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static void ResolveChoiceFieldValues(IElement select, out IReadOnlyList<string> options, out IReadOnlyList<string> values) {
+    private static void ResolveChoiceFieldValues(
+        IElement select,
+        out IReadOnlyList<string> options,
+        out IReadOnlyList<string> optionValues,
+        out IReadOnlyList<string> values) {
         IElement[] optionElements = select.QuerySelectorAll("option").ToArray();
         var labels = new List<string>(optionElements.Length);
-        var selectedLabels = new List<string>();
-        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var exports = new List<string>(optionElements.Length);
+        var selectedExports = new List<string>();
         IReadOnlyList<IElement> selectedOptions = HtmlFormControlSemantics.GetEffectiveSelectedOptions(select);
         for (int index = 0; index < optionElements.Length; index++) {
             IElement option = optionElements[index];
             string label = NormalizeControlText(HtmlFormControlSemantics.GetOptionLabel(option));
             if (label.Length == 0) label = NormalizeControlText(option.GetAttribute("value"));
             if (label.Length == 0) label = "Option " + (index + 1).ToString(CultureInfo.InvariantCulture);
-            string uniqueLabel = label;
-            int suffix = 2;
-            while (!seen.Add(uniqueLabel)) {
-                uniqueLabel = label + " (" + suffix.ToString(CultureInfo.InvariantCulture) + ")";
-                suffix++;
-            }
-            labels.Add(uniqueLabel);
-            if (selectedOptions.Contains(option)) selectedLabels.Add(uniqueLabel);
+            string export = HtmlFormControlSemantics.GetOptionValue(option);
+            labels.Add(label);
+            exports.Add(export);
+            if (selectedOptions.Contains(option) && !selectedExports.Contains(export, StringComparer.Ordinal)) selectedExports.Add(export);
         }
         options = labels;
-        values = selectedLabels;
+        optionValues = exports;
+        values = selectedExports;
     }
 
     private string ResolveRadioOptionToken(IElement element, string fieldName, string value, int nodeId) {

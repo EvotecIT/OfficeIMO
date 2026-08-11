@@ -205,12 +205,20 @@ internal static partial class PdfWriter {
         public bool IsChecked { get; set; }
         public string CheckedValueName { get; set; } = "Yes";
         public IReadOnlyList<string> Options { get; set; } = Array.Empty<string>();
+        public IReadOnlyList<PdfFormFieldOption> ChoiceOptions { get; set; } = Array.Empty<PdfFormFieldOption>();
         public double ButtonSize { get; set; }
         public double ButtonGap { get; set; }
         public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
         public bool IsComboBox { get; set; }
         public bool AllowsMultipleSelection { get; set; }
         public System.Collections.Generic.List<RadioButtonWidgetAnnotation> RadioWidgets { get; } = new();
+    }
+
+    private static string ResolveChoiceAppearanceValue(FormFieldAnnotation field) {
+        IReadOnlyList<string> selectedValues = field.Values.Count > 0 ? field.Values : new[] { field.Value };
+        if (field.ChoiceOptions.Count == 0) return string.Join(", ", selectedValues);
+        return string.Join(", ", selectedValues.Select(value =>
+            field.ChoiceOptions.FirstOrDefault(option => string.Equals(option.ExportValue, value, StringComparison.Ordinal))?.DisplayText ?? value));
     }
 
     private sealed class RadioButtonWidgetAnnotation {

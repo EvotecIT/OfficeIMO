@@ -112,6 +112,7 @@ internal static partial class PdfWriter {
                 IsChecked = item.IsSelected,
                 CheckedValueName = item.Option,
                 Options = item.Options,
+                ChoiceOptions = item.ChoiceOptions,
                 IsComboBox = item.IsComboBox,
                 AllowsMultipleSelection = item.AllowsMultipleSelection,
                 Style = item.Style

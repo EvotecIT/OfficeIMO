@@ -36,17 +36,42 @@ public static partial class HtmlComputedStyleEngine {
         return null;
     }
 
-    private static bool ContainsContainerFeature(string condition, string feature) =>
-        condition.IndexOf(feature, StringComparison.OrdinalIgnoreCase) >= 0;
+    private static bool ContainsContainerFeature(string condition, string feature) {
+        for (int index = 0; index < condition.Length;) {
+            if (!char.IsLetter(condition[index]) && condition[index] != '-') {
+                index++;
+                continue;
+            }
+
+            int tokenStart = index;
+            while (index < condition.Length && (char.IsLetter(condition[index]) || condition[index] == '-')) index++;
+            string token = condition.Substring(tokenStart, index - tokenStart);
+            int lookahead = index;
+            while (lookahead < condition.Length && char.IsWhiteSpace(condition[lookahead])) lookahead++;
+            if (string.Equals(token, "style", StringComparison.OrdinalIgnoreCase)
+                && lookahead < condition.Length
+                && condition[lookahead] == '(') {
+                int close = FindMatchingParenthesis(condition, lookahead);
+                index = close < 0 ? condition.Length : close + 1;
+                continue;
+            }
+
+            if (string.Equals(token, feature, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(token, "min-" + feature, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(token, "max-" + feature, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private static IReadOnlyList<ContainerQueryContext> AddContainerContext(
         HtmlComputedStyle style,
         double width,
-        MediaEnvironment environment,
+        double? height,
         IReadOnlyList<ContainerQueryContext> contexts) {
         string type = ResolveContainerType(style);
         IReadOnlyList<string> names = ResolveContainerNames(style);
-        double? height = ResolveContainerElementHeight(style, environment);
         var expanded = new List<ContainerQueryContext>(contexts.Count + 1);
         expanded.AddRange(contexts);
         expanded.Add(new ContainerQueryContext(names, type, width, height, style.Properties));
@@ -86,10 +111,10 @@ public static partial class HtmlComputedStyleEngine {
         return Math.Max(0D, containingWidth);
     }
 
-    private static double? ResolveContainerElementHeight(HtmlComputedStyle style, MediaEnvironment environment) {
+    private static double? ResolveContainerElementHeight(HtmlComputedStyle style, double? containingHeight, MediaEnvironment environment) {
         string height = style.GetValue("height");
         double fontSize = ResolveContainerFontSize(style, environment);
-        return HtmlRenderCssValues.TryLength(height, environment.Height, fontSize, 16D, environment.Width, environment.Height, out double resolved)
+        return HtmlRenderCssValues.TryLength(height, containingHeight ?? double.NaN, fontSize, 16D, environment.Width, environment.Height, out double resolved)
             && resolved >= 0D
             ? resolved
             : (double?)null;

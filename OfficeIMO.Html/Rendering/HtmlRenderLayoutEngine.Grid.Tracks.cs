@@ -1,4 +1,5 @@
 using System.Globalization;
+using AngleSharp.Dom;
 
 namespace OfficeIMO.Html;
 
@@ -309,6 +310,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .DefaultIfEmpty(1D)
                 .Max();
         }
+        measured = Math.Max(measured, ResolveDescendantReplacedGridContribution(item, availableSize));
 
         return ResolveGridMeasuredContribution(style, measured);
     }
@@ -321,7 +323,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double measured = content.Length == 0
             ? 1D
             : MeasureInlineText(ApplyTextTransform(content, style.TextTransform), style);
+        measured = Math.Max(measured, ResolveDescendantReplacedGridContribution(item, availableSize));
         return ResolveGridMeasuredContribution(style, measured);
+    }
+
+    private double ResolveDescendantReplacedGridContribution(FlexItem item, double availableSize) {
+        if (item.Element == null) return 0D;
+        return ResolveDescendantReplacedGridContribution(item.Element, item.Style, availableSize, 1);
+    }
+
+    private double ResolveDescendantReplacedGridContribution(IElement parent, HtmlRenderBoxStyle parentStyle, double availableSize, int depth) {
+        double maximum = 0D;
+        foreach (IElement child in parent.Children) {
+            EnsureDepth(depth, child);
+            if (ShouldSkipElement(child)) continue;
+            HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);
+            if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
+            double contribution;
+            if (string.Equals(child.LocalName, "img", StringComparison.OrdinalIgnoreCase)) {
+                contribution = ResolveReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
+            } else {
+                double descendant = ResolveDescendantReplacedGridContribution(child, childStyle, availableSize, depth + 1);
+                contribution = descendant > 0D ? ResolveGridMeasuredContribution(childStyle, descendant) : 0D;
+            }
+            maximum = Math.Max(maximum, contribution);
+        }
+        return maximum;
     }
 
     private bool TryResolveDefiniteGridContribution(FlexItem item, double availableSize, out double contribution) {

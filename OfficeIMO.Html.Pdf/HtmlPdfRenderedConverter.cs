@@ -252,8 +252,15 @@ internal static partial class HtmlPdfRenderedConverter {
         } else if (field.FieldKind == HtmlRenderFormFieldKind.CheckBox) {
             canvas.CheckBox(field.Name, field.IsSelected, x, y, width, height, field.Value, style);
         } else if (field.FieldKind == HtmlRenderFormFieldKind.Choice) {
-            canvas.ChoiceField(field.Name, field.Options, field.Values, x, y, width, height, fontSize, field.IsComboBox, field.AllowsMultipleSelection, style);
-            string searchableValue = string.Join(" ", field.Values.Where(value => !string.IsNullOrWhiteSpace(value)));
+            IReadOnlyList<PdfCore.PdfFormFieldOption> choiceOptions = field.Options
+                .Select((label, index) => new PdfCore.PdfFormFieldOption(
+                    index < field.OptionValues.Count ? field.OptionValues[index] : label,
+                    label))
+                .ToList();
+            canvas.ChoiceField(field.Name, choiceOptions, field.Values, x, y, width, height, fontSize, field.IsComboBox, field.AllowsMultipleSelection, style);
+            string searchableValue = string.Join(" ", field.Values
+                .Select(value => choiceOptions.FirstOrDefault(option => string.Equals(option.ExportValue, value, StringComparison.Ordinal))?.DisplayText ?? value)
+                .Where(value => !string.IsNullOrWhiteSpace(value)));
             if (searchableValue.Length > 0) {
                 canvas.SearchableText(searchableValue, x, y + Math.Min(height, fontSize));
             }

@@ -251,8 +251,17 @@ public sealed partial class PdfDocument {
             return;
         }
         if (field.Kind != PdfCanvasFormFieldKind.Choice) return;
-        for (int optionIndex = 0; optionIndex < field.Options.Count; optionIndex++) {
-            AddFormWidgetText(diagnostics, field.Options[optionIndex], options, "PdfCanvasChoiceFieldOption", AppendLocation(location, "Option[" + optionIndex.ToString(CultureInfo.InvariantCulture) + "]"), fieldName: field.Name);
+        if (field.ChoiceOptions.Count > 0) {
+            for (int optionIndex = 0; optionIndex < field.ChoiceOptions.Count; optionIndex++) {
+                PdfFormFieldOption option = field.ChoiceOptions[optionIndex];
+                string optionLocation = AppendLocation(location, "Option[" + optionIndex.ToString(CultureInfo.InvariantCulture) + "]");
+                AddFormWidgetText(diagnostics, option.ExportValue, options, "PdfCanvasChoiceFieldExportValue", AppendLocation(optionLocation, "ExportValue"), fieldName: field.Name);
+                AddFormWidgetText(diagnostics, option.DisplayText, options, "PdfCanvasChoiceFieldDisplayText", AppendLocation(optionLocation, "DisplayText"), fieldName: field.Name);
+            }
+        } else {
+            for (int optionIndex = 0; optionIndex < field.Options.Count; optionIndex++) {
+                AddFormWidgetText(diagnostics, field.Options[optionIndex], options, "PdfCanvasChoiceFieldOption", AppendLocation(location, "Option[" + optionIndex.ToString(CultureInfo.InvariantCulture) + "]"), fieldName: field.Name);
+            }
         }
         for (int valueIndex = 0; valueIndex < field.Values.Count; valueIndex++) {
             AddFormWidgetText(diagnostics, field.Values[valueIndex], options, "PdfCanvasChoiceFieldValue", AppendLocation(location, "Value[" + valueIndex.ToString(CultureInfo.InvariantCulture) + "]"), fieldName: field.Name);

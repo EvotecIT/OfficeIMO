@@ -296,14 +296,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static double ResolveGridItemBaseline(GridItem item) {
-        HtmlRenderText? firstText = item.Block!.Visuals
-            .OfType<HtmlRenderText>()
+        HtmlRenderText? firstText = EnumerateGridTextVisuals(item.Block!.Visuals)
             .OrderBy(text => text.LayoutY)
             .ThenBy(text => text.X)
             .FirstOrDefault();
         if (firstText == null) return item.Block.Height;
         double leading = Math.Max(0D, firstText.LineHeight - firstText.Font.Size);
         return firstText.LayoutY + Math.Min(firstText.LineHeight, leading / 2D + firstText.Font.Size * 0.8D);
+    }
+
+    private static IEnumerable<HtmlRenderText> EnumerateGridTextVisuals(IEnumerable<HtmlRenderVisual> visuals) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderText text) yield return text;
+            IEnumerable<HtmlRenderVisual>? children = visual is HtmlRenderClipGroup clipGroup
+                ? clipGroup.Visuals
+                : visual is HtmlRenderPathClipGroup pathClipGroup
+                    ? pathClipGroup.Visuals
+                    : visual is HtmlRenderEffectGroup effectGroup
+                        ? effectGroup.Visuals
+                        : visual is HtmlRenderSemanticGroup semanticGroup
+                            ? semanticGroup.Visuals
+                            : visual is HtmlRenderLogicalTextGroup logicalTextGroup
+                                ? logicalTextGroup.Visuals
+                                : visual is HtmlRenderFormField formField ? formField.Visuals : null;
+            if (children == null) continue;
+            foreach (HtmlRenderText child in EnumerateGridTextVisuals(children)) yield return child;
+        }
     }
 
     private double ResolveGridAlignmentOffset(string alignment, double remaining, string source, string property) {

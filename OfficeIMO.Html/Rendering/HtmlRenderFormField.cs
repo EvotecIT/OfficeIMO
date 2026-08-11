@@ -22,6 +22,7 @@ public enum HtmlRenderFormFieldKind {
 public sealed class HtmlRenderFormField : HtmlRenderVisual {
     private readonly ReadOnlyCollection<HtmlRenderVisual> _visuals;
     private readonly ReadOnlyCollection<string> _options;
+    private readonly ReadOnlyCollection<string> _optionValues;
     private readonly ReadOnlyCollection<string> _values;
 
     internal HtmlRenderFormField(
@@ -31,6 +32,7 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         string value,
         IEnumerable<string>? values,
         IEnumerable<string>? options,
+        IEnumerable<string>? optionValues,
         string? radioOption,
         bool isSelected,
         bool isReadOnly,
@@ -80,6 +82,7 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         BorderWidth = Math.Max(0D, borderWidth);
         _values = new List<string>(values ?? Array.Empty<string>()).AsReadOnly();
         _options = new List<string>(options ?? Array.Empty<string>()).AsReadOnly();
+        _optionValues = new List<string>(optionValues ?? Array.Empty<string>()).AsReadOnly();
         _visuals = new List<HtmlRenderVisual>(visuals ?? throw new ArgumentNullException(nameof(visuals)))
             .OrderBy(item => item.PaintOrder)
             .ToList()
@@ -98,6 +101,8 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
     public IReadOnlyList<string> Values => _values;
     /// <summary>Resolved display options for a choice field.</summary>
     public IReadOnlyList<string> Options => _options;
+    /// <summary>Export values corresponding by index to <see cref="Options"/>.</summary>
+    public IReadOnlyList<string> OptionValues => _optionValues;
     /// <summary>PDF-safe option token for a radio widget.</summary>
     public string? RadioOption { get; }
     /// <summary>Whether a check box or radio widget is selected.</summary>
@@ -142,5 +147,5 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         Clone(X + offsetX, Y + offsetY, _visuals.Select((visual, index) => visual.TranslatePaint(offsetX, offsetY, index)), paintOrder, LayoutY);
 
     private HtmlRenderFormField Clone(double x, double y, IEnumerable<HtmlRenderVisual> visuals, int paintOrder, double layoutY) =>
-        new(FieldKind, Name, MappingName, Value, _values, _options, RadioOption, IsSelected, IsReadOnly, IsRequired, IsMultiline, IsPassword, IsFileSelect, IsComboBox, AllowsMultipleSelection, MaximumLength, AlternateName, Font, TextColor, TextAlignment, BackgroundColor, BorderColor, BorderWidth, x, y, Width, Height, visuals, paintOrder, Source, layoutY);
+        new(FieldKind, Name, MappingName, Value, _values, _options, _optionValues, RadioOption, IsSelected, IsReadOnly, IsRequired, IsMultiline, IsPassword, IsFileSelect, IsComboBox, AllowsMultipleSelection, MaximumLength, AlternateName, Font, TextColor, TextAlignment, BackgroundColor, BorderColor, BorderWidth, x, y, Width, Height, visuals, paintOrder, Source, layoutY);
 }

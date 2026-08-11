@@ -88,6 +88,21 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_MaxContentTrackIncludesReplacedContentInsideAWrapper() {
+        const string pixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
+        string html = "<div style='display:grid;width:300px;grid-template-columns:max-content 1fr'>"
+            + "<div id='wrapper' style='background:red'><img src='data:image/png;base64," + pixel + "' style='width:200px;height:10px'></div>"
+            + "<span id='after' style='background:blue'>B</span></div>";
+
+        HtmlRenderDocument rendered = RenderGrid(html, 320D);
+        HtmlRenderShape wrapper = FindGridShape(rendered, "div#wrapper");
+        HtmlRenderShape after = FindGridShape(rendered, "span#after");
+
+        Assert.Equal(200D, wrapper.Width, 3);
+        Assert.Equal(wrapper.X + wrapper.Width, after.X, 3);
+    }
+
+    [Fact]
     public void HtmlGrid_DoesNotLeakSubgridTracksThroughANonGridWrapper() {
         const string html = """
             <div style="display:grid;width:200px;grid-template-columns:60px 140px">
@@ -363,6 +378,25 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(largeBaseline, smallBaseline, 3);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGrid_AlignsBaselinesWhenTheFirstTextIsInsideAVisualGroup() {
+        const string html = """
+            <div style="display:grid;width:200px;grid-template-columns:100px 100px;grid-template-rows:60px;align-items:baseline">
+              <div><p style="margin:0;font-size:12px;line-height:18px">Nested</p></div>
+              <span style="font-size:24px;line-height:30px">Large</span>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 220D);
+        HtmlRenderVisual[] scene = EnumerateRenderVisuals(rendered.Pages[0].Visuals).ToArray();
+        HtmlRenderText nested = Assert.Single(scene.OfType<HtmlRenderText>(), text => text.Text == "Nested");
+        HtmlRenderText large = Assert.Single(scene.OfType<HtmlRenderText>(), text => text.Text == "Large");
+        double nestedBaseline = nested.Y + (nested.LineHeight - nested.Font.Size) / 2D + nested.Font.Size * 0.8D;
+        double largeBaseline = large.Y + (large.LineHeight - large.Font.Size) / 2D + large.Font.Size * 0.8D;
+
+        Assert.Equal(largeBaseline, nestedBaseline, 3);
     }
 
     [Fact]

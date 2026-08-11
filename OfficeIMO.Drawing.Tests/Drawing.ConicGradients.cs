@@ -71,6 +71,24 @@ public sealed class DrawingConicGradientTests {
         Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(39, 39));
     }
 
+    [Fact]
+    public void OfficeConicGradient_InterpolatesTransparentStopsInPremultipliedAlpha() {
+        var gradient = new OfficeConicGradient(
+            0.5D,
+            0.5D,
+            0D,
+            new[] {
+                new OfficeGradientStop(0D, OfficeColor.FromRgba(255, 0, 0, 0)),
+                new OfficeGradientStop(1D, OfficeColor.FromRgba(0, 0, 255, 255))
+            });
+
+        OfficeColor halfway = gradient.Sample(0.5D);
+
+        Assert.Equal(128, halfway.A);
+        Assert.Equal(255, halfway.B);
+        Assert.Equal(0, halfway.R);
+    }
+
     private static int Count(string value, string token) {
         int count = 0;
         int index = 0;

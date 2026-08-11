@@ -93,6 +93,37 @@ public sealed partial class HtmlRenderingTests {
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(container-type:viewport)"));
     }
 
+    [Fact]
+    public void HtmlRendering_StyleQueriesDoNotTreatCustomPropertyNamesAsSizeFeatures() {
+        const string html = """
+            <style>@container theme style(--width: compact) { #item { background:red; } }</style>
+            <section style="container-name:theme;--width:compact">
+              <div id="item" style="width:40px;height:20px;background:blue"></div>
+            </section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
+    }
+
+    [Fact]
+    public void HtmlRendering_SizeContainerPercentageHeightUsesItsDefiniteContainingBlock() {
+        const string html = """
+            <style>@container (height:100px) { #item { background:red; } }</style>
+            <section style="height:200px">
+              <div style="width:120px;height:50%;container-type:size">
+                <div id="item" style="width:40px;height:20px;background:blue"></div>
+              </div>
+            </section>
+            """;
+        var options = new HtmlRenderOptions { ViewportHeight = 600D };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
+    }
+
     private static HtmlRenderShape FindShape(HtmlRenderDocument rendered, string source) =>
         Assert.Single(
             rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>(),

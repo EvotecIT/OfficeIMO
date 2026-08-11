@@ -6,6 +6,21 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlPagedMedia_DiagnosesInvalidNamedAndPseudoPageSizes() {
+        const string html = "<style>@page invoice { size:nonsense; } @page :first { size:also-bad; }</style><p>Body</p>";
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, HonorCssPageRules = true };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlDiagnostic[] diagnostics = rendered.Diagnostics
+            .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported)
+            .ToArray();
+
+        Assert.Equal(2, diagnostics.Length);
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "@page invoice" && diagnostic.Detail == "nonsense");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "@page :first" && diagnostic.Detail == "also-bad");
+    }
+
+    [Fact]
     public void HtmlRender_Paged_ResolvesRunningStringsFromPageLocalAssignments() {
         const string html = """
             <style>

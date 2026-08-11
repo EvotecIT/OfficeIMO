@@ -395,12 +395,13 @@ public sealed class PdfFormField {
 }
 
 /// <summary>
-/// Simple AcroForm choice option read from a field /Opt array.
+/// AcroForm choice option used by generation and read from a field /Opt array.
 /// </summary>
 public sealed class PdfFormFieldOption {
-    internal PdfFormFieldOption(string exportValue, string displayText) {
-        ExportValue = exportValue;
-        DisplayText = displayText;
+    /// <summary>Creates one choice option with separate export and display values.</summary>
+    public PdfFormFieldOption(string exportValue, string displayText) {
+        ExportValue = exportValue ?? throw new ArgumentNullException(nameof(exportValue));
+        DisplayText = displayText ?? throw new ArgumentNullException(nameof(displayText));
     }
 
     /// <summary>Export value used by the form field.</summary>

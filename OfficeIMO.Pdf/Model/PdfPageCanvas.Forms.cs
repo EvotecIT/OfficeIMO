@@ -48,6 +48,26 @@ public sealed partial class PdfPageCanvas {
         return this;
     }
 
+    /// <summary>Adds an interactive choice field whose export values differ from its displayed labels.</summary>
+    public PdfPageCanvas ChoiceField(string name, IEnumerable<PdfFormFieldOption> options, IEnumerable<string>? values, double x, double y, double width, double height, double fontSize = 10D, bool isComboBox = true, bool allowsMultipleSelection = false, PdfFormFieldStyle? style = null) {
+        ValidateFormFieldBox(name, x, y, width, height);
+        Guard.NotNull(options, nameof(options));
+        Guard.Positive(fontSize, nameof(fontSize));
+        var optionSnapshot = options.ToList();
+        if (optionSnapshot.Count == 0 || optionSnapshot.Any(option => option == null || string.IsNullOrWhiteSpace(option.DisplayText))) {
+            throw new ArgumentException("Canvas choice fields require at least one option with non-empty display text.", nameof(options));
+        }
+        var valueSnapshot = values?.Distinct(StringComparer.Ordinal).ToList() ?? new List<string>();
+        if (!allowsMultipleSelection && valueSnapshot.Count > 1) {
+            throw new ArgumentException("A single-select canvas choice field accepts at most one value.", nameof(values));
+        }
+        if (valueSnapshot.Any(value => !optionSnapshot.Any(option => string.Equals(option.ExportValue, value, StringComparison.Ordinal)))) {
+            throw new ArgumentException("Canvas choice field values must match provided export values.", nameof(values));
+        }
+        _items.Add(PdfCanvasFormFieldItem.Choice(name, optionSnapshot, valueSnapshot, x, y, width, height, fontSize, isComboBox, allowsMultipleSelection, style));
+        return this;
+    }
+
     /// <summary>Adds one interactive radio-button widget. Widgets with the same field name are emitted as one radio group on the page.</summary>
     public PdfPageCanvas RadioButton(string name, string option, bool isSelected, double x, double y, double width, double height, PdfFormFieldStyle? style = null) {
         ValidateFormFieldBox(name, x, y, width, height);
@@ -108,6 +128,9 @@ internal sealed class PdfCanvasFormFieldItem : PdfCanvasItem {
     internal static PdfCanvasFormFieldItem Choice(string name, IReadOnlyList<string> options, IReadOnlyList<string> values, double x, double y, double width, double height, double fontSize, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style) =>
         new(PdfCanvasFormFieldKind.Choice, name, x, y, width, height, style) { Options = options, Values = values, Value = values.Count == 0 ? string.Empty : values[0], FontSize = fontSize, IsComboBox = isComboBox, AllowsMultipleSelection = allowsMultipleSelection };
 
+    internal static PdfCanvasFormFieldItem Choice(string name, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<string> values, double x, double y, double width, double height, double fontSize, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style) =>
+        new(PdfCanvasFormFieldKind.Choice, name, x, y, width, height, style) { ChoiceOptions = options, Values = values, Value = values.Count == 0 ? string.Empty : values[0], FontSize = fontSize, IsComboBox = isComboBox, AllowsMultipleSelection = allowsMultipleSelection };
+
     internal static PdfCanvasFormFieldItem RadioButton(string name, string option, bool isSelected, double x, double y, double width, double height, PdfFormFieldStyle? style) =>
         new(PdfCanvasFormFieldKind.RadioButton, name, x, y, width, height, style) { Option = option, Value = option, IsSelected = isSelected };
 
@@ -116,6 +139,7 @@ internal sealed class PdfCanvasFormFieldItem : PdfCanvasItem {
     internal string Value { get; private set; } = string.Empty;
     internal IReadOnlyList<string> Values { get; private set; } = Array.Empty<string>();
     internal IReadOnlyList<string> Options { get; private set; } = Array.Empty<string>();
+    internal IReadOnlyList<PdfFormFieldOption> ChoiceOptions { get; private set; } = Array.Empty<PdfFormFieldOption>();
     internal string Option { get; private set; } = string.Empty;
     internal bool IsSelected { get; private set; }
     internal double Width { get; }

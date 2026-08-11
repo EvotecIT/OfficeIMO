@@ -190,6 +190,15 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         BuildChoiceFieldWidgetAnnotation(x1, y1, x2, y2, name, options, new[] { value }, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection: false, style);
 
     internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null, int? structParentIndex = null) {
+        Guard.NotNull(options, nameof(options));
+        var pairedOptions = options.Select(option => new PdfFormFieldOption(option, option)).ToList();
+        return BuildChoiceFieldWidgetAnnotationCore(x1, y1, x2, y2, name, pairedOptions, values, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection, style, structParentIndex, requireUniqueExportValues: true, emitPairedOptions: false);
+    }
+
+    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null, int? structParentIndex = null) =>
+        BuildChoiceFieldWidgetAnnotationCore(x1, y1, x2, y2, name, options, values, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection, style, structParentIndex, requireUniqueExportValues: false, emitPairedOptions: true);
+
+    private static string BuildChoiceFieldWidgetAnnotationCore(double x1, double y1, double x2, double y2, string name, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style, int? structParentIndex, bool requireUniqueExportValues, bool emitPairedOptions) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNull(options, nameof(options));
@@ -214,21 +223,30 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         var optionBuilder = new StringBuilder();
         var optionSet = new HashSet<string>(StringComparer.Ordinal);
         for (int i = 0; i < options.Count; i++) {
-            string option = options[i];
-            Guard.NotNullOrWhiteSpace(option, nameof(options));
-            if (!optionSet.Add(option)) {
+            PdfFormFieldOption option = options[i] ?? throw new ArgumentException("PDF choice field options cannot contain null entries.", nameof(options));
+            Guard.NotNullOrWhiteSpace(option.DisplayText, nameof(options));
+            if (requireUniqueExportValues && !optionSet.Add(option.ExportValue)) {
                 throw new ArgumentException("PDF choice field options must be unique.", nameof(options));
             }
+            optionSet.Add(option.ExportValue);
 
-            optionBuilder.Append(' ')
-                .Append(PdfSyntaxEscaper.TextString(option));
+            optionBuilder.Append(' ');
+            if (emitPairedOptions || !string.Equals(option.ExportValue, option.DisplayText, StringComparison.Ordinal)) {
+                optionBuilder.Append('[')
+                    .Append(PdfSyntaxEscaper.TextString(option.ExportValue))
+                    .Append(' ')
+                    .Append(PdfSyntaxEscaper.TextString(option.DisplayText))
+                    .Append(']');
+            } else {
+                optionBuilder.Append(PdfSyntaxEscaper.TextString(option.ExportValue));
+            }
         }
 
         bool allowsCustomScalarValue = isComboBox && !allowsMultipleSelection && style != null && style.IsEditableChoice;
         var valueSet = new HashSet<string>(StringComparer.Ordinal);
         for (int i = 0; i < values.Count; i++) {
             string value = values[i];
-            Guard.NotNullOrWhiteSpace(value, nameof(values));
+            if (value == null) throw new ArgumentException("PDF choice field values cannot contain null entries.", nameof(values));
             if (!allowsCustomScalarValue && !optionSet.Contains(value)) {
                 throw new ArgumentException("PDF choice field values must match the provided options.", nameof(values));
             }

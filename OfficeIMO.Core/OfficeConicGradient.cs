@@ -103,7 +103,7 @@ public sealed class OfficeConicGradient {
     /// <summary>Creates a detached copy.</summary>
     public OfficeConicGradient Clone() => new OfficeConicGradient(CenterX, CenterY, StartAngle, Stops);
 
-    private OfficeColor Sample(double offset) {
+    internal OfficeColor Sample(double offset) {
         if (offset <= Stops[0].Offset) return Stops[0].Color;
         for (int index = 1; index < Stops.Count; index++) {
             OfficeGradientStop current = Stops[index];
@@ -111,14 +111,27 @@ public sealed class OfficeConicGradient {
             OfficeGradientStop previous = Stops[index - 1];
             if (current.Offset <= previous.Offset) return current.Color;
             double ratio = (offset - previous.Offset) / (current.Offset - previous.Offset);
-            return OfficeColor.FromRgba(
-                Interpolate(previous.Color.R, current.Color.R, ratio),
-                Interpolate(previous.Color.G, current.Color.G, ratio),
-                Interpolate(previous.Color.B, current.Color.B, ratio),
-                Interpolate(previous.Color.A, current.Color.A, ratio));
+            return InterpolateColor(previous.Color, current.Color, ratio);
         }
         return Stops[Stops.Count - 1].Color;
     }
+
+    private static OfficeColor InterpolateColor(OfficeColor first, OfficeColor second, double ratio) {
+        double firstAlpha = first.A / 255D;
+        double secondAlpha = second.A / 255D;
+        double alpha = firstAlpha + ((secondAlpha - firstAlpha) * ratio);
+        byte outputAlpha = Interpolate(first.A, second.A, ratio);
+        if (alpha <= 0.0000001D || outputAlpha == 0) return OfficeColor.FromRgba(0, 0, 0, 0);
+
+        return OfficeColor.FromRgba(
+            Unpremultiply(first.R * firstAlpha + ((second.R * secondAlpha - first.R * firstAlpha) * ratio), alpha),
+            Unpremultiply(first.G * firstAlpha + ((second.G * secondAlpha - first.G * firstAlpha) * ratio), alpha),
+            Unpremultiply(first.B * firstAlpha + ((second.B * secondAlpha - first.B * firstAlpha) * ratio), alpha),
+            outputAlpha);
+    }
+
+    private static byte Unpremultiply(double value, double alpha) =>
+        (byte)Math.Max(0D, Math.Min(255D, Math.Round(value / alpha, MidpointRounding.AwayFromZero)));
 
     private static byte Interpolate(byte first, byte second, double ratio) =>
         (byte)Math.Round(first + ((second - first) * ratio), MidpointRounding.AwayFromZero);

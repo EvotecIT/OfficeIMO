@@ -280,7 +280,7 @@ internal static class HtmlFormControlSemantics {
         return false;
     }
 
-    private static string GetOptionValue(IElement option) =>
+    internal static string GetOptionValue(IElement option) =>
         option.GetAttribute("value") ?? GetDefaultValue("option", null, option.TextContent ?? string.Empty);
 
     internal static string GetRangeValue(string? value, string? minimum, string? maximum, string? step = null) =>
