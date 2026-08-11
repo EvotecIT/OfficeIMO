@@ -360,7 +360,7 @@ public class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
-    public void RenderPage_UsesOuterAxialShadingPatternForUncoloredType3Stroke() {
+    public void RenderPage_FailsClosedForOuterAxialShadingPatternOnType3Stroke() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern CS /P1 SCN BT /FType3 18 Tf 20 100 Td (A) Tj ET",
             pageColorSpaceResources: string.Empty,
@@ -370,14 +370,11 @@ public class PdfType3UncoloredPatternTests {
             glyphContent: "500 0 d0 60 w 30 30 440 640 re S");
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
 
-        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
-        OfficeColor left = raster.GetPixel(21, 96);
-        OfficeColor right = raster.GetPixel(28, 96);
-        Assert.True(left.R > left.B);
-        Assert.True(right.B > right.R);
-        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(24, 94));
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Empty(drawing.Shapes);
     }
 
     [Fact]
@@ -453,6 +450,7 @@ public class PdfType3UncoloredPatternTests {
     [Theory]
     [InlineData("/Domain [0 2] /C0 [1 0 0] /C1 [0 0 1] /N 1")]
     [InlineData("/Domain [0 1] /Range [0 0.5 0 1 0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1")]
+    [InlineData("/Domain [0 1] /C0 [-1 0 0] /C1 [1 0 0] /N 1")]
     public void RenderPage_FailsClosedForUnmodeledShadingFunctionIntervals(string functionEntries) {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
@@ -473,11 +471,30 @@ public class PdfType3UncoloredPatternTests {
     [InlineData("/ShadingType 2 /ColorSpace /DeviceCMYK /Coords [20 100 30 100] /Function << /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 0 0 1] /N 1 >> /Extend [true true]")]
     [InlineData("/ShadingType 2 /ColorSpace /DeviceRGB /BBox [22 100 28 110] /Coords [20 100 30 100] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true]")]
     [InlineData("/ShadingType 3 /ColorSpace /DeviceRGB /Coords [23 106 2 27 106 2] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true]")]
+    [InlineData("/ShadingType 3 /ColorSpace /DeviceRGB /Coords [25 106 8 25 106 2] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true]")]
+    [InlineData("/ShadingType 3 /ColorSpace /DeviceRGB /Coords [25 106 1 25.001 106.001 1.0011] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true]")]
     public void RenderPage_FailsClosedForUnmodeledOuterShadingContracts(string shadingEntries) {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
             pageColorSpaceResources: string.Empty,
             patternDictionary: "<< /Type /Pattern /PatternType 2 /Shading << " + shadingEntries + " >>",
+            patternContent: string.Empty,
+            patternIsStream: false);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Empty(drawing.Shapes);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForOuterAxialShadingAxisOutsideGlyphBounds() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [1000000000 1000000000 1000001000 1000001000] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>",
             patternContent: string.Empty,
             patternIsStream: false);
 

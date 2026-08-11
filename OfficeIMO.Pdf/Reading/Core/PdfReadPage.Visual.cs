@@ -863,6 +863,7 @@ public sealed partial class PdfReadPage {
         if (!TryReadShadingStops(functionObject, colorSpace, out IReadOnlyList<OfficeGradientStop> stops)) {
             return false;
         }
+        exactColorInterpolation &= HasExactType3FunctionComponentRange(functionObject, colorSpace.ComponentCount);
 
         if (shadingType == 2) {
             shading = new PdfPageShadingResource(
@@ -879,9 +880,9 @@ public sealed partial class PdfReadPage {
             bool exactRadialFamily = coords.Take(6).All(IsFinite) &&
                 coords[2] >= 0D &&
                 coords[5] >= 0D &&
-                NearlyEqual(coords[0], coords[3]) &&
-                NearlyEqual(coords[1], coords[4]) &&
-                !NearlyEqual(coords[2], coords[5]);
+                coords[0].Equals(coords[3]) &&
+                coords[1].Equals(coords[4]) &&
+                coords[5] > coords[2];
             shading = new PdfPageShadingResource(
                 coords[0],
                 coords[1],
@@ -896,6 +897,38 @@ public sealed partial class PdfReadPage {
 
         return false;
     }
+
+    private bool HasExactType3FunctionComponentRange(PdfObject? functionObject, int componentCount) {
+        PdfObject? resolved = ResolveObject(functionObject);
+        if (resolved is PdfArray functionArray) {
+            if (functionArray.Items.Count != 1) return false;
+            resolved = ResolveObject(functionArray.Items[0]);
+        }
+        if (resolved is not PdfDictionary function) return false;
+
+        int? functionType = TryReadInteger(function.Items.TryGetValue("FunctionType", out PdfObject? typeObject) ? typeObject : null);
+        if (functionType == 2) {
+            IReadOnlyList<double> c0 = function.Items.TryGetValue("C0", out PdfObject? c0Object)
+                ? ReadNumberArray(c0Object)
+                : new[] { 0D };
+            IReadOnlyList<double> c1 = function.Items.TryGetValue("C1", out PdfObject? c1Object)
+                ? ReadNumberArray(c1Object)
+                : new[] { 1D };
+            return c0.Count == componentCount &&
+                   c1.Count == componentCount &&
+                   c0.All(IsUnitComponent) &&
+                   c1.All(IsUnitComponent);
+        }
+
+        if (functionType != 3 ||
+            !function.Items.TryGetValue("Functions", out PdfObject? functionsObject) ||
+            ResolveArray(functionsObject) is not PdfArray functions ||
+            functions.Items.Count < 2 ||
+            functions.Items.Count > 32) return false;
+        return functions.Items.All(item => HasExactType3FunctionComponentRange(item, componentCount));
+    }
+
+    private static bool IsUnitComponent(double value) => IsFinite(value) && value >= 0D && value <= 1D;
 
     private bool TryReadShadingStops(PdfObject? functionObject, PdfPageColorSpace colorSpace, out IReadOnlyList<OfficeGradientStop> stops) {
         stops = Array.Empty<OfficeGradientStop>();
