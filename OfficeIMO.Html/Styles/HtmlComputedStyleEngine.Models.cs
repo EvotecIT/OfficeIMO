@@ -12,31 +12,51 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private sealed class CascadedProperty {
-        internal CascadedProperty(string value, bool isImportant, Specificity specificity, int order) {
+        internal CascadedProperty(string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder = null, IEnumerable<CascadedProperty>? alternatives = null) {
             Value = value;
             HasValue = true;
             IsImportant = isImportant;
             Specificity = specificity;
             Order = order;
+            LayerOrder = layerOrder;
+            Alternatives = new List<CascadedProperty>(alternatives ?? Array.Empty<CascadedProperty>()).AsReadOnly();
         }
 
-        private CascadedProperty(bool isImportant, Specificity specificity, int order) {
+        private CascadedProperty(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, IEnumerable<CascadedProperty>? alternatives, bool revertsLayer) {
             Value = string.Empty;
             HasValue = false;
             IsImportant = isImportant;
             Specificity = specificity;
             Order = order;
+            LayerOrder = layerOrder;
+            Alternatives = new List<CascadedProperty>(alternatives ?? Array.Empty<CascadedProperty>()).AsReadOnly();
+            RevertsLayer = revertsLayer;
         }
 
-        internal static CascadedProperty Clear(bool isImportant, Specificity specificity, int order) {
-            return new CascadedProperty(isImportant, specificity, order);
+        internal static CascadedProperty Clear(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, IEnumerable<CascadedProperty>? alternatives) {
+            return new CascadedProperty(isImportant, specificity, order, layerOrder, alternatives, revertsLayer: false);
         }
+
+        internal static CascadedProperty RevertLayer(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, IEnumerable<CascadedProperty>? alternatives) =>
+            new CascadedProperty(isImportant, specificity, order, layerOrder, alternatives, revertsLayer: true);
 
         internal string Value { get; }
         internal bool HasValue { get; }
         internal bool IsImportant { get; }
         internal Specificity Specificity { get; }
         internal int Order { get; }
+        internal CascadeLayerOrder? LayerOrder { get; }
+        internal IReadOnlyList<CascadedProperty> Alternatives { get; }
+        internal bool RevertsLayer { get; }
+
+        internal CascadedProperty WithAlternative(CascadedProperty alternative) {
+            var alternatives = new List<CascadedProperty>(Alternatives) { alternative };
+            return RevertsLayer
+                ? RevertLayer(IsImportant, Specificity, Order, LayerOrder, alternatives)
+                : HasValue
+                    ? new CascadedProperty(Value, IsImportant, Specificity, Order, LayerOrder, alternatives)
+                    : Clear(IsImportant, Specificity, Order, LayerOrder, alternatives);
+        }
     }
 
     private readonly struct CssKeywordResolution {
@@ -80,11 +100,12 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private sealed class StyleRule {
-        internal StyleRule(string selector, Specificity specificity, int order, IDictionary<string, StyleDeclaration> declarations) {
+        internal StyleRule(string selector, Specificity specificity, int order, IDictionary<string, StyleDeclaration> declarations, CascadeLayerOrder? layerOrder = null) {
             Selector = selector;
             Specificity = specificity;
             Order = order;
             Declarations = new Dictionary<string, StyleDeclaration>(declarations, StringComparer.OrdinalIgnoreCase);
+            LayerOrder = layerOrder;
             CandidateKey = GetSelectorCandidateKey(selector);
         }
 
@@ -92,6 +113,7 @@ public static partial class HtmlComputedStyleEngine {
         internal Specificity Specificity { get; }
         internal int Order { get; }
         internal IReadOnlyDictionary<string, StyleDeclaration> Declarations { get; }
+        internal CascadeLayerOrder? LayerOrder { get; }
         internal SelectorCandidateKey CandidateKey { get; }
     }
 
@@ -167,6 +189,72 @@ public static partial class HtmlComputedStyleEngine {
             ICollection<StyleRule> candidates) {
             if (index.TryGetValue(key, out List<StyleRule>? rules)) {
                 foreach (StyleRule rule in rules) candidates.Add(rule);
+            }
+        }
+    }
+
+    private sealed class CascadeLayerRegistry {
+        private readonly Dictionary<string, Dictionary<string, int>> _children = new Dictionary<string, Dictionary<string, int>>(StringComparer.Ordinal);
+        private int _anonymous;
+
+        internal CascadeLayerOrder Register(string name) {
+            string[] components = name.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+            var positions = new List<int>(components.Length);
+            string parent = string.Empty;
+            foreach (string component in components) {
+                if (!_children.TryGetValue(parent, out Dictionary<string, int>? children)) {
+                    children = new Dictionary<string, int>(StringComparer.Ordinal);
+                    _children[parent] = children;
+                }
+                if (!children.TryGetValue(component, out int position)) {
+                    position = children.Count;
+                    children[component] = position;
+                }
+                positions.Add(position);
+                parent = parent.Length == 0 ? component : parent + "." + component;
+            }
+            return new CascadeLayerOrder(positions);
+        }
+
+        internal string RegisterAnonymous(string? parent) {
+            string name = (parent == null ? string.Empty : parent + ".") + "#anonymous-" + (++_anonymous).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            Register(name);
+            return name;
+        }
+
+        internal CascadeLayerOrder GetOrder(string name) => Register(name);
+    }
+
+    private sealed class CascadeLayerOrder : IEquatable<CascadeLayerOrder> {
+        private readonly int[] _components;
+
+        internal CascadeLayerOrder(IEnumerable<int> components) {
+            _components = components.ToArray();
+        }
+
+        internal int CompareTo(CascadeLayerOrder other) {
+            int shared = Math.Min(_components.Length, other._components.Length);
+            for (int index = 0; index < shared; index++) {
+                if (_components[index] != other._components[index]) {
+                    return _components[index].CompareTo(other._components[index]);
+                }
+            }
+
+            // Declarations directly in a layer have normal precedence over declarations
+            // in its nested sublayers. Important declarations reverse this ordering later.
+            return other._components.Length.CompareTo(_components.Length);
+        }
+
+        public bool Equals(CascadeLayerOrder? other) =>
+            other != null && _components.SequenceEqual(other._components);
+
+        public override bool Equals(object? obj) => Equals(obj as CascadeLayerOrder);
+
+        public override int GetHashCode() {
+            unchecked {
+                int hash = 17;
+                foreach (int component in _components) hash = (hash * 31) + component;
+                return hash;
             }
         }
     }

@@ -5,11 +5,14 @@ using AngleSharp.Html.Dom;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
+    private const string RevertLayerSentinel = "var(--officeimo-internal-revert-layer)";
+
     private static IReadOnlyList<StyleRule> ParseStyleRules(
         IHtmlDocument document,
         MediaEnvironment environment,
         HtmlCssProcessingBudget budget) {
         var rules = new List<StyleRule>();
+        var layers = new CascadeLayerRegistry();
         // Raw recovery supplements declarations AngleSharp cannot retain. Match each
         // parsed author rule once so recovery neither duplicates it nor charges it twice.
         var parsedRuleMatches = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -31,9 +34,9 @@ public static partial class HtmlComputedStyleEngine {
             }
 
             IReadOnlyDictionary<int, int> rawRuleClosures = HtmlCssRuleBlockScanner.Scan(css, budget);
-            var stylesheet = parser.ParseStyleSheet(css);
+            var stylesheet = parser.ParseStyleSheet(PreserveRevertLayerDeclarations(css));
             foreach (var rule in stylesheet.Rules) {
-                AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, 1);
+                AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, layers, 1, null, null);
             }
             AddRawRetainedStyleRules(css, 0, css.Length, rawRuleClosures, rules, parsedRuleMatches, environment, budget);
         }
@@ -71,11 +74,36 @@ public static partial class HtmlComputedStyleEngine {
         IDictionary<string, int> parsedRuleMatches,
         MediaEnvironment environment,
         HtmlCssProcessingBudget budget,
-        int depth) {
+        CascadeLayerRegistry layers,
+        int depth,
+        string? currentLayer,
+        IReadOnlyList<string>? parentSelectors) {
         budget.RecordNestingDepth(depth);
+        var layerRule = rule as AngleSharp.Css.Dom.ICssLayerRule;
+        if (layerRule != null) {
+            if (layerRule.IsStatement) {
+                foreach (string declaredName in SplitLayerNames(layerRule.Name)) {
+                    layers.Register(CombineLayerName(currentLayer, declaredName));
+                }
+                return;
+            }
+            string layerName = string.IsNullOrWhiteSpace(layerRule.Name)
+                ? layers.RegisterAnonymous(currentLayer)
+                : CombineLayerName(currentLayer, layerRule.Name.Trim());
+            layers.Register(layerName);
+            foreach (var childRule in layerRule.Rules) {
+                AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, layerName, parentSelectors);
+            }
+            return;
+        }
+
         var styleRule = rule as AngleSharp.Css.Dom.ICssStyleRule;
         if (styleRule != null) {
-            AddStyleRule(styleRule, rules, parsedRuleMatches, budget);
+            IReadOnlyList<string> resolvedSelectors = ResolveNestedSelectors(styleRule.SelectorText ?? string.Empty, parentSelectors);
+            AddStyleRule(styleRule, resolvedSelectors, rules, parsedRuleMatches, budget, currentLayer == null ? null : layers.GetOrder(currentLayer));
+            foreach (var childRule in GetNestedStyleRules(styleRule)) {
+                AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, resolvedSelectors);
+            }
             return;
         }
 
@@ -94,21 +122,19 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         foreach (var childRule in groupingRule.Rules) {
-            AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, depth + 1);
+            AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, parentSelectors);
         }
     }
 
     private static void AddStyleRule(
         AngleSharp.Css.Dom.ICssStyleRule styleRule,
+        IReadOnlyList<string> resolvedSelectors,
         ICollection<StyleRule> rules,
         IDictionary<string, int> parsedRuleMatches,
-        HtmlCssProcessingBudget budget) {
-        string selectorText = styleRule.SelectorText ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(selectorText)) return;
-        string[] selectors = SplitSelectorList(selectorText)
-            .Select(selector => selector.Trim())
-            .Where(selector => selector.Length > 0)
-            .ToArray();
+        HtmlCssProcessingBudget budget,
+        CascadeLayerOrder? layerOrder) {
+        if (resolvedSelectors.Count == 0) return;
+        string[] selectors = resolvedSelectors.ToArray();
         foreach (string selector in selectors) {
             budget.RecordRule(styleRule.Style.Length);
             RecordParsedRule(parsedRuleMatches, ParsedRuleKey(selector));
@@ -120,7 +146,7 @@ public static partial class HtmlComputedStyleEngine {
             if (!string.IsNullOrWhiteSpace(propertyName)
                 && (SupportedProperties.Contains(propertyName) || propertyName.StartsWith("--", StringComparison.Ordinal))) {
                 declarations[propertyName] = new StyleDeclaration(
-                    styleRule.Style.GetPropertyValue(propertyName),
+                    RestoreRevertLayerKeyword(styleRule.Style.GetPropertyValue(propertyName)),
                     string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
             }
         }
@@ -133,19 +159,115 @@ public static partial class HtmlComputedStyleEngine {
             string propertyValue = styleRule.Style.GetPropertyValue(propertyName);
             if (string.IsNullOrWhiteSpace(propertyValue)) continue;
             declarations[propertyName] = new StyleDeclaration(
-                propertyValue,
+                RestoreRevertLayerKeyword(propertyValue),
                 string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
         }
         AddRetainedUnknownDeclarations(styleRule.CssText, declarations);
 
         foreach (string selector in selectors) {
             if (declarations.Count > 0) {
-                rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations));
+                rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations, layerOrder));
                 if (declarations.ContainsKey("string-set")) {
                     RecordParsedRule(parsedRuleMatches, ParsedRetainedRuleKey(selector));
                 }
             }
         }
+    }
+
+    private static IReadOnlyList<string> ResolveNestedSelectors(string selectorText, IReadOnlyList<string>? parentSelectors) {
+        string[] children = SplitSelectorList(selectorText)
+            .Select(selector => selector.Trim())
+            .Where(selector => selector.Length > 0)
+            .ToArray();
+        if (parentSelectors == null || parentSelectors.Count == 0) return children;
+        string parent = parentSelectors.Count == 1
+            ? parentSelectors[0]
+            : ":is(" + string.Join(",", parentSelectors) + ")";
+        var resolved = new List<string>(children.Length);
+        foreach (string child in children) {
+            resolved.Add(child.IndexOf('&') >= 0
+                ? child.Replace("&", parent)
+                : parent + " " + child);
+        }
+        return resolved.AsReadOnly();
+    }
+
+    private static IReadOnlyList<string> SplitLayerNames(string value) =>
+        (value ?? string.Empty).Split(',')
+            .Select(name => name.Trim())
+            .Where(name => name.Length > 0)
+            .ToList()
+            .AsReadOnly();
+
+    private static string CombineLayerName(string? parent, string child) =>
+        string.IsNullOrWhiteSpace(parent) ? child : parent + "." + child;
+
+    private static string RestoreRevertLayerKeyword(string value) =>
+        string.Equals(value.Trim(), RevertLayerSentinel, StringComparison.OrdinalIgnoreCase)
+            ? "revert-layer"
+            : value;
+
+    private static string PreserveRevertLayerDeclarations(string css) {
+        const string keyword = "revert-layer";
+        var result = new System.Text.StringBuilder(css.Length);
+        char quote = '\0';
+        for (int index = 0; index < css.Length;) {
+            char current = css[index];
+            if (quote != '\0') {
+                result.Append(current);
+                if (current == quote && !IsEscaped(css, index)) quote = '\0';
+                index++;
+                continue;
+            }
+            if (current == '\'' || current == '"') {
+                quote = current;
+                result.Append(current);
+                index++;
+                continue;
+            }
+            if (current == '/' && index + 1 < css.Length && css[index + 1] == '*') {
+                int close = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
+                int end = close < 0 ? css.Length : close + 2;
+                result.Append(css, index, end - index);
+                index = end;
+                continue;
+            }
+            if (index + keyword.Length <= css.Length
+                && string.Compare(css, index, keyword, 0, keyword.Length, StringComparison.OrdinalIgnoreCase) == 0
+                && IsStandaloneDeclarationValue(css, index, keyword.Length)) {
+                result.Append(RevertLayerSentinel);
+                index += keyword.Length;
+                continue;
+            }
+            result.Append(current);
+            index++;
+        }
+        return result.ToString();
+    }
+
+    private static bool IsStandaloneDeclarationValue(string css, int start, int length) {
+        int before = start - 1;
+        while (before >= 0 && char.IsWhiteSpace(css[before])) before--;
+        if (before < 0 || css[before] != ':') return false;
+        int after = start + length;
+        while (after < css.Length && char.IsWhiteSpace(css[after])) after++;
+        const string important = "!important";
+        if (after + important.Length <= css.Length
+            && string.Compare(css, after, important, 0, important.Length, StringComparison.OrdinalIgnoreCase) == 0) {
+            after += important.Length;
+            while (after < css.Length && char.IsWhiteSpace(css[after])) after++;
+        }
+        return after < css.Length && (css[after] == ';' || css[after] == '}');
+    }
+
+    private static IEnumerable<AngleSharp.Css.Dom.ICssRule> GetNestedStyleRules(AngleSharp.Css.Dom.ICssStyleRule styleRule) {
+        // AngleSharp 1.0.1 retains CSS-nesting children on its concrete style-rule type,
+        // but the public ICssStyleRule contract predates the Rules member.
+        System.Reflection.PropertyInfo? property = styleRule.GetType().GetProperty("Rules");
+        var nested = property?.GetValue(styleRule, null) as AngleSharp.Css.Dom.ICssRuleList;
+        return nested != null
+            ? nested.Cast<AngleSharp.Css.Dom.ICssRule>()
+            : Array.Empty<AngleSharp.Css.Dom.ICssRule>();
     }
 
     private static void AddRawRetainedStyleRules(

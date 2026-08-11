@@ -18,24 +18,38 @@ public static partial class HtmlComputedStyleEngine {
             value = StripTrailingImportant(value, out isImportant);
 
             if (name.Length > 0 && value.Length > 0) {
-                ApplyDeclaration(properties, parentProperties, name, value, isImportant, Specificity.Inline, int.MaxValue);
+                ApplyDeclaration(properties, parentProperties, name, value, isImportant, Specificity.Inline, int.MaxValue, layerOrder: null);
             }
         }
     }
 
-    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order) {
+    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder) {
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value)) {
+            return;
+        }
+
+        CascadedProperty? existing;
+        properties.TryGetValue(name, out existing);
+        if (string.Equals(value.Trim(), "revert-layer", StringComparison.OrdinalIgnoreCase)) {
+            var candidate = CascadedProperty.RevertLayer(isImportant, specificity, order, layerOrder, alternatives: null);
+            if (existing != null && !ShouldReplace(existing, isImportant, specificity, order, layerOrder)) {
+                properties[name] = existing.WithAlternative(candidate);
+                return;
+            }
+            properties[name] = CascadedProperty.RevertLayer(isImportant, specificity, order, layerOrder, CollectCandidates(existing));
             return;
         }
 
         var resolved = ResolveCssWideKeyword(name, value, parentProperties);
         if (!resolved.HasValue) {
             CascadedProperty? resetExisting;
-            if (properties.TryGetValue(name, out resetExisting) && resetExisting != null && !ShouldReplace(resetExisting, isImportant, specificity, order)) {
+            if (properties.TryGetValue(name, out resetExisting) && resetExisting != null && !ShouldReplace(resetExisting, isImportant, specificity, order, layerOrder)) {
+                resetExisting = resetExisting.WithAlternative(CascadedProperty.Clear(isImportant, specificity, order, layerOrder, alternatives: null));
+                properties[name] = resetExisting;
                 return;
             }
 
-            properties[name] = CascadedProperty.Clear(isImportant, specificity, order);
+            properties[name] = CascadedProperty.Clear(isImportant, specificity, order, layerOrder, CollectCandidates(resetExisting));
             return;
         }
 
@@ -43,12 +57,12 @@ public static partial class HtmlComputedStyleEngine {
             return;
         }
 
-        CascadedProperty? existing;
-        if (properties.TryGetValue(name, out existing) && existing != null && !ShouldReplace(existing, isImportant, specificity, order)) {
+        if (existing != null && !ShouldReplace(existing, isImportant, specificity, order, layerOrder)) {
+            properties[name] = existing.WithAlternative(new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder));
             return;
         }
 
-        properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order);
+        properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, CollectCandidates(existing));
     }
 
     private static CssKeywordResolution ResolveCssWideKeyword(string name, string value, IReadOnlyDictionary<string, string>? parentProperties) {
@@ -62,8 +76,7 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         if (string.Equals(trimmed, "initial", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(trimmed, "revert-layer", StringComparison.OrdinalIgnoreCase)) {
+            || string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)) {
             return string.Equals(name, "visibility", StringComparison.OrdinalIgnoreCase)
                 ? CssKeywordResolution.ForValue("visible")
                 : CssKeywordResolution.Clear;
@@ -76,9 +89,22 @@ public static partial class HtmlComputedStyleEngine {
         return CssKeywordResolution.ForValue(value);
     }
 
-    private static bool ShouldReplace(CascadedProperty existing, bool isImportant, Specificity specificity, int order) {
+    private static bool ShouldReplace(CascadedProperty existing, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder) {
         if (existing.IsImportant != isImportant) {
             return isImportant;
+        }
+
+        if ((existing.LayerOrder != null) != (layerOrder != null)) {
+            return isImportant ? layerOrder != null : layerOrder == null;
+        }
+
+        if (existing.LayerOrder != null && layerOrder != null) {
+            int layerComparison = layerOrder.CompareTo(existing.LayerOrder);
+            if (layerComparison != 0) {
+            return isImportant
+                    ? layerComparison < 0
+                    : layerComparison > 0;
+            }
         }
 
         int specificityComparison = specificity.CompareTo(existing.Specificity);
@@ -87,6 +113,13 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         return order >= existing.Order;
+    }
+
+    private static IReadOnlyList<CascadedProperty> CollectCandidates(CascadedProperty? property) {
+        if (property == null) return Array.Empty<CascadedProperty>();
+        var candidates = new List<CascadedProperty>(property.Alternatives.Count + 1) { property };
+        candidates.AddRange(property.Alternatives);
+        return candidates.AsReadOnly();
     }
 
     private static string StripTrailingImportant(string value, out bool isImportant) {

@@ -316,7 +316,7 @@ public static partial class HtmlComputedStyleEngine {
             if (!TryParsePseudoElementSelector(rule.Selector, out _, out _)
                 && MatchesSelector(element, rule.Selector)) {
                 foreach (var declaration in rule.Declarations) {
-                    ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value, declaration.Value.IsImportant, rule.Specificity, rule.Order);
+                    ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value, declaration.Value.IsImportant, rule.Specificity, rule.Order, rule.LayerOrder);
                 }
             }
         }
@@ -374,7 +374,8 @@ public static partial class HtmlComputedStyleEngine {
                     declaration.Value.Value,
                     declaration.Value.IsImportant,
                     rule.Specificity,
-                    rule.Order);
+                    rule.Order,
+                    rule.LayerOrder);
             }
         }
 

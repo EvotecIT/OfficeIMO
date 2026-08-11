@@ -309,9 +309,15 @@ public static partial class HtmlComputedStyleEngine {
     private static IDictionary<string, string> ResolveComputedProperties(
         IReadOnlyDictionary<string, CascadedProperty> properties,
         IReadOnlyDictionary<string, string>? parentProperties) {
-        var raw = properties
-            .Where(pair => pair.Value.HasValue)
-            .ToDictionary(pair => pair.Key, pair => pair.Value.Value, StringComparer.OrdinalIgnoreCase);
+        var raw = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<string, CascadedProperty> pair in properties) {
+            CascadedProperty? effective = ResolveLayerRevert(pair.Value);
+            if (effective?.HasValue == true) raw[pair.Key] = effective.Value;
+            else if (effective?.RevertsLayer == true
+                && IsInheritedProperty(pair.Key)
+                && parentProperties != null
+                && parentProperties.TryGetValue(pair.Key, out string? inherited)) raw[pair.Key] = inherited;
+        }
         var resolved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, string> pair in raw) {
             if (pair.Key.StartsWith("--", StringComparison.Ordinal)) {
@@ -331,6 +337,25 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         return resolved;
+    }
+
+    private static CascadedProperty? ResolveLayerRevert(CascadedProperty property) {
+        if (!property.RevertsLayer) return property;
+
+        var candidates = new List<CascadedProperty>(property.Alternatives.Count + 1) { property };
+        candidates.AddRange(property.Alternatives);
+        var revertedLayers = new HashSet<CascadeLayerOrder?>();
+        while (true) {
+            CascadedProperty? current = null;
+            foreach (CascadedProperty candidate in candidates) {
+                if (candidate.Specificity != Specificity.Inherited && revertedLayers.Contains(candidate.LayerOrder)) continue;
+                if (current == null || ShouldReplace(current, candidate.IsImportant, candidate.Specificity, candidate.Order, candidate.LayerOrder)) {
+                    current = candidate;
+                }
+            }
+            if (current?.RevertsLayer != true) return current;
+            revertedLayers.Add(current.LayerOrder);
+        }
     }
 
     private static bool StartsWithLogicalNot(string conditionText) {

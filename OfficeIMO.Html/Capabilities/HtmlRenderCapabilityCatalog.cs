@@ -7,11 +7,11 @@ namespace OfficeIMO.Html;
 public static class HtmlRenderCapabilityCatalog {
     private static readonly IReadOnlyList<HtmlRenderCapability> Capabilities = new[] {
         Full("css-cascade", "CSS cascade", HtmlRenderCapabilityKind.Css,
-            Features("author stylesheets", "caller stylesheets", "inline styles", "!important", "inheritance", "custom properties", "@supports"),
-            "Applies the bounded author cascade, selector specificity, inherited values, var() substitution, supported @supports conditions, and caller stylesheets appended after document styles."),
+            Features("author stylesheets", "caller stylesheets", "inline styles", "!important", "inheritance", "custom properties", "@supports", "@layer", "revert-layer"),
+            "Applies the bounded author cascade, selector specificity, cascade-layer ordering, layer rollback, inherited values, var() substitution, supported @supports conditions, and caller stylesheets appended after document styles."),
         Partial("css-selectors", "CSS selectors", HtmlRenderCapabilityKind.Css,
-            Features("type", "class", "id", "attribute", "combinators", "structural pseudo-classes", "::before", "::after"),
-            "Matches the documented selector subset and generated before/after content; selectors outside the bounded subset do not match."),
+            Features("type", "class", "id", "attribute", "combinators", "structural pseudo-classes", "CSS nesting", "::before", "::after"),
+            "Matches the documented selector subset, bounded parent-list and ampersand nesting, and generated before/after content; selectors outside the bounded subset do not match."),
         Full("css-length-units", "CSS values", HtmlRenderCapabilityKind.Css,
             Features("px", "pt", "pc", "in", "cm", "mm", "q", "em", "rem", "%"),
             "Resolves absolute, font-relative, and percentage lengths against the active layout reference."),
