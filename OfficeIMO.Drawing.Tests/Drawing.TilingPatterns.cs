@@ -180,4 +180,37 @@ public partial class DrawingTests {
 
         Assert.DoesNotContain("officeimo-pattern-clip-", svg, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_SkipsTransparentEffectGroupBeforeExpansionBudget() {
+        var leaf = new OfficeDrawing(1D, 1D);
+        OfficeShape square = OfficeShape.Rectangle(1D, 1D);
+        square.FillColor = OfficeColor.Red;
+        square.StrokeWidth = 0D;
+        leaf.AddShape(square, 0D, 0D);
+
+        var nestedTile = new OfficeDrawing(129D, 1D);
+        nestedTile.AddTilingPattern(
+            leaf,
+            new OfficeImagePlacement(0D, 0D, 129D, 1D),
+            1D,
+            1D,
+            repeatX: true,
+            repeatY: false);
+        var hidden = new OfficeDrawing(129D, 1D);
+        hidden.AddTilingPattern(
+            nestedTile,
+            new OfficeImagePlacement(0D, 0D, 129D, 1D),
+            1D,
+            1D,
+            repeatX: true,
+            repeatY: false);
+        var drawing = new OfficeDrawing(129D, 1D);
+        drawing.AddEffectDrawing(hidden, OfficeTransform.Identity, 0D);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.DoesNotContain("officeimo-pattern-clip-", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("opacity=\"0\"", svg, StringComparison.Ordinal);
+    }
 }

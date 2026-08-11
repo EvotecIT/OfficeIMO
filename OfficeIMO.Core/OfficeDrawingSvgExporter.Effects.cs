@@ -5,6 +5,7 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
     private static void AppendEffectGroup(StringBuilder sb, OfficeDrawingEffectGroup effectGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget) {
+        if (effectGroup.Opacity <= 0D) return;
         string? maskId = null;
         if (effectGroup.SoftMask != null) {
             maskId = idPrefix + "officeimo-mask-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
