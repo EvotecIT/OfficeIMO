@@ -247,8 +247,8 @@ internal static partial class PdfColorSpaceFunctionResolver {
             long splineWorkspaceBytes = usesNaturalCubicSpline
                 ? checked((long)naturalSplinePointCount * sizeof(double))
                 : 0L;
-            long totalRetainedBytes = checked(retainedFunctionBytes + expectedBytes + derivativeBytes);
-            long peakFunctionBytes = checked(totalRetainedBytes + splineWorkspaceBytes);
+            long minimumRetainedBytes = checked(retainedFunctionBytes + expectedBytes + derivativeBytes);
+            long peakFunctionBytes = checked(minimumRetainedBytes + splineWorkspaceBytes);
             if (peakFunctionBytes > maxDecodedStreamBytes || expectedBytes > int.MaxValue) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedStreamBytes, maxDecodedStreamBytes, peakFunctionBytes);
             }
@@ -263,8 +263,24 @@ internal static partial class PdfColorSpaceFunctionResolver {
             } catch (InvalidDataException) {
                 return false;
             }
-            if (decoded.LongLength != expectedBytes) return false;
-            byte[] samples = decoded;
+            if (decoded.LongLength < expectedBytes) return false;
+            long copiedSampleBytes = decoded.LongLength == expectedBytes ? 0L : expectedBytes;
+            peakFunctionBytes = checked(
+                retainedFunctionBytes + decoded.LongLength + copiedSampleBytes + derivativeBytes + splineWorkspaceBytes);
+            if (peakFunctionBytes > maxDecodedStreamBytes) {
+                throw PdfReadLimitException.Create(
+                    PdfReadLimitKind.DecodedStreamBytes,
+                    maxDecodedStreamBytes,
+                    peakFunctionBytes);
+            }
+            byte[] samples;
+            if (decoded.LongLength == expectedBytes) {
+                samples = decoded;
+            } else {
+                samples = new byte[(int)expectedBytes];
+                Buffer.BlockCopy(decoded, 0, samples, 0, samples.Length);
+            }
+            long totalRetainedBytes = checked(retainedFunctionBytes + decoded.LongLength + derivativeBytes);
             ulong maximumSample = bitsPerSample == 32 ? uint.MaxValue : (1UL << bitsPerSample) - 1UL;
             if (!TryCreateSampledEvaluator(
                     order,
@@ -522,7 +538,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
             double sourceEnd = index == bounds.Length ? domain[1] : bounds[index];
             foreach (double childDiscontinuity in children[index].Discontinuities) {
                 double input = PdfColorFunction.Interpolate(childDiscontinuity, encodedStart, encodedEnd, sourceStart, sourceEnd);
-                if (IsFinite(input) && input > sourceStart && input <= sourceEnd) result.Add(input);
+                if (IsFinite(input) && input >= sourceStart && input <= sourceEnd) result.Add(input);
             }
         }
         int reservedDomainBoundaries = domain.Count(boundary => !result.Contains(boundary));
