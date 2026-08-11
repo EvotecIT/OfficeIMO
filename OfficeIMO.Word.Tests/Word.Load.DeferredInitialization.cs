@@ -38,6 +38,86 @@ public sealed class WordLoadDeferredInitializationTests {
     }
 
     [Fact]
+    public void SettingsDependentSectionEditCreatesMissingSettingsPart() {
+        using var stream = CreateMinimalDocument();
+        using WordDocument document = WordDocument.Load(stream);
+        MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
+
+        Assert.Null(mainPart.DocumentSettingsPart);
+
+        document.Sections[0].DifferentOddAndEvenPages = true;
+
+        Assert.NotNull(mainPart.DocumentSettingsPart?.Settings?.GetFirstChild<EvenAndOddHeaders>());
+    }
+
+    [Fact]
+    public void DisablingDifferentOddAndEvenPagesDoesNotCreateMissingParts() {
+        using var stream = CreateMinimalDocument();
+        using WordDocument document = WordDocument.Load(stream);
+        MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
+
+        Assert.Null(mainPart.DocumentSettingsPart);
+        Assert.Empty(mainPart.HeaderParts);
+        Assert.Empty(mainPart.FooterParts);
+
+        document.Sections[0].DifferentOddAndEvenPages = false;
+
+        Assert.Null(mainPart.DocumentSettingsPart);
+        Assert.Empty(mainPart.HeaderParts);
+        Assert.Empty(mainPart.FooterParts);
+        Assert.False(document.Sections[0].DifferentOddAndEvenPages);
+    }
+
+    [Fact]
+    public void DisablingDifferentOddAndEvenPagesRemovesExistingSetting() {
+        using var stream = CreateMinimalDocument();
+        using WordDocument document = WordDocument.Load(stream);
+        MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
+
+        document.Sections[0].DifferentOddAndEvenPages = true;
+        Assert.NotNull(mainPart.DocumentSettingsPart?.Settings?.GetFirstChild<EvenAndOddHeaders>());
+
+        document.Sections[0].DifferentOddAndEvenPages = false;
+
+        Assert.Null(mainPart.DocumentSettingsPart?.Settings?.GetFirstChild<EvenAndOddHeaders>());
+        Assert.False(document.Sections[0].DifferentOddAndEvenPages);
+    }
+
+    [Fact]
+    public void BackgroundImageEditCreatesMissingSettingsPartBeforeEditing() {
+        using var stream = CreateMinimalDocument();
+        using WordDocument document = WordDocument.Load(stream);
+        MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
+        byte[] imageBytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=");
+        using var imageStream = new MemoryStream(imageBytes, writable: false);
+
+        Assert.Null(mainPart.DocumentSettingsPart);
+
+        document.Background.SetImage(imageStream, "background.png", 1, 1);
+
+        Assert.NotNull(mainPart.DocumentSettingsPart?.Settings?.DisplayBackgroundShape);
+        Assert.NotNull(mainPart.Document?.DocumentBackground);
+    }
+
+    [Fact]
+    public void StyleDependentSettingsEditCreatesMissingStylesPart() {
+        using var stream = CreateMinimalDocument(includeStyles: false);
+        using WordDocument document = WordDocument.Load(stream);
+        MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
+
+        Assert.Null(mainPart.StyleDefinitionsPart);
+
+        document.Settings.FontSize = 13;
+        document.Settings.FontFamily = "Aptos";
+
+        Assert.NotNull(mainPart.StyleDefinitionsPart?.Styles);
+        Assert.Equal(13, document.Settings.FontSize);
+        Assert.Equal("Aptos", document.Settings.FontFamily);
+        Assert.Empty(new OpenXmlValidator().Validate(document._wordprocessingDocument));
+    }
+
+    [Fact]
     public void SavingLoadedDocumentAddsRequiredStyleCatalog() {
         using var stream = CreateMinimalDocument();
         using WordDocument document = WordDocument.Load(stream);

@@ -79,39 +79,20 @@ NPOI's transitive 8.0.2 minimum is affected by a
 
 ## Public harness, local numerical results
 
-The benchmark source, deterministic inputs, validators, feature catalog, and
-run instructions stay in this public repository. That makes the comparison
-auditable and lets community members reproduce or improve it. Correctness
-validation and the feature catalog are not numerical performance claims.
+The benchmark source, deterministic inputs, validators, and run instructions
+stay in this public repository. That makes each measured workload auditable and
+lets community members reproduce or improve it.
 
 Numerical Word comparison artifacts stay local because the Xceed Community
 License says Community Licensees may not publish DocX benchmark or performance
 comparison results without Xceed's advance permission. The shared runner rejects
-`-Publish` for every Word workload because each combined result contains a DocX
-lane. NPOI's binary EULA adds fee and acknowledgement conditions but does not add
-the same benchmark-publication restriction; NPOI is not the reason the combined
-results remain local. If Xceed grants written permission, the publication gate
-can be changed in a reviewed update. Raw BenchmarkDotNet artifacts belong in
-ignored or temporary output folders.
-
-## Feature applicability
-
-The machine-readable [capability catalog](word-library-capabilities.json)
-separates high-level support, low-level format access, adjacent conversion or
-security packages, partial support, and features with no built-in workflow.
-Render its current matrix with:
-
-```powershell
-dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- features
-```
-
-OfficeIMO, DocX, and NPOI provide high-level DOCX authoring APIs. OfficeIMO also
-has a diagnosed legacy DOC subset and adjacent HTML, Markdown, PDF, and security
-packages, plus structured comparison/redline workflows. NPOI has a partial
-legacy DOC surface but no equivalent built-in workflow for several higher-level
-features. Open XML SDK exposes the underlying format rather than equivalent
-productivity APIs, so the matrix labels those capabilities `low-level` instead
-of treating format access as a high-level feature.
+`-Publish` for every Word workload and never writes Word quick-run evidence into
+the website catalog because each combined result contains a DocX lane. NPOI's
+binary EULA adds fee and acknowledgement conditions but does not add the same
+benchmark-publication restriction; NPOI is not the reason the combined results
+remain local. If Xceed grants written permission, the publication gate can be
+changed in a reviewed update. Raw BenchmarkDotNet artifacts belong in ignored
+or temporary output folders.
 
 ## OfficeIMO-only workflow diagnostics
 

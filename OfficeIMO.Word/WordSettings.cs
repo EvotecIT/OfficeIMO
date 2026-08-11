@@ -259,6 +259,7 @@ namespace OfficeIMO.Word {
         }
 
         private RunPropertiesBaseStyle? SetDefaultStyleProperties() {
+            _document.EnsureStyleDefinitionsInitialized();
             var styles = _document._wordprocessingDocument.MainDocumentPart?
                 .StyleDefinitionsPart?.Styles;
             if (styles == null) {

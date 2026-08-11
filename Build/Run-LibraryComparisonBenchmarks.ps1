@@ -197,14 +197,15 @@ $selected = if ($Workload -eq 'all') {
     @($Workload)
 }
 
-if ($Publish -and @($selected | Where-Object { $_ -like 'word*' }).Count -gt 0) {
+$containsWordWorkload = @($selected | Where-Object { $_ -like 'word*' }).Count -gt 0
+
+if ($Publish -and $containsWordWorkload) {
     throw @'
 DocX is distributed under the Xceed Community License, which prohibits publishing benchmark or performance comparison results without Xceed's advance permission. Word comparison evidence is local-only. Obtain written permission and update this reviewed publication gate before publishing it.
 '@
 }
 
-if (@($selected | Where-Object { $_ -like 'word*' }).Count -gt 0 -and
-    -not $AcceptNPOIOSMFLicense) {
+if ($containsWordWorkload -and -not $AcceptNPOIOSMFLicense) {
     throw @'
 The Word comparison suite includes NPOI 2.8.0. Review the NPOI binary EULA at https://github.com/nissl-lab/npoi/blob/master/OSMFEULA.txt, then rerun with -AcceptNPOIOSMFLicense to acknowledge it for this opt-in benchmark run.
 '@
@@ -213,8 +214,12 @@ The Word comparison suite includes NPOI 2.8.0. Review the NPOI binary EULA at ht
 $stamp = [DateTimeOffset]::UtcNow.ToString('yyyyMMdd-HHmmss')
 $staticRoot = Join-Path $repositoryRoot 'Website\static\data\benchmarks\library-comparisons'
 $catalogPath = Join-Path $staticRoot 'index.json'
-$catalogEligible = $RunMode -eq 'quick' -or [bool] $Publish
-New-Item -ItemType Directory -Force -Path $OutputRoot, $staticRoot | Out-Null
+$catalogEligible = ($RunMode -eq 'quick' -or [bool] $Publish) -and
+    @($selected | Where-Object { $_ -notlike 'word*' }).Count -gt 0
+New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
+if ($catalogEligible) {
+    New-Item -ItemType Directory -Force -Path $staticRoot | Out-Null
+}
 
 $gitSha = (& git -C $repositoryRoot rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($gitSha)) {
@@ -322,6 +327,7 @@ foreach ($name in $selected) {
         EvidenceLocation = $evidenceLocation
         ArtifactsPath = $artifactsPath
         NormalizedResult = $normalizedPath
+        CatalogEligible = $catalogEligible -and $name -notlike 'word*'
     })
 }
 
@@ -331,7 +337,7 @@ if (($measurements.Count -ne $selected.Count) -or
 }
 
 if ($catalogEligible) {
-    foreach ($measurement in $measurements) {
+    foreach ($measurement in @($measurements | Where-Object CatalogEligible)) {
         Update-BenchmarkEvidenceCatalog `
             -InputObject $measurement.Result `
             -Path $catalogPath `
@@ -352,12 +358,12 @@ $outputs = foreach ($measurement in $measurements) {
         Publish = [bool] $Publish
         SourceCommit = $gitSha
         ArtifactsPath = $measurement.ArtifactsPath
-        NormalizedResult = if ($catalogEligible) {
+        NormalizedResult = if ($measurement.CatalogEligible) {
             $measurement.EvidenceLocation.Path
         } else {
             $measurement.NormalizedResult
         }
-        EvidenceCatalog = if ($catalogEligible) { $catalogPath } else { $null }
+        EvidenceCatalog = if ($measurement.CatalogEligible) { $catalogPath } else { $null }
     }
 }
 

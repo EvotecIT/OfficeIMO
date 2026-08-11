@@ -27,14 +27,26 @@ namespace OfficeIMO.Tests {
             WordTableCell firstCell = secondCells[0];
             WordTableCell adjacentCell = secondCells[1];
             WordTableCell cellBelow = table.Rows[1].Cells[0];
+
+            adjacentCell.RemoveTableCellProperties();
+            Assert.Same(adjacentCell, table.Rows[0].GetCells(readOnly: true)[1]);
             firstCell.MergeHorizontally(1);
             Assert.Same(firstCell, table.Rows[0].Cells[0]);
             Assert.Same(adjacentCell, table.Rows[0].Cells[1]);
+            Assert.True(adjacentCell.HasHorizontalMerge);
+            Assert.Equal(WordCellMerge.Continue, adjacentCell.HorizontalMerge);
             firstCell.SplitHorizontally(1);
+            Assert.False(adjacentCell.HasHorizontalMerge);
+
+            cellBelow.RemoveTableCellProperties();
+            Assert.Same(cellBelow, table.Rows[1].GetCells(readOnly: true)[0]);
             firstCell.MergeVertically(1);
             Assert.Same(firstCell, table.Rows[0].Cells[0]);
             Assert.Same(cellBelow, table.Rows[1].Cells[0]);
+            Assert.True(cellBelow.HasVerticalMerge);
+            Assert.Equal(WordCellMerge.Continue, cellBelow.VerticalMerge);
             firstCell.SplitVertically(1);
+            Assert.False(cellBelow.HasVerticalMerge);
 
             WordTableRow addedRow = table.AddRow(2);
             Assert.Same(addedRow, table.Rows[2]);

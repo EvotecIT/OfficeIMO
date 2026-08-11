@@ -187,8 +187,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private void EnsureStyleDefinitionsInitialized() {
-            if (_styleDefinitionsInitialized) {
+        internal void EnsureStyleDefinitionsInitialized() {
+            if (_styleDefinitionsInitialized || FileOpenAccess == FileAccess.Read) {
                 return;
             }
 

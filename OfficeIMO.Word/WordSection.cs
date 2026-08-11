@@ -887,15 +887,22 @@ namespace OfficeIMO.Word {
 
             }
             set {
-                var sectionProperties = _sectionProperties;
+                if (!value) {
+                    _wordprocessingDocument.MainDocumentPart?
+                        .DocumentSettingsPart?
+                        .Settings?
+                        .GetFirstChild<EvenAndOddHeaders>()?
+                        .Remove();
+                    return;
+                }
+
+                _ = _document.Settings;
                 WordHeadersAndFooters.AddHeaderReference(this._document, this, HeaderFooterValues.Even);
                 WordHeadersAndFooters.AddFooterReference(this._document, this, HeaderFooterValues.Even);
 
-                var settings = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
-                if (value != false) {
-                    if (settings == null) {
-                        _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.Append(new EvenAndOddHeaders());
-                    }
+                Settings settings = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!;
+                if (settings.GetFirstChild<EvenAndOddHeaders>() == null) {
+                    settings.Append(new EvenAndOddHeaders());
                 }
             }
         }

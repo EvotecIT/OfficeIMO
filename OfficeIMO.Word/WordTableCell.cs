@@ -15,6 +15,8 @@ namespace OfficeIMO.Word {
 
         internal TableCell _tableCell;
         internal TableCellProperties? _tableCellProperties;
+        private TableCellProperties? CurrentTableCellProperties =>
+            _tableCellProperties = _tableCell.TableCellProperties;
 
         /// <summary>
         /// Gets all <see cref="WordParagraph"/> instances contained in the cell.
@@ -45,7 +47,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordCellMerge? HorizontalMerge {
             get {
-                return _tableCellProperties?.HorizontalMerge?.Val?.Value.ToOfficeEnum();
+                return CurrentTableCellProperties?.HorizontalMerge?.Val?.Value.ToOfficeEnum();
             }
             set {
                 AddTableCellProperties();
@@ -64,7 +66,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordCellMerge? VerticalMerge {
             get {
-                return _tableCellProperties?.VerticalMerge?.Val?.Value.ToOfficeEnum();
+                return CurrentTableCellProperties?.VerticalMerge?.Val?.Value.ToOfficeEnum();
             }
             set {
                 AddTableCellProperties();
@@ -83,7 +85,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool HasHorizontalMerge {
             get {
-                return _tableCellProperties?.HorizontalMerge != null;
+                return CurrentTableCellProperties?.HorizontalMerge != null;
             }
         }
 
@@ -92,7 +94,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool HasVerticalMerge {
             get {
-                return _tableCellProperties?.VerticalMerge != null;
+                return CurrentTableCellProperties?.VerticalMerge != null;
             }
         }
 
@@ -101,7 +103,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int ColumnSpan {
             get {
-                int? gridSpan = _tableCellProperties?.GetFirstChild<GridSpan>()?.Val?.Value;
+                int? gridSpan = CurrentTableCellProperties?.GetFirstChild<GridSpan>()?.Val?.Value;
                 if (gridSpan.HasValue && gridSpan.Value > 1) {
                     return gridSpan.Value;
                 }
