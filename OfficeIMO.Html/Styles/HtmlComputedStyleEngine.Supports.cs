@@ -229,7 +229,7 @@ public static partial class HtmlComputedStyleEngine {
         }
         if (string.Equals(propertyName, "outline-offset", StringComparison.OrdinalIgnoreCase)) {
             return !normalized.EndsWith("%", StringComparison.Ordinal)
-                && HtmlRenderCssValues.TryLength(normalized, 100D, 16D, 16D, out _);
+                && TryValidateCssLength(normalized, out _);
         }
         if (string.Equals(propertyName, "border-top-left-radius", StringComparison.OrdinalIgnoreCase)
             || string.Equals(propertyName, "border-top-right-radius", StringComparison.OrdinalIgnoreCase)
@@ -242,13 +242,13 @@ public static partial class HtmlComputedStyleEngine {
 
     private static bool IsPositiveCssLength(string value) {
         return HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: false, allowUnitlessZero: false)
-            && HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, out double length)
+            && TryValidateCssLength(value, out double length)
             && length > 0D;
     }
 
     private static bool IsNonNegativeCssLength(string value) {
         return HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: false, allowUnitlessZero: true)
-            && HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, out double length)
+            && TryValidateCssLength(value, out double length)
             && length >= 0D;
     }
 
@@ -267,6 +267,19 @@ public static partial class HtmlComputedStyleEngine {
 
         string normalized = value.Trim().Trim('\'', '"').ToLowerInvariant();
         switch (propertyName.ToLowerInvariant()) {
+            case "container-type":
+                return IsKnownKeyword(normalized, "normal", "size", "inline-size");
+            case "container-name":
+                return normalized == "none" || normalized.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)
+                    .All(IsContainerNameToken);
+            case "container":
+                int slash = normalized.IndexOf('/');
+                if (slash < 0) return normalized == "none" || IsContainerNameToken(normalized);
+                string containerNames = normalized.Substring(0, slash).Trim();
+                string containerType = normalized.Substring(slash + 1).Trim();
+                return containerNames.Length > 0
+                    && containerNames.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries).All(IsContainerNameToken)
+                    && IsKnownKeyword(containerType, "normal", "size", "inline-size");
             case "display":
                 return IsKnownKeyword(normalized, "block", "inline", "inline-block", "none", "flex", "inline-flex", "grid", "inline-grid", "table", "table-row", "table-cell", "list-item", "contents", "flow-root");
             case "visibility":
@@ -337,6 +350,14 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         return resolved;
+    }
+
+    private static bool TryValidateCssLength(string value, out double length) =>
+        HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, out length);
+
+    private static bool IsContainerNameToken(string value) {
+        if (string.IsNullOrWhiteSpace(value) || value == "none" || value == "and" || value == "or" || value == "not" || value == "default") return false;
+        return value.All(character => char.IsLetterOrDigit(character) || character == '-' || character == '_');
     }
 
     private static CascadedProperty? ResolveLayerRevert(CascadedProperty property) {

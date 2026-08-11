@@ -100,12 +100,19 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private sealed class StyleRule {
-        internal StyleRule(string selector, Specificity specificity, int order, IDictionary<string, StyleDeclaration> declarations, CascadeLayerOrder? layerOrder = null) {
+        internal StyleRule(
+            string selector,
+            Specificity specificity,
+            int order,
+            IDictionary<string, StyleDeclaration> declarations,
+            CascadeLayerOrder? layerOrder = null,
+            IEnumerable<ContainerRuleCondition>? containerConditions = null) {
             Selector = selector;
             Specificity = specificity;
             Order = order;
             Declarations = new Dictionary<string, StyleDeclaration>(declarations, StringComparer.OrdinalIgnoreCase);
             LayerOrder = layerOrder;
+            ContainerConditions = new List<ContainerRuleCondition>(containerConditions ?? Array.Empty<ContainerRuleCondition>()).AsReadOnly();
             CandidateKey = GetSelectorCandidateKey(selector);
         }
 
@@ -114,6 +121,7 @@ public static partial class HtmlComputedStyleEngine {
         internal int Order { get; }
         internal IReadOnlyDictionary<string, StyleDeclaration> Declarations { get; }
         internal CascadeLayerOrder? LayerOrder { get; }
+        internal IReadOnlyList<ContainerRuleCondition> ContainerConditions { get; }
         internal SelectorCandidateKey CandidateKey { get; }
     }
 
@@ -191,6 +199,37 @@ public static partial class HtmlComputedStyleEngine {
                 foreach (StyleRule rule in rules) candidates.Add(rule);
             }
         }
+    }
+
+    private sealed class ContainerRuleCondition {
+        internal ContainerRuleCondition(string name, string condition) {
+            Name = name;
+            Condition = condition;
+        }
+
+        internal string Name { get; }
+        internal string Condition { get; }
+    }
+
+    private sealed class ContainerQueryContext {
+        internal ContainerQueryContext(
+            IReadOnlyList<string> names,
+            string type,
+            double width,
+            double? height,
+            IReadOnlyDictionary<string, string> properties) {
+            Names = names;
+            Type = type;
+            Width = width;
+            Height = height;
+            Properties = properties;
+        }
+
+        internal IReadOnlyList<string> Names { get; }
+        internal string Type { get; }
+        internal double Width { get; }
+        internal double? Height { get; }
+        internal IReadOnlyDictionary<string, string> Properties { get; }
     }
 
     private sealed class CascadeLayerRegistry {

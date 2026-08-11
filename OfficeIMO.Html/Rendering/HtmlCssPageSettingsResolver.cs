@@ -50,7 +50,17 @@ internal static class HtmlCssPageSettingsResolver {
         double bottom = options.Margins.Bottom;
         double left = options.Margins.Left;
         string margin = pageRule.Style.GetPropertyValue("margin");
-        if (!string.IsNullOrWhiteSpace(margin)) HtmlRenderCssValues.ApplyBoxShorthand(margin, options.PageWidth, options.DefaultFontSize, options.DefaultFontSize, ref top, ref right, ref bottom, ref left);
+        if (!string.IsNullOrWhiteSpace(margin)) HtmlRenderCssValues.ApplyBoxShorthand(
+            margin,
+            options.PageWidth,
+            options.DefaultFontSize,
+            options.DefaultFontSize,
+            options.PageWidth,
+            options.PageHeight,
+            ref top,
+            ref right,
+            ref bottom,
+            ref left);
         ApplyMarginSide(pageRule.Style.GetPropertyValue("margin-top"), options, ref top);
         ApplyMarginSide(pageRule.Style.GetPropertyValue("margin-right"), options, ref right);
         ApplyMarginSide(pageRule.Style.GetPropertyValue("margin-bottom"), options, ref bottom);
@@ -72,7 +82,7 @@ internal static class HtmlCssPageSettingsResolver {
         var lengths = new List<double>();
         foreach (string part in parts) {
             if (string.Equals(part, "landscape", StringComparison.OrdinalIgnoreCase) || string.Equals(part, "portrait", StringComparison.OrdinalIgnoreCase)) continue;
-            if (!HtmlRenderCssValues.TryLength(part, options.PageWidth, options.DefaultFontSize, options.DefaultFontSize, out double length) || length <= 0D) return false;
+            if (!HtmlRenderCssValues.TryLength(part, options.PageWidth, options.DefaultFontSize, options.DefaultFontSize, options.PageWidth, options.PageHeight, out double length) || length <= 0D) return false;
             lengths.Add(length);
         }
 
@@ -100,7 +110,7 @@ internal static class HtmlCssPageSettingsResolver {
     }
 
     private static void ApplyMarginSide(string value, HtmlRenderOptions options, ref double target) {
-        if (HtmlRenderCssValues.TryLength(value, options.PageWidth, options.DefaultFontSize, options.DefaultFontSize, out double parsed)) target = Math.Max(0D, parsed);
+        if (HtmlRenderCssValues.TryLength(value, options.PageWidth, options.DefaultFontSize, options.DefaultFontSize, options.PageWidth, options.PageHeight, out double parsed)) target = Math.Max(0D, parsed);
     }
 
     private static bool IsCssStyleElement(IElement element) {
@@ -293,7 +303,7 @@ internal static class HtmlCssPageSettingsResolver {
     private static HtmlCssPageMarginTemplate CreateMarginTemplate(HtmlCssPageMarginPosition position, HtmlCssGeneratedContentTemplate content, string body, HtmlRenderOptions options) {
         string family = HtmlRenderCssValues.FontFamilyList(FindTopLevelDeclaration(body, "font-family"), options.DefaultFontFamily);
         double fontSize = options.DefaultFontSize;
-        HtmlRenderCssValues.TryLength(FindTopLevelDeclaration(body, "font-size"), options.DefaultFontSize, options.DefaultFontSize, options.DefaultFontSize, out fontSize);
+        HtmlRenderCssValues.TryLength(FindTopLevelDeclaration(body, "font-size"), options.DefaultFontSize, options.DefaultFontSize, options.DefaultFontSize, options.PageWidth, options.PageHeight, out fontSize);
         if (fontSize <= 0D) fontSize = options.DefaultFontSize;
         OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
         string weight = FindTopLevelDeclaration(body, "font-weight");

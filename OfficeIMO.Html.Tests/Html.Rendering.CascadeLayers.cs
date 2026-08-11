@@ -124,6 +124,27 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlCssNesting_CarriesParentSelectorsThroughNestedConditionalRules() {
+        const string html = """
+            <style>
+              @layer base, enhancements;
+              .card {
+                @layer enhancements { & > .title { color:blue; } }
+                @supports (display:grid) { .body { color:lime; } }
+                @media screen { & > .media { color:purple; } }
+              }
+            </style>
+            <section class="card"><strong class="title">Title</strong><span class="body">Body</span><span class="media">Media</span></section>
+            """;
+        var document = HtmlDocumentParser.ParseDocument(html);
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document);
+
+        Assert.Equal("rgba(0, 0, 255, 1)", styles[document.QuerySelector(".title")!].GetValue("color"));
+        Assert.Equal("rgba(0, 255, 0, 1)", styles[document.QuerySelector(".body")!].GetValue("color"));
+        Assert.Equal("rgba(128, 0, 128, 1)", styles[document.QuerySelector(".media")!].GetValue("color"));
+    }
+
+    [Fact]
     public void HtmlCascadeLayersAndNesting_FlowThroughTheManagedSceneAndExporters() {
         const string html = """
             <style>

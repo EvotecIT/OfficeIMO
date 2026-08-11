@@ -5,6 +5,30 @@ namespace OfficeIMO.Html;
 
 internal static class HtmlRenderCssValues {
     internal static bool TryLength(string? value, double reference, double fontSize, double rootFontSize, out double result) {
+        return TryLength(value, reference, fontSize, rootFontSize, double.NaN, double.NaN, out result);
+    }
+
+    internal static bool TryLength(
+        string? value,
+        double reference,
+        double fontSize,
+        double rootFontSize,
+        double viewportWidth,
+        double viewportHeight,
+        out double result) {
+        return TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out result);
+    }
+
+    internal static bool TryLength(
+        string? value,
+        double reference,
+        double fontSize,
+        double rootFontSize,
+        double viewportWidth,
+        double viewportHeight,
+        double containerWidth,
+        double containerHeight,
+        out double result) {
         result = 0D;
         if (string.IsNullOrWhiteSpace(value)) {
             return false;
@@ -20,7 +44,7 @@ internal static class HtmlRenderCssValues {
         }
 
         if (normalized.IndexOf('(') >= 0) {
-            return HtmlCssLengthMathEvaluator.TryEvaluate(normalized, reference, fontSize, rootFontSize, out result);
+            return HtmlCssLengthMathEvaluator.TryEvaluate(normalized, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out result);
         }
 
         string unit = string.Empty;
@@ -69,6 +93,48 @@ internal static class HtmlRenderCssValues {
             case "rem":
                 result = number * rootFontSize;
                 return IsFinite(result);
+            case "vw":
+            case "svw":
+            case "lvw":
+            case "dvw":
+                result = number * viewportWidth / 100D;
+                return IsFinite(result);
+            case "vh":
+            case "svh":
+            case "lvh":
+            case "dvh":
+                result = number * viewportHeight / 100D;
+                return IsFinite(result);
+            case "vmin":
+            case "svmin":
+            case "lvmin":
+            case "dvmin":
+                result = number * Math.Min(viewportWidth, viewportHeight) / 100D;
+                return IsFinite(result);
+            case "vmax":
+            case "svmax":
+            case "lvmax":
+            case "dvmax":
+                result = number * Math.Max(viewportWidth, viewportHeight) / 100D;
+                return IsFinite(result);
+            case "cqw":
+            case "cqi":
+                result = number * (IsFinite(containerWidth) ? containerWidth : viewportWidth) / 100D;
+                return IsFinite(result);
+            case "cqh":
+            case "cqb":
+                result = number * (IsFinite(containerHeight) ? containerHeight : viewportHeight) / 100D;
+                return IsFinite(result);
+            case "cqmin":
+                result = number * Math.Min(
+                    IsFinite(containerWidth) ? containerWidth : viewportWidth,
+                    IsFinite(containerHeight) ? containerHeight : viewportHeight) / 100D;
+                return IsFinite(result);
+            case "cqmax":
+                result = number * Math.Max(
+                    IsFinite(containerWidth) ? containerWidth : viewportWidth,
+                    IsFinite(containerHeight) ? containerHeight : viewportHeight) / 100D;
+                return IsFinite(result);
             case "%":
                 result = reference * number / 100D;
                 return IsFinite(result);
@@ -95,6 +161,20 @@ internal static class HtmlRenderCssValues {
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     internal static void ApplyBoxShorthand(string? value, double reference, double fontSize, double rootFontSize, ref double top, ref double right, ref double bottom, ref double left) {
+        ApplyBoxShorthand(value, reference, fontSize, rootFontSize, double.NaN, double.NaN, ref top, ref right, ref bottom, ref left);
+    }
+
+    internal static void ApplyBoxShorthand(
+        string? value,
+        double reference,
+        double fontSize,
+        double rootFontSize,
+        double viewportWidth,
+        double viewportHeight,
+        ref double top,
+        ref double right,
+        ref double bottom,
+        ref double left) {
         IReadOnlyList<string> parts = SplitWhitespace(value);
         if (parts.Count == 0 || parts.Count > 4) {
             return;
@@ -102,7 +182,7 @@ internal static class HtmlRenderCssValues {
 
         var values = new double[parts.Count];
         for (int i = 0; i < parts.Count; i++) {
-            if (!TryLength(parts[i], reference, fontSize, rootFontSize, out values[i])) {
+            if (!TryLength(parts[i], reference, fontSize, rootFontSize, viewportWidth, viewportHeight, out values[i])) {
                 return;
             }
         }

@@ -585,12 +585,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool heightAuto = parts.Count == 1 || parts[1] == "auto";
         double resolvedWidth = intrinsicWidth;
         double resolvedHeight = intrinsicHeight;
-        if (!widthAuto && !HtmlRenderCssValues.TryLength(parts[0], areaWidth, fontSize, _options.DefaultFontSize, out resolvedWidth)) {
+        if (!widthAuto && !TryResolveLength(parts[0], areaWidth, fontSize, out resolvedWidth)) {
             usedFallback = true;
             return Contain(areaWidth, areaHeight, intrinsicWidth, intrinsicHeight);
         }
 
-        if (!heightAuto && !HtmlRenderCssValues.TryLength(parts[1], areaHeight, fontSize, _options.DefaultFontSize, out resolvedHeight)) {
+        if (!heightAuto && !TryResolveLength(parts[1], areaHeight, fontSize, out resolvedHeight)) {
             usedFallback = true;
             return Contain(areaWidth, areaHeight, intrinsicWidth, intrinsicHeight);
         }
@@ -628,7 +628,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return available * percentage / 100D;
         }
 
-        return HtmlRenderCssValues.TryLength(value, available, fontSize, _options.DefaultFontSize, out double length)
+        return TryResolveLength(value, available, fontSize, out double length)
             ? length
             : 0D;
     }

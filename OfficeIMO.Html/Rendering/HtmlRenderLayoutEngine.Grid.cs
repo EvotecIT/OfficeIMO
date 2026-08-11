@@ -59,7 +59,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double rowGap = rowCount > 1 ? style.RowGap : 0D;
         List<double> rowSizes = ResolveNaturalGridRows(rowTracks, items, rowGap, declaredContentHeight);
         double naturalContentHeight = rowSizes.Sum() + rowGap * Math.Max(0, rowCount - 1);
-        double boxHeight = ResolveBoxHeight(naturalContentHeight, style);
+        double boxHeight = ResolveBoxHeight(naturalContentHeight, boxWidth, style);
         double contentHeight = Math.Max(0D, boxHeight - style.VerticalInsets);
         GridAxisLayout rows = ResolveGridAxisLayout(rowTracks, rowSizes, contentHeight, rowGap, style.AlignContent, source, "align-content");
         RecordGridPositionedContainingRects(

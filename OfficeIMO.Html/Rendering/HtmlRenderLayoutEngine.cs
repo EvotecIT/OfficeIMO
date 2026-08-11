@@ -74,6 +74,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _resourceUrlPolicy = HtmlResourceUrlPolicy.Create(options.GetResourceUrlPolicy());
     }
 
+    private bool TryResolveLength(string? value, double reference, double fontSize, out double result) =>
+        HtmlRenderCssValues.TryLength(
+            value,
+            reference,
+            fontSize,
+            _options.DefaultFontSize,
+            _options.Mode == HtmlRenderMode.Paged ? _options.PageWidth : _options.ViewportWidth,
+            _options.Mode == HtmlRenderMode.Paged ? _options.PageHeight : _options.ViewportHeight ?? 1056D,
+            out result);
+
     private static HtmlRenderTextDirection ResolveDocumentDirection(IHtmlDocument document, HtmlComputedStyleSet computedStyles) {
         IElement? root = document.DocumentElement;
         if (root != null && computedStyles.Elements.TryGetValue(root, out HtmlComputedStyle? style)) {

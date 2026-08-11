@@ -34,9 +34,10 @@ public static partial class HtmlComputedStyleEngine {
             }
 
             IReadOnlyDictionary<int, int> rawRuleClosures = HtmlCssRuleBlockScanner.Scan(css, budget);
-            var stylesheet = parser.ParseStyleSheet(PreserveRevertLayerDeclarations(css));
+            string parseCss = ExpandNestedConditionalRules(css);
+            var stylesheet = parser.ParseStyleSheet(PreserveRevertLayerDeclarations(parseCss));
             foreach (var rule in stylesheet.Rules) {
-                AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, layers, 1, null, null);
+                AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, layers, 1, null, null, null);
             }
             AddRawRetainedStyleRules(css, 0, css.Length, rawRuleClosures, rules, parsedRuleMatches, environment, budget);
         }
@@ -77,7 +78,8 @@ public static partial class HtmlComputedStyleEngine {
         CascadeLayerRegistry layers,
         int depth,
         string? currentLayer,
-        IReadOnlyList<string>? parentSelectors) {
+        IReadOnlyList<string>? parentSelectors,
+        IReadOnlyList<ContainerRuleCondition>? containerConditions) {
         budget.RecordNestingDepth(depth);
         var layerRule = rule as AngleSharp.Css.Dom.ICssLayerRule;
         if (layerRule != null) {
@@ -92,7 +94,18 @@ public static partial class HtmlComputedStyleEngine {
                 : CombineLayerName(currentLayer, layerRule.Name.Trim());
             layers.Register(layerName);
             foreach (var childRule in layerRule.Rules) {
-                AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, layerName, parentSelectors);
+                AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, layerName, parentSelectors, containerConditions);
+            }
+            return;
+        }
+
+        var containerRule = rule as AngleSharp.Css.Dom.ICssContainerRule;
+        if (containerRule != null) {
+            var nestedConditions = new List<ContainerRuleCondition>(containerConditions ?? Array.Empty<ContainerRuleCondition>()) {
+                new ContainerRuleCondition(containerRule.ContainerName?.Trim() ?? string.Empty, containerRule.ContainerQuery?.Trim() ?? string.Empty)
+            };
+            foreach (var childRule in containerRule.Rules) {
+                AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, parentSelectors, nestedConditions);
             }
             return;
         }
@@ -100,9 +113,9 @@ public static partial class HtmlComputedStyleEngine {
         var styleRule = rule as AngleSharp.Css.Dom.ICssStyleRule;
         if (styleRule != null) {
             IReadOnlyList<string> resolvedSelectors = ResolveNestedSelectors(styleRule.SelectorText ?? string.Empty, parentSelectors);
-            AddStyleRule(styleRule, resolvedSelectors, rules, parsedRuleMatches, budget, currentLayer == null ? null : layers.GetOrder(currentLayer));
+            AddStyleRule(styleRule, resolvedSelectors, rules, parsedRuleMatches, budget, currentLayer == null ? null : layers.GetOrder(currentLayer), containerConditions);
             foreach (var childRule in GetNestedStyleRules(styleRule)) {
-                AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, resolvedSelectors);
+                AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, resolvedSelectors, containerConditions);
             }
             return;
         }
@@ -122,7 +135,7 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         foreach (var childRule in groupingRule.Rules) {
-            AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, parentSelectors);
+            AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, parentSelectors, containerConditions);
         }
     }
 
@@ -132,7 +145,8 @@ public static partial class HtmlComputedStyleEngine {
         ICollection<StyleRule> rules,
         IDictionary<string, int> parsedRuleMatches,
         HtmlCssProcessingBudget budget,
-        CascadeLayerOrder? layerOrder) {
+        CascadeLayerOrder? layerOrder,
+        IReadOnlyList<ContainerRuleCondition>? containerConditions) {
         if (resolvedSelectors.Count == 0) return;
         string[] selectors = resolvedSelectors.ToArray();
         foreach (string selector in selectors) {
@@ -166,7 +180,7 @@ public static partial class HtmlComputedStyleEngine {
 
         foreach (string selector in selectors) {
             if (declarations.Count > 0) {
-                rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations, layerOrder));
+                rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations, layerOrder, containerConditions));
                 if (declarations.ContainsKey("string-set")) {
                     RecordParsedRule(parsedRuleMatches, ParsedRetainedRuleKey(selector));
                 }
@@ -268,6 +282,204 @@ public static partial class HtmlComputedStyleEngine {
         return nested != null
             ? nested.Cast<AngleSharp.Css.Dom.ICssRule>()
             : Array.Empty<AngleSharp.Css.Dom.ICssRule>();
+    }
+
+    private static string ExpandNestedConditionalRules(string css) {
+        if (string.IsNullOrEmpty(css) || css.IndexOf('@') < 0) return css;
+        var output = new System.Text.StringBuilder(css.Length);
+        int cursor = 0;
+        while (TryFindNextTopLevelBlock(css, cursor, out int preludeStart, out int open, out int close)) {
+            output.Append(css, cursor, preludeStart - cursor);
+            string prelude = css.Substring(preludeStart, open - preludeStart).Trim();
+            string body = css.Substring(open + 1, close - open - 1);
+            if (IsConditionalGroupingPrelude(prelude)) {
+                output.Append(prelude).Append('{').Append(ExpandNestedConditionalRules(body)).Append('}');
+            } else if (!prelude.StartsWith("@", StringComparison.Ordinal)) {
+                ExtractNestedConditionalBlocks(body, out string retainedBody, out IReadOnlyList<NestedConditionalBlock> nestedBlocks);
+                output.Append(prelude).Append('{').Append(retainedBody).Append('}');
+                foreach (NestedConditionalBlock nested in nestedBlocks) {
+                    output.Append(nested.Prelude).Append('{')
+                        .Append(prelude).Append('{').Append(nested.Body).Append("}}");
+                }
+            } else {
+                output.Append(prelude).Append('{').Append(body).Append('}');
+            }
+            cursor = close + 1;
+        }
+        output.Append(css, cursor, css.Length - cursor);
+        return output.ToString();
+    }
+
+    private static void ExtractNestedConditionalBlocks(
+        string body,
+        out string retainedBody,
+        out IReadOnlyList<NestedConditionalBlock> nestedBlocks) {
+        var retained = new System.Text.StringBuilder(body.Length);
+        var blocks = new List<NestedConditionalBlock>();
+        int cursor = 0;
+        while (TryFindNestedConditionalBlock(body, cursor, out int start, out int open, out int close)) {
+            retained.Append(body, cursor, start - cursor);
+            string prelude = body.Substring(start, open - start).Trim();
+            string nestedBody = body.Substring(open + 1, close - open - 1);
+            blocks.Add(new NestedConditionalBlock(prelude, nestedBody));
+            cursor = close + 1;
+        }
+        retained.Append(body, cursor, body.Length - cursor);
+        retainedBody = retained.ToString();
+        nestedBlocks = blocks.AsReadOnly();
+    }
+
+    private static bool TryFindNextTopLevelBlock(
+        string css,
+        int start,
+        out int preludeStart,
+        out int open,
+        out int close) {
+        preludeStart = open = close = -1;
+        int candidateStart = start;
+        char quote = '\0';
+        for (int index = start; index < css.Length; index++) {
+            char current = css[index];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(css, index)) quote = '\0';
+                continue;
+            }
+            if (current == '\'' || current == '"') {
+                quote = current;
+                continue;
+            }
+            if (current == '/' && index + 1 < css.Length && css[index + 1] == '*') {
+                int commentClose = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
+                index = commentClose < 0 ? css.Length : commentClose + 1;
+                continue;
+            }
+            if (current == ';') {
+                candidateStart = index + 1;
+                continue;
+            }
+            if (current != '{') continue;
+            int matching = FindMatchingCssBrace(css, index);
+            if (matching < 0) return false;
+            preludeStart = candidateStart;
+            while (preludeStart < index && char.IsWhiteSpace(css[preludeStart])) preludeStart++;
+            open = index;
+            close = matching;
+            return preludeStart < open;
+        }
+        return false;
+    }
+
+    private static bool TryFindNestedConditionalBlock(
+        string body,
+        int start,
+        out int blockStart,
+        out int open,
+        out int close) {
+        blockStart = open = close = -1;
+        int depth = 0;
+        char quote = '\0';
+        for (int index = start; index < body.Length; index++) {
+            char current = body[index];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(body, index)) quote = '\0';
+                continue;
+            }
+            if (current == '\'' || current == '"') {
+                quote = current;
+                continue;
+            }
+            if (current == '/' && index + 1 < body.Length && body[index + 1] == '*') {
+                int commentClose = body.IndexOf("*/", index + 2, StringComparison.Ordinal);
+                index = commentClose < 0 ? body.Length : commentClose + 1;
+                continue;
+            }
+            if (current == '{') {
+                depth++;
+                continue;
+            }
+            if (current == '}' && depth > 0) {
+                depth--;
+                continue;
+            }
+            if (depth != 0 || current != '@') continue;
+            int keywordEnd = index + 1;
+            while (keywordEnd < body.Length && (char.IsLetter(body[keywordEnd]) || body[keywordEnd] == '-')) keywordEnd++;
+            string keyword = body.Substring(index, keywordEnd - index);
+            if (!IsConditionalGroupingPrelude(keyword)) continue;
+            int candidateOpen = FindConditionalBlockOpen(body, keywordEnd);
+            if (candidateOpen < 0) continue;
+            int candidateClose = FindMatchingCssBrace(body, candidateOpen);
+            if (candidateClose < 0) return false;
+            blockStart = index;
+            open = candidateOpen;
+            close = candidateClose;
+            return true;
+        }
+        return false;
+    }
+
+    private static int FindConditionalBlockOpen(string text, int start) {
+        int parentheses = 0;
+        char quote = '\0';
+        for (int index = start; index < text.Length; index++) {
+            char current = text[index];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(text, index)) quote = '\0';
+                continue;
+            }
+            if (current == '\'' || current == '"') quote = current;
+            else if (current == '(') parentheses++;
+            else if (current == ')' && parentheses > 0) parentheses--;
+            else if (parentheses == 0 && current == ';') return -1;
+            else if (parentheses == 0 && current == '{') return index;
+        }
+        return -1;
+    }
+
+    private static int FindMatchingCssBrace(string text, int open) {
+        int depth = 0;
+        char quote = '\0';
+        for (int index = open; index < text.Length; index++) {
+            char current = text[index];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(text, index)) quote = '\0';
+                continue;
+            }
+            if (current == '\'' || current == '"') {
+                quote = current;
+                continue;
+            }
+            if (current == '/' && index + 1 < text.Length && text[index + 1] == '*') {
+                int commentClose = text.IndexOf("*/", index + 2, StringComparison.Ordinal);
+                index = commentClose < 0 ? text.Length : commentClose + 1;
+                continue;
+            }
+            if (current == '{') depth++;
+            else if (current == '}' && --depth == 0) return index;
+        }
+        return -1;
+    }
+
+    private static bool IsConditionalGroupingPrelude(string prelude) {
+        string normalized = prelude.TrimStart();
+        return StartsWithAtRuleName(normalized, "@media")
+            || StartsWithAtRuleName(normalized, "@supports")
+            || StartsWithAtRuleName(normalized, "@layer")
+            || StartsWithAtRuleName(normalized, "@container");
+    }
+
+    private static bool StartsWithAtRuleName(string value, string name) =>
+        value.StartsWith(name, StringComparison.OrdinalIgnoreCase)
+        && (value.Length == name.Length || char.IsWhiteSpace(value[name.Length]) || value[name.Length] == '(');
+
+    private readonly struct NestedConditionalBlock {
+        internal NestedConditionalBlock(string prelude, string body) {
+            Prelude = prelude;
+            Body = body;
+        }
+
+        internal string Prelude { get; }
+        internal string Body { get; }
     }
 
     private static void AddRawRetainedStyleRules(

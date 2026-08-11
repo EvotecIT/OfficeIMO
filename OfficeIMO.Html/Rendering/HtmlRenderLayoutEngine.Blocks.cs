@@ -283,7 +283,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         bool zeroHeightCollapsible = CanUseZeroHeightForMarginCollapse(style, parentStyle, contentHeight);
-        double boxHeight = zeroHeightCollapsible ? 0D : ResolveBoxHeight(contentHeight, style);
+        double boxHeight = zeroHeightCollapsible ? 0D : ResolveBoxHeight(contentHeight, boxWidth, style);
         double unclampedOuterHeight = style.MarginTop + boxHeight + style.MarginBottom;
         double outerHeight = unclampedOuterHeight;
         if (outerHeight <= 0D) outerHeight = 0.01D;
@@ -428,7 +428,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentHeight) {
         if (style.Display != "block" || style.OverflowX != "visible" || style.OverflowY != "visible") return false;
         if (style.BorderTopWidth > 0D || style.BorderBottomWidth > 0D || style.PaddingTop > 0D || style.PaddingBottom > 0D) return false;
-        if (style.ExplicitHeight.HasValue || style.MinHeight.HasValue && style.MinHeight.Value > 0D) return false;
+        if (style.ExplicitHeight.HasValue || style.AspectRatio.HasValue || style.MinHeight.HasValue && style.MinHeight.Value > 0D) return false;
         if (usesBlockFormatting) return children.Count == 0 || children.All(child => child.CollapsesThrough);
         return contentVisuals.Count == 0 && contentHeight <= 0.0001D;
     }
@@ -445,6 +445,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && style.PaddingTop <= 0D
         && style.PaddingBottom <= 0D
         && !style.ExplicitHeight.HasValue
+        && !style.AspectRatio.HasValue
         && (!style.MinHeight.HasValue || style.MinHeight.Value <= 0D);
 
     private double FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth) {
@@ -512,9 +513,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Max(1D, Math.Min(width, availableWidth));
     }
 
-    private static double ResolveBoxHeight(double contentHeight, HtmlRenderBoxStyle style) {
-        double height = style.ExplicitHeight ?? contentHeight;
-        if (!style.BorderBox || !style.ExplicitHeight.HasValue) height += style.VerticalInsets;
+    private static double ResolveBoxHeight(double contentHeight, double boxWidth, HtmlRenderBoxStyle style) {
+        double height;
+        bool usesAspectRatio = !style.ExplicitHeight.HasValue && style.AspectRatio.HasValue;
+        if (style.ExplicitHeight.HasValue) {
+            height = style.ExplicitHeight.Value;
+        } else if (style.AspectRatio.HasValue) {
+            double ratioWidth = style.BorderBox
+                ? boxWidth
+                : Math.Max(0D, boxWidth - style.HorizontalInsets);
+            height = ratioWidth / style.AspectRatio.Value;
+        } else {
+            height = contentHeight;
+        }
+        if (!style.BorderBox || !style.ExplicitHeight.HasValue && !usesAspectRatio) height += style.VerticalInsets;
         if (style.MinHeight.HasValue) height = Math.Max(height, style.MinHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
         if (style.MaxHeight.HasValue) height = Math.Min(height, style.MaxHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
         return Math.Max(0.01D, height);

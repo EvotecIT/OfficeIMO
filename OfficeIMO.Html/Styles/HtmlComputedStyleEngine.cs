@@ -88,6 +88,9 @@ public static partial class HtmlComputedStyleEngine {
         "column-width",
         "columns",
         "content",
+        "container",
+        "container-name",
+        "container-type",
         "counter-increment",
         "counter-reset",
         "counter-set",
@@ -224,7 +227,7 @@ public static partial class HtmlComputedStyleEngine {
         var pseudoElements = new Dictionary<IElement, HtmlPseudoElementStylePair>();
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) {
-            ComputeElement(root, null, ruleIndex, computed, pseudoElements, includePseudoElements, budget);
+            ComputeElement(root, null, ruleIndex, computed, pseudoElements, includePseudoElements, budget, environment, environment.Width, Array.Empty<ContainerQueryContext>());
         }
 
         return new HtmlComputedStyleSet(computed, pseudoElements);
@@ -295,7 +298,10 @@ public static partial class HtmlComputedStyleEngine {
         IDictionary<IElement, HtmlComputedStyle> computed,
         IDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements,
         bool includePseudoElements,
-        HtmlCssProcessingBudget budget) {
+        HtmlCssProcessingBudget budget,
+        MediaEnvironment environment,
+        double containingWidth,
+        IReadOnlyList<ContainerQueryContext> containerContexts) {
         var properties = new Dictionary<string, CascadedProperty>(StringComparer.OrdinalIgnoreCase);
         if (parent != null) {
             foreach (var pair in parent.Properties) {
@@ -313,7 +319,8 @@ public static partial class HtmlComputedStyleEngine {
 
         foreach (StyleRule rule in rules.GetCandidates(element)) {
             budget.RecordSelectorEvaluation();
-            if (!TryParsePseudoElementSelector(rule.Selector, out _, out _)
+            if (AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment)
+                && !TryParsePseudoElementSelector(rule.Selector, out _, out _)
                 && MatchesSelector(element, rule.Selector)) {
                 foreach (var declaration in rule.Declarations) {
                     ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value, declaration.Value.IsImportant, rule.Specificity, rule.Order, rule.LayerOrder);
@@ -324,10 +331,13 @@ public static partial class HtmlComputedStyleEngine {
         ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"));
         var style = new HtmlComputedStyle(ResolveComputedProperties(properties, parent?.Properties));
         computed[element] = style;
-        if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements, budget);
+        if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements, budget, containerContexts, environment);
+
+        double elementWidth = ResolveContainerElementWidth(style, containingWidth, environment);
+        IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, environment, containerContexts);
 
         foreach (IElement child in element.Children) {
-            ComputeElement(child, style, rules, computed, pseudoElements, includePseudoElements, budget);
+            ComputeElement(child, style, rules, computed, pseudoElements, includePseudoElements, budget, environment, elementWidth, childContainerContexts);
         }
     }
 
@@ -336,9 +346,11 @@ public static partial class HtmlComputedStyleEngine {
         HtmlComputedStyle originatingStyle,
         StyleRuleIndex rules,
         IDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements,
-        HtmlCssProcessingBudget budget) {
-        HtmlComputedStyle? before = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.Before, budget);
-        HtmlComputedStyle? after = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.After, budget);
+        HtmlCssProcessingBudget budget,
+        IReadOnlyList<ContainerQueryContext> containerContexts,
+        MediaEnvironment environment) {
+        HtmlComputedStyle? before = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.Before, budget, containerContexts, environment);
+        HtmlComputedStyle? after = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.After, budget, containerContexts, environment);
         if (before == null && after == null) return;
         pseudoElements[element] = new HtmlPseudoElementStylePair { Before = before, After = after };
     }
@@ -348,7 +360,9 @@ public static partial class HtmlComputedStyleEngine {
         HtmlComputedStyle originatingStyle,
         StyleRuleIndex rules,
         HtmlPseudoElementKind kind,
-        HtmlCssProcessingBudget budget) {
+        HtmlCssProcessingBudget budget,
+        IReadOnlyList<ContainerQueryContext> containerContexts,
+        MediaEnvironment environment) {
         var properties = new Dictionary<string, CascadedProperty>(StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, string> pair in originatingStyle.Properties) {
             if (IsInheritedProperty(pair.Key)) {
@@ -359,7 +373,8 @@ public static partial class HtmlComputedStyleEngine {
         bool matched = false;
         foreach (StyleRule rule in rules.GetCandidates(element)) {
             budget.RecordSelectorEvaluation();
-            if (!TryParsePseudoElementSelector(rule.Selector, out string hostSelector, out HtmlPseudoElementKind ruleKind)
+            if (!AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment)
+                || !TryParsePseudoElementSelector(rule.Selector, out string hostSelector, out HtmlPseudoElementKind ruleKind)
                 || ruleKind != kind
                 || !MatchesSelector(element, hostSelector)) {
                 continue;

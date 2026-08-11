@@ -143,7 +143,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return GridTrack.Auto(normalized);
         }
 
-        if (HtmlRenderCssValues.TryLength(normalized, reference, style.Font.Size, _options.DefaultFontSize, out double fixedSize) && fixedSize >= 0D) {
+        if (TryResolveLength(normalized, reference, style.Font.Size, out double fixedSize) && fixedSize >= 0D) {
             return GridTrack.Fixed(fixedSize, normalized);
         }
 

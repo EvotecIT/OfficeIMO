@@ -82,7 +82,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
 
-        double boxHeight = ResolveBoxHeight(crossSize, style);
+        double boxHeight = ResolveBoxHeight(crossSize, boxWidth, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
         var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
@@ -151,7 +151,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = item.Style;
         double boxBasis;
         if (style.FlexBasis != "auto") {
-            if (HtmlRenderCssValues.TryLength(style.FlexBasis, availableWidth, style.Font.Size, _options.DefaultFontSize, out double parsed)) {
+            if (TryResolveLength(style.FlexBasis, availableWidth, style.Font.Size, out double parsed)) {
                 boxBasis = Math.Max(0D, parsed) + (style.BorderBox ? 0D : style.HorizontalInsets);
             } else {
                 ReportUnsupportedFlexValue(item, "flex-basis=" + style.FlexBasis);

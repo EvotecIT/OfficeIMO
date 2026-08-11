@@ -509,7 +509,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
         HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth + 1, null, element);
         double contentHeight = Math.Max(style.LineHeight, inline.Height);
-        double boxHeight = ResolveBoxHeight(contentHeight, style);
+        double boxHeight = ResolveBoxHeight(contentHeight, boxWidth, style);
         var visuals = new List<HtmlRenderVisual>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;

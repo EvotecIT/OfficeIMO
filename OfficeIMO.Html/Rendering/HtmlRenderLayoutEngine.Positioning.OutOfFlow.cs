@@ -264,7 +264,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private double? ResolveOutOfFlowInset(string value, double reference, HtmlRenderBoxStyle style, string source, string property) {
         if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)) return null;
-        if (HtmlRenderCssValues.TryLength(value, reference, style.Font.Size, _options.DefaultFontSize, out double resolved)) return resolved;
+        if (TryResolveLength(value, reference, style.Font.Size, out double resolved)) return resolved;
         _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.PositionInsetUnsupported, "A positioned inset could not be resolved and used auto.", HtmlDiagnosticSeverity.Warning, source, property + "=" + value);
         return null;
     }
