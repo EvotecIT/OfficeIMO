@@ -281,7 +281,7 @@ public sealed partial class PdfReadPage {
             strokeDashStyle: OfficeStrokeDashStyle.Solid,
             strokeLineCap: null,
             strokeLineJoin: null);
-        return ResolveVisibleFormPaintChannels(
+        PdfType3PaintChannels channels = ResolveVisibleFormPaintChannels(
             softMask.Group,
             maskResources,
             maskState,
@@ -291,8 +291,83 @@ public sealed partial class PdfReadPage {
             activeStreams,
             pageContentBudget,
             type3GlyphBudget,
-            depth) == PdfType3PaintChannels.None;
+            depth);
+        if (channels == PdfType3PaintChannels.None) return true;
+        return softMask.Mode == OfficeSoftMaskMode.Luminosity &&
+               IsLuminositySoftMaskEntirelyBlack(
+                   softMask,
+                   transform,
+                   pageWidth,
+                   pageHeight,
+                   cache,
+                   pageContentBudget,
+                   type3GlyphBudget);
     }
+
+    private bool IsLuminositySoftMaskEntirelyBlack(
+        PdfPageSoftMaskResource softMask,
+        Matrix2D transform,
+        double pageWidth,
+        double pageHeight,
+        Type3PaintChannelCache cache,
+        PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget) {
+        var cacheKey = (softMask.Group, transform, pageWidth, pageHeight);
+        if (cache.BlackLuminosityForms.TryGetValue(cacheKey, out bool cached)) return cached;
+        var softMasks = new Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
+        OfficeDrawing drawing = CreateFormDrawing(
+            softMask.Group,
+            pageWidth,
+            pageHeight,
+            transform,
+            softMasks,
+            new HashSet<PdfStream>(),
+            CreateTextOutputBudget(),
+            pageContentBudget,
+            type3GlyphBudget);
+        bool result = IsEntirelyBlackLuminosityDrawing(drawing);
+        cache.BlackLuminosityForms[cacheKey] = result;
+        return result;
+    }
+
+    private static bool IsEntirelyBlackLuminosityDrawing(OfficeDrawing drawing) {
+        for (int index = 0; index < drawing.Elements.Count; index++) {
+            OfficeDrawingElement element = drawing.Elements[index];
+            switch (element) {
+                case OfficeDrawingShape shape:
+                    if (!IsEntirelyBlackLuminosityShape(shape.Shape)) return false;
+                    break;
+                case OfficeDrawingText text:
+                    if (!IsBlackOrTransparent(text.Color)) return false;
+                    break;
+                case OfficeDrawingGroup group:
+                    if (!IsEntirelyBlackLuminosityDrawing(group.Drawing)) return false;
+                    break;
+                case OfficeDrawingEffectGroup effectGroup:
+                    if (effectGroup.Opacity > 0D && !IsEntirelyBlackLuminosityDrawing(effectGroup.Drawing)) return false;
+                    break;
+                default:
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool IsEntirelyBlackLuminosityShape(OfficeShape shape) {
+        if (shape.Shadow != null || shape.Glow != null ||
+            shape.FillGradient != null || shape.FillRadialGradient != null ||
+            shape.StrokeGradient != null || shape.StrokeRadialGradient != null) {
+            return false;
+        }
+        if ((shape.FillOpacity ?? 1D) > 0D && !IsBlackOrTransparent(shape.FillColor)) return false;
+        return shape.StrokeWidth <= 0D ||
+               (shape.StrokeOpacity ?? 1D) <= 0D ||
+               IsBlackOrTransparent(shape.StrokeColor);
+    }
+
+    private static bool IsBlackOrTransparent(OfficeColor? color) =>
+        !color.HasValue || color.Value.A == 0 ||
+        (color.Value.R == 0 && color.Value.G == 0 && color.Value.B == 0);
 
     private static bool HasVisibleSoftMaskBackdrop(PdfPageSoftMaskResource softMask) =>
         softMask.Mode == OfficeSoftMaskMode.Alpha
@@ -315,6 +390,17 @@ public sealed partial class PdfReadPage {
                 PdfPageXObjectPaintState ProgramState,
                 double PageWidth,
                 double PageHeight), PdfType3PaintChannels>();
+
+        internal Dictionary<(
+            PdfStream Stream,
+            Matrix2D Transform,
+            double PageWidth,
+            double PageHeight), bool> BlackLuminosityForms { get; } =
+            new Dictionary<(
+                PdfStream Stream,
+                Matrix2D Transform,
+                double PageWidth,
+                double PageHeight), bool>();
 
         internal Dictionary<(
             PdfStream Stream,

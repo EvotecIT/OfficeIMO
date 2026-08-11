@@ -142,6 +142,34 @@ public sealed partial class PdfReadPage {
             }
         }
 
+        var effects = new List<PdfPageDrawingEffectTransition>();
+        CollectGraphicsEffectTransitions(
+            content,
+            resources,
+            localTransform,
+            localPageHeight,
+            effects,
+            new HashSet<PdfStream>(),
+            PdfPageDrawingEffect.Default,
+            invocation.PaintOrder,
+            paintOrderScale * 0.000000001D,
+            initialClipPath: localClipPath,
+            initialFillColor: invocation.FillColor,
+            initialFillColorSpace: invocation.FillColorSpace,
+            initialFillOpacity: 1D,
+            initialStrokeColor: invocation.StrokeColor,
+            initialStrokeColorSpace: invocation.StrokeColorSpace,
+            initialStrokeOpacity: 1D,
+            initialStrokeWidth: invocation.StrokeWidth,
+            initialStrokeDashStyle: invocation.StrokeDashStyle,
+            initialStrokeLineCap: invocation.StrokeLineCap,
+            initialStrokeLineJoin: invocation.StrokeLineJoin,
+            contentNestingDepth: contentNestingDepth + 1,
+            pageContentBudget: pageContentBudget,
+            contentOrderPrefix: contentOrderPrefix,
+            skipTransparencyGroupForms: true);
+        SortGraphicsEffectTransitions(effects);
+
         var placements = new List<PdfImagePlacement>();
         CollectImagePlacementsAndForms(
             content,
@@ -171,8 +199,28 @@ public sealed partial class PdfReadPage {
             IReadOnlyList<PdfExtractedImage> images = visiblePlacements.Count == 0
                 ? Array.Empty<PdfExtractedImage>()
                 : GetImagesForResources(resources, 0, visiblePlacements, colorizeImageMasks: true);
+            var paintChannelCache = new Type3PaintChannelCache();
+            var activePaintStreams = new HashSet<PdfStream>();
             for (int i = 0; i < visiblePlacements.Count; i++) {
                 PdfImagePlacement placement = visiblePlacements[i];
+                PdfPageDrawingEffect effect = ResolveDrawingEffect(
+                    effects,
+                    placement.PaintOrder,
+                    contentOrderKey: placement.ContentOrderKey);
+                bool suppressedBySoftMask = IsPaintSuppressedByTransparentSoftMask(
+                        effect,
+                        resources,
+                        localTransform,
+                        localPageWidth,
+                        localPageHeight,
+                        paintChannelCache,
+                        activePaintStreams,
+                        pageContentBudget,
+                        type3GlyphBudget,
+                        contentNestingDepth + 2);
+                if (suppressedBySoftMask) {
+                    continue;
+                }
                 PdfExtractedImage? image = FindImage(images, placement);
                 if (image == null || !image.IsImageFile) {
                     groupDrawing = null!;
@@ -208,33 +256,6 @@ public sealed partial class PdfReadPage {
             }
         }
 
-        var effects = new List<PdfPageDrawingEffectTransition>();
-        CollectGraphicsEffectTransitions(
-            content,
-            resources,
-            localTransform,
-            localPageHeight,
-            effects,
-            new HashSet<PdfStream>(),
-            PdfPageDrawingEffect.Default,
-            invocation.PaintOrder,
-            paintOrderScale * 0.000000001D,
-            initialClipPath: localClipPath,
-            initialFillColor: invocation.FillColor,
-            initialFillColorSpace: invocation.FillColorSpace,
-            initialFillOpacity: 1D,
-            initialStrokeColor: invocation.StrokeColor,
-            initialStrokeColorSpace: invocation.StrokeColorSpace,
-            initialStrokeOpacity: 1D,
-            initialStrokeWidth: invocation.StrokeWidth,
-            initialStrokeDashStyle: invocation.StrokeDashStyle,
-            initialStrokeLineCap: invocation.StrokeLineCap,
-            initialStrokeLineJoin: invocation.StrokeLineJoin,
-            contentNestingDepth: contentNestingDepth + 1,
-            pageContentBudget: pageContentBudget,
-            contentOrderPrefix: contentOrderPrefix,
-            skipTransparencyGroupForms: true);
-        SortGraphicsEffectTransitions(effects);
         OverlayDrawingEffects(elements, effects);
         SortDrawingElements(elements);
 

@@ -166,6 +166,25 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void RenderPage_IgnoresColorImageHiddenByTransparentSoftMaskInsideGroup() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Group Do",
+            glyphResources: "<< /XObject << /Group 9 0 R >> >>",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8", "\0\u00ff\0"),
+                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << /ExtGState << /Mask 10 0 R >> /XObject << /Im1 8 0 R >> >>", "q /Mask gs 500 0 0 700 0 0 cm /Im1 Do Q 0 0 250 700 re f"),
+                "10 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 11 0 R >> >>\nendobj",
+                StreamObject(11, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /CS /DeviceRGB >> /Resources << >>", string.Empty)
+            });
+
+        AssertRendersInheritedRedPattern(pdf);
+    }
+
+    [Fact]
     public void RenderPage_AppliesCallerOpacityOnceToTransparencyGroupComposite() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Half gs /Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
@@ -211,6 +230,24 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(22, 96));
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(27, 96));
+    }
+
+    [Fact]
+    public void RenderPage_SkipsPatternPaintHiddenByBlackLuminositySoftMask() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Group Do",
+            glyphResources: "<< /XObject << /Group 8 0 R >> >>",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << /ExtGState << /Mask << /SMask << /S /Luminosity /G 10 0 R >> >> >> /Pattern << /P2 9 0 R >> >>", "q /Pattern cs /P2 scn /Mask gs 0 0 500 700 re f Q 0 0 250 700 re f"),
+                StreamObject(9, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>", "0 1 0 rg 0 0 5 5 re f"),
+                StreamObject(10, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /CS /DeviceRGB >> /Resources << >>", "0 g 0 0 500 700 re f")
+            });
+
+        AssertRendersInheritedRedPattern(pdf);
     }
 
     [Fact]
