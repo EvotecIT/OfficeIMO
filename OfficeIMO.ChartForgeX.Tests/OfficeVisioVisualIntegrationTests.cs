@@ -57,7 +57,14 @@ public sealed class OfficeVisioVisualIntegrationTests {
             Height = 480
         };
         envelope.Nodes.Add(Participant("customer", "Customer", "Actor", 0));
-        envelope.Nodes.Add(Participant("api", "Orders API", "Control", 1));
+        VisualArtifactInterchangeNode apiParticipant = Participant("api", "Orders API", "Control", 1);
+        apiParticipant.Status = "Healthy";
+        apiParticipant.Href = "https://example.test/orders";
+        apiParticipant.Tooltip = "Orders runbook";
+        apiParticipant.Metadata["Owner"] = "Commerce";
+        apiParticipant.Details.Add(new VisualArtifactInterchangeDetail { Label = "Region", Value = "EU" });
+        envelope.Nodes.Add(apiParticipant);
+        envelope.Nodes.Add(Participant("activation-1", "Reserved activation id", "Participant", 2));
         envelope.Edges.Add(Message("request", "customer", "api", "Create order", 0, activates: true));
         envelope.Edges.Add(Message("response", "api", "customer", "Created", 1, deactivates: true, dashed: true));
         var note = new VisualArtifactInterchangeAnnotation {
@@ -84,6 +91,7 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Contains(result.Page.Shapes, shape => shape.Id == "customer");
         Assert.Contains(result.Page.Shapes, shape => shape.Id == "api");
         Assert.Contains(result.Page.Shapes, shape => shape.Id == "activation-1");
+        Assert.Contains(result.Page.Shapes, shape => shape.Id == "activation-2");
         Assert.Contains(result.Page.Shapes, shape => shape.Id == "retry-note");
         Assert.Contains(result.Page.Shapes, shape => shape.Id == "alt-block");
         Assert.Contains(result.Page.Connectors, connector => connector.Id == "request");
@@ -91,7 +99,43 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Equal(2, result.Report.AnnotationCount);
         VisioShape api = result.Page.Shapes.Single(shape => shape.Id == "api");
         VisioShape retryNote = result.Page.Shapes.Single(shape => shape.Id == "retry-note");
+        Assert.Equal("Healthy", api.GetShapeDataValue("CFX.Status"));
+        Assert.Equal("Commerce", api.GetShapeDataValue("Metadata.Owner"));
+        Assert.Equal("EU", api.GetShapeDataValue("Detail.1.Region"));
+        Assert.Contains(api.Hyperlinks, link => link.Address == "https://example.test/orders" && link.Description == "Orders runbook");
         Assert.True(retryNote.PinX - retryNote.Width / 2D > api.PinX + api.Width / 2D);
+    }
+
+    [Fact]
+    public void ParticipantOnlySequenceProjectsNotesAndFragmentsAtRowZero() {
+        var envelope = new VisualArtifactInterchangeEnvelope { Id = "participant-only", Kind = VisualArtifactKind.Sequence };
+        envelope.Nodes.Add(Participant("service", "Service", "Control", 0));
+        var note = new VisualArtifactInterchangeAnnotation { Id = "note", Kind = "SequenceNote", Text = "Ready", StartIndex = 0, EndIndex = 0 };
+        note.TargetIds.Add("service");
+        envelope.Annotations.Add(note);
+        var fragment = new VisualArtifactInterchangeAnnotation { Id = "fragment", Kind = "SequenceBlock:Opt", Text = "cached", StartIndex = 0, EndIndex = 0 };
+        fragment.TargetIds.Add("service");
+        envelope.Annotations.Add(fragment);
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
+
+        Assert.Equal(2, result.Report.AnnotationCount);
+        Assert.Contains(result.Page.Shapes, shape => shape.Id == "note");
+        Assert.Contains(result.Page.Shapes, shape => shape.Id == "fragment");
+    }
+
+    [Fact]
+    public void SequencePageUsesEnvelopeDimensionsOnlyWhenNaturalSizingIsRequested() {
+        var envelope = new VisualArtifactInterchangeEnvelope { Id = "wide-sequence", Kind = VisualArtifactKind.Sequence, Width = 2400, Height = 1200 };
+        envelope.Nodes.Add(Participant("caller", "Caller", "Actor", 0));
+        envelope.Nodes.Add(Participant("service", "Service", "Control", 1));
+        envelope.Edges.Add(Message("call", "caller", "service", "Call", 0));
+
+        OfficeVisioVisualConversionResult fitted = envelope.ToOfficeVisio();
+        OfficeVisioVisualConversionResult natural = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { UseNaturalPageSize = true, PixelsPerInch = 100D });
+
+        Assert.True(fitted.Page.Width < natural.Page.Width);
+        Assert.True(natural.Page.Width >= 24D);
     }
 
     [Fact]

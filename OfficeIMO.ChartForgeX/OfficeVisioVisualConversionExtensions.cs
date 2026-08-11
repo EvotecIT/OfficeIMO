@@ -196,11 +196,13 @@ public static class OfficeVisioVisualConversionExtensions {
             .ToList();
         List<VisualArtifactInterchangeEdge> messages = envelope.Edges.OrderBy(edge => edge.Order).ThenBy(edge => edge.Id, StringComparer.Ordinal).ToList();
         (double width, double height) = ResolveSequenceLayoutPageSize(envelope, options);
+        string? titleId = options.IncludeTitle && !string.IsNullOrWhiteSpace(envelope.Title) ? UniqueTitleId(envelope) : null;
+        HashSet<string> reservedIds = CreateSequenceReservedIds(envelope, titleId);
 
         document.SequenceDiagram(options.PageName, builder => {
             builder.PageSize(width, height);
-            if (options.IncludeTitle && !string.IsNullOrWhiteSpace(envelope.Title)) {
-                builder.Title(envelope.Title, UniqueTitleId(envelope));
+            if (titleId != null) {
+                builder.Title(envelope.Title, titleId);
             }
             foreach (VisualArtifactInterchangeNode participant in participants) {
                 builder.Participant(participant.Id, participant.Label, MapParticipantKind(participant.Kind, report));
@@ -213,11 +215,12 @@ public static class OfficeVisioVisualConversionExtensions {
                     builder.Message(message.SourceId, message.TargetId, message.Label ?? string.Empty, kind, message.Id);
                 }
             }
-            AddSequenceActivations(builder, messages);
+            AddSequenceActivations(builder, messages, reservedIds);
             report.AnnotationCount = AddSequenceAnnotations(builder, envelope, messages.Count, report);
         });
 
         VisioPage page = document.Pages[document.Pages.Count - 1];
+        ApplySequenceParticipantData(page, participants, options, report);
         if (options.UseNaturalPageSize) {
             page.Width = Math.Max(page.Width, width);
             page.Height = Math.Max(page.Height, height);
@@ -225,12 +228,15 @@ public static class OfficeVisioVisualConversionExtensions {
             page.FitToContent(0.5D);
         }
 
-        if (options.IncludeShapeData && (envelope.Metadata.Count > 0 || envelope.Nodes.Any(node => node.Metadata.Count > 2))) {
-            report.Warn("Sequence-level and participant metadata is retained in the CFX envelope but is not duplicated into Visio Shape Data by the sequence builder.");
+        if (options.IncludeShapeData && envelope.Metadata.Count > 0) {
+            report.Warn("Sequence-level metadata remains available in the CFX envelope; participant metadata is projected into native Visio Shape Data.");
         }
     }
 
-    private static void AddSequenceActivations(VisioSequenceDiagramBuilder builder, IReadOnlyList<VisualArtifactInterchangeEdge> messages) {
+    private static void AddSequenceActivations(
+        VisioSequenceDiagramBuilder builder,
+        IReadOnlyList<VisualArtifactInterchangeEdge> messages,
+        ISet<string> reservedIds) {
         var open = new Dictionary<string, Stack<int>>(StringComparer.Ordinal);
         var activations = new List<(string Participant, int Start, int End)>();
         for (int index = 0; index < messages.Count; index++) {
@@ -252,7 +258,13 @@ public static class OfficeVisioVisualConversionExtensions {
         }
         for (int index = 0; index < activations.Count; index++) {
             var activation = activations[index];
-            builder.Activation(activation.Participant, activation.Start, activation.End, "activation-" + (index + 1).ToString(CultureInfo.InvariantCulture));
+            int candidateNumber = index + 1;
+            string activationId;
+            do {
+                activationId = "activation-" + candidateNumber.ToString(CultureInfo.InvariantCulture);
+                candidateNumber++;
+            } while (!reservedIds.Add(activationId));
+            builder.Activation(activation.Participant, activation.Start, activation.End, activationId);
         }
     }
 
@@ -261,10 +273,6 @@ public static class OfficeVisioVisualConversionExtensions {
         VisualArtifactInterchangeEnvelope envelope,
         int messageCount,
         OfficeVisioVisualConversionReport report) {
-        if (messageCount == 0 && envelope.Annotations.Count > 0) {
-            report.Warn("Sequence annotations were retained in the CFX envelope but require at least one message row for native Visio placement.");
-            return 0;
-        }
         int lastRow = Math.Max(0, messageCount - 1);
         int projected = 0;
         foreach (VisualArtifactInterchangeAnnotation annotation in envelope.Annotations) {
@@ -297,9 +305,63 @@ public static class OfficeVisioVisualConversionExtensions {
     }
 
     private static (double Width, double Height) ResolveSequenceLayoutPageSize(VisualArtifactInterchangeEnvelope envelope, OfficeVisioVisualOptions options) {
+        if (!options.UseNaturalPageSize) return (11D, 8.5D);
         double width = envelope.Width.HasValue ? envelope.Width.Value / options.PixelsPerInch : 11D;
         double height = envelope.Height.HasValue ? envelope.Height.Value / options.PixelsPerInch : 8.5D;
         return (Math.Max(11D, width), Math.Max(8.5D, height));
+    }
+
+    private static void ApplySequenceParticipantData(
+        VisioPage page,
+        IEnumerable<VisualArtifactInterchangeNode> participants,
+        OfficeVisioVisualOptions options,
+        OfficeVisioVisualConversionReport report) {
+        foreach (VisualArtifactInterchangeNode participant in participants) {
+            VisioShape shape = page.Shapes.Single(item => string.Equals(item.Id, participant.Id, StringComparison.Ordinal));
+            if (options.IncludeShapeData) {
+                var data = new Dictionary<string, string?>(StringComparer.Ordinal);
+                AddCommonShapeData(data, participant.Kind, participant.Status, participant.GroupId, participant.Metadata, report, "sequence participant '" + participant.Id + "'");
+                AddValue(data, "CFX.Icon", participant.IconId);
+                AddValue(data, "CFX.Symbol", participant.Symbol);
+                AddValue(data, "CFX.Badge", participant.Badge);
+                AddValue(data, "CFX.Color", participant.Color);
+                AddValue(data, "CFX.BackgroundColor", participant.BackgroundColor);
+                for (int index = 0; index < participant.Details.Count; index++) {
+                    VisualArtifactInterchangeDetail detail = participant.Details[index];
+                    AddValue(data, "Detail." + (index + 1).ToString(CultureInfo.InvariantCulture) + "." + detail.Label, detail.Value);
+                }
+                for (int index = 0; index < participant.Ports.Count; index++) {
+                    VisualArtifactInterchangePort port = participant.Ports[index];
+                    AddValue(data, "Port." + (index + 1).ToString(CultureInfo.InvariantCulture),
+                        port.Id + "|" + port.Side + "|" + port.Offset.ToString("R", CultureInfo.InvariantCulture));
+                }
+                foreach (KeyValuePair<string, string?> item in data) shape.SetShapeData(item.Key, item.Value);
+            }
+            if (options.IncludeHyperlinks && !string.IsNullOrWhiteSpace(participant.Href)) {
+                shape.AddHyperlink(participant.Href!, participant.Tooltip);
+            }
+        }
+    }
+
+    private static HashSet<string> CreateSequenceReservedIds(VisualArtifactInterchangeEnvelope envelope, string? titleId) {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        if (titleId != null) ids.Add(titleId);
+        foreach (VisualArtifactInterchangeGroup group in envelope.Groups) ids.Add(group.Id);
+        foreach (VisualArtifactInterchangeNode node in envelope.Nodes) {
+            ids.Add(node.Id);
+            ids.Add(node.Id + "-lifeline");
+            ids.Add(node.Id + "-lifeline-end");
+        }
+        foreach (VisualArtifactInterchangeEdge edge in envelope.Edges) {
+            ids.Add(edge.Id);
+            ids.Add(edge.Id + "-from");
+            ids.Add(edge.Id + "-to");
+        }
+        foreach (VisualArtifactInterchangeAnnotation annotation in envelope.Annotations) {
+            ids.Add(annotation.Id);
+            if (annotation.Kind.StartsWith("SequenceBlock:", StringComparison.Ordinal)) ids.Add(annotation.Id + "-label");
+        }
+        return ids;
     }
 
     private static void ApplyGraphEdgeDirection(
