@@ -87,6 +87,29 @@ namespace OfficeIMO.Tests {
 
         [Fact]
 
+        public void ObjectTableExplicitColumnsCountsOnlyResolvedDistinctPaths() {
+
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            var rows = new[] {
+                new System.Collections.Generic.Dictionary<string, object?> {
+                    ["Name"] = "Alice"
+                }
+            };
+
+            PowerPointTable table = slide.AddTable(rows, options => {
+                options.Columns = new[] { "Name", "Name", "Missing" };
+                options.MaxColumns = 1;
+            });
+
+            Assert.Equal(1, table.Columns);
+            Assert.Equal("Name", table.GetCell(0, 0).Text);
+            Assert.Equal("Alice", table.GetCell(1, 0).Text);
+        }
+
+        [Fact]
+
         public void CanManipulateTableCellsAndPreserveStyle() {
 
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");

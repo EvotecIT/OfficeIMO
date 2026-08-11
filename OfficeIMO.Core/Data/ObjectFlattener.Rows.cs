@@ -23,10 +23,12 @@ namespace OfficeIMO.Data {
             var discoveredColumns = new List<string>();
             var discoveredColumnSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            if (items.Count == 0
-                && (options.Columns == null || options.Columns.Length == 0)
-                && !ObjectDictionaryAdapter.IsDictionaryType(typeof(T))) {
-                discoveredColumns.AddRange(GetPaths(typeof(T), options));
+            if (items.Count == 0) {
+                if (!ObjectDictionaryAdapter.IsDictionaryType(typeof(T))) {
+                    discoveredColumns.AddRange(GetPaths(typeof(T), options));
+                } else if (options.Columns != null && options.Columns.Length > 0) {
+                    AddExplicitColumnsBounded(discoveredColumns, options, consumerName);
+                }
             }
 
             foreach (T item in items) {
@@ -44,16 +46,30 @@ namespace OfficeIMO.Data {
                 EnsureTableCellLimit(rows.Count, discoveredColumns.Count, headerRowCount, options, consumerName);
             }
 
-            IEnumerable<string> columnCandidates = options.Columns != null && options.Columns.Length > 0
-                ? options.Columns
-                : discoveredColumns;
-            List<string> columns = ResolvePaths(columnCandidates, options);
+            List<string> columns = ResolvePaths(discoveredColumns, options);
             if (columns.Count > options.MaxColumns) {
                 throw new InvalidDataException(
                     $"{consumerName} exceeds the {options.MaxColumns}-column materialization limit.");
             }
             EnsureTableCellLimit(rows.Count, columns.Count, headerRowCount, options, consumerName);
             return new ObjectTableProjection(rows, columns);
+        }
+
+        private static void AddExplicitColumnsBounded(
+            List<string> columns,
+            ObjectFlattenerOptions options,
+            string consumerName) {
+            var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string column in options.Columns!) {
+                if (string.IsNullOrWhiteSpace(column) || !added.Add(column)) {
+                    continue;
+                }
+                if (columns.Count >= options.MaxColumns) {
+                    throw new InvalidDataException(
+                        $"{consumerName} exceeds the {options.MaxColumns}-column materialization limit.");
+                }
+                columns.Add(column);
+            }
         }
 
         private static void EnsureTableCellLimit(
