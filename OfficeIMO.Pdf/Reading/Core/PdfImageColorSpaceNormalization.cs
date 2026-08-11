@@ -215,7 +215,9 @@ internal sealed class PdfImageColorSpaceNormalization {
                 componentRanges: ranges,
                 alternateNormalization: alternate,
                 sourceColorCount: componentCount,
-                usesIccApproximation: true);
+                usesIccApproximation: true,
+                cubicEvaluationCost: alternate._cubicEvaluationCost,
+                maximumCubicEvaluationWork: alternate._maximumCubicEvaluationWork);
             return true;
         }
 
