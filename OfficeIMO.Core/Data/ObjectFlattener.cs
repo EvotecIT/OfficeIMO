@@ -251,7 +251,7 @@ namespace OfficeIMO.Data {
             List<string> input = paths.Where(path => !string.IsNullOrWhiteSpace(path)).ToList();
             List<string> filtered = ApplySelection(input, opts);
             if (opts.Columns != null && opts.Columns.Length > 0) {
-                return ApplyExplicitColumnOrdering(filtered, opts.Columns);
+                return ApplyExplicitColumnOrdering(filtered, opts.Columns, opts.MaxColumns);
             }
 
             return ApplyOrdering(filtered, opts);
@@ -259,7 +259,7 @@ namespace OfficeIMO.Data {
 
         private static int GetInitialFlattenCapacity(Type type, ObjectFlattenerOptions opts) {
             if (opts.Columns != null && opts.Columns.Length > 0) {
-                return opts.Columns.Length;
+                return Math.Min(opts.Columns.Length, opts.MaxColumns);
             }
 
             if (IsValueTuple(type)) {
@@ -626,10 +626,6 @@ namespace OfficeIMO.Data {
             if (options.MaxCells <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(options.MaxCells));
             }
-            if (options.Columns != null && options.Columns.Length > options.MaxColumns) {
-                throw new InvalidDataException(
-                    $"Explicit columns exceed the {options.MaxColumns}-column limit.");
-            }
         }
 
         private sealed class ObjectReferenceComparer : IEqualityComparer<object> {
@@ -943,9 +939,6 @@ namespace OfficeIMO.Data {
                 return new List<string>(input);
             }
 
-            HashSet<string>? columns = opts.Columns != null && opts.Columns.Length > 0
-                ? new HashSet<string>(opts.Columns, StringComparer.OrdinalIgnoreCase)
-                : null;
             HashSet<string>? exclude = opts.ExcludeProperties.Length > 0
                 ? new HashSet<string>(opts.ExcludeProperties, StringComparer.OrdinalIgnoreCase)
                 : null;
@@ -957,10 +950,6 @@ namespace OfficeIMO.Data {
                 if (ShouldIgnorePath(path, opts.Ignore)) {
                     continue;
                 }
-                if (columns != null && !columns.Contains(path)) {
-                    continue;
-                }
-
                 string? segment = null;
                 if (exclude != null) {
                     segment = LastSegment(path);
@@ -982,12 +971,24 @@ namespace OfficeIMO.Data {
             return filtered;
         }
 
-        private static List<string> ApplyExplicitColumnOrdering(List<string> input, string[] columns) {
+        private static List<string> ApplyExplicitColumnOrdering(List<string> input, string[] columns, int maxColumns) {
             var result = new List<string>(Math.Min(input.Count, columns.Length));
+            var available = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string path in input) {
+                if (!available.ContainsKey(path)) {
+                    available.Add(path, path);
+                }
+            }
             var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string column in columns) {
-                string? match = input.FirstOrDefault(path => string.Equals(path, column, StringComparison.OrdinalIgnoreCase));
-                if (match != null && added.Add(match)) {
+                if (string.IsNullOrWhiteSpace(column)) {
+                    continue;
+                }
+                if (available.TryGetValue(column, out string? match) && added.Add(match)) {
+                    if (result.Count >= maxColumns) {
+                        throw new InvalidDataException(
+                            $"Resolved explicit columns exceed the {maxColumns}-column limit.");
+                    }
                     result.Add(match);
                 }
             }

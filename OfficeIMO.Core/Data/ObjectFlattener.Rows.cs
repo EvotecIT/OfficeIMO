@@ -11,9 +11,11 @@ namespace OfficeIMO.Data {
         internal ObjectTableProjection FlattenRows<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
             IEnumerable<T> source,
             ObjectFlattenerOptions options,
-            string consumerName) {
+            string consumerName,
+            int headerRowCount) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (options == null) throw new ArgumentNullException(nameof(options));
+            if (headerRowCount < 0) throw new ArgumentOutOfRangeException(nameof(headerRowCount));
             ValidateLimits(options);
 
             List<T> items = MaterializeRowsBounded(source, options, consumerName);
@@ -39,7 +41,7 @@ namespace OfficeIMO.Data {
                         discoveredColumns.Add(path);
                     }
                 }
-                EnsureTableCellLimit(rows.Count, discoveredColumns.Count, options, consumerName);
+                EnsureTableCellLimit(rows.Count, discoveredColumns.Count, headerRowCount, options, consumerName);
             }
 
             IEnumerable<string> columnCandidates = options.Columns != null && options.Columns.Length > 0
@@ -50,16 +52,17 @@ namespace OfficeIMO.Data {
                 throw new InvalidDataException(
                     $"{consumerName} exceeds the {options.MaxColumns}-column materialization limit.");
             }
-            EnsureTableCellLimit(rows.Count, columns.Count, options, consumerName);
+            EnsureTableCellLimit(rows.Count, columns.Count, headerRowCount, options, consumerName);
             return new ObjectTableProjection(rows, columns);
         }
 
         private static void EnsureTableCellLimit(
             int rowCount,
             int columnCount,
+            int headerRowCount,
             ObjectFlattenerOptions options,
             string consumerName) {
-            long projectedCells = ((long)rowCount + 1L) * columnCount;
+            long projectedCells = ((long)rowCount + headerRowCount) * columnCount;
             if (projectedCells > options.MaxCells) {
                 throw new InvalidDataException(
                     $"{consumerName} exceeds the {options.MaxCells}-cell materialization limit.");

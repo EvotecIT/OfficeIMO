@@ -75,7 +75,7 @@ namespace OfficeIMO.Excel.Fluent {
             }
 
             var flattener = new ObjectFlattener();
-            ObjectTableProjection projection = flattener.FlattenRows(rows, options, "RowsFrom");
+            ObjectTableProjection projection = flattener.FlattenRows(rows, options, "RowsFrom", headerRowCount: 1);
             IReadOnlyList<string> paths = projection.Columns;
             var headers = BuildTransformedHeaders(paths, options);
 

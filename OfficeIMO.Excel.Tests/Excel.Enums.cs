@@ -137,6 +137,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObjectFlattenerExplicitColumnsCountsResolvedDistinctPaths() {
+            var options = new ObjectFlattenerOptions {
+                Columns = new[] { "Name", "Name", "Missing" },
+                MaxColumns = 1
+            };
+
+            Dictionary<string, object?> values = new ObjectFlattener().Flatten(
+                new ObjectFlattenerSinglePropertyRow { Name = "Alice" }, options);
+
+            Assert.Single(values);
+            Assert.Equal("Alice", values["Name"]);
+        }
+
+        [Fact]
+        public void ObjectFlattenerExplicitColumnsRejectsResolvedDistinctPathsBeyondLimit() {
+            var options = new ObjectFlattenerOptions {
+                Columns = new[] { "Name", "Status" },
+                MaxColumns = 1
+            };
+
+            Assert.Throws<System.IO.InvalidDataException>(() =>
+                new ObjectFlattener().ResolvePaths(new[] { "Name", "Status" }, options));
+        }
+
+        [Fact]
         public void ObjectFlattenerValueTuplePreservesItemPaths() {
             var flattener = new ObjectFlattener();
             var options = new ObjectFlattenerOptions();
@@ -153,6 +178,10 @@ namespace OfficeIMO.Tests {
             public List<string?> Tags { get; } = new() { "a", null, "b" };
 
             public string[] Empty { get; } = Array.Empty<string>();
+        }
+
+        private sealed class ObjectFlattenerSinglePropertyRow {
+            public string Name { get; set; } = string.Empty;
         }
 
         private sealed class ObjectFlattenerSelectionPathRow {

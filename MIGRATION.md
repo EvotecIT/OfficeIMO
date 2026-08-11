@@ -9,6 +9,19 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIMO package in an application to the same `3.2.x` version and perform a clean restore after changing versions.
 
+## OfficeIMO 3.2: bounded Visio shape-data projection
+
+Visio document projection now retains at most 200 Shape Data rows per page by default. The limit applies to projected tables, Markdown, and block text, preventing untrusted diagrams from causing unbounded row materialization.
+
+Trusted workflows that need more rows can set an explicit limit:
+
+```csharp
+OfficeDocumentModel model = document.ToOfficeDocumentModel(
+    options: new VisioDocumentProjectionOptions { MaxTableRows = 5_000 });
+```
+
+Use `int.MaxValue` only when trusted input must preserve the former effectively unbounded behavior and the application enforces its own resource policy.
+
 ## OfficeIMO 3.2: complete image validation at ingestion boundaries
 
 Excel file and URL image methods now validate the complete bounded payload instead of trusting a filename extension or image header. They throw `ArgumentException` for truncated, corrupt, or unsupported content that older versions could package. When a valid image has a misleading filename extension or remote content type, OfficeIMO uses the format detected from its payload.

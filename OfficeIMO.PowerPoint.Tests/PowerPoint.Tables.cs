@@ -63,6 +63,30 @@ namespace OfficeIMO.Tests {
 
         [Fact]
 
+        public void ObjectTableWithoutHeadersCountsOnlyRenderedCells() {
+
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            var rows = new[] {
+                new System.Collections.Generic.Dictionary<string, object?> {
+                    ["A"] = 1,
+                    ["B"] = 2
+                }
+            };
+
+            PowerPointTable table = slide.AddTable(
+                rows,
+                options => options.MaxCells = 2,
+                includeHeaders: false);
+
+            Assert.Equal(1, table.Rows);
+            Assert.Equal(2, table.Columns);
+            Assert.False(table.HeaderRow);
+        }
+
+        [Fact]
+
         public void CanManipulateTableCellsAndPreserveStyle() {
 
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");

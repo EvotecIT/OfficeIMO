@@ -183,7 +183,7 @@ namespace OfficeIMO.PowerPoint {
             var flattener = new ObjectFlattener();
 
             ObjectTableProjection projection = flattener.FlattenRows(
-                data, options, "PowerPoint AddTable");
+                data, options, "PowerPoint AddTable", includeHeaders ? 1 : 0);
             IReadOnlyList<string> paths = projection.Columns;
 
             if (paths.Count == 0) {
