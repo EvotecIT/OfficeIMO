@@ -824,10 +824,12 @@ internal static class PdfPageContentVisualParser {
 
         private void PaintShading(string shadingName, double paintOrder) {
             if (HasHiddenContent()) return;
+            if (!TryGetShadingPaintBounds(out double x, out double y, out double width, out double height)) {
+                return;
+            }
             _authoredShadingInvocationVisitor?.Invoke(shadingName);
             if (_shadings == null ||
-                !_shadings.TryGetValue(shadingName, out PdfPageShadingResource shading) ||
-                !TryGetShadingPaintBounds(out double x, out double y, out double width, out double height)) {
+                !_shadings.TryGetValue(shadingName, out PdfPageShadingResource shading)) {
                 return;
             }
             if (_requireExactType3ShadingProjection && !shading.SupportsExactType3Projection) {
@@ -846,10 +848,12 @@ internal static class PdfPageContentVisualParser {
         private bool TryGetShadingPaintBounds(out double x, out double y, out double width, out double height) {
             if (_state.ClipPath.HasValue) {
                 PdfPageClipPath clipPath = _state.ClipPath.Value;
-                x = clipPath.X;
-                y = clipPath.Y;
-                width = clipPath.Width;
-                height = clipPath.Height;
+                double right = Math.Min(_pageWidth, clipPath.X + clipPath.Width);
+                double bottom = Math.Min(_pageHeight, clipPath.Y + clipPath.Height);
+                x = Math.Max(0D, clipPath.X);
+                y = Math.Max(0D, clipPath.Y);
+                width = right - x;
+                height = bottom - y;
             } else {
                 x = 0D;
                 y = 0D;

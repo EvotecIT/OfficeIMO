@@ -706,15 +706,29 @@ public sealed partial class PdfReadPage {
                 PdfDictionary? formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
                 PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
-                string decodedFormContent = PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream));
-                string formContent = WrapFormContentWithBoundingBoxClip(decodedFormContent, formDictionary);
-                if (requireSupportedType3Content && formDictionary.Items.ContainsKey("Group")) {
-                    if (!allowSupportedType3TransparencyGroups ||
+                bool projectsType3TransparencyGroup = requireSupportedType3Content && formDictionary.Items.ContainsKey("Group");
+                if (projectsType3TransparencyGroup) {
+                    Type3TransparencyGroupDrawingResult boundsResult = TryGetVisibleType3TransparencyGroupBounds(
+                        formDictionary,
+                        formTransform,
+                        invocation.ClipPath,
+                        pageWidth,
+                        pageHeight,
+                        out _);
+                    if (boundsResult == Type3TransparencyGroupDrawingResult.Invisible) {
+                        continue;
+                    }
+                    if (boundsResult == Type3TransparencyGroupDrawingResult.Unsupported ||
+                        !allowSupportedType3TransparencyGroups ||
                         type3GroupVisitor == null ||
                         !IsSupportedType3TransparencyGroup(formDictionary)) {
                         type3GlyphBudget.RecordFailure();
                         continue;
                     }
+                }
+                string decodedFormContent = PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream));
+                string formContent = WrapFormContentWithBoundingBoxClip(decodedFormContent, formDictionary);
+                if (projectsType3TransparencyGroup) {
                     Type3TransparencyGroupDrawingResult groupResult = TryCreateType3TransparencyGroupDrawing(
                             decodedFormContent,
                             formDictionary,
@@ -743,7 +757,7 @@ public sealed partial class PdfReadPage {
                         continue;
                     }
                     if (groupResult == Type3TransparencyGroupDrawingResult.Invisible) continue;
-                    type3GroupVisitor(groupDrawing, groupTransform, invocation.PaintOrder, formOrderPrefix, PdfPageDrawingEffect.Default);
+                    type3GroupVisitor!(groupDrawing, groupTransform, invocation.PaintOrder, formOrderPrefix, PdfPageDrawingEffect.Default);
                     continue;
                 }
                 CollectVisualPrimitivesAndForms(
