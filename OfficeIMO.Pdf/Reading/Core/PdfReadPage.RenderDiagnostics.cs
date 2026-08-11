@@ -474,7 +474,9 @@ public sealed partial class PdfReadPage {
                 requireExactType3ShadingProjection: true,
                 authoredShadingInvocationVisitor: requireImageMask
                     ? _ => supported = false
-                    : null);
+                    : null,
+                initialFillPattern: initialFillPattern,
+                initialStrokePattern: initialStrokePattern);
             if (usesUnsupportedInheritedShadingStroke) {
                 AddRenderDiagnostic(
                     diagnostics,

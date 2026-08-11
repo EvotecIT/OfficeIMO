@@ -612,7 +612,9 @@ public sealed partial class PdfReadPage {
             requireExactType3ShadingProjection: requireSupportedType3Content,
             authoredShadingInvocationVisitor: requireNestedType3Uncolored
                 ? _ => type3GlyphBudget.RecordFailure()
-                : null);
+                : null,
+            initialFillPattern: initialFillPattern,
+            initialStrokePattern: initialStrokePattern);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,

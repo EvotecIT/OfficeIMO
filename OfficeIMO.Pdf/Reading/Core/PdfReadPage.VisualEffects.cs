@@ -310,7 +310,9 @@ public sealed partial class PdfReadPage {
                     !shading.SupportsExactType3Projection) {
                     supported = false;
                 }
-            });
+            },
+            initialFillPattern: initialState?.FillPattern,
+            initialStrokePattern: initialState?.StrokePattern);
         if (!supported) return false;
         var validationDiagnostics = new List<PdfRenderCapabilityDiagnostic>();
         var validationDiagnosticKeys = new HashSet<string>(StringComparer.Ordinal);
