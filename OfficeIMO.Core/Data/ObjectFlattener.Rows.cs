@@ -18,6 +18,10 @@ namespace OfficeIMO.Data {
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (headerRowCount < 0) throw new ArgumentOutOfRangeException(nameof(headerRowCount));
             ValidateLimits(options);
+            if (options.MaxRows <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(options.MaxRows),
+                    "MaxRows must be greater than zero.");
+            }
 
             int knownRowCount = source is IReadOnlyCollection<T> readOnlyCollection
                 ? readOnlyCollection.Count
@@ -37,7 +41,7 @@ namespace OfficeIMO.Data {
             List<string>? explicitColumns = null;
             bool hasExplicitColumns = options.Columns != null && options.Columns.Length > 0;
 
-            foreach (T item in source) {
+            void AddProjectedRow(T item) {
                 if (rows.Count >= options.MaxRows) {
                     throw new InvalidDataException(
                         $"{consumerName} exceeds the {options.MaxRows}-row materialization limit.");
@@ -63,6 +67,14 @@ namespace OfficeIMO.Data {
                     headerRowCount,
                     options,
                     consumerName);
+            }
+
+            if (source is IReadOnlyList<T> readOnlyList) {
+                for (int index = 0; index < readOnlyList.Count; index++) {
+                    AddProjectedRow(readOnlyList[index]);
+                }
+            } else {
+                foreach (T item in source) AddProjectedRow(item);
             }
 
             if (rows.Count == 0) {

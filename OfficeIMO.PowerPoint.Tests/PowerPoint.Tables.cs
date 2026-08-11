@@ -42,6 +42,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObjectTableRejectsNonPositiveRowLimitBeforeInspectingSource() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+
+            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                slide.AddTable(Array.Empty<int>(), options => options.MaxRows = 0));
+
+            Assert.Equal("MaxRows", exception.ParamName);
+        }
+
+        [Fact]
 
         public void ObjectTableRejectsFinalCellsDuringNestedExpansion() {
 
