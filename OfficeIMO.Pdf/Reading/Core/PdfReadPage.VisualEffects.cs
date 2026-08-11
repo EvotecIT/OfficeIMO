@@ -198,7 +198,7 @@ public sealed partial class PdfReadPage {
         (double Width, double Height) visualPageSize = GetVisualPageSize();
         Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
         Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources);
-        var type3PaintChannelCache = new Dictionary<PdfStream, PdfType3PaintChannels>();
+        var type3PaintChannelCache = new Type3PaintChannelCache();
         var activeType3PaintChannelStreams = new HashSet<PdfStream>();
         var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
         _ = PdfPageXObjectInvocationParser.Parse(
@@ -234,7 +234,8 @@ public sealed partial class PdfReadPage {
                 font,
                 bytes,
                 type3PaintChannelCache,
-                activeType3PaintChannelStreams),
+                activeType3PaintChannelStreams,
+                pageContentBudget),
             xObjectPaintChannelResolver: (name, transform, clipPath) => ResolveXObjectPaintChannels(
                 resources,
                 name,
@@ -243,7 +244,8 @@ public sealed partial class PdfReadPage {
                 visualPageSize.Width,
                 visualPageSize.Height,
                 type3PaintChannelCache,
-                activeType3PaintChannelStreams));
+                activeType3PaintChannelStreams,
+                pageContentBudget));
         Dictionary<string, PdfPageTilingPatternResource> tilingPatterns = GetTilingPatternResources(
             resources,
             invokedPatternNames,
@@ -379,7 +381,8 @@ public sealed partial class PdfReadPage {
                 font,
                 bytes,
                 type3PaintChannelCache,
-                activeType3PaintChannelStreams),
+                activeType3PaintChannelStreams,
+                pageContentBudget),
             xObjectPaintChannelResolver: (name, transform, clipPath) => ResolveXObjectPaintChannels(
                 resources,
                 name,
@@ -388,7 +391,8 @@ public sealed partial class PdfReadPage {
                 visualPageSize.Width,
                 visualPageSize.Height,
                 type3PaintChannelCache,
-                activeType3PaintChannelStreams));
+                activeType3PaintChannelStreams,
+                pageContentBudget));
         if (!supported) return false;
 
         for (int index = 0; index < invocations.Count; index++) {
