@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio.Stencils;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
@@ -552,11 +553,11 @@ namespace OfficeIMO.Visio.Diagrams {
                 ? CreateStableEdgeId(record.FromId, record.ToId, record.Kind, reservedExplicitIds)
                 : RequireId(record.Id!, nameof(record.Id), "Edge id");
             Edge(edgeId, record.FromId, record.ToId, record.Kind, record.Label, record.Directed);
-            if (record.BeginArrow.HasValue || record.EndArrow.HasValue || record.LinePattern.HasValue || record.LineColor.HasValue) {
+            if (record.BeginArrow.HasValue || record.EndArrow.HasValue || record.LineStyle.HasValue || record.LineColor.HasValue) {
                 EdgeStyle(edgeId, style => {
                     if (record.BeginArrow.HasValue) style.BeginArrow = record.BeginArrow;
                     if (record.EndArrow.HasValue) style.EndArrow = record.EndArrow;
-                    if (record.LinePattern.HasValue) style.LinePattern = record.LinePattern.Value;
+                    if (record.LineStyle.HasValue) style.LinePattern = OfficeStrokeDashStyleMapper.ToVisioLinePattern(record.LineStyle.Value);
                     if (record.LineColor.HasValue) style.LineColor = record.LineColor.Value;
                 });
             }

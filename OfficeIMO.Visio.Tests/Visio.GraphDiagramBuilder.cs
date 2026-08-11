@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 using OfficeIMO.Visio.Stencils;
@@ -362,7 +363,7 @@ namespace OfficeIMO.Tests {
             VisioGraphEdgeRecord tokenFlow = new("idp", "cluster") {
                 Label = "tokens",
                 Kind = VisioGraphConnectorKind.Control,
-                LinePattern = 3,
+                LineStyle = OfficeStrokeDashStyle.Dot,
                 LineColor = Color.FromRgb(80, 100, 120)
             };
             tokenFlow.ShapeData.Add("Protocol", "OIDC");

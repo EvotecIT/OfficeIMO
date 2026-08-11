@@ -12,13 +12,13 @@ public static partial class OfficeVisioVisualConversionExtensions {
         string kind,
         string? status,
         string? groupId,
-        IEnumerable<KeyValuePair<string, string>> metadata,
+        IEnumerable<KeyValuePair<string, string>> extensions,
         OfficeVisioVisualConversionReport report,
         string context) {
         AddValue(target, "CFX.Kind", kind);
         AddValue(target, "CFX.Status", status);
         AddValue(target, "CFX.GroupId", groupId);
-        AddMetadataData(target, "Metadata.", metadata, report, context);
+        AddExtensionData(target, "Extension.", extensions, report, context);
     }
 
     private static void AddDetailData(
@@ -33,7 +33,8 @@ public static partial class OfficeVisioVisualConversionExtensions {
             string valueKey = prefix + detail.Label;
             if (IsReservedDetailField(detail.Label)) {
                 valueKey = prefix + "Field." + detail.Label;
-                report.Warn($"Detail label '{detail.Label}' on {context} detail {number} was projected as '{valueKey}' to avoid a reserved Visio Shape Data field collision.");
+                report.Info(OfficeVisioVisualDiagnosticCode.DetailFieldRenamed, OfficeVisioVisualEntityKind.Detail, null, detail.Label,
+                    $"Detail label '{detail.Label}' on {context} detail {number} was projected as '{valueKey}' to avoid a reserved Visio Shape Data field collision.");
             }
 
             AddValue(target, valueKey, detail.Value);
@@ -42,7 +43,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
             AddValue(target, prefix + "Icon", detail.IconId);
             AddValue(target, prefix + "Status", detail.Status);
             AddValue(target, prefix + "Color", detail.Color);
-            AddMetadataData(target, prefix + "Metadata.", detail.Metadata, report, context + " detail " + number);
+            AddExtensionData(target, prefix + "Extension.", detail.Extensions, report, context + " detail " + number);
         }
     }
 
@@ -52,8 +53,8 @@ public static partial class OfficeVisioVisualConversionExtensions {
         string.Equals(label, "Icon", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(label, "Status", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(label, "Color", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(label, "Metadata", StringComparison.OrdinalIgnoreCase) ||
-        label.StartsWith("Metadata.", StringComparison.OrdinalIgnoreCase);
+        string.Equals(label, "Extension", StringComparison.OrdinalIgnoreCase) ||
+        label.StartsWith("Extension.", StringComparison.OrdinalIgnoreCase);
 
     private static void AddPortData(
         IDictionary<string, string?> target,
@@ -66,20 +67,20 @@ public static partial class OfficeVisioVisualConversionExtensions {
             string prefix = "Port." + number + ".";
             AddValue(target, "Port." + number, port.Id + "|" + port.Side + "|" + port.Offset.ToString("R", CultureInfo.InvariantCulture));
             AddValue(target, prefix + "Id", port.Id);
-            AddValue(target, prefix + "Side", port.Side);
+            AddValue(target, prefix + "Side", port.Side.ToString());
             AddValue(target, prefix + "Offset", port.Offset.ToString("R", CultureInfo.InvariantCulture));
             AddValue(target, prefix + "Label", port.Label);
-            AddMetadataData(target, prefix + "Metadata.", port.Metadata, report, context + " port " + number);
+            AddExtensionData(target, prefix + "Extension.", port.Extensions, report, context + " port " + number);
         }
     }
 
-    private static void AddMetadataData(
+    private static void AddExtensionData(
         IDictionary<string, string?> target,
         string prefix,
-        IEnumerable<KeyValuePair<string, string>> metadata,
+        IEnumerable<KeyValuePair<string, string>> extensions,
         OfficeVisioVisualConversionReport report,
         string context) {
-        foreach (KeyValuePair<string, string> item in metadata.OrderBy(pair => pair.Key, StringComparer.Ordinal)) {
+        foreach (KeyValuePair<string, string> item in extensions.OrderBy(pair => pair.Key, StringComparer.Ordinal)) {
             string requested = prefix + item.Key;
             string resolved = requested;
             int suffix = 2;
@@ -88,9 +89,31 @@ public static partial class OfficeVisioVisualConversionExtensions {
                 suffix++;
             }
             if (!string.Equals(requested, resolved, StringComparison.Ordinal)) {
-                report.Warn($"Metadata key '{item.Key}' on {context} was projected as '{resolved}' because Visio Shape Data names are case-insensitive.");
+                report.Info(OfficeVisioVisualDiagnosticCode.ExtensionKeyRenamed, OfficeVisioVisualEntityKind.Artifact, null, item.Key,
+                    $"Extension key '{item.Key}' on {context} was projected as '{resolved}' because Visio Shape Data names are case-insensitive.");
             }
             AddValue(target, resolved, item.Value);
+        }
+    }
+
+    private static void AddMetricData(
+        IDictionary<string, string?> target,
+        IReadOnlyList<VisualArtifactInterchangeMetric> metrics,
+        OfficeVisioVisualConversionReport report,
+        string context) {
+        foreach (VisualArtifactInterchangeMetric metric in metrics.OrderBy(item => item.Name, StringComparer.Ordinal)) {
+            string requested = "Metric." + metric.Name;
+            string resolved = requested;
+            int suffix = 2;
+            while (target.Keys.Any(key => string.Equals(key, resolved, StringComparison.OrdinalIgnoreCase))) {
+                resolved = requested + " [" + suffix.ToString(CultureInfo.InvariantCulture) + "]";
+                suffix++;
+            }
+            if (!string.Equals(requested, resolved, StringComparison.Ordinal)) {
+                report.Info(OfficeVisioVisualDiagnosticCode.MetricNameRenamed, OfficeVisioVisualEntityKind.Artifact, null, metric.Name,
+                    $"Metric '{metric.Name}' on {context} was projected as '{resolved}' because Visio Shape Data names are case-insensitive.");
+            }
+            AddValue(target, resolved, metric.Value);
         }
     }
 

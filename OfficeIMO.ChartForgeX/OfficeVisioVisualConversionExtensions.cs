@@ -2,7 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using global::ChartForgeX.Primitives;
 using global::ChartForgeX.VisualArtifacts;
+using global::ChartForgeX.Topology;
+using global::ChartForgeX.VisualBlocks;
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 
@@ -18,7 +22,8 @@ public static partial class OfficeVisioVisualConversionExtensions {
         if (artifact == null) throw new ArgumentNullException(nameof(artifact));
         OfficeVisioVisualConversionResult result = artifact.ToInterchangeEnvelope(renderOptions).ToOfficeVisio(options);
         if (renderOptions != null && renderOptions.Watermarks.Count > 0) {
-            result.Report.Warn("CFX render watermarks are not projected into the native editable Visio page; keep the separately rendered SVG or PNG when watermark fidelity is required.");
+            result.Report.Warn(OfficeVisioVisualDiagnosticCode.WatermarkNotProjected, OfficeVisioVisualEntityKind.Artifact, artifact.Id, "watermark",
+                "CFX render watermarks are not projected into the native editable Visio page; keep the separately rendered SVG or PNG when watermark fidelity is required.");
         }
         return result;
     }
@@ -28,35 +33,37 @@ public static partial class OfficeVisioVisualConversionExtensions {
         this VisualArtifactInterchangeEnvelope envelope,
         OfficeVisioVisualOptions? options = null) {
         if (envelope == null) throw new ArgumentNullException(nameof(envelope));
-        // Round-tripping applies the same public validation used at process and ALC boundaries.
-        VisualArtifactInterchangeEnvelope validated = VisualArtifactInterchangeEnvelope.FromJson(envelope.ToJson());
+        envelope.Validate();
+        VisualArtifactInterchangeEnvelope validated = envelope;
         options ??= new OfficeVisioVisualOptions();
 
         VisioDocument document = VisioDocument.Create();
         document.Title = HasTitle(validated) ? CombineLabel(validated.Title, validated.Subtitle) : null;
         var report = new OfficeVisioVisualConversionReport {
             ArtifactKind = validated.Kind,
+            SemanticFamily = validated.Family,
             NodeCount = validated.Nodes.Count,
             EdgeCount = validated.Edges.Count,
-            IsNativeEditable = true
+            AllProjectedObjectsEditable = true
         };
+        ReportDisabledShapeDataFidelity(validated, options, report);
 
-        switch (validated.Kind) {
-            case VisualArtifactKind.Topology:
-                report.Projection = nameof(VisioGraphDiagramBuilder);
+        switch (validated.Family) {
+            case VisualArtifactInterchangeFamily.Topology:
+                report.Projection = OfficeVisioVisualProjectionKind.Graph;
                 BuildGraph(document, validated, options, report, flow: false);
                 break;
-            case VisualArtifactKind.Flow:
-                report.Projection = nameof(VisioGraphDiagramBuilder) + " (flow)";
+            case VisualArtifactInterchangeFamily.Flow:
+                report.Projection = OfficeVisioVisualProjectionKind.FlowGraph;
                 BuildGraph(document, validated, options, report, flow: true);
                 break;
-            case VisualArtifactKind.Sequence:
-                report.Projection = nameof(VisioSequenceDiagramBuilder);
+            case VisualArtifactInterchangeFamily.Sequence:
+                report.Projection = OfficeVisioVisualProjectionKind.Sequence;
                 BuildSequence(document, validated, options, report);
                 break;
             default:
                 throw new NotSupportedException(
-                    $"CFX artifact kind '{validated.Kind}' does not have a native editable Visio projection. " +
+                    $"CFX artifact kind '{validated.Kind}' does not carry a supported semantic family. " +
                     "Keep the separately rendered SVG as the flat fallback or add a semantic adapter for this artifact family.");
         }
 
@@ -86,18 +93,24 @@ public static partial class OfficeVisioVisualConversionExtensions {
         report.GroupCount = groups.Count;
         report.AnnotationCount = 0;
         foreach (VisualArtifactInterchangeAnnotation annotation in envelope.Annotations) {
-            report.Warn($"Annotation '{annotation.Id}' of kind '{annotation.Kind}' remains in the CFX envelope but has no native graph mapping.");
+            report.Warn(OfficeVisioVisualDiagnosticCode.AnnotationNotProjected, OfficeVisioVisualEntityKind.Annotation, annotation.Id, annotation.Kind,
+                $"Annotation '{annotation.Id}' of kind '{annotation.Kind}' remains in the CFX envelope but has no native graph mapping.");
         }
         if (!options.IncludeGroups && envelope.Groups.Count > 0) {
-            report.Warn("Graph groups remain in the CFX envelope because native group projection was disabled by the conversion options.");
+            report.Warn(OfficeVisioVisualDiagnosticCode.GroupNotProjected, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "groups",
+                "Graph groups remain in the CFX envelope because native group projection was disabled by the conversion options.");
         }
-        if (envelope.Metadata.Count > 0) {
-            report.Warn("Artifact-level metadata remains in the CFX envelope and is not duplicated into the native Visio graph page or document.");
+        if (envelope.Extensions.Count > 0) {
+            report.Warn(OfficeVisioVisualDiagnosticCode.ExtensionsNotProjected, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "extensions",
+                "Artifact-level extensions remain in the CFX envelope and are not duplicated into the native Visio graph page or document.");
         }
         ReportArtifactAccessibilityFidelity(envelope, report);
+        ReportArtifactPresentationFidelity(envelope, report);
+        ReportScenarioFidelity(envelope, report);
+        ReportGraphSemanticFidelity(envelope, report, flow);
 
         document.GraphDiagram(options.PageName, builder => {
-            ConfigureGraph(builder, envelope, options, report);
+            ConfigureGraph(builder, envelope, options, report, flow);
             builder.Import(nodes, edges, groups);
         });
         if (options.UseNaturalPageSize) {
@@ -109,14 +122,16 @@ public static partial class OfficeVisioVisualConversionExtensions {
         VisioGraphDiagramBuilder builder,
         VisualArtifactInterchangeEnvelope envelope,
         OfficeVisioVisualOptions options,
-        OfficeVisioVisualConversionReport report) {
+        OfficeVisioVisualConversionReport report,
+        bool flow) {
         (double width, double height) = ResolvePageSize(envelope, options);
         builder.PageSize(width, height).FitPageToGraph();
-        builder.Layout(MapLayout(envelope.Layout, report));
-        builder.Direction(MapDirection(envelope.Direction, report));
+        builder.Layout(MapLayout(envelope, flow, report));
+        builder.Direction(MapDirection(envelope, flow, report));
         if (envelope.Nodes.Any(node => node.X.HasValue || node.Y.HasValue || node.Width.HasValue || node.Height.HasValue) ||
             envelope.Groups.Any(group => group.X.HasValue || group.Y.HasValue || group.Width.HasValue || group.Height.HasValue)) {
-            report.Warn("Native Visio layout was recomputed; prepared CFX pixel coordinates and dimensions remain available in the semantic envelope.");
+            report.Warn(OfficeVisioVisualDiagnosticCode.LayoutRecomputed, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "coordinates",
+                "Native Visio layout was recomputed; prepared CFX pixel coordinates and dimensions remain available in the semantic envelope.");
         }
         if (options.IncludeTitle && HasTitle(envelope)) {
             builder.Title(CombineLabel(envelope.Title, envelope.Subtitle), UniqueTitleId(envelope));
@@ -129,14 +144,17 @@ public static partial class OfficeVisioVisualConversionExtensions {
         OfficeVisioVisualConversionReport report,
         bool flow) {
         var record = new VisioGraphNodeRecord(node.Id, CombineLabel(node.Label, node.Subtitle)) {
-            Kind = MapNodeKind(node.Kind, flow),
+            Kind = MapNodeKind(node, flow),
             HyperlinkAddress = options.IncludeHyperlinks ? node.Href : null,
             HyperlinkDescription = options.IncludeHyperlinks ? node.Tooltip : null,
             LineColor = MapNativeColor(node.Color, "Node", node.Id, report),
             FillColor = MapNativeColor(node.BackgroundColor, "Node background", node.Id, report)
         };
         if (options.IncludeShapeData) {
-            AddCommonShapeData(record.ShapeData, node.Kind, node.Status, node.GroupId, node.Metadata, report, "node '" + node.Id + "'");
+            AddCommonShapeData(record.ShapeData, node.Kind, node.Status, node.GroupId, node.Extensions, report, "node '" + node.Id + "'");
+            AddValue(record.ShapeData, "CFX.Role", node.Role.ToString());
+            AddValue(record.ShapeData, flow ? "CFX.FlowStepKind" : "CFX.TopologyNodeKind", flow ? node.Flow!.Kind.ToString() : node.Topology!.Kind.ToString());
+            AddMetricData(record.ShapeData, node.Metrics, report, "node '" + node.Id + "'");
             AddValue(record.ShapeData, "CFX.Icon", node.IconId);
             AddValue(record.ShapeData, "CFX.Symbol", node.Symbol);
             AddValue(record.ShapeData, "CFX.Badge", node.Badge);
@@ -145,6 +163,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
             AddDetailData(record.ShapeData, node.Details, report, "node '" + node.Id + "'");
             AddPortData(record.ShapeData, node.Ports, report, "node '" + node.Id + "'");
         }
+        PreserveHyperlinkFidelity(record.ShapeData, node.Href, options, report, "Node", node.Id);
         PreserveTooltipFidelity(record.ShapeData, node.Tooltip, node.Href, options, report, "Node", node.Id);
         return record;
     }
@@ -155,29 +174,39 @@ public static partial class OfficeVisioVisualConversionExtensions {
         OfficeVisioVisualConversionReport report,
         bool flow) {
         var record = new VisioGraphEdgeRecord(edge.Id, edge.SourceId, edge.TargetId) {
-            Kind = MapEdgeKind(edge.Kind, edge.Status, flow),
+            Kind = MapEdgeKind(edge, flow),
             Label = CombineEdgeLabel(edge),
             HyperlinkAddress = options.IncludeHyperlinks ? edge.Href : null,
             HyperlinkDescription = options.IncludeHyperlinks ? edge.Tooltip : null,
-            LinePattern = MapGraphLinePattern(edge.LineStyle, edge.Id, report),
+            LineStyle = MapGraphLineStyle(edge.Topology?.LineStyle),
             LineColor = MapNativeColor(edge.Color, "Edge", edge.Id, report)
         };
-        ApplyGraphEdgeDirection(record, edge.Direction, edge.Id, report);
-        if (!string.IsNullOrWhiteSpace(edge.SourcePortId) || !string.IsNullOrWhiteSpace(edge.TargetPortId) ||
-            !string.IsNullOrWhiteSpace(edge.SourcePort) || !string.IsNullOrWhiteSpace(edge.TargetPort)) {
-            report.Warn($"Edge '{edge.Id}' requested CFX port attachment; native Visio graph layout selected connector sides while the original port semantics remain in the CFX envelope and, when enabled, Shape Data.");
+        ApplyGraphEdgeDirection(record, flow ? edge.Flow!.Direction : edge.Topology!.Direction);
+        bool hasExplicitPortAttachment = !string.IsNullOrWhiteSpace(edge.SourcePortId) ||
+                                         !string.IsNullOrWhiteSpace(edge.TargetPortId) ||
+                                         (!flow && (edge.Topology!.SourcePort != global::ChartForgeX.Topology.TopologyEdgePort.Auto ||
+                                                    edge.Topology.TargetPort != global::ChartForgeX.Topology.TopologyEdgePort.Auto));
+        if (hasExplicitPortAttachment) {
+            report.Warn(OfficeVisioVisualDiagnosticCode.PortAttachmentNormalized, OfficeVisioVisualEntityKind.Edge, edge.Id, "ports",
+                $"Edge '{edge.Id}' requested CFX port attachment; native Visio graph layout selected connector sides while the original port semantics remain in the CFX envelope and, when enabled, Shape Data.");
         }
         if (!string.IsNullOrWhiteSpace(edge.SourceLabel) || !string.IsNullOrWhiteSpace(edge.TargetLabel)) {
-            report.Warn(options.IncludeShapeData
-                ? $"Edge '{edge.Id}' endpoint labels are retained as Shape Data because native Visio graph connectors do not render endpoint labels."
-                : $"Edge '{edge.Id}' endpoint labels remain only in the CFX envelope because Shape Data projection was disabled and native Visio graph connectors do not render endpoint labels.");
+            report.Warn(OfficeVisioVisualDiagnosticCode.EndpointLabelsNotRendered, OfficeVisioVisualEntityKind.Edge, edge.Id, "endpointLabels",
+                options.IncludeShapeData
+                    ? $"Edge '{edge.Id}' endpoint labels are retained as Shape Data because native Visio graph connectors do not render endpoint labels."
+                    : $"Edge '{edge.Id}' endpoint labels remain only in the CFX envelope because Shape Data projection was disabled and native Visio graph connectors do not render endpoint labels.");
         }
         if (options.IncludeShapeData) {
-            AddCommonShapeData(record.ShapeData, edge.Kind, edge.Status, null, edge.Metadata, report, "edge '" + edge.Id + "'");
-            AddValue(record.ShapeData, "CFX.Direction", edge.Direction);
-            AddValue(record.ShapeData, "CFX.LineStyle", edge.LineStyle);
-            AddValue(record.ShapeData, "CFX.SourcePort", edge.SourcePort);
-            AddValue(record.ShapeData, "CFX.TargetPort", edge.TargetPort);
+            AddCommonShapeData(record.ShapeData, edge.Kind, edge.Status, null, edge.Extensions, report, "edge '" + edge.Id + "'");
+            AddValue(record.ShapeData, "CFX.Role", edge.Role.ToString());
+            AddValue(record.ShapeData, flow ? "CFX.FlowConnectorKind" : "CFX.TopologyEdgeKind", flow ? edge.Flow!.Kind.ToString() : edge.Topology!.Kind.ToString());
+            AddMetricData(record.ShapeData, edge.Metrics, report, "edge '" + edge.Id + "'");
+            AddValue(record.ShapeData, "CFX.Direction", EdgeDirection(edge));
+            AddValue(record.ShapeData, "CFX.LineStyle", EdgeLineStyle(edge));
+            if (!flow) {
+                AddValue(record.ShapeData, "CFX.SourcePort", edge.Topology!.SourcePort.ToString());
+                AddValue(record.ShapeData, "CFX.TargetPort", edge.Topology.TargetPort.ToString());
+            }
             AddValue(record.ShapeData, "CFX.SourcePortId", edge.SourcePortId);
             AddValue(record.ShapeData, "CFX.TargetPortId", edge.TargetPortId);
             AddValue(record.ShapeData, "CFX.SourceLabel", edge.SourceLabel);
@@ -185,6 +214,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
             AddValue(record.ShapeData, "CFX.Order", edge.Order.ToString(CultureInfo.InvariantCulture));
             AddValue(record.ShapeData, "CFX.Color", edge.Color);
         }
+        PreserveHyperlinkFidelity(record.ShapeData, edge.Href, options, report, "Edge", edge.Id);
         PreserveTooltipFidelity(record.ShapeData, edge.Tooltip, edge.Href, options, report, "Edge", edge.Id);
         return record;
     }
@@ -197,7 +227,8 @@ public static partial class OfficeVisioVisualConversionExtensions {
         foreach (VisualArtifactInterchangeGroup group in envelope.Groups) {
             string[] nodeIds = envelope.Nodes.Where(node => string.Equals(node.GroupId, group.Id, StringComparison.Ordinal)).Select(node => node.Id).ToArray();
             if (nodeIds.Length == 0) {
-                report.Warn($"Group '{group.Id}' was not emitted because native Visio containers require at least one node.");
+                report.Warn(OfficeVisioVisualDiagnosticCode.GroupNotProjected, OfficeVisioVisualEntityKind.Group, group.Id, "emptyGroup",
+                    $"Group '{group.Id}' was not emitted because native Visio containers require at least one node.");
                 continue;
             }
             var record = new VisioGraphClusterRecord(group.Id, CombineLabel(group.Label, group.Subtitle), nodeIds) {
@@ -206,9 +237,11 @@ public static partial class OfficeVisioVisualConversionExtensions {
                 LineColor = MapNativeColor(group.Color, "Group", group.Id, report)
             };
             if (options.IncludeShapeData) {
-                AddCommonShapeData(record.ShapeData, group.Kind, group.Status, null, group.Metadata, report, "group '" + group.Id + "'");
+                AddCommonShapeData(record.ShapeData, group.Kind, group.Status, null, group.Extensions, report, "group '" + group.Id + "'");
+                AddValue(record.ShapeData, "CFX.Role", group.Role.ToString());
                 AddValue(record.ShapeData, "CFX.Color", group.Color);
             }
+            PreserveHyperlinkFidelity(record.ShapeData, group.Href, options, report, "Group", group.Id);
             PreserveTooltipFidelity(record.ShapeData, group.Tooltip, group.Href, options, report, "Group", group.Id);
             groups.Add(record);
         }
@@ -221,10 +254,11 @@ public static partial class OfficeVisioVisualConversionExtensions {
         OfficeVisioVisualOptions options,
         OfficeVisioVisualConversionReport report) {
         List<VisualArtifactInterchangeNode> participants = envelope.Nodes
-            .OrderBy(node => ReadInt(node.Metadata, "sequence.order", int.MaxValue))
+            .OrderBy(node => node.Sequence!.Order)
             .ToList();
         if (participants.Any(participant => participant.X.HasValue || participant.Y.HasValue || participant.Width.HasValue || participant.Height.HasValue)) {
-            report.Warn("Native Visio sequence layout was recomputed; prepared CFX participant coordinates and dimensions remain available in the semantic envelope.");
+            report.Warn(OfficeVisioVisualDiagnosticCode.LayoutRecomputed, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "participantBounds",
+                "Native Visio sequence layout was recomputed; prepared CFX participant coordinates and dimensions remain available in the semantic envelope.");
         }
         List<VisualArtifactInterchangeEdge> messages = envelope.Edges.OrderBy(edge => edge.Order).ToList();
         (double width, double height) = ResolveSequenceLayoutPageSize(envelope, options);
@@ -239,7 +273,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
                 builder.Title(CombineLabel(envelope.Title, envelope.Subtitle), ids.TitleId);
             }
             foreach (VisualArtifactInterchangeNode participant in participants) {
-                builder.Participant(ids.Participant(participant.Id), CombineLabel(participant.Label, participant.Subtitle), MapParticipantKind(participant.Kind, report));
+                builder.Participant(ids.Participant(participant.Id), CombineLabel(participant.Label, participant.Subtitle), MapParticipantKind(participant, report));
             }
             foreach (VisualArtifactInterchangeEdge message in messages) {
                 VisioSequenceMessageKind kind = MapMessageKind(message);
@@ -249,7 +283,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
                     builder.Message(ids.Participant(message.SourceId), ids.Participant(message.TargetId), CombineEdgeLabel(message) ?? string.Empty, kind, ids.Message(message.Id));
                 }
             }
-            AddSequenceActivations(builder, messages, ids);
+            AddSequenceActivations(builder, envelope, messages, ids, report);
             report.AnnotationCount = AddSequenceAnnotations(builder, envelope, ids, report);
         });
 
@@ -265,44 +299,74 @@ public static partial class OfficeVisioVisualConversionExtensions {
             page.FitToContent(0.5D);
         }
 
-        if (envelope.Metadata.Count > 0) {
-            report.Warn(options.IncludeShapeData
-                ? "Sequence-level metadata remains available in the CFX envelope; participant metadata is projected into native Visio Shape Data."
-                : "Sequence-level metadata remains only in the CFX envelope because Shape Data projection was disabled.");
+        if (envelope.Extensions.Count > 0) {
+            report.Warn(OfficeVisioVisualDiagnosticCode.ExtensionsNotProjected, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "extensions",
+                options.IncludeShapeData
+                    ? "Sequence-level extensions remain available in the CFX envelope; participant extensions are projected into native Visio Shape Data."
+                    : "Sequence-level extensions remain only in the CFX envelope because Shape Data projection was disabled.");
         }
         if (envelope.Groups.Count > 0) {
-            report.Warn("Sequence groups remain in the CFX envelope because native Visio sequence diagrams do not project graph containers.");
+            report.Warn(OfficeVisioVisualDiagnosticCode.GroupNotProjected, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "groups",
+                "Sequence groups remain in the CFX envelope because native Visio sequence diagrams do not project graph containers.");
         }
         if (participants.Any(participant => participant.Ports.Count > 0)) {
-            report.Warn(options.IncludeShapeData
-                ? "Sequence participant ports remain in CFX Shape Data and the semantic envelope because native messages attach to participant lifelines."
-                : "Sequence participant ports remain only in the CFX envelope because Shape Data projection was disabled and native messages attach to participant lifelines.");
+            report.Warn(OfficeVisioVisualDiagnosticCode.PortAttachmentNormalized, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "participantPorts",
+                options.IncludeShapeData
+                    ? "Sequence participant ports remain in CFX Shape Data and the semantic envelope because native messages attach to participant lifelines."
+                    : "Sequence participant ports remain only in the CFX envelope because Shape Data projection was disabled and native messages attach to participant lifelines.");
         }
         ReportArtifactAccessibilityFidelity(envelope, report);
+        ReportArtifactPresentationFidelity(envelope, report);
+        ReportScenarioFidelity(envelope, report);
     }
 
     private static void AddSequenceActivations(
         VisioSequenceDiagramBuilder builder,
+        VisualArtifactInterchangeEnvelope envelope,
         IReadOnlyList<VisualArtifactInterchangeEdge> messages,
-        SequenceVisioIdMap ids) {
+        SequenceVisioIdMap ids,
+        OfficeVisioVisualConversionReport report) {
         var open = new Dictionary<string, Stack<int>>(StringComparer.Ordinal);
         var activations = new List<(string Participant, int Start, int End)>();
+        var changes = new List<(int Row, int SourceOrder, int Ordinal, string Participant, bool Active, string EntityId)>();
+        var inline = new HashSet<(int Row, string Participant, bool Active)>();
+        int ordinal = 0;
         for (int index = 0; index < messages.Count; index++) {
             VisualArtifactInterchangeEdge message = messages[index];
-            if (ReadBool(message.Metadata, "sequence.activatesTarget")) {
-                string targetId = ids.Participant(message.TargetId);
-                if (!open.TryGetValue(targetId, out Stack<int>? starts)) {
-                    starts = new Stack<int>();
-                    open.Add(targetId, starts);
-                }
-                starts.Push(index);
+            if (message.Sequence!.ActivatesTarget) {
+                string participant = ids.Participant(message.TargetId);
+                changes.Add((index, 0, ordinal++, participant, true, message.Id));
+                inline.Add((index, participant, true));
             }
-            string sourceId = ids.Participant(message.SourceId);
-            if (ReadBool(message.Metadata, "sequence.deactivates") && open.TryGetValue(sourceId, out Stack<int>? sourceStarts) && sourceStarts.Count > 0) {
-                activations.Add((sourceId, sourceStarts.Pop(), index));
+            if (message.Sequence.Deactivates) {
+                string participant = ids.Participant(message.SourceId);
+                changes.Add((index, 0, ordinal++, participant, false, message.Id));
+                inline.Add((index, participant, false));
             }
         }
-        int finalRow = Math.Max(0, messages.Count - 1);
+        foreach (VisualArtifactInterchangeAnnotation activationEvent in envelope.Annotations
+                     .Where(annotation => annotation.Role == VisualArtifactInterchangeAnnotationRole.SequenceActivation)) {
+            int row = activationEvent.StartIndex!.Value;
+            string participant = ids.Participant(activationEvent.TargetIds[0]);
+            bool active = activationEvent.Sequence!.ActivationState!.Value;
+            if (inline.Contains((row, participant, active))) continue;
+            changes.Add((row, 1, ordinal++, participant, active, activationEvent.Id));
+        }
+        foreach (var change in changes.OrderBy(item => item.Row).ThenBy(item => item.SourceOrder).ThenBy(item => item.Ordinal)) {
+            if (change.Active) {
+                if (!open.TryGetValue(change.Participant, out Stack<int>? starts)) {
+                    starts = new Stack<int>();
+                    open.Add(change.Participant, starts);
+                }
+                starts.Push(change.Row);
+            } else if (open.TryGetValue(change.Participant, out Stack<int>? starts) && starts.Count > 0) {
+                activations.Add((change.Participant, starts.Pop(), change.Row));
+            } else {
+                report.Warn(OfficeVisioVisualDiagnosticCode.SemanticLoss, OfficeVisioVisualEntityKind.Annotation, change.EntityId, "activation",
+                    $"Sequence deactivation '{change.EntityId}' had no matching open activation and was not projected.");
+            }
+        }
+        int finalRow = Math.Max(Math.Max(0, messages.Count - 1), changes.Count == 0 ? 0 : changes.Max(item => item.Row));
         foreach (KeyValuePair<string, Stack<int>> item in open.OrderBy(pair => pair.Key, StringComparer.Ordinal)) {
             while (item.Value.Count > 0) activations.Add((item.Key, item.Value.Pop(), finalRow));
         }
@@ -321,21 +385,29 @@ public static partial class OfficeVisioVisualConversionExtensions {
         foreach (VisualArtifactInterchangeAnnotation annotation in envelope.Annotations) {
             int start = annotation.StartIndex ?? 0;
             int end = annotation.EndIndex ?? start;
-            if (annotation.Kind.StartsWith("SequenceBlock:", StringComparison.Ordinal)) {
-                string blockKind = annotation.Kind.Substring("SequenceBlock:".Length);
+            if (annotation.Role == VisualArtifactInterchangeAnnotationRole.SequenceBlock && !annotation.Sequence!.IsEmpty) {
+                string blockKind = annotation.Sequence.BlockKind!.Value.ToString();
                 builder.Fragment(CombineLabel(blockKind, annotation.Text), start, end, annotation.TargetIds.Select(ids.Participant), ids.Annotation(annotation.Id));
                 projected++;
                 continue;
             }
-            if (string.Equals(annotation.Kind, "SequenceNote", StringComparison.Ordinal) && annotation.TargetIds.Count > 0) {
-                builder.Note(ids.Participant(annotation.TargetIds[0]), annotation.Text, start, MapNoteSide(annotation.Placement, annotation.Id, report), ids.Annotation(annotation.Id));
-                if (annotation.TargetIds.Count > 1 || string.Equals(annotation.Placement, "Over", StringComparison.OrdinalIgnoreCase)) {
-                    report.Warn($"Sequence note '{annotation.Id}' was attached to its first participant because native side notes do not span multiple participants.");
+            if (annotation.Role == VisualArtifactInterchangeAnnotationRole.SequenceNote) {
+                if (annotation.TargetIds.Count == 0) {
+                    report.Warn(OfficeVisioVisualDiagnosticCode.AnnotationNotProjected, OfficeVisioVisualEntityKind.Annotation, annotation.Id, "noteTarget",
+                        $"Sequence note '{annotation.Id}' has no remaining participant target and was not projected into native Visio.");
+                    continue;
+                }
+                builder.Note(ids.Participant(annotation.TargetIds[0]), annotation.Text, start, MapNoteSide(annotation.Sequence!.NotePlacement!.Value, annotation.Id, report), ids.Annotation(annotation.Id));
+                if (annotation.TargetIds.Count > 1 || annotation.Sequence.NotePlacement == SequenceArtifactNotePlacement.Over) {
+                    report.Warn(OfficeVisioVisualDiagnosticCode.NoteNormalized, OfficeVisioVisualEntityKind.Annotation, annotation.Id, "notePlacement",
+                        $"Sequence note '{annotation.Id}' was attached to its first participant because native side notes do not span multiple participants.");
                 }
                 projected++;
                 continue;
             }
-            report.Warn($"Sequence annotation '{annotation.Id}' of kind '{annotation.Kind}' remains in the CFX envelope but has no native Visio mapping.");
+            if (annotation.Role == VisualArtifactInterchangeAnnotationRole.SequenceActivation) continue;
+            report.Warn(OfficeVisioVisualDiagnosticCode.AnnotationNotProjected, OfficeVisioVisualEntityKind.Annotation, annotation.Id, annotation.Role.ToString(),
+                $"Sequence annotation '{annotation.Id}' of role '{annotation.Role}' remains in the CFX envelope but has no native Visio mapping.");
         }
         return projected;
     }
@@ -370,7 +442,12 @@ public static partial class OfficeVisioVisualConversionExtensions {
             var data = new Dictionary<string, string?>(StringComparer.Ordinal);
             if (options.IncludeShapeData) {
                 AddValue(data, "CFX.Id", participant.Id);
-                AddCommonShapeData(data, participant.Kind, participant.Status, participant.GroupId, participant.Metadata, report, "sequence participant '" + participant.Id + "'");
+                AddCommonShapeData(data, participant.Kind, participant.Status, participant.GroupId, participant.Extensions, report, "sequence participant '" + participant.Id + "'");
+                AddValue(data, "CFX.Role", participant.Role.ToString());
+                AddValue(data, "CFX.SequenceParticipantKind", participant.Sequence!.Kind.ToString());
+                AddValue(data, "CFX.SequenceParticipantOrder", participant.Sequence.Order.ToString(CultureInfo.InvariantCulture));
+                AddValue(data, "CFX.SequenceParticipantImplicit", participant.Sequence.IsImplicit.ToString(CultureInfo.InvariantCulture));
+                AddMetricData(data, participant.Metrics, report, "sequence participant '" + participant.Id + "'");
                 AddValue(data, "CFX.Icon", participant.IconId);
                 AddValue(data, "CFX.Symbol", participant.Symbol);
                 AddValue(data, "CFX.Badge", participant.Badge);
@@ -379,6 +456,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
                 AddDetailData(data, participant.Details, report, "sequence participant '" + participant.Id + "'");
                 AddPortData(data, participant.Ports, report, "sequence participant '" + participant.Id + "'");
             }
+            PreserveHyperlinkFidelity(data, participant.Href, options, report, "Sequence participant", participant.Id);
             PreserveTooltipFidelity(data, participant.Tooltip, participant.Href, options, report, "Sequence participant", participant.Id);
             foreach (KeyValuePair<string, string?> item in data) shape.SetShapeData(item.Key, item.Value);
             if (options.IncludeHyperlinks && !string.IsNullOrWhiteSpace(participant.Href)) {
@@ -395,20 +473,21 @@ public static partial class OfficeVisioVisualConversionExtensions {
         OfficeVisioVisualConversionReport report) {
         foreach (VisualArtifactInterchangeEdge message in messages) {
             VisioConnector connector = page.Connectors.Single(item => string.Equals(item.Id, ids.Message(message.Id), StringComparison.Ordinal));
-            ApplySequenceMessageDirection(connector, message.Direction, message.Id, report);
-            int? linePattern = MapSequenceLinePattern(message.LineStyle, message.Id, report);
-            if (linePattern.HasValue) connector.LinePattern = linePattern.Value;
+            connector.LinePattern = OfficeStrokeDashStyleMapper.ToVisioLinePattern(MapSequenceLineStyle(message.Sequence!.LineStyle));
             OfficeIMO.Drawing.OfficeColor? lineColor = MapNativeColor(message.Color, "Sequence message", message.Id, report);
             if (lineColor.HasValue) connector.LineColor = lineColor.Value;
             connector.Data["CFX.Id"] = message.Id;
             var data = new Dictionary<string, string?>(StringComparer.Ordinal);
             if (options.IncludeShapeData) {
                 AddValue(data, "CFX.Id", message.Id);
-                AddCommonShapeData(data, message.Kind, message.Status, null, message.Metadata, report, "sequence message '" + message.Id + "'");
-                AddValue(data, "CFX.Direction", message.Direction);
-                AddValue(data, "CFX.LineStyle", message.LineStyle);
-                AddValue(data, "CFX.SourcePort", message.SourcePort);
-                AddValue(data, "CFX.TargetPort", message.TargetPort);
+                AddCommonShapeData(data, message.Kind, message.Status, null, message.Extensions, report, "sequence message '" + message.Id + "'");
+                AddValue(data, "CFX.Role", message.Role.ToString());
+                AddValue(data, "CFX.SequenceMessageKind", message.Sequence!.Kind.ToString());
+                AddValue(data, "CFX.SequenceActivatesTarget", message.Sequence.ActivatesTarget.ToString(CultureInfo.InvariantCulture));
+                AddValue(data, "CFX.SequenceDeactivates", message.Sequence.Deactivates.ToString(CultureInfo.InvariantCulture));
+                AddMetricData(data, message.Metrics, report, "sequence message '" + message.Id + "'");
+                AddValue(data, "CFX.Direction", EdgeDirection(message));
+                AddValue(data, "CFX.LineStyle", EdgeLineStyle(message));
                 AddValue(data, "CFX.SourcePortId", message.SourcePortId);
                 AddValue(data, "CFX.TargetPortId", message.TargetPortId);
                 AddValue(data, "CFX.SourceLabel", message.SourceLabel);
@@ -416,38 +495,13 @@ public static partial class OfficeVisioVisualConversionExtensions {
                 AddValue(data, "CFX.Order", message.Order.ToString(CultureInfo.InvariantCulture));
                 AddValue(data, "CFX.Color", message.Color);
             }
+            PreserveHyperlinkFidelity(data, message.Href, options, report, "Sequence message", message.Id);
             PreserveTooltipFidelity(data, message.Tooltip, message.Href, options, report, "Sequence message", message.Id);
             foreach (KeyValuePair<string, string?> item in data) connector.SetShapeData(item.Key, item.Value);
             if (options.IncludeHyperlinks && !string.IsNullOrWhiteSpace(message.Href)) {
                 connector.AddHyperlink(message.Href!, message.Tooltip);
             }
         }
-    }
-
-    private static void ApplySequenceMessageDirection(
-        VisioConnector connector,
-        string? direction,
-        string messageId,
-        OfficeVisioVisualConversionReport report) {
-        EndArrow arrow = connector.EndArrow ?? EndArrow.Triangle;
-        if (arrow == EndArrow.None) arrow = EndArrow.Triangle;
-        connector.BeginArrow = EndArrow.None;
-        connector.EndArrow = arrow;
-        if (string.IsNullOrWhiteSpace(direction) || string.Equals(direction, "Forward", StringComparison.OrdinalIgnoreCase)) return;
-        if (string.Equals(direction, "None", StringComparison.OrdinalIgnoreCase)) {
-            connector.EndArrow = EndArrow.None;
-            return;
-        }
-        if (string.Equals(direction, "Backward", StringComparison.OrdinalIgnoreCase)) {
-            connector.BeginArrow = arrow;
-            connector.EndArrow = EndArrow.None;
-            return;
-        }
-        if (string.Equals(direction, "Bidirectional", StringComparison.OrdinalIgnoreCase)) {
-            connector.BeginArrow = arrow;
-            return;
-        }
-        report.Warn($"Sequence message '{messageId}' direction '{direction}' was normalized to a forward Visio connector.");
     }
 
     private static void ApplySequenceAnnotationData(
@@ -463,11 +517,19 @@ public static partial class OfficeVisioVisualConversionExtensions {
             if (!options.IncludeShapeData) continue;
             var data = new Dictionary<string, string?>(StringComparer.Ordinal);
             AddValue(data, "CFX.Id", annotation.Id);
-            AddCommonShapeData(data, annotation.Kind, null, null, annotation.Metadata, report, "sequence annotation '" + annotation.Id + "'");
+            AddCommonShapeData(data, annotation.Kind, null, null, annotation.Extensions, report, "sequence annotation '" + annotation.Id + "'");
+            AddValue(data, "CFX.Role", annotation.Role.ToString());
             AddValue(data, "CFX.Placement", annotation.Placement);
             AddValue(data, "CFX.TargetIds", annotation.TargetIds.Count == 0 ? null : string.Join(",", annotation.TargetIds));
             AddValue(data, "CFX.StartIndex", annotation.StartIndex?.ToString(CultureInfo.InvariantCulture));
             AddValue(data, "CFX.EndIndex", annotation.EndIndex?.ToString(CultureInfo.InvariantCulture));
+            AddValue(data, "CFX.SequenceActivationState", annotation.Sequence?.ActivationState?.ToString(CultureInfo.InvariantCulture));
+            AddValue(data, "CFX.SequenceNotePlacement", annotation.Sequence?.NotePlacement?.ToString());
+            AddValue(data, "CFX.SequenceBlockKind", annotation.Sequence?.BlockKind?.ToString());
+            AddValue(data, "CFX.SequenceParentBlockKind", annotation.Sequence?.ParentBlockKind?.ToString());
+            AddValue(data, "CFX.SequenceBranchKind", annotation.Sequence?.BranchKind);
+            AddValue(data, "CFX.SequenceDepth", annotation.Sequence?.Depth.ToString(CultureInfo.InvariantCulture));
+            AddValue(data, "CFX.SequenceIsEmpty", annotation.Sequence?.IsEmpty.ToString(CultureInfo.InvariantCulture));
             foreach (KeyValuePair<string, string?> item in data) shape.SetShapeData(item.Key, item.Value);
         }
     }
@@ -479,123 +541,27 @@ public static partial class OfficeVisioVisualConversionExtensions {
         SequenceVisioIdMap ids,
         OfficeVisioVisualConversionReport report) {
         foreach (VisualArtifactInterchangeNode participant in participants) {
-            ReportSequenceIdMapping("participant", participant.Id, ids.Participant(participant.Id), report);
+            ReportSequenceIdMapping(OfficeVisioVisualEntityKind.Participant, participant.Id, ids.Participant(participant.Id), report);
         }
         foreach (VisualArtifactInterchangeEdge message in messages) {
-            ReportSequenceIdMapping("message", message.Id, ids.Message(message.Id), report);
+            ReportSequenceIdMapping(OfficeVisioVisualEntityKind.Message, message.Id, ids.Message(message.Id), report);
         }
         foreach (VisualArtifactInterchangeAnnotation annotation in annotations) {
-            ReportSequenceIdMapping("annotation", annotation.Id, ids.Annotation(annotation.Id), report);
+            ReportSequenceIdMapping(OfficeVisioVisualEntityKind.Annotation, annotation.Id, ids.Annotation(annotation.Id), report);
         }
     }
 
-    private static void ReportSequenceIdMapping(string kind, string sourceId, string visioId, OfficeVisioVisualConversionReport report) {
+    private static void ReportSequenceIdMapping(OfficeVisioVisualEntityKind entityKind, string sourceId, string visioId, OfficeVisioVisualConversionReport report) {
         if (!string.Equals(sourceId, visioId, StringComparison.Ordinal)) {
-            report.Warn($"Sequence {kind} id '{sourceId}' was projected as '{visioId}' to avoid a collision with native Visio helper shapes.");
+            report.Info(OfficeVisioVisualDiagnosticCode.IdRemapped, entityKind, sourceId, "id",
+                $"Sequence {entityKind.ToString().ToLowerInvariant()} id '{sourceId}' was projected as '{visioId}' to avoid a collision with native Visio helper shapes.");
         }
     }
 
-    private static void ApplyGraphEdgeDirection(
-        VisioGraphEdgeRecord record,
-        string? direction,
-        string edgeId,
-        OfficeVisioVisualConversionReport report) {
-        record.Directed = true;
-        record.BeginArrow = EndArrow.None;
-        record.EndArrow = EndArrow.Triangle;
-        if (string.IsNullOrWhiteSpace(direction) || string.Equals(direction, "Forward", StringComparison.OrdinalIgnoreCase)) return;
-        if (string.Equals(direction, "None", StringComparison.OrdinalIgnoreCase)) {
-            record.Directed = false;
-            record.EndArrow = EndArrow.None;
-            return;
-        }
-        if (string.Equals(direction, "Backward", StringComparison.OrdinalIgnoreCase)) {
-            record.BeginArrow = EndArrow.Triangle;
-            record.EndArrow = EndArrow.None;
-            return;
-        }
-        if (string.Equals(direction, "Bidirectional", StringComparison.OrdinalIgnoreCase)) {
-            record.BeginArrow = EndArrow.Triangle;
-            return;
-        }
-        report.Warn($"Edge '{edgeId}' direction '{direction}' was normalized to a forward Visio connector.");
-    }
-
-    private static VisioGraphLayout MapLayout(string layout, OfficeVisioVisualConversionReport report) {
-        if (string.IsNullOrWhiteSpace(layout) || string.Equals(layout, "Layered", StringComparison.OrdinalIgnoreCase)) return VisioGraphLayout.Layered;
-        if (string.Equals(layout, "Dense", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(layout, "Grid", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(layout, "GroupGrid", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(layout, "DenseGrouped", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(layout, "Matrix", StringComparison.OrdinalIgnoreCase)) return VisioGraphLayout.Grid;
-        if (string.Equals(layout, "Force", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(layout, "Radial", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(layout, "ForceDirected", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(layout, "RelationshipRadial", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(layout, "HubAndSpoke", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(layout, "MindMap", StringComparison.OrdinalIgnoreCase)) return VisioGraphLayout.Radial;
-        if (!string.Equals(layout, "Manual", StringComparison.OrdinalIgnoreCase)) {
-            report.Warn($"CFX graph layout '{layout}' was normalized to Visio's native layered layout.");
-        }
-        return VisioGraphLayout.Layered;
-    }
-
-    private static VisioGraphDirection MapDirection(string direction, OfficeVisioVisualConversionReport report) {
-        if (string.Equals(direction, "TopToBottom", StringComparison.OrdinalIgnoreCase) || string.Equals(direction, "BottomToTop", StringComparison.OrdinalIgnoreCase)) {
-            if (string.Equals(direction, "BottomToTop", StringComparison.OrdinalIgnoreCase)) report.Warn("Bottom-to-top direction was normalized to Visio's native top-to-bottom graph layout.");
-            return VisioGraphDirection.TopToBottom;
-        }
-        if (string.Equals(direction, "RightToLeft", StringComparison.OrdinalIgnoreCase)) {
-            report.Warn("Right-to-left direction was normalized to Visio's native left-to-right graph layout.");
-        } else if (!string.IsNullOrWhiteSpace(direction) && !string.Equals(direction, "LeftToRight", StringComparison.OrdinalIgnoreCase)) {
-            report.Warn($"CFX graph direction '{direction}' was normalized to Visio's native left-to-right graph layout.");
-        }
-        return VisioGraphDirection.LeftToRight;
-    }
-
-    private static VisioGraphNodeKind MapNodeKind(string kind, bool flow) {
-        if (Contains(kind, "Decision")) return VisioGraphNodeKind.Decision;
-        if (Contains(kind, "Data") || Contains(kind, "Database") || Contains(kind, "Store")) return VisioGraphNodeKind.Data;
-        if (Contains(kind, "External") || Contains(kind, "Actor")) return VisioGraphNodeKind.External;
-        if (Contains(kind, "Critical") || Contains(kind, "Emphasis") || (flow && (Contains(kind, "Start") || Contains(kind, "End")))) return VisioGraphNodeKind.Emphasis;
-        return VisioGraphNodeKind.Process;
-    }
-
-    private static VisioGraphConnectorKind MapEdgeKind(string kind, string? status, bool flow) {
-        if (Contains(kind, "Data") || Contains(kind, "Dependency")) return VisioGraphConnectorKind.Data;
-        if (Contains(kind, "Control") || Contains(kind, "Retry") || Contains(kind, "Async")) return VisioGraphConnectorKind.Control;
-        if (Contains(kind, "Error") || Contains(kind, "Reject") || Contains(status, "Critical") || Contains(status, "Error")) return VisioGraphConnectorKind.Emphasis;
-        return flow ? VisioGraphConnectorKind.Control : VisioGraphConnectorKind.Standard;
-    }
-
-    private static VisioSequenceParticipantKind MapParticipantKind(string kind, OfficeVisioVisualConversionReport report) {
-        foreach (string declaredName in Enum.GetNames(typeof(VisioSequenceParticipantKind))) {
-            if (string.Equals(declaredName, kind, StringComparison.OrdinalIgnoreCase)) {
-                return (VisioSequenceParticipantKind)Enum.Parse(typeof(VisioSequenceParticipantKind), declaredName, ignoreCase: false);
-            }
-        }
-        report.Warn($"Sequence participant kind '{kind}' was mapped to Visio's generic participant shape.");
-        return VisioSequenceParticipantKind.Participant;
-    }
-
-    private static VisioSequenceMessageKind MapMessageKind(VisualArtifactInterchangeEdge edge) {
-        if (Contains(edge.Kind, "Async")) return VisioSequenceMessageKind.Async;
-        if (Contains(edge.Kind, "Event")) return VisioSequenceMessageKind.Event;
-        if (Contains(edge.Kind, "Return") || string.Equals(edge.LineStyle, "Dashed", StringComparison.OrdinalIgnoreCase)) return VisioSequenceMessageKind.Return;
-        return VisioSequenceMessageKind.Call;
-    }
-
-    private static VisioSide MapNoteSide(string? placement, string annotationId, OfficeVisioVisualConversionReport report) {
-        if (string.Equals(placement, "LeftOf", StringComparison.OrdinalIgnoreCase) || string.Equals(placement, "Left", StringComparison.OrdinalIgnoreCase)) {
-            return VisioSide.Left;
-        }
-        if (!string.IsNullOrWhiteSpace(placement) &&
-            !string.Equals(placement, "RightOf", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(placement, "Right", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(placement, "Over", StringComparison.OrdinalIgnoreCase)) {
-            report.Warn($"Sequence note '{annotationId}' placement '{placement}' was normalized to Visio's native right-side note placement.");
-        }
-        return VisioSide.Right;
+    private static void ApplyGraphEdgeDirection(VisioGraphEdgeRecord record, VisualLinkDirection direction) {
+        record.Directed = direction != VisualLinkDirection.None;
+        record.BeginArrow = direction is VisualLinkDirection.Backward or VisualLinkDirection.Bidirectional ? EndArrow.Triangle : EndArrow.None;
+        record.EndArrow = direction is VisualLinkDirection.Forward or VisualLinkDirection.Bidirectional ? EndArrow.Triangle : EndArrow.None;
     }
 
     private static string UniqueTitleId(VisualArtifactInterchangeEnvelope envelope) {
@@ -623,25 +589,5 @@ public static partial class OfficeVisioVisualConversionExtensions {
             .ToArray();
         return labels.Length == 0 ? null : string.Join(" | ", labels);
     }
-
-    private static void ReportArtifactAccessibilityFidelity(
-        VisualArtifactInterchangeEnvelope envelope,
-        OfficeVisioVisualConversionReport report) {
-        if (!string.IsNullOrWhiteSpace(envelope.AccessibleName) ||
-            !string.IsNullOrWhiteSpace(envelope.AccessibleDescription) ||
-            !string.IsNullOrWhiteSpace(envelope.Language) ||
-            envelope.IsDecorative) {
-            report.Warn("Artifact accessibility and language semantics remain in the CFX envelope because the native Visio projection has no equivalent page-level contract.");
-        }
-    }
-
-    private static bool Contains(string? value, string token) =>
-        value != null && value.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0;
-
-    private static int ReadInt(IReadOnlyDictionary<string, string> metadata, string key, int fallback) =>
-        metadata.TryGetValue(key, out string? value) && int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) ? parsed : fallback;
-
-    private static bool ReadBool(IReadOnlyDictionary<string, string> metadata, string key) =>
-        metadata.TryGetValue(key, out string? value) && string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
 
 }

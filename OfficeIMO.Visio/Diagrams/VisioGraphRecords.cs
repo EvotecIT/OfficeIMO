@@ -102,8 +102,8 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Optional arrow style at the target end. Null keeps the theme-derived style.</summary>
         public EndArrow? EndArrow { get; set; }
 
-        /// <summary>Optional native Visio line pattern. Null keeps the theme-derived pattern.</summary>
-        public int? LinePattern { get; set; }
+        /// <summary>Optional reusable stroke dash style. Null keeps the theme-derived pattern.</summary>
+        public OfficeStrokeDashStyle? LineStyle { get; set; }
 
         /// <summary>Optional native connector line color. Null keeps the theme-derived line color.</summary>
         public OfficeColor? LineColor { get; set; }
