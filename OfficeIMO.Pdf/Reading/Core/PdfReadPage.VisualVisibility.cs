@@ -5,6 +5,33 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadPage {
     private const int MaximumDrawingVisibilityDepth = 64;
 
+    internal static bool HasPositiveVisibleClipArea(
+        PdfPageClipPath? clip,
+        double pageWidth,
+        double pageHeight) {
+        if (!IsFinite(pageWidth) || !IsFinite(pageHeight) || pageWidth <= 0D || pageHeight <= 0D) {
+            return false;
+        }
+
+        var budget = new VisualGeometryBudget();
+        VisualPath? surface = VisualPath.Rectangle(
+            0D,
+            0D,
+            pageWidth,
+            pageHeight,
+            OfficeTransform.Identity,
+            budget);
+        if (surface == null) return budget.Exceeded;
+        if (!clip.HasValue) return true;
+        if (!HasFiniteClipGeometry(clip.Value, budget) || clip.Value.Width <= 0D || clip.Value.Height <= 0D) {
+            return false;
+        }
+
+        VisualPath? authoredClip = VisualPath.FromClip(clip.Value, budget);
+        if (authoredClip == null) return budget.Exceeded;
+        return VisualPath.HasPositiveAreaIntersection(new[] { surface, authoredClip }, budget) || budget.Exceeded;
+    }
+
     private static bool IsVisibleVisualPrimitive(
         PdfPageVisualPrimitive primitive,
         double pageWidth,
