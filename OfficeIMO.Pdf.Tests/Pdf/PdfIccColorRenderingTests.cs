@@ -138,6 +138,79 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_FailsClosedWhenAuthoredIccAlternateCannotBeProjected() {
+        byte[] unsupportedProfile = PdfIccProfiles.SrgbIec6196621;
+        unsupportedProfile[16] = (byte)'G';
+        unsupportedProfile[17] = (byte)'R';
+        unsupportedProfile[18] = (byte)'A';
+        unsupportedProfile[19] = (byte)'Y';
+        byte[] pdf = BuildIccContentPdf(
+            unsupportedProfile,
+            "/N 1 /Alternate [/Separation /Spot /DeviceRGB 7 0 R]",
+            "1 scn",
+            extraObjects: "7 0 obj\n<< /FunctionType 3 /Domain [0 1] >>\nendobj\n");
+
+        OfficeImageExportResult result = PdfReadDocument.Open(pdf).Pages[0].ExportImage(OfficeImageExportFormat.Png);
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+    }
+
+    [Fact]
+    public void RenderPage_TreatsNullIccAlternateAsAbsent() {
+        byte[] unsupportedProfile = PdfIccProfiles.SrgbIec6196621;
+        unsupportedProfile[16] = (byte)'G';
+        unsupportedProfile[17] = (byte)'R';
+        unsupportedProfile[18] = (byte)'A';
+        unsupportedProfile[19] = (byte)'Y';
+        byte[] pdf = BuildIccContentPdf(
+            unsupportedProfile,
+            "/N 1 /Alternate null",
+            "0.5 scn");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.InRange(Assert.Single(drawing.Shapes).Shape.FillColor!.Value.R, 126, 129);
+    }
+
+    [Fact]
+    public void SeparationImageConversionReusesTintOutputBuffers() {
+        var function = new PdfDictionary();
+        function.Items["FunctionType"] = new PdfNumber(2);
+        function.Items["Domain"] = NumberArray(0, 1);
+        function.Items["C0"] = NumberArray(0, 0, 0);
+        function.Items["C1"] = NumberArray(0, 1, 0);
+        function.Items["N"] = new PdfNumber(1);
+        var colorSpace = new PdfArray();
+        colorSpace.Items.Add(new PdfName("Separation"));
+        colorSpace.Items.Add(new PdfName("Spot"));
+        colorSpace.Items.Add(new PdfName("DeviceRGB"));
+        colorSpace.Items.Add(function);
+        Assert.True(PdfImageColorSpaceNormalization.TryResolve(
+            colorSpace,
+            string.Empty,
+            new Dictionary<int, PdfIndirectObject>(),
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            out PdfImageColorSpaceNormalization normalization));
+        PdfImageColorConversionBuffer conversionBuffer = normalization.CreateConversionBuffer();
+        byte[] sample = { 255 };
+        for (int index = 0; index < 32; index++) {
+            Assert.True(normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out _));
+        }
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        bool converted = true;
+        OfficeColor color = OfficeColor.Black;
+        for (int index = 0; index < 4096; index++) {
+            converted &= normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out color);
+        }
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(converted);
+        Assert.Equal(OfficeColor.FromRgb(0, 255, 0), color);
+        Assert.InRange(allocated, 0, 1024);
+    }
+
+    [Fact]
     public void RenderPage_ClipsType2TintOutputsToDeclaredRange() {
         byte[] pdf = BuildIccContentPdf(
             PdfIccProfiles.SrgbIec6196621,
@@ -945,6 +1018,12 @@ public class PdfIccColorRenderingTests {
         }
 
         return new PdfStream(imageDictionary, new byte[width * height]);
+    }
+
+    private static PdfArray NumberArray(params double[] values) {
+        var array = new PdfArray();
+        for (int index = 0; index < values.Length; index++) array.Items.Add(new PdfNumber(values[index]));
+        return array;
     }
 
     private static byte[] Compress(byte[] bytes) => OfficeZlibCodec.Compress(bytes);

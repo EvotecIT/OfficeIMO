@@ -99,6 +99,7 @@ internal static class PdfIndexedImageNormalizer {
 
         rgbPalette = new byte[paletteEntryCount * 3];
         var components = new double[baseComponentCount];
+        PdfImageColorConversionBuffer conversionBuffer = baseColorSpace.CreateConversionBuffer();
         for (int entry = 0; entry < paletteEntryCount; entry++) {
             int lookupOffset = entry * baseComponentCount;
             int paletteOffset = entry * 3;
@@ -107,7 +108,7 @@ internal static class PdfIndexedImageNormalizer {
                     component,
                     lookupBytes[lookupOffset + component]);
             }
-            if (!baseColorSpace.TryConvertComponents(components, out OfficeColor color)) return false;
+            if (!baseColorSpace.TryConvertComponents(components, conversionBuffer, out OfficeColor color)) return false;
             rgbPalette[paletteOffset] = color.R;
             rgbPalette[paletteOffset + 1] = color.G;
             rgbPalette[paletteOffset + 2] = color.B;
