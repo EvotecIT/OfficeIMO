@@ -427,6 +427,42 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void RenderPage_IgnoresOrdinaryGroupTextOutsideTheEffectiveClip() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Group Do",
+            glyphResources: "<< /XObject << /Group 8 0 R >> >>",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << /Font << /F1 9 0 R >> >>", "BT /F1 100 Tf 1000 1000 Td (X) Tj ET 0 0 250 700 re f"),
+                "9 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj"
+            });
+
+        AssertRendersInheritedRedPattern(pdf);
+    }
+
+    [Fact]
+    public void RenderPage_IgnoresAuthoredPatternPaintHiddenByTransparentSoftMask() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Group Do",
+            glyphResources: "<< /XObject << /Group 8 0 R >> >>",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << /ExtGState << /Mask 9 0 R >> /Pattern << /P2 10 0 R >> >>", "q /Pattern cs /P2 scn /Mask gs 0 0 500 700 re f Q 0 0 250 700 re f"),
+                "9 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 11 0 R >> >>\nendobj",
+                StreamObject(10, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>", "0 1 0 rg 0 0 5 5 re f"),
+                StreamObject(11, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /CS /DeviceRGB >> /Resources << >>", string.Empty)
+            });
+
+        AssertRendersInheritedRedPattern(pdf);
+    }
+
+    [Fact]
     public void RenderPage_IgnoresAuthoredPatternSelectionInsideHiddenSavedGroupState() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",

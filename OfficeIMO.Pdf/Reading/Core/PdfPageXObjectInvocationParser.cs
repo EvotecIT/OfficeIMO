@@ -309,10 +309,14 @@ internal static class PdfPageXObjectInvocationParser {
 
             bool usesType3GlyphProgram = IsActiveType3Font();
             bool isVisible = !HasHiddenContent() && !IsCurrentPaintSuppressedBySoftMask();
-            bool ordinaryTextAffectsOutput = isVisible && TextAffectsOutput(_textRenderingMode);
-            if (ordinaryTextAffectsOutput) _visibleFontVisitor?.Invoke(_textFont);
             List<PdfPageType3GlyphInvocation>? glyphs = CreateType3GlyphBatch(usesType3GlyphProgram, isVisible, bytes.Length);
             (double X, double Y) advance = ProcessShownText(bytes, glyphs);
+            bool ordinaryTextAffectsOutput =
+                isVisible &&
+                !usesType3GlyphProgram &&
+                TextAffectsOutput(_textRenderingMode) &&
+                IsOrdinaryTextFrameVisible(advance.X);
+            if (ordinaryTextAffectsOutput) _visibleFontVisitor?.Invoke(_textFont);
             if (isVisible && usesType3GlyphProgram) {
                 AdvertiseInheritedType3Patterns(ResolveType3PaintChannels(glyphs));
             }
@@ -416,11 +420,15 @@ internal static class PdfPageXObjectInvocationParser {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.Type3GlyphInvocations, int.MaxValue, glyphCount);
             }
             List<PdfPageType3GlyphInvocation>? glyphs = CreateType3GlyphBatch(usesType3GlyphProgram, isVisible, (int)glyphCount);
-            bool ordinaryTextAffectsOutput = isVisible && TextAffectsOutput(_textRenderingMode);
-            if (ordinaryTextAffectsOutput && glyphCount > 0) _visibleFontVisitor?.Invoke(_textFont);
+            bool ordinaryTextAffectsOutput = false;
             for (int i = 0; i < items.Count; i++) {
                 if (items[i] is byte[] bytes) {
                     (double X, double Y) advance = ProcessShownText(bytes, glyphs);
+                    ordinaryTextAffectsOutput |=
+                        isVisible &&
+                        !usesType3GlyphProgram &&
+                        TextAffectsOutput(_textRenderingMode) &&
+                        IsOrdinaryTextFrameVisible(advance.X);
                     if (isVisible && !usesType3GlyphProgram) ApplyTextClippingPath(advance.X);
                     _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(advance.X, advance.Y));
                 } else if (items[i] is double kerning) {
@@ -428,6 +436,7 @@ internal static class PdfPageXObjectInvocationParser {
                     _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(delta, 0D));
                 }
             }
+            if (ordinaryTextAffectsOutput && glyphCount > 0) _visibleFontVisitor?.Invoke(_textFont);
             if (isVisible && usesType3GlyphProgram && glyphCount > 0) {
                 AdvertiseInheritedType3Patterns(ResolveType3PaintChannels(glyphs));
             }
@@ -487,6 +496,27 @@ internal static class PdfPageXObjectInvocationParser {
             if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
                 _pendingTextClipPaths.Add(textClipPath);
             }
+        }
+
+        private bool IsOrdinaryTextFrameVisible(double advance) {
+            if (_textSize <= 0D || Math.Abs(advance) <= 0.000001D) return false;
+            double left = advance < 0D ? advance : 0D;
+            double width = Math.Abs(advance);
+            double descent = Math.Max(0.001D, _textSize * 0.25D);
+            double height = Math.Max(0.001D, _textSize + descent);
+            Matrix2D textToPage = Matrix2D.Multiply(_state.Transform, _textMatrix);
+            var textFrameBuilder = new PdfPageClipPathBuilder(_pageHeight);
+            textFrameBuilder.AddRectanglePath(textToPage, left, _textRise - descent, width, height);
+            if (!textFrameBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textFrame)) {
+                return true;
+            }
+            PdfPageClipPath visibleFrame = PdfPageClipPath.ResolveActiveClip(_state.ClipPath, textFrame);
+            if (_pageWidth.HasValue) {
+                visibleFrame = PdfPageClipPath.ResolveActiveClip(
+                    visibleFrame,
+                    PdfPageClipPath.Rectangle(0D, 0D, _pageWidth.Value, _pageHeight));
+            }
+            return visibleFrame.Width > 0.000001D && visibleFrame.Height > 0.000001D;
         }
 
         private void ApplyPendingTextClippingPath() {
@@ -1336,7 +1366,13 @@ internal static class PdfPageXObjectInvocationParser {
         private static bool AddsTextToClippingPath(int renderingMode) =>
             renderingMode >= 4 && renderingMode <= 7;
 
-        private static bool TextAffectsOutput(int renderingMode) => renderingMode != 3;
+        private bool TextAffectsOutput(int renderingMode) {
+            if (AddsTextToClippingPath(renderingMode)) return true;
+            bool fills = renderingMode == 0 || renderingMode == 2;
+            bool strokes = renderingMode == 1 || renderingMode == 2;
+            return (fills && (_state.FillOpacity ?? 1D) > 0D) ||
+                   (strokes && (_state.StrokeOpacity ?? 1D) > 0D);
+        }
 
         private static bool OperatorStrokesPath(string op) =>
             op == "S" || op == "s" || op == "B" || op == "B*" || op == "b" || op == "b*";
