@@ -13,8 +13,8 @@ internal sealed class PdfImageColorSpaceNormalization {
     private readonly PdfImageColorSpaceNormalization? _alternateNormalization;
     private readonly Func<IReadOnlyList<double>, IReadOnlyList<double>?>? _tintTransform;
     private readonly double[] _componentRanges;
-    private readonly int _cubicEvaluationCost;
-    private readonly long _maximumCubicEvaluationWork;
+    private readonly int _evaluationCost;
+    private readonly long _maximumEvaluationWork;
 
     private PdfImageColorSpaceNormalization(
         PdfPageColorSpace colorSpace,
@@ -25,8 +25,8 @@ internal sealed class PdfImageColorSpaceNormalization {
         Func<IReadOnlyList<double>, IReadOnlyList<double>?>? tintTransform = null,
         int? sourceColorCount = null,
         bool usesIccApproximation = false,
-        int cubicEvaluationCost = 0,
-        long maximumCubicEvaluationWork = 0L) {
+        int evaluationCost = 0,
+        long maximumEvaluationWork = 0L) {
         _colorSpace = usesIccApproximation ? PdfPageColorSpace.IccFallback(colorSpace) : colorSpace;
         SourceColorCount = sourceColorCount ?? iccProfile?.ComponentCount ?? colorSpace.ComponentCount;
         PngColorType = pngColorType;
@@ -34,8 +34,8 @@ internal sealed class PdfImageColorSpaceNormalization {
         _alternateNormalization = alternateNormalization;
         _tintTransform = tintTransform;
         _componentRanges = componentRanges ?? CreateUnitRanges(SourceColorCount);
-        _cubicEvaluationCost = Math.Max(0, cubicEvaluationCost);
-        _maximumCubicEvaluationWork = Math.Max(0L, maximumCubicEvaluationWork);
+        _evaluationCost = Math.Max(0, evaluationCost);
+        _maximumEvaluationWork = Math.Max(0L, maximumEvaluationWork);
         UsesIccApproximation = usesIccApproximation;
     }
 
@@ -53,8 +53,8 @@ internal sealed class PdfImageColorSpaceNormalization {
 
     internal bool CanConvertPixelCount(long pixelCount) =>
         pixelCount >= 0L &&
-        (_cubicEvaluationCost == 0 ||
-         (_maximumCubicEvaluationWork > 0L && pixelCount <= _maximumCubicEvaluationWork / _cubicEvaluationCost));
+        (_evaluationCost == 0 ||
+         (_maximumEvaluationWork > 0L && pixelCount <= _maximumEvaluationWork / _evaluationCost));
 
     internal double[] CreateComponentBuffer() => new double[SourceColorCount];
 
@@ -215,7 +215,9 @@ internal sealed class PdfImageColorSpaceNormalization {
                 componentRanges: ranges,
                 alternateNormalization: alternate,
                 sourceColorCount: componentCount,
-                usesIccApproximation: true);
+                usesIccApproximation: true,
+                evaluationCost: alternate._evaluationCost,
+                maximumEvaluationWork: alternate._maximumEvaluationWork);
             return true;
         }
 
@@ -292,6 +294,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         if (!TryResolve(baseObject, baseName, objects, maxDecodedStreamBytes, depth + 1, out PdfImageColorSpaceNormalization baseColorSpace) ||
             baseColorSpace.Kind is PdfPageColorSpaceKind.Indexed or PdfPageColorSpaceKind.Pattern) return false;
         int paletteCount = highValue + 1;
+        if (!baseColorSpace.CanConvertPixelCount(paletteCount)) return false;
         int lookupLength = checked(paletteCount * baseColorSpace.SourceColorCount);
         if (!PdfIndexedImageNormalizer.TryReadIndexedLookupBytes(
                 colorSpaceArray.Items[3],
@@ -335,8 +338,8 @@ internal sealed class PdfImageColorSpaceNormalization {
                 objects,
                 maxDecodedStreamBytes,
                 out Func<IReadOnlyList<double>, IReadOnlyList<double>?> transform,
-                out int cubicEvaluationCost)) return false;
-        int aggregateCubicCost = checked(cubicEvaluationCost + alternate._cubicEvaluationCost);
+                out int evaluationCost)) return false;
+        int aggregateEvaluationCost = checked(evaluationCost + alternate._evaluationCost);
         normalization = new PdfImageColorSpaceNormalization(
             kind,
             2,
@@ -344,8 +347,8 @@ internal sealed class PdfImageColorSpaceNormalization {
             tintTransform: transform,
             sourceColorCount: componentCount,
             usesIccApproximation: alternate.UsesIccApproximation,
-            cubicEvaluationCost: aggregateCubicCost,
-            maximumCubicEvaluationWork: Math.Max(1L, maxDecodedStreamBytes / sizeof(double)));
+            evaluationCost: aggregateEvaluationCost,
+            maximumEvaluationWork: Math.Max(1L, maxDecodedStreamBytes / sizeof(double)));
         return true;
     }
 

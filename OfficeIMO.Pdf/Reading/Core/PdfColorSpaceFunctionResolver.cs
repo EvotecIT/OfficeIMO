@@ -1,5 +1,4 @@
 using System.IO;
-using System.Text;
 
 namespace OfficeIMO.Pdf;
 
@@ -34,14 +33,14 @@ internal static partial class PdfColorSpaceFunctionResolver {
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
         out Func<IReadOnlyList<double>, IReadOnlyList<double>?> transform,
-        out int cubicEvaluationCost) {
+        out int evaluationCost) {
         transform = null!;
-        cubicEvaluationCost = 0;
+        evaluationCost = 0;
         if (!TryCreateFunction(value, inputCount, outputCount, objects, maxDecodedStreamBytes, out PdfColorFunction function) ||
             !HasUnitIntervals(function.Domain, inputCount)) return false;
 
         transform = function.Evaluate;
-        cubicEvaluationCost = function.CubicEvaluationCost;
+        evaluationCost = function.EvaluationCost;
         return true;
     }
 
@@ -139,7 +138,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
             values => EvaluateFunctionArray(values, components),
             breakpoints,
             discontinuities,
-            cubicEvaluationCost: SumCubicEvaluationCost(components));
+            evaluationCost: SumEvaluationCost(components));
         return true;
     }
 
@@ -181,7 +180,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
                 0 => TryCreateSampledFunction(resolved as PdfStream, dictionary, inputCount, outputCount, objects, maxDecodedStreamBytes, ref retainedFunctionBytes, out function),
                 2 => TryCreateExponentialFunction(dictionary, inputCount, outputCount, objects, out function),
                 3 => TryCreateStitchingFunction(dictionary, inputCount, outputCount, objects, maxDecodedStreamBytes, depth, activeFunctions, functionCache, ref parsedFunctionNodes, ref retainedFunctionBytes, out function),
-                4 => TryCreateCalculatorIdentity(resolved as PdfStream, dictionary, inputCount, outputCount, objects, maxDecodedStreamBytes, out function),
+                4 => TryCreateCalculatorFunction(resolved as PdfStream, dictionary, inputCount, outputCount, objects, maxDecodedStreamBytes, ref retainedFunctionBytes, out function),
                 _ => false
             };
             if (!created || function == null) return false;
@@ -288,7 +287,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
                 range,
                 evaluator,
                 breakpoints,
-                cubicEvaluationCost: cubicEvaluationCost);
+                evaluationCost: cubicEvaluationCost);
             return true;
         } catch (OverflowException) {
             return false;
@@ -394,31 +393,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
             values => EvaluateStitching(values[0], domain, bounds, encode, children),
             breakpoints,
             discontinuities,
-            cubicEvaluationCost: children.Max(static child => child.CubicEvaluationCost));
-        return true;
-    }
-
-    private static bool TryCreateCalculatorIdentity(
-        PdfStream? stream,
-        PdfDictionary dictionary,
-        int inputCount,
-        int outputCount,
-        Dictionary<int, PdfIndirectObject> objects,
-        int maxDecodedStreamBytes,
-        out PdfColorFunction function) {
-        function = null!;
-        if (stream == null ||
-            !TryReadIntervals(dictionary, "Domain", inputCount, objects, allowEqual: true, required: true, out double[] domain) ||
-            !TryReadIntervals(dictionary, "Range", outputCount, objects, allowEqual: true, required: true, out double[] range) ||
-            !TryReadBoundedCalculatorProgram(stream, inputCount, outputCount, objects, maxDecodedStreamBytes, out int duplicateCount)) return false;
-
-        function = new PdfColorFunction(
-            inputCount,
-            outputCount,
-            domain,
-            range,
-            values => EvaluateIdentity(values, outputCount, duplicateCount),
-            inputCount == 1 ? domain : null);
+            evaluationCost: children.Max(static child => child.EvaluationCost));
         return true;
     }
 
@@ -463,15 +438,10 @@ internal static partial class PdfColorSpaceFunctionResolver {
         return result;
     }
 
-    private static double[] EvaluateIdentity(double[] values, int outputCount, int duplicateCount) {
-        if (duplicateCount == 0) return values.Take(outputCount).ToArray();
-        return Enumerable.Repeat(values[0], outputCount).ToArray();
-    }
-
-    private static int SumCubicEvaluationCost(IEnumerable<PdfColorFunction> functions) {
+    private static int SumEvaluationCost(IEnumerable<PdfColorFunction> functions) {
         int total = 0;
         foreach (PdfColorFunction function in functions) {
-            total = checked(total + function.CubicEvaluationCost);
+            total = checked(total + function.EvaluationCost);
         }
         return total;
     }
@@ -560,31 +530,6 @@ internal static partial class PdfColorSpaceFunctionResolver {
             }
         }
         return selected.ToArray();
-    }
-
-    private static bool TryReadBoundedCalculatorProgram(
-        PdfStream stream,
-        int inputCount,
-        int outputCount,
-        Dictionary<int, PdfIndirectObject> objects,
-        int maxDecodedStreamBytes,
-        out int duplicateCount) {
-        duplicateCount = 0;
-        byte[] bytes;
-        try {
-            bytes = Filters.StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, Math.Min(257, maxDecodedStreamBytes));
-        } catch (InvalidDataException) {
-            return false;
-        }
-        if (bytes.Length > 256) return false;
-        string program = Encoding.ASCII.GetString(bytes).Trim();
-        if (program.Length < 2 || program[0] != '{' || program[program.Length - 1] != '}') return false;
-        string body = program.Substring(1, program.Length - 2).Trim();
-        if (body.Length == 0) return inputCount == outputCount;
-        string[] tokens = body.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        if (inputCount != 1 || tokens.Length > 32 || tokens.Any(token => !string.Equals(token, "dup", StringComparison.Ordinal))) return false;
-        duplicateCount = tokens.Length;
-        return outputCount == duplicateCount + 1;
     }
 
     private static bool TryReadIntervals(

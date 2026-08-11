@@ -84,6 +84,7 @@ internal static class PdfIndexedImageNormalizer {
         int baseComponentCount = baseColorSpace.SourceColorCount;
 
         int paletteEntryCount = highValue + 1;
+        if (!baseColorSpace.CanConvertPixelCount(paletteEntryCount)) return false;
         int expectedLookupLength = paletteEntryCount * baseComponentCount;
         if (!TryReadIndexedLookupBytes(
                 colorSpaceArray.Items[3],

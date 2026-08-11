@@ -2731,8 +2731,8 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void CalculatorColorSpaceProgramUsesATinyDecodeBudget() {
-        string oversizedProgram = "{" + new string(' ', 300) + "}";
+    public void CalculatorColorSpaceProgramUsesABoundedDecodeBudget() {
+        string oversizedProgram = "{" + new string(' ', PdfCalculatorProgram.MaxProgramBytes) + "}";
         byte[] pdf = BuildSingleStreamPdf(
             "/Cs1 cs 0.5 sc 0 0 10 10 re f",
             "<< /ColorSpace << /Cs1 [/Separation /Spot /DeviceRGB 5 0 R] >> >>",
@@ -2746,7 +2746,7 @@ public class PdfPageImageRendererTests {
             document.Pages[0].ToDrawing());
 
         Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
-        Assert.Equal(257, exception.Limit);
+        Assert.Equal(PdfCalculatorProgram.MaxProgramBytes + 1, exception.Limit);
     }
 
     private static void AssertPngSignature(byte[] bytes) {
