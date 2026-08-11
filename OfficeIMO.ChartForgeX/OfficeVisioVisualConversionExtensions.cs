@@ -100,6 +100,9 @@ public static partial class OfficeVisioVisualConversionExtensions {
             ConfigureGraph(builder, envelope, options, report);
             builder.Import(nodes, edges, groups);
         });
+        if (options.UseNaturalPageSize) {
+            document.Pages[document.Pages.Count - 1].CenterContent();
+        }
     }
 
     private static void ConfigureGraph(
@@ -331,7 +334,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
         if (!options.UseNaturalPageSize) return (1D, 1D);
         double width = envelope.Width.HasValue ? envelope.Width.Value / options.PixelsPerInch : 11D;
         double height = envelope.Height.HasValue ? envelope.Height.Value / options.PixelsPerInch : 8.5D;
-        return (Math.Max(4D, width), Math.Max(3D, height));
+        return (width, height);
     }
 
     private static (double Width, double Height) ResolveSequenceLayoutPageSize(VisualArtifactInterchangeEnvelope envelope, OfficeVisioVisualOptions options) {
@@ -349,6 +352,10 @@ public static partial class OfficeVisioVisualConversionExtensions {
         OfficeVisioVisualConversionReport report) {
         foreach (VisualArtifactInterchangeNode participant in participants) {
             VisioShape shape = page.Shapes.Single(item => string.Equals(item.Id, ids.Participant(participant.Id), StringComparison.Ordinal));
+            OfficeIMO.Drawing.OfficeColor? lineColor = MapNativeColor(participant.Color, "Sequence participant", participant.Id, report);
+            OfficeIMO.Drawing.OfficeColor? fillColor = MapNativeColor(participant.BackgroundColor, "Sequence participant background", participant.Id, report);
+            if (lineColor.HasValue) shape.LineColor = lineColor.Value;
+            if (fillColor.HasValue) shape.FillColor = fillColor.Value;
             shape.Data["CFX.Id"] = participant.Id;
             var data = new Dictionary<string, string?>(StringComparer.Ordinal);
             if (options.IncludeShapeData) {
@@ -577,81 +584,6 @@ public static partial class OfficeVisioVisualConversionExtensions {
         foreach (VisualArtifactInterchangeAnnotation annotation in envelope.Annotations) ids.Add(annotation.Id);
         while (ids.Contains(candidate)) candidate += "-title";
         return candidate;
-    }
-
-    private static void AddCommonShapeData(
-        IDictionary<string, string?> target,
-        string kind,
-        string? status,
-        string? groupId,
-        IEnumerable<KeyValuePair<string, string>> metadata,
-        OfficeVisioVisualConversionReport report,
-        string context) {
-        AddValue(target, "CFX.Kind", kind);
-        AddValue(target, "CFX.Status", status);
-        AddValue(target, "CFX.GroupId", groupId);
-        AddMetadataData(target, "Metadata.", metadata, report, context);
-    }
-
-    private static void AddDetailData(
-        IDictionary<string, string?> target,
-        IReadOnlyList<VisualArtifactInterchangeDetail> details,
-        OfficeVisioVisualConversionReport report,
-        string context) {
-        for (int index = 0; index < details.Count; index++) {
-            VisualArtifactInterchangeDetail detail = details[index];
-            string prefix = "Detail." + (index + 1).ToString(CultureInfo.InvariantCulture) + ".";
-            AddValue(target, prefix + detail.Label, detail.Value);
-            AddValue(target, prefix + "Label", detail.Label);
-            AddValue(target, prefix + "Value", detail.Value);
-            AddValue(target, prefix + "Icon", detail.IconId);
-            AddValue(target, prefix + "Status", detail.Status);
-            AddValue(target, prefix + "Color", detail.Color);
-            AddMetadataData(target, prefix + "Metadata.", detail.Metadata, report, context + " detail " + (index + 1).ToString(CultureInfo.InvariantCulture));
-        }
-    }
-
-    private static void AddPortData(
-        IDictionary<string, string?> target,
-        IReadOnlyList<VisualArtifactInterchangePort> ports,
-        OfficeVisioVisualConversionReport report,
-        string context) {
-        for (int index = 0; index < ports.Count; index++) {
-            VisualArtifactInterchangePort port = ports[index];
-            string number = (index + 1).ToString(CultureInfo.InvariantCulture);
-            string prefix = "Port." + number + ".";
-            AddValue(target, "Port." + number, port.Id + "|" + port.Side + "|" + port.Offset.ToString("R", CultureInfo.InvariantCulture));
-            AddValue(target, prefix + "Id", port.Id);
-            AddValue(target, prefix + "Side", port.Side);
-            AddValue(target, prefix + "Offset", port.Offset.ToString("R", CultureInfo.InvariantCulture));
-            AddValue(target, prefix + "Label", port.Label);
-            AddMetadataData(target, prefix + "Metadata.", port.Metadata, report, context + " port " + number);
-        }
-    }
-
-    private static void AddMetadataData(
-        IDictionary<string, string?> target,
-        string prefix,
-        IEnumerable<KeyValuePair<string, string>> metadata,
-        OfficeVisioVisualConversionReport report,
-        string context) {
-        foreach (KeyValuePair<string, string> item in metadata.OrderBy(pair => pair.Key, StringComparer.Ordinal)) {
-            string requested = prefix + item.Key;
-            string resolved = requested;
-            int suffix = 2;
-            while (target.Keys.Any(key => string.Equals(key, resolved, StringComparison.OrdinalIgnoreCase))) {
-                resolved = requested + " [" + suffix.ToString(CultureInfo.InvariantCulture) + "]";
-                suffix++;
-            }
-            if (!string.Equals(requested, resolved, StringComparison.Ordinal)) {
-                report.Warn($"Metadata key '{item.Key}' on {context} was projected as '{resolved}' because Visio Shape Data names are case-insensitive.");
-            }
-            AddValue(target, resolved, item.Value);
-        }
-    }
-
-    private static void AddValue(IDictionary<string, string?> target, string key, string? value) {
-        if (!string.IsNullOrWhiteSpace(value)) target[key] = value;
     }
 
     private static string CombineLabel(string primary, string? secondary) {

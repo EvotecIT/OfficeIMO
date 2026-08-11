@@ -529,12 +529,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 Node(record.Id, record.Text, record.Kind);
             }
 
-            if (record.FillColor.HasValue || record.LineColor.HasValue) {
-                NodeStyle(record.Id, style => {
-                    if (record.FillColor.HasValue) style.FillColor = record.FillColor.Value;
-                    if (record.LineColor.HasValue) style.LineColor = record.LineColor.Value;
-                });
-            }
+            NodeItem node = GetKnownNode(record.Id, nameof(record.Id));
+            node.FillColor = record.FillColor;
+            node.LineColor = record.LineColor;
 
             foreach (KeyValuePair<string, string?> item in record.ShapeData) {
                 NodeShapeData(record.Id, item.Key, item.Value);

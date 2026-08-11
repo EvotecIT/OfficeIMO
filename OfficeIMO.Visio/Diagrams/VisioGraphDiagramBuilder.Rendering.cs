@@ -55,6 +55,9 @@ namespace OfficeIMO.Visio.Diagrams {
                     page.Shapes.Add(shape);
                 }
 
+                if (node.FillColor.HasValue) shape.FillColor = node.FillColor.Value;
+                if (node.LineColor.HasValue) shape.LineColor = node.LineColor.Value;
+
                 node.Shape = shape;
                 ApplyNodeMetadata(shape, node);
                 if (node.Stencil != null && !string.IsNullOrWhiteSpace(node.Text)) {

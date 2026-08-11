@@ -40,6 +40,10 @@ namespace OfficeIMO.Visio.Diagrams {
 
             public VisioShapeStyle? StyleOverride { get; set; }
 
+            public Color? FillColor { get; set; }
+
+            public Color? LineColor { get; set; }
+
             public List<NodeShapeDataItem> ShapeData { get; } = new();
 
             public List<VisioHyperlink> Hyperlinks { get; } = new();
