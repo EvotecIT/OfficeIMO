@@ -88,7 +88,7 @@ internal static class PdfIndexedImageNormalizer {
         if (!TryReadIndexedLookupBytes(
                 colorSpaceArray.Items[3],
                 objects,
-                expectedLookupLength,
+                Math.Min(expectedLookupLength, maxDecodedStreamBytes),
                 out var lookupBytes)) {
             return false;
         }

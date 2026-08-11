@@ -19,8 +19,13 @@ internal static partial class ResourceResolver {
             : null;
         PdfObject? effectiveColorSpace = ResolveColorSpaceResource(authoredColorSpace, resources, objects);
         int bitsPerComponent = (int)(image.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
+        DctFilterDeclaration dctFilter = ClassifyDctFilter(
+            image.Items.TryGetValue("Filter", out PdfObject? filterObject) ? filterObject : null,
+            objects);
+        if (dctFilter == DctFilterDeclaration.Chained) return false;
+        bool isDct = dctFilter == DctFilterDeclaration.Single;
         if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(effectiveColorSpace, bitsPerComponent, objects, maxDecodedStreamBytes)) {
-            return true;
+            return !isDct;
         }
         if (bitsPerComponent != 8) return false;
 
@@ -30,7 +35,56 @@ internal static partial class ResourceResolver {
             colorSpaceName,
             objects,
             maxDecodedStreamBytes,
-            out _);
+            out PdfImageColorSpaceNormalization normalization) &&
+            (!isDct || !normalization.RequiresColorConversion);
+    }
+
+    private static DctFilterDeclaration ClassifyDctFilter(
+        PdfObject? filterObject,
+        Dictionary<int, PdfIndirectObject> objects) {
+        PdfObject? resolved = ResolveFilterDeclaration(filterObject, objects);
+        if (resolved is PdfName name) {
+            return IsDctFilterName(name.Name)
+                ? DctFilterDeclaration.Single
+                : DctFilterDeclaration.None;
+        }
+
+        if (resolved is not PdfArray array) return DctFilterDeclaration.None;
+        bool hasDct = false;
+        int declaredFilters = 0;
+        for (int index = 0; index < array.Items.Count; index++) {
+            PdfObject? item = ResolveFilterDeclaration(array.Items[index], objects);
+            if (item is not PdfName itemName) continue;
+            declaredFilters++;
+            hasDct |= IsDctFilterName(itemName.Name);
+        }
+        if (!hasDct) return DctFilterDeclaration.None;
+        return declaredFilters == 1 && array.Items.Count == 1
+            ? DctFilterDeclaration.Single
+            : DctFilterDeclaration.Chained;
+    }
+
+    private static PdfObject? ResolveFilterDeclaration(
+        PdfObject? value,
+        Dictionary<int, PdfIndirectObject> objects) {
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        PdfObject? resolved = value;
+        while (resolved is PdfReference reference) {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
+                !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject indirect)) return null;
+            resolved = indirect.Value;
+        }
+        return resolved;
+    }
+
+    private static bool IsDctFilterName(string name) =>
+        string.Equals(name, "DCTDecode", StringComparison.Ordinal) ||
+        string.Equals(name, "DCT", StringComparison.Ordinal);
+
+    private enum DctFilterDeclaration {
+        None,
+        Single,
+        Chained
     }
 
     private static bool TryBuildExtractedImageMaskPng(

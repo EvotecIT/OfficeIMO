@@ -23,7 +23,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         Func<IReadOnlyList<double>, IReadOnlyList<double>?>? tintTransform = null,
         int? sourceColorCount = null,
         bool usesIccApproximation = false) {
-        _colorSpace = usesIccApproximation ? PdfPageColorSpace.IccFallback(colorSpace) : colorSpace;
+        _colorSpace = usesIccApproximation ? PdfPageColorSpace.IccFallback(colorSpace, componentRanges) : colorSpace;
         SourceColorCount = sourceColorCount ?? iccProfile?.ComponentCount ?? colorSpace.ComponentCount;
         PngColorType = pngColorType;
         _iccProfile = iccProfile;
@@ -41,7 +41,7 @@ internal sealed class PdfImageColorSpaceNormalization {
 
     internal bool RequiresColorConversion => _iccProfile != null || _alternateNormalization != null ||
         _colorSpace.Kind is PdfPageColorSpaceKind.CalGray or PdfPageColorSpaceKind.CalRgb or
-        PdfPageColorSpaceKind.Lab or PdfPageColorSpaceKind.Indexed;
+        PdfPageColorSpaceKind.Lab or PdfPageColorSpaceKind.Indexed || HasNonUnitComponentRange();
 
     internal bool UsesIccApproximation { get; }
 
@@ -102,6 +102,14 @@ internal sealed class PdfImageColorSpaceNormalization {
 
     internal double MapLookupByteToComponent(int component, byte value) =>
         MapUnitToComponentRange(component, value / 255D);
+
+    private bool HasNonUnitComponentRange() {
+        for (int component = 0; component < SourceColorCount; component++) {
+            int offset = component * 2;
+            if (_componentRanges[offset] != 0D || _componentRanges[offset + 1] != 1D) return true;
+        }
+        return false;
+    }
 
     private double[] ClipComponentsToRanges(IReadOnlyList<double> components) {
         double[] clipped = components as double[] ?? new double[SourceColorCount];

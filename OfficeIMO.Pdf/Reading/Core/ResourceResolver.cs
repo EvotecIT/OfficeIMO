@@ -990,17 +990,17 @@ internal static partial class ResourceResolver {
         string.Equals(transparencyMaskKind, "color-key-mask", System.StringComparison.Ordinal);
 
     private static string GetFilterName(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
-        var resolved = ResolveObject(obj, objects);
+        var resolved = ResolveFilterDeclaration(obj, objects);
         if (resolved is PdfName name) {
-            return name.Name;
+            return NormalizeImageFilterName(name.Name);
         }
 
         if (resolved is PdfArray array) {
             var names = new List<string>();
             foreach (var item in array.Items) {
-                var itemResolved = ResolveObject(item, objects);
+                var itemResolved = ResolveFilterDeclaration(item, objects);
                 if (itemResolved is PdfName itemName) {
-                    names.Add(itemName.Name);
+                    names.Add(NormalizeImageFilterName(itemName.Name));
                 }
             }
 
@@ -1009,6 +1009,9 @@ internal static partial class ResourceResolver {
 
         return string.Empty;
     }
+
+    private static string NormalizeImageFilterName(string name) =>
+        string.Equals(name, "DCT", StringComparison.Ordinal) ? "DCTDecode" : name;
 
     private static string GetNameOrEmpty(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
         var resolved = ResolveObject(obj, objects);
