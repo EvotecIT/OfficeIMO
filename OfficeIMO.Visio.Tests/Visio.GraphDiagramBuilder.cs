@@ -359,7 +359,8 @@ namespace OfficeIMO.Tests {
 
             VisioGraphEdgeRecord tokenFlow = new("idp", "cluster") {
                 Label = "tokens",
-                Kind = VisioGraphConnectorKind.Control
+                Kind = VisioGraphConnectorKind.Control,
+                LinePattern = 3
             };
             tokenFlow.ShapeData.Add("Protocol", "OIDC");
 
@@ -389,7 +390,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Production", page.Shapes.Single(shape => shape.Id == "cluster").GetShapeDataValue("Environment"));
             Assert.Equal("Confidential", page.Shapes.Single(shape => shape.Id == "lake").GetShapeDataValue("Classification"));
             Assert.Contains(page.Shapes.Single(shape => shape.Id == "idp").Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/identity");
-            Assert.Contains(page.Connectors, connector => connector.Id == "idp-control-cluster" && connector.Label == "tokens" && connector.GetShapeDataValue("Protocol") == "OIDC");
+            Assert.Contains(page.Connectors, connector => connector.Id == "idp-control-cluster" && connector.Label == "tokens" && connector.LinePattern == 3 && connector.GetShapeDataValue("Protocol") == "OIDC");
             Assert.Contains(page.Connectors, connector => connector.Id == "cluster-data-lake" && connector.Label == "events" && connector.Hyperlinks.Any(hyperlink => hyperlink.Description == "Pipeline"));
             Assert.Contains(page.Connectors, connector => connector.Id == "ops-team-owns-cluster" && connector.EndArrow == EndArrow.None);
 
@@ -403,7 +404,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(VisioValidator.Validate(filePath));
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            Assert.Contains(loaded.Pages[0].Connectors, connector => connector.Id == "idp-control-cluster");
+            Assert.Contains(loaded.Pages[0].Connectors, connector => connector.Id == "idp-control-cluster" && connector.LinePattern == 3);
             Assert.Contains(loaded.Pages[0].Connectors, connector => connector.Id == "cluster-data-lake");
             Assert.Equal("IAM", loaded.Pages[0].Shapes.Single(shape => shape.Id == "idp").GetShapeDataValue("Owner"));
         }
