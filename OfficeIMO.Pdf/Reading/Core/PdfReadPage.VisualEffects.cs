@@ -184,7 +184,8 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream> activeForms,
         HashSet<PdfStream> activeType3Glyphs,
         int contentNestingDepth,
-        SoftMaskNestingDepth nestingDepth) {
+        SoftMaskNestingDepth nestingDepth,
+        PdfPageXObjectInvocation? initialState = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
         bool supported = true;
@@ -201,6 +202,17 @@ public sealed partial class PdfReadPage {
             GetGraphicsStateResources(resources),
             GetColorSpaceResources(resources),
             GetOptionalContentVisibility(resources),
+            initialFillColor: initialState?.FillColor,
+            initialFillColorSpace: initialState?.FillColorSpace ?? default,
+            initialFillOpacity: initialState?.FillOpacity,
+            initialClipPath: initialState?.ClipPath,
+            initialStrokeColor: initialState?.StrokeColor,
+            initialStrokeColorSpace: initialState?.StrokeColorSpace ?? default,
+            initialStrokeOpacity: initialState?.StrokeOpacity,
+            initialStrokeWidth: initialState?.StrokeWidth,
+            initialStrokeDashStyle: initialState?.StrokeDashStyle,
+            initialStrokeLineCap: initialState?.StrokeLineCap,
+            initialStrokeLineJoin: initialState?.StrokeLineJoin,
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
@@ -227,7 +239,8 @@ public sealed partial class PdfReadPage {
                             validationDiagnostics,
                             validationDiagnosticKeys,
                             contentNestingDepth + 1,
-                            nestingDepth)) {
+                            nestingDepth,
+                            validatedGroups)) {
                         supported = false;
                     }
                 }
@@ -250,7 +263,12 @@ public sealed partial class PdfReadPage {
                     supported = false;
                 }
             },
-            allowSupportedGraphicsEffects: true);
+            allowSupportedGraphicsEffects: true,
+            patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
+            initialFillPattern: initialState?.FillPattern,
+            initialFillPatternBaseColorSpace: initialState?.FillPatternBaseColorSpace,
+            initialStrokePattern: initialState?.StrokePattern,
+            initialStrokePatternBaseColorSpace: initialState?.StrokePatternBaseColorSpace);
         if (!supported) return false;
 
         for (int index = 0; index < invocations.Count; index++) {
@@ -260,7 +278,9 @@ public sealed partial class PdfReadPage {
             try {
                 if (Filters.StreamDecoder.GetUnsupportedFilters(form.Dictionary, _objects).Count != 0) return false;
                 if (form.Dictionary.Items.ContainsKey("Group") && !IsSupportedType3TransparencyGroup(form.Dictionary)) return false;
-                string formContent = PdfEncoding.Latin1GetString(pageContentBudget.Decode(form));
+                string formContent = WrapFormContentWithBoundingBoxClip(
+                    PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)),
+                    form.Dictionary);
                 PdfDictionary? formResources = ResolveDictionary(
                     form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceObject)
                         ? formResourceObject
@@ -276,7 +296,8 @@ public sealed partial class PdfReadPage {
                         activeForms,
                         activeType3Glyphs,
                         contentNestingDepth + 1,
-                        nestingDepth)) {
+                        nestingDepth,
+                        invocation)) {
                     return false;
                 }
             } finally {

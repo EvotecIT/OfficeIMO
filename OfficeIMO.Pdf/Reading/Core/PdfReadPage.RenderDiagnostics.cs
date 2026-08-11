@@ -306,6 +306,7 @@ public sealed partial class PdfReadPage {
         HashSet<string> seen,
         int depth,
         SoftMaskNestingDepth? softMaskNestingDepth = null,
+        Dictionary<(PdfStream Group, Matrix2D Transform), int>? validatedSoftMaskGroups = null,
         double? projectionPageWidth = null,
         double? projectionPageHeight = null) {
         EnsureContentNestingBudget(depth);
@@ -326,8 +327,7 @@ public sealed partial class PdfReadPage {
             double surfaceWidth = projectionPageWidth ?? visualPageSize.Width;
             double surfaceHeight = projectionPageHeight ?? visualPageSize.Height;
             bool supported = true;
-            var validatedSoftMaskGroups = new Dictionary<(PdfStream Group, Matrix2D Transform), int>();
-            var softMaskValidationBudget = new PageContentBudget(this);
+            validatedSoftMaskGroups ??= new Dictionary<(PdfStream Group, Matrix2D Transform), int>();
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
@@ -545,6 +545,7 @@ public sealed partial class PdfReadPage {
                                          seen,
                                          depth + 1,
                                          softMaskNestingDepth,
+                                         validatedSoftMaskGroups,
                                          surfaceWidth,
                                          surfaceHeight)) {
                                      supported = false;
@@ -560,7 +561,7 @@ public sealed partial class PdfReadPage {
                              if (!CanDecodeType3SoftMask(
                                      resource.SoftMask,
                                      resourceTransform,
-                                     softMaskValidationBudget,
+                                     pageContentBudget,
                                      validatedSoftMaskGroups,
                                      type3GlyphBudget,
                                      depth + 1,
@@ -739,6 +740,7 @@ public sealed partial class PdfReadPage {
                         seen,
                         depth + 1,
                         softMaskNestingDepth,
+                        validatedSoftMaskGroups,
                         formSurfaceWidth,
                         formSurfaceHeight)) supported = false;
             }
