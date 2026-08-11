@@ -790,10 +790,11 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "sc":
                 case "scn":
-                    if (op == "sc" &&
-                        _args.Count > 0 &&
-                        _args[_args.Count - 1] is string invalidFillPatternName &&
-                        _state.FillColorSpace == PdfPageColorSpaceKind.Pattern) {
+                    if (_state.FillColorSpace == PdfPageColorSpaceKind.Pattern &&
+                        (op == "sc" || _args.Count == 0 || _args[_args.Count - 1] is not string)) {
+                        string invalidFillPatternName = _args.Count > 0 && _args[_args.Count - 1] is string candidateName
+                            ? candidateName
+                            : string.Empty;
                         _patternState = _patternState.WithFill(
                             new PdfPagePatternSelection(
                                 invalidFillPatternName,
@@ -840,10 +841,11 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "SC":
                 case "SCN":
-                    if (op == "SC" &&
-                        _args.Count > 0 &&
-                        _args[_args.Count - 1] is string invalidStrokePatternName &&
-                        _state.StrokeColorSpace == PdfPageColorSpaceKind.Pattern) {
+                    if (_state.StrokeColorSpace == PdfPageColorSpaceKind.Pattern &&
+                        (op == "SC" || _args.Count == 0 || _args[_args.Count - 1] is not string)) {
+                        string invalidStrokePatternName = _args.Count > 0 && _args[_args.Count - 1] is string candidateName
+                            ? candidateName
+                            : string.Empty;
                         _patternState = _patternState.WithStroke(
                             new PdfPagePatternSelection(
                                 invalidStrokePatternName,
