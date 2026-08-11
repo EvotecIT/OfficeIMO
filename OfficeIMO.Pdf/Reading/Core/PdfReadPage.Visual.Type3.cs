@@ -500,38 +500,6 @@ public sealed partial class PdfReadPage {
         return Type3PatternImageMaskDrawingResult.Success;
     }
 
-    private static bool IsInvisibleImagePlacement(
-        PdfImagePlacement placement,
-        double pageHeight,
-        double drawingWidth,
-        double drawingHeight) {
-        if ((placement.ImageOpacity ?? 1D) <= 0D) return true;
-        if (!IsFinite(placement.X) || !IsFinite(placement.Y) ||
-            !IsFinite(placement.Width) || !IsFinite(placement.Height) ||
-            placement.Width <= 0D || placement.Height <= 0D) return false;
-        PdfPageClipPath bounds = PdfPageClipPath.Rectangle(
-            placement.X,
-            pageHeight - placement.Y - placement.Height,
-            placement.Width,
-            placement.Height);
-        var geometryBudget = new VisualGeometryBudget();
-        VisualPath? placementPath = VisualPath.FromClip(bounds, geometryBudget);
-        VisualPath? drawingPath = VisualPath.FromClip(
-            PdfPageClipPath.Rectangle(0D, 0D, drawingWidth, drawingHeight),
-            geometryBudget);
-        if (placementPath == null || drawingPath == null || geometryBudget.Exceeded) {
-            return false;
-        }
-
-        var visiblePaths = new List<VisualPath> { placementPath, drawingPath };
-        if (placement.ClipPath.HasValue) {
-            VisualPath? clipPath = VisualPath.FromClip(placement.ClipPath.Value, geometryBudget);
-            if (clipPath == null || geometryBudget.Exceeded) return false;
-            visiblePaths.Add(clipPath);
-        }
-        return !VisualPath.HasPositiveAreaIntersection(visiblePaths, geometryBudget) && !geometryBudget.Exceeded;
-    }
-
     private enum Type3PatternImageMaskDrawingResult {
         Success,
         Invisible,
@@ -754,6 +722,7 @@ public sealed partial class PdfReadPage {
         Type3PaintChannelCache cache,
         HashSet<PdfStream> activeStreams,
         PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget,
         int depth = 0) {
         if (glyph.Font.Type3 is not PdfType3FontResource type3 ||
             !type3.TryGetGlyph(glyph.CharacterCode, out PdfStream stream)) {
@@ -772,6 +741,7 @@ public sealed partial class PdfReadPage {
             cache,
             activeStreams,
             pageContentBudget,
+            type3GlyphBudget,
             depth);
     }
 
@@ -787,6 +757,7 @@ public sealed partial class PdfReadPage {
         Type3PaintChannelCache cache,
         HashSet<PdfStream> activeStreams,
         PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget,
         int depth = 0) {
         EnsureContentNestingBudget(depth);
         if (TryGetImageXObject(resources, name, out int objectNumber, out int directStreamIdentity)) {
@@ -832,6 +803,7 @@ public sealed partial class PdfReadPage {
             cache,
             activeStreams,
             pageContentBudget,
+            type3GlyphBudget,
             depth);
     }
 
@@ -868,6 +840,7 @@ public sealed partial class PdfReadPage {
         Type3PaintChannelCache cache,
         HashSet<PdfStream> activeStreams,
         PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget,
         int depth) {
         EnsureContentNestingBudget(depth);
         var cacheKey = (
@@ -932,10 +905,12 @@ public sealed partial class PdfReadPage {
                                      cache,
                                      activeStreams,
                                      pageContentBudget,
+                                     type3GlyphBudget,
                                      depth + 1);
                              }
                              return true;
                          },
+                         type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
                          unsupportedTextVisitor: () => channels = PdfType3PaintChannels.Both,
                          xObjectPaintChannelResolver: (name, transform, clipPath, resolvedFillOpacity, resolvedStrokeOpacity) => ResolveXObjectPaintChannels(
                              resources,
@@ -949,6 +924,7 @@ public sealed partial class PdfReadPage {
                              cache,
                              activeStreams,
                              pageContentBudget,
+                             type3GlyphBudget,
                              depth + 1),
                          pageWidth: pageWidth)) {
                 if (invocation.InlineImage != null) {
@@ -973,6 +949,7 @@ public sealed partial class PdfReadPage {
                     cache,
                     activeStreams,
                     pageContentBudget,
+                    type3GlyphBudget,
                     depth + 1);
             }
             cache.Streams[cacheKey] = channels;

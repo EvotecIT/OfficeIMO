@@ -13,6 +13,7 @@ public sealed partial class PdfReadPage {
         Type3PaintChannelCache cache,
         HashSet<PdfStream> activeStreams,
         PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget,
         int depth) {
         EnsureContentNestingBudget(depth);
         var cacheKey = (
@@ -80,12 +81,14 @@ public sealed partial class PdfReadPage {
                                      cache,
                                      activeStreams,
                                      pageContentBudget,
+                                     type3GlyphBudget,
                                      depth + 1);
                              }
                              return true;
                          },
+                         type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
                          unsupportedTextVisitor: () => channels = PdfType3PaintChannels.Both,
-                         type3PaintChannelResolver: glyph => ResolveType3PaintChannels(glyph, cache, activeStreams, pageContentBudget, depth + 1),
+                         type3PaintChannelResolver: glyph => ResolveType3PaintChannels(glyph, cache, activeStreams, pageContentBudget, type3GlyphBudget, depth + 1),
                          xObjectPaintChannelResolver: (name, transform, clipPath, resolvedFillOpacity, resolvedStrokeOpacity) => ResolveXObjectPaintChannels(
                              resources,
                              name,
@@ -98,6 +101,7 @@ public sealed partial class PdfReadPage {
                              cache,
                              activeStreams,
                              pageContentBudget,
+                             type3GlyphBudget,
                              depth + 1),
                          pageWidth: pageWidth)) {
                 if (invocation.InlineImage != null &&
@@ -117,6 +121,7 @@ public sealed partial class PdfReadPage {
                     cache,
                     activeStreams,
                     pageContentBudget,
+                    type3GlyphBudget,
                     depth + 1);
             }
             cache.VisibleForms[cacheKey] = channels;

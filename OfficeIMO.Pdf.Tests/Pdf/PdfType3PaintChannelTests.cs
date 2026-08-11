@@ -72,6 +72,64 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(27, 96));
     }
 
+    [Fact]
+    public void RenderPage_IgnoresPatternConsumptionOutsideTransformedImageQuad() {
+        const string pageContent = "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET";
+        const string groupContent = "q /OC /Hidden BDC /Pattern cs /Bad scn EMC " +
+            "100 0 10 10 re W n 100 100 -100 100 200 0 cm /Im1 Do Q 0 0 500 700 re f";
+        string[] objects = {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [11 0 R] /D << /OFF [11 0 R] >> >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /FType3 5 0 R >> /Pattern << /P1 7 0 R >> >> /Contents 4 0 R >>\nendobj",
+            StreamObject(4, "<<", pageContent),
+            "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 2 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Group 8 0 R >> >> >>\nendobj",
+            StreamObject(6, "<<", "500 0 d0 /Group Do"),
+            StreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>", "1 0 0 rg 0 0 5 5 re f"),
+            StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /K false /CS /DeviceRGB >> /Resources << /Pattern << /Bad 9 0 R >> /XObject << /Im1 10 0 R >> /Properties << /Hidden 11 0 R >> >>", groupContent),
+            StreamObject(9, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>", "0 0 1 rg 0 0 5 5 re f"),
+            StreamObject(10, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /ASCIIHexDecode", "FF0000>"),
+            "11 0 obj\n<< /Type /OCG /Name (Hidden) >>\nendobj"
+        };
+        byte[] pdf = Encoding.ASCII.GetBytes("%PDF-1.4\n" + string.Join("\n", objects) + "\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Empty(drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.NotEmpty(drawing.Elements);
+    }
+
+    [Fact]
+    public void RenderPage_ChargesNestedGlyphPaintAnalysisToSharedBudget() {
+        const string pageContent = "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET";
+        const string glyphContent = "500 0 d0 q /OC /Hidden BDC /Pattern cs /Bad scn EMC /Fm1 Do Q 0 0 500 700 re f";
+        string[] objects = {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [12 0 R] /D << /OFF [12 0 R] >> >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /FType3 5 0 R >> /Pattern << /P1 10 0 R >> >> /Contents 4 0 R >>\nendobj",
+            StreamObject(4, "<<", pageContent),
+            "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 2 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /Bad 11 0 R >> /XObject << /Fm1 7 0 R >> /Properties << /Hidden 12 0 R >> >> >>\nendobj",
+            StreamObject(6, "<<", glyphContent),
+            StreamObject(7, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Resources << /Font << /Nested 8 0 R >> >>", "BT /Nested 500 Tf (BB) Tj ET"),
+            "8 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 9 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << >> >>\nendobj",
+            StreamObject(9, "<<", "500 0 d0 0 0 500 700 re f"),
+            StreamObject(10, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>", "1 0 0 rg 0 0 5 5 re f"),
+            StreamObject(11, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>", "0 0 1 rg 0 0 5 5 re f"),
+            "12 0 obj\n<< /Type /OCG /Name (Hidden) >>\nendobj"
+        };
+        byte[] pdf = Encoding.ASCII.GetBytes("%PDF-1.4\n" + string.Join("\n", objects) + "\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 2 }
+        });
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.Type3GlyphInvocations, exception.Kind);
+        Assert.Equal(2, exception.Limit);
+        Assert.Equal(3, exception.Actual);
+    }
+
     private static byte[] BuildPaintChannelBudgetPdf(
         string pageContent,
         string glyphContent,
