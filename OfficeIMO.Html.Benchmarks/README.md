@@ -15,6 +15,8 @@ Run the stage or output lanes separately:
 ```powershell
 dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Release -f net8.0 -- --filter *HtmlRenderingStageBenchmarks*
 dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Release -f net8.0 -- --filter *HtmlRenderingOutputBenchmarks*
+dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Release -f net8.0 -- --filter *HtmlPagedPurchaseTableBenchmarks*
+dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Release -f net8.0 -- --filter *HtmlLongDocumentBenchmarks*
 ```
 
 For a quick harness and allocation smoke, use BenchmarkDotNet's dry job:
@@ -25,9 +27,11 @@ dotnet run --project OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj 
 
 ## Coverage
 
-The deterministic corpus measures parsing, computed styles, layout from prepared styles, combined parse/style/layout, Drawing projection, PNG, SVG, and rendered searchable PDF. Output benchmarks cover both ordinary WinAnsi report text and multilingual Unicode text so managed-font fallback costs remain visible.
+The deterministic corpus measures parsing, computed styles, layout from prepared styles, combined parse/style/layout, Drawing projection, PNG, SVG, and rendered searchable PDF. Output benchmarks cover both ordinary WinAnsi report text and multilingual Unicode text so managed-font fallback costs remain visible. The paged-purchase-table lane adds 250-row and 2,500-row documents with wrapped descriptions, repeated table headers, CSS page furniture, a one-time totals block, and forward-only PDF object serialization to a non-retained destination. The long-document lane uses deterministic 100-page and 1,000-page legal-style packets with page counters and forced article boundaries; each measured layout and PDF operation rejects output whose exact page count differs from the requested corpus.
 
 Results are comparative evidence for regressions, not universal machine-independent pass/fail thresholds. Correctness stays protected by the end-to-end rendering corpus and focused contracts.
+
+BenchmarkDotNet's allocation totals measure work performed, not maximum live heap. The paged-table lane therefore exposes scaling regressions while the PDF serialization report remains the authoritative evidence for completed page/object payload limits. Whole-document HTML layout is intentionally reported separately and is not described as forward-only.
 
 ## Review budgets
 

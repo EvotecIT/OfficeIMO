@@ -281,6 +281,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var contentVisuals = new List<HtmlRenderVisual>();
         var childPaintLayers = new List<FlowPaintLayer>();
         var contentBreakOffsets = new List<double>();
+        var forcedBreaks = new List<HtmlRenderForcedBreak>();
         var lineBreakOffsets = new List<double>();
         var lineBreakGroups = new List<HtmlRenderLineBreakGroup>();
         var continuationGroups = new List<HtmlRenderContinuationGroup>();
@@ -329,12 +330,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
             for (int childIndex = 0; childIndex < children.Count; childIndex++) {
                 HtmlRenderFlowBlock child = children[childIndex];
                 double childStart = contentHeight;
+                if (child.BreakBefore != HtmlPageBreakTarget.None) {
+                    forcedBreaks.Add(new HtmlRenderForcedBreak(childStart, child.BreakBefore));
+                }
+                foreach (HtmlRenderForcedBreak forcedBreak in child.ForcedBreaks) {
+                    forcedBreaks.Add(forcedBreak.Translate(childStart));
+                }
                 if (childIndex > 0 && child.OwnerElement != null) {
                     continuationBreakProgress.Add(new HtmlInlineBreakProgress(childStart, 0, child.OwnerElement));
                 }
                 childPaintLayers.Add(new FlowPaintLayer(child, 0D, childStart, childPaintLayers.Count));
 
                 contentHeight += child.Height;
+                if (child.BreakAfter != HtmlPageBreakTarget.None) {
+                    forcedBreaks.Add(new HtmlRenderForcedBreak(contentHeight, child.BreakAfter));
+                }
                 foreach (double offset in child.BreakOffsets) {
                     contentBreakOffsets.Add(childStart + offset);
                 }
@@ -468,7 +478,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 new HtmlInlineBreakProgress(contentYForBreaks + progress.Offset, progress.LogicalCharacters, progress.OwnerElement)),
             inlineContinuationStart: ReferenceEquals(element, continuationTarget) ? continuationLogicalCharacters : 0,
             supportsInlineContinuationReflow: inlineLayout?.SupportsContinuationReflow == true
-                || continuationBreakProgress.Any(progress => progress.OwnerElement != null));
+                || continuationBreakProgress.Any(progress => progress.OwnerElement != null),
+            forcedBreaks: forcedBreaks.Select(item => item.Translate(contentYForBreaks)));
         block = ApplyElementSemantics(block, element);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
         return AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element), style, element, collapsesThrough);

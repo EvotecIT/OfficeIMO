@@ -33,7 +33,8 @@ internal sealed class HtmlRenderFlowBlock {
         IEnumerable<HtmlCssRunningStringAssignment>? runningStringAssignments = null,
         IEnumerable<HtmlInlineBreakProgress>? inlineBreakProgress = null,
         int inlineContinuationStart = 0,
-        bool supportsInlineContinuationReflow = false) {
+        bool supportsInlineContinuationReflow = false,
+        IEnumerable<HtmlRenderForcedBreak>? forcedBreaks = null) {
         Width = width;
         Height = height;
         UnclampedHeight = unclampedHeight.HasValue && !double.IsNaN(unclampedHeight.Value) && !double.IsInfinity(unclampedHeight.Value)
@@ -52,6 +53,15 @@ internal sealed class HtmlRenderFlowBlock {
         }
 
         BreakOffsets = offsets.ToList().AsReadOnly();
+        ForcedBreaks = new List<HtmlRenderForcedBreak>(forcedBreaks ?? Array.Empty<HtmlRenderForcedBreak>())
+            .Where(item => item.Target != HtmlPageBreakTarget.None
+                && !double.IsNaN(item.Offset)
+                && !double.IsInfinity(item.Offset)
+                && item.Offset >= -0.0001D
+                && item.Offset <= height + 0.0001D)
+            .OrderBy(item => item.Offset)
+            .ToList()
+            .AsReadOnly();
         var lineOffsets = new SortedSet<double>();
         if (lineBreakOffsets != null) {
             foreach (double offset in lineBreakOffsets) {
@@ -99,6 +109,7 @@ internal sealed class HtmlRenderFlowBlock {
     internal bool AvoidBreakInside { get; }
     internal string Source { get; }
     internal IReadOnlyList<double> BreakOffsets { get; }
+    internal IReadOnlyList<HtmlRenderForcedBreak> ForcedBreaks { get; }
     internal IReadOnlyList<HtmlRenderLineBreakGroup> LineBreakGroups { get; }
     internal IReadOnlyList<HtmlRenderContinuationGroup> ContinuationGroups { get; }
     internal IReadOnlyList<HtmlRenderTrailingGroup> TrailingGroups { get; }
@@ -140,7 +151,8 @@ internal sealed class HtmlRenderFlowBlock {
             runningStringAssignments: RunningStringAssignments,
             inlineBreakProgress: InlineBreakProgress,
             inlineContinuationStart: InlineContinuationStart,
-            supportsInlineContinuationReflow: SupportsInlineContinuationReflow);
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks);
 
     internal HtmlRenderFlowBlock WithStacking(int zIndex, int sourceOrder) =>
         new HtmlRenderFlowBlock(
@@ -167,7 +179,8 @@ internal sealed class HtmlRenderFlowBlock {
             runningStringAssignments: RunningStringAssignments,
             inlineBreakProgress: InlineBreakProgress,
             inlineContinuationStart: InlineContinuationStart,
-            supportsInlineContinuationReflow: SupportsInlineContinuationReflow);
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks);
 
     internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals) =>
         new HtmlRenderFlowBlock(
@@ -194,7 +207,8 @@ internal sealed class HtmlRenderFlowBlock {
             runningStringAssignments: RunningStringAssignments,
             inlineBreakProgress: InlineBreakProgress,
             inlineContinuationStart: InlineContinuationStart,
-            supportsInlineContinuationReflow: SupportsInlineContinuationReflow);
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks);
 
     internal HtmlRenderFlowBlock AdjustLeadingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
@@ -224,7 +238,8 @@ internal sealed class HtmlRenderFlowBlock {
             runningStringAssignments: RunningStringAssignments.Select(assignment => assignment.Translate(-adjustment)),
             inlineBreakProgress: InlineBreakProgress.Select(progress => new HtmlInlineBreakProgress(progress.Offset - adjustment, progress.LogicalCharacters, progress.OwnerElement)),
             inlineContinuationStart: InlineContinuationStart,
-            supportsInlineContinuationReflow: SupportsInlineContinuationReflow);
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks.Select(item => item.Translate(-adjustment)));
     }
 
     internal HtmlRenderFlowBlock WithCollapsibleMargins(double top, double bottom, IElement ownerElement, bool collapsesThrough = false) =>
@@ -252,7 +267,8 @@ internal sealed class HtmlRenderFlowBlock {
             runningStringAssignments: RunningStringAssignments,
             inlineBreakProgress: InlineBreakProgress,
             inlineContinuationStart: InlineContinuationStart,
-            supportsInlineContinuationReflow: SupportsInlineContinuationReflow);
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks);
 
     internal HtmlRenderFlowBlock WithRunningStringAssignments(IEnumerable<HtmlCssRunningStringAssignment> assignments) =>
         new HtmlRenderFlowBlock(
@@ -279,7 +295,8 @@ internal sealed class HtmlRenderFlowBlock {
             runningStringAssignments: assignments,
             inlineBreakProgress: InlineBreakProgress,
             inlineContinuationStart: InlineContinuationStart,
-            supportsInlineContinuationReflow: SupportsInlineContinuationReflow);
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks);
 
     internal HtmlRenderFlowBlock AdjustTrailingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
@@ -309,8 +326,21 @@ internal sealed class HtmlRenderFlowBlock {
             runningStringAssignments: RunningStringAssignments.Where(assignment => assignment.Offset <= adjustedHeight + 0.0001D),
             inlineBreakProgress: InlineBreakProgress.Where(progress => progress.Offset <= adjustedHeight + 0.0001D),
             inlineContinuationStart: InlineContinuationStart,
-            supportsInlineContinuationReflow: SupportsInlineContinuationReflow);
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks.Where(item => item.Offset <= adjustedHeight + 0.0001D));
     }
+}
+
+internal sealed class HtmlRenderForcedBreak {
+    internal HtmlRenderForcedBreak(double offset, HtmlPageBreakTarget target) {
+        Offset = offset;
+        Target = target;
+    }
+
+    internal double Offset { get; }
+    internal HtmlPageBreakTarget Target { get; }
+
+    internal HtmlRenderForcedBreak Translate(double offset) => new HtmlRenderForcedBreak(Offset + offset, Target);
 }
 
 internal sealed class HtmlRenderContinuationGroup {

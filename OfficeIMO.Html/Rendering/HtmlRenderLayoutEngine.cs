@@ -300,8 +300,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             if (!hasPageContent) currentPageName = block.PageName;
-            if (block.BreakBefore != HtmlPageBreakTarget.None) {
-                ApplyBreakBefore(block.BreakBefore, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
+            HtmlPageBreakTarget breakBefore = ResolveForcedBreakAt(block.ForcedBreaks, 0D);
+            if (breakBefore == HtmlPageBreakTarget.None) breakBefore = block.BreakBefore;
+            if (breakBefore != HtmlPageBreakTarget.None) {
+                ApplyBreakBefore(breakBefore, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
                 pageWidth = pageGeometry.Width;
                 pageHeight = pageGeometry.Height;
                 contentHeight = pageGeometry.ContentHeight;
@@ -310,14 +312,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 block = RelayoutTopLevelBlockForPage(block, pageGeometry);
             }
 
-            if (block.Height <= contentHeight && hasPageContent && y + block.Height > pageHeight - pageGeometry.Margins.Bottom) {
+            if (block.Height <= contentHeight
+                && hasPageContent
+                && !HasInternalForcedBreak(block)
+                && y + block.Height > pageHeight - pageGeometry.Margins.Bottom) {
                 CommitPage(pages, visuals, pageGeometry, currentPageName);
                 BeginPage(block.PageName);
                 currentPageName = block.PageName;
                 block = RelayoutTopLevelBlockForPage(block, pageGeometry);
             }
 
-            if (block.Height <= pageHeight - pageGeometry.Margins.Bottom - y) {
+            if (block.Height <= pageHeight - pageGeometry.Margins.Bottom - y && !HasInternalForcedBreak(block)) {
                 AddTranslatedVisuals(visuals, block.Visuals, pageGeometry.Margins.Left, y, block);
                 RecordRunningStringAssignments(block, 0D, block.Height, y);
                 y += block.Height;
@@ -333,9 +338,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     bool repeatTrailing = trailingGroup != null && trailingGroup.Visuals.Count > 0 && trailingGroup.Height > 0D;
                     double trailingHeight = repeatTrailing ? trailingGroup!.Height : 0D;
                     double available = rawAvailable - continuationHeight - trailingHeight;
-                    double fragmentEnd = available > 0.0001D
-                        ? FindFragmentEnd(block, blockOffset, available, fragmentLimit)
-                        : blockOffset;
+                    bool forcedBreakFits = TryGetNextForcedBreak(block.ForcedBreaks, blockOffset, out HtmlRenderForcedBreak? forcedBreak)
+                        && forcedBreak!.Offset <= fragmentLimit + 0.0001D
+                        && forcedBreak.Offset <= blockOffset + available + 0.0001D;
+                    double fragmentEnd = forcedBreakFits
+                        ? forcedBreak!.Offset
+                        : available > 0.0001D
+                            ? FindFragmentEnd(block, blockOffset, available, fragmentLimit)
+                            : blockOffset;
                     if (fragmentEnd <= blockOffset + 0.0001D) {
                         if (y > pageGeometry.Margins.Top + 0.0001D) {
                             CommitPage(pages, visuals, pageGeometry, currentPageName);
@@ -429,6 +439,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         HtmlInlineBreakProgress? continuationProgress = ResolveInlineContinuationProgress(block, blockOffset);
                         CommitPage(pages, visuals, pageGeometry, currentPageName);
                         BeginPage(currentPageName);
+                        HtmlPageBreakTarget internalBreak = ResolveForcedBreakAt(block.ForcedBreaks, blockOffset);
+                        if (internalBreak != HtmlPageBreakTarget.None) {
+                            EnsurePageSide(internalBreak, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
+                            pageWidth = pageGeometry.Width;
+                            pageHeight = pageGeometry.Height;
+                            contentHeight = pageGeometry.ContentHeight;
+                        }
                         if (Math.Abs(block.Width - pageGeometry.ContentWidth) > 0.0001D) {
                             if (continuationProgress.HasValue
                                 && TryRelayoutInlineContinuation(block, pageGeometry, continuationProgress.Value, out HtmlRenderFlowBlock reflowed)) {
@@ -443,10 +460,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
             }
 
-            if (block.BreakAfter != HtmlPageBreakTarget.None && index < blocks.Count - 1) {
+            HtmlPageBreakTarget breakAfter = ResolveForcedBreakAt(block.ForcedBreaks, block.Height);
+            if (block.BreakAfter != HtmlPageBreakTarget.None) breakAfter = block.BreakAfter;
+            if (breakAfter != HtmlPageBreakTarget.None && index < blocks.Count - 1) {
                 CommitPage(pages, visuals, pageGeometry, currentPageName);
                 BeginPage(currentPageName);
-                EnsurePageSide(block.BreakAfter, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
+                EnsurePageSide(breakAfter, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
                 pageWidth = pageGeometry.Width;
                 pageHeight = pageGeometry.Height;
                 contentHeight = pageGeometry.ContentHeight;
@@ -648,59 +667,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : _paintOrder++;
             target.Add(visual.Translate(offsetX, offsetY, paintOrder));
         }
-    }
-
-    private static double FindFragmentEnd(HtmlRenderFlowBlock block, double start, double available, double? maximumEnd = null) {
-        double limit = Math.Min(maximumEnd ?? block.Height, Math.Min(block.Height, start + available));
-        double best = start;
-        foreach (double offset in block.BreakOffsets) {
-            if (offset > start + 0.0001D
-                && offset <= limit + 0.0001D
-                && IsAllowedLineBreak(block, start, offset)) {
-                best = offset;
-            }
-        }
-
-        return best;
-    }
-
-    private static HtmlRenderTrailingGroup? ResolveTrailingGroup(HtmlRenderFlowBlock block, double start, double available, out double fragmentLimit) {
-        HtmlRenderTrailingGroup? active = block.TrailingGroups.FirstOrDefault(group => group.AppliesAt(start));
-        if (active != null) {
-            fragmentLimit = active.ContentEndsAt;
-            return active;
-        }
-
-        HtmlRenderTrailingGroup? upcoming = block.TrailingGroups
-            .Where(group => group.StartsAt > start + 0.0001D && group.StartsAt < start + available - 0.0001D)
-            .OrderBy(group => group.StartsAt)
-            .FirstOrDefault();
-        if (upcoming == null) {
-            fragmentLimit = block.Height;
-            return null;
-        }
-
-        double candidateAvailable = Math.Max(0D, available - upcoming.Height);
-        double candidateEnd = FindFragmentEnd(block, start, candidateAvailable, upcoming.ContentEndsAt);
-        if (candidateEnd > upcoming.StartsAt + 0.0001D) {
-            fragmentLimit = upcoming.ContentEndsAt;
-            return upcoming;
-        }
-
-        fragmentLimit = upcoming.StartsAt;
-        return null;
-    }
-
-    private static bool IsAllowedLineBreak(HtmlRenderFlowBlock block, double start, double candidate) {
-        foreach (HtmlRenderLineBreakGroup group in block.LineBreakGroups) {
-            if (!group.Offsets.Any(offset => Math.Abs(offset - candidate) <= 0.0001D)) continue;
-            int fragmentLines = group.Offsets.Count(offset => offset > start + 0.0001D && offset <= candidate + 0.0001D);
-            int remainingLines = group.Offsets.Count(offset => offset > candidate + 0.0001D);
-            if (remainingLines == 0 && candidate < block.Height - 0.0001D) return false;
-            return fragmentLines >= group.Orphans && (remainingLines == 0 || remainingLines >= group.Widows);
-        }
-
-        return true;
     }
 
     private IReadOnlyList<HtmlRenderVisual> SliceBlockVisuals(HtmlRenderFlowBlock block, double start, double end) {

@@ -169,21 +169,21 @@ $artifacts = @(
         source = (Join-Path $documentsRoot 'HtmlInvoiceShowcase.pdf')
         destination = 'html/invoice.pdf'
         generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --html-invoice"
-        evidence = 'PDF generated directly from the same parsed HTML and options object as the image outputs.'
+        evidence = 'Three-page searchable purchase report with wrapped rows, repeated table headers, page counters, and one totals block.'
     },
     [ordered]@{
         id = 'html-png-output'
         source = (Join-Path $documentsRoot 'HtmlInvoiceShowcase.png')
         destination = 'html/invoice.png'
         generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --html-invoice"
-        evidence = 'PNG generated directly from the same parsed HTML and options object as the PDF.'
+        evidence = 'First-page PNG generated from the same parsed HTML and options object as the multi-page PDF.'
     },
     [ordered]@{
         id = 'html-svg-output'
         source = (Join-Path $documentsRoot 'HtmlInvoiceShowcase.svg')
         destination = 'html/invoice.svg'
         generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --html-invoice"
-        evidence = 'SVG generated directly from the same parsed HTML and options object as the PDF.'
+        evidence = 'First-page SVG generated from the same parsed HTML and options object as the multi-page PDF.'
     },
     [ordered]@{
         id = 'html-renderer-gallery-source'
