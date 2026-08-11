@@ -13,6 +13,7 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - image data URI parsing and media-type extension mapping
 - deterministic accessible-name, ARIA heading, EPUB structural-semantic, and logical quote/code/footnote projection
 - dependency-free HTML layout for continuous and paged output
+- structured Presentation MathML routed through the shared OfficeIMO.Core expression and vector-rendering model
 - bounded CSS length math, caller stylesheets, deterministic media preferences, running strings, and Unicode-range-aware WOFF 1/OpenType fonts
 - direct PNG, JPEG, TIFF, SVG, and lossless WebP export over `OfficeIMO.Drawing`
 - one typed semantic document projection shared by Excel, PowerPoint, and OneNote importers
@@ -54,6 +55,8 @@ IReadOnlyList<OfficeImageExportResult> webpPages = source
     .AsWebp()
     .Save("status-pages");
 ```
+
+The same managed path renders inline or block Presentation MathML as vector content. Fractions, roots, scripts, limits, fences, matrices, enclosures, and annotations retain logical text in the shared scene and searchable PDF output; unsupported structures use a diagnosed child-content fallback.
 
 For documents that opt into `hyphens:auto`, supply the language-appropriate break points used by the application. The same immutable lexicon can be shared with the PDF text engine:
 

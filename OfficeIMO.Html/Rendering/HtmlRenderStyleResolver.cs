@@ -88,7 +88,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         string direction = ResolveDirection(computed.GetValue("direction"), parent?.Direction);
 
         var style = new HtmlRenderBoxStyle {
-            Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(tag, computed.GetValue("display")),
+            Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(element, computed.GetValue("display")),
             DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
             PaintVisible = ResolvePaintVisibility(computed.GetValue("visibility"), parent),
             Font = new OfficeFontInfo(family, fontSize, fontStyle),
@@ -454,8 +454,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
     }
 
-    private static string ResolveDisplay(string tag, string value) {
+    private static string ResolveDisplay(IElement element, string value) {
         if (!string.IsNullOrWhiteSpace(value)) return value.Trim().ToLowerInvariant();
+        string tag = element.TagName.ToLowerInvariant();
+        if (tag == "math" && string.Equals(element.GetAttribute("display"), "block", StringComparison.OrdinalIgnoreCase)) return "block";
         if (tag == "li") return "list-item";
         if (tag == "table") return "table";
         return IsDefaultBlockTag(tag) ? "block" : "inline";

@@ -116,6 +116,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string PageSizeUnsupported = "HtmlRenderPageSizeUnsupported";
     /// <summary>SVG content could not be represented by the bounded shared vector scene.</summary>
     public const string SvgContentUnsupported = "HtmlRenderSvgContentUnsupported";
+    /// <summary>MathML content could not be represented by the bounded shared mathematical expression model.</summary>
+    public const string MathMlContentUnsupported = "HtmlRenderMathMlContentUnsupported";
     /// <summary>A caller codec rasterized SVG features outside the bounded vector scene.</summary>
     public const string SvgRasterFallback = "HtmlRenderSvgRasterFallback";
     /// <summary>A resource exceeded the configured per-resource byte limit.</summary>
@@ -208,6 +210,7 @@ public static class HtmlRenderDiagnosticCodes {
         PagePseudoGeometryPending,
         PageSelectorPending,
         PageSizeUnsupported,
+        MathMlContentUnsupported,
         SvgContentUnsupported,
         SvgRasterFallback,
         ResourceByteLimitExceeded,

@@ -285,7 +285,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
                 } else if (segment.Run.AtomicBlock != null) {
                     HtmlRenderFlowBlock atomic = segment.Run.AtomicBlock;
-                    double atomicY = lineY + Math.Max(0D, (current.HasReplacedImage ? baseline : lineHeight) - atomic.Height);
+                    double atomicBaseline = segment.Run.AtomicBaseline ?? atomic.Height;
+                    double atomicY = lineY + Math.Max(0D, (current.HasReplacedImage ? baseline : lineHeight) - atomicBaseline);
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, atomicY, segment.Width, atomic.Height, inlineBounds);
                     foreach (HtmlCssRunningStringAssignment assignment in atomic.RunningStringAssignments) {
                         runningStringAssignments.Add(assignment.Translate(atomicY));

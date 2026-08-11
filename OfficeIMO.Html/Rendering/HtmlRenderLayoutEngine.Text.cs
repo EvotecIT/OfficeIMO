@@ -164,15 +164,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
-        if (tag != "img" && style.Display == "inline-block") {
+        if (tag != "img" && tag != "math" && style.Display == "inline-block") {
             AddInlineBlockRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
         }
-        if (tag != "img" && style.Display == "inline-flex") {
+        if (tag != "img" && tag != "math" && style.Display == "inline-flex") {
             AddInlineFlexRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
         }
-        if (tag != "img" && style.Display == "inline-grid") {
+        if (tag != "img" && tag != "math" && style.Display == "inline-grid") {
             AddInlineGridRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
         }
@@ -198,6 +198,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         if (tag == "img") {
             AddInlineImageRun(element, style, link, paintOffsetX, paintOffsetY, targetRuns);
+            AppendSemanticInlineRuns(element, style, semanticRuns, runs);
+            return;
+        }
+        if (tag == "math" && TryAddInlineMathRun(element, width, style, link, paintOffsetX, paintOffsetY, targetRuns)) {
             AppendSemanticInlineRuns(element, style, semanticRuns, runs);
             return;
         }
@@ -931,7 +935,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             for (int i = 0; i < Segments.Count; i++) {
                 HtmlInlineRun run = Segments[i].Run;
                 if (run.AtomicBlock != null) {
-                    ascent = Math.Max(ascent, run.AtomicBlock.Height);
+                    double atomicBaseline = Math.Min(run.AtomicBlock.Height, Math.Max(0D, run.AtomicBaseline ?? run.AtomicBlock.Height));
+                    ascent = Math.Max(ascent, atomicBaseline);
+                    descent = Math.Max(descent, run.AtomicBlock.Height - atomicBaseline);
                 } else {
                     ascent = Math.Max(ascent, ResolveTextAscent(run.Style));
                     descent = Math.Max(descent, Math.Max(0D, run.Style.LineHeight - ResolveTextAscent(run.Style)));
@@ -947,7 +953,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double ascent = 0D;
             for (int i = 0; i < Segments.Count; i++) {
                 HtmlInlineRun run = Segments[i].Run;
-                ascent = Math.Max(ascent, run.AtomicBlock?.Height ?? ResolveTextAscent(run.Style));
+                ascent = Math.Max(ascent, run.AtomicBlock == null
+                    ? ResolveTextAscent(run.Style)
+                    : Math.Min(run.AtomicBlock.Height, Math.Max(0D, run.AtomicBaseline ?? run.AtomicBlock.Height)));
             }
             return ascent;
         }
