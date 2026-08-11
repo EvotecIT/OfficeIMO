@@ -720,10 +720,7 @@ public sealed partial class PdfReadPage {
     private PdfType3PaintChannels ResolveXObjectPaintChannels(
         PdfDictionary? resources,
         string name,
-        Matrix2D invocationTransform,
-        PdfPageClipPath? invocationClipPath,
-        double? fillOpacity,
-        double? strokeOpacity,
+        PdfPageXObjectPaintState invocationState,
         double pageWidth,
         double pageHeight,
         Type3PaintChannelCache cache,
@@ -738,10 +735,10 @@ public sealed partial class PdfReadPage {
                 name,
                 objectNumber,
                 directStreamIdentity,
-                invocationTransform,
-                invocationClipPath,
+                invocationState.Transform,
+                invocationState.ClipPath,
                 OfficeColor.Black,
-                fillOpacity,
+                invocationState.FillOpacity,
                 paintOrder: 0D);
             return IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight)
                 ? PdfType3PaintChannels.None
@@ -751,13 +748,13 @@ public sealed partial class PdfReadPage {
             return PdfType3PaintChannels.Both;
         }
         if (form.Dictionary.Items.ContainsKey("Group")) {
-            if (!HasVisibleOpacity(fillOpacity)) {
+            if (!HasVisibleOpacity(invocationState.FillOpacity)) {
                 return PdfType3PaintChannels.None;
             }
             Type3TransparencyGroupDrawingResult boundsResult = TryGetVisibleType3TransparencyGroupBounds(
                 form.Dictionary,
-                ApplyFormMatrix(invocationTransform, form.Dictionary),
-                invocationClipPath,
+                ApplyFormMatrix(invocationState.Transform, form.Dictionary),
+                invocationState.ClipPath,
                 pageWidth,
                 pageHeight,
                 out _);
@@ -769,10 +766,7 @@ public sealed partial class PdfReadPage {
         return ResolveVisibleFormPaintChannels(
             form,
             formResources,
-            invocationTransform,
-            invocationClipPath,
-            fillOpacity,
-            strokeOpacity,
+            invocationState,
             pageWidth,
             pageHeight,
             cache,
@@ -806,10 +800,7 @@ public sealed partial class PdfReadPage {
     private PdfType3PaintChannels ResolveType3PaintChannels(
         PdfStream stream,
         PdfDictionary resources,
-        Matrix2D programTransform,
-        PdfPageClipPath? programClipPath,
-        double? fillOpacity,
-        double? strokeOpacity,
+        PdfPageXObjectPaintState programState,
         double pageWidth,
         double pageHeight,
         Type3PaintChannelCache cache,
@@ -821,10 +812,7 @@ public sealed partial class PdfReadPage {
         var cacheKey = (
             Stream: stream,
             Resources: resources,
-            ProgramTransform: programTransform,
-            ProgramClipPath: programClipPath,
-            FillOpacity: fillOpacity,
-            StrokeOpacity: strokeOpacity,
+            ProgramState: programState,
             PageWidth: pageWidth,
             PageHeight: pageHeight);
         if (cache.Streams.TryGetValue(cacheKey, out PdfType3PaintChannels cached)) return cached;
@@ -835,38 +823,72 @@ public sealed partial class PdfReadPage {
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
+            IReadOnlyDictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
+            IReadOnlyList<PdfPageDrawingEffectTransition> effects = PdfPageGraphicsEffectTimelineParser.Parse(
+                content,
+                graphicsStates,
+                PdfPageDrawingEffect.Default,
+                programState.Transform,
+                maxOperations: _limits.MaxContentOperations,
+                maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxOperands: _limits.MaxContentOperands);
+            string transformedContent = WrapContentWithTransform(content, programState.Transform, out int transformedOffset);
             _ = PdfPageContentVisualParser.Parse(
-                WrapContentWithTransform(content, programTransform),
+                transformedContent,
                 pageWidth,
                 pageHeight,
-                GetGraphicsStateResources(resources),
+                graphicsStates,
                 colorSpaces,
                 GetShadingResources(resources),
                 GetShadingPatternResources(resources),
                 null,
                 GetOptionalContentVisibility(resources),
-                initialClipPath: programClipPath,
-                initialFillOpacity: fillOpacity,
-                initialStrokeOpacity: strokeOpacity,
+                paintOrderOffset: -transformedOffset,
+                initialClipPath: programState.ClipPath,
+                initialFillOpacity: programState.FillOpacity,
+                initialStrokeOpacity: programState.StrokeOpacity,
+                initialStrokeWidth: programState.StrokeWidth,
+                initialStrokeDashStyle: programState.StrokeDashStyle,
+                initialStrokeLineCap: programState.StrokeLineCap,
+                initialStrokeLineJoin: programState.StrokeLineJoin,
                 maxOperations: _limits.MaxContentOperations,
                 patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
                 primitiveVisitor: primitive => {
+                    PdfPageDrawingEffect effect = ResolveDrawingEffect(effects, primitive.PaintOrder);
+                    if (IsPaintSuppressedByTransparentSoftMask(
+                            effect,
+                            resources,
+                            programState.Transform,
+                            pageWidth,
+                            pageHeight,
+                            cache,
+                            activeStreams,
+                            pageContentBudget,
+                            type3GlyphBudget,
+                            depth + 1)) {
+                        return;
+                    }
                     channels |= ResolveVisibleType3PrimitivePaintChannels(primitive, pageWidth, pageHeight);
                 },
+                scaleStrokeWidthWithTransform: true,
                 retainPrimitiveData: false);
 
             foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                          content,
-                         programTransform,
+                         programState.Transform,
                          pageHeight,
-                         GetGraphicsStateResources(resources),
+                         graphicsStates,
                          colorSpaces,
                          GetOptionalContentVisibility(resources),
-                         initialFillOpacity: fillOpacity,
-                         initialClipPath: programClipPath,
-                         initialStrokeOpacity: strokeOpacity,
+                         initialFillOpacity: programState.FillOpacity,
+                         initialClipPath: programState.ClipPath,
+                         initialStrokeOpacity: programState.StrokeOpacity,
+                         initialStrokeWidth: programState.StrokeWidth,
+                         initialStrokeDashStyle: programState.StrokeDashStyle,
+                         initialStrokeLineCap: programState.StrokeLineCap,
+                         initialStrokeLineJoin: programState.StrokeLineJoin,
                          maxOperations: _limits.MaxContentOperations,
                          maxNestingDepth: _limits.MaxContentNestingDepth,
                          maxOperands: _limits.MaxContentOperands,
@@ -889,13 +911,21 @@ public sealed partial class PdfReadPage {
                          },
                          type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
                          unsupportedTextVisitor: () => channels = PdfType3PaintChannels.Both,
-                         xObjectPaintChannelResolver: (name, transform, clipPath, resolvedFillOpacity, resolvedStrokeOpacity) => ResolveXObjectPaintChannels(
+                         xObjectPaintChannelResolver: (name, paintState) => ResolveXObjectPaintChannels(
                              resources,
                              name,
+                             paintState,
+                             pageWidth,
+                             pageHeight,
+                             cache,
+                             activeStreams,
+                             pageContentBudget,
+                             type3GlyphBudget,
+                             depth + 1),
+                         softMaskVisibilityResolver: (softMask, transform) => !IsSoftMaskEntirelyTransparent(
+                             softMask,
                              transform,
-                             clipPath,
-                             resolvedFillOpacity,
-                             resolvedStrokeOpacity,
+                             resources,
                              pageWidth,
                              pageHeight,
                              cache,
@@ -917,10 +947,7 @@ public sealed partial class PdfReadPage {
                 channels |= ResolveXObjectPaintChannels(
                     resources,
                     invocation.Name,
-                    invocation.Transform,
-                    invocation.ClipPath,
-                    invocation.FillOpacity,
-                    invocation.StrokeOpacity,
+                    invocation.PaintState,
                     pageWidth,
                     pageHeight,
                     cache,

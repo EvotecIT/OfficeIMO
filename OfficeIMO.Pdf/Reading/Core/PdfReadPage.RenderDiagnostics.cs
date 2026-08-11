@@ -245,8 +245,15 @@ public sealed partial class PdfReadPage {
                         !CanProjectType3GlyphProgram(
                             stream,
                             type3.Resources,
-                            Matrix2D.Multiply(glyph.Transform, type3.FontMatrix),
-                            glyph.ClipPath,
+                            new PdfPageXObjectPaintState(
+                                Matrix2D.Multiply(glyph.Transform, type3.FontMatrix),
+                                glyph.ClipPath,
+                                glyph.FillOpacity,
+                                glyph.StrokeOpacity,
+                                glyph.StrokeWidth,
+                                glyph.StrokeDashStyle,
+                                glyph.StrokeLineCap,
+                                glyph.StrokeLineJoin),
                             type3.IsUncolored,
                             glyph.FillPattern,
                             glyph.FillPatternBaseColorSpace,
@@ -286,8 +293,7 @@ public sealed partial class PdfReadPage {
     private bool CanProjectType3GlyphProgram(
         PdfStream stream,
         PdfDictionary resources,
-        Matrix2D programTransform,
-        PdfPageClipPath? programClipPath,
+        PdfPageXObjectPaintState programState,
         bool requireImageMask,
         PdfPagePatternSelection? initialFillPattern,
         PdfPageColorSpace? initialFillPatternBaseColorSpace,
@@ -327,7 +333,7 @@ public sealed partial class PdfReadPage {
             var activeType3PaintChannelStreams = new HashSet<PdfStream>();
             _ = PdfPageXObjectInvocationParser.Parse(
                 content,
-                programTransform,
+                programState.Transform,
                 surfaceHeight,
                 GetGraphicsStateResources(resources),
                 colorSpaces,
@@ -335,7 +341,13 @@ public sealed partial class PdfReadPage {
                 maxOperations: _limits.MaxContentOperations,
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
-                initialClipPath: programClipPath,
+                initialClipPath: programState.ClipPath,
+                initialFillOpacity: programState.FillOpacity,
+                initialStrokeOpacity: programState.StrokeOpacity,
+                initialStrokeWidth: programState.StrokeWidth,
+                initialStrokeDashStyle: programState.StrokeDashStyle,
+                initialStrokeLineCap: programState.StrokeLineCap,
+                initialStrokeLineJoin: programState.StrokeLineJoin,
                 fonts: fonts,
                 fontWidthProviders: widthProviders,
                 patternInvocationVisitor: name => invokedPatternNames.Add(name),
@@ -350,19 +362,27 @@ public sealed partial class PdfReadPage {
                     activeType3PaintChannelStreams,
                     pageContentBudget,
                     type3GlyphBudget),
-                xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity, strokeOpacity) => ResolveXObjectPaintChannels(
+                xObjectPaintChannelResolver: (name, paintState) => ResolveXObjectPaintChannels(
                     resources,
                     name,
-                    transform,
-                    clipPath,
-                    fillOpacity,
-                    strokeOpacity,
+                    paintState,
                     surfaceWidth,
                     surfaceHeight,
                     type3PaintChannelCache,
                     activeType3PaintChannelStreams,
                     pageContentBudget,
                     type3GlyphBudget),
+                softMaskVisibilityResolver: (softMask, transform) => !IsSoftMaskEntirelyTransparent(
+                    softMask,
+                    transform,
+                    resources,
+                    surfaceWidth,
+                    surfaceHeight,
+                    type3PaintChannelCache,
+                    activeType3PaintChannelStreams,
+                    pageContentBudget,
+                    type3GlyphBudget,
+                    depth + 1),
                 pageWidth: surfaceWidth);
             Dictionary<string, PdfPageTilingPatternResource> tilingPatterns = GetTilingPatternResources(
                 resources,
@@ -377,7 +397,7 @@ public sealed partial class PdfReadPage {
             bool usesUnsupportedInheritedShadingStroke = false;
             bool usesUnsupportedInheritedShadingPlacement = false;
             _ = PdfPageContentVisualParser.Parse(
-                WrapContentWithTransform(content, programTransform),
+                WrapContentWithTransform(content, programState.Transform),
                 surfaceWidth,
                 surfaceHeight,
                 GetGraphicsStateResources(resources),
@@ -390,7 +410,14 @@ public sealed partial class PdfReadPage {
                 patternBaseColorSpaces: patternBaseColorSpaces,
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
-                initialClipPath: programClipPath,
+                initialClipPath: programState.ClipPath,
+                initialFillOpacity: programState.FillOpacity,
+                initialStrokeOpacity: programState.StrokeOpacity,
+                initialStrokeWidth: programState.StrokeWidth,
+                initialStrokeDashStyle: programState.StrokeDashStyle,
+                initialStrokeLineCap: programState.StrokeLineCap,
+                initialStrokeLineJoin: programState.StrokeLineJoin,
+                scaleStrokeWidthWithTransform: true,
                 primitiveVisitor: primitive => {
                     usesFillPaint |= primitive.HasFillPaint;
                     usesStrokePaint |= primitive.HasStrokePaint;
@@ -457,7 +484,7 @@ public sealed partial class PdfReadPage {
             var patternSupport = new Dictionary<string, bool>(StringComparer.Ordinal);
             foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                          content,
-                         programTransform,
+                         programState.Transform,
                          surfaceHeight,
                          GetGraphicsStateResources(resources),
                          colorSpaces,
@@ -465,7 +492,13 @@ public sealed partial class PdfReadPage {
                          maxOperations: _limits.MaxContentOperations,
                          maxNestingDepth: _limits.MaxContentNestingDepth,
                          maxOperands: _limits.MaxContentOperands,
-                         initialClipPath: programClipPath,
+                         initialClipPath: programState.ClipPath,
+                         initialFillOpacity: programState.FillOpacity,
+                         initialStrokeOpacity: programState.StrokeOpacity,
+                         initialStrokeWidth: programState.StrokeWidth,
+                         initialStrokeDashStyle: programState.StrokeDashStyle,
+                         initialStrokeLineCap: programState.StrokeLineCap,
+                         initialStrokeLineJoin: programState.StrokeLineJoin,
                          fonts: fonts,
                          fontWidthProviders: widthProviders,
                          type3TextVisitor: nested => {
@@ -478,8 +511,15 @@ public sealed partial class PdfReadPage {
                                      !CanProjectType3GlyphProgram(
                                          nestedStream,
                                          nestedType3.Resources,
-                                         Matrix2D.Multiply(glyph.Transform, nestedType3.FontMatrix),
-                                         glyph.ClipPath,
+                                         new PdfPageXObjectPaintState(
+                                             Matrix2D.Multiply(glyph.Transform, nestedType3.FontMatrix),
+                                             glyph.ClipPath,
+                                             glyph.FillOpacity,
+                                             glyph.StrokeOpacity,
+                                             glyph.StrokeWidth,
+                                             glyph.StrokeDashStyle,
+                                             glyph.StrokeLineCap,
+                                             glyph.StrokeLineJoin),
                                          requireImageMask || nestedType3.IsUncolored,
                                          glyph.FillPattern,
                                          glyph.FillPatternBaseColorSpace,
@@ -553,20 +593,29 @@ public sealed partial class PdfReadPage {
                              type3PaintChannelCache,
                              activeType3PaintChannelStreams,
                              pageContentBudget,
-                             type3GlyphBudget),
-                         xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity, strokeOpacity) => ResolveXObjectPaintChannels(
+                             type3GlyphBudget,
+                             depth + 1),
+                         xObjectPaintChannelResolver: (name, paintState) => ResolveXObjectPaintChannels(
                              resources,
                              name,
-                             transform,
-                             clipPath,
-                             fillOpacity,
-                             strokeOpacity,
+                             paintState,
                              surfaceWidth,
                              surfaceHeight,
                              type3PaintChannelCache,
                              activeType3PaintChannelStreams,
                              pageContentBudget,
                              type3GlyphBudget),
+                         softMaskVisibilityResolver: (softMask, transform) => !IsSoftMaskEntirelyTransparent(
+                             softMask,
+                             transform,
+                             resources,
+                             surfaceWidth,
+                             surfaceHeight,
+                             type3PaintChannelCache,
+                             activeType3PaintChannelStreams,
+                             pageContentBudget,
+                             type3GlyphBudget,
+                             depth + 1),
                          pageWidth: surfaceWidth)) {
                 if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     bool canProjectImage = CanProjectType3ImageInvocation(
@@ -589,10 +638,7 @@ public sealed partial class PdfReadPage {
                 if (ResolveXObjectPaintChannels(
                         resources,
                         invocation.Name,
-                        invocation.Transform,
-                        invocation.ClipPath,
-                        invocation.FillOpacity,
-                        invocation.StrokeOpacity,
+                        invocation.PaintState,
                         surfaceWidth,
                         surfaceHeight,
                         type3PaintChannelCache,
@@ -642,8 +688,7 @@ public sealed partial class PdfReadPage {
                 if (!CanProjectType3GlyphProgram(
                         form,
                         formResources,
-                        formTransform,
-                        formClipPath,
+                        invocation.PaintState.WithTransformAndClip(formTransform, formClipPath),
                         requireImageMask,
                         formFillPattern,
                         invocation.FillPatternBaseColorSpace,

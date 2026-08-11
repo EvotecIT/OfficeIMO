@@ -555,13 +555,10 @@ public sealed partial class PdfReadPage {
                     activeType3PaintChannelStreams,
                     pageContentBudget,
                     type3GlyphBudget),
-                xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity, strokeOpacity) => ResolveXObjectPaintChannels(
+                xObjectPaintChannelResolver: (name, paintState) => ResolveXObjectPaintChannels(
                     resources,
                     name,
-                    transform,
-                    clipPath,
-                    fillOpacity,
-                    strokeOpacity,
+                    paintState,
                     pageWidth,
                     pageHeight,
                     type3PaintChannelCache,
@@ -710,13 +707,10 @@ public sealed partial class PdfReadPage {
                           activeType3PaintChannelStreams,
                           pageContentBudget,
                           type3GlyphBudget),
-                      xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity, strokeOpacity) => ResolveXObjectPaintChannels(
+                      xObjectPaintChannelResolver: (name, paintState) => ResolveXObjectPaintChannels(
                           resources,
                           name,
-                          transform,
-                          clipPath,
-                          fillOpacity,
-                          strokeOpacity,
+                          paintState,
                           pageWidth,
                           pageHeight,
                           type3PaintChannelCache,
@@ -735,10 +729,7 @@ public sealed partial class PdfReadPage {
                 ResolveXObjectPaintChannels(
                     resources,
                     invocation.Name,
-                    invocation.Transform,
-                    invocation.ClipPath,
-                    invocation.FillOpacity,
-                    invocation.StrokeOpacity,
+                    invocation.PaintState,
                     pageWidth,
                     pageHeight,
                     type3PaintChannelCache,

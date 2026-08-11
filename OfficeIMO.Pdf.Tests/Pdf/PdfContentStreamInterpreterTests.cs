@@ -103,7 +103,7 @@ public sealed class PdfContentStreamInterpreterTests {
             200D,
             graphicsStates: null,
             colorSpaces: null,
-            xObjectPaintChannelResolver: (_, _, _, _, _) => {
+            xObjectPaintChannelResolver: (_, _) => {
                 resolverCalls++;
                 return PdfType3PaintChannels.Both;
             },
