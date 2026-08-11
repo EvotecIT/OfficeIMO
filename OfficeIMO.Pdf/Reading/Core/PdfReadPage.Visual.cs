@@ -554,17 +554,19 @@ public sealed partial class PdfReadPage {
                     type3PaintChannelCache,
                     activeType3PaintChannelStreams,
                     pageContentBudget),
-                xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity) => ResolveXObjectPaintChannels(
+                xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity, strokeOpacity) => ResolveXObjectPaintChannels(
                     resources,
                     name,
                     transform,
                     clipPath,
                     fillOpacity,
+                    strokeOpacity,
                     pageWidth,
                     pageHeight,
                     type3PaintChannelCache,
                     activeType3PaintChannelStreams,
-                    pageContentBudget));
+                    pageContentBudget),
+                pageWidth: pageWidth);
         }
         Dictionary<string, PdfPageShadingPatternResource> shadingPatternResources = GetShadingPatternResources(resources);
         Dictionary<string, PdfPageTilingPatternResource>? tilingPatternResources = includeTilingPatterns
@@ -705,17 +707,19 @@ public sealed partial class PdfReadPage {
                           type3PaintChannelCache,
                           activeType3PaintChannelStreams,
                           pageContentBudget),
-                      xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity) => ResolveXObjectPaintChannels(
+                      xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity, strokeOpacity) => ResolveXObjectPaintChannels(
                           resources,
                           name,
                           transform,
                           clipPath,
                           fillOpacity,
+                          strokeOpacity,
                           pageWidth,
                           pageHeight,
                           type3PaintChannelCache,
                           activeType3PaintChannelStreams,
-                          pageContentBudget))) {
+                          pageContentBudget),
+                      pageWidth: pageWidth)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     type3GlyphBudget.RecordFailure();
@@ -730,6 +734,7 @@ public sealed partial class PdfReadPage {
                     invocation.Transform,
                     invocation.ClipPath,
                     invocation.FillOpacity,
+                    invocation.StrokeOpacity,
                     pageWidth,
                     pageHeight,
                     type3PaintChannelCache,
