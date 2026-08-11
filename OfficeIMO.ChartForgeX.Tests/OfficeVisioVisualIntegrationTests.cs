@@ -247,7 +247,7 @@ public sealed class OfficeVisioVisualIntegrationTests {
     public void ParticipantOnlySequenceProjectsNotesAndFragmentsAtRowZero() {
         var envelope = new VisualArtifactInterchangeEnvelope { Id = "participant-only", Kind = VisualArtifactKind.Sequence };
         envelope.Nodes.Add(Participant("service", "Service", "Control", 0));
-        var note = new VisualArtifactInterchangeAnnotation { Id = "note", Kind = "SequenceNote", Text = "Ready", StartIndex = 0, EndIndex = 0 };
+        var note = new VisualArtifactInterchangeAnnotation { Id = "note", Kind = "SequenceNote", Text = "Ready", Placement = "Above", StartIndex = 0, EndIndex = 0 };
         note.TargetIds.Add("service");
         envelope.Annotations.Add(note);
         var fragment = new VisualArtifactInterchangeAnnotation { Id = "fragment", Kind = "SequenceBlock:Opt", Text = "cached", StartIndex = 0, EndIndex = 0 };
@@ -259,6 +259,7 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Equal(2, result.Report.AnnotationCount);
         Assert.Contains(result.Page.Shapes, shape => shape.Id == "note");
         Assert.Contains(result.Page.Shapes, shape => shape.Id == "fragment");
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("note") && warning.Contains("Above") && warning.Contains("right-side note placement"));
     }
 
     [Fact]
@@ -404,7 +405,7 @@ public sealed class OfficeVisioVisualIntegrationTests {
         envelope.Groups.Single().Color = "#778899";
         envelope.Edges.Clear();
         envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "solid", SourceId = "api", TargetId = "database", Kind = "Control", LineStyle = "Solid", Color = "#AABBCC" });
-        envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "dashed", SourceId = "api", TargetId = "database", LineStyle = "Dashed", Tooltip = "Retry path" });
+        envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "dashed", SourceId = "api", TargetId = "database", LineStyle = "Dashed", Tooltip = "Retry path", SourceLabel = "client", TargetLabel = "service" });
         envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "dotted", SourceId = "api", TargetId = "database", LineStyle = "Dotted" });
         envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "custom", SourceId = "api", TargetId = "database", LineStyle = "LongDash" });
 
@@ -425,11 +426,13 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("Node 'api'") && warning.Contains("retained as Shape Data"));
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("Group 'data-zone'") && warning.Contains("retained as Shape Data"));
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("Edge 'dashed'") && warning.Contains("retained as Shape Data"));
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("Edge 'dashed'") && warning.Contains("endpoint labels") && warning.Contains("retained as Shape Data"));
 
         OfficeVisioVisualConversionResult withoutShapeData = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { IncludeShapeData = false });
         Assert.Contains(withoutShapeData.Report.Warnings, warning => warning.Contains("Node 'api'") && warning.Contains("remains only in the CFX envelope"));
         Assert.Contains(withoutShapeData.Report.Warnings, warning => warning.Contains("Group 'data-zone'") && warning.Contains("remains only in the CFX envelope"));
         Assert.Contains(withoutShapeData.Report.Warnings, warning => warning.Contains("Edge 'dashed'") && warning.Contains("remains only in the CFX envelope"));
+        Assert.Contains(withoutShapeData.Report.Warnings, warning => warning.Contains("Edge 'dashed'") && warning.Contains("endpoint labels") && warning.Contains("remain only in the CFX envelope"));
 
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
         try {

@@ -167,6 +167,11 @@ public static partial class OfficeVisioVisualConversionExtensions {
             !string.IsNullOrWhiteSpace(edge.SourcePort) || !string.IsNullOrWhiteSpace(edge.TargetPort)) {
             report.Warn($"Edge '{edge.Id}' requested CFX port attachment; native Visio graph layout selected connector sides while the original port semantics remain in the CFX envelope and, when enabled, Shape Data.");
         }
+        if (!string.IsNullOrWhiteSpace(edge.SourceLabel) || !string.IsNullOrWhiteSpace(edge.TargetLabel)) {
+            report.Warn(options.IncludeShapeData
+                ? $"Edge '{edge.Id}' endpoint labels are retained as Shape Data because native Visio graph connectors do not render endpoint labels."
+                : $"Edge '{edge.Id}' endpoint labels remain only in the CFX envelope because Shape Data projection was disabled and native Visio graph connectors do not render endpoint labels.");
+        }
         if (options.IncludeShapeData) {
             AddCommonShapeData(record.ShapeData, edge.Kind, edge.Status, null, edge.Metadata, report, "edge '" + edge.Id + "'");
             AddValue(record.ShapeData, "CFX.Direction", edge.Direction);
@@ -323,7 +328,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
                 continue;
             }
             if (string.Equals(annotation.Kind, "SequenceNote", StringComparison.Ordinal) && annotation.TargetIds.Count > 0) {
-                builder.Note(ids.Participant(annotation.TargetIds[0]), annotation.Text, start, MapNoteSide(annotation.Placement), ids.Annotation(annotation.Id));
+                builder.Note(ids.Participant(annotation.TargetIds[0]), annotation.Text, start, MapNoteSide(annotation.Placement, annotation.Id, report), ids.Annotation(annotation.Id));
                 if (annotation.TargetIds.Count > 1 || string.Equals(annotation.Placement, "Over", StringComparison.OrdinalIgnoreCase)) {
                     report.Warn($"Sequence note '{annotation.Id}' was attached to its first participant because native side notes do not span multiple participants.");
                 }
@@ -580,10 +585,18 @@ public static partial class OfficeVisioVisualConversionExtensions {
         return VisioSequenceMessageKind.Call;
     }
 
-    private static VisioSide MapNoteSide(string? placement) =>
-        string.Equals(placement, "LeftOf", StringComparison.OrdinalIgnoreCase) || string.Equals(placement, "Left", StringComparison.OrdinalIgnoreCase)
-            ? VisioSide.Left
-            : VisioSide.Right;
+    private static VisioSide MapNoteSide(string? placement, string annotationId, OfficeVisioVisualConversionReport report) {
+        if (string.Equals(placement, "LeftOf", StringComparison.OrdinalIgnoreCase) || string.Equals(placement, "Left", StringComparison.OrdinalIgnoreCase)) {
+            return VisioSide.Left;
+        }
+        if (!string.IsNullOrWhiteSpace(placement) &&
+            !string.Equals(placement, "RightOf", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(placement, "Right", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(placement, "Over", StringComparison.OrdinalIgnoreCase)) {
+            report.Warn($"Sequence note '{annotationId}' placement '{placement}' was normalized to Visio's native right-side note placement.");
+        }
+        return VisioSide.Right;
+    }
 
     private static string UniqueTitleId(VisualArtifactInterchangeEnvelope envelope) {
         string candidate = "cfx-title";
