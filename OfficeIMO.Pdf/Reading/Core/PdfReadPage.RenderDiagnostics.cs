@@ -328,6 +328,15 @@ public sealed partial class PdfReadPage {
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
             Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources);
+            IReadOnlyDictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
+            IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects = PdfPageGraphicsEffectTimelineParser.Parse(
+                content,
+                graphicsStates,
+                PdfPageDrawingEffect.Default,
+                programState.Transform,
+                maxOperations: _limits.MaxContentOperations,
+                maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxOperands: _limits.MaxContentOperands);
             var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
             var type3PaintChannelCache = new Type3PaintChannelCache();
             var activeType3PaintChannelStreams = new HashSet<PdfStream>();
@@ -335,7 +344,7 @@ public sealed partial class PdfReadPage {
                 content,
                 programState.Transform,
                 surfaceHeight,
-                GetGraphicsStateResources(resources),
+                graphicsStates,
                 colorSpaces,
                 GetOptionalContentVisibility(resources),
                 maxOperations: _limits.MaxContentOperations,
@@ -400,7 +409,7 @@ public sealed partial class PdfReadPage {
                 WrapContentWithTransform(content, programState.Transform),
                 surfaceWidth,
                 surfaceHeight,
-                GetGraphicsStateResources(resources),
+                graphicsStates,
                 colorSpaces,
                 GetShadingResources(resources),
                 shadingPatterns,
@@ -486,7 +495,7 @@ public sealed partial class PdfReadPage {
                          content,
                          programState.Transform,
                          surfaceHeight,
-                         GetGraphicsStateResources(resources),
+                         graphicsStates,
                          colorSpaces,
                          GetOptionalContentVisibility(resources),
                          maxOperations: _limits.MaxContentOperations,
@@ -617,6 +626,22 @@ public sealed partial class PdfReadPage {
                              type3GlyphBudget,
                              depth + 1),
                          pageWidth: surfaceWidth)) {
+                PdfPageDrawingEffect invocationEffect = ResolveDrawingEffect(
+                    drawingEffects,
+                    invocation.PaintOrder);
+                if (IsPaintSuppressedByTransparentSoftMask(
+                        invocationEffect,
+                        resources,
+                        programState.Transform,
+                        surfaceWidth,
+                        surfaceHeight,
+                        type3PaintChannelCache,
+                        activeType3PaintChannelStreams,
+                        pageContentBudget,
+                        type3GlyphBudget,
+                        depth + 1)) {
+                    continue;
+                }
                 if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     bool canProjectImage = CanProjectType3ImageInvocation(
                         invocation,
