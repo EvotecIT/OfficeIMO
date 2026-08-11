@@ -84,6 +84,9 @@ public static class OfficeVisioVisualConversionExtensions {
         foreach (VisualArtifactInterchangeAnnotation annotation in envelope.Annotations) {
             report.Warn($"Annotation '{annotation.Id}' of kind '{annotation.Kind}' remains in the CFX envelope but has no native graph mapping.");
         }
+        if (envelope.Metadata.Count > 0) {
+            report.Warn("Artifact-level metadata remains in the CFX envelope and is not duplicated into the native Visio graph page or document.");
+        }
 
         document.GraphDiagram(options.PageName, builder => {
             ConfigureGraph(builder, envelope, options, report);
@@ -196,31 +199,35 @@ public static class OfficeVisioVisualConversionExtensions {
             .ToList();
         List<VisualArtifactInterchangeEdge> messages = envelope.Edges.OrderBy(edge => edge.Order).ThenBy(edge => edge.Id, StringComparer.Ordinal).ToList();
         (double width, double height) = ResolveSequenceLayoutPageSize(envelope, options);
-        string? titleId = options.IncludeTitle && !string.IsNullOrWhiteSpace(envelope.Title) ? UniqueTitleId(envelope) : null;
-        HashSet<string> reservedIds = CreateSequenceReservedIds(envelope, titleId);
+        bool includeTitle = options.IncludeTitle && !string.IsNullOrWhiteSpace(envelope.Title);
+        var ids = new SequenceVisioIdMap(participants, messages, envelope.Annotations, includeTitle);
+
+        ReportSequenceIdMappings(participants, messages, envelope.Annotations, ids, report);
 
         document.SequenceDiagram(options.PageName, builder => {
             builder.PageSize(width, height);
-            if (titleId != null) {
-                builder.Title(envelope.Title, titleId);
+            if (ids.TitleId != null) {
+                builder.Title(envelope.Title, ids.TitleId);
             }
             foreach (VisualArtifactInterchangeNode participant in participants) {
-                builder.Participant(participant.Id, participant.Label, MapParticipantKind(participant.Kind, report));
+                builder.Participant(ids.Participant(participant.Id), participant.Label, MapParticipantKind(participant.Kind, report));
             }
             foreach (VisualArtifactInterchangeEdge message in messages) {
                 VisioSequenceMessageKind kind = MapMessageKind(message);
                 if (string.Equals(message.SourceId, message.TargetId, StringComparison.Ordinal)) {
-                    builder.SelfMessage(message.SourceId, message.Label ?? string.Empty, kind, message.Id);
+                    builder.SelfMessage(ids.Participant(message.SourceId), message.Label ?? string.Empty, kind, ids.Message(message.Id));
                 } else {
-                    builder.Message(message.SourceId, message.TargetId, message.Label ?? string.Empty, kind, message.Id);
+                    builder.Message(ids.Participant(message.SourceId), ids.Participant(message.TargetId), message.Label ?? string.Empty, kind, ids.Message(message.Id));
                 }
             }
-            AddSequenceActivations(builder, messages, reservedIds);
-            report.AnnotationCount = AddSequenceAnnotations(builder, envelope, messages.Count, report);
+            AddSequenceActivations(builder, messages, ids);
+            report.AnnotationCount = AddSequenceAnnotations(builder, envelope, messages.Count, ids, report);
         });
 
         VisioPage page = document.Pages[document.Pages.Count - 1];
-        ApplySequenceParticipantData(page, participants, options, report);
+        ApplySequenceParticipantData(page, participants, ids, options, report);
+        ApplySequenceMessageData(page, messages, ids, options, report);
+        ApplySequenceAnnotationData(page, envelope.Annotations, ids, options, report);
         if (options.UseNaturalPageSize) {
             page.Width = Math.Max(page.Width, width);
             page.Height = Math.Max(page.Height, height);
@@ -236,20 +243,22 @@ public static class OfficeVisioVisualConversionExtensions {
     private static void AddSequenceActivations(
         VisioSequenceDiagramBuilder builder,
         IReadOnlyList<VisualArtifactInterchangeEdge> messages,
-        ISet<string> reservedIds) {
+        SequenceVisioIdMap ids) {
         var open = new Dictionary<string, Stack<int>>(StringComparer.Ordinal);
         var activations = new List<(string Participant, int Start, int End)>();
         for (int index = 0; index < messages.Count; index++) {
             VisualArtifactInterchangeEdge message = messages[index];
             if (ReadBool(message.Metadata, "sequence.activatesTarget")) {
-                if (!open.TryGetValue(message.TargetId, out Stack<int>? starts)) {
+                string targetId = ids.Participant(message.TargetId);
+                if (!open.TryGetValue(targetId, out Stack<int>? starts)) {
                     starts = new Stack<int>();
-                    open.Add(message.TargetId, starts);
+                    open.Add(targetId, starts);
                 }
                 starts.Push(index);
             }
-            if (ReadBool(message.Metadata, "sequence.deactivates") && open.TryGetValue(message.SourceId, out Stack<int>? sourceStarts) && sourceStarts.Count > 0) {
-                activations.Add((message.SourceId, sourceStarts.Pop(), index));
+            string sourceId = ids.Participant(message.SourceId);
+            if (ReadBool(message.Metadata, "sequence.deactivates") && open.TryGetValue(sourceId, out Stack<int>? sourceStarts) && sourceStarts.Count > 0) {
+                activations.Add((sourceId, sourceStarts.Pop(), index));
             }
         }
         int finalRow = Math.Max(0, messages.Count - 1);
@@ -258,13 +267,7 @@ public static class OfficeVisioVisualConversionExtensions {
         }
         for (int index = 0; index < activations.Count; index++) {
             var activation = activations[index];
-            int candidateNumber = index + 1;
-            string activationId;
-            do {
-                activationId = "activation-" + candidateNumber.ToString(CultureInfo.InvariantCulture);
-                candidateNumber++;
-            } while (!reservedIds.Add(activationId));
-            builder.Activation(activation.Participant, activation.Start, activation.End, activationId);
+            builder.Activation(activation.Participant, activation.Start, activation.End, ids.Activation());
         }
     }
 
@@ -272,6 +275,7 @@ public static class OfficeVisioVisualConversionExtensions {
         VisioSequenceDiagramBuilder builder,
         VisualArtifactInterchangeEnvelope envelope,
         int messageCount,
+        SequenceVisioIdMap ids,
         OfficeVisioVisualConversionReport report) {
         int lastRow = Math.Max(0, messageCount - 1);
         int projected = 0;
@@ -280,12 +284,12 @@ public static class OfficeVisioVisualConversionExtensions {
             int end = Clamp(annotation.EndIndex ?? start, start, lastRow);
             if (annotation.Kind.StartsWith("SequenceBlock:", StringComparison.Ordinal)) {
                 string blockKind = annotation.Kind.Substring("SequenceBlock:".Length);
-                builder.Fragment(CombineLabel(blockKind, annotation.Text), start, end, annotation.TargetIds, annotation.Id);
+                builder.Fragment(CombineLabel(blockKind, annotation.Text), start, end, annotation.TargetIds.Select(ids.Participant), ids.Annotation(annotation.Id));
                 projected++;
                 continue;
             }
             if (string.Equals(annotation.Kind, "SequenceNote", StringComparison.Ordinal) && annotation.TargetIds.Count > 0) {
-                builder.Note(annotation.TargetIds[0], annotation.Text, start, MapNoteSide(annotation.Placement), annotation.Id);
+                builder.Note(ids.Participant(annotation.TargetIds[0]), annotation.Text, start, MapNoteSide(annotation.Placement), ids.Annotation(annotation.Id));
                 if (annotation.TargetIds.Count > 1 || string.Equals(annotation.Placement, "Over", StringComparison.OrdinalIgnoreCase)) {
                     report.Warn($"Sequence note '{annotation.Id}' was attached to its first participant because native side notes do not span multiple participants.");
                 }
@@ -305,7 +309,7 @@ public static class OfficeVisioVisualConversionExtensions {
     }
 
     private static (double Width, double Height) ResolveSequenceLayoutPageSize(VisualArtifactInterchangeEnvelope envelope, OfficeVisioVisualOptions options) {
-        if (!options.UseNaturalPageSize) return (11D, 8.5D);
+        if (!options.UseNaturalPageSize) return (1D, 1D);
         double width = envelope.Width.HasValue ? envelope.Width.Value / options.PixelsPerInch : 11D;
         double height = envelope.Height.HasValue ? envelope.Height.Value / options.PixelsPerInch : 8.5D;
         return (Math.Max(11D, width), Math.Max(8.5D, height));
@@ -314,12 +318,14 @@ public static class OfficeVisioVisualConversionExtensions {
     private static void ApplySequenceParticipantData(
         VisioPage page,
         IEnumerable<VisualArtifactInterchangeNode> participants,
+        SequenceVisioIdMap ids,
         OfficeVisioVisualOptions options,
         OfficeVisioVisualConversionReport report) {
         foreach (VisualArtifactInterchangeNode participant in participants) {
-            VisioShape shape = page.Shapes.Single(item => string.Equals(item.Id, participant.Id, StringComparison.Ordinal));
+            VisioShape shape = page.Shapes.Single(item => string.Equals(item.Id, ids.Participant(participant.Id), StringComparison.Ordinal));
             if (options.IncludeShapeData) {
                 var data = new Dictionary<string, string?>(StringComparer.Ordinal);
+                AddValue(data, "CFX.Id", participant.Id);
                 AddCommonShapeData(data, participant.Kind, participant.Status, participant.GroupId, participant.Metadata, report, "sequence participant '" + participant.Id + "'");
                 AddValue(data, "CFX.Icon", participant.IconId);
                 AddValue(data, "CFX.Symbol", participant.Symbol);
@@ -343,25 +349,72 @@ public static class OfficeVisioVisualConversionExtensions {
         }
     }
 
-    private static HashSet<string> CreateSequenceReservedIds(VisualArtifactInterchangeEnvelope envelope, string? titleId) {
-        var ids = new HashSet<string>(StringComparer.Ordinal);
-        if (titleId != null) ids.Add(titleId);
-        foreach (VisualArtifactInterchangeGroup group in envelope.Groups) ids.Add(group.Id);
-        foreach (VisualArtifactInterchangeNode node in envelope.Nodes) {
-            ids.Add(node.Id);
-            ids.Add(node.Id + "-lifeline");
-            ids.Add(node.Id + "-lifeline-end");
+    private static void ApplySequenceMessageData(
+        VisioPage page,
+        IEnumerable<VisualArtifactInterchangeEdge> messages,
+        SequenceVisioIdMap ids,
+        OfficeVisioVisualOptions options,
+        OfficeVisioVisualConversionReport report) {
+        foreach (VisualArtifactInterchangeEdge message in messages) {
+            VisioConnector connector = page.Connectors.Single(item => string.Equals(item.Id, ids.Message(message.Id), StringComparison.Ordinal));
+            if (options.IncludeShapeData) {
+                var data = new Dictionary<string, string?>(StringComparer.Ordinal);
+                AddValue(data, "CFX.Id", message.Id);
+                AddCommonShapeData(data, message.Kind, message.Status, null, message.Metadata, report, "sequence message '" + message.Id + "'");
+                AddValue(data, "CFX.Direction", message.Direction);
+                AddValue(data, "CFX.LineStyle", message.LineStyle);
+                AddValue(data, "CFX.SourcePort", message.SourcePortId ?? message.SourcePort);
+                AddValue(data, "CFX.TargetPort", message.TargetPortId ?? message.TargetPort);
+                AddValue(data, "CFX.Color", message.Color);
+                foreach (KeyValuePair<string, string?> item in data) connector.SetShapeData(item.Key, item.Value);
+            }
+            if (options.IncludeHyperlinks && !string.IsNullOrWhiteSpace(message.Href)) {
+                connector.AddHyperlink(message.Href!, message.Tooltip);
+            }
         }
-        foreach (VisualArtifactInterchangeEdge edge in envelope.Edges) {
-            ids.Add(edge.Id);
-            ids.Add(edge.Id + "-from");
-            ids.Add(edge.Id + "-to");
+    }
+
+    private static void ApplySequenceAnnotationData(
+        VisioPage page,
+        IEnumerable<VisualArtifactInterchangeAnnotation> annotations,
+        SequenceVisioIdMap ids,
+        OfficeVisioVisualOptions options,
+        OfficeVisioVisualConversionReport report) {
+        foreach (VisualArtifactInterchangeAnnotation annotation in annotations) {
+            VisioShape? shape = page.Shapes.FirstOrDefault(item => string.Equals(item.Id, ids.Annotation(annotation.Id), StringComparison.Ordinal));
+            if (shape == null || !options.IncludeShapeData) continue;
+            var data = new Dictionary<string, string?>(StringComparer.Ordinal);
+            AddValue(data, "CFX.Id", annotation.Id);
+            AddCommonShapeData(data, annotation.Kind, null, null, annotation.Metadata, report, "sequence annotation '" + annotation.Id + "'");
+            AddValue(data, "CFX.Placement", annotation.Placement);
+            AddValue(data, "CFX.TargetIds", annotation.TargetIds.Count == 0 ? null : string.Join(",", annotation.TargetIds));
+            AddValue(data, "CFX.StartIndex", annotation.StartIndex?.ToString(CultureInfo.InvariantCulture));
+            AddValue(data, "CFX.EndIndex", annotation.EndIndex?.ToString(CultureInfo.InvariantCulture));
+            foreach (KeyValuePair<string, string?> item in data) shape.SetShapeData(item.Key, item.Value);
         }
-        foreach (VisualArtifactInterchangeAnnotation annotation in envelope.Annotations) {
-            ids.Add(annotation.Id);
-            if (annotation.Kind.StartsWith("SequenceBlock:", StringComparison.Ordinal)) ids.Add(annotation.Id + "-label");
+    }
+
+    private static void ReportSequenceIdMappings(
+        IEnumerable<VisualArtifactInterchangeNode> participants,
+        IEnumerable<VisualArtifactInterchangeEdge> messages,
+        IEnumerable<VisualArtifactInterchangeAnnotation> annotations,
+        SequenceVisioIdMap ids,
+        OfficeVisioVisualConversionReport report) {
+        foreach (VisualArtifactInterchangeNode participant in participants) {
+            ReportSequenceIdMapping("participant", participant.Id, ids.Participant(participant.Id), report);
         }
-        return ids;
+        foreach (VisualArtifactInterchangeEdge message in messages) {
+            ReportSequenceIdMapping("message", message.Id, ids.Message(message.Id), report);
+        }
+        foreach (VisualArtifactInterchangeAnnotation annotation in annotations) {
+            ReportSequenceIdMapping("annotation", annotation.Id, ids.Annotation(annotation.Id), report);
+        }
+    }
+
+    private static void ReportSequenceIdMapping(string kind, string sourceId, string visioId, OfficeVisioVisualConversionReport report) {
+        if (!string.Equals(sourceId, visioId, StringComparison.Ordinal)) {
+            report.Warn($"Sequence {kind} id '{sourceId}' was projected as '{visioId}' to avoid a collision with native Visio helper shapes.");
+        }
     }
 
     private static void ApplyGraphEdgeDirection(
