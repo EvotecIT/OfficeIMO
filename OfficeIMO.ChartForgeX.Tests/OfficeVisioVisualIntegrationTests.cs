@@ -646,6 +646,13 @@ public sealed class OfficeVisioVisualIntegrationTests {
         OfficeVisioVisualConversionResult geographicResult = matrix.ToOfficeVisio();
         Assert.Contains(geographicResult.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.LayoutNormalized);
         Assert.Contains(geographicResult.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.DirectionNormalized);
+
+        VisualArtifactInterchangeEnvelope force = TopologyEnvelope("force", TopologyLayoutMode.ForceDirected);
+        force.Nodes.Add(TopologyNode("source", "Source"));
+        force.Nodes.Add(TopologyNode("target", "Target"));
+        OfficeVisioVisualConversionResult forceResult = force.ToOfficeVisio();
+        Assert.Contains(forceResult.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.LayoutNormalized &&
+            diagnostic.EntityId == "force" && diagnostic.Feature == "layoutMode");
     }
 
     [Fact]
@@ -784,7 +791,7 @@ public sealed class OfficeVisioVisualIntegrationTests {
         envelope.Edges.Add(Message("retry", "service", "service", "Retry", 1));
         envelope.Edges.Add(Message("response", "service", "client", "Response", 2));
         envelope.Annotations.Add(SequenceBlock("outer", "Accepted", SequenceArtifactBlockKind.Alt, 0, 2));
-        envelope.Annotations.Add(SequenceBlock("inner", "Retry enabled", SequenceArtifactBlockKind.Opt, 1, 1));
+        envelope.Annotations.Add(SequenceBlock("inner", "Retry enabled", SequenceArtifactBlockKind.Opt, 1, 1, depth: 1));
         envelope.Annotations.Add(SequenceBranch("primary", "Accepted", SequenceArtifactBlockKind.Alt, "Primary", 0, 0, 0));
         envelope.Annotations.Add(SequenceBranch("fallback", "Rejected", SequenceArtifactBlockKind.Alt, "Else", 1, 2, 0));
 
@@ -799,6 +806,43 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Equal("Else", fallback.GetShapeDataValue("CFX.SequenceBranchKind"));
         Assert.Equal("Alt", outer.GetShapeDataValue("CFX.SequenceBlockKind"));
         Assert.False(result.Report.HasSemanticLoss);
+    }
+
+    [Fact]
+    public void SequenceFragmentParentsFollowTypedDepthInsteadOfRangeContainmentAlone() {
+        VisualArtifactInterchangeEnvelope envelope = SequenceEnvelope("typed-fragment-depth");
+        envelope.Nodes.Add(Participant("client", "Client", SequenceArtifactParticipantKind.Actor, 0));
+        envelope.Nodes.Add(Participant("service", "Service", SequenceArtifactParticipantKind.Control, 1));
+        envelope.Edges.Add(Message("first", "client", "service", "First", 0));
+        envelope.Edges.Add(Message("second", "service", "client", "Second", 1));
+        envelope.Edges.Add(Message("third", "client", "service", "Third", 2));
+        envelope.Annotations.Add(SequenceBlock("outer", "Outer", SequenceArtifactBlockKind.Alt, 0, 2, depth: 0));
+        envelope.Annotations.Add(SequenceBlock("peer", "Peer", SequenceArtifactBlockKind.Opt, 1, 1, depth: 0));
+        envelope.Annotations.Add(SequenceBlock("nested", "Nested", SequenceArtifactBlockKind.Loop, 1, 1, depth: 1));
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
+
+        VisioShape peer = Assert.Single(result.Page.Shapes, shape => shape.Id == "peer");
+        VisioShape nested = Assert.Single(result.Page.Shapes, shape => shape.Id == "nested");
+        Assert.True(string.IsNullOrEmpty(peer.GetUserCellValue("OfficeIMO.SequenceParentFragmentId")));
+        Assert.Equal("peer", nested.GetUserCellValue("OfficeIMO.SequenceParentFragmentId"));
+        Assert.False(result.Report.HasSemanticLoss);
+    }
+
+    [Fact]
+    public void GraphNodeAdornmentsReportTypedSemanticLossWhenNativeShapesDoNotRenderThem() {
+        VisualArtifactInterchangeEnvelope envelope = TopologyEnvelope("node-adornments");
+        VisualArtifactInterchangeNode node = TopologyNode("service", "Service");
+        node.IconId = "server";
+        node.Symbol = "S";
+        node.Badge = "Primary";
+        envelope.Nodes.Add(node);
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
+
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ArtworkNotProjected &&
+            diagnostic.EntityKind == OfficeVisioVisualEntityKind.Node && diagnostic.EntityId == "service" && diagnostic.Feature == "nodeAdornment");
+        Assert.True(result.Report.HasSemanticLoss);
     }
 
     [Fact]
@@ -1003,14 +1047,15 @@ public sealed class OfficeVisioVisualIntegrationTests {
         string text,
         SequenceArtifactBlockKind kind,
         int start,
-        int end) => new() {
+        int end,
+        int depth = 0) => new() {
             Id = id,
             Role = VisualArtifactInterchangeAnnotationRole.SequenceBlock,
             Kind = "SequenceBlock:" + kind,
             Text = text,
             StartIndex = start,
             EndIndex = end,
-            Sequence = new VisualArtifactInterchangeSequenceAnnotation { BlockKind = kind }
+            Sequence = new VisualArtifactInterchangeSequenceAnnotation { BlockKind = kind, Depth = depth }
         };
 
     private static VisualArtifactInterchangeAnnotation SequenceBranch(

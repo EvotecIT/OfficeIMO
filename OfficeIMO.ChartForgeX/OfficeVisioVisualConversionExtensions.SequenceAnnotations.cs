@@ -96,6 +96,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
                      .Where(annotation => annotation.Role == VisualArtifactInterchangeAnnotationRole.SequenceBlock)
                      .OrderBy(annotation => annotation.StartIndex)
                      .ThenByDescending(annotation => annotation.EndIndex)
+                     .ThenBy(annotation => annotation.Sequence!.Depth)
                      .ThenBy(annotation => annotation.Id, StringComparer.Ordinal)) {
             if (block.Sequence!.IsEmpty) {
                 report.Warn(OfficeVisioVisualDiagnosticCode.AnnotationNotProjected, OfficeVisioVisualEntityKind.Annotation, block.Id, "emptyBlock",
@@ -105,11 +106,18 @@ public static partial class OfficeVisioVisualConversionExtensions {
 
             int start = block.StartIndex!.Value;
             int end = block.EndIndex!.Value;
-            SequenceBlockProjection? parent = projectedBlocks
-                .Where(candidate => candidate.Annotation.StartIndex <= start && candidate.Annotation.EndIndex >= end)
+            int depth = block.Sequence.Depth;
+            SequenceBlockProjection? parent = depth == 0 ? null : projectedBlocks
+                .Where(candidate => candidate.Depth == depth - 1 &&
+                                    candidate.Annotation.StartIndex <= start && candidate.Annotation.EndIndex >= end)
                 .OrderByDescending(candidate => candidate.Depth)
                 .ThenBy(candidate => candidate.Annotation.EndIndex!.Value - candidate.Annotation.StartIndex!.Value)
                 .FirstOrDefault();
+            if (depth > 0 && parent == null) {
+                report.Warn(OfficeVisioVisualDiagnosticCode.AnnotationNotProjected, OfficeVisioVisualEntityKind.Annotation, block.Id, "blockParent",
+                    $"Sequence block '{block.Id}' has no containing parent at depth {depth - 1} and remains in the CFX envelope.");
+                continue;
+            }
             string nativeId = ids.Annotation(block.Id);
             IReadOnlyList<string> participants = block.TargetIds.Count == 0
                 ? parent?.ParticipantIds ?? allParticipants
@@ -120,7 +128,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
             } else {
                 builder.NestedFragment(parent.ShapeId, label, start, end, participants, nativeId);
             }
-            projectedBlocks.Add(new SequenceBlockProjection(block, nativeId, (parent?.Depth ?? -1) + 1, participants));
+            projectedBlocks.Add(new SequenceBlockProjection(block, nativeId, depth, participants));
             projected++;
         }
 
@@ -133,10 +141,9 @@ public static partial class OfficeVisioVisualConversionExtensions {
             int end = branch.EndIndex ?? start;
             SequenceBlockProjection? parent = projectedBlocks
                 .Where(candidate => candidate.Annotation.Sequence!.BlockKind == branch.Sequence!.ParentBlockKind &&
+                                    candidate.Depth == branch.Sequence.Depth &&
                                     candidate.Annotation.StartIndex <= start && candidate.Annotation.EndIndex >= end)
-                .OrderBy(candidate => candidate.Depth == branch.Sequence!.Depth ? 0 : 1)
-                .ThenByDescending(candidate => candidate.Depth)
-                .ThenBy(candidate => candidate.Annotation.EndIndex!.Value - candidate.Annotation.StartIndex!.Value)
+                .OrderBy(candidate => candidate.Annotation.EndIndex!.Value - candidate.Annotation.StartIndex!.Value)
                 .FirstOrDefault();
             if (parent == null) {
                 report.Warn(OfficeVisioVisualDiagnosticCode.AnnotationNotProjected, OfficeVisioVisualEntityKind.Annotation, branch.Id, "branchParent",

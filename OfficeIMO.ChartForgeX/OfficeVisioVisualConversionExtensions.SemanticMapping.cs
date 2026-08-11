@@ -10,11 +10,12 @@ namespace OfficeIMO.ChartForgeX;
 public static partial class OfficeVisioVisualConversionExtensions {
     private static VisioGraphLayout MapLayout(VisualArtifactInterchangeEnvelope envelope, bool flow, OfficeVisioVisualConversionReport report) {
         if (flow) {
-            return envelope.Flow!.LayoutMode switch {
-                FlowArtifactLayoutMode.Dense => VisioGraphLayout.Grid,
-                FlowArtifactLayoutMode.Force => VisioGraphLayout.Radial,
-                _ => VisioGraphLayout.Layered
-            };
+            if (envelope.Flow!.LayoutMode == FlowArtifactLayoutMode.Force) {
+                report.Warn(OfficeVisioVisualDiagnosticCode.LayoutNormalized, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "layoutMode",
+                    "CFX force-directed flow layout was normalized to Visio's native radial layout.");
+                return VisioGraphLayout.Radial;
+            }
+            return envelope.Flow.LayoutMode == FlowArtifactLayoutMode.Dense ? VisioGraphLayout.Grid : VisioGraphLayout.Layered;
         }
         switch (envelope.Topology!.LayoutMode) {
             case TopologyLayoutMode.GroupGrid:
@@ -22,9 +23,12 @@ public static partial class OfficeVisioVisualConversionExtensions {
             case TopologyLayoutMode.DenseGrouped:
                 return VisioGraphLayout.Grid;
             case TopologyLayoutMode.HubAndSpoke:
-            case TopologyLayoutMode.ForceDirected:
             case TopologyLayoutMode.RelationshipRadial:
             case TopologyLayoutMode.MindMap:
+                return VisioGraphLayout.Radial;
+            case TopologyLayoutMode.ForceDirected:
+                report.Warn(OfficeVisioVisualDiagnosticCode.LayoutNormalized, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "layoutMode",
+                    "CFX force-directed topology layout was normalized to Visio's native radial layout.");
                 return VisioGraphLayout.Radial;
             case TopologyLayoutMode.Geographic:
                 report.Warn(OfficeVisioVisualDiagnosticCode.LayoutNormalized, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "layoutMode",

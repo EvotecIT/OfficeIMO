@@ -53,6 +53,10 @@ public static partial class OfficeVisioVisualConversionExtensions {
                 report.Warn(OfficeVisioVisualDiagnosticCode.ArtworkNotProjected, OfficeVisioVisualEntityKind.Node, node.Id, "artwork",
                     $"Node '{node.Id}' portable artwork remains in the CFX envelope because the native graph projection selected an editable Visio stencil.");
             }
+            if (!string.IsNullOrWhiteSpace(node.IconId) || !string.IsNullOrWhiteSpace(node.Symbol) || !string.IsNullOrWhiteSpace(node.Badge)) {
+                report.Warn(OfficeVisioVisualDiagnosticCode.ArtworkNotProjected, OfficeVisioVisualEntityKind.Node, node.Id, "nodeAdornment",
+                    $"Node '{node.Id}' icon, symbol, or badge remains in the CFX envelope because the editable native Visio graph shape does not render those adornments.");
+            }
             if (node.Topology.DisplayMode is not TopologyNodeDisplayMode.Card and not TopologyNodeDisplayMode.CompactCard) {
                 report.Warn(OfficeVisioVisualDiagnosticCode.SemanticLoss, OfficeVisioVisualEntityKind.Node, node.Id, "displayMode",
                     $"Node '{node.Id}' display mode '{node.Topology.DisplayMode}' was normalized to an editable native Visio graph shape.");
