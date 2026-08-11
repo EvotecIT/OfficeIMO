@@ -76,7 +76,7 @@ public static partial class OfficeDrawingSvgExporter {
         AppendEmbeddedFonts(builder, drawing.Fonts, cancellationToken);
         int gradientId = 0;
         int clipPathId = 0;
-        var tilingExpansionBudget = new SvgTilingExpansionBudget(16384);
+        var tilingExpansionBudget = new SvgTilingExpansionBudget();
         AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget);
         builder.Append("</svg>");
         cancellationToken.ThrowIfCancellationRequested();

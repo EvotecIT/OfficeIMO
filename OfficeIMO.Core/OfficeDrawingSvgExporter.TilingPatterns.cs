@@ -18,7 +18,7 @@ public static partial class OfficeDrawingSvgExporter {
         sb.Append('>');
         foreach (OfficeTransform transform in pattern.GetTileTransforms(pattern.MaximumTileCount)) {
             cancellationToken.ThrowIfCancellationRequested();
-            tilingExpansionBudget.Consume();
+            tilingExpansionBudget.Consume(pattern.MaximumTileCount);
             sb.Append("<g").Append(BuildMatrixTransformAttribute(transform, 0D, 0D)).Append('>');
             AppendElements(sb, pattern.InnerTile.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget);
             sb.Append("</g>");
@@ -27,14 +27,11 @@ public static partial class OfficeDrawingSvgExporter {
     }
 
     private sealed class SvgTilingExpansionBudget {
-        private readonly int _maximum;
+        private int _maximum;
         private int _count;
 
-        internal SvgTilingExpansionBudget(int maximum) {
-            _maximum = maximum;
-        }
-
-        internal void Consume() {
+        internal void Consume(int configuredMaximum) {
+            _maximum = Math.Max(_maximum, configuredMaximum);
             if (++_count > _maximum) {
                 throw new InvalidOperationException("Vector pattern aggregate expansion exceeds the configured tile-count limit.");
             }
