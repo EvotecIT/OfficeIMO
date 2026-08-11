@@ -24,6 +24,8 @@ namespace OfficeIMO.Visio.Diagrams {
                     string.Empty,
                     _theme,
                     _unit);
+                if (zone.FillColor.HasValue) shape.FillColor = zone.FillColor.Value;
+                if (zone.LineColor.HasValue) shape.LineColor = zone.LineColor.Value;
                 page.Shapes.Add(shape);
                 ApplyZoneMetadata(shape, zone);
                 VisioNetworkDiagramVisuals.AddBackgroundZoneCaption(

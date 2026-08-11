@@ -110,6 +110,10 @@ namespace OfficeIMO.Visio.Diagrams {
 
             public IReadOnlyList<string> NodeIds { get; }
 
+            public Color? FillColor { get; set; }
+
+            public Color? LineColor { get; set; }
+
             public List<NodeShapeDataItem> ShapeData { get; } = new();
 
             public List<VisioHyperlink> Hyperlinks { get; } = new();

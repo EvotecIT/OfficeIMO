@@ -529,6 +529,13 @@ namespace OfficeIMO.Visio.Diagrams {
                 Node(record.Id, record.Text, record.Kind);
             }
 
+            if (record.FillColor.HasValue || record.LineColor.HasValue) {
+                NodeStyle(record.Id, style => {
+                    if (record.FillColor.HasValue) style.FillColor = record.FillColor.Value;
+                    if (record.LineColor.HasValue) style.LineColor = record.LineColor.Value;
+                });
+            }
+
             foreach (KeyValuePair<string, string?> item in record.ShapeData) {
                 NodeShapeData(record.Id, item.Key, item.Value);
             }
@@ -548,11 +555,12 @@ namespace OfficeIMO.Visio.Diagrams {
                 ? CreateStableEdgeId(record.FromId, record.ToId, record.Kind, reservedExplicitIds)
                 : RequireId(record.Id!, nameof(record.Id), "Edge id");
             Edge(edgeId, record.FromId, record.ToId, record.Kind, record.Label, record.Directed);
-            if (record.BeginArrow.HasValue || record.EndArrow.HasValue || record.LinePattern.HasValue) {
+            if (record.BeginArrow.HasValue || record.EndArrow.HasValue || record.LinePattern.HasValue || record.LineColor.HasValue) {
                 EdgeStyle(edgeId, style => {
                     if (record.BeginArrow.HasValue) style.BeginArrow = record.BeginArrow;
                     if (record.EndArrow.HasValue) style.EndArrow = record.EndArrow;
                     if (record.LinePattern.HasValue) style.LinePattern = record.LinePattern.Value;
+                    if (record.LineColor.HasValue) style.LineColor = record.LineColor.Value;
                 });
             }
             foreach (KeyValuePair<string, string?> item in record.ShapeData) {
@@ -568,6 +576,9 @@ namespace OfficeIMO.Visio.Diagrams {
             if (record == null) throw new ArgumentNullException(nameof(record));
             IReadOnlyList<string> nodeIds = NormalizeZoneNodeIds(record.NodeIds, nameof(record.NodeIds), "Cluster node id");
             Cluster(record.Id, record.Text, nodeIds.ToArray());
+            ZoneItem zone = GetKnownZone(record.Id, nameof(record.Id));
+            zone.FillColor = record.FillColor;
+            zone.LineColor = record.LineColor;
             foreach (KeyValuePair<string, string?> item in record.ShapeData) {
                 ZoneShapeData(record.Id, item.Key, item.Value);
             }
