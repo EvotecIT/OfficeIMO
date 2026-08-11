@@ -719,6 +719,19 @@ public sealed partial class PdfReadPage {
                 continue;
             }
 
+            if (requireSupportedType3Content &&
+                ResolveXObjectPaintChannels(
+                    resources,
+                    invocation.Name,
+                    invocation.Transform,
+                    invocation.ClipPath,
+                    pageWidth,
+                    pageHeight,
+                    type3PaintChannelCache,
+                    activeType3PaintChannelStreams) == PdfType3PaintChannels.None) {
+                continue;
+            }
+
             if (!activeForms.Add(formStream)) {
                 if (requireSupportedType3Content) type3GlyphBudget.RecordFailure();
                 continue;

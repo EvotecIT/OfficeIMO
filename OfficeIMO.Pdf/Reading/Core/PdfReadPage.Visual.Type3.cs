@@ -716,7 +716,9 @@ public sealed partial class PdfReadPage {
         double pageWidth,
         double pageHeight,
         Dictionary<PdfStream, PdfType3PaintChannels> cache,
-        HashSet<PdfStream> activeStreams) {
+        HashSet<PdfStream> activeStreams,
+        int depth = 0) {
+        EnsureContentNestingBudget(depth);
         if (TryGetImageXObject(resources, name, out _, out _)) return PdfType3PaintChannels.Fill;
         if (resources == null || !TryGetFormStream(resources, name, out PdfStream form)) {
             return PdfType3PaintChannels.Both;
@@ -734,7 +736,16 @@ public sealed partial class PdfReadPage {
         }
         PdfDictionary formResources = ResolveDictionary(
             form.Dictionary.Items.TryGetValue("Resources", out PdfObject? value) ? value : null) ?? resources;
-        return ResolveType3PaintChannels(form, formResources, cache, activeStreams, 0);
+        return ResolveVisibleFormPaintChannels(
+            form,
+            formResources,
+            invocationTransform,
+            invocationClipPath,
+            pageWidth,
+            pageHeight,
+            cache,
+            activeStreams,
+            depth);
     }
 
     private PdfType3PaintChannels ResolveType3PaintChannels(
