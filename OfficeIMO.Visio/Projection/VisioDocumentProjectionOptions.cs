@@ -2,8 +2,8 @@ namespace OfficeIMO.Visio;
 
 /// <summary>Controls projection of a Visio document into the neutral OfficeIMO document model.</summary>
 public sealed class VisioDocumentProjectionOptions {
-    /// <summary>Maximum shape-data rows retained per page. The default retains every row.</summary>
-    public int MaxTableRows { get; set; } = int.MaxValue;
+    /// <summary>Maximum shape-data rows retained per page. The default is 200 rows.</summary>
+    public int MaxTableRows { get; set; } = 200;
 
     /// <summary>When true, includes an SVG preview asset for every projected page.</summary>
     public bool IncludeSvgPreviewAssets { get; set; }

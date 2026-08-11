@@ -92,9 +92,24 @@ namespace OfficeIMO.Excel.Fluent {
 
                 var opts = new ObjectFlattenerOptions();
                 configure?.Invoke(opts);
+                opts.MaxColumns = System.Math.Min(opts.MaxColumns, A1.MaxColumns);
                 var flattener = new ObjectFlattener();
+                int availableSheetColumns = A1.MaxColumns - _baseCol + 1;
+                int maximumRenderedColumns = _maxTableColumns.HasValue
+                    ? Math.Min(_maxTableColumns.Value, availableSheetColumns)
+                    : availableSheetColumns;
+                int? renderedColumnCountForCellLimit = _maxTableColumns.HasValue &&
+                                                       _overflowMode != OverflowMode.Throw
+                    ? maximumRenderedColumns
+                    : null;
 
-                ObjectTableProjection projection = flattener.FlattenRows(items, opts, "ColumnComposer TableFrom");
+                ObjectTableProjection projection = flattener.FlattenRows(
+                    items,
+                    opts,
+                    "ColumnComposer TableFrom",
+                    headerRowCount: 1,
+                    enforceEmptyProjectionLimits: false,
+                    renderedColumnCountForCellLimit: renderedColumnCountForCellLimit);
                 IReadOnlyList<Dictionary<string, object?>> rows = projection.Rows;
                 if (rows.Count == 0) {
                     _sheet.Cell(_row, _baseCol, "(no data)");
@@ -117,14 +132,14 @@ namespace OfficeIMO.Excel.Fluent {
                 bool summarize = false;
                 List<string>? summarizedPaths = null;
                 List<string>? summarizedLabels = null;
-                if (_maxTableColumns.HasValue && paths.Count > _maxTableColumns.Value) {
+                if (paths.Count > maximumRenderedColumns) {
                     if (_overflowMode == OverflowMode.Throw)
-                        throw new InvalidOperationException($"Table has {paths.Count} columns but only {_maxTableColumns.Value} fit in the fixed grid. Increase columnWidth or use ColumnsAdaptive(...).");
+                        throw new InvalidOperationException($"Table has {paths.Count} columns but only {maximumRenderedColumns} fit in the fixed grid and worksheet boundary. Increase columnWidth, move the table, or use ColumnsAdaptive(...).");
                     if (_overflowMode == OverflowMode.Shrink) {
-                        effPaths = paths.Take(_maxTableColumns.Value).ToList();
+                        effPaths = paths.Take(maximumRenderedColumns).ToList();
                         _sheet.EffectiveExecution.ReportInfo($"[Columns Shrink] Sheet='{_sheet.Name}', baseCol={_baseCol}, kept={effPaths.Count}, dropped={paths.Count - effPaths.Count}");
                     } else if (_overflowMode == OverflowMode.Summarize) {
-                        int keep = Math.Max(0, _maxTableColumns.Value - 1);
+                        int keep = Math.Max(0, maximumRenderedColumns - 1);
                         if (keep <= 0) {
                             effPaths = new List<string> { "__More__" };
                         } else {
@@ -136,6 +151,11 @@ namespace OfficeIMO.Excel.Fluent {
                         summarizedLabels = BuildTransformedHeaders(summarizedPaths, opts);
                         _sheet.EffectiveExecution.ReportInfo($"[Columns Summarize] Sheet='{_sheet.Name}', baseCol={_baseCol}, kept={(effPaths.Contains("__More__") ? effPaths.Count - 1 : effPaths.Count)}, summarized={paths.Count - (effPaths.Contains("__More__") ? effPaths.Count - 1 : effPaths.Count)}");
                     }
+                }
+
+                if (effPaths.Count > availableSheetColumns) {
+                    throw new InvalidDataException(
+                        $"ColumnComposer TableFrom exceeds the {availableSheetColumns}-column worksheet boundary at column {_baseCol}.");
                 }
 
                 var headersT = effPaths.Select(p => p == "__More__" ? "More" : SheetComposer.TransformHeader(p, opts)).ToList();

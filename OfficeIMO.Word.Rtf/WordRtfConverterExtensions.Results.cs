@@ -272,8 +272,8 @@ public static partial class WordRtfConverterExtensions {
         int omittedImageCount = 0;
         int normalizedImageCount = 0;
         int flattenedAnimationCount = 0;
-        foreach ((WordImage Image, bool OmittedByConverter) candidate in EnumerateWordImageCandidates(document, storyRoots)) {
-            if (candidate.OmittedByConverter) {
+        foreach ((WordImage? Image, bool OmittedByConverter) candidate in EnumerateWordImageCandidates(document, storyRoots)) {
+            if (candidate.OmittedByConverter || candidate.Image == null) {
                 omittedImageCount++;
                 continue;
             }
@@ -342,7 +342,7 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static IEnumerable<(WordImage Image, bool OmittedByConverter)> EnumerateWordImageCandidates(
+    private static IEnumerable<(WordImage? Image, bool OmittedByConverter)> EnumerateWordImageCandidates(
         WordDocument document,
         IEnumerable<WordStoryRootCandidate> storyRoots) {
         var visitedParagraphs = new HashSet<Paragraph>();
@@ -355,11 +355,65 @@ public static partial class WordRtfConverterExtensions {
                 foreach ((Run Run, bool OmittedByConverter) runCandidate in EnumerateConvertibleWordRunsWithFieldState(paragraph)) {
                     if (!visitedRuns.Add(runCandidate.Run)) continue;
                     var candidate = new WordParagraph(document, paragraph, runCandidate.Run);
-                    foreach (WordImage image in candidate.EnumerateImages()) {
+                    if (!TryEnumerateImages(candidate, out IReadOnlyList<WordImage> images)) {
+                        int unavailableImages = Math.Max(1, CountImageElements(runCandidate.Run));
+                        for (int index = 0; index < unavailableImages; index++) {
+                            yield return (null, true);
+                        }
+                        continue;
+                    }
+                    foreach (WordImage image in images) {
                         yield return (image, paragraphOmitted || runCandidate.OmittedByConverter);
                     }
                 }
             }
+        }
+    }
+
+    private static int CountImageElements(Run run) {
+        int count = 0;
+        foreach (OpenXmlElement element in EnumerateEffectiveRunContent(run)) {
+            IEnumerable<DocumentFormat.OpenXml.Wordprocessing.Drawing> drawings =
+                element is DocumentFormat.OpenXml.Wordprocessing.Drawing directDrawing
+                    ? new[] { directDrawing }
+                    : element.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>();
+            count += drawings.Count(drawing =>
+                drawing.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Any());
+
+            IEnumerable<DocumentFormat.OpenXml.Vml.Shape> shapes =
+                element is DocumentFormat.OpenXml.Vml.Shape directShape
+                    ? new[] { directShape }
+                    : element.Descendants<DocumentFormat.OpenXml.Vml.Shape>();
+            count += shapes.Count(shape =>
+                shape.GetFirstChild<DocumentFormat.OpenXml.Vml.ImageData>() != null);
+        }
+        return count;
+    }
+
+    private static IEnumerable<OpenXmlElement> EnumerateEffectiveRunContent(Run run) {
+        foreach (OpenXmlElement child in run.ChildElements) {
+            if (child is not AlternateContent alternateContent) {
+                yield return child;
+                continue;
+            }
+
+            OpenXmlCompositeElement? branch = WordAlternateContentResolver.SelectBranch(alternateContent);
+            if (branch == null) continue;
+            foreach (OpenXmlElement branchChild in branch.ChildElements) {
+                yield return branchChild;
+            }
+        }
+    }
+
+    private static bool TryEnumerateImages(WordParagraph paragraph, out IReadOnlyList<WordImage> images) {
+        try {
+            images = paragraph.EnumerateImages().ToList();
+            return true;
+        } catch (ArgumentOutOfRangeException) {
+            // A dangling image relationship can exist in malformed or revision-deleted content.
+            // Diagnostics must not make an otherwise successful conversion fail.
+            images = Array.Empty<WordImage>();
+            return false;
         }
     }
 
@@ -534,6 +588,7 @@ public static partial class WordRtfConverterExtensions {
         var omittedByFieldState = new bool[candidates.Count];
         var complexFieldResults = new List<bool>();
         var complexFieldStarts = new List<int>();
+        int fieldsAwaitingResult = 0;
         for (int index = 0; index < candidates.Count; index++) {
             (Run Run, bool OmittedByConverter) candidate = candidates[index];
             Run run = candidate.Run;
@@ -544,15 +599,22 @@ public static partial class WordRtfConverterExtensions {
                 omitted = true;
                 complexFieldResults.Add(false);
                 complexFieldStarts.Add(index);
+                fieldsAwaitingResult++;
             } else if (complexFieldResults.Count > 0) {
-                omitted |= complexFieldResults.Any(capturingResult => !capturingResult);
+                omitted |= fieldsAwaitingResult > 0;
                 if (markerType == FieldCharValues.Separate) {
                     omitted = true;
-                    complexFieldResults[complexFieldResults.Count - 1] = true;
+                    int last = complexFieldResults.Count - 1;
+                    if (!complexFieldResults[last]) {
+                        complexFieldResults[last] = true;
+                        fieldsAwaitingResult--;
+                    }
                 } else if (markerType == FieldCharValues.End) {
                     omitted = true;
-                    complexFieldResults.RemoveAt(complexFieldResults.Count - 1);
-                    complexFieldStarts.RemoveAt(complexFieldStarts.Count - 1);
+                    int last = complexFieldResults.Count - 1;
+                    if (!complexFieldResults[last]) fieldsAwaitingResult--;
+                    complexFieldResults.RemoveAt(last);
+                    complexFieldStarts.RemoveAt(last);
                 }
             }
             omittedByFieldState[index] = omitted;
@@ -560,8 +622,9 @@ public static partial class WordRtfConverterExtensions {
 
         // Unterminated complex fields are never completed into the RTF paragraph, so their
         // accumulated result runs are omitted even when a Separate marker was present.
-        for (int frame = 0; frame < complexFieldStarts.Count; frame++) {
-            for (int index = complexFieldStarts[frame]; index < omittedByFieldState.Length; index++) {
+        if (complexFieldStarts.Count > 0) {
+            int firstUnterminatedField = complexFieldStarts[0];
+            for (int index = firstUnterminatedField; index < omittedByFieldState.Length; index++) {
                 omittedByFieldState[index] = true;
             }
         }
