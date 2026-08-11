@@ -217,11 +217,15 @@ public static partial class HtmlComputedStyleEngine {
             string type,
             double width,
             double? height,
+            double fontSize,
+            double rootFontSize,
             IReadOnlyDictionary<string, string> properties) {
             Names = names;
             Type = type;
             Width = width;
             Height = height;
+            FontSize = fontSize;
+            RootFontSize = rootFontSize;
             Properties = properties;
         }
 
@@ -229,6 +233,8 @@ public static partial class HtmlComputedStyleEngine {
         internal string Type { get; }
         internal double Width { get; }
         internal double? Height { get; }
+        internal double FontSize { get; }
+        internal double RootFontSize { get; }
         internal IReadOnlyDictionary<string, string> Properties { get; }
     }
 

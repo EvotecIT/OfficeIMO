@@ -82,6 +82,11 @@ internal static class HtmlCssPageSettingsResolver {
         OfficePageSize? named = ResolveNamedSize(parts[0]);
         bool landscape = parts.Any(part => string.Equals(part, "landscape", StringComparison.OrdinalIgnoreCase));
         bool portrait = parts.Any(part => string.Equals(part, "portrait", StringComparison.OrdinalIgnoreCase));
+        bool automatic = parts.Any(part => string.Equals(part, "auto", StringComparison.OrdinalIgnoreCase));
+        if (automatic) {
+            if (parts.Count != 1 || landscape || portrait) return false;
+            return true;
+        }
         if (named.HasValue) {
             OfficePageSize resolved = landscape ? named.Value.Landscape() : portrait ? named.Value.Portrait() : named.Value;
             width = resolved.WidthInches * HtmlRenderOptions.CssPixelsPerInch;
@@ -96,6 +101,11 @@ internal static class HtmlCssPageSettingsResolver {
             lengths.Add(length);
         }
 
+        if (lengths.Count == 0 && (landscape || portrait) && landscape != portrait) {
+            width = landscape ? Math.Max(currentWidth, currentHeight) : Math.Min(currentWidth, currentHeight);
+            height = landscape ? Math.Min(currentWidth, currentHeight) : Math.Max(currentWidth, currentHeight);
+            return true;
+        }
         if (lengths.Count != 2) return false;
         var custom = new OfficePageSize(lengths[0] / HtmlRenderOptions.CssPixelsPerInch, lengths[1] / HtmlRenderOptions.CssPixelsPerInch);
         OfficePageSize customResolved = landscape ? custom.Landscape() : portrait ? custom.Portrait() : custom;

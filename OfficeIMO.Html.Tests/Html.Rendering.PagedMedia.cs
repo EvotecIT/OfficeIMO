@@ -6,6 +6,18 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlPagedMedia_ResolvesOrientationOnlyAndAutomaticPageSizes() {
+        Assert.True(HtmlCssPageSettingsResolver.TryResolvePageSize("landscape", 300D, 500D, 16D, out double landscapeWidth, out double landscapeHeight));
+        Assert.Equal((500D, 300D), (landscapeWidth, landscapeHeight));
+
+        Assert.True(HtmlCssPageSettingsResolver.TryResolvePageSize("portrait", 500D, 300D, 16D, out double portraitWidth, out double portraitHeight));
+        Assert.Equal((300D, 500D), (portraitWidth, portraitHeight));
+
+        Assert.True(HtmlCssPageSettingsResolver.TryResolvePageSize("auto", 300D, 500D, 16D, out double automaticWidth, out double automaticHeight));
+        Assert.Equal((300D, 500D), (automaticWidth, automaticHeight));
+    }
+
+    [Fact]
     public void HtmlPagedMedia_DiagnosesInvalidNamedAndPseudoPageSizes() {
         const string html = "<style>@page invoice { size:nonsense; } @page :first { size:also-bad; }</style><p>Body</p>";
         var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, HonorCssPageRules = true };

@@ -469,7 +469,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         string.IsNullOrWhiteSpace(value) ? "inline" : value.Trim().ToLowerInvariant();
 
     private static string ResolveListStyleType(HtmlComputedStyle computed) {
-        string type = computed.GetValue("list-style-type").Trim().ToLowerInvariant();
+        string type = computed.GetValue("list-style-type").Trim();
         if (type.Length > 0) return type;
         foreach (string token in HtmlRenderCssValues.SplitWhitespace(computed.GetValue("list-style"))) {
             if (string.Equals(token, "none", StringComparison.OrdinalIgnoreCase)) return "none";

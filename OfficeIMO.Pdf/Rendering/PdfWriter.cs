@@ -686,6 +686,7 @@ internal static partial class PdfWriter {
                                 positionedRadioPlans[field.Name] = plan;
                                 formFieldIds.Add(plan.ParentFieldId);
                             }
+                            if (field.Style.IsRequired) plan.Style.IsRequired = true;
 
                             for (int optionIndex = 0; optionIndex < field.Options.Count; optionIndex++) {
                                 string option = field.Options[optionIndex];

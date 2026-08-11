@@ -109,6 +109,24 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_RadioGroupMergesRequiredStateAcrossWidgetsAndPages() {
+        const string html = """
+            <style>@page{size:3in 2in;margin:10px}</style>
+            <form>
+              <input type="radio" name="delivery" value="Email">
+              <input type="radio" name="delivery" value="Phone" required>
+              <div style="break-before:page"></div>
+              <input type="radio" name="delivery" value="Post">
+            </form>
+            """;
+
+        PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdf()).FormFields);
+
+        Assert.True(field.IsRequired);
+        Assert.Equal(3, field.Widgets.Count);
+    }
+
+    [Fact]
     public void HtmlToPdf_DuplicateRadioValuesUseTruthfulStaticFallback() {
         const string html = "<input type='radio' name='answer' value='same'><input type='radio' name='answer' value='same' checked>";
 
@@ -172,6 +190,19 @@ public sealed class HtmlPdfTests {
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
         string searchableText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("Descendantvalue", searchableText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToPdf_ZeroMaximumLengthUsesTruthfulStaticAppearance() {
+        const string html = "<input name='empty' value='Authored value' maxlength='0'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals), visual => visual is HtmlRenderFormField);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldZeroMaximumLengthStaticFallback);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.Contains("Authored value", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]

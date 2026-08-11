@@ -269,6 +269,7 @@ internal static partial class PdfWriter {
             }
             group.Options = group.Options.Concat(candidate.Options).ToArray();
             group.RadioWidgets.Add(next);
+            if (candidate.Style.IsRequired) group.Style.IsRequired = true;
             if (!string.Equals(candidate.Value, "Off", StringComparison.Ordinal)) group.Value = candidate.Value;
             group.X1 = Math.Min(group.X1, candidate.X1);
             group.Y1 = Math.Min(group.Y1, candidate.Y1);

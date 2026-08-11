@@ -361,7 +361,7 @@ public static partial class HtmlComputedStyleEngine {
 
         double elementWidth = ResolveContainerElementWidth(style, containingWidth, environment);
         double? elementHeight = ResolveContainerElementHeight(style, containingWidth, containingHeight, environment);
-        IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, elementHeight, containerContexts);
+        IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, elementHeight, containerContexts, environment);
 
         foreach (IElement child in element.Children) {
             ComputeElement(child, style, rules, computed, pseudoElements, includePseudoElements, budget, environment, elementWidth, elementHeight, childContainerContexts);

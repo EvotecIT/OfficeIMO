@@ -552,8 +552,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         int? maximumLength = null;
         if (HtmlFormControlSemantics.IsLengthApplicable(tag, type)
-            && HtmlFormControlSemantics.TryParseLengthConstraint(element.GetAttribute("maxlength"), out int parsedMaximumLength)
-            && parsedMaximumLength > 0) {
+            && HtmlFormControlSemantics.TryParseLengthConstraint(element.GetAttribute("maxlength"), out int parsedMaximumLength)) {
+            if (parsedMaximumLength == 0) {
+                ReportZeroMaximumLengthFallback(source);
+                return false;
+            }
             maximumLength = parsedMaximumLength;
         }
 
@@ -619,6 +622,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlDiagnosticSeverity.Warning,
             source,
             "group=" + groupKey.Substring(groupKey.LastIndexOf('\n') + 1),
+            OfficeConversionLossKind.Approximation);
+    }
+
+    private void ReportZeroMaximumLengthFallback(string source) {
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.FormFieldZeroMaximumLengthStaticFallback,
+            "An HTML text control with maxlength=0 was rendered as static content because PDF /MaxLen must be positive.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            "maxlength=0",
             OfficeConversionLossKind.Approximation);
     }
 

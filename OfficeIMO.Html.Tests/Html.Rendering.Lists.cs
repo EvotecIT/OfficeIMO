@@ -131,6 +131,15 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_PreservesAuthorCounterStyleIdentifierCasing() {
+        const string html = "<style>@counter-style MyStyle{system:cyclic;symbols:'X'}</style><ul style='list-style-type:MyStyle'><li>Item</li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "X. ", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
     public void HtmlRendering_AppliesCounterStyleConditionalRulesForTheActiveMedia() {
         const string html = """
             <style>

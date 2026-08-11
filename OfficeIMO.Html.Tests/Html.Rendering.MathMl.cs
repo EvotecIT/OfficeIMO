@@ -37,6 +37,19 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlMathMl_UsesSharedAccessibleNameResolutionBeforeAltText() {
+        const string html = "<span id='math-name'>Quadratic expression</span>"
+            + "<math id='formula' aria-labelledby='math-name' alttext='Lower-priority alternative'><mi>x</mi></math>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        HtmlRenderDrawing drawing = Assert.Single(
+            EnumerateMathMlScene(rendered.Pages[0].Scene).OfType<HtmlRenderDrawing>(),
+            item => item.Source == "math#formula");
+
+        Assert.Equal("Quadratic expression", drawing.AlternativeText);
+    }
+
+    [Fact]
     public void HtmlMathMl_HonorsBlockDisplayAndAuthoredSizeAcrossSvgAndSearchablePdf() {
         const string html = "<body style='margin:0'><div style='font-size:12px;line-height:14px'>Above</div>"
             + "<math id='root' display='block' aria-label='square root of x' style='width:120px;height:48px'>"

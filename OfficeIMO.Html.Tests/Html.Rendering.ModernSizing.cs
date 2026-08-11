@@ -112,6 +112,33 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_ContainerQueryEmAndRemUnitsUseContainerAndRootFonts() {
+        const string html = """
+            <style>
+              html { font-size:24px; }
+              @container (width > 10em) { #em { background:red; } }
+              @container (width > 7rem) { #rem { background:red; } }
+              @container (width > 2em) { #relative { background:red; } }
+            </style>
+            <section style="width:180px;font-size:20px;container-type:inline-size">
+              <div id="em" style="width:20px;height:20px;background:blue"></div>
+              <div id="rem" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            <div style="font-size:20px">
+              <section style="width:70px;font-size:2em;container-type:inline-size">
+                <div id="relative" style="width:20px;height:20px;background:blue"></div>
+              </section>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 300D });
+
+        Assert.Equal(OfficeColor.Blue, FindShape(rendered, "div#em").Shape.FillColor);
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#rem").Shape.FillColor);
+        Assert.Equal(OfficeColor.Blue, FindShape(rendered, "div#relative").Shape.FillColor);
+    }
+
+    [Fact]
     public void HtmlRendering_ViewportUnitsReachTransformsAndGradientGeometry() {
         Assert.True(HtmlCssTransformParser.TryParse(
             "translate(10vw, 10vh)",

@@ -90,6 +90,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string TransformValueUnsupported = "HtmlRenderTransformValueUnsupported";
     /// <summary>A form control inside a transformed or translucent paint group used static rendering because an interactive PDF widget cannot preserve the authored appearance.</summary>
     public const string FormFieldTransformStaticFallback = "HtmlRenderFormFieldTransformStaticFallback";
+    /// <summary>A text control with a zero maximum length used static rendering because PDF /MaxLen must be positive.</summary>
+    public const string FormFieldZeroMaximumLengthStaticFallback = "HtmlRenderFormFieldZeroMaximumLengthStaticFallback";
     /// <summary>A radio group with duplicate submitted values used static rendering because PDF appearance states must be unique.</summary>
     public const string RadioDuplicateValueStaticFallback = "HtmlRenderRadioDuplicateValueStaticFallback";
     /// <summary>A CSS opacity value used the opaque fallback.</summary>
@@ -201,6 +203,7 @@ public static class HtmlRenderDiagnosticCodes {
         OverflowValueUnsupported,
         TransformValueUnsupported,
         FormFieldTransformStaticFallback,
+        FormFieldZeroMaximumLengthStaticFallback,
         RadioDuplicateValueStaticFallback,
         OpacityValueUnsupported,
         InlinePaintEffectUnsupported,

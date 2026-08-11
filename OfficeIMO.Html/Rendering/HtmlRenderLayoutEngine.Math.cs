@@ -156,8 +156,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static string ResolveMathAlternativeText(IElement element, string logicalText) {
-        string? ariaLabel = element.GetAttribute("aria-label");
-        if (!string.IsNullOrWhiteSpace(ariaLabel)) return ariaLabel!.Trim();
+        string accessibleName = HtmlAccessibilitySemantics.GetAccessibleName(element);
+        if (accessibleName.Length > 0) return accessibleName;
         string? altText = element.GetAttribute("alttext");
         return string.IsNullOrWhiteSpace(altText) ? logicalText : altText!.Trim();
     }

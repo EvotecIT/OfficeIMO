@@ -69,12 +69,17 @@ public static partial class HtmlComputedStyleEngine {
         HtmlComputedStyle style,
         double width,
         double? height,
-        IReadOnlyList<ContainerQueryContext> contexts) {
+        IReadOnlyList<ContainerQueryContext> contexts,
+        MediaEnvironment environment) {
         string type = ResolveContainerType(style);
         IReadOnlyList<string> names = ResolveContainerNames(style);
+        double inheritedFontSize = contexts.Count == 0 ? 16D : contexts[contexts.Count - 1].FontSize;
+        double rootFontSize = contexts.Count == 0 ? 16D : contexts[0].RootFontSize;
+        double fontSize = ResolveContainerFontSize(style, environment, inheritedFontSize, rootFontSize);
+        if (contexts.Count == 0) rootFontSize = fontSize;
         var expanded = new List<ContainerQueryContext>(contexts.Count + 1);
         expanded.AddRange(contexts);
-        expanded.Add(new ContainerQueryContext(names, type, width, height, style.Properties));
+        expanded.Add(new ContainerQueryContext(names, type, width, height, fontSize, rootFontSize, style.Properties));
         return expanded.AsReadOnly();
     }
 
@@ -185,11 +190,15 @@ public static partial class HtmlComputedStyleEngine {
         }
     }
 
-    private static double ResolveContainerFontSize(HtmlComputedStyle style, MediaEnvironment environment) =>
-        HtmlRenderCssValues.TryLength(style.GetValue("font-size"), 16D, 16D, 16D, environment.Width, environment.Height, out double fontSize)
+    private static double ResolveContainerFontSize(
+        HtmlComputedStyle style,
+        MediaEnvironment environment,
+        double inheritedFontSize = 16D,
+        double rootFontSize = 16D) =>
+        HtmlRenderCssValues.TryLength(style.GetValue("font-size"), inheritedFontSize, inheritedFontSize, rootFontSize, environment.Width, environment.Height, out double fontSize)
             && fontSize > 0D
             ? fontSize
-            : 16D;
+            : inheritedFontSize;
 
     private static bool EvaluateContainerCondition(string condition, ContainerQueryContext context, MediaEnvironment environment) {
         string normalized = condition.Trim();
@@ -224,8 +233,8 @@ public static partial class HtmlComputedStyleEngine {
             && HtmlRenderCssValues.TryColor(expected, out OfficeIMO.Drawing.OfficeColor expectedColor)) {
             return actualColor == expectedColor;
         }
-        if (HtmlRenderCssValues.TryLength(actual, context.Width, 16D, 16D, environment.Width, environment.Height, out double actualLength)
-            && HtmlRenderCssValues.TryLength(expected, context.Width, 16D, 16D, environment.Width, environment.Height, out double expectedLength)) {
+        if (HtmlRenderCssValues.TryLength(actual, context.Width, context.FontSize, context.RootFontSize, environment.Width, environment.Height, out double actualLength)
+            && HtmlRenderCssValues.TryLength(expected, context.Width, context.FontSize, context.RootFontSize, environment.Width, environment.Height, out double expectedLength)) {
             return Math.Abs(actualLength - expectedLength) <= 0.000001D;
         }
         return string.Equals(
@@ -309,8 +318,8 @@ public static partial class HtmlComputedStyleEngine {
         return HtmlRenderCssValues.TryLength(
             text,
             context.Width,
-            16D,
-            16D,
+            context.FontSize,
+            context.RootFontSize,
             environment.Width,
             environment.Height,
             context.Width,
