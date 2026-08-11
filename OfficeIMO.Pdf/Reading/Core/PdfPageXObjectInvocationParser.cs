@@ -317,8 +317,12 @@ internal static class PdfPageXObjectInvocationParser {
                 TextAffectsOutput(_textRenderingMode) &&
                 IsOrdinaryTextFrameVisible(advance.X);
             if (ordinaryTextAffectsOutput) _visibleFontVisitor?.Invoke(_textFont);
+            PdfType3PaintChannels type3PaintChannels = isVisible && usesType3GlyphProgram
+                ? ResolveType3PaintChannels(glyphs)
+                : PdfType3PaintChannels.None;
+            if (type3PaintChannels != PdfType3PaintChannels.None) _visibleFontVisitor?.Invoke(_textFont);
             if (isVisible && usesType3GlyphProgram) {
-                AdvertiseInheritedType3Patterns(ResolveType3PaintChannels(glyphs));
+                AdvertiseInheritedType3Patterns(type3PaintChannels);
             }
             PublishType3GlyphBatch(glyphs);
             if (ordinaryTextAffectsOutput && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
@@ -437,8 +441,13 @@ internal static class PdfPageXObjectInvocationParser {
                 }
             }
             if (ordinaryTextAffectsOutput && glyphCount > 0) _visibleFontVisitor?.Invoke(_textFont);
+            PdfType3PaintChannels type3PaintChannels =
+                isVisible && usesType3GlyphProgram && glyphCount > 0
+                    ? ResolveType3PaintChannels(glyphs)
+                    : PdfType3PaintChannels.None;
+            if (type3PaintChannels != PdfType3PaintChannels.None) _visibleFontVisitor?.Invoke(_textFont);
             if (isVisible && usesType3GlyphProgram && glyphCount > 0) {
-                AdvertiseInheritedType3Patterns(ResolveType3PaintChannels(glyphs));
+                AdvertiseInheritedType3Patterns(type3PaintChannels);
             }
             PublishType3GlyphBatch(glyphs);
             if (ordinaryTextAffectsOutput && glyphCount > 0 && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
