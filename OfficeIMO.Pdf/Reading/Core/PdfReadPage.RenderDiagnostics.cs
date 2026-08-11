@@ -663,12 +663,12 @@ public sealed partial class PdfReadPage {
                         invocation,
                         resources,
                         requireImageMask,
-                        initialFillPattern,
+                        invocation.FillPattern,
                         diagnostics,
                         seen,
                         surfaceWidth,
                         surfaceHeight);
-                    if ((!requireImageMask && initialFillPattern.HasValue && !HasUsableInheritedPattern(initialFillPattern)) ||
+                    if ((!requireImageMask && invocation.FillPattern.HasValue && !HasUsableInheritedPattern(invocation.FillPattern)) ||
                         !canProjectImage) supported = false;
                     continue;
                 }
