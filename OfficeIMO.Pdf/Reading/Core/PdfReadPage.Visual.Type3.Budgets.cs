@@ -45,6 +45,9 @@ public sealed partial class PdfReadPage {
             Type3GlyphBudget = new Type3GlyphBudget(maximumType3GlyphInvocations);
             Type3GlyphBudget.AttachSoftMaskValidationContext(this);
             TextOutputBudget = textOutputBudget;
+            TransparencyProofPageContentBudget = new PageContentBudget(owner);
+            TransparencyProofType3GlyphBudget = new Type3GlyphBudget(maximumType3GlyphInvocations);
+            TransparencyProofType3GlyphBudget.AttachSoftMaskValidationContext(this);
         }
 
         internal PageContentBudget PageContentBudget { get; }
@@ -55,5 +58,10 @@ public sealed partial class PdfReadPage {
         internal Type3GlyphBudget Type3GlyphBudget { get; }
 
         internal TextContentParser.TextOutputBudget TextOutputBudget { get; }
+
+        internal PageContentBudget TransparencyProofPageContentBudget { get; }
+
+        internal Type3GlyphBudget TransparencyProofType3GlyphBudget { get; }
+
     }
 }
