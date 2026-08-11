@@ -348,7 +348,8 @@ public sealed partial class PdfReadPage {
                     glyph,
                     type3PaintChannelCache,
                     activeType3PaintChannelStreams,
-                    pageContentBudget),
+                    pageContentBudget,
+                    type3GlyphBudget),
                 xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity, strokeOpacity) => ResolveXObjectPaintChannels(
                     resources,
                     name,
@@ -360,7 +361,8 @@ public sealed partial class PdfReadPage {
                     surfaceHeight,
                     type3PaintChannelCache,
                     activeType3PaintChannelStreams,
-                    pageContentBudget),
+                    pageContentBudget,
+                    type3GlyphBudget),
                 pageWidth: surfaceWidth);
             Dictionary<string, PdfPageTilingPatternResource> tilingPatterns = GetTilingPatternResources(
                 resources,
@@ -550,7 +552,8 @@ public sealed partial class PdfReadPage {
                              glyph,
                              type3PaintChannelCache,
                              activeType3PaintChannelStreams,
-                             pageContentBudget),
+                             pageContentBudget,
+                             type3GlyphBudget),
                          xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity, strokeOpacity) => ResolveXObjectPaintChannels(
                              resources,
                              name,
@@ -562,7 +565,8 @@ public sealed partial class PdfReadPage {
                              surfaceHeight,
                              type3PaintChannelCache,
                              activeType3PaintChannelStreams,
-                             pageContentBudget),
+                             pageContentBudget,
+                             type3GlyphBudget),
                          pageWidth: surfaceWidth)) {
                 if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     bool canProjectImage = CanProjectType3ImageInvocation(
@@ -593,7 +597,8 @@ public sealed partial class PdfReadPage {
                         surfaceHeight,
                         type3PaintChannelCache,
                         activeType3PaintChannelStreams,
-                        pageContentBudget) == PdfType3PaintChannels.None) {
+                        pageContentBudget,
+                        type3GlyphBudget) == PdfType3PaintChannels.None) {
                     continue;
                 }
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, form.Dictionary);
