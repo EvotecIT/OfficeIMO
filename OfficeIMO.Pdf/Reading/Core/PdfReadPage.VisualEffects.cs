@@ -218,6 +218,7 @@ public sealed partial class PdfReadPage {
         var type3PaintChannelCache = new Type3PaintChannelCache();
         var activeType3PaintChannelStreams = new HashSet<PdfStream>();
         var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
+        bool currentOrdinaryFontSupported = false;
         _ = PdfPageXObjectInvocationParser.Parse(
             content,
             baseTransform,
@@ -362,7 +363,13 @@ public sealed partial class PdfReadPage {
                 return supported;
             },
             type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
-            unsupportedTextVisitor: () => supported = false,
+            visibleFontVisitor: name => currentOrdinaryFontSupported =
+                fonts.TryGetValue(name, out PdfFontResource? font) &&
+                font.Type3 == null &&
+                IsSupportedSoftMaskTextFont(font),
+            unsupportedTextVisitor: () => {
+                if (!currentOrdinaryFontSupported) supported = false;
+            },
             unsupportedGraphicsEffectVisitor: () => supported = false,
             unsupportedColorVisitor: () => supported = false,
             graphicsStateVisitor: (state, stateTransform) => {
@@ -483,6 +490,16 @@ public sealed partial class PdfReadPage {
             }
         }
         return true;
+    }
+
+    private static bool IsSupportedSoftMaskTextFont(PdfFontResource font) {
+        if (font.EmbeddedTrueTypeFont != null) return true;
+        string name = font.BaseFont;
+        return name.StartsWith("Courier", StringComparison.Ordinal) ||
+               name.StartsWith("Helvetica", StringComparison.Ordinal) ||
+               name.StartsWith("Times-", StringComparison.Ordinal) ||
+               string.Equals(name, "Symbol", StringComparison.Ordinal) ||
+               string.Equals(name, "ZapfDingbats", StringComparison.Ordinal);
     }
 
     private static bool IsResolvedInheritedSoftMaskPattern(PdfPagePatternSelection? selection, string name) =>
