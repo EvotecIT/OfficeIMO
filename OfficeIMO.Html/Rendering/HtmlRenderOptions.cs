@@ -51,6 +51,15 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Default line-height multiplier.</summary>
     public double DefaultLineHeight { get; set; } = 1.2D;
 
+    /// <summary>Optional caller-owned dictionary or algorithm used by CSS <c>hyphens:auto</c>.</summary>
+    public OfficeTextHyphenationCallback? TextHyphenationCallback { get; set; }
+
+    /// <summary>Uses or clears a shared immutable hyphenation lexicon for CSS <c>hyphens:auto</c>.</summary>
+    public HtmlRenderOptions UseTextHyphenationLexicon(OfficeTextHyphenationLexicon? lexicon) {
+        TextHyphenationCallback = lexicon?.AsCallback();
+        return this;
+    }
+
     /// <summary>Deterministic device and user-preference values exposed to CSS media queries.</summary>
     public HtmlRenderMediaFeatures MediaFeatures { get; set; } = new HtmlRenderMediaFeatures();
 
@@ -183,6 +192,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.DefaultFontFamily = DefaultFontFamily;
         target.DefaultFontSize = DefaultFontSize;
         target.DefaultLineHeight = DefaultLineHeight;
+        target.TextHyphenationCallback = TextHyphenationCallback;
         target.MediaFeatures = (MediaFeatures ?? new HtmlRenderMediaFeatures()).Clone();
         target._additionalStylesheets.Clear();
         target._additionalStylesheets.AddRange(_additionalStylesheets);

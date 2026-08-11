@@ -108,8 +108,14 @@ internal sealed partial class HtmlRenderStyleResolver {
             Direction = direction,
             OverflowWrap = ResolveOverflowWrap(computed.GetValue("overflow-wrap"), parent?.OverflowWrap),
             WordBreak = ResolveWordBreak(computed.GetValue("word-break"), parent?.WordBreak),
+            Hyphens = ResolveHyphens(computed.GetValue("hyphens"), parent?.Hyphens),
+            HyphenateCharacter = ResolveHyphenateCharacter(computed.GetValue("hyphenate-character"), parent?.HyphenateCharacter),
+            HyphenateLimitLines = ResolveHyphenateLimitLines(computed.GetValue("hyphenate-limit-lines"), parent?.HyphenateLimitLines),
+            HyphenateLimitLast = ResolveHyphenateLimitLast(computed.GetValue("hyphenate-limit-last"), parent?.HyphenateLimitLast),
             BorderBox = string.Equals(computed.GetValue("box-sizing"), "border-box", StringComparison.OrdinalIgnoreCase)
         };
+        ResolveHyphenateLimitChars(computed.GetValue("hyphenate-limit-chars"), parent, style);
+        style.HyphenateLimitZone = ResolveHyphenateLimitZone(computed.GetValue("hyphenate-limit-zone"), containingWidth, fontSize, parent?.HyphenateLimitZone ?? 0D);
         style.ContainerType = ResolveContainerTypeValue(computed);
         style.ContainerUnitWidth = _activeContainerWidth;
         style.ContainerUnitHeight = _activeContainerHeight;
@@ -155,6 +161,68 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited ?? "normal";
         if (normalized == "normal" || normalized == "break-all" || normalized == "keep-all" || normalized == "break-word") return normalized;
         return "normal";
+    }
+
+    private static string ResolveHyphens(string value, string? inherited) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited ?? "manual";
+        return normalized == "none" || normalized == "manual" || normalized == "auto" ? normalized : "manual";
+    }
+
+    private static string ResolveHyphenateCharacter(string value, string? inherited) {
+        string normalized = value.Trim();
+        if (normalized.Length == 0 || string.Equals(normalized, "inherit", StringComparison.OrdinalIgnoreCase) || string.Equals(normalized, "unset", StringComparison.OrdinalIgnoreCase)) return inherited ?? "-";
+        if (string.Equals(normalized, "auto", StringComparison.OrdinalIgnoreCase)) return "-";
+        if (normalized.Length >= 2 && (normalized[0] == '\'' && normalized[normalized.Length - 1] == '\'' || normalized[0] == '"' && normalized[normalized.Length - 1] == '"')) {
+            string decoded = HtmlCssEscapeDecoder.Decode(normalized.Substring(1, normalized.Length - 2));
+            return decoded.Length <= 8 ? decoded : inherited ?? "-";
+        }
+        return inherited ?? "-";
+    }
+
+    private static void ResolveHyphenateLimitChars(string value, HtmlRenderBoxStyle? parent, HtmlRenderBoxStyle style) {
+        style.HyphenateMinimumWordLength = parent?.HyphenateMinimumWordLength ?? 5;
+        style.HyphenateMinimumPrefixLength = parent?.HyphenateMinimumPrefixLength ?? 2;
+        style.HyphenateMinimumSuffixLength = parent?.HyphenateMinimumSuffixLength ?? 2;
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return;
+        if (normalized == "auto") {
+            style.HyphenateMinimumWordLength = 5;
+            style.HyphenateMinimumPrefixLength = 2;
+            style.HyphenateMinimumSuffixLength = 2;
+            return;
+        }
+        int[] values = HtmlRenderCssValues.SplitWhitespace(normalized)
+            .Select(token => int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) && parsed >= 1 ? parsed : -1)
+            .ToArray();
+        if (values.Length is < 1 or > 3 || values.Any(parsed => parsed < 1)) return;
+        style.HyphenateMinimumWordLength = Math.Min(values[0], 10000);
+        style.HyphenateMinimumPrefixLength = Math.Min(values.Length >= 2 ? values[1] : values[0], 10000);
+        style.HyphenateMinimumSuffixLength = Math.Min(values.Length >= 3 ? values[2] : values.Length >= 2 ? values[1] : values[0], 10000);
+    }
+
+    private static int? ResolveHyphenateLimitLines(string value, int? inherited) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited;
+        if (normalized == "no-limit") return null;
+        return int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) && parsed >= 1
+            ? Math.Min(parsed, 10000)
+            : inherited;
+    }
+
+    private static string ResolveHyphenateLimitLast(string value, string? inherited) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited ?? "none";
+        return normalized == "none" || normalized == "always" || normalized == "column" || normalized == "page" || normalized == "spread"
+            ? normalized
+            : inherited ?? "none";
+    }
+
+    private double ResolveHyphenateLimitZone(string value, double containingWidth, double fontSize, double inherited) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited;
+        if (TryResolveLength(normalized, containingWidth, fontSize, _options.DefaultFontSize, out double parsed)) return Math.Max(0D, parsed);
+        return 0D;
     }
 
     private static double ResolveTabSize(string value, double inherited) {

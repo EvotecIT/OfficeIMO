@@ -142,6 +142,14 @@ internal sealed class HtmlRenderBoxStyle {
     internal string Direction = "ltr";
     internal string OverflowWrap = "normal";
     internal string WordBreak = "normal";
+    internal string Hyphens = "manual";
+    internal string HyphenateCharacter = "-";
+    internal int HyphenateMinimumWordLength = 5;
+    internal int HyphenateMinimumPrefixLength = 2;
+    internal int HyphenateMinimumSuffixLength = 2;
+    internal int? HyphenateLimitLines;
+    internal string HyphenateLimitLast = "none";
+    internal double HyphenateLimitZone;
     internal string OverflowX = "visible";
     internal string OverflowY = "visible";
     internal string OverflowClipMarginBox = "padding-box";

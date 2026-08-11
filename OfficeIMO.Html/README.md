@@ -55,6 +55,17 @@ IReadOnlyList<OfficeImageExportResult> webpPages = source
     .Save("status-pages");
 ```
 
+For documents that opt into `hyphens:auto`, supply the language-appropriate break points used by the application. The same immutable lexicon can be shared with the PDF text engine:
+
+```csharp
+options.UseTextHyphenationLexicon(new OfficeTextHyphenationLexicon(new[] {
+    "ty-pog-ra-phy",
+    "de-ter-min-is-tic"
+}));
+```
+
+The managed renderer also honors author soft hyphens and the bounded CSS controls `hyphenate-character`, `hyphenate-limit-chars`, `hyphenate-limit-lines`, `hyphenate-limit-last: always`, and `hyphenate-limit-zone`. Inserted hyphen glyphs do not replace the source word in logical text.
+
 ## Dependency footprint
 
 - **External:** AngleSharp and AngleSharp.Css for DOM and CSS parsing; System.Text.Encoding.CodePages for legacy web encodings.

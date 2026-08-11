@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using AngleSharp.Dom;
 using OfficeIMO.Drawing;
@@ -334,7 +335,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 string paintToken = paragraphStyle.PreserveWhitespace && normalizedToken.IndexOf('\t') >= 0
                     ? ExpandTabs(normalizedToken, run.Style, line.Width)
                     : normalizedToken;
+                HyphenationToken hyphenation = PrepareHyphenationToken(paintToken, normalizedLogicalToken, run.Style);
+                paintToken = hyphenation.PaintText;
+                string logicalPaintToken = hyphenation.LogicalText;
                 double measured = MeasureInlineText(paintToken, run.Style);
+                if (!paragraphStyle.PreventTextWrapping
+                    && !whitespace
+                    && measured > Math.Max(0D, width - line.Width)
+                    && TryAddHyphenatedToken(
+                        lines,
+                        ref line,
+                        run,
+                        hyphenation,
+                        width,
+                        visibleTokenStart,
+                        tokenEnd)) {
+                    continue;
+                }
                 if (!paragraphStyle.PreventTextWrapping
                     && !whitespace
                     && measured > Math.Max(0D, width - line.Width)
@@ -343,13 +360,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ref line,
                         run,
                         paintToken,
-                        normalizedLogicalToken,
+                        logicalPaintToken,
                         width,
                         visibleTokenStart)) {
                     continue;
                 }
                 if (!paragraphStyle.PreventTextWrapping && !whitespace && measured > width && AllowsEmergencyTokenBreak(run.Style)) {
-                    AddBrokenToken(lines, ref line, run, paintToken, normalizedLogicalToken, width, visibleTokenStart);
+                    AddBrokenToken(lines, ref line, run, paintToken, logicalPaintToken, width, visibleTokenStart);
                     continue;
                 }
 
@@ -360,7 +377,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (whitespace && !paragraphStyle.PreserveWhitespace) continue;
                 }
 
-                line.Add(new InlineSegment(paintToken, measured, run, normalizedLogicalToken, logicalEndProgress: tokenEnd));
+                line.Add(new InlineSegment(paintToken, measured, run, logicalPaintToken, logicalEndProgress: tokenEnd));
             }
         }
 
@@ -382,6 +399,185 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ApplyEndEllipsis(lines[0], width, completeLogicalProgress);
         }
         return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, supportsContinuationReflow: supportsContinuationReflow);
+    }
+
+    private HyphenationToken PrepareHyphenationToken(string paintToken, string logicalToken, HtmlRenderBoxStyle style) {
+        var paint = new StringBuilder(paintToken.Length);
+        var logical = new StringBuilder(logicalToken.Length);
+        var manualBreaks = new List<int>();
+        var sourceBoundaries = new List<int> { 0 };
+        for (int sourceIndex = 0; sourceIndex < logicalToken.Length; sourceIndex++) {
+            if (logicalToken[sourceIndex] == '\u00AD') {
+                if (logical.Length > 0) manualBreaks.Add(logical.Length);
+                sourceBoundaries[logical.Length] = sourceIndex + 1;
+                continue;
+            }
+            logical.Append(logicalToken[sourceIndex]);
+            sourceBoundaries.Add(sourceIndex + 1);
+        }
+        foreach (char character in paintToken) {
+            if (character != '\u00AD') paint.Append(character);
+        }
+
+        var automaticBreaks = new SortedSet<int>();
+        if (style.Hyphens == "auto" && _options.TextHyphenationCallback != null) {
+            IReadOnlyList<int>? automatic = _options.TextHyphenationCallback(logical.ToString());
+            if (automatic != null) {
+                foreach (int point in automatic) automaticBreaks.Add(point);
+            }
+        }
+
+        string logicalText = logical.ToString();
+        int minimumWordLength = Math.Max(1, style.HyphenateMinimumWordLength);
+        int minimumPrefix = Math.Max(1, style.HyphenateMinimumPrefixLength);
+        int minimumSuffix = Math.Max(1, style.HyphenateMinimumSuffixLength);
+        int[] FilterBreaks(IEnumerable<int> candidates) => CountCssHyphenationCharacters(logicalText, 0, logicalText.Length) < minimumWordLength
+            ? Array.Empty<int>()
+            : candidates
+                .Where(point => OfficeTextLineBreaks.IsValidBreakPosition(logicalText, point))
+                .Where(point => CountCssHyphenationCharacters(logicalText, 0, point) >= minimumPrefix
+                    && CountCssHyphenationCharacters(logicalText, point, logicalText.Length - point) >= minimumSuffix)
+                .Distinct()
+                .OrderBy(point => point)
+                .ToArray();
+        int[] primaryBreaks = style.Hyphens == "none"
+            ? Array.Empty<int>()
+            : FilterBreaks(manualBreaks.Count > 0 ? manualBreaks : automaticBreaks);
+        int[] secondaryBreaks = style.Hyphens == "auto" && manualBreaks.Count > 0
+            ? FilterBreaks(automaticBreaks.Where(point => !manualBreaks.Contains(point)))
+            : Array.Empty<int>();
+        return new HyphenationToken(paint.ToString(), logicalText, primaryBreaks, secondaryBreaks, sourceBoundaries.ToArray());
+    }
+
+    private static int CountCssHyphenationCharacters(string value, int start, int length) {
+        int count = 0;
+        foreach (string element in OfficeTextElements.Enumerate(value.Substring(start, length))) {
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(element, 0);
+            if (category == UnicodeCategory.NonSpacingMark || IsPunctuationCategory(category)) continue;
+            count++;
+        }
+        return count;
+    }
+
+    private static bool IsPunctuationCategory(UnicodeCategory category) => category == UnicodeCategory.ConnectorPunctuation
+        || category == UnicodeCategory.DashPunctuation
+        || category == UnicodeCategory.OpenPunctuation
+        || category == UnicodeCategory.ClosePunctuation
+        || category == UnicodeCategory.InitialQuotePunctuation
+        || category == UnicodeCategory.FinalQuotePunctuation
+        || category == UnicodeCategory.OtherPunctuation;
+
+    private bool TryAddHyphenatedToken(
+        ICollection<InlineLine> lines,
+        ref InlineLine line,
+        HtmlInlineRun run,
+        HyphenationToken token,
+        double width,
+        int logicalStartProgress,
+        int logicalEndProgress) {
+        if (!token.HasBreaks || token.PaintText.Length != token.LogicalText.Length) return false;
+        if (run.Style.HyphenateLimitLast == "always"
+            && line.HasFlowContent
+            && MeasureInlineText(token.PaintText, run.Style) <= width + 0.0001D) {
+            TrimTrailingWhitespace(line);
+            lines.Add(line);
+            line = new InlineLine();
+            line.Add(new InlineSegment(
+                token.PaintText,
+                MeasureInlineText(token.PaintText, run.Style),
+                run,
+                token.LogicalText,
+                logicalEndProgress: logicalEndProgress));
+            return true;
+        }
+        if (line.HasFlowContent && run.Style.HyphenateLimitZone > 0D
+            && width - line.Width <= run.Style.HyphenateLimitZone + 0.0001D) {
+            TrimTrailingWhitespace(line);
+            lines.Add(line);
+            line = new InlineLine();
+        }
+
+        int start = 0;
+        while (start < token.PaintText.Length) {
+            double available = Math.Max(0D, width - line.Width);
+            bool hyphenationAllowed = !run.Style.HyphenateLimitLines.HasValue
+                || CountConsecutiveHyphenatedLines(lines) < run.Style.HyphenateLimitLines.Value;
+            int selectedEnd = -1;
+            bool selectedIsBreak = false;
+            if (MeasureInlineText(token.PaintText.Substring(start), run.Style) <= available + 0.0001D) {
+                selectedEnd = token.PaintText.Length;
+            } else if (hyphenationAllowed) {
+                selectedEnd = SelectHyphenationBreak(token.PrimaryBreaks, token.PaintText, start, available, run.Style);
+                if (selectedEnd < 0) {
+                    selectedEnd = SelectHyphenationBreak(token.SecondaryBreaks, token.PaintText, start, available, run.Style);
+                }
+                selectedIsBreak = selectedEnd >= 0;
+            }
+
+            if (selectedEnd < 0) {
+                if (!line.HasFlowContent) {
+                    string paintRemainder = token.PaintText.Substring(start);
+                    string logicalRemainder = token.LogicalText.Substring(start);
+                    line.Add(new InlineSegment(
+                        paintRemainder,
+                        MeasureInlineText(paintRemainder, run.Style),
+                        run,
+                        logicalRemainder,
+                        logicalEndProgress: logicalEndProgress));
+                    return true;
+                }
+                TrimTrailingWhitespace(line);
+                lines.Add(line);
+                line = new InlineLine();
+                continue;
+            }
+
+            string paintChunk = token.PaintText.Substring(start, selectedEnd - start)
+                + (selectedIsBreak ? run.Style.HyphenateCharacter : string.Empty);
+            string logicalChunk = token.LogicalText.Substring(start, selectedEnd - start);
+            int sourceBoundary = selectedEnd < token.SourceBoundaries.Count
+                ? token.SourceBoundaries[selectedEnd]
+                : logicalEndProgress - logicalStartProgress;
+            line.Add(new InlineSegment(
+                paintChunk,
+                MeasureInlineText(paintChunk, run.Style),
+                run,
+                logicalChunk,
+                logicalEndProgress: selectedEnd == token.PaintText.Length
+                    ? logicalEndProgress
+                    : logicalStartProgress + sourceBoundary));
+            start = selectedEnd;
+            if (selectedIsBreak) {
+                line.EndsWithHyphenation = true;
+                lines.Add(line);
+                line = new InlineLine();
+            }
+        }
+        return true;
+    }
+
+    private int SelectHyphenationBreak(
+        IReadOnlyList<int> candidates,
+        string paintText,
+        int start,
+        double available,
+        HtmlRenderBoxStyle style) {
+        int selected = -1;
+        foreach (int point in candidates) {
+            if (point <= start) continue;
+            string candidate = paintText.Substring(start, point - start) + style.HyphenateCharacter;
+            if (MeasureInlineText(candidate, style) <= available + 0.0001D) selected = point;
+        }
+        return selected;
+    }
+
+    private static int CountConsecutiveHyphenatedLines(ICollection<InlineLine> lines) {
+        int count = 0;
+        foreach (InlineLine candidate in lines.Reverse()) {
+            if (!candidate.EndsWithHyphenation) break;
+            count++;
+        }
+        return count;
     }
 
     private bool TryAddPreferredBreakToken(
@@ -701,6 +897,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double X { get; private set; }
         internal double Y { get; private set; }
         internal double AvailableWidth { get; private set; }
+        internal bool EndsWithHyphenation { get; set; }
 
         internal void Place(double x, double y, double availableWidth) {
             HasExplicitPlacement = true;
@@ -754,6 +951,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             return ascent;
         }
+    }
+
+    private readonly struct HyphenationToken {
+        internal HyphenationToken(
+            string paintText,
+            string logicalText,
+            IReadOnlyList<int> primaryBreaks,
+            IReadOnlyList<int> secondaryBreaks,
+            IReadOnlyList<int> sourceBoundaries) {
+            PaintText = paintText;
+            LogicalText = logicalText;
+            PrimaryBreaks = primaryBreaks;
+            SecondaryBreaks = secondaryBreaks;
+            SourceBoundaries = sourceBoundaries;
+        }
+
+        internal string PaintText { get; }
+        internal string LogicalText { get; }
+        internal IReadOnlyList<int> PrimaryBreaks { get; }
+        internal IReadOnlyList<int> SecondaryBreaks { get; }
+        internal bool HasBreaks => PrimaryBreaks.Count > 0 || SecondaryBreaks.Count > 0;
+        internal IReadOnlyList<int> SourceBoundaries { get; }
     }
 
     private sealed class InlineSegment {
