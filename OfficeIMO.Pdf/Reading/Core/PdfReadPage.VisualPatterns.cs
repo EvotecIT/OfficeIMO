@@ -247,7 +247,7 @@ public sealed partial class PdfReadPage {
         bool allowNestedPatterns,
         int contentNestingDepth) {
         var drawing = new OfficeDrawing(width, height);
-        RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), contentNestingDepth);
+        RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
         string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
         if (content.Length == 0) return drawing;
         Matrix2D transform = Matrix2D.Translation(-box.X1, -box.Y1);
