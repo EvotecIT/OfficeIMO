@@ -8,6 +8,26 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 
 Reader benchmark code lives in `OfficeIMO.Reader.Benchmarks`.
 
+## PDF comparisons
+
+The opt-in `OfficeIMO.Pdf.Benchmarks.Comparisons` project measures validated
+PDF workflows at easy, medium, high, and real-document scale:
+
+- structured PDF generation with OfficeIMO, QuestPDF, MigraDoc/PDFsharp, and iText;
+- identical-HTML rendering with OfficeIMO.Html.Pdf and PeachPDF;
+- full-document text extraction with OfficeIMO.Pdf, PdfPig, and iText over a
+  five-producer synthetic corpus;
+- split, bundled split, merge, and reversed non-contiguous page selection with
+  OfficeIMO, iText, and PDFsharp;
+- prepared large-document extraction over Office exports, generated rich and
+  500-page OfficeIMO documents, government publications, and pinned CC0 PDF/A,
+  Type0, and Type3 fixtures.
+
+The comparison project is deliberately outside `OfficeIMO.sln`, so its
+third-party packages remain benchmark-only dependencies. See its README for the
+equivalence checks, corpus provenance, Word COM workflow, mutation-blocker
+interpretation, memory limits, and PowerForge runner commands.
+
 ## Excel artifacts
 
 ## Artifact types

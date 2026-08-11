@@ -59,13 +59,13 @@ internal static partial class PdfSyntax {
     private static bool ApplyClassicXrefEntries(
         Dictionary<int, PdfIndirectObject> map,
         byte[] pdf,
+        string text,
         Dictionary<int, int> parsedOffsets,
         HashSet<int> activeObjectNumbers,
         PdfReadLimits limits,
         XrefObjectScanBudget scanBudget,
         out bool appliedClassicEntries) {
         appliedClassicEntries = false;
-        string text = PdfEncoding.Latin1GetString(pdf);
         if (!TryGetLatestStartXrefOffset(text, out int activeXrefOffset)) {
             return false;
         }
@@ -77,7 +77,12 @@ internal static partial class PdfSyntax {
 
         appliedClassicEntries = true;
         bool appliedXrefStream = false;
-        var parsedObjectsByOffset = new Dictionary<int, PdfIndirectObject?>();
+        var parsedObjectsByOffset = new Dictionary<int, PdfIndirectObject?>(parsedOffsets.Count);
+        foreach (KeyValuePair<int, int> parsedOffset in parsedOffsets) {
+            if (map.TryGetValue(parsedOffset.Key, out PdfIndirectObject? parsedObject)) {
+                parsedObjectsByOffset[parsedOffset.Value] = parsedObject;
+            }
+        }
         foreach (var table in tables) {
             ApplyClassicXrefTableEntries(map, pdf, parsedOffsets, text, table.Entries, scanBudget, activeObjectNumbers, parsedObjectsByOffset);
             if (table.XrefStreamOffset.HasValue) {

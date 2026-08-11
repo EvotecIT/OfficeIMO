@@ -5,7 +5,8 @@ internal static partial class PdfSyntax {
         byte[] pdf,
         Dictionary<int, PdfIndirectObject> objects,
         string trailerRaw,
-        PdfDocumentSecurityInfo fallback) {
+        PdfDocumentSecurityInfo fallback,
+        PdfReadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(objects, nameof(objects));
         Guard.NotNull(fallback, nameof(fallback));
@@ -20,6 +21,7 @@ internal static partial class PdfSyntax {
         int? encryptionLengthBits = null;
         int? encryptionPermissions = null;
         bool? encryptMetadata = null;
+        PdfPasswordAuthenticationRole passwordAuthenticationRole = fallback.PasswordAuthenticationRole;
         if (encryptObjectNumber.HasValue &&
             TryReadFirstReference(trailerRaw, "Encrypt") is PdfReference encryptReference &&
             PdfObjectLookup.TryGet(objects, encryptReference, out PdfIndirectObject? encryptionObject) &&
@@ -31,6 +33,10 @@ internal static partial class PdfSyntax {
             encryptionLengthBits = TryReadInteger(parsedEncryptionDictionary, "Length");
             encryptionPermissions = TryReadPermissionMask(parsedEncryptionDictionary);
             encryptMetadata = TryReadBoolean(parsedEncryptionDictionary, "EncryptMetadata");
+            if (TryCreateDecryptor(objects, trailerRaw, options, out PdfStandardSecurityHandler? authenticatedHandler) &&
+                authenticatedHandler is not null) {
+                passwordAuthenticationRole = authenticatedHandler.AuthenticationRole;
+            }
         }
 
         var signatureFieldObjectNumbers = new List<int>();
@@ -137,7 +143,7 @@ internal static partial class PdfSyntax {
             encryptionLengthBits,
             encryptionPermissions,
             encryptMetadata,
-            fallback.PasswordAuthenticationRole,
+            passwordAuthenticationRole,
             fallback.HasSignatures || signatureFieldObjectNumbers.Count > 0 || signatureValueCount > 0,
             signatureFieldObjectNumbers.Count == 0 ? Array.Empty<int>() : signatureFieldObjectNumbers.AsReadOnly(),
             signatureFieldNames.Count == 0 ? Array.Empty<string>() : signatureFieldNames.AsReadOnly(),

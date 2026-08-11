@@ -265,7 +265,7 @@ public sealed class PdfPublicApiContractTests {
                 BindingFlags.DeclaredOnly).Length);
 
         Assert.InRange(exportedTypes.Length, 1, 512);
-        Assert.InRange(publicMemberCount, 1, 9867);
+        Assert.InRange(publicMemberCount, 1, 9870);
         Assert.InRange(
             typeof(PdfDocument)
                 .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)

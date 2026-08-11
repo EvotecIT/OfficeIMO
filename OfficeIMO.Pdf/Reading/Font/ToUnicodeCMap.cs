@@ -12,7 +12,7 @@ internal sealed class ToUnicodeCMap {
         RegexOptions.Compiled | RegexOptions.CultureInvariant;
 #endif
     private static readonly Regex BfCharEntryRegex = new Regex(
-        @"<(?<src>[0-9A-Fa-f]+)>\s+<(?<dst>[0-9A-Fa-f]+)>",
+        @"<(?<src>[0-9A-Fa-f]+)>\s*<(?<dst>[0-9A-Fa-f]+)>",
         StaticRegexOptions,
         RegexTimeout);
     private static readonly Regex BfCharSectionRegex = new Regex(
@@ -20,7 +20,7 @@ internal sealed class ToUnicodeCMap {
         StaticRegexOptions | RegexOptions.IgnoreCase,
         RegexTimeout);
     private static readonly Regex BfRangeSequentialEntryRegex = new Regex(
-        @"<(?<from>[0-9A-Fa-f]+)>\s+<(?<to>[0-9A-Fa-f]+)>\s+<(?<dst>[0-9A-Fa-f]+)>",
+        @"<(?<from>[0-9A-Fa-f]+)>\s*<(?<to>[0-9A-Fa-f]+)>\s*<(?<dst>[0-9A-Fa-f]+)>",
         StaticRegexOptions,
         RegexTimeout);
     private static readonly Regex BfRangeSectionRegex = new Regex(
@@ -28,7 +28,7 @@ internal sealed class ToUnicodeCMap {
         StaticRegexOptions | RegexOptions.IgnoreCase,
         RegexTimeout);
     private static readonly Regex BfRangeArrayEntryRegex = new Regex(
-        @"<(?<from>[0-9A-Fa-f]+)>\s+<(?<to>[0-9A-Fa-f]+)>\s+\[(?<dsts>[\s\S]*?)\]",
+        @"<(?<from>[0-9A-Fa-f]+)>\s*<(?<to>[0-9A-Fa-f]+)>\s*\[(?<dsts>[\s\S]*?)\]",
         StaticRegexOptions | RegexOptions.IgnoreCase,
         RegexTimeout);
 
@@ -46,6 +46,8 @@ internal sealed class ToUnicodeCMap {
     private int _processedMappings;
     private int _reverseMapNodeCount = 1;
     private bool _reverseMapBudgetExhausted;
+
+    internal int MappingCount => _map.Count;
 
     public static bool TryParse(byte[] data, out ToUnicodeCMap? cmap) {
         try {

@@ -369,6 +369,19 @@ IReadOnlyList<PdfExtractedAttachment> attachments = pdf.Read.Attachments();
 PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> safeAttachments = pdf.Read.TryAttachments();
 ```
 
+Text extraction excludes PDF artifact marked content by default, which is the
+logical-text behavior expected for decorative headers, footers, and chart
+labels. Opt into visual text when those marked artifacts are part of the
+required payload:
+
+```csharp
+PdfDocument visualTextPdf = PdfDocument.Open("spreadsheet-export.pdf", new PdfReadOptions {
+    IncludeArtifactText = true
+});
+
+IReadOnlyList<string> visualTextByPage = visualTextPdf.Read.TextByPage();
+```
+
 ### Split and extract pages
 
 ```csharp
