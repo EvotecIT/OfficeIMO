@@ -502,7 +502,7 @@ namespace OfficeIMO.Tests {
                 Label = "write"
             };
 
-            VisioGraphClusterRecord runtime = new("runtime-cluster", "Runtime Tier", new[] { "api", "worker", "db", "api" }) {
+            VisioGraphClusterRecord runtime = new("  runtime-cluster  ", "Runtime Tier", new[] { "api", "worker", "db", "api" }) {
                 HyperlinkAddress = "https://example.org/runtime",
                 HyperlinkDescription = "Runtime runbook",
                 FillColor = Color.FromRgb(245, 248, 252),
