@@ -790,6 +790,12 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "sc":
                 case "scn":
+                    if (op == "sc" &&
+                        !HasHiddenContent() &&
+                        _args.Count > 0 &&
+                        _args[_args.Count - 1] is string) {
+                        _invalidPatternSelectionVisitor?.Invoke();
+                    }
                     if (op == "scn" && _args.Count > 0 && _args[_args.Count - 1] is string fillPatternName) {
                         if (_state.FillColorSpace == PdfPageColorSpaceKind.Pattern) {
                             OfficeColor? tint = _patternState.FillBaseColorSpace.HasValue &&
@@ -827,6 +833,12 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "SC":
                 case "SCN":
+                    if (op == "SC" &&
+                        !HasHiddenContent() &&
+                        _args.Count > 0 &&
+                        _args[_args.Count - 1] is string) {
+                        _invalidPatternSelectionVisitor?.Invoke();
+                    }
                     if (op == "SCN" && _args.Count > 0 && _args[_args.Count - 1] is string strokePatternName) {
                         if (_state.StrokeColorSpace == PdfPageColorSpaceKind.Pattern) {
                             OfficeColor? tint = _patternState.StrokeBaseColorSpace.HasValue &&

@@ -97,4 +97,34 @@ public partial class DrawingTests {
 
         Assert.InRange(raster.GetPixel(3, 2).A, (byte)190, (byte)193);
     }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_BoundsAggregateNestedTilingExpansion() {
+        var leaf = new OfficeDrawing(1D, 1D);
+        OfficeShape square = OfficeShape.Rectangle(1D, 1D);
+        square.FillColor = OfficeColor.Red;
+        square.StrokeWidth = 0D;
+        leaf.AddShape(square, 0D, 0D);
+
+        var nestedTile = new OfficeDrawing(129D, 1D);
+        nestedTile.AddTilingPattern(
+            leaf,
+            new OfficeImagePlacement(0D, 0D, 129D, 1D),
+            1D,
+            1D,
+            repeatX: true,
+            repeatY: false);
+        var drawing = new OfficeDrawing(129D, 1D);
+        drawing.AddTilingPattern(
+            nestedTile,
+            new OfficeImagePlacement(0D, 0D, 129D, 1D),
+            1D,
+            1D,
+            repeatX: true,
+            repeatY: false);
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => OfficeDrawingSvgExporter.ToSvg(drawing));
+
+        Assert.Contains("aggregate expansion", exception.Message, StringComparison.Ordinal);
+    }
 }
