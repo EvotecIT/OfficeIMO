@@ -270,7 +270,9 @@ internal sealed class HtmlCounterStyleRegistry {
         private static string GetDescriptor(IReadOnlyDictionary<string, string> descriptors, string name) =>
             descriptors.TryGetValue(name, out string? value) ? value : string.Empty;
 
-        internal bool IsInRange(int value) => _ranges.Count == 0 || _ranges.Any(range => range.Contains(value));
+        internal bool IsInRange(int value) => _ranges.Count > 0
+            ? _ranges.Any(range => range.Contains(value))
+            : _system != "additive" || value >= 0;
 
         internal bool TryFormat(int value, out string formatted, out bool representationLimited) {
             formatted = string.Empty;

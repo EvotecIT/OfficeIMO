@@ -147,7 +147,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             " >>\n";
     }
 
-    internal static string BuildCheckBoxWidgetAnnotation(double x1, double y1, double x2, double y2, string name, bool isChecked, string checkedValueName, int offAppearanceId, int checkedAppearanceId, PdfFormFieldStyle? style = null, int? structParentIndex = null) {
+    internal static string BuildCheckBoxWidgetAnnotation(double x1, double y1, double x2, double y2, string name, bool isChecked, string checkedValueName, int offAppearanceId, int checkedAppearanceId, PdfFormFieldStyle? style = null, int? structParentIndex = null, string? exportValue = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNullOrWhiteSpace(checkedValueName, nameof(checkedValueName));
@@ -156,6 +156,10 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         }
 
         ValidateAsciiPdfNameValue(checkedValueName, nameof(checkedValueName));
+        string resolvedExportValue = string.IsNullOrWhiteSpace(exportValue) ? checkedValueName : exportValue!;
+        string exportEntry = string.Equals(resolvedExportValue, checkedValueName, StringComparison.Ordinal)
+            ? string.Empty
+            : " /Opt [" + PdfSyntaxEscaper.TextString(resolvedExportValue) + "]";
 
         string selectedName = isChecked ? checkedValueName : "Off";
         return "<< /Type /Annot /Subtype /Widget /FT /Btn /T " +
@@ -173,6 +177,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(y2) +
             "] /F 4 /AS /" +
             PdfSyntaxEscaper.Name(selectedName) +
+            exportEntry +
             BuildMkEntry(style) +
             BuildBorderStyleEntry(style) +
             " /AP << /N << /Off " +

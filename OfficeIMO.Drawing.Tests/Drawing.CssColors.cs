@@ -37,6 +37,14 @@ public sealed class DrawingCssColorTests {
         Assert.Equal(OfficeColor.FromRgba(red, green, blue, alpha), color);
     }
 
+    [Fact]
+    public void OfficeColor_PreservesHighChromaLchCoordinatesUntilSrgbGamutClipping() {
+        Assert.True(OfficeColor.TryParseCss("lch(30 150 0)", out OfficeColor color));
+
+        Assert.Equal(OfficeColorSpaceConverter.FromCssLab(30D, 150D, 0D), color);
+        Assert.NotEqual(OfficeColorSpaceConverter.FromLab(30D, 150D, 0D), color);
+    }
+
     [Theory]
     [InlineData("hsl(120 50 50)")]
     [InlineData("rgb(1 2)")]

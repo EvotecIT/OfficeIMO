@@ -38,15 +38,24 @@ public static class OfficeColorSpaceConverter {
 
     /// <summary>Converts CIE L*a*b* using the D50 reference white to sRGB.</summary>
     public static OfficeColor FromLab(double lightness, double a, double b) =>
-        FromLab(lightness, a, b, 0.96422D, 1D, 0.82521D);
+        FromLabCore(lightness, a, b, 0.96422D, 1D, 0.82521D, clampAxes: true);
+
+    internal static OfficeColor FromCssLab(double lightness, double a, double b) =>
+        FromLabCore(lightness, a, b, 0.96422D, 1D, 0.82521D, clampAxes: false);
 
     /// <summary>Converts CIE L*a*b* using an explicit XYZ reference white to sRGB.</summary>
     public static OfficeColor FromLab(double lightness, double a, double b, double whiteX, double whiteY, double whiteZ) {
+        return FromLabCore(lightness, a, b, whiteX, whiteY, whiteZ, clampAxes: true);
+    }
+
+    private static OfficeColor FromLabCore(double lightness, double a, double b, double whiteX, double whiteY, double whiteZ, bool clampAxes) {
         ValidateWhitePoint(whiteX, whiteY, whiteZ);
         double l = Clamp(lightness, 0D, 100D);
         double fy = (l + 16D) / 116D;
-        double fx = fy + (Clamp(a, -128D, 127D) / 500D);
-        double fz = fy - (Clamp(b, -128D, 127D) / 200D);
+        double resolvedA = clampAxes ? Clamp(a, -128D, 127D) : a;
+        double resolvedB = clampAxes ? Clamp(b, -128D, 127D) : b;
+        double fx = fy + (resolvedA / 500D);
+        double fz = fy - (resolvedB / 200D);
         return FromXyz(
             whiteX * InverseLabPivot(fx),
             whiteY * InverseLabPivot(fy),

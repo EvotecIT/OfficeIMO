@@ -693,7 +693,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (parent == null) return "• ";
         bool ordered = string.Equals(parent.TagName, "ol", StringComparison.OrdinalIgnoreCase);
         string listStyle = style.ListStyleType.Length == 0 ? ordered ? "decimal" : "disc" : style.ListStyleType;
-        int ordinal = ordered && HtmlListSemantics.TryResolveOrdinal(element, out int resolvedOrdinal) ? resolvedOrdinal : 1;
+        int ordinal = HtmlListSemantics.TryResolveOrdinal(element, out int resolvedOrdinal) ? resolvedOrdinal : 1;
         if (_counterStyles.TryFormatMarker(ordinal, listStyle, out string customMarker, out bool customMarkerLimited)) {
             if (customMarkerLimited) ReportCounterRepresentationLimit(element, listStyle);
             return customMarker.Length == 0 ? null : customMarker;
@@ -703,7 +703,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (markerLimited) ReportCounterRepresentationLimit(element, listStyle);
         if (marker.Length == 0) return null;
-        return marker + HtmlCounterStyleFormatter.MarkerSuffix(listStyle, ordered);
+        string normalizedStyle = HtmlCssEscapeDecoder.Decode(listStyle.Trim()).ToLowerInvariant();
+        bool usesBulletSuffix = normalizedStyle is "disc" or "circle" or "square"
+            || normalizedStyle.StartsWith("'", StringComparison.Ordinal)
+            || normalizedStyle.StartsWith("\"", StringComparison.Ordinal)
+            || normalizedStyle.StartsWith("symbols(", StringComparison.Ordinal);
+        return marker + HtmlCounterStyleFormatter.MarkerSuffix(listStyle, ordered || !usesBulletSuffix);
     }
 
     private void ReportCounterRepresentationLimit(IElement element, string style) {

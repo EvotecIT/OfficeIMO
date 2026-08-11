@@ -329,14 +329,25 @@ internal sealed class HtmlCssGradientStops {
             ResolvedStop previous = source[index - 1];
             if (current.Offset <= previous.Offset) return current.Color;
             double ratio = (offset - previous.Offset) / (current.Offset - previous.Offset);
-            return OfficeColor.FromRgba(
-                Interpolate(previous.Color.R, current.Color.R, ratio),
-                Interpolate(previous.Color.G, current.Color.G, ratio),
-                Interpolate(previous.Color.B, current.Color.B, ratio),
-                Interpolate(previous.Color.A, current.Color.A, ratio));
+            return InterpolatePremultiplied(previous.Color, current.Color, ratio);
         }
         return source[source.Count - 1].Color;
     }
+
+    private static OfficeColor InterpolatePremultiplied(OfficeColor first, OfficeColor second, double ratio) {
+        double firstAlpha = first.A / 255D;
+        double secondAlpha = second.A / 255D;
+        double alpha = firstAlpha + ((secondAlpha - firstAlpha) * ratio);
+        if (alpha <= 0.000001D) return OfficeColor.FromRgba(0, 0, 0, 0);
+        return OfficeColor.FromRgba(
+            ToByte(((first.R * firstAlpha) + (((second.R * secondAlpha) - (first.R * firstAlpha)) * ratio)) / alpha),
+            ToByte(((first.G * firstAlpha) + (((second.G * secondAlpha) - (first.G * firstAlpha)) * ratio)) / alpha),
+            ToByte(((first.B * firstAlpha) + (((second.B * secondAlpha) - (first.B * firstAlpha)) * ratio)) / alpha),
+            Interpolate(first.A, second.A, ratio));
+    }
+
+    private static byte ToByte(double value) =>
+        (byte)Math.Round(Math.Max(0D, Math.Min(255D, value)), MidpointRounding.AwayFromZero);
 
     private static byte Interpolate(byte first, byte second, double ratio) =>
         (byte)Math.Round(first + ((second - first) * ratio), MidpointRounding.AwayFromZero);

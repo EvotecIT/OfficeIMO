@@ -660,6 +660,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         TrimTrailingWhitespace(line);
         HtmlInlineRun? ellipsisRun = line.Segments
             .LastOrDefault(segment => segment.Run.AtomicBlock == null && segment.Text.Length > 0)?.Run;
+        if (ellipsisRun == null && line.Segments.Count > 0) ellipsisRun = line.Segments[line.Segments.Count - 1].Run;
         while (line.Segments.Count > 0) {
             InlineSegment segment = line.Segments[line.Segments.Count - 1];
             if (segment.Run.AtomicBlock != null || segment.Text.Length == 0) {
@@ -696,11 +697,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (ellipsisRun != null) {
+            ellipsisRun = CreateEllipsisRun(ellipsisRun);
             double ellipsisWidth = MeasureInlineText("\u2026", ellipsisRun.Style);
             if (ellipsisWidth <= availableWidth + 0.0001D) {
                 line.Add(new InlineSegment("\u2026", ellipsisWidth, ellipsisRun, "\u2026", logicalEndProgress: completeLogicalProgress));
             }
         }
+    }
+
+    private static HtmlInlineRun CreateEllipsisRun(HtmlInlineRun source) {
+        if (source.AtomicBlock == null) return source;
+        var run = new HtmlInlineRun(
+            "\u2026",
+            source.Style,
+            source.LinkUri,
+            source.Source,
+            source.PaintOffsetX,
+            source.PaintOffsetY,
+            source.OwnerElement,
+            logicalText: "\u2026");
+        if (source.SemanticNodeId.HasValue) run.AssignSemanticNode(source.SemanticRole, source.SemanticNodeId.Value);
+        return run;
     }
 
     private static bool AllowsEmergencyTokenBreak(HtmlRenderBoxStyle style) =>

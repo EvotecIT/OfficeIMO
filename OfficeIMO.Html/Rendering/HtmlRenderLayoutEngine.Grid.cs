@@ -19,7 +19,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.UnsupportedRowGap.Length > 0) ReportUnsupportedGridValue(source, "row-gap=" + style.UnsupportedRowGap);
 
         double? declaredContentHeight = ResolveGridDeclaredContentHeight(style);
-        bool usesColumnSubgrid = string.Equals(style.GridTemplateColumns.Trim(), "subgrid", StringComparison.OrdinalIgnoreCase)
+        bool usesColumnSubgrid = IsSubgridTrackList(style.GridTemplateColumns)
             && ReferenceEquals(_activeSubgridOwner, element)
             && _activeSubgridColumnSizes != null;
         List<GridTrack> columnTracks = usesColumnSubgrid
@@ -339,4 +339,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static bool HasHorizontalAutoMargin(HtmlRenderBoxStyle style) => style.MarginLeftAuto || style.MarginRightAuto;
     private static bool HasVerticalAutoMargin(HtmlRenderBoxStyle style) => style.MarginTopAuto || style.MarginBottomAuto;
+
+    private static bool IsSubgridTrackList(string value) {
+        string normalized = value?.Trim() ?? string.Empty;
+        if (!normalized.StartsWith("subgrid", StringComparison.OrdinalIgnoreCase)) return false;
+        int cursor = "subgrid".Length;
+        if (cursor < normalized.Length && !char.IsWhiteSpace(normalized[cursor]) && normalized[cursor] != '[') return false;
+        while (cursor < normalized.Length) {
+            while (cursor < normalized.Length && char.IsWhiteSpace(normalized[cursor])) cursor++;
+            if (cursor >= normalized.Length) return true;
+            if (normalized[cursor] != '[') return false;
+            int close = normalized.IndexOf(']', cursor + 1);
+            if (close < 0 || normalized.Substring(cursor + 1, close - cursor - 1).Trim().Length == 0) return false;
+            cursor = close + 1;
+        }
+        return true;
+    }
 }

@@ -21,6 +21,17 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain("delta", pdfText, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HtmlRender_EmitsEllipsisForOverflowingAtomicInlineContent() {
+        const string html = "<div style='width:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'><img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=' width='200' height='10'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        HtmlRenderText ellipsis = Assert.Single(EnumerateTextOverflowVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>());
+
+        Assert.Equal("\u2026", ellipsis.Text);
+        Assert.InRange(ellipsis.Width, 0.01D, 20.01D);
+    }
+
     [Theory]
     [InlineData("line-clamp")]
     [InlineData("-webkit-line-clamp")]

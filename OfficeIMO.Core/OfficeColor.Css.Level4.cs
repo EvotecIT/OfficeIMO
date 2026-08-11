@@ -61,7 +61,7 @@ public readonly partial struct OfficeColor {
 
         OfficeColor resolved = perceptual
             ? OfficeColorSpaceConverter.FromOklab(lightness, first, second)
-            : OfficeColorSpaceConverter.FromLab(lightness, first, second);
+            : OfficeColorSpaceConverter.FromCssLab(lightness, first, second);
         color = FromRgba(resolved.R, resolved.G, resolved.B, opacity);
         return true;
     }

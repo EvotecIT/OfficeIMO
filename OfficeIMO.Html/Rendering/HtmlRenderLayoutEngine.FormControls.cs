@@ -547,7 +547,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             radioOption = ResolveRadioOptionToken(value, nodeId);
             value = radioOption;
         } else if (fieldKind == HtmlRenderFormFieldKind.CheckBox) {
-            value = ResolveButtonOptionToken(value, nodeId);
+            radioOption = ResolveButtonOptionToken(value, nodeId);
         }
 
         int? maximumLength = null;

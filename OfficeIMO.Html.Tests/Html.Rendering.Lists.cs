@@ -86,6 +86,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_IncrementsNumericMarkersOnUnorderedLists() {
+        const string html = "<ul style='list-style-type:decimal'><li>First</li><li>Second</li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "1. ", "First", "2. ", "Second" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
+    public void HtmlRendering_AdditiveCounterStyleFallsBackForNegativeAutomaticRange() {
+        const string html = "<style>@counter-style tally{system:additive;additive-symbols:1 'I';fallback:decimal}</style><ol start='-1' style='list-style-type:tally'><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "-1. ", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
     public void HtmlRendering_FormatsAuthorDefinedCounterStyleMarkers() {
         const string html = """
             <style>

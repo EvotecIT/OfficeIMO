@@ -253,7 +253,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 canvas.SearchableText(field.Value, x, y + Math.Min(height, fontSize));
             }
         } else if (field.FieldKind == HtmlRenderFormFieldKind.CheckBox) {
-            canvas.CheckBox(field.Name, field.IsSelected, x, y, width, height, field.Value, style);
+            canvas.CheckBoxWithExportValue(field.Name, field.IsSelected, x, y, width, height, field.RadioOption ?? "Yes", field.Value, style);
         } else if (field.FieldKind == HtmlRenderFormFieldKind.Choice) {
             IReadOnlyList<PdfCore.PdfFormFieldOption> choiceOptions = field.Options
                 .Select((label, index) => new PdfCore.PdfFormFieldOption(

@@ -781,7 +781,7 @@ internal static partial class PdfWriter {
                         string checkedAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(appearanceWidth, appearanceHeight, checkedAppearanceBytes.Length);
                         int checkedAppearanceId = AddStreamObject(objects, checkedAppearanceDictionary, checkedAppearanceBytes);
 
-                        formField = PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.IsChecked, field.CheckedValueName, offAppearanceId, checkedAppearanceId, field.Style, formWidgetStructureReference?.StructParentIndex);
+                        formField = PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.IsChecked, field.CheckedValueName, offAppearanceId, checkedAppearanceId, field.Style, formWidgetStructureReference?.StructParentIndex, field.ExportValue);
                     } else if (field.Kind == FormFieldAnnotationKind.Choice) {
                         string appearanceValue = ResolveChoiceAppearanceValue(field);
                         string appearanceContent = BuildFormFieldTextAppearanceContent(

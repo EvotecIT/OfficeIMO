@@ -87,6 +87,27 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
     }
 
+    [Fact]
+    public void HtmlGrid_ColumnSubgridAcceptsAdditionalLineNames() {
+        const string html = """
+            <div style="display:grid;width:210px;grid-template-columns:60px 140px;column-gap:10px">
+              <div style="display:grid;grid-column:1 / span 2;grid-template-columns:subgrid [start] [end]">
+                <span id="named-subgrid-a" style="background:#ff0000">A</span>
+                <span id="named-subgrid-b" style="background:#0000ff">B</span>
+              </div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 230D);
+        HtmlRenderShape first = FindGridShape(rendered, "span#named-subgrid-a");
+        HtmlRenderShape second = FindGridShape(rendered, "span#named-subgrid-b");
+
+        Assert.Equal(60D, first.Width, 3);
+        Assert.Equal(70D, second.X, 3);
+        Assert.Equal(140D, second.Width, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
     [Theory]
     [InlineData("alpha-beta")]
     [InlineData("alpha/beta")]

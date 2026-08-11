@@ -21,7 +21,16 @@ public sealed partial class PdfPageCanvas {
     public PdfPageCanvas CheckBox(string name, bool isChecked, double x, double y, double width, double height, string checkedValueName = "Yes", PdfFormFieldStyle? style = null) {
         ValidateFormFieldBox(name, x, y, width, height);
         Guard.NotNullOrWhiteSpace(checkedValueName, nameof(checkedValueName));
-        _items.Add(PdfCanvasFormFieldItem.CheckBox(name, isChecked, checkedValueName, x, y, width, height, style));
+        _items.Add(PdfCanvasFormFieldItem.CheckBox(name, isChecked, checkedValueName, checkedValueName, x, y, width, height, style));
+        return this;
+    }
+
+    /// <summary>Adds an interactive check box with separate PDF appearance-state and exported values.</summary>
+    public PdfPageCanvas CheckBoxWithExportValue(string name, bool isChecked, double x, double y, double width, double height, string checkedValueName, string exportValue, PdfFormFieldStyle? style = null) {
+        ValidateFormFieldBox(name, x, y, width, height);
+        Guard.NotNullOrWhiteSpace(checkedValueName, nameof(checkedValueName));
+        Guard.NotNullOrWhiteSpace(exportValue, nameof(exportValue));
+        _items.Add(PdfCanvasFormFieldItem.CheckBox(name, isChecked, checkedValueName, exportValue, x, y, width, height, style));
         return this;
     }
 
@@ -122,8 +131,8 @@ internal sealed class PdfCanvasFormFieldItem : PdfCanvasItem {
     internal static PdfCanvasFormFieldItem Text(string name, string value, double x, double y, double width, double height, double fontSize, PdfFormFieldStyle? style) =>
         new(PdfCanvasFormFieldKind.Text, name, x, y, width, height, style) { Value = value, FontSize = fontSize };
 
-    internal static PdfCanvasFormFieldItem CheckBox(string name, bool isChecked, string checkedValueName, double x, double y, double width, double height, PdfFormFieldStyle? style) =>
-        new(PdfCanvasFormFieldKind.CheckBox, name, x, y, width, height, style) { IsSelected = isChecked, Option = checkedValueName, Value = isChecked ? checkedValueName : "Off" };
+    internal static PdfCanvasFormFieldItem CheckBox(string name, bool isChecked, string checkedValueName, string exportValue, double x, double y, double width, double height, PdfFormFieldStyle? style) =>
+        new(PdfCanvasFormFieldKind.CheckBox, name, x, y, width, height, style) { IsSelected = isChecked, Option = checkedValueName, ExportValue = exportValue, Value = isChecked ? checkedValueName : "Off" };
 
     internal static PdfCanvasFormFieldItem Choice(string name, IReadOnlyList<string> options, IReadOnlyList<string> values, double x, double y, double width, double height, double fontSize, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style) =>
         new(PdfCanvasFormFieldKind.Choice, name, x, y, width, height, style) { Options = options, Values = values, Value = values.Count == 0 ? string.Empty : values[0], FontSize = fontSize, IsComboBox = isComboBox, AllowsMultipleSelection = allowsMultipleSelection };
@@ -141,6 +150,7 @@ internal sealed class PdfCanvasFormFieldItem : PdfCanvasItem {
     internal IReadOnlyList<string> Options { get; private set; } = Array.Empty<string>();
     internal IReadOnlyList<PdfFormFieldOption> ChoiceOptions { get; private set; } = Array.Empty<PdfFormFieldOption>();
     internal string Option { get; private set; } = string.Empty;
+    internal string ExportValue { get; private set; } = string.Empty;
     internal bool IsSelected { get; private set; }
     internal double Width { get; }
     internal double Height { get; }

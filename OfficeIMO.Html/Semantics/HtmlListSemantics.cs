@@ -84,7 +84,16 @@ internal static class HtmlListSemantics {
     internal static bool TryResolveOrdinal(IElement item, out int ordinal) {
         ordinal = 0;
         IElement? list = item.ParentElement;
-        if (list == null || !Is(list, "ol") || !Is(item, "li")) return false;
+        if (list == null || !Is(item, "li")) return false;
+
+        if (Is(list, "ul")) {
+            foreach (IElement sibling in list.Children.Where(candidate => Is(candidate, "li"))) {
+                ordinal = HtmlIntegerSemantics.AdvanceSaturating(ordinal, 1);
+                if (ReferenceEquals(sibling, item)) return true;
+            }
+            return false;
+        }
+        if (!Is(list, "ol")) return false;
 
         HtmlSemanticList semantics = BuildList(list);
         HtmlListItemProjection? projection = BuildItems(list, semantics)

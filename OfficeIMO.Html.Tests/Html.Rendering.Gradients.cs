@@ -9,6 +9,19 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlLinearGradient_PremultipliesSynthesizedBoundaryStops() {
+        const string html = "<div style='width:100px;height:20px;background:linear-gradient(to right,rgba(255 0 0 / 0) -100%,blue 100%)'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        OfficeLinearGradient gradient = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
+
+        Assert.Equal(0D, gradient.Stops[0].Offset, 3);
+        Assert.Equal(OfficeColor.FromRgba(0, 0, 255, 128), gradient.Stops[0].Color);
+    }
+
+    [Fact]
     public void HtmlLinearGradient_FlowsAsMultiStopVectorPaintAcrossPngSvgAndSearchablePdf() {
         const string html = "<div style=\"width:160px;height:30px;background-image:linear-gradient(to right,#ff0000 0%,#00ff00 50%,#0000ff 100%)\">GradientMarker</div>";
         var imageOptions = new HtmlRenderOptions {

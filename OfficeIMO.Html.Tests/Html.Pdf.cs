@@ -121,6 +121,18 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_CheckBoxPreservesUnicodeExportValueSeparatelyFromAppearanceState() {
+        const string html = "<input type='checkbox' name='choice' value='caf\u00E9' checked>";
+
+        HtmlRenderFormField renderedField = Assert.Single(EnumeratePdfSceneVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene).OfType<HtmlRenderFormField>());
+        PdfCore.PdfFormField pdfField = Assert.Single(PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdf()).FormFields);
+
+        Assert.Equal("caf\u00E9", renderedField.Value);
+        Assert.NotEqual(renderedField.Value, renderedField.RadioOption);
+        Assert.Equal("caf\u00E9", Assert.Single(pdfField.Options).ExportValue);
+    }
+
+    [Fact]
     public void HtmlToPdf_PartiallyClippedControlUsesStaticAppearance() {
         const string html = "<div style='width:80px;height:24px;overflow:hidden'><input name='clipped' value='Clipped value' style='width:120px;height:20px'></div>";
 
@@ -1053,6 +1065,25 @@ public sealed class HtmlPdfTests {
         }
 
         return count;
+    }
+
+    private static IEnumerable<HtmlRenderVisual> EnumeratePdfSceneVisuals(IEnumerable<HtmlRenderVisual> visuals) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            yield return visual;
+            IEnumerable<HtmlRenderVisual>? children = visual is HtmlRenderClipGroup clip
+                ? clip.Visuals
+                : visual is HtmlRenderPathClipGroup pathClip
+                    ? pathClip.Visuals
+                    : visual is HtmlRenderEffectGroup effect
+                        ? effect.Visuals
+                        : visual is HtmlRenderSemanticGroup semantic
+                            ? semantic.Visuals
+                            : visual is HtmlRenderLogicalTextGroup logical
+                                ? logical.Visuals
+                                : visual is HtmlRenderFormField form ? form.Visuals : null;
+            if (children == null) continue;
+            foreach (HtmlRenderVisual child in EnumeratePdfSceneVisuals(children)) yield return child;
+        }
     }
 
     private static string Hex(string text) {

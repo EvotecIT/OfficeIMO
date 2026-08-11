@@ -105,7 +105,7 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
     public IReadOnlyList<string> Options => _options;
     /// <summary>Export values corresponding by index to <see cref="Options"/>.</summary>
     public IReadOnlyList<string> OptionValues => _optionValues;
-    /// <summary>PDF-safe option token for a radio widget.</summary>
+    /// <summary>PDF-safe appearance-state token for a check box or radio widget.</summary>
     public string? RadioOption { get; }
     /// <summary>Whether a check box or radio widget is selected.</summary>
     public bool IsSelected { get; }

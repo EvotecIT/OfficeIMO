@@ -204,6 +204,7 @@ internal static partial class PdfWriter {
         public double FontSize { get; set; }
         public bool IsChecked { get; set; }
         public string CheckedValueName { get; set; } = "Yes";
+        public string ExportValue { get; set; } = string.Empty;
         public IReadOnlyList<string> Options { get; set; } = Array.Empty<string>();
         public IReadOnlyList<PdfFormFieldOption> ChoiceOptions { get; set; } = Array.Empty<PdfFormFieldOption>();
         public double ButtonSize { get; set; }
