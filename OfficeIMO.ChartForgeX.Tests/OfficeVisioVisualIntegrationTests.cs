@@ -368,6 +368,8 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         Assert.Contains(result.Page.Shapes, shape => shape.Id == "note");
         Assert.Contains(result.Page.Shapes, shape => shape.Id == "fragment");
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("note") && warning.Contains("Over") && warning.Contains("right-side note placement"));
+        Assert.Single(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == OfficeVisioVisualDiagnosticCode.NoteNormalized && diagnostic.EntityId == "note");
     }
 
     [Fact]
