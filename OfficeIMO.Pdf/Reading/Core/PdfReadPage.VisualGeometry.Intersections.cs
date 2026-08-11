@@ -370,16 +370,48 @@ public sealed partial class PdfReadPage {
                 return false;
             }
 
-            double normalDistance = strokeHalfWidth * 0.5D;
-            double normalX = -deltaY / length * normalDistance;
-            double normalY = deltaX / length * normalDistance;
-            double[] fractions = { 0D, 0.25D, 0.5D, 0.75D, 1D };
-            for (int i = 0; i < fractions.Length; i++) {
+            var fractions = new List<double> { 0D, 0.25D, 0.5D, 0.75D, 1D };
+            double lengthSquared = length * length;
+            for (int fillIndex = 0; fillIndex < fills.Count; fillIndex++) {
+                VisualPath fill = fills[fillIndex];
+                for (int contourIndex = 0; contourIndex < fill._contours.Count; contourIndex++) {
+                    VisualContour contour = fill._contours[contourIndex];
+                    for (int pointIndex = 0; pointIndex < contour.Points.Count; pointIndex++) {
+                        if (!budget.TryUseOperation()) return false;
+                        OfficePoint point = contour.Points[pointIndex];
+                        double projected = (((point.X - start.X) * deltaX) + ((point.Y - start.Y) * deltaY)) / lengthSquared;
+                        fractions.Add(Math.Max(0D, Math.Min(1D, projected)));
+                    }
+                    int fillSegmentCount = contour.SegmentCount(closeForFill: true);
+                    for (int segmentIndex = 0; segmentIndex < fillSegmentCount; segmentIndex++) {
+                        if (!budget.TryUseOperation()) return false;
+                        contour.GetSegment(segmentIndex, closeForFill: true, out OfficePoint fillStart, out OfficePoint fillEnd);
+                        if (TryGetSegmentIntersection(start, end, fillStart, fillEnd, out OfficePoint intersection)) {
+                            double projected = (((intersection.X - start.X) * deltaX) + ((intersection.Y - start.Y) * deltaY)) / lengthSquared;
+                            fractions.Add(Math.Max(0D, Math.Min(1D, projected)));
+                        }
+                    }
+                }
+            }
+
+            fractions.Sort();
+            int originalCount = fractions.Count;
+            for (int i = 1; i < originalCount; i++) {
+                fractions.Add((fractions[i - 1] + fractions[i]) * 0.5D);
+            }
+
+            double halfNormalX = -deltaY / length * strokeHalfWidth * 0.5D;
+            double halfNormalY = deltaX / length * strokeHalfWidth * 0.5D;
+            double edgeNormalX = -deltaY / length * strokeHalfWidth * 0.999D;
+            double edgeNormalY = deltaX / length * strokeHalfWidth * 0.999D;
+            for (int i = 0; i < fractions.Count; i++) {
                 double x = start.X + (deltaX * fractions[i]);
                 double y = start.Y + (deltaY * fractions[i]);
                 if (AllContainStrict(fills, new OfficePoint(x, y), budget) ||
-                    AllContainStrict(fills, new OfficePoint(x + normalX, y + normalY), budget) ||
-                    AllContainStrict(fills, new OfficePoint(x - normalX, y - normalY), budget)) {
+                    AllContainStrict(fills, new OfficePoint(x + halfNormalX, y + halfNormalY), budget) ||
+                    AllContainStrict(fills, new OfficePoint(x - halfNormalX, y - halfNormalY), budget) ||
+                    AllContainStrict(fills, new OfficePoint(x + edgeNormalX, y + edgeNormalY), budget) ||
+                    AllContainStrict(fills, new OfficePoint(x - edgeNormalX, y - edgeNormalY), budget)) {
                     return true;
                 }
                 if (budget.Exceeded) {

@@ -751,7 +751,7 @@ public sealed partial class PdfReadPage {
             return PdfType3PaintChannels.Both;
         }
         if (form.Dictionary.Items.ContainsKey("Group")) {
-            if (!HasVisibleOpacity(fillOpacity) && !HasVisibleOpacity(strokeOpacity)) {
+            if (!HasVisibleOpacity(fillOpacity)) {
                 return PdfType3PaintChannels.None;
             }
             Type3TransparencyGroupDrawingResult boundsResult = TryGetVisibleType3TransparencyGroupBounds(

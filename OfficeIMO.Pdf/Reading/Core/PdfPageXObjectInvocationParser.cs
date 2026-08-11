@@ -623,6 +623,9 @@ internal static class PdfPageXObjectInvocationParser {
                 case "B*":
                 case "b":
                 case "b*":
+                    if (op == "s" || op == "b" || op == "b*") {
+                        ClosePath();
+                    }
                     if (!HasHiddenContent() && _pathCommands.Count > 0) {
                         PdfType3PaintChannels channels = ResolveVisiblePathPaintChannels(
                             OperatorFillsPath(op),
