@@ -95,6 +95,9 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Optional arrow style at the target end. Null keeps the theme-derived style.</summary>
         public EndArrow? EndArrow { get; set; }
 
+        /// <summary>Optional native Visio line pattern. Null keeps the theme-derived pattern.</summary>
+        public int? LinePattern { get; set; }
+
         /// <summary>Shape Data rows to apply to the generated connector.</summary>
         public IDictionary<string, string?> ShapeData { get; } = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
 

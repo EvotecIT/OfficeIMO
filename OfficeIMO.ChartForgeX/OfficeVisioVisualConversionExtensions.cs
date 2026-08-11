@@ -9,7 +9,7 @@ using OfficeIMO.Visio.Diagrams;
 namespace OfficeIMO.ChartForgeX;
 
 /// <summary>Projects CFX semantic artifacts into native editable OfficeIMO.Visio diagrams.</summary>
-public static class OfficeVisioVisualConversionExtensions {
+public static partial class OfficeVisioVisualConversionExtensions {
     /// <summary>Projects a typed CFX artifact into a native editable Visio document.</summary>
     public static OfficeVisioVisualConversionResult ToOfficeVisio(
         this VisualArtifact artifact,
@@ -136,6 +136,7 @@ public static class OfficeVisioVisualConversionExtensions {
             AddDetailData(record.ShapeData, node.Details, report, "node '" + node.Id + "'");
             AddPortData(record.ShapeData, node.Ports, report, "node '" + node.Id + "'");
         }
+        PreserveTooltipFidelity(record.ShapeData, node.Tooltip, node.Href, options, report, "Node", node.Id);
         return record;
     }
 
@@ -148,7 +149,8 @@ public static class OfficeVisioVisualConversionExtensions {
             Kind = MapEdgeKind(edge.Kind, edge.Status, flow),
             Label = CombineEdgeLabel(edge),
             HyperlinkAddress = options.IncludeHyperlinks ? edge.Href : null,
-            HyperlinkDescription = options.IncludeHyperlinks ? edge.Tooltip : null
+            HyperlinkDescription = options.IncludeHyperlinks ? edge.Tooltip : null,
+            LinePattern = MapGraphLinePattern(edge.LineStyle, edge.Id, report)
         };
         ApplyGraphEdgeDirection(record, edge.Direction, edge.Id, report);
         if (!string.IsNullOrWhiteSpace(edge.SourcePortId) || !string.IsNullOrWhiteSpace(edge.TargetPortId) ||
@@ -168,6 +170,7 @@ public static class OfficeVisioVisualConversionExtensions {
             AddValue(record.ShapeData, "CFX.Order", edge.Order.ToString(CultureInfo.InvariantCulture));
             AddValue(record.ShapeData, "CFX.Color", edge.Color);
         }
+        PreserveTooltipFidelity(record.ShapeData, edge.Tooltip, edge.Href, options, report, "Edge", edge.Id);
         return record;
     }
 
@@ -190,6 +193,7 @@ public static class OfficeVisioVisualConversionExtensions {
                 AddCommonShapeData(record.ShapeData, group.Kind, group.Status, null, group.Metadata, report, "group '" + group.Id + "'");
                 AddValue(record.ShapeData, "CFX.Color", group.Color);
             }
+            PreserveTooltipFidelity(record.ShapeData, group.Tooltip, group.Href, options, report, "Group", group.Id);
             groups.Add(record);
         }
         return groups;
@@ -336,8 +340,8 @@ public static class OfficeVisioVisualConversionExtensions {
         foreach (VisualArtifactInterchangeNode participant in participants) {
             VisioShape shape = page.Shapes.Single(item => string.Equals(item.Id, ids.Participant(participant.Id), StringComparison.Ordinal));
             shape.Data["CFX.Id"] = participant.Id;
+            var data = new Dictionary<string, string?>(StringComparer.Ordinal);
             if (options.IncludeShapeData) {
-                var data = new Dictionary<string, string?>(StringComparer.Ordinal);
                 AddValue(data, "CFX.Id", participant.Id);
                 AddCommonShapeData(data, participant.Kind, participant.Status, participant.GroupId, participant.Metadata, report, "sequence participant '" + participant.Id + "'");
                 AddValue(data, "CFX.Icon", participant.IconId);
@@ -347,8 +351,9 @@ public static class OfficeVisioVisualConversionExtensions {
                 AddValue(data, "CFX.BackgroundColor", participant.BackgroundColor);
                 AddDetailData(data, participant.Details, report, "sequence participant '" + participant.Id + "'");
                 AddPortData(data, participant.Ports, report, "sequence participant '" + participant.Id + "'");
-                foreach (KeyValuePair<string, string?> item in data) shape.SetShapeData(item.Key, item.Value);
             }
+            PreserveTooltipFidelity(data, participant.Tooltip, participant.Href, options, report, "Sequence participant", participant.Id);
+            foreach (KeyValuePair<string, string?> item in data) shape.SetShapeData(item.Key, item.Value);
             if (options.IncludeHyperlinks && !string.IsNullOrWhiteSpace(participant.Href)) {
                 shape.AddHyperlink(participant.Href!, participant.Tooltip);
             }
@@ -365,8 +370,8 @@ public static class OfficeVisioVisualConversionExtensions {
             VisioConnector connector = page.Connectors.Single(item => string.Equals(item.Id, ids.Message(message.Id), StringComparison.Ordinal));
             ApplySequenceMessageDirection(connector, message.Direction, message.Id, report);
             connector.Data["CFX.Id"] = message.Id;
+            var data = new Dictionary<string, string?>(StringComparer.Ordinal);
             if (options.IncludeShapeData) {
-                var data = new Dictionary<string, string?>(StringComparer.Ordinal);
                 AddValue(data, "CFX.Id", message.Id);
                 AddCommonShapeData(data, message.Kind, message.Status, null, message.Metadata, report, "sequence message '" + message.Id + "'");
                 AddValue(data, "CFX.Direction", message.Direction);
@@ -379,8 +384,9 @@ public static class OfficeVisioVisualConversionExtensions {
                 AddValue(data, "CFX.TargetLabel", message.TargetLabel);
                 AddValue(data, "CFX.Order", message.Order.ToString(CultureInfo.InvariantCulture));
                 AddValue(data, "CFX.Color", message.Color);
-                foreach (KeyValuePair<string, string?> item in data) connector.SetShapeData(item.Key, item.Value);
             }
+            PreserveTooltipFidelity(data, message.Tooltip, message.Href, options, report, "Sequence message", message.Id);
+            foreach (KeyValuePair<string, string?> item in data) connector.SetShapeData(item.Key, item.Value);
             if (options.IncludeHyperlinks && !string.IsNullOrWhiteSpace(message.Href)) {
                 connector.AddHyperlink(message.Href!, message.Tooltip);
             }

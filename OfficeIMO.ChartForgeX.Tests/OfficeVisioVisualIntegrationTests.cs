@@ -63,7 +63,9 @@ public sealed class OfficeVisioVisualIntegrationTests {
             Width = 720,
             Height = 480
         };
-        envelope.Nodes.Add(Participant("customer", "Customer", "Actor", 0));
+        VisualArtifactInterchangeNode customer = Participant("customer", "Customer", "Actor", 0);
+        customer.Tooltip = "Checkout user";
+        envelope.Nodes.Add(customer);
         VisualArtifactInterchangeNode apiParticipant = Participant("api", "Orders API", "Control", 1);
         apiParticipant.Subtitle = "v2";
         apiParticipant.Status = "Healthy";
@@ -83,7 +85,9 @@ public sealed class OfficeVisioVisualIntegrationTests {
         request.Tooltip = "Create order contract";
         request.Metadata["Owner"] = "Commerce";
         envelope.Edges.Add(request);
-        envelope.Edges.Add(Message("response", "api", "customer", "Created", 1, deactivates: true, dashed: true));
+        VisualArtifactInterchangeEdge response = Message("response", "api", "customer", "Created", 1, deactivates: true, dashed: true);
+        response.Tooltip = "Created response";
+        envelope.Edges.Add(response);
         var note = new VisualArtifactInterchangeAnnotation {
             Id = "retry-note",
             Kind = "SequenceNote",
@@ -130,6 +134,10 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Equal("service", requestConnector.GetShapeDataValue("CFX.TargetLabel"));
         Assert.Equal("0", requestConnector.GetShapeDataValue("CFX.Order"));
         Assert.Contains(requestConnector.Hyperlinks, link => link.Address == "https://example.test/create-order" && link.Description == "Create order contract");
+        Assert.Equal("Checkout user", result.Page.Shapes.Single(shape => shape.Id == "customer").GetShapeDataValue("CFX.Tooltip"));
+        Assert.Equal("Created response", result.Page.Connectors.Single(connector => connector.Id == "response").GetShapeDataValue("CFX.Tooltip"));
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("Sequence participant 'customer'") && warning.Contains("retained as Shape Data"));
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("Sequence message 'response'") && warning.Contains("retained as Shape Data"));
         Assert.True(retryNote.PinX - retryNote.Width / 2D > api.PinX + api.Width / 2D);
     }
 
@@ -342,6 +350,50 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Equal(EndArrow.None, backward.EndArrow);
         Assert.Equal(EndArrow.Triangle, both.BeginArrow);
         Assert.Equal(EndArrow.Triangle, both.EndArrow);
+    }
+
+    [Fact]
+    public void GraphProjectionPreservesExplicitLineStylesAndStandaloneTooltips() {
+        VisualArtifactInterchangeEnvelope envelope = CreateTopologyEnvelope();
+        envelope.Nodes.Single(node => node.Id == "api").Href = null;
+        envelope.Nodes.Single(node => node.Id == "database").Tooltip = "Database owner";
+        envelope.Groups.Single().Tooltip = "Data boundary";
+        envelope.Edges.Clear();
+        envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "solid", SourceId = "api", TargetId = "database", Kind = "Control", LineStyle = "Solid" });
+        envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "dashed", SourceId = "api", TargetId = "database", LineStyle = "Dashed", Tooltip = "Retry path" });
+        envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "dotted", SourceId = "api", TargetId = "database", LineStyle = "Dotted" });
+        envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "custom", SourceId = "api", TargetId = "database", LineStyle = "LongDash" });
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
+
+        Assert.Equal(1, result.Page.Connectors.Single(connector => connector.Id == "solid").LinePattern);
+        Assert.Equal(2, result.Page.Connectors.Single(connector => connector.Id == "dashed").LinePattern);
+        Assert.Equal(3, result.Page.Connectors.Single(connector => connector.Id == "dotted").LinePattern);
+        Assert.Equal("API runbook", result.Page.Shapes.Single(shape => shape.Id == "api").GetShapeDataValue("CFX.Tooltip"));
+        Assert.Equal("Database owner", result.Page.Shapes.Single(shape => shape.Id == "database").GetShapeDataValue("CFX.Tooltip"));
+        Assert.Equal("Data boundary", result.Page.Shapes.Single(shape => shape.Id == "data-zone").GetShapeDataValue("CFX.Tooltip"));
+        Assert.Equal("Retry path", result.Page.Connectors.Single(connector => connector.Id == "dashed").GetShapeDataValue("CFX.Tooltip"));
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("LongDash") && warning.Contains("native Visio theme pattern"));
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("Node 'api'") && warning.Contains("retained as Shape Data"));
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("Group 'data-zone'") && warning.Contains("retained as Shape Data"));
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("Edge 'dashed'") && warning.Contains("retained as Shape Data"));
+
+        OfficeVisioVisualConversionResult withoutShapeData = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { IncludeShapeData = false });
+        Assert.Contains(withoutShapeData.Report.Warnings, warning => warning.Contains("Node 'api'") && warning.Contains("remains only in the CFX envelope"));
+        Assert.Contains(withoutShapeData.Report.Warnings, warning => warning.Contains("Group 'data-zone'") && warning.Contains("remains only in the CFX envelope"));
+        Assert.Contains(withoutShapeData.Report.Warnings, warning => warning.Contains("Edge 'dashed'") && warning.Contains("remains only in the CFX envelope"));
+
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+        try {
+            result.Document.Save(path);
+            Assert.Empty(VisioValidator.Validate(path));
+            VisioDocument loaded = VisioDocument.Load(path);
+            Assert.Equal(3, loaded.Pages[0].Connectors.Single(connector => connector.Id == "dotted").LinePattern);
+            Assert.Equal("Database owner", loaded.Pages[0].Shapes.Single(shape => shape.Id == "database").GetShapeDataValue("CFX.Tooltip"));
+            Assert.Equal("Retry path", loaded.Pages[0].Connectors.Single(connector => connector.Id == "dashed").GetShapeDataValue("CFX.Tooltip"));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
     }
 
     [Fact]
