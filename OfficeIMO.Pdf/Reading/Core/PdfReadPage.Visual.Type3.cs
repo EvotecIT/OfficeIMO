@@ -336,7 +336,8 @@ public sealed partial class PdfReadPage {
             out PdfPageClipPath fitted,
             out PdfPageTilingPatternPaint? tilingPaint,
             out OfficeLinearGradient? fillGradient,
-            out OfficeRadialGradient? fillRadialGradient);
+            out OfficeRadialGradient? fillRadialGradient,
+            out _);
         if (preparation != Type3PatternImageMaskDrawingResult.Success) return preparation;
         drawing = new OfficeDrawing(fitted.Width, fitted.Height);
         drawingTransform = OfficeTransform.Translate(fitted.X, fitted.Y);
@@ -420,12 +421,14 @@ public sealed partial class PdfReadPage {
         out PdfPageClipPath fitted,
         out PdfPageTilingPatternPaint? tilingPaint,
         out OfficeLinearGradient? fillGradient,
-        out OfficeRadialGradient? fillRadialGradient) {
+        out OfficeRadialGradient? fillRadialGradient,
+        out bool shadingPreparationFailed) {
         projection = default;
         fitted = default;
         tilingPaint = null;
         fillGradient = null;
         fillRadialGradient = null;
+        shadingPreparationFailed = false;
         if (!selection.HasValue || !image.IsImageMask || !image.IsImageFile) return Type3PatternImageMaskDrawingResult.Unsupported;
         if (!TryCreateImageProjection(
                 placement,
@@ -477,6 +480,7 @@ public sealed partial class PdfReadPage {
             out fillGradient,
             out fillRadialGradient);
         if (selection.Value.ShadingPattern.HasValue && fillGradient == null && fillRadialGradient == null) {
+            shadingPreparationFailed = true;
             return Type3PatternImageMaskDrawingResult.Unsupported;
         }
         return Type3PatternImageMaskDrawingResult.Success;

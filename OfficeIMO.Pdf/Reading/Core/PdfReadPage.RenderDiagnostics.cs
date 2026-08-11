@@ -638,9 +638,10 @@ public sealed partial class PdfReadPage {
                 out _,
                 out _,
                 out _,
-                out _);
+                out _,
+                out bool shadingPreparationFailed);
             if (result == Type3PatternImageMaskDrawingResult.Unsupported) {
-                if (inheritedFillPattern.Value.ShadingPattern.HasValue) {
+                if (shadingPreparationFailed) {
                     AddRenderDiagnostic(
                         diagnostics,
                         seen,

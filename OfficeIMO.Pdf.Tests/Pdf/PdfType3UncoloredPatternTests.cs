@@ -876,6 +876,26 @@ public class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void RenderPage_DoesNotBlameValidShadingForUnsupportedImageMaskProjection() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 100 30 100] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>",
+            patternContent: string.Empty,
+            patternIsStream: false,
+            glyphContent: "500 0 d0 q 500 100 0 700 0 0 cm /Im1 Do Q",
+            glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
+    }
+
+    [Fact]
     public void RenderPage_DoesNotDiagnoseUnsupportedShadingForInvisibleImageMask() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern CS /P2 SCN /Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
