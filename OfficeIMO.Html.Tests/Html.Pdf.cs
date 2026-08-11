@@ -15,6 +15,84 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlPdfTests {
     [Fact]
+    public void HtmlToPdf_StandardControlsBecomeAccessibleInteractiveFormFields() {
+        const string html = """
+            <form>
+              <label for="contact">Contact name</label>
+              <input id="contact" name="contact" value="Ada" required maxlength="32">
+              <label><input type="checkbox" name="accept" value="Accepted" checked disabled> Accept terms</label>
+              <label for="country">Country</label>
+              <select id="country" name="country"><option>Poland</option><option selected>Germany</option></select>
+              <label for="notes">Review notes</label>
+              <textarea id="notes" name="notes" readonly>Line one&#10;Line two</textarea>
+              <label><input type="radio" name="method" value="Email"> Email</label>
+              <label><input type="radio" name="method" value="Phone" checked> Phone</label>
+            </form>
+            """;
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Equal(5, info.FormFields.Count);
+        PdfCore.PdfFormField contact = Assert.Single(info.FormFields, field => field.Name == "contact");
+        Assert.Equal("Ada", contact.Value);
+        Assert.True(contact.IsRequired);
+        Assert.Equal(32, contact.MaxLength);
+        Assert.Equal("Contact name", contact.AlternateName);
+
+        PdfCore.PdfFormField accept = Assert.Single(info.FormFields, field => field.Name == "accept");
+        Assert.True(accept.IsCheckBox);
+        Assert.True(accept.IsReadOnly);
+        Assert.Equal("Accepted", accept.Value);
+
+        PdfCore.PdfFormField country = Assert.Single(info.FormFields, field => field.Name == "country");
+        Assert.True(country.IsCombo);
+        Assert.Equal("Germany", country.Value);
+        Assert.Equal(new[] { "Poland", "Germany" }, country.Options.Select(option => option.DisplayText).ToArray());
+
+        PdfCore.PdfFormField notes = Assert.Single(info.FormFields, field => field.Name == "notes");
+        Assert.True(notes.IsMultiline);
+        Assert.True(notes.IsReadOnly);
+        Assert.Equal("Line one\nLine two", notes.Value);
+
+        PdfCore.PdfFormField method = Assert.Single(info.FormFields, field => field.Name == "method");
+        Assert.True(method.IsRadioButton);
+        Assert.Equal("Phone", method.Value);
+        Assert.Equal(2, method.Widgets.Count);
+    }
+
+    [Fact]
+    public void HtmlToPdf_CanKeepStaticFormControlPaint() {
+        const string html = "<label>Name <input name='name' value='Static Ada'></label>";
+        var options = new HtmlPdfSaveOptions { InteractiveFormControls = false };
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.Contains("Static Ada", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.False(options.ClonePdf().InteractiveFormControls);
+    }
+
+    [Fact]
+    public void HtmlToPdf_RepeatedNamesRemainDistinctExceptWithinOneRadioGroup() {
+        const string html = """
+            <form><input type="checkbox" name="tag" value="One"><input type="checkbox" name="tag" value="Two"></form>
+            <form><input type="radio" name="status" value="Internal" checked><input type="radio" name="status" value="External"></form>
+            <form><input type="radio" name="status" value="Public" checked><input type="radio" name="status" value="Private"></form>
+            """;
+
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdf());
+
+        PdfCore.PdfFormField[] tags = info.FormFields.Where(field => field.MappingName == "tag").ToArray();
+        Assert.Equal(2, tags.Length);
+        Assert.Equal(2, tags.Select(field => field.Name).Distinct(StringComparer.Ordinal).Count());
+        PdfCore.PdfFormField[] statuses = info.FormFields.Where(field => field.MappingName == "status").ToArray();
+        Assert.Equal(2, statuses.Length);
+        Assert.All(statuses, field => Assert.Equal(2, field.Widgets.Count));
+        Assert.Equal(2, statuses.Select(field => field.Name).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
     public void HtmlToPdf_SkipsEmptySvgWithAlternativeText() {
         string svg = Convert.ToBase64String(Encoding.UTF8.GetBytes(
             "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'></svg>"));

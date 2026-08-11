@@ -93,6 +93,8 @@ public sealed class HtmlRenderPage {
                 foreach (HtmlRenderVisual child in FlattenSemanticGroups(semanticGroup.Visuals)) yield return child;
             } else if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
                 foreach (HtmlRenderVisual child in FlattenSemanticGroups(logicalTextGroup.Visuals)) yield return child;
+            } else if (visual is HtmlRenderFormField formField) {
+                foreach (HtmlRenderVisual child in FlattenSemanticGroups(formField.Visuals)) yield return child;
             } else {
                 yield return visual;
             }
@@ -154,6 +156,8 @@ public sealed class HtmlRenderPage {
             foreach (HtmlRenderVisual child in semanticGroup.Visuals) AddVisual(drawing, child, surfaceWidth, surfaceHeight, fonts, cancellationToken);
         } else if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
             foreach (HtmlRenderVisual child in logicalTextGroup.Visuals) AddVisual(drawing, child, surfaceWidth, surfaceHeight, fonts, cancellationToken);
+        } else if (visual is HtmlRenderFormField formField) {
+            foreach (HtmlRenderVisual child in formField.Visuals) AddVisual(drawing, child, surfaceWidth, surfaceHeight, fonts, cancellationToken);
         }
     }
 

@@ -203,10 +203,6 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             throw new ArgumentException("PDF choice field requires at least one option.", nameof(options));
         }
 
-        if (values.Count == 0) {
-            throw new ArgumentException("PDF choice field requires at least one selected value.", nameof(values));
-        }
-
         if (!allowsMultipleSelection && values.Count > 1) {
             throw new ArgumentException("PDF scalar choice field cannot contain multiple selected values.", nameof(values));
         }
@@ -581,7 +577,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             }
         }
 
-        if (!optionSet.Contains(value)) {
+        if (!string.Equals(value, "Off", StringComparison.Ordinal) && !optionSet.Contains(value)) {
             throw new ArgumentException("PDF radio button value must match the provided options.", nameof(value));
         }
     }

@@ -210,6 +210,27 @@ internal static partial class PdfWriter {
         public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
         public bool IsComboBox { get; set; }
         public bool AllowsMultipleSelection { get; set; }
+        public System.Collections.Generic.List<RadioButtonWidgetAnnotation> RadioWidgets { get; } = new();
+    }
+
+    private sealed class RadioButtonWidgetAnnotation {
+        public double X1 { get; set; }
+        public double Y1 { get; set; }
+        public double X2 { get; set; }
+        public double Y2 { get; set; }
+        public string Option { get; set; } = string.Empty;
+    }
+
+    private sealed class PositionedRadioButtonSerializationPlan {
+        public int ParentFieldId { get; set; }
+        public int OffAppearanceId { get; set; }
+        public int SelectedAppearanceId { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public string Value { get; set; } = "Off";
+        public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
+        public System.Collections.Generic.List<string> Options { get; } = new();
+        public System.Collections.Generic.List<int> WidgetObjectIds { get; } = new();
     }
 
     private sealed class AnnotationStructureReference {
@@ -223,6 +244,38 @@ internal static partial class PdfWriter {
         CheckBox,
         Choice,
         RadioButtonGroup
+    }
+
+    private static void CoalescePositionedRadioButtonFields(System.Collections.Generic.List<FormFieldAnnotation> fields) {
+        var groups = new System.Collections.Generic.Dictionary<string, FormFieldAnnotation>(StringComparer.Ordinal);
+        for (int index = 0; index < fields.Count; index++) {
+            FormFieldAnnotation candidate = fields[index];
+            if (candidate.Kind != FormFieldAnnotationKind.RadioButtonGroup || candidate.RadioWidgets.Count == 0) continue;
+            if (!groups.TryGetValue(candidate.Name, out FormFieldAnnotation? group)) {
+                groups[candidate.Name] = candidate;
+                continue;
+            }
+
+            RadioButtonWidgetAnnotation first = group.RadioWidgets[0];
+            RadioButtonWidgetAnnotation next = candidate.RadioWidgets[0];
+            if (Math.Abs((first.X2 - first.X1) - (next.X2 - next.X1)) > 0.0001D
+                || Math.Abs((first.Y2 - first.Y1) - (next.Y2 - next.Y1)) > 0.0001D) {
+                throw new ArgumentException("Canvas radio buttons sharing one field name must use the same widget dimensions.");
+            }
+            string option = candidate.Options[0];
+            if (group.Options.Contains(option, StringComparer.Ordinal)) {
+                throw new ArgumentException("Canvas radio button options must be unique within one field name.");
+            }
+            group.Options = group.Options.Concat(candidate.Options).ToArray();
+            group.RadioWidgets.Add(next);
+            if (!string.Equals(candidate.Value, "Off", StringComparison.Ordinal)) group.Value = candidate.Value;
+            group.X1 = Math.Min(group.X1, candidate.X1);
+            group.Y1 = Math.Min(group.Y1, candidate.Y1);
+            group.X2 = Math.Max(group.X2, candidate.X2);
+            group.Y2 = Math.Max(group.Y2, candidate.Y2);
+            fields.RemoveAt(index);
+            index--;
+        }
     }
 
     private sealed class PageBookmark {

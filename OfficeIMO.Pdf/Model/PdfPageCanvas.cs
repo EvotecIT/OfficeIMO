@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Builds foreground page content at absolute top-left page coordinates in the order items are added.
 /// </summary>
-public sealed class PdfPageCanvas {
+public sealed partial class PdfPageCanvas {
     /// <summary>Maximum supported outline hierarchy depth.</summary>
     public const int MaximumOutlineLevel = 64;
 

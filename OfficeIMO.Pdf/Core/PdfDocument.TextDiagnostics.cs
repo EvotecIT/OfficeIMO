@@ -226,6 +226,9 @@ public sealed partial class PdfDocument {
                 case PdfCanvasFreeTextAnnotationItem freeText:
                     AddFreeTextAppearanceText(diagnostics, freeText.Contents, options, "PdfCanvasFreeTextAnnotation", AppendLocation(locationPrefix, "PdfCanvasFreeTextAnnotation[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
                     break;
+                case PdfCanvasFormFieldItem formField:
+                    AnalyzeCanvasFormField(formField, options, diagnostics, AppendLocation(locationPrefix, "PdfCanvasFormField[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    break;
                 case PdfCanvasTableItem table:
                     AnalyzeTable(table.Block, options, defaultFont, diagnostics, "PdfCanvasTableCell", AppendLocation(locationPrefix, "PdfCanvasTable[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
                     break;
@@ -239,6 +242,20 @@ public sealed partial class PdfDocument {
                     AnalyzeDrawing(drawing.Block, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasDrawing[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
                     break;
             }
+        }
+    }
+
+    private static void AnalyzeCanvasFormField(PdfCanvasFormFieldItem field, PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string location) {
+        if (field.Kind == PdfCanvasFormFieldKind.Text) {
+            AddFormWidgetText(diagnostics, field.Value, options, "PdfCanvasTextField", location, fieldName: field.Name);
+            return;
+        }
+        if (field.Kind != PdfCanvasFormFieldKind.Choice) return;
+        for (int optionIndex = 0; optionIndex < field.Options.Count; optionIndex++) {
+            AddFormWidgetText(diagnostics, field.Options[optionIndex], options, "PdfCanvasChoiceFieldOption", AppendLocation(location, "Option[" + optionIndex.ToString(CultureInfo.InvariantCulture) + "]"), fieldName: field.Name);
+        }
+        for (int valueIndex = 0; valueIndex < field.Values.Count; valueIndex++) {
+            AddFormWidgetText(diagnostics, field.Values[valueIndex], options, "PdfCanvasChoiceFieldValue", AppendLocation(location, "Value[" + valueIndex.ToString(CultureInfo.InvariantCulture) + "]"), fieldName: field.Name);
         }
     }
 

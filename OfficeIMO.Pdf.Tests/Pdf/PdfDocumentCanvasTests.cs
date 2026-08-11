@@ -12,6 +12,72 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentCanvasTests {
     [Fact]
+    public void CanvasFormFields_CreatePositionedInspectableAcroFormWidgets() {
+        var textStyle = new PdfFormFieldStyle {
+            IsRequired = true,
+            AlternateName = "Contact name"
+        };
+        byte[] bytes = PdfDocument.Create()
+            .Canvas(canvas => canvas
+                .TextField("Contact.Name", "Ada", 20D, 30D, 160D, 24D, style: textStyle)
+                .CheckBox("Contact.Accept", true, 20D, 70D, 16D, 16D)
+                .ChoiceField("Contact.Country", new[] { "Poland", "Germany" }, new[] { "Poland" }, 20D, 105D, 160D, 24D)
+                .RadioButton("Contact.Method", "Email", false, 20D, 145D, 16D, 16D)
+                .RadioButton("Contact.Method", "Phone", true, 80D, 145D, 16D, 16D))
+            .ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        Assert.Equal(4, info.FormFields.Count);
+        PdfFormField text = Assert.Single(info.FormFields, field => field.Name == "Contact.Name");
+        Assert.Equal("Ada", text.Value);
+        Assert.True(text.IsRequired);
+        Assert.Equal("Contact name", text.AlternateName);
+        Assert.InRange(Assert.Single(text.Widgets).Width, 159.9D, 160.1D);
+
+        PdfFormField checkBox = Assert.Single(info.FormFields, field => field.Name == "Contact.Accept");
+        Assert.True(checkBox.IsCheckBox);
+        Assert.Equal("Yes", checkBox.Value);
+
+        PdfFormField choice = Assert.Single(info.FormFields, field => field.Name == "Contact.Country");
+        Assert.Equal(new[] { "Poland", "Germany" }, choice.Options.Select(option => option.DisplayText).ToArray());
+        Assert.Equal("Poland", choice.Value);
+
+        PdfFormField radio = Assert.Single(info.FormFields, field => field.Name == "Contact.Method");
+        Assert.True(radio.IsRadioButton);
+        Assert.Equal("Phone", radio.Value);
+        Assert.Equal(2, radio.Widgets.Count);
+        Assert.True(radio.Widgets[1].X1 > radio.Widgets[0].X1);
+    }
+
+    [Fact]
+    public void CanvasRadioButtons_CanStartWithNoSelectedWidget() {
+        byte[] bytes = PdfDocument.Create()
+            .Canvas(canvas => canvas
+                .RadioButton("Preference", "One", false, 20D, 20D, 14D, 14D)
+                .RadioButton("Preference", "Two", false, 50D, 20D, 14D, 14D))
+            .ToBytes();
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
+        Assert.True(field.IsRadioButton);
+        Assert.Equal("Off", field.Value);
+        Assert.All(field.Widgets, widget => Assert.Equal("Off", widget.AppearanceState));
+    }
+
+    [Fact]
+    public void CanvasRadioButtons_CanShareOneFieldAcrossPages() {
+        byte[] bytes = PdfDocument.Create()
+            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "First", false, 20D, 20D, 14D, 14D)))
+            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "Second", true, 20D, 20D, 14D, 14D)))
+            .ToBytes();
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
+        Assert.Equal("AcrossPages", field.Name);
+        Assert.Equal("Second", field.Value);
+        Assert.Equal(new[] { 1, 2 }, field.PageNumbers);
+        Assert.Equal(2, field.Widgets.Count);
+    }
+
+    [Fact]
     public void CanvasActualText_PreservesLogicalExtractionForReversePositionedFragments() {
         byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()

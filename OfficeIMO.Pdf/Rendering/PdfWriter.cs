@@ -72,6 +72,9 @@ internal static partial class PdfWriter {
         using var generatedSectionLayout = doc.BeginGeneratedSectionLayout();
         using var layout = LayoutBlocks(blocks, opts);
         pageCount = layout.Pages.Count;
+        foreach (LayoutResult.Page page in layout.Pages) {
+            CoalescePositionedRadioButtonFields(page.FormFields);
+        }
         ValidateNamedDestinationLinks(layout.Pages);
         ValidateUriActionLinks(layout.Pages, opts);
         ValidateGeneratedFormFieldNames(layout.Pages);
@@ -273,6 +276,7 @@ internal static partial class PdfWriter {
             .OrderBy(definition => definition.Id)
             .ToList();
         var optionalContentGroupIds = new Dictionary<PdfLayerDefinition, int>();
+        var positionedRadioPlans = new Dictionary<string, PositionedRadioButtonSerializationPlan>(StringComparer.Ordinal);
         foreach (PdfLayerDefinition definition in layerDefinitions) {
             optionalContentGroupIds[definition] = AddObject(objects, PdfOptionalContentDictionaryBuilder.BuildGroup(definition));
         }
@@ -673,15 +677,71 @@ internal static partial class PdfWriter {
                     double appearanceWidth = field.X2 - field.X1;
                     double appearanceHeight = field.Y2 - field.Y1;
                     if (field.Kind == FormFieldAnnotationKind.RadioButtonGroup) {
+                        if (field.RadioWidgets.Count > 0) {
+                            RadioButtonWidgetAnnotation firstWidget = field.RadioWidgets[0];
+                            double positionedWidth = firstWidget.X2 - firstWidget.X1;
+                            double positionedHeight = firstWidget.Y2 - firstWidget.Y1;
+                            if (!positionedRadioPlans.TryGetValue(field.Name, out PositionedRadioButtonSerializationPlan? plan)) {
+                                string positionedOffAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(positionedWidth, positionedHeight, selected: false, field.Style);
+                                byte[] positionedOffBytes = PdfEncoding.Latin1GetBytes(positionedOffAppearance);
+                                string positionedOffDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(positionedWidth, positionedHeight, positionedOffBytes.Length);
+                                string positionedSelectedAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(positionedWidth, positionedHeight, selected: true, field.Style);
+                                byte[] positionedSelectedBytes = PdfEncoding.Latin1GetBytes(positionedSelectedAppearance);
+                                string positionedSelectedDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(positionedWidth, positionedHeight, positionedSelectedBytes.Length);
+                                plan = new PositionedRadioButtonSerializationPlan {
+                                    ParentFieldId = ReserveObject(objects),
+                                    OffAppearanceId = AddStreamObject(objects, positionedOffDictionary, positionedOffBytes),
+                                    SelectedAppearanceId = AddStreamObject(objects, positionedSelectedDictionary, positionedSelectedBytes),
+                                    Width = positionedWidth,
+                                    Height = positionedHeight,
+                                    Style = field.Style
+                                };
+                                positionedRadioPlans[field.Name] = plan;
+                                formFieldIds.Add(plan.ParentFieldId);
+                            } else if (Math.Abs(plan.Width - positionedWidth) > 0.0001D || Math.Abs(plan.Height - positionedHeight) > 0.0001D) {
+                                throw new ArgumentException("Canvas radio buttons sharing one field name must use the same widget dimensions.");
+                            }
+
+                            for (int optionIndex = 0; optionIndex < field.Options.Count; optionIndex++) {
+                                string option = field.Options[optionIndex];
+                                if (plan.Options.Contains(option, StringComparer.Ordinal)) {
+                                    throw new ArgumentException("Canvas radio button options must be unique within one field name.");
+                                }
+                                RadioButtonWidgetAnnotation widgetFrame = field.RadioWidgets[optionIndex];
+                                AnnotationStructureReference? widgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form");
+                                string widget = PdfAnnotationDictionaryBuilder.BuildRadioButtonWidgetAnnotation(
+                                    widgetFrame.X1,
+                                    widgetFrame.Y1,
+                                    widgetFrame.X2,
+                                    widgetFrame.Y2,
+                                    plan.ParentFieldId,
+                                    option,
+                                    field.Value,
+                                    plan.OffAppearanceId,
+                                    plan.SelectedAppearanceId,
+                                    field.Style,
+                                    widgetStructureReference?.StructParentIndex);
+                                int widgetObjectId = AddObject(objects, widget);
+                                CompleteAnnotationStructureReference(page, widgetStructureReference, widgetObjectId);
+                                plan.Options.Add(option);
+                                plan.WidgetObjectIds.Add(widgetObjectId);
+                                pageAnnotIds.Add(widgetObjectId);
+                            }
+                            if (!string.Equals(field.Value, "Off", StringComparison.Ordinal)) plan.Value = field.Value;
+                            continue;
+                        }
+
                         int parentFieldId = ReserveObject(objects);
-                        string offAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(field.ButtonSize, field.ButtonSize, selected: false, field.Style);
+                        double appearanceButtonWidth = field.ButtonSize;
+                        double appearanceButtonHeight = field.ButtonSize;
+                        string offAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(appearanceButtonWidth, appearanceButtonHeight, selected: false, field.Style);
                         byte[] offAppearanceBytes = PdfEncoding.Latin1GetBytes(offAppearance);
-                        string offAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(field.ButtonSize, field.ButtonSize, offAppearanceBytes.Length);
+                        string offAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(appearanceButtonWidth, appearanceButtonHeight, offAppearanceBytes.Length);
                         int offAppearanceId = AddStreamObject(objects, offAppearanceDictionary, offAppearanceBytes);
 
-                        string selectedAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(field.ButtonSize, field.ButtonSize, selected: true, field.Style);
+                        string selectedAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(appearanceButtonWidth, appearanceButtonHeight, selected: true, field.Style);
                         byte[] selectedAppearanceBytes = PdfEncoding.Latin1GetBytes(selectedAppearance);
-                        string selectedAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(field.ButtonSize, field.ButtonSize, selectedAppearanceBytes.Length);
+                        string selectedAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(appearanceButtonWidth, appearanceButtonHeight, selectedAppearanceBytes.Length);
                         int selectedAppearanceId = AddStreamObject(objects, selectedAppearanceDictionary, selectedAppearanceBytes);
 
                         var widgetObjectIds = new List<int>(field.Options.Count);
@@ -689,10 +749,12 @@ internal static partial class PdfWriter {
                             AnnotationStructureReference? widgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form");
                             double widgetTop = field.Y2 - optionIndex * (field.ButtonSize + field.ButtonGap);
                             double widgetBottom = widgetTop - field.ButtonSize;
+                            double widgetLeft = field.X1;
+                            double widgetRight = field.X1 + field.ButtonSize;
                             string widget = PdfAnnotationDictionaryBuilder.BuildRadioButtonWidgetAnnotation(
-                                field.X1,
+                                widgetLeft,
                                 widgetBottom,
-                                field.X1 + field.ButtonSize,
+                                widgetRight,
                                 widgetTop,
                                 parentFieldId,
                                 field.Options[optionIndex],
@@ -739,7 +801,7 @@ internal static partial class PdfWriter {
                         byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
                         string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, appearanceFontResources, appearanceBytes.Length);
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
-                        formField = PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, field.Values.Count == 0 ? new[] { field.Value } : field.Values, field.FontSize, appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style, formWidgetStructureReference?.StructParentIndex);
+                        formField = PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, field.Values, field.FontSize, appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style, formWidgetStructureReference?.StructParentIndex);
                     } else {
                         string appearanceContent = BuildFormFieldTextAppearanceContent(
                             appearanceWidth,
@@ -781,6 +843,11 @@ internal static partial class PdfWriter {
                         .Select(definition => ("/" + definition.ResourceName, optionalContentGroupIds[definition]))
                         .ToList()));
             pageIds.Add(pageId);
+        }
+
+        foreach (KeyValuePair<string, PositionedRadioButtonSerializationPlan> entry in positionedRadioPlans) {
+            PositionedRadioButtonSerializationPlan plan = entry.Value;
+            ReplaceObject(objects, plan.ParentFieldId, PdfAnnotationDictionaryBuilder.BuildRadioButtonFieldDictionary(entry.Key, plan.Options, plan.Value, plan.WidgetObjectIds, plan.Style));
         }
 
         // Pages tree
@@ -1593,10 +1660,18 @@ internal static partial class PdfWriter {
     }
 
     private static void ValidateGeneratedFormFieldNames(IReadOnlyList<LayoutResult.Page> pages) {
-        var names = new HashSet<string>(StringComparer.Ordinal);
+        var names = new Dictionary<string, FormFieldAnnotation>(StringComparer.Ordinal);
         foreach (var page in pages) {
             foreach (var field in page.FormFields) {
-                if (!names.Add(field.Name)) {
+                if (!names.TryGetValue(field.Name, out FormFieldAnnotation? existing)) {
+                    names[field.Name] = field;
+                    continue;
+                }
+                bool positionedRadioContinuation = existing.Kind == FormFieldAnnotationKind.RadioButtonGroup
+                    && field.Kind == FormFieldAnnotationKind.RadioButtonGroup
+                    && existing.RadioWidgets.Count > 0
+                    && field.RadioWidgets.Count > 0;
+                if (!positionedRadioContinuation) {
                     throw new ArgumentException("PDF generated form field names must be unique: " + field.Name);
                 }
             }

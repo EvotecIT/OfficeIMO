@@ -156,7 +156,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 .Size(pageWidth, pageHeight)
                 .Margin(0D)
                 .Canvas(canvas => {
-                    AddPageVisuals(canvas, renderedPage, webFonts, cancellationToken);
+                    AddPageVisuals(canvas, renderedPage, webFonts, options.InteractiveFormControls, cancellationToken);
                     AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], cancellationToken);
                 }));
         }
@@ -172,10 +172,10 @@ internal static partial class HtmlPdfRenderedConverter {
         }
     }
 
-    private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, RegisteredWebFonts webFonts, CancellationToken cancellationToken) {
+    private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, RegisteredWebFonts webFonts, bool interactiveFormControls, CancellationToken cancellationToken) {
         foreach (HtmlRenderVisual visual in page.Scene.OrderBy(item => item.PaintOrder)) {
             cancellationToken.ThrowIfCancellationRequested();
-            AddVisual(canvas, visual, webFonts, page.Width, page.Height, cancellationToken);
+            AddVisual(canvas, visual, webFonts, page.Width, page.Height, interactiveFormControls, cancellationToken);
         }
     }
 
@@ -185,10 +185,13 @@ internal static partial class HtmlPdfRenderedConverter {
         RegisteredWebFonts webFonts,
         double surfaceWidth,
         double surfaceHeight,
+        bool interactiveFormControls,
         CancellationToken cancellationToken,
         bool textAsSpan = false) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (visual is HtmlRenderShape shape) {
+        if (visual is HtmlRenderFormField formField) {
+            AddFormField(canvas, formField, webFonts, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan);
+        } else if (visual is HtmlRenderShape shape) {
             AddShape(canvas, shape);
         } else if (visual is HtmlRenderText text) {
             AddText(canvas, text, webFonts, surfaceWidth, textAsSpan);
@@ -199,28 +202,84 @@ internal static partial class HtmlPdfRenderedConverter {
         } else if (visual is HtmlRenderImagePattern imagePattern) {
             AddImagePattern(canvas, imagePattern, cancellationToken);
         } else if (visual is HtmlRenderClipGroup group) {
-            AddClipGroup(canvas, group, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
+            AddClipGroup(canvas, group, webFonts, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan);
         } else if (visual is HtmlRenderPathClipGroup pathClipGroup) {
-            AddPathClipGroup(canvas, pathClipGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
+            AddPathClipGroup(canvas, pathClipGroup, webFonts, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan);
         } else if (visual is HtmlRenderEffectGroup effectGroup) {
-            AddEffectGroup(canvas, effectGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
+            AddEffectGroup(canvas, effectGroup, webFonts, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan);
         } else if (visual is HtmlRenderSemanticGroup semanticGroup) {
-            AddSemanticGroup(canvas, semanticGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
+            AddSemanticGroup(canvas, semanticGroup, webFonts, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan);
         } else if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
-            AddLogicalTextGroup(canvas, logicalTextGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
+            AddLogicalTextGroup(canvas, logicalTextGroup, webFonts, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan);
         }
     }
 
-    private static void AddLogicalTextGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderLogicalTextGroup group, RegisteredWebFonts webFonts, double surfaceWidth, double surfaceHeight, CancellationToken cancellationToken, bool textAsSpan) {
+    private static void AddFormField(PdfCore.PdfPageCanvas canvas, HtmlRenderFormField field, RegisteredWebFonts webFonts, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan) {
+        if (!interactiveFormControls || field.FieldKind == HtmlRenderFormFieldKind.Choice && field.Options.Count == 0) {
+            foreach (HtmlRenderVisual child in field.Visuals.OrderBy(item => item.PaintOrder)) {
+                AddVisual(canvas, child, webFonts, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan);
+            }
+            return;
+        }
+
+        var style = new PdfCore.PdfFormFieldStyle {
+            BackgroundColor = field.BackgroundColor.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(field.BackgroundColor.Value) : null,
+            BorderColor = field.BorderColor.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(field.BorderColor.Value) : null,
+            BorderWidth = field.BorderWidth * PointsPerCssPixel,
+            TextColor = PdfCore.PdfColor.FromOfficeColorOrNull(field.TextColor) ?? PdfCore.PdfColor.Black,
+            MarkColor = PdfCore.PdfColor.FromOfficeColorOrNull(field.TextColor) ?? PdfCore.PdfColor.Black,
+            IsReadOnly = field.IsReadOnly,
+            IsRequired = field.IsRequired,
+            IsMultiline = field.IsMultiline,
+            IsPassword = field.IsPassword,
+            IsFileSelect = field.IsFileSelect,
+            MaxLength = field.MaximumLength,
+            AlternateName = field.AlternateName,
+            MappingName = field.MappingName,
+            TextAlignment = MapFormFieldTextAlignment(field.TextAlignment, field.FieldKind)
+        };
+        double x = field.X * PointsPerCssPixel;
+        double y = field.Y * PointsPerCssPixel;
+        double width = field.Width * PointsPerCssPixel;
+        double height = field.Height * PointsPerCssPixel;
+        double fontSize = Math.Max(1D, field.Font.Size * PointsPerCssPixel);
+        if (field.FieldKind == HtmlRenderFormFieldKind.Text) {
+            canvas.TextField(field.Name, field.Value, x, y, width, height, fontSize, style);
+            if (!field.IsPassword && !string.IsNullOrWhiteSpace(field.Value)) {
+                canvas.SearchableText(field.Value, x, y + Math.Min(height, fontSize));
+            }
+        } else if (field.FieldKind == HtmlRenderFormFieldKind.CheckBox) {
+            canvas.CheckBox(field.Name, field.IsSelected, x, y, width, height, field.Value, style);
+        } else if (field.FieldKind == HtmlRenderFormFieldKind.Choice) {
+            canvas.ChoiceField(field.Name, field.Options, field.Values, x, y, width, height, fontSize, field.IsComboBox, field.AllowsMultipleSelection, style);
+            string searchableValue = string.Join(" ", field.Values.Where(value => !string.IsNullOrWhiteSpace(value)));
+            if (searchableValue.Length > 0) {
+                canvas.SearchableText(searchableValue, x, y + Math.Min(height, fontSize));
+            }
+        } else {
+            canvas.RadioButton(field.Name, field.RadioOption!, field.IsSelected, x, y, width, height, style);
+        }
+    }
+
+    private static PdfCore.PdfFormFieldTextAlignment? MapFormFieldTextAlignment(OfficeTextAlignment alignment, HtmlRenderFormFieldKind fieldKind) =>
+        fieldKind == HtmlRenderFormFieldKind.CheckBox || fieldKind == HtmlRenderFormFieldKind.RadioButton
+            ? null
+            : alignment == OfficeTextAlignment.Center
+                ? PdfCore.PdfFormFieldTextAlignment.Center
+                : alignment == OfficeTextAlignment.Right
+                    ? PdfCore.PdfFormFieldTextAlignment.Right
+                    : PdfCore.PdfFormFieldTextAlignment.Left;
+
+    private static void AddLogicalTextGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderLogicalTextGroup group, RegisteredWebFonts webFonts, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan) {
         canvas.ActualText(group.Text, nested => {
             foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
+                AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan);
             }
         });
     }
 
-    private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, RegisteredWebFonts webFonts, double surfaceWidth, double surfaceHeight, CancellationToken cancellationToken, bool textAsSpan) {
+    private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, RegisteredWebFonts webFonts, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan) {
         if (!group.Visuals.Any(ContainsPaintableVisual)) return;
         var options = new PdfCore.PdfCanvasStructureOptions {
             ColumnSpan = group.ColumnSpan,
@@ -231,7 +290,7 @@ internal static partial class HtmlPdfRenderedConverter {
         canvas.Structure(MapSemanticGroupRole(group.Role), nested => {
             foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken, childTextAsSpan);
+                AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, childTextAsSpan);
             }
         }, options);
     }
@@ -288,6 +347,7 @@ internal static partial class HtmlPdfRenderedConverter {
         RegisteredWebFonts webFonts,
         double surfaceWidth,
         double surfaceHeight,
+        bool interactiveFormControls,
         CancellationToken cancellationToken,
         bool textAsSpan) {
         OfficeTransform transform = group.Transform;
@@ -301,7 +361,7 @@ internal static partial class HtmlPdfRenderedConverter {
         canvas.Effect(scaled, group.Opacity, nested => {
             foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
+                AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan);
             }
         });
     }
@@ -312,6 +372,7 @@ internal static partial class HtmlPdfRenderedConverter {
         RegisteredWebFonts webFonts,
         double surfaceWidth,
         double surfaceHeight,
+        bool interactiveFormControls,
         CancellationToken cancellationToken,
         bool textAsSpan) {
         double left = group.ClipHorizontal ? Math.Max(0D, group.ClipX) : 0D;
@@ -327,7 +388,7 @@ internal static partial class HtmlPdfRenderedConverter {
             clipped => {
                 foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    AddVisual(clipped, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
+                    AddVisual(clipped, child, webFonts, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan);
                 }
             });
     }
@@ -338,6 +399,7 @@ internal static partial class HtmlPdfRenderedConverter {
         RegisteredWebFonts webFonts,
         double surfaceWidth,
         double surfaceHeight,
+        bool interactiveFormControls,
         CancellationToken cancellationToken,
         bool textAsSpan) {
         canvas.Clip(
@@ -347,7 +409,7 @@ internal static partial class HtmlPdfRenderedConverter {
             clipped => {
                 foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    AddVisual(clipped, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
+                    AddVisual(clipped, child, webFonts, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan);
                 }
             });
     }

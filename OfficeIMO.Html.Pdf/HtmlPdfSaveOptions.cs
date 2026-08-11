@@ -53,6 +53,12 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     public PdfCore.PdfEmbeddedFontFamily? FontFamily { get; set; }
 
     /// <summary>
+    /// Converts supported standard HTML inputs, text areas, and selects into interactive AcroForm fields.
+    /// Disable this to retain the shared renderer's static control paint in the PDF.
+    /// </summary>
+    public bool InteractiveFormControls { get; set; } = true;
+
+    /// <summary>
     /// PDF writer settings used for the generated document, including file version,
     /// forward-only serialization, tagging, compliance groundwork, and output intents.
     /// </summary>
@@ -92,6 +98,7 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
         TextFallbacks = source.TextFallbacks;
         TextShapingMode = source.TextShapingMode;
         FontFamily = source.FontFamily;
+        InteractiveFormControls = source.InteractiveFormControls;
         PdfOptions = source.PdfOptions.Clone();
         TextShapingProvider = source.TextShapingProvider;
         ResourcePolicy = source.ResourcePolicy.Clone();

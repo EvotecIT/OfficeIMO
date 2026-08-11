@@ -24,6 +24,9 @@ internal static partial class PdfWriter {
                     case PdfCanvasTextItem text:
                         RenderCanvasText(text);
                         break;
+                    case PdfCanvasSearchableTextItem searchableText:
+                        RenderCanvasSearchableText(searchableText);
+                        break;
                     case PdfCanvasTextBoxItem textBox:
                         RenderCanvasTextBox(textBox);
                         break;
@@ -45,6 +48,9 @@ internal static partial class PdfWriter {
                     case PdfCanvasHighlightAnnotationItem highlightAnnotation:
                         RenderCanvasHighlightAnnotation(highlightAnnotation);
                         break;
+                    case PdfCanvasFormFieldItem formField:
+                        RenderCanvasFormField(formField);
+                        break;
                     case PdfCanvasTableItem table:
                         RenderCanvasTable(table);
                         break;
@@ -56,6 +62,88 @@ internal static partial class PdfWriter {
                         break;
                 }
             }
+        }
+
+        private void RenderCanvasFormField(PdfCanvasFormFieldItem item) {
+            ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas form field");
+            double topY = currentOpts.PageHeight - item.Y;
+            double bottomY = topY - item.Height;
+
+            if (item.Kind == PdfCanvasFormFieldKind.RadioButton) {
+                var field = new FormFieldAnnotation {
+                    X1 = item.X,
+                    Y1 = bottomY,
+                    X2 = item.X + item.Width,
+                    Y2 = topY,
+                    Kind = FormFieldAnnotationKind.RadioButtonGroup,
+                    Name = item.Name,
+                    Value = item.IsSelected ? item.Option : "Off",
+                    Options = new[] { item.Option },
+                    ButtonSize = Math.Min(item.Width, item.Height),
+                    Style = item.Style
+                };
+                field.RadioWidgets.Add(new RadioButtonWidgetAnnotation {
+                    X1 = item.X,
+                    Y1 = bottomY,
+                    X2 = item.X + item.Width,
+                    Y2 = topY,
+                    Option = item.Option
+                });
+                currentPage!.FormFields.Add(field);
+                pageDirty = true;
+                return;
+            }
+
+            currentPage!.FormFields.Add(new FormFieldAnnotation {
+                X1 = item.X,
+                Y1 = bottomY,
+                X2 = item.X + item.Width,
+                Y2 = topY,
+                Kind = item.Kind == PdfCanvasFormFieldKind.Text
+                    ? FormFieldAnnotationKind.Text
+                    : item.Kind == PdfCanvasFormFieldKind.CheckBox
+                        ? FormFieldAnnotationKind.CheckBox
+                        : FormFieldAnnotationKind.Choice,
+                Name = item.Name,
+                Value = item.Value,
+                Values = item.Values,
+                FontSize = item.FontSize,
+                IsChecked = item.IsSelected,
+                CheckedValueName = item.Option,
+                Options = item.Options,
+                IsComboBox = item.IsComboBox,
+                AllowsMultipleSelection = item.AllowsMultipleSelection,
+                Style = item.Style
+            });
+            pageDirty = true;
+        }
+
+        private void RenderCanvasSearchableText(PdfCanvasSearchableTextItem item) {
+            EnsurePage();
+            PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
+            string fontResource = GetFontResourceName(font, null, font);
+            double baselineY = currentOpts.PageHeight - item.Y;
+            int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElementIndex);
+
+            var content = new ContentStreamBuilder(sb)
+                .SaveState()
+                .BeginText()
+                .Font(fontResource, 1D)
+                .TextRenderingMode(3)
+                .TextMatrix(item.X, baselineY);
+            sb.Append("/Span << /ActualText ")
+                .Append(PdfSyntaxEscaper.TextString(item.Text));
+            if (markedContentId.HasValue) {
+                sb.Append(" /MCID ")
+                    .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
+            }
+            sb.Append(" >> BDC\n");
+            content.ShowText(EncodeTextShowCommand(" ", font, currentOpts), 1D);
+            sb.Append("EMC\n");
+            content.EndText().RestoreState();
+
+            MarkSimpleFont(font);
+            pageDirty = true;
         }
 
         private void RenderCanvasActualText(PdfCanvasActualTextItem item) {
@@ -524,6 +612,10 @@ internal static partial class PdfWriter {
 
         private static void TransformCanvasRectangle(FormFieldAnnotation annotation, OfficeTransform transform) {
             (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
+            for (int index = 0; index < annotation.RadioWidgets.Count; index++) {
+                RadioButtonWidgetAnnotation widget = annotation.RadioWidgets[index];
+                (widget.X1, widget.Y1, widget.X2, widget.Y2) = TransformRectangle(widget.X1, widget.Y1, widget.X2, widget.Y2, transform);
+            }
         }
 
         private static (double X1, double Y1, double X2, double Y2) TransformRectangle(double x1, double y1, double x2, double y2, OfficeTransform transform) {
@@ -711,6 +803,21 @@ internal static partial class PdfWriter {
                 formField.Y1 = y1;
                 formField.X2 = x2;
                 formField.Y2 = y2;
+                for (int widgetIndex = formField.RadioWidgets.Count - 1; widgetIndex >= 0; widgetIndex--) {
+                    RadioButtonWidgetAnnotation widget = formField.RadioWidgets[widgetIndex];
+                    double widgetX1 = System.Math.Max(widget.X1, clipX);
+                    double widgetY1 = System.Math.Max(widget.Y1, clipBottomY);
+                    double widgetX2 = System.Math.Min(widget.X2, clipRight);
+                    double widgetY2 = System.Math.Min(widget.Y2, clipTop);
+                    if (widgetX2 <= widgetX1 || widgetY2 <= widgetY1) {
+                        formField.RadioWidgets.RemoveAt(widgetIndex);
+                        continue;
+                    }
+                    widget.X1 = widgetX1;
+                    widget.Y1 = widgetY1;
+                    widget.X2 = widgetX2;
+                    widget.Y2 = widgetY2;
+                }
             }
         }
 
@@ -805,6 +912,21 @@ internal static partial class PdfWriter {
             formField.Y1 = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
             formField.X2 = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
             formField.Y2 = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
+            for (int index = 0; index < formField.RadioWidgets.Count; index++) {
+                RadioButtonWidgetAnnotation widget = formField.RadioWidgets[index];
+                RotateCanvasRectangle(widget, centerX, centerY, cos, sin);
+            }
+        }
+
+        private static void RotateCanvasRectangle(RadioButtonWidgetAnnotation widget, double centerX, double centerY, double cos, double sin) {
+            RotateCanvasPoint(widget.X1, widget.Y1, centerX, centerY, cos, sin, out double x1, out double y1);
+            RotateCanvasPoint(widget.X1, widget.Y2, centerX, centerY, cos, sin, out double x2, out double y2);
+            RotateCanvasPoint(widget.X2, widget.Y1, centerX, centerY, cos, sin, out double x3, out double y3);
+            RotateCanvasPoint(widget.X2, widget.Y2, centerX, centerY, cos, sin, out double x4, out double y4);
+            widget.X1 = Math.Min(Math.Min(x1, x2), Math.Min(x3, x4));
+            widget.Y1 = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
+            widget.X2 = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
+            widget.Y2 = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
         }
 
         private static void RotateCanvasPoint(double x, double y, double centerX, double centerY, double cos, double sin, out double rotatedX, out double rotatedY) {

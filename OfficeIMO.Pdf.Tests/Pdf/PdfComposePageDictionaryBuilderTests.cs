@@ -626,8 +626,10 @@ namespace OfficeIMO.Tests.Pdf {
                 PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20, 110, 44, "Country", Array.Empty<string>(), "Poland", 10, 12, isComboBox: true));
             Assert.Throws<ArgumentException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20, 110, 44, "Country", new[] { "Poland" }, "Germany", 10, 12, isComboBox: true));
-            Assert.Throws<ArgumentException>(() =>
-                PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20, 110, 44, "Countries", new[] { "Poland" }, Array.Empty<string>(), 10, 12, isComboBox: false, allowsMultipleSelection: true));
+            Assert.Contains(
+                "/V [] /DV []",
+                PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20, 110, 44, "Countries", new[] { "Poland" }, Array.Empty<string>(), 10, 12, isComboBox: false, allowsMultipleSelection: true),
+                StringComparison.Ordinal);
             Assert.Throws<ArgumentException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20, 110, 44, "Countries", new[] { "Poland" }, new[] { "Poland", "Poland" }, 10, 12, isComboBox: false, allowsMultipleSelection: true));
             Assert.Throws<ArgumentException>(() =>

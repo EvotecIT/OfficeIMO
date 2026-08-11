@@ -51,6 +51,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.PaintVisible) {
             AddFormControlContent(visuals, element, style, x, y, boxWidth, boxHeight, source);
             AddBoxOutlinePaint(visuals, style, x, y, boxWidth, boxHeight, element);
+            if (TryCreateFormFieldVisual(element, style, x, y, boxWidth, boxHeight, visuals, source, out HtmlRenderFormField? formField)) {
+                visuals = new List<HtmlRenderVisual> { formField! };
+            }
         } else {
             visuals.Clear();
         }
@@ -487,6 +490,218 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 source: source,
                 semanticRole: "form-control"));
         }
+    }
+
+    private bool TryCreateFormFieldVisual(
+        IElement element,
+        HtmlRenderBoxStyle style,
+        double x,
+        double y,
+        double width,
+        double height,
+        IReadOnlyList<HtmlRenderVisual> fallbackVisuals,
+        string source,
+        out HtmlRenderFormField? formField) {
+        formField = null;
+        string tag = element.LocalName.ToLowerInvariant();
+        string type = tag == "input" ? NormalizeInputType(element) : tag;
+        HtmlRenderFormFieldKind fieldKind;
+        if (tag == "textarea") fieldKind = HtmlRenderFormFieldKind.Text;
+        else if (tag == "select") fieldKind = HtmlRenderFormFieldKind.Choice;
+        else if (tag == "input" && type == "checkbox") fieldKind = HtmlRenderFormFieldKind.CheckBox;
+        else if (tag == "input" && type == "radio") fieldKind = HtmlRenderFormFieldKind.RadioButton;
+        else if (tag == "input" && IsInteractiveTextInputType(type)) fieldKind = HtmlRenderFormFieldKind.Text;
+        else return false;
+
+        int nodeId = GetSemanticNodeId(element);
+        string mappingName = NormalizeControlText(element.GetAttribute("name"));
+        if (mappingName.Length == 0) mappingName = NormalizeControlText(element.GetAttribute("id"));
+        if (mappingName.Length == 0) mappingName = "html-field-" + nodeId.ToString(CultureInfo.InvariantCulture);
+        string name = fieldKind == HtmlRenderFormFieldKind.RadioButton
+            ? ResolveRadioFieldName(element, mappingName, nodeId)
+            : ResolveUniqueFormFieldName(mappingName, nodeId);
+
+        string value = HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty;
+        IReadOnlyList<string> values = Array.Empty<string>();
+        IReadOnlyList<string> options = Array.Empty<string>();
+        string? radioOption = null;
+        bool selected = fieldKind == HtmlRenderFormFieldKind.CheckBox || fieldKind == HtmlRenderFormFieldKind.RadioButton
+            ? HtmlFormControlSemantics.IsEffectivelyChecked(element)
+            : false;
+        bool multiple = tag == "select" && element.HasAttribute("multiple");
+
+        if (fieldKind == HtmlRenderFormFieldKind.Choice) {
+            ResolveChoiceFieldValues(element, out options, out values);
+            value = values.FirstOrDefault() ?? string.Empty;
+        } else if (fieldKind == HtmlRenderFormFieldKind.RadioButton) {
+            radioOption = ResolveRadioOptionToken(element, name, value, nodeId);
+            value = radioOption;
+        } else if (fieldKind == HtmlRenderFormFieldKind.CheckBox) {
+            value = ResolveButtonOptionToken(value, nodeId);
+        }
+
+        int? maximumLength = null;
+        if (HtmlFormControlSemantics.IsLengthApplicable(tag, type)
+            && HtmlFormControlSemantics.TryParseLengthConstraint(element.GetAttribute("maxlength"), out int parsedMaximumLength)
+            && parsedMaximumLength > 0) {
+            maximumLength = parsedMaximumLength;
+        }
+
+        bool disabled = HtmlFormControlSemantics.IsEffectivelyDisabled(element);
+        bool readOnly = disabled || element.HasAttribute("readonly") && HtmlFormControlSemantics.IsReadOnlyStateApplicable(tag, type);
+        bool required = element.HasAttribute("required") && HtmlFormControlSemantics.IsRequiredStateApplicable(tag, type);
+        string alternateName = ResolveFormFieldAccessibleName(element, name);
+        OfficeColor? borderColor = style.BorderWidth > 0D && style.BorderStyle != "none" ? style.BorderColor : null;
+        formField = new HtmlRenderFormField(
+            fieldKind,
+            name,
+            mappingName,
+            value,
+            values,
+            options,
+            radioOption,
+            selected,
+            readOnly,
+            required,
+            tag == "textarea",
+            tag == "input" && type == "password",
+            tag == "input" && type == "file",
+            tag == "select" && !multiple && HtmlFormControlSemantics.GetSelectDisplaySize(element) == 1,
+            multiple,
+            maximumLength,
+            alternateName,
+            style.Font,
+            style.Color,
+            style.Alignment,
+            style.BackgroundColor,
+            borderColor,
+            style.BorderWidth,
+            x,
+            y,
+            width,
+            height,
+            fallbackVisuals,
+            paintOrder: 0,
+            source);
+        return true;
+    }
+
+    private static bool IsInteractiveTextInputType(string type) {
+        switch (type) {
+            case "date":
+            case "datetime-local":
+            case "email":
+            case "file":
+            case "month":
+            case "number":
+            case "password":
+            case "search":
+            case "tel":
+            case "text":
+            case "time":
+            case "url":
+            case "week":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static void ResolveChoiceFieldValues(IElement select, out IReadOnlyList<string> options, out IReadOnlyList<string> values) {
+        IElement[] optionElements = select.QuerySelectorAll("option").ToArray();
+        var labels = new List<string>(optionElements.Length);
+        var selectedLabels = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        IReadOnlyList<IElement> selectedOptions = HtmlFormControlSemantics.GetEffectiveSelectedOptions(select);
+        for (int index = 0; index < optionElements.Length; index++) {
+            IElement option = optionElements[index];
+            string label = NormalizeControlText(HtmlFormControlSemantics.GetOptionLabel(option));
+            if (label.Length == 0) label = NormalizeControlText(option.GetAttribute("value"));
+            if (label.Length == 0) label = "Option " + (index + 1).ToString(CultureInfo.InvariantCulture);
+            string uniqueLabel = label;
+            int suffix = 2;
+            while (!seen.Add(uniqueLabel)) {
+                uniqueLabel = label + " (" + suffix.ToString(CultureInfo.InvariantCulture) + ")";
+                suffix++;
+            }
+            labels.Add(uniqueLabel);
+            if (selectedOptions.Contains(option)) selectedLabels.Add(uniqueLabel);
+        }
+        options = labels;
+        values = selectedLabels;
+    }
+
+    private string ResolveRadioOptionToken(IElement element, string fieldName, string value, int nodeId) {
+        string owner = ResolveFormOwnerKey(element);
+        string key = owner + "\n" + fieldName;
+        if (!_radioOptionTokens.TryGetValue(key, out HashSet<string>? used)) {
+            used = new HashSet<string>(StringComparer.Ordinal);
+            _radioOptionTokens[key] = used;
+        }
+        string candidate = IsPdfNameValue(value) && !string.Equals(value, "Off", StringComparison.Ordinal)
+            ? value
+            : "option-" + nodeId.ToString(CultureInfo.InvariantCulture);
+        if (used.Add(candidate)) return candidate;
+        candidate += "-" + nodeId.ToString(CultureInfo.InvariantCulture);
+        used.Add(candidate);
+        return candidate;
+    }
+
+    private string ResolveRadioFieldName(IElement element, string mappingName, int nodeId) {
+        string owner = ResolveFormOwnerKey(element);
+        string key = owner + "\n" + mappingName;
+        if (_radioFieldNames.TryGetValue(key, out string? name)) return name;
+        name = ResolveUniqueFormFieldName(mappingName, nodeId);
+        _radioFieldNames[key] = name;
+        return name;
+    }
+
+    private string ResolveFormOwnerKey(IElement element) {
+        IElement? owner = HtmlFormControlSemantics.ResolveFormOwner(element);
+        if (owner == null) return "none";
+        string id = owner.GetAttribute("id") ?? string.Empty;
+        return id.Length > 0 ? "id:" + id : "node:" + GetSemanticNodeId(owner).ToString(CultureInfo.InvariantCulture);
+    }
+
+    private string ResolveUniqueFormFieldName(string name, int nodeId) {
+        if (_formFieldNames.Add(name)) return name;
+        string candidate = name + "-" + nodeId.ToString(CultureInfo.InvariantCulture);
+        while (!_formFieldNames.Add(candidate)) candidate += "-field";
+        return candidate;
+    }
+
+    private static string ResolveButtonOptionToken(string value, int nodeId) =>
+        IsPdfNameValue(value) && !string.Equals(value, "Off", StringComparison.Ordinal)
+            ? value
+            : "value-" + nodeId.ToString(CultureInfo.InvariantCulture);
+
+    private static bool IsPdfNameValue(string value) {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        for (int index = 0; index < value.Length; index++) {
+            if (value[index] > 0x7E) return false;
+        }
+        return true;
+    }
+
+    private string ResolveFormFieldAccessibleName(IElement element, string fallbackName) {
+        string accessibleName = HtmlAccessibilitySemantics.GetAccessibleName(element);
+        if (accessibleName.Length > 0) return accessibleName;
+        for (IElement? ancestor = element.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
+            if (!string.Equals(ancestor.LocalName, "label", StringComparison.OrdinalIgnoreCase)) continue;
+            accessibleName = HtmlAccessibilitySemantics.GetAccessibleName(ancestor, includeTextFallback: true);
+            if (accessibleName.Length > 0) return accessibleName;
+            break;
+        }
+        string id = element.GetAttribute("id") ?? string.Empty;
+        if (id.Length > 0) {
+            foreach (IElement label in _document.QuerySelectorAll("label")) {
+                if (!string.Equals(label.GetAttribute("for"), id, StringComparison.Ordinal)) continue;
+                accessibleName = HtmlAccessibilitySemantics.GetAccessibleName(label, includeTextFallback: true);
+                if (accessibleName.Length > 0) return accessibleName;
+            }
+        }
+        string placeholder = NormalizeControlText(element.GetAttribute("placeholder"));
+        return placeholder.Length > 0 ? placeholder : fallbackName;
     }
 
     private static double ResolveNumericFraction(IElement element, double defaultMinimum, double defaultMaximum, double defaultValue) {

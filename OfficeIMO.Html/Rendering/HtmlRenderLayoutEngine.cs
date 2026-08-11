@@ -41,6 +41,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<int, int> _rootStackingPaintOrders = new Dictionary<int, int>();
     private readonly Dictionary<IElement, int> _positionedSourceOrdersByElement = new Dictionary<IElement, int>();
     private readonly Dictionary<IElement, int> _semanticNodeIds = new Dictionary<IElement, int>();
+    private readonly Dictionary<string, HashSet<string>> _radioOptionTokens = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+    private readonly HashSet<string> _formFieldNames = new HashSet<string>(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _radioFieldNames = new Dictionary<string, string>(StringComparer.Ordinal);
     private readonly HashSet<IElement> _registeredFixedElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _registeredAbsoluteElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedPositionStaticAnchorFallbacks = new HashSet<IElement>();
@@ -198,6 +201,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _rootStackingPaintOrders.Clear();
         _positionedSourceOrdersByElement.Clear();
         _semanticNodeIds.Clear();
+        _radioOptionTokens.Clear();
+        _formFieldNames.Clear();
+        _radioFieldNames.Clear();
         _registeredFixedElements.Clear();
         _registeredAbsoluteElements.Clear();
         _reportedPositionStaticAnchorFallbacks.Clear();
