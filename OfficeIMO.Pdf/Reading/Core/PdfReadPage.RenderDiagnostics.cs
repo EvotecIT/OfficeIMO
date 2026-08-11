@@ -493,7 +493,7 @@ public sealed partial class PdfReadPage {
                                      CollectShadingCapabilityDiagnostics(
                                          resources,
                                          Array.Empty<string>(),
-                                         new[] { name },
+                                         new[] { name! },
                                          diagnostics,
                                          seen);
                                  } else if (!requireImageMask) {
@@ -517,9 +517,8 @@ public sealed partial class PdfReadPage {
                          initialFillPatternBaseColorSpace: initialFillPatternBaseColorSpace,
                          initialStrokePattern: initialStrokePattern,
                          initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
-                         initialClipPath: initialClipPath,
                          tilingPatterns: tilingPatterns,
-                shadingPatterns: shadingPatterns)) {
+                         shadingPatterns: shadingPatterns)) {
                 if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     bool canProjectImage = CanProjectType3ImageInvocation(
                         invocation,
