@@ -138,7 +138,9 @@ public sealed partial class PdfReadPage {
         if (!activeGroups.Add(resource.Group)) return false;
         try {
             if (Filters.StreamDecoder.GetUnsupportedFilters(resource.Group.Dictionary, _objects).Count != 0) return false;
-            string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(resource.Group));
+            string content = WrapFormContentWithBoundingBoxClip(
+                PdfEncoding.Latin1GetString(pageContentBudget.Decode(resource.Group)),
+                resource.Group.Dictionary);
             PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
             PdfDictionary? resources = ResolveDictionary(
                 resource.Group.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject)
@@ -193,14 +195,71 @@ public sealed partial class PdfReadPage {
         Dictionary<string, Func<byte[], double>> widthProviders = resources == null
             ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
             : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
+        (double Width, double Height) visualPageSize = GetVisualPageSize();
+        Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
+        Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources);
+        var type3PaintChannelCache = new Dictionary<PdfStream, PdfType3PaintChannels>();
+        var activeType3PaintChannelStreams = new HashSet<PdfStream>();
+        var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
+        _ = PdfPageXObjectInvocationParser.Parse(
+            content,
+            baseTransform,
+            visualPageSize.Height,
+            GetGraphicsStateResources(resources),
+            colorSpaces,
+            GetOptionalContentVisibility(resources),
+            initialFillColor: initialState?.FillColor,
+            initialFillColorSpace: initialState?.FillColorSpace ?? default,
+            initialFillOpacity: initialState?.FillOpacity,
+            initialClipPath: initialState?.ClipPath,
+            initialStrokeColor: initialState?.StrokeColor,
+            initialStrokeColorSpace: initialState?.StrokeColorSpace ?? default,
+            initialStrokeOpacity: initialState?.StrokeOpacity,
+            initialStrokeWidth: initialState?.StrokeWidth,
+            initialStrokeDashStyle: initialState?.StrokeDashStyle,
+            initialStrokeLineCap: initialState?.StrokeLineCap,
+            initialStrokeLineJoin: initialState?.StrokeLineJoin,
+            maxOperations: _limits.MaxContentOperations,
+            maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxOperands: _limits.MaxContentOperands,
+            fonts: fonts,
+            fontWidthProviders: widthProviders,
+            patternInvocationVisitor: name => invokedPatternNames.Add(name),
+            patternBaseColorSpaces: patternBaseColorSpaces,
+            initialFillPattern: initialState?.FillPattern,
+            initialFillPatternBaseColorSpace: initialState?.FillPatternBaseColorSpace,
+            initialStrokePattern: initialState?.StrokePattern,
+            initialStrokePatternBaseColorSpace: initialState?.StrokePatternBaseColorSpace,
+            type3PaintChannelResolver: (font, bytes) => ResolveType3PaintChannels(
+                font,
+                bytes,
+                type3PaintChannelCache,
+                activeType3PaintChannelStreams),
+            xObjectPaintChannelResolver: (name, transform, clipPath) => ResolveXObjectPaintChannels(
+                resources,
+                name,
+                transform,
+                clipPath,
+                visualPageSize.Width,
+                visualPageSize.Height,
+                type3PaintChannelCache,
+                activeType3PaintChannelStreams));
+        Dictionary<string, PdfPageTilingPatternResource> tilingPatterns = GetTilingPatternResources(
+            resources,
+            invokedPatternNames,
+            textOutputBudget: CreateTextOutputBudget(),
+            pageContentBudget: pageContentBudget,
+            type3GlyphBudget: type3GlyphBudget,
+            requireSupportedType3Content: false);
+        Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources);
         var validationDiagnostics = new List<PdfRenderCapabilityDiagnostic>();
         var validationDiagnosticKeys = new HashSet<string>(StringComparer.Ordinal);
         IReadOnlyList<PdfPageXObjectInvocation> invocations = PdfPageXObjectInvocationParser.Parse(
             content,
             baseTransform,
-            GetPageSize().Height,
+            visualPageSize.Height,
             GetGraphicsStateResources(resources),
-            GetColorSpaceResources(resources),
+            colorSpaces,
             GetOptionalContentVisibility(resources),
             initialFillColor: initialState?.FillColor,
             initialFillColorSpace: initialState?.FillColorSpace ?? default,
@@ -264,17 +323,32 @@ public sealed partial class PdfReadPage {
                 }
             },
             allowSupportedGraphicsEffects: true,
-            patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
+            patternBaseColorSpaces: patternBaseColorSpaces,
             initialFillPattern: initialState?.FillPattern,
             initialFillPatternBaseColorSpace: initialState?.FillPatternBaseColorSpace,
             initialStrokePattern: initialState?.StrokePattern,
-            initialStrokePatternBaseColorSpace: initialState?.StrokePatternBaseColorSpace);
+            initialStrokePatternBaseColorSpace: initialState?.StrokePatternBaseColorSpace,
+            tilingPatterns: tilingPatterns,
+            shadingPatterns: shadingPatterns,
+            type3PaintChannelResolver: (font, bytes) => ResolveType3PaintChannels(
+                font,
+                bytes,
+                type3PaintChannelCache,
+                activeType3PaintChannelStreams),
+            xObjectPaintChannelResolver: (name, transform, clipPath) => ResolveXObjectPaintChannels(
+                resources,
+                name,
+                transform,
+                clipPath,
+                visualPageSize.Width,
+                visualPageSize.Height,
+                type3PaintChannelCache,
+                activeType3PaintChannelStreams));
         if (!supported) return false;
 
         for (int index = 0; index < invocations.Count; index++) {
             PdfPageXObjectInvocation invocation = invocations[index];
             if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
-                (double Width, double Height) visualPageSize = GetVisualPageSize();
                 if (!CanProjectType3ImageInvocation(
                         invocation,
                         resources,
