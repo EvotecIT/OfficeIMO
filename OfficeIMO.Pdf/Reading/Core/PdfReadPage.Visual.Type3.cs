@@ -36,7 +36,7 @@ public sealed partial class PdfReadPage {
         var glyphImages = new List<(PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect)>();
         var glyphGroups = new List<(OfficeDrawing Drawing, OfficeTransform Transform, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)>();
         var extractedImageCache = new Dictionary<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor), PdfExtractedImage>();
-        var validatedSoftMaskGroups = new Dictionary<PdfStream, int>();
+        var validatedSoftMaskGroups = new Dictionary<(PdfStream Group, Matrix2D Transform), int>();
         var softMaskValidationBudget = new PageContentBudget(this);
         var softMaskValidationType3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         double nextPaintOrder = invocation.PaintOrder;
@@ -132,6 +132,7 @@ public sealed partial class PdfReadPage {
                 for (int effectIndex = 0; effectIndex < localEffects.Count; effectIndex++) {
                     if (!CanDecodeType3SoftMask(
                             localEffects[effectIndex].Effect.SoftMask,
+                            localEffects[effectIndex].Effect.SoftMaskTransform ?? glyphTransform,
                             softMaskValidationBudget,
                             validatedSoftMaskGroups,
                             softMaskValidationType3GlyphBudget,

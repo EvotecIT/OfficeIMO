@@ -93,14 +93,17 @@ public sealed partial class PdfReadPage {
 
     private bool CanDecodeType3SoftMask(
         PdfPageSoftMaskResource? resource,
+        Matrix2D groupTransform,
         PageContentBudget pageContentBudget,
-        Dictionary<PdfStream, int> validatedGroups,
+        Dictionary<(PdfStream Group, Matrix2D Transform), int> validatedGroups,
         Type3GlyphBudget type3GlyphBudget,
         int contentNestingDepth,
-        HashSet<PdfStream>? activeType3Glyphs = null) {
-        var nestingDepth = new SoftMaskNestingDepth(contentNestingDepth);
+        HashSet<PdfStream>? activeType3Glyphs = null,
+        SoftMaskNestingDepth? nestingDepth = null) {
+        nestingDepth ??= new SoftMaskNestingDepth(contentNestingDepth);
         return CanDecodeType3SoftMask(
             resource,
+            groupTransform,
             pageContentBudget,
             validatedGroups,
             type3GlyphBudget,
@@ -113,8 +116,9 @@ public sealed partial class PdfReadPage {
 
     private bool CanDecodeType3SoftMask(
         PdfPageSoftMaskResource? resource,
+        Matrix2D groupTransform,
         PageContentBudget pageContentBudget,
-        Dictionary<PdfStream, int> validatedGroups,
+        Dictionary<(PdfStream Group, Matrix2D Transform), int> validatedGroups,
         Type3GlyphBudget type3GlyphBudget,
         HashSet<PdfStream> activeGroups,
         HashSet<PdfStream> activeForms,
@@ -124,7 +128,8 @@ public sealed partial class PdfReadPage {
         if (resource == null) return true;
         EnsureContentNestingBudget(contentNestingDepth);
         nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
-        if (validatedGroups.TryGetValue(resource.Group, out int cachedNestingSpan)) {
+        var cacheKey = (resource.Group, groupTransform);
+        if (validatedGroups.TryGetValue(cacheKey, out int cachedNestingSpan)) {
             int cachedMaximumDepth = contentNestingDepth + cachedNestingSpan;
             EnsureContentNestingBudget(cachedMaximumDepth);
             nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, cachedMaximumDepth);
@@ -143,7 +148,7 @@ public sealed partial class PdfReadPage {
             bool supported = CanDecodeType3SoftMasksInContent(
                 content,
                 resources,
-                Matrix2D.Identity,
+                groupTransform,
                 pageContentBudget,
                 validatedGroups,
                 type3GlyphBudget,
@@ -153,7 +158,7 @@ public sealed partial class PdfReadPage {
                 contentNestingDepth,
                 groupNestingDepth);
             nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, groupNestingDepth.Maximum);
-            if (supported) validatedGroups[resource.Group] = groupNestingDepth.Maximum - contentNestingDepth;
+            if (supported) validatedGroups[cacheKey] = groupNestingDepth.Maximum - contentNestingDepth;
             return supported;
         } catch (PdfReadLimitException) {
             throw;
@@ -173,7 +178,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources,
         Matrix2D baseTransform,
         PageContentBudget pageContentBudget,
-        Dictionary<PdfStream, int> validatedGroups,
+        Dictionary<(PdfStream Group, Matrix2D Transform), int> validatedGroups,
         Type3GlyphBudget type3GlyphBudget,
         HashSet<PdfStream> activeGroups,
         HashSet<PdfStream> activeForms,
@@ -221,7 +226,8 @@ public sealed partial class PdfReadPage {
                             activeType3Glyphs,
                             validationDiagnostics,
                             validationDiagnosticKeys,
-                            contentNestingDepth + 1)) {
+                            contentNestingDepth + 1,
+                            nestingDepth)) {
                         supported = false;
                     }
                 }
@@ -229,9 +235,10 @@ public sealed partial class PdfReadPage {
             },
             type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
             unsupportedGraphicsEffectVisitor: () => supported = false,
-            graphicsStateVisitor: state => {
+            graphicsStateVisitor: (state, stateTransform) => {
                 if (!CanDecodeType3SoftMask(
                         state.SoftMask,
+                        stateTransform,
                         pageContentBudget,
                         validatedGroups,
                         type3GlyphBudget,

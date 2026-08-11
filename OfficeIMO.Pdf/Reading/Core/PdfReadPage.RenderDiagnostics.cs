@@ -199,7 +199,7 @@ public sealed partial class PdfReadPage {
                 if (!string.IsNullOrEmpty(fontName)) invokedFonts.Add(fontName);
             },
             patternInvocationVisitor: name => invokedPatternNames.Add(name),
-            graphicsStateVisitor: state => {
+            graphicsStateVisitor: (state, _) => {
                 if (state.SoftMask?.Group is PdfStream group) invokedSoftMasks.Add(group);
             },
             patternBaseColorSpaces: patternBaseColorSpaces,
@@ -276,7 +276,7 @@ public sealed partial class PdfReadPage {
                 if (!string.IsNullOrEmpty(fontName)) invokedFonts.Add(fontName);
             },
             patternInvocationVisitor: patternName => invokedPatterns.Add(patternName),
-            graphicsStateVisitor: state => {
+            graphicsStateVisitor: (state, _) => {
                 if (state.SoftMask?.Group is PdfStream group) invokedSoftMasks.Add(group);
             },
             patternBaseColorSpaces: patternBaseColorSpaces,
@@ -305,9 +305,13 @@ public sealed partial class PdfReadPage {
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
         int depth,
+        SoftMaskNestingDepth? softMaskNestingDepth = null,
         double? projectionPageWidth = null,
         double? projectionPageHeight = null) {
         EnsureContentNestingBudget(depth);
+        if (softMaskNestingDepth != null) {
+            softMaskNestingDepth.Maximum = Math.Max(softMaskNestingDepth.Maximum, depth);
+        }
         if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).Count != 0 ||
             !activeStreams.Add(stream)) return false;
         try {
@@ -322,7 +326,7 @@ public sealed partial class PdfReadPage {
             double surfaceWidth = projectionPageWidth ?? visualPageSize.Width;
             double surfaceHeight = projectionPageHeight ?? visualPageSize.Height;
             bool supported = true;
-            var validatedSoftMaskGroups = new Dictionary<PdfStream, int>();
+            var validatedSoftMaskGroups = new Dictionary<(PdfStream Group, Matrix2D Transform), int>();
             var softMaskValidationBudget = new PageContentBudget(this);
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
@@ -540,6 +544,7 @@ public sealed partial class PdfReadPage {
                                          diagnostics,
                                          seen,
                                          depth + 1,
+                                         softMaskNestingDepth,
                                          surfaceWidth,
                                          surfaceHeight)) {
                                      supported = false;
@@ -551,14 +556,16 @@ public sealed partial class PdfReadPage {
                          unsupportedTextVisitor: () => supported = false,
                          unsupportedGraphicsEffectVisitor: () => supported = false,
                          allowSupportedGraphicsEffects: true,
-                         graphicsStateVisitor: resource => {
+                         graphicsStateVisitor: (resource, resourceTransform) => {
                              if (!CanDecodeType3SoftMask(
                                      resource.SoftMask,
+                                     resourceTransform,
                                      softMaskValidationBudget,
                                      validatedSoftMaskGroups,
                                      type3GlyphBudget,
                                      depth + 1,
-                                     activeStreams)) {
+                                     activeStreams,
+                                     softMaskNestingDepth)) {
                                  supported = false;
                              }
                          },
@@ -731,6 +738,7 @@ public sealed partial class PdfReadPage {
                         diagnostics,
                         seen,
                         depth + 1,
+                        softMaskNestingDepth,
                         formSurfaceWidth,
                         formSurfaceHeight)) supported = false;
             }

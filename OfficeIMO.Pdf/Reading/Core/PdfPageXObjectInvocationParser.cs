@@ -58,7 +58,7 @@ internal static class PdfPageXObjectInvocationParser {
         Action<string>? visibleFontVisitor = null,
         Action<string>? patternInvocationVisitor = null,
         Action<string>? authoredPatternInvocationVisitor = null,
-        Action<PdfPageGraphicsStateResource>? graphicsStateVisitor = null,
+        Action<PdfPageGraphicsStateResource, Matrix2D>? graphicsStateVisitor = null,
         bool allowSupportedGraphicsEffects = false,
         IReadOnlyDictionary<string, PdfPageColorSpace>? patternBaseColorSpaces = null,
         PdfPagePatternSelection? initialFillPattern = null,
@@ -138,7 +138,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Func<PdfPageType3GlyphInvocation, PdfType3PaintChannels>? _type3PaintChannelResolver;
         private readonly Func<string, PdfPageXObjectPaintState, PdfType3PaintChannels>? _xObjectPaintChannelResolver;
         private readonly Func<PdfPageSoftMaskResource, Matrix2D, bool>? _softMaskVisibilityResolver;
-        private readonly Action<PdfPageGraphicsStateResource>? _graphicsStateVisitor;
+        private readonly Action<PdfPageGraphicsStateResource, Matrix2D>? _graphicsStateVisitor;
         private readonly bool _allowSupportedGraphicsEffects;
         private string _textFont = string.Empty;
         private double _currentPaintOrder;
@@ -183,7 +183,7 @@ internal static class PdfPageXObjectInvocationParser {
             Action<string>? visibleFontVisitor,
             Action<string>? patternInvocationVisitor,
             Action<string>? authoredPatternInvocationVisitor,
-            Action<PdfPageGraphicsStateResource>? graphicsStateVisitor,
+            Action<PdfPageGraphicsStateResource, Matrix2D>? graphicsStateVisitor,
             bool allowSupportedGraphicsEffects,
             IReadOnlyDictionary<string, PdfPageColorSpace>? patternBaseColorSpaces,
             PdfPagePatternSelection? initialFillPattern,
@@ -1158,7 +1158,7 @@ internal static class PdfPageXObjectInvocationParser {
                 _softMask = resource.SoftMask;
                 _softMaskTransform = resource.SoftMask == null ? null : _state.Transform;
             }
-            if (!HasHiddenContent()) _graphicsStateVisitor?.Invoke(resource);
+            if (!HasHiddenContent()) _graphicsStateVisitor?.Invoke(resource, _state.Transform);
             if (!HasHiddenContent() &&
                 ((!_allowSupportedGraphicsEffects &&
                   ((resource.BlendMode.HasValue && resource.BlendMode.Value != OfficeBlendMode.Normal) ||
