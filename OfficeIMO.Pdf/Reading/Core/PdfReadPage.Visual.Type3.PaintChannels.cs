@@ -305,6 +305,7 @@ public sealed partial class PdfReadPage {
             return softMask.Mode == OfficeSoftMaskMode.Luminosity &&
                    IsLuminositySoftMaskEntirelyBlack(
                        softMask,
+                       parentResources,
                        transform,
                        pageWidth,
                        pageHeight,
@@ -318,17 +319,25 @@ public sealed partial class PdfReadPage {
 
     private bool IsLuminositySoftMaskEntirelyBlack(
         PdfPageSoftMaskResource softMask,
+        PdfDictionary? parentResources,
         Matrix2D transform,
         double pageWidth,
         double pageHeight,
         Type3PaintChannelCache cache,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget) {
-        var cacheKey = (softMask.Group, transform, pageWidth, pageHeight);
+        PdfDictionary? effectiveParentResources = softMask.ParentResources ?? parentResources;
+        var cacheKey = (softMask.Group, effectiveParentResources, transform, pageWidth, pageHeight);
         if (cache.BlackLuminosityForms.TryGetValue(cacheKey, out bool cached)) return cached;
-        var softMasks = new Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
+        string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(softMask.Group));
+        if (!IsVectorOnlyLuminosityProofContent(content)) {
+            cache.BlackLuminosityForms[cacheKey] = false;
+            return false;
+        }
+        var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
         OfficeDrawing drawing = CreateFormDrawing(
             softMask.Group,
+            effectiveParentResources,
             pageWidth,
             pageHeight,
             transform,
@@ -336,10 +345,28 @@ public sealed partial class PdfReadPage {
             new HashSet<PdfStream>(),
             CreateTextOutputBudget(),
             pageContentBudget,
-            type3GlyphBudget);
+            type3GlyphBudget,
+            decodedContent: content);
         bool result = IsEntirelyBlackLuminosityDrawing(drawing);
         cache.BlackLuminosityForms[cacheKey] = result;
         return result;
+    }
+
+    private bool IsVectorOnlyLuminosityProofContent(string content) {
+        bool vectorOnly = true;
+        PdfContentStreamInterpreter.InterpretUntil(
+            content,
+            _limits.MaxContentOperations,
+            operation => {
+                if (operation.Name is "BT" or "Do" or "BI") {
+                    vectorOnly = false;
+                    return false;
+                }
+                return true;
+            },
+            maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxOperands: _limits.MaxContentOperands);
+        return vectorOnly;
     }
 
     private static bool IsEntirelyBlackLuminosityDrawing(OfficeDrawing drawing) {
@@ -349,9 +376,10 @@ public sealed partial class PdfReadPage {
                 case OfficeDrawingShape shape:
                     if (!IsEntirelyBlackLuminosityShape(shape.Shape)) return false;
                     break;
-                case OfficeDrawingText text:
-                    if (!IsBlackOrTransparent(text.Color)) return false;
-                    break;
+                case OfficeDrawingText:
+                    // Ordinary text remains subject to strict font and text-mode validation.
+                    // Do not let this optional black-luminance proof bypass those checks.
+                    return false;
                 case OfficeDrawingGroup group:
                     if (!IsEntirelyBlackLuminosityDrawing(group.Drawing)) return false;
                     break;
@@ -407,11 +435,13 @@ public sealed partial class PdfReadPage {
 
         internal Dictionary<(
             PdfStream Stream,
+            PdfDictionary? ParentResources,
             Matrix2D Transform,
             double PageWidth,
             double PageHeight), bool> BlackLuminosityForms { get; } =
             new Dictionary<(
                 PdfStream Stream,
+                PdfDictionary? ParentResources,
                 Matrix2D Transform,
                 double PageWidth,
                 double PageHeight), bool>();

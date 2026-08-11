@@ -754,14 +754,17 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream> activeSoftMasks,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
-        Type3GlyphBudget type3GlyphBudget) {
+        Type3GlyphBudget type3GlyphBudget,
+        string? decodedContent = null) {
         var drawing = new OfficeDrawing(width, height);
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         PdfDictionary? resources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ??
             fallbackResources ??
             pageResources;
         RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
-        string content = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)), form.Dictionary);
+        string content = WrapFormContentWithBoundingBoxClip(
+            decodedContent ?? PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)),
+            form.Dictionary);
         if (content.Length == 0) return drawing;
         Matrix2D transform = ApplyFormMatrix(pageTransform, form.Dictionary);
         var activeForms = new HashSet<PdfStream>();
