@@ -6,6 +6,7 @@ using global::ChartForgeX.VisualArtifacts;
 using OfficeIMO.ChartForgeX;
 using OfficeIMO.Visio;
 using Xunit;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.ChartForgeX.Tests;
 
@@ -264,6 +265,28 @@ public sealed class OfficeVisioVisualIntegrationTests {
     }
 
     [Fact]
+    public void CompactSequenceNaturalViewportGrowsOnlyWhenContentRequiresIt() {
+        var envelope = new VisualArtifactInterchangeEnvelope {
+            Id = "compact-sequence",
+            Kind = VisualArtifactKind.Sequence,
+            Width = 400,
+            Height = 300
+        };
+        envelope.Nodes.Add(Participant("service", "Service", "Control", 0));
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions {
+            UseNaturalPageSize = true,
+            PixelsPerInch = 100D
+        });
+
+        Assert.InRange(result.Page.Width, 4D, 4.5D);
+        Assert.InRange(result.Page.Height, 3D, 4D);
+        VisioShapeBounds bounds = result.Page.GetContentBounds();
+        Assert.True(Math.Abs(bounds.CenterX - result.Page.Width / 2D) < 0.001D);
+        Assert.True(Math.Abs(bounds.CenterY - result.Page.Height / 2D) < 0.001D);
+    }
+
+    [Fact]
     public void SourceGraphIdCollisionsAreRemappedByTheInterchangeOwnerBeforeVisioProjection() {
         TopologyChart topology = TopologyChart.Create();
         topology.LayoutMode = TopologyLayoutMode.Manual;
@@ -356,10 +379,13 @@ public sealed class OfficeVisioVisualIntegrationTests {
     public void GraphProjectionPreservesExplicitLineStylesAndStandaloneTooltips() {
         VisualArtifactInterchangeEnvelope envelope = CreateTopologyEnvelope();
         envelope.Nodes.Single(node => node.Id == "api").Href = null;
+        envelope.Nodes.Single(node => node.Id == "api").Color = "#112233";
+        envelope.Nodes.Single(node => node.Id == "api").BackgroundColor = "rgb(68 85 102)";
         envelope.Nodes.Single(node => node.Id == "database").Tooltip = "Database owner";
         envelope.Groups.Single().Tooltip = "Data boundary";
+        envelope.Groups.Single().Color = "#778899";
         envelope.Edges.Clear();
-        envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "solid", SourceId = "api", TargetId = "database", Kind = "Control", LineStyle = "Solid" });
+        envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "solid", SourceId = "api", TargetId = "database", Kind = "Control", LineStyle = "Solid", Color = "#AABBCC" });
         envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "dashed", SourceId = "api", TargetId = "database", LineStyle = "Dashed", Tooltip = "Retry path" });
         envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "dotted", SourceId = "api", TargetId = "database", LineStyle = "Dotted" });
         envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "custom", SourceId = "api", TargetId = "database", LineStyle = "LongDash" });
@@ -369,6 +395,10 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Equal(1, result.Page.Connectors.Single(connector => connector.Id == "solid").LinePattern);
         Assert.Equal(2, result.Page.Connectors.Single(connector => connector.Id == "dashed").LinePattern);
         Assert.Equal(3, result.Page.Connectors.Single(connector => connector.Id == "dotted").LinePattern);
+        Assert.Equal(Color.Parse("#112233"), result.Page.Shapes.Single(shape => shape.Id == "api").LineColor);
+        Assert.Equal(Color.Parse("#445566"), result.Page.Shapes.Single(shape => shape.Id == "api").FillColor);
+        Assert.Equal(Color.Parse("#778899"), result.Page.Shapes.Single(shape => shape.Id == "data-zone").LineColor);
+        Assert.Equal(Color.Parse("#AABBCC"), result.Page.Connectors.Single(connector => connector.Id == "solid").LineColor);
         Assert.Equal("API runbook", result.Page.Shapes.Single(shape => shape.Id == "api").GetShapeDataValue("CFX.Tooltip"));
         Assert.Equal("Database owner", result.Page.Shapes.Single(shape => shape.Id == "database").GetShapeDataValue("CFX.Tooltip"));
         Assert.Equal("Data boundary", result.Page.Shapes.Single(shape => shape.Id == "data-zone").GetShapeDataValue("CFX.Tooltip"));
@@ -391,6 +421,36 @@ public sealed class OfficeVisioVisualIntegrationTests {
             Assert.Equal(3, loaded.Pages[0].Connectors.Single(connector => connector.Id == "dotted").LinePattern);
             Assert.Equal("Database owner", loaded.Pages[0].Shapes.Single(shape => shape.Id == "database").GetShapeDataValue("CFX.Tooltip"));
             Assert.Equal("Retry path", loaded.Pages[0].Connectors.Single(connector => connector.Id == "dashed").GetShapeDataValue("CFX.Tooltip"));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void SequenceProjectionPreservesExplicitMessageLineStylesAndReportsUnsupportedTokens() {
+        var envelope = new VisualArtifactInterchangeEnvelope { Id = "styled-sequence", Kind = VisualArtifactKind.Sequence };
+        envelope.Nodes.Add(Participant("caller", "Caller", "Actor", 0));
+        envelope.Nodes.Add(Participant("service", "Service", "Control", 1));
+        envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "solid", SourceId = "caller", TargetId = "service", Label = "Solid", Order = 0, LineStyle = "Solid" });
+        envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "dashed", SourceId = "service", TargetId = "caller", Label = "Dashed", Order = 1, LineStyle = "Dashed" });
+        envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "dotted", SourceId = "caller", TargetId = "service", Label = "Dotted", Order = 2, LineStyle = "Dotted", Color = "#336699" });
+        envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "custom", SourceId = "service", TargetId = "caller", Label = "Custom", Order = 3, LineStyle = "LongDash" });
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
+
+        Assert.Equal(1, result.Page.Connectors.Single(connector => connector.Id == "solid").LinePattern);
+        Assert.Equal(2, result.Page.Connectors.Single(connector => connector.Id == "dashed").LinePattern);
+        Assert.Equal(3, result.Page.Connectors.Single(connector => connector.Id == "dotted").LinePattern);
+        Assert.Equal(Color.Parse("#336699"), result.Page.Connectors.Single(connector => connector.Id == "dotted").LineColor);
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("LongDash") && warning.Contains("native Visio theme pattern"));
+
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+        try {
+            result.Document.Save(path);
+            Assert.Empty(VisioValidator.Validate(path));
+            VisioDocument loaded = VisioDocument.Load(path);
+            Assert.Equal(3, loaded.Pages[0].Connectors.Single(connector => connector.Id == "dotted").LinePattern);
+            Assert.Equal(Color.Parse("#336699"), loaded.Pages[0].Connectors.Single(connector => connector.Id == "dotted").LineColor);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -420,6 +480,29 @@ public sealed class OfficeVisioVisualIntegrationTests {
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() => envelope.ToOfficeVisio());
         Assert.Contains("separately rendered SVG", exception.Message);
+    }
+
+    [Fact]
+    public void SequenceMetadataLossIsReportedWhenShapeDataProjectionIsDisabled() {
+        var envelope = new VisualArtifactInterchangeEnvelope { Id = "metadata-sequence", Kind = VisualArtifactKind.Sequence };
+        envelope.Metadata["Owner"] = "Platform";
+        envelope.Nodes.Add(Participant("service", "Service", "Control", 0));
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { IncludeShapeData = false });
+
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("Sequence-level metadata") && warning.Contains("Shape Data projection was disabled"));
+    }
+
+    [Fact]
+    public void TypedVisioProjectionReportsRenderWatermarksThatRemainInStaticFallbacks() {
+        TopologyChart topology = TopologyChart.Create();
+        topology.Nodes.Add(new TopologyNode { Id = "service", Label = "Service" });
+        var renderOptions = new VisualArtifactRenderOptions();
+        renderOptions.Watermarks.Add(VisualWatermark.FromText("CONFIDENTIAL"));
+
+        OfficeVisioVisualConversionResult result = topology.ToVisualArtifact().ToOfficeVisio(renderOptions: renderOptions);
+
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("watermarks") && warning.Contains("SVG or PNG"));
     }
 
     [Fact]

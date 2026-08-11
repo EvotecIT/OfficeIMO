@@ -335,7 +335,9 @@ namespace OfficeIMO.Tests {
                 StencilCatalog = VisioStencils.SecurityIdentity,
                 IsRoot = true,
                 HyperlinkAddress = "https://example.org/identity",
-                HyperlinkDescription = "Identity runbook"
+                HyperlinkDescription = "Identity runbook",
+                FillColor = Color.FromRgb(230, 240, 250),
+                LineColor = Color.FromRgb(25, 50, 75)
             };
             idp.StencilQueries.Add("idp");
             idp.ShapeData.Add("Owner", "IAM");
@@ -360,7 +362,8 @@ namespace OfficeIMO.Tests {
             VisioGraphEdgeRecord tokenFlow = new("idp", "cluster") {
                 Label = "tokens",
                 Kind = VisioGraphConnectorKind.Control,
-                LinePattern = 3
+                LinePattern = 3,
+                LineColor = Color.FromRgb(80, 100, 120)
             };
             tokenFlow.ShapeData.Add("Protocol", "OIDC");
 
@@ -387,10 +390,13 @@ namespace OfficeIMO.Tests {
             VisioPage page = Assert.Single(document.Pages);
             Assert.Contains(page.Shapes, shape => shape.Id == "runtime-zone" && shape.IsBackgroundSurface);
             Assert.Equal("IAM", page.Shapes.Single(shape => shape.Id == "idp").GetShapeDataValue("Owner"));
+            Assert.Equal(Color.FromRgb(230, 240, 250), page.Shapes.Single(shape => shape.Id == "idp").FillColor);
+            Assert.Equal(Color.FromRgb(25, 50, 75), page.Shapes.Single(shape => shape.Id == "idp").LineColor);
             Assert.Equal("Production", page.Shapes.Single(shape => shape.Id == "cluster").GetShapeDataValue("Environment"));
             Assert.Equal("Confidential", page.Shapes.Single(shape => shape.Id == "lake").GetShapeDataValue("Classification"));
             Assert.Contains(page.Shapes.Single(shape => shape.Id == "idp").Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/identity");
             Assert.Contains(page.Connectors, connector => connector.Id == "idp-control-cluster" && connector.Label == "tokens" && connector.LinePattern == 3 && connector.GetShapeDataValue("Protocol") == "OIDC");
+            Assert.Equal(Color.FromRgb(80, 100, 120), page.Connectors.Single(connector => connector.Id == "idp-control-cluster").LineColor);
             Assert.Contains(page.Connectors, connector => connector.Id == "cluster-data-lake" && connector.Label == "events" && connector.Hyperlinks.Any(hyperlink => hyperlink.Description == "Pipeline"));
             Assert.Contains(page.Connectors, connector => connector.Id == "ops-team-owns-cluster" && connector.EndArrow == EndArrow.None);
 
@@ -446,7 +452,9 @@ namespace OfficeIMO.Tests {
 
             VisioGraphClusterRecord runtime = new("runtime-cluster", "Runtime Tier", new[] { "api", "worker", "db", "api" }) {
                 HyperlinkAddress = "https://example.org/runtime",
-                HyperlinkDescription = "Runtime runbook"
+                HyperlinkDescription = "Runtime runbook",
+                FillColor = Color.FromRgb(245, 248, 252),
+                LineColor = Color.FromRgb(90, 110, 130)
             };
             runtime.ShapeData.Add("Owner", "Platform");
             runtime.ShapeData.Add("Tier", "Production");
@@ -466,6 +474,8 @@ namespace OfficeIMO.Tests {
             VisioShape runtimeShape = page.Shapes.Single(shape => shape.Id == "runtime-cluster");
             VisioShape identityShape = page.Shapes.Single(shape => shape.Id == "identity-cluster");
             Assert.True(runtimeShape.IsBackgroundSurface);
+            Assert.Equal(Color.FromRgb(245, 248, 252), runtimeShape.FillColor);
+            Assert.Equal(Color.FromRgb(90, 110, 130), runtimeShape.LineColor);
             Assert.True(identityShape.IsBackgroundSurface);
             Assert.Equal("Platform", runtimeShape.GetShapeDataValue("Owner"));
             Assert.Equal("Production", runtimeShape.GetShapeDataValue("Tier"));

@@ -16,7 +16,11 @@ public static partial class OfficeVisioVisualConversionExtensions {
         OfficeVisioVisualOptions? options = null,
         VisualArtifactRenderOptions? renderOptions = null) {
         if (artifact == null) throw new ArgumentNullException(nameof(artifact));
-        return artifact.ToInterchangeEnvelope(renderOptions).ToOfficeVisio(options);
+        OfficeVisioVisualConversionResult result = artifact.ToInterchangeEnvelope(renderOptions).ToOfficeVisio(options);
+        if (renderOptions != null && renderOptions.Watermarks.Count > 0) {
+            result.Report.Warn("CFX render watermarks are not projected into the native editable Visio page; keep the separately rendered SVG or PNG when watermark fidelity is required.");
+        }
+        return result;
     }
 
     /// <summary>Projects a validated CFX semantic envelope into a native editable Visio document.</summary>
@@ -124,7 +128,9 @@ public static partial class OfficeVisioVisualConversionExtensions {
         var record = new VisioGraphNodeRecord(node.Id, CombineLabel(node.Label, node.Subtitle)) {
             Kind = MapNodeKind(node.Kind, flow),
             HyperlinkAddress = options.IncludeHyperlinks ? node.Href : null,
-            HyperlinkDescription = options.IncludeHyperlinks ? node.Tooltip : null
+            HyperlinkDescription = options.IncludeHyperlinks ? node.Tooltip : null,
+            LineColor = MapNativeColor(node.Color, "Node", node.Id, report),
+            FillColor = MapNativeColor(node.BackgroundColor, "Node background", node.Id, report)
         };
         if (options.IncludeShapeData) {
             AddCommonShapeData(record.ShapeData, node.Kind, node.Status, node.GroupId, node.Metadata, report, "node '" + node.Id + "'");
@@ -150,7 +156,8 @@ public static partial class OfficeVisioVisualConversionExtensions {
             Label = CombineEdgeLabel(edge),
             HyperlinkAddress = options.IncludeHyperlinks ? edge.Href : null,
             HyperlinkDescription = options.IncludeHyperlinks ? edge.Tooltip : null,
-            LinePattern = MapGraphLinePattern(edge.LineStyle, edge.Id, report)
+            LinePattern = MapGraphLinePattern(edge.LineStyle, edge.Id, report),
+            LineColor = MapNativeColor(edge.Color, "Edge", edge.Id, report)
         };
         ApplyGraphEdgeDirection(record, edge.Direction, edge.Id, report);
         if (!string.IsNullOrWhiteSpace(edge.SourcePortId) || !string.IsNullOrWhiteSpace(edge.TargetPortId) ||
@@ -187,7 +194,8 @@ public static partial class OfficeVisioVisualConversionExtensions {
             }
             var record = new VisioGraphClusterRecord(group.Id, CombineLabel(group.Label, group.Subtitle), nodeIds) {
                 HyperlinkAddress = options.IncludeHyperlinks ? group.Href : null,
-                HyperlinkDescription = options.IncludeHyperlinks ? group.Tooltip : null
+                HyperlinkDescription = options.IncludeHyperlinks ? group.Tooltip : null,
+                LineColor = MapNativeColor(group.Color, "Group", group.Id, report)
             };
             if (options.IncludeShapeData) {
                 AddCommonShapeData(record.ShapeData, group.Kind, group.Status, null, group.Metadata, report, "group '" + group.Id + "'");
@@ -246,8 +254,10 @@ public static partial class OfficeVisioVisualConversionExtensions {
             page.FitToContent(0.5D);
         }
 
-        if (options.IncludeShapeData && envelope.Metadata.Count > 0) {
-            report.Warn("Sequence-level metadata remains available in the CFX envelope; participant metadata is projected into native Visio Shape Data.");
+        if (envelope.Metadata.Count > 0) {
+            report.Warn(options.IncludeShapeData
+                ? "Sequence-level metadata remains available in the CFX envelope; participant metadata is projected into native Visio Shape Data."
+                : "Sequence-level metadata remains only in the CFX envelope because Shape Data projection was disabled.");
         }
         if (envelope.Groups.Count > 0) {
             report.Warn("Sequence groups remain in the CFX envelope because native Visio sequence diagrams do not project graph containers.");
@@ -328,7 +338,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
         if (!options.UseNaturalPageSize) return (1D, 1D);
         double width = envelope.Width.HasValue ? envelope.Width.Value / options.PixelsPerInch : 11D;
         double height = envelope.Height.HasValue ? envelope.Height.Value / options.PixelsPerInch : 8.5D;
-        return (Math.Max(11D, width), Math.Max(8.5D, height));
+        return (width, height);
     }
 
     private static void ApplySequenceParticipantData(
@@ -369,6 +379,10 @@ public static partial class OfficeVisioVisualConversionExtensions {
         foreach (VisualArtifactInterchangeEdge message in messages) {
             VisioConnector connector = page.Connectors.Single(item => string.Equals(item.Id, ids.Message(message.Id), StringComparison.Ordinal));
             ApplySequenceMessageDirection(connector, message.Direction, message.Id, report);
+            int? linePattern = MapSequenceLinePattern(message.LineStyle, message.Id, report);
+            if (linePattern.HasValue) connector.LinePattern = linePattern.Value;
+            OfficeIMO.Drawing.OfficeColor? lineColor = MapNativeColor(message.Color, "Sequence message", message.Id, report);
+            if (lineColor.HasValue) connector.LineColor = lineColor.Value;
             connector.Data["CFX.Id"] = message.Id;
             var data = new Dictionary<string, string?>(StringComparer.Ordinal);
             if (options.IncludeShapeData) {
