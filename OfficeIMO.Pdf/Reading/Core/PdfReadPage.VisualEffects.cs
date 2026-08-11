@@ -384,14 +384,13 @@ public sealed partial class PdfReadPage {
             unsupportedTextVisitor: () => {
                 if (!currentOrdinaryFontSupported) supported = false;
             },
-            ordinaryTextPaintVisitor: (channels, _, _, addsToClip) => {
-                if (addsToClip || channels != PdfType3PaintChannels.Fill) supported = false;
-            },
             unsupportedGraphicsEffectVisitor: () => supported = false,
             unsupportedColorVisitor: () => supported = false,
             invalidPatternSelectionVisitor: () => supported = false,
-            ordinaryTextPaintVisitor: (channels, fillPattern, strokePattern) => {
-                if (((channels & PdfType3PaintChannels.Fill) != 0 && fillPattern.HasValue) ||
+            ordinaryTextPaintVisitor: (channels, fillPattern, strokePattern, addsToClip) => {
+                if (addsToClip ||
+                    channels != PdfType3PaintChannels.Fill ||
+                    ((channels & PdfType3PaintChannels.Fill) != 0 && fillPattern.HasValue) ||
                     ((channels & PdfType3PaintChannels.Stroke) != 0 && strokePattern.HasValue)) {
                     supported = false;
                 }

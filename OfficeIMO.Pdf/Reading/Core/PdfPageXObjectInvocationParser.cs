@@ -141,7 +141,6 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Action<string>? _patternInvocationVisitor;
         private readonly Action<string>? _authoredPatternInvocationVisitor;
         private readonly Action? _invalidPatternSelectionVisitor;
-        private readonly Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?>? _ordinaryTextPaintVisitor;
         private readonly Func<PdfPageType3GlyphInvocation, PdfType3PaintChannels>? _type3PaintChannelResolver;
         private readonly Func<string, PdfPageXObjectPaintState, PdfType3PaintChannels>? _xObjectPaintChannelResolver;
         private readonly Func<PdfPageSoftMaskResource, Matrix2D, bool>? _softMaskVisibilityResolver;
@@ -250,7 +249,6 @@ internal static class PdfPageXObjectInvocationParser {
             _softMaskVisibilityResolver = softMaskVisibilityResolver;
             _visibleShadingVisitor = visibleShadingVisitor;
             _graphicsStateVisitor = graphicsStateVisitor;
-            _ordinaryTextPaintVisitor = ordinaryTextPaintVisitor;
             _allowSupportedGraphicsEffects = allowSupportedGraphicsEffects;
         }
 
