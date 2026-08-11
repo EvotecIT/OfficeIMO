@@ -93,6 +93,20 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasRadioButtons_CanSeparateAppearanceStatesFromUnicodeExportValues() {
+        byte[] bytes = PdfDocument.Create()
+            .Page(page => page.Canvas(canvas => canvas.RadioButtonWithExportValue("Preference", "Option1", "caf\u00E9", false, 20D, 20D, 14D, 14D)))
+            .Page(page => page.Canvas(canvas => canvas.RadioButtonWithExportValue("Preference", "Option2", "th\u00E9", true, 50D, 20D, 14D, 14D)))
+            .ToBytes();
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
+
+        Assert.Equal("Option2", field.Value);
+        Assert.Equal(new[] { "caf\u00E9", "th\u00E9" }, field.Options.Select(option => option.ExportValue).ToArray());
+        Assert.Equal("th\u00E9", Assert.Single(PdfDocument.Open(bytes).Forms.ExportData().Fields).Values[0]);
+    }
+
+    [Fact]
     public void CanvasActualText_PreservesLogicalExtractionForReversePositionedFragments() {
         byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()

@@ -206,6 +206,7 @@ internal static partial class PdfWriter {
         public string CheckedValueName { get; set; } = "Yes";
         public string ExportValue { get; set; } = string.Empty;
         public IReadOnlyList<string> Options { get; set; } = Array.Empty<string>();
+        public string[] ExportValues { get; set; } = Array.Empty<string>();
         public IReadOnlyList<PdfFormFieldOption> ChoiceOptions { get; set; } = Array.Empty<PdfFormFieldOption>();
         public double ButtonSize { get; set; }
         public double ButtonGap { get; set; }
@@ -236,6 +237,7 @@ internal static partial class PdfWriter {
         public string Value { get; set; } = "Off";
         public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
         public System.Collections.Generic.List<string> Options { get; } = new();
+        public System.Collections.Generic.List<string> ExportValues { get; } = new();
         public System.Collections.Generic.List<int> WidgetObjectIds { get; } = new();
     }
 
@@ -268,6 +270,7 @@ internal static partial class PdfWriter {
                 throw new ArgumentException("Canvas radio button options must be unique within one field name.");
             }
             group.Options = group.Options.Concat(candidate.Options).ToArray();
+            group.ExportValues = group.ExportValues.Concat(candidate.ExportValues).ToArray();
             group.RadioWidgets.Add(next);
             if (candidate.Style.IsRequired) group.Style.IsRequired = true;
             if (!string.Equals(candidate.Value, "Off", StringComparison.Ordinal)) group.Value = candidate.Value;

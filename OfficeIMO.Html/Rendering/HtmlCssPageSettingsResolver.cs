@@ -403,6 +403,7 @@ internal static class HtmlCssPageSettingsResolver {
     }
 
     private static string FindTopLevelDeclaration(string body, string propertyName) {
+        body = HtmlComputedStyleEngine.StripCssCommentsOutsideStrings(body);
         int start = 0;
         int depth = 0;
         char quote = '\0';

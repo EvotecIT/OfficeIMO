@@ -69,14 +69,11 @@ public static partial class HtmlComputedStyleEngine {
         HtmlComputedStyle style,
         double width,
         double? height,
-        IReadOnlyList<ContainerQueryContext> contexts,
-        MediaEnvironment environment) {
+        double fontSize,
+        double rootFontSize,
+        IReadOnlyList<ContainerQueryContext> contexts) {
         string type = ResolveContainerType(style);
         IReadOnlyList<string> names = ResolveContainerNames(style);
-        double inheritedFontSize = contexts.Count == 0 ? 16D : contexts[contexts.Count - 1].FontSize;
-        double rootFontSize = contexts.Count == 0 ? 16D : contexts[0].RootFontSize;
-        double fontSize = ResolveContainerFontSize(style, environment, inheritedFontSize, rootFontSize);
-        if (contexts.Count == 0) rootFontSize = fontSize;
         var expanded = new List<ContainerQueryContext>(contexts.Count + 1);
         expanded.AddRange(contexts);
         expanded.Add(new ContainerQueryContext(names, type, width, height, fontSize, rootFontSize, style.Properties));
@@ -106,23 +103,21 @@ public static partial class HtmlComputedStyleEngine {
         return value.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries).ToList().AsReadOnly();
     }
 
-    private static double ResolveContainerElementWidth(HtmlComputedStyle style, double containingWidth, MediaEnvironment environment) {
+    private static double ResolveContainerElementWidth(HtmlComputedStyle style, double containingWidth, double fontSize, double rootFontSize, MediaEnvironment environment) {
         string width = style.GetValue("width");
-        double fontSize = ResolveContainerFontSize(style, environment);
-        ResolveContainerInsets(style, containingWidth, fontSize, environment, out double horizontalInsets, out _);
-        if (HtmlRenderCssValues.TryLength(width, containingWidth, fontSize, 16D, environment.Width, environment.Height, out double resolved)
+        ResolveContainerInsets(style, containingWidth, fontSize, rootFontSize, environment, out double horizontalInsets, out _);
+        if (HtmlRenderCssValues.TryLength(width, containingWidth, fontSize, rootFontSize, environment.Width, environment.Height, out double resolved)
             && resolved >= 0D) {
             return Math.Max(0D, resolved - (IsBorderBox(style) ? horizontalInsets : 0D));
         }
         return Math.Max(0D, containingWidth - horizontalInsets);
     }
 
-    private static double? ResolveContainerElementHeight(HtmlComputedStyle style, double containingWidth, double? containingHeight, MediaEnvironment environment) {
+    private static double? ResolveContainerElementHeight(HtmlComputedStyle style, double containingWidth, double? containingHeight, double fontSize, double rootFontSize, MediaEnvironment environment) {
         string height = style.GetValue("height");
-        double fontSize = ResolveContainerFontSize(style, environment);
-        if (!HtmlRenderCssValues.TryLength(height, containingHeight ?? double.NaN, fontSize, 16D, environment.Width, environment.Height, out double resolved)
+        if (!HtmlRenderCssValues.TryLength(height, containingHeight ?? double.NaN, fontSize, rootFontSize, environment.Width, environment.Height, out double resolved)
             || resolved < 0D) return null;
-        ResolveContainerInsets(style, containingWidth, fontSize, environment, out _, out double verticalInsets);
+        ResolveContainerInsets(style, containingWidth, fontSize, rootFontSize, environment, out _, out double verticalInsets);
         return Math.Max(0D, resolved - (IsBorderBox(style) ? verticalInsets : 0D));
     }
 
@@ -133,6 +128,7 @@ public static partial class HtmlComputedStyleEngine {
         HtmlComputedStyle style,
         double containingWidth,
         double fontSize,
+        double rootFontSize,
         MediaEnvironment environment,
         out double horizontal,
         out double vertical) {
@@ -146,7 +142,7 @@ public static partial class HtmlComputedStyleEngine {
                 padding,
                 containingWidth,
                 fontSize,
-                16D,
+                rootFontSize,
                 environment.Width,
                 environment.Height,
                 ref top,
@@ -154,10 +150,10 @@ public static partial class HtmlComputedStyleEngine {
                 ref bottom,
                 ref left);
         }
-        ApplyContainerInset(style.GetValue("padding-top"), containingWidth, fontSize, environment, ref top);
-        ApplyContainerInset(style.GetValue("padding-right"), containingWidth, fontSize, environment, ref right);
-        ApplyContainerInset(style.GetValue("padding-bottom"), containingWidth, fontSize, environment, ref bottom);
-        ApplyContainerInset(style.GetValue("padding-left"), containingWidth, fontSize, environment, ref left);
+        ApplyContainerInset(style.GetValue("padding-top"), containingWidth, fontSize, rootFontSize, environment, ref top);
+        ApplyContainerInset(style.GetValue("padding-right"), containingWidth, fontSize, rootFontSize, environment, ref right);
+        ApplyContainerInset(style.GetValue("padding-bottom"), containingWidth, fontSize, rootFontSize, environment, ref bottom);
+        ApplyContainerInset(style.GetValue("padding-left"), containingWidth, fontSize, rootFontSize, environment, ref left);
 
         double borderHorizontal = 0D;
         double borderVertical = 0D;
@@ -165,7 +161,7 @@ public static partial class HtmlComputedStyleEngine {
                 style,
                 containingWidth,
                 fontSize,
-                16D,
+                rootFontSize,
                 environment.Width,
                 environment.Height,
                 OfficeIMO.Drawing.OfficeColor.Black,
@@ -182,10 +178,11 @@ public static partial class HtmlComputedStyleEngine {
         string value,
         double reference,
         double fontSize,
+        double rootFontSize,
         MediaEnvironment environment,
         ref double target) {
         if (value.Length > 0
-            && HtmlRenderCssValues.TryLength(value, reference, fontSize, 16D, environment.Width, environment.Height, out double parsed)) {
+            && HtmlRenderCssValues.TryLength(value, reference, fontSize, rootFontSize, environment.Width, environment.Height, out double parsed)) {
             target = Math.Max(0D, parsed);
         }
     }
@@ -227,7 +224,15 @@ public static partial class HtmlComputedStyleEngine {
         if (colon < 0) return actual.Length > 0;
         string expected = query.Substring(colon + 1).Trim();
         if (name.StartsWith("--", StringComparison.Ordinal)) {
-            return string.Equals(actual.Trim(), expected, StringComparison.Ordinal);
+            string? LookupCustomProperty(string property) => context.Properties.TryGetValue(property, out string? value) ? value : null;
+            if (!HtmlCssCustomPropertyResolver.TryResolve(actual, LookupCustomProperty, out string resolvedActual)
+                || !HtmlCssCustomPropertyResolver.TryResolve(expected, LookupCustomProperty, out string resolvedExpected)) {
+                return false;
+            }
+            return string.Equals(
+                string.Join(" ", HtmlRenderCssValues.SplitWhitespace(resolvedActual)),
+                string.Join(" ", HtmlRenderCssValues.SplitWhitespace(resolvedExpected)),
+                StringComparison.Ordinal);
         }
         if (HtmlRenderCssValues.TryColor(actual, out OfficeIMO.Drawing.OfficeColor actualColor)
             && HtmlRenderCssValues.TryColor(expected, out OfficeIMO.Drawing.OfficeColor expectedColor)) {

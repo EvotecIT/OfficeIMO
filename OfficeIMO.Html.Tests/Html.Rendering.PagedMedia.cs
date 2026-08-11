@@ -46,6 +46,16 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPagedMedia_IgnoresCommentsBeforePageDeclarations() {
+        const string html = "<style>@page{/* geometry */ size:200px 100px;/* spacing */ margin:10px}</style><p>Body</p>";
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal((200D, 100D), (page.Width, page.Height));
+        Assert.Equal((10D, 10D, 10D, 10D), (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
+    [Fact]
     public void HtmlPagedMedia_ResolvesGenericPercentageMarginsAgainstFinalNamedPageSize() {
         const string html = """
             <style>

@@ -545,7 +545,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             value = values.FirstOrDefault() ?? string.Empty;
         } else if (fieldKind == HtmlRenderFormFieldKind.RadioButton) {
             radioOption = ResolveRadioOptionToken(value, nodeId);
-            value = radioOption;
         } else if (fieldKind == HtmlRenderFormFieldKind.CheckBox) {
             radioOption = ResolveButtonOptionToken(value, nodeId);
         }

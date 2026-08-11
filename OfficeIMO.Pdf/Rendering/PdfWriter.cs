@@ -720,6 +720,7 @@ internal static partial class PdfWriter {
                                 int widgetObjectId = AddObject(objects, widget);
                                 CompleteAnnotationStructureReference(page, widgetStructureReference, widgetObjectId);
                                 plan.Options.Add(option);
+                                plan.ExportValues.Add(field.ExportValues[optionIndex]);
                                 plan.WidgetObjectIds.Add(widgetObjectId);
                                 pageAnnotIds.Add(widgetObjectId);
                             }
@@ -765,7 +766,8 @@ internal static partial class PdfWriter {
                             pageAnnotIds.Add(widgetObjectId);
                         }
 
-                        ReplaceObject(objects, parentFieldId, PdfAnnotationDictionaryBuilder.BuildRadioButtonFieldDictionary(field.Name, field.Options, field.Value, widgetObjectIds, field.Style));
+                        IReadOnlyList<string>? exportValues = field.ExportValues.Length == 0 ? null : field.ExportValues;
+                        ReplaceObject(objects, parentFieldId, PdfAnnotationDictionaryBuilder.BuildRadioButtonFieldDictionary(field.Name, field.Options, field.Value, widgetObjectIds, field.Style, exportValues));
                         formFieldIds.Add(parentFieldId);
                         continue;
                     }
@@ -845,7 +847,7 @@ internal static partial class PdfWriter {
 
         foreach (KeyValuePair<string, PositionedRadioButtonSerializationPlan> entry in positionedRadioPlans) {
             PositionedRadioButtonSerializationPlan plan = entry.Value;
-            ReplaceObject(objects, plan.ParentFieldId, PdfAnnotationDictionaryBuilder.BuildRadioButtonFieldDictionary(entry.Key, plan.Options, plan.Value, plan.WidgetObjectIds, plan.Style));
+            ReplaceObject(objects, plan.ParentFieldId, PdfAnnotationDictionaryBuilder.BuildRadioButtonFieldDictionary(entry.Key, plan.Options, plan.Value, plan.WidgetObjectIds, plan.Style, plan.ExportValues));
         }
 
         // Pages tree

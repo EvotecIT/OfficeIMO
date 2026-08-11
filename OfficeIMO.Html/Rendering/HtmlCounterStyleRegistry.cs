@@ -242,6 +242,7 @@ internal sealed class HtmlCounterStyleRegistry {
 
         private static IReadOnlyDictionary<string, string> ParseDescriptors(string body) {
             var parsed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            body = HtmlComputedStyleEngine.StripCssCommentsOutsideStrings(body);
             foreach (string declaration in HtmlRenderCssValues.SplitTopLevel(body, ';')) {
                 int colon = FindTopLevelColon(declaration);
                 if (colon <= 0) continue;

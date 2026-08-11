@@ -359,9 +359,13 @@ public static partial class HtmlComputedStyleEngine {
         computed[element] = style;
         if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements, budget, containerContexts, environment);
 
-        double elementWidth = ResolveContainerElementWidth(style, containingWidth, environment);
-        double? elementHeight = ResolveContainerElementHeight(style, containingWidth, containingHeight, environment);
-        IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, elementHeight, containerContexts, environment);
+        double inheritedFontSize = containerContexts.Count == 0 ? 16D : containerContexts[containerContexts.Count - 1].FontSize;
+        double rootFontSize = containerContexts.Count == 0 ? 16D : containerContexts[0].RootFontSize;
+        double elementFontSize = ResolveContainerFontSize(style, environment, inheritedFontSize, rootFontSize);
+        if (containerContexts.Count == 0) rootFontSize = elementFontSize;
+        double elementWidth = ResolveContainerElementWidth(style, containingWidth, elementFontSize, rootFontSize, environment);
+        double? elementHeight = ResolveContainerElementHeight(style, containingWidth, containingHeight, elementFontSize, rootFontSize, environment);
+        IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, elementHeight, elementFontSize, rootFontSize, containerContexts);
 
         foreach (IElement child in element.Children) {
             ComputeElement(child, style, rules, computed, pseudoElements, includePseudoElements, budget, environment, elementWidth, elementHeight, childContainerContexts);

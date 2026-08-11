@@ -79,8 +79,14 @@ public sealed partial class PdfPageCanvas {
 
     /// <summary>Adds one interactive radio-button widget. Widgets with the same field name are emitted as one radio group on the page.</summary>
     public PdfPageCanvas RadioButton(string name, string option, bool isSelected, double x, double y, double width, double height, PdfFormFieldStyle? style = null) {
+        return RadioButtonWithExportValue(name, option, option, isSelected, x, y, width, height, style);
+    }
+
+    /// <summary>Adds one interactive radio-button widget with separate PDF appearance-state and exported values.</summary>
+    internal PdfPageCanvas RadioButtonWithExportValue(string name, string option, string exportValue, bool isSelected, double x, double y, double width, double height, PdfFormFieldStyle? style = null) {
         ValidateFormFieldBox(name, x, y, width, height);
         Guard.NotNullOrWhiteSpace(option, nameof(option));
+        Guard.NotNullOrWhiteSpace(exportValue, nameof(exportValue));
         if (string.Equals(option, "Off", StringComparison.Ordinal)) {
             throw new ArgumentException("PDF radio button option value cannot be Off.", nameof(option));
         }
@@ -89,7 +95,7 @@ public sealed partial class PdfPageCanvas {
                 throw new ArgumentException("PDF radio button option values must contain only ASCII PDF name characters.", nameof(option));
             }
         }
-        _items.Add(PdfCanvasFormFieldItem.RadioButton(name, option, isSelected, x, y, width, height, style));
+        _items.Add(PdfCanvasFormFieldItem.RadioButton(name, option, exportValue, isSelected, x, y, width, height, style));
         return this;
     }
 
@@ -140,8 +146,8 @@ internal sealed class PdfCanvasFormFieldItem : PdfCanvasItem {
     internal static PdfCanvasFormFieldItem Choice(string name, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<string> values, double x, double y, double width, double height, double fontSize, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style) =>
         new(PdfCanvasFormFieldKind.Choice, name, x, y, width, height, style) { ChoiceOptions = options, Values = values, Value = values.Count == 0 ? string.Empty : values[0], FontSize = fontSize, IsComboBox = isComboBox, AllowsMultipleSelection = allowsMultipleSelection };
 
-    internal static PdfCanvasFormFieldItem RadioButton(string name, string option, bool isSelected, double x, double y, double width, double height, PdfFormFieldStyle? style) =>
-        new(PdfCanvasFormFieldKind.RadioButton, name, x, y, width, height, style) { Option = option, Value = option, IsSelected = isSelected };
+    internal static PdfCanvasFormFieldItem RadioButton(string name, string option, string exportValue, bool isSelected, double x, double y, double width, double height, PdfFormFieldStyle? style) =>
+        new(PdfCanvasFormFieldKind.RadioButton, name, x, y, width, height, style) { Option = option, ExportValue = exportValue, Value = option, IsSelected = isSelected };
 
     internal PdfCanvasFormFieldKind Kind { get; }
     internal string Name { get; }

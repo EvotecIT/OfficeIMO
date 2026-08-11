@@ -148,6 +148,32 @@ public sealed class HtmlPdfTests {
         Assert.Equal("caf\u00E9", renderedField.Value);
         Assert.NotEqual(renderedField.Value, renderedField.RadioOption);
         Assert.Equal("caf\u00E9", Assert.Single(pdfField.Options).ExportValue);
+        Assert.Equal("caf\u00E9", Assert.Single(PdfCore.PdfDocument.Open(HtmlConversionDocument.Parse(html).ToPdf()).Forms.ExportData().Fields).Values[0]);
+    }
+
+    [Fact]
+    public void HtmlToPdf_RadioButtonPreservesUnicodeExportValueSeparatelyFromAppearanceState() {
+        const string html = "<input type='radio' name='choice' value='caf\u00E9' checked>";
+
+        HtmlRenderFormField renderedField = Assert.Single(EnumeratePdfSceneVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene).OfType<HtmlRenderFormField>());
+        PdfCore.PdfFormField pdfField = Assert.Single(PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdf()).FormFields);
+
+        Assert.Equal("caf\u00E9", renderedField.Value);
+        Assert.NotEqual(renderedField.Value, renderedField.RadioOption);
+        Assert.Equal("caf\u00E9", Assert.Single(pdfField.Options).ExportValue);
+        Assert.Equal("caf\u00E9", Assert.Single(PdfCore.PdfDocument.Open(HtmlConversionDocument.Parse(html).ToPdf()).Forms.ExportData().Fields).Values[0]);
+    }
+
+    [Fact]
+    public void HtmlToPdf_UnselectedScalarChoiceOmitsEmptyValueArrays() {
+        const string html = "<select name='choice' size='2'><option value='one'>One</option><option value='two'>Two</option></select>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        string syntax = Encoding.ASCII.GetString(pdf);
+
+        Assert.DoesNotContain("/V []", syntax, StringComparison.Ordinal);
+        Assert.DoesNotContain("/DV []", syntax, StringComparison.Ordinal);
+        Assert.False(Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields).HasValues);
     }
 
     [Fact]

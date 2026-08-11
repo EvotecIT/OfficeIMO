@@ -262,13 +262,13 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         }
 
         int flags = BuildChoiceFieldFlags(style, (isComboBox ? FieldFlagCombo : 0) | (allowsMultipleSelection ? 2097152 : 0), isComboBox);
+        string valueEntries = !allowsMultipleSelection && values.Count == 0
+            ? string.Empty
+            : " /V " + BuildChoiceValue(values, allowsMultipleSelection) + " /DV " + BuildChoiceValue(values, allowsMultipleSelection);
         return "<< /Type /Annot /Subtype /Widget /FT /Ch /T " +
             PdfSyntaxEscaper.TextString(name) +
             BuildFormFieldMetadataEntries(style) +
-            " /V " +
-            BuildChoiceValue(values, allowsMultipleSelection) +
-            " /DV " +
-            BuildChoiceValue(values, allowsMultipleSelection) +
+            valueEntries +
             " /Opt [" +
             optionBuilder +
             " ]" +
@@ -290,7 +290,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             " >>\n";
     }
 
-    internal static string BuildRadioButtonFieldDictionary(string name, IReadOnlyList<string> options, string value, IReadOnlyList<int> widgetObjectIds, PdfFormFieldStyle? style = null) {
+    internal static string BuildRadioButtonFieldDictionary(string name, IReadOnlyList<string> options, string value, IReadOnlyList<int> widgetObjectIds, PdfFormFieldStyle? style = null, IReadOnlyList<string>? exportValues = null) {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNull(options, nameof(options));
         Guard.NotNullOrWhiteSpace(value, nameof(value));
@@ -298,6 +298,10 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         ValidateRadioOptions(options, value);
         if (widgetObjectIds.Count != options.Count) {
             throw new ArgumentException("PDF radio button group requires one widget object per option.", nameof(widgetObjectIds));
+        }
+        IReadOnlyList<string> exports = exportValues ?? options;
+        if (exports.Count != options.Count || exports.Any(string.IsNullOrWhiteSpace)) {
+            throw new ArgumentException("PDF radio button exports must contain one non-empty value per option.", nameof(exportValues));
         }
 
         var sb = new StringBuilder();
@@ -315,7 +319,15 @@ internal static partial class PdfAnnotationDictionaryBuilder {
                 .Append(PdfSyntaxEscaper.IndirectReference(widgetObjectIds[i]));
         }
 
-        sb.Append(" ] >>\n");
+        sb.Append(" ]");
+        if (!exports.SequenceEqual(options, StringComparer.Ordinal)) {
+            sb.Append(" /Opt [");
+            for (int i = 0; i < exports.Count; i++) {
+                sb.Append(' ').Append(PdfSyntaxEscaper.TextString(exports[i]));
+            }
+            sb.Append(" ]");
+        }
+        sb.Append(" >>\n");
         return sb.ToString();
     }
 

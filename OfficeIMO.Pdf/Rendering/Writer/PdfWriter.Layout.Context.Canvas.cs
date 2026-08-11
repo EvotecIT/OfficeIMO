@@ -79,6 +79,7 @@ internal static partial class PdfWriter {
                     Name = item.Name,
                     Value = item.IsSelected ? item.Option : "Off",
                     Options = new[] { item.Option },
+                    ExportValues = new[] { item.ExportValue },
                     ButtonSize = Math.Min(item.Width, item.Height),
                     Style = item.Style
                 };

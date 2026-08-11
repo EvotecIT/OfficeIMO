@@ -260,7 +260,8 @@ internal static partial class HtmlPdfRenderedConverter {
                     index < field.OptionValues.Count ? field.OptionValues[index] : label,
                     label))
                 .ToList();
-            canvas.ChoiceField(field.Name, choiceOptions, field.Values, x, y, width, height, fontSize, field.IsComboBox, field.AllowsMultipleSelection, style);
+            IReadOnlyList<string>? selectedValues = !field.AllowsMultipleSelection && field.Values.Count == 0 ? null : field.Values;
+            canvas.ChoiceField(field.Name, choiceOptions, selectedValues, x, y, width, height, fontSize, field.IsComboBox, field.AllowsMultipleSelection, style);
             string searchableValue = string.Join(" ", field.Values
                 .Select(value => choiceOptions.FirstOrDefault(option => string.Equals(option.ExportValue, value, StringComparison.Ordinal))?.DisplayText ?? value)
                 .Where(value => !string.IsNullOrWhiteSpace(value)));
@@ -268,7 +269,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 canvas.SearchableText(searchableValue, x, y + Math.Min(height, fontSize));
             }
         } else {
-            canvas.RadioButton(field.Name, field.RadioOption!, field.IsSelected, x, y, width, height, style);
+            canvas.RadioButtonWithExportValue(field.Name, field.RadioOption!, field.Value, field.IsSelected, x, y, width, height, style);
         }
     }
 

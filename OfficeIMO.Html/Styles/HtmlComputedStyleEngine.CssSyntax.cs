@@ -11,7 +11,7 @@ public static partial class HtmlComputedStyleEngine {
         return close < open;
     }
 
-    private static string StripCssCommentsOutsideStrings(string css) {
+    internal static string StripCssCommentsOutsideStrings(string css) {
         var result = new System.Text.StringBuilder(css.Length);
         char quote = '\0';
         for (int i = 0; i < css.Length; i++) {

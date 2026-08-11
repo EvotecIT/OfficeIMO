@@ -139,6 +139,37 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_ContainerGeometryUsesComputedRootFontForRemLengths() {
+        const string html = """
+            <style>
+              html { font-size:20px; }
+              @container (width:120px) { #item { background:red; } }
+            </style>
+            <section style="box-sizing:border-box;width:10rem;padding:1rem;border:1rem solid black;container-type:inline-size">
+              <div id="item" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 300D });
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
+    }
+
+    [Fact]
+    public void HtmlRendering_ContainerStyleQueriesCompareResolvedCustomPropertyValues() {
+        const string html = """
+            <style>@container theme style(--tone:red) { #item { background:red; } }</style>
+            <section style="container-name:theme;--base:red;--tone:var(--base)">
+              <div id="item" style="width:40px;height:20px;background:blue"></div>
+            </section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
+    }
+
+    [Fact]
     public void HtmlRendering_ViewportUnitsReachTransformsAndGradientGeometry() {
         Assert.True(HtmlCssTransformParser.TryParse(
             "translate(10vw, 10vh)",

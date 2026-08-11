@@ -140,6 +140,15 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_IgnoresCommentsBeforeCounterStyleDescriptors() {
+        const string html = "<style>@counter-style marks{/* mode */system:cyclic;/* glyph */symbols:'X';/* ending */suffix:') '}</style><ul style='list-style-type:marks'><li>Item</li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "X) ", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
     public void HtmlRendering_AppliesCounterStyleConditionalRulesForTheActiveMedia() {
         const string html = """
             <style>
