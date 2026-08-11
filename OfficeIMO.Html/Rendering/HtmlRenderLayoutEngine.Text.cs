@@ -5,7 +5,14 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private HtmlInlineLayout LayoutInlineNodes(IEnumerable<INode> nodes, double width, HtmlRenderBoxStyle parentStyle, int depth, string? prefix, IElement? generatedContentOwner) {
+    private HtmlInlineLayout LayoutInlineNodes(
+        IEnumerable<INode> nodes,
+        double width,
+        HtmlRenderBoxStyle parentStyle,
+        int depth,
+        string? prefix,
+        IElement? generatedContentOwner,
+        int skipLogicalCharacters = 0) {
         var runs = new List<HtmlInlineRun>();
         IElement? formattingContainer = generatedContentOwner ?? nodes.FirstOrDefault()?.ParentElement;
         if (!string.IsNullOrEmpty(prefix)) {
@@ -32,7 +39,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             foreach (HtmlInlineRun run in runs) run.AssignSemanticNode(parentStyle.SemanticRole, semanticNodeId);
         }
 
-        return LayoutInlineRuns(runs, width, parentStyle, formattingContainer);
+        return LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters);
     }
 
     private List<HtmlInlineRun> ApplyScopedFontFallbacks(IEnumerable<HtmlInlineRun> sourceRuns) {
@@ -231,11 +238,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
             "joining-script");
     }
 
-    private HtmlInlineLayout LayoutInlineRuns(IReadOnlyList<HtmlInlineRun> runs, double width, HtmlRenderBoxStyle paragraphStyle, IElement? formattingContainer = null) {
+    private HtmlInlineLayout LayoutInlineRuns(
+        IReadOnlyList<HtmlInlineRun> runs,
+        double width,
+        HtmlRenderBoxStyle paragraphStyle,
+        IElement? formattingContainer = null,
+        int skipLogicalCharacters = 0) {
         if (runs.Count == 0 || width <= 0D) return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D);
         if (runs.Any(run => run.FloatingBlock != null)) {
             return LayoutInlineRunsWithFloats(runs, width, paragraphStyle, formattingContainer);
         }
+        bool supportsContinuationReflow = runs.All(run =>
+            run.AtomicBlock == null
+            && run.PositionedMarkerElement == null
+            && run.RunningStringElement == null
+            && run.Text.IndexOf('\u2028') < 0
+            && run.Text.IndexOf('\n') < 0
+            && run.Text.IndexOf('\r') < 0);
+        int canonicalProgress = 0;
+        bool canonicalHasContent = false;
+        bool canonicalPreviousWasCollapsibleSpace = false;
         var lines = new List<InlineLine>();
         var line = new InlineLine();
         bool previousWasCollapsibleSpace = false;
@@ -275,6 +297,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bool whitespace = IsWhitespaceToken(token);
                 string normalizedToken = !paragraphStyle.PreserveWhitespace && whitespace ? " " : token;
                 string normalizedLogicalToken = !paragraphStyle.PreserveWhitespace && whitespace ? " " : logicalToken;
+                bool contributesCanonicalProgress = paragraphStyle.PreserveWhitespace
+                    || !whitespace
+                    || canonicalHasContent && !canonicalPreviousWasCollapsibleSpace;
+                int tokenStart = canonicalProgress;
+                if (contributesCanonicalProgress) canonicalProgress += normalizedLogicalToken.Length;
+                int tokenEnd = canonicalProgress;
+                if (!paragraphStyle.PreserveWhitespace) {
+                    if (whitespace) {
+                        canonicalPreviousWasCollapsibleSpace = true;
+                    } else {
+                        canonicalHasContent = true;
+                        canonicalPreviousWasCollapsibleSpace = false;
+                    }
+                }
+
                 if (!paragraphStyle.PreserveWhitespace && whitespace) {
                     if (!line.HasFlowContent || previousWasCollapsibleSpace) continue;
                     previousWasCollapsibleSpace = true;
@@ -282,9 +319,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     previousWasCollapsibleSpace = false;
                 }
 
+                int visibleTokenStart = tokenStart;
+                if (skipLogicalCharacters > tokenStart) {
+                    int skipWithinToken = skipLogicalCharacters - tokenStart;
+                    if (skipWithinToken >= normalizedLogicalToken.Length) {
+                        continue;
+                    }
+                    normalizedToken = normalizedToken.Substring(skipWithinToken);
+                    normalizedLogicalToken = normalizedLogicalToken.Substring(skipWithinToken);
+                    visibleTokenStart += skipWithinToken;
+                    whitespace = IsWhitespaceToken(normalizedToken);
+                }
+
                 double measured = MeasureText(normalizedToken, run.Style.Font);
                 if (!whitespace && measured > width && AllowsEmergencyTokenBreak(run.Style)) {
-                    AddBrokenToken(lines, ref line, run, normalizedToken, normalizedLogicalToken, width);
+                    AddBrokenToken(lines, ref line, run, normalizedToken, normalizedLogicalToken, width, visibleTokenStart);
                     continue;
                 }
 
@@ -295,13 +344,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (whitespace && !paragraphStyle.PreserveWhitespace) continue;
                 }
 
-                line.Add(new InlineSegment(normalizedToken, measured, run, normalizedLogicalToken));
+                line.Add(new InlineSegment(normalizedToken, measured, run, normalizedLogicalToken, logicalEndProgress: tokenEnd));
             }
         }
 
         TrimTrailingWhitespace(line);
         if (line.Segments.Count > 0 || lines.Count == 0) lines.Add(line);
-        return RenderInlineLines(lines, width, paragraphStyle, formattingContainer);
+        return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, supportsContinuationReflow: supportsContinuationReflow);
     }
 
     private static bool AllowsEmergencyTokenBreak(HtmlRenderBoxStyle style) =>
@@ -315,7 +364,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (InlineSegment segment in segments) {
             if (segment.Run.AtomicBlock == null && merged.Count > 0 && ReferenceEquals(merged[merged.Count - 1].Run, segment.Run)) {
                 InlineSegment previous = merged[merged.Count - 1];
-                merged[merged.Count - 1] = new InlineSegment(previous.Text + segment.Text, previous.Width + segment.Width, previous.Run, previous.LogicalText + segment.LogicalText);
+                merged[merged.Count - 1] = new InlineSegment(
+                    previous.Text + segment.Text,
+                    previous.Width + segment.Width,
+                    previous.Run,
+                    previous.LogicalText + segment.LogicalText,
+                    logicalEndProgress: segment.LogicalEndProgress);
             } else {
                 merged.Add(segment);
             }
@@ -324,10 +378,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return merged;
     }
 
-    private void AddBrokenToken(ICollection<InlineLine> lines, ref InlineLine line, HtmlInlineRun run, string token, string logicalToken, double width) {
+    private void AddBrokenToken(
+        ICollection<InlineLine> lines,
+        ref InlineLine line,
+        HtmlInlineRun run,
+        string token,
+        string logicalToken,
+        double width,
+        int logicalStartProgress) {
         var part = new StringBuilder();
         var logicalPart = new StringBuilder();
         double partWidth = 0D;
+        int partLogicalLength = 0;
         IReadOnlyList<string> paintElements = OfficeTextElements.Split(token);
         IReadOnlyList<string> logicalElements = OfficeTextElements.Split(logicalToken);
         for (int index = 0; index < paintElements.Count; index++) {
@@ -341,7 +403,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     line = new InlineLine();
                 }
 
-                line.Add(new InlineSegment(part.ToString(), partWidth, run, logicalPart.ToString()));
+                line.Add(new InlineSegment(
+                    part.ToString(),
+                    partWidth,
+                    run,
+                    logicalPart.ToString(),
+                    logicalEndProgress: logicalStartProgress + partLogicalLength));
                 lines.Add(line);
                 line = new InlineLine();
                 part.Clear();
@@ -351,6 +418,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             part.Append(value);
             logicalPart.Append(logicalValue);
+            partLogicalLength += logicalValue.Length;
             partWidth += charWidth;
         }
 
@@ -361,7 +429,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 line = new InlineLine();
             }
 
-            line.Add(new InlineSegment(part.ToString(), partWidth, run, logicalPart.ToString()));
+            line.Add(new InlineSegment(
+                part.ToString(),
+                partWidth,
+                run,
+                logicalPart.ToString(),
+                logicalEndProgress: logicalStartProgress + partLogicalLength));
         }
     }
 
@@ -541,12 +614,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double width,
             HtmlInlineRun run,
             string? logicalText = null,
-            bool bidiResolved = false) {
+            bool bidiResolved = false,
+            int logicalEndProgress = 0) {
             Text = text;
             LogicalText = logicalText ?? text;
             Width = width;
             Run = run;
             BidiResolved = bidiResolved;
+            LogicalEndProgress = logicalEndProgress;
         }
 
         internal string Text { get; }
@@ -554,6 +629,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Width { get; }
         internal HtmlInlineRun Run { get; }
         internal bool BidiResolved { get; }
+        internal int LogicalEndProgress { get; }
     }
 
     private static double ResolveTextAscent(HtmlRenderBoxStyle style) {

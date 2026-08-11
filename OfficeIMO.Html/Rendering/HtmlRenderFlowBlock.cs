@@ -30,7 +30,10 @@ internal sealed class HtmlRenderFlowBlock {
         IElement? ownerElement = null,
         bool collapsesThrough = false,
         double? unclampedHeight = null,
-        IEnumerable<HtmlCssRunningStringAssignment>? runningStringAssignments = null) {
+        IEnumerable<HtmlCssRunningStringAssignment>? runningStringAssignments = null,
+        IEnumerable<HtmlInlineBreakProgress>? inlineBreakProgress = null,
+        int inlineContinuationStart = 0,
+        bool supportsInlineContinuationReflow = false) {
         Width = width;
         Height = height;
         UnclampedHeight = unclampedHeight.HasValue && !double.IsNaN(unclampedHeight.Value) && !double.IsInfinity(unclampedHeight.Value)
@@ -82,6 +85,9 @@ internal sealed class HtmlRenderFlowBlock {
         OwnerElement = ownerElement;
         CollapsesThrough = collapsesThrough;
         RunningStringAssignments = new List<HtmlCssRunningStringAssignment>(runningStringAssignments ?? Array.Empty<HtmlCssRunningStringAssignment>()).AsReadOnly();
+        InlineBreakProgress = new List<HtmlInlineBreakProgress>(inlineBreakProgress ?? Array.Empty<HtmlInlineBreakProgress>()).AsReadOnly();
+        InlineContinuationStart = Math.Max(0, inlineContinuationStart);
+        SupportsInlineContinuationReflow = supportsInlineContinuationReflow;
     }
 
     internal double Width { get; }
@@ -105,6 +111,9 @@ internal sealed class HtmlRenderFlowBlock {
     internal IElement? OwnerElement { get; }
     internal bool CollapsesThrough { get; }
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningStringAssignments { get; }
+    internal IReadOnlyList<HtmlInlineBreakProgress> InlineBreakProgress { get; }
+    internal int InlineContinuationStart { get; }
+    internal bool SupportsInlineContinuationReflow { get; }
 
     internal HtmlRenderFlowBlock TranslatePaint(double offsetX, double offsetY) =>
         new HtmlRenderFlowBlock(
@@ -128,7 +137,10 @@ internal sealed class HtmlRenderFlowBlock {
             ownerElement: OwnerElement,
             collapsesThrough: CollapsesThrough,
             unclampedHeight: UnclampedHeight,
-            runningStringAssignments: RunningStringAssignments);
+            runningStringAssignments: RunningStringAssignments,
+            inlineBreakProgress: InlineBreakProgress,
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow);
 
     internal HtmlRenderFlowBlock WithStacking(int zIndex, int sourceOrder) =>
         new HtmlRenderFlowBlock(
@@ -152,7 +164,10 @@ internal sealed class HtmlRenderFlowBlock {
             ownerElement: OwnerElement,
             collapsesThrough: CollapsesThrough,
             unclampedHeight: UnclampedHeight,
-            runningStringAssignments: RunningStringAssignments);
+            runningStringAssignments: RunningStringAssignments,
+            inlineBreakProgress: InlineBreakProgress,
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow);
 
     internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals) =>
         new HtmlRenderFlowBlock(
@@ -176,7 +191,10 @@ internal sealed class HtmlRenderFlowBlock {
             ownerElement: OwnerElement,
             collapsesThrough: CollapsesThrough,
             unclampedHeight: UnclampedHeight,
-            runningStringAssignments: RunningStringAssignments);
+            runningStringAssignments: RunningStringAssignments,
+            inlineBreakProgress: InlineBreakProgress,
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow);
 
     internal HtmlRenderFlowBlock AdjustLeadingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
@@ -203,7 +221,10 @@ internal sealed class HtmlRenderFlowBlock {
             ownerElement: OwnerElement,
             collapsesThrough: CollapsesThrough,
             unclampedHeight: adjustedUnclampedHeight,
-            runningStringAssignments: RunningStringAssignments.Select(assignment => assignment.Translate(-adjustment)));
+            runningStringAssignments: RunningStringAssignments.Select(assignment => assignment.Translate(-adjustment)),
+            inlineBreakProgress: InlineBreakProgress.Select(progress => new HtmlInlineBreakProgress(progress.Offset - adjustment, progress.LogicalCharacters)),
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow);
     }
 
     internal HtmlRenderFlowBlock WithCollapsibleMargins(double top, double bottom, IElement ownerElement, bool collapsesThrough = false) =>
@@ -228,7 +249,10 @@ internal sealed class HtmlRenderFlowBlock {
             ownerElement: ownerElement,
             collapsesThrough: collapsesThrough,
             unclampedHeight: UnclampedHeight,
-            runningStringAssignments: RunningStringAssignments);
+            runningStringAssignments: RunningStringAssignments,
+            inlineBreakProgress: InlineBreakProgress,
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow);
 
     internal HtmlRenderFlowBlock WithRunningStringAssignments(IEnumerable<HtmlCssRunningStringAssignment> assignments) =>
         new HtmlRenderFlowBlock(
@@ -252,7 +276,10 @@ internal sealed class HtmlRenderFlowBlock {
             ownerElement: OwnerElement,
             collapsesThrough: CollapsesThrough,
             unclampedHeight: UnclampedHeight,
-            runningStringAssignments: assignments);
+            runningStringAssignments: assignments,
+            inlineBreakProgress: InlineBreakProgress,
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow);
 
     internal HtmlRenderFlowBlock AdjustTrailingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
@@ -279,7 +306,10 @@ internal sealed class HtmlRenderFlowBlock {
             ownerElement: OwnerElement,
             collapsesThrough: CollapsesThrough,
             unclampedHeight: adjustedUnclampedHeight,
-            runningStringAssignments: RunningStringAssignments.Where(assignment => assignment.Offset <= adjustedHeight + 0.0001D));
+            runningStringAssignments: RunningStringAssignments.Where(assignment => assignment.Offset <= adjustedHeight + 0.0001D),
+            inlineBreakProgress: InlineBreakProgress.Where(progress => progress.Offset <= adjustedHeight + 0.0001D),
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow);
     }
 }
 
@@ -473,16 +503,32 @@ internal sealed class HtmlInlineLayout {
         IEnumerable<HtmlRenderVisual> visuals,
         double height,
         IEnumerable<double>? breakOffsets = null,
-        IEnumerable<HtmlCssRunningStringAssignment>? runningStringAssignments = null) {
+        IEnumerable<HtmlCssRunningStringAssignment>? runningStringAssignments = null,
+        IEnumerable<HtmlInlineBreakProgress>? breakProgress = null,
+        bool supportsContinuationReflow = false) {
         Visuals = new List<HtmlRenderVisual>(visuals);
         Height = height;
         BreakOffsets = new List<double>(breakOffsets ?? Array.Empty<double>()).AsReadOnly();
         RunningStringAssignments = new List<HtmlCssRunningStringAssignment>(
             runningStringAssignments ?? Array.Empty<HtmlCssRunningStringAssignment>()).AsReadOnly();
+        BreakProgress = new List<HtmlInlineBreakProgress>(breakProgress ?? Array.Empty<HtmlInlineBreakProgress>()).AsReadOnly();
+        SupportsContinuationReflow = supportsContinuationReflow;
     }
 
     internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
     internal double Height { get; }
     internal IReadOnlyList<double> BreakOffsets { get; }
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningStringAssignments { get; }
+    internal IReadOnlyList<HtmlInlineBreakProgress> BreakProgress { get; }
+    internal bool SupportsContinuationReflow { get; }
+}
+
+internal readonly struct HtmlInlineBreakProgress {
+    internal HtmlInlineBreakProgress(double offset, int logicalCharacters) {
+        Offset = offset;
+        LogicalCharacters = logicalCharacters;
+    }
+
+    internal double Offset { get; }
+    internal int LogicalCharacters { get; }
 }

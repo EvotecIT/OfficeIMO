@@ -33,7 +33,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     semanticRole: "page-margin"));
             }
 
-            rendered.Add(new HtmlRenderPage(page.PageNumber, page.Width, page.Height, visuals, page.PageName, _fonts, page.RunningStrings));
+            rendered.Add(new HtmlRenderPage(page.PageNumber, page.Width, page.Height, visuals, page.PageName, _fonts, page.RunningStrings, page.Margins));
         }
 
         return rendered.AsReadOnly();
@@ -44,19 +44,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (IsCorner(position)) return TryGetCornerBounds(page, position, lineHeight, out x, out y, out width, out height);
         if (IsSide(position)) return TryGetSideBounds(page, position, lineHeight, out x, out y, out width, out height);
 
-        double contentWidth = Math.Max(1D, page.Width - _options.Margins.Left - _options.Margins.Right);
+        double contentWidth = Math.Max(1D, page.Width - page.Margins.Left - page.Margins.Right);
         double columnWidth = contentWidth / 3D;
         int column = position == HtmlCssPageMarginPosition.TopCenter || position == HtmlCssPageMarginPosition.BottomCenter
             ? 1
             : position == HtmlCssPageMarginPosition.TopRight || position == HtmlCssPageMarginPosition.BottomRight ? 2 : 0;
         bool top = position == HtmlCssPageMarginPosition.TopLeft || position == HtmlCssPageMarginPosition.TopCenter || position == HtmlCssPageMarginPosition.TopRight;
-        double marginHeight = top ? _options.Margins.Top : _options.Margins.Bottom;
+        double marginHeight = top ? page.Margins.Top : page.Margins.Bottom;
         if (marginHeight <= 0.01D) {
             x = y = width = height = 0D;
             return false;
         }
 
-        x = _options.Margins.Left + column * columnWidth;
+        x = page.Margins.Left + column * columnWidth;
         width = Math.Max(1D, columnWidth);
         height = Math.Max(0.01D, Math.Min(lineHeight, marginHeight));
         y = top
@@ -68,8 +68,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private bool TryGetCornerBounds(HtmlRenderPage page, HtmlCssPageMarginPosition position, double lineHeight, out double x, out double y, out double width, out double height) {
         bool left = position == HtmlCssPageMarginPosition.TopLeftCorner || position == HtmlCssPageMarginPosition.BottomLeftCorner;
         bool top = position == HtmlCssPageMarginPosition.TopLeftCorner || position == HtmlCssPageMarginPosition.TopRightCorner;
-        double marginWidth = left ? _options.Margins.Left : _options.Margins.Right;
-        double marginHeight = top ? _options.Margins.Top : _options.Margins.Bottom;
+        double marginWidth = left ? page.Margins.Left : page.Margins.Right;
+        double marginHeight = top ? page.Margins.Top : page.Margins.Bottom;
         if (marginWidth <= 0.01D || marginHeight <= 0.01D) {
             x = y = width = height = 0D;
             return false;
@@ -86,8 +86,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private bool TryGetSideBounds(HtmlRenderPage page, HtmlCssPageMarginPosition position, double lineHeight, out double x, out double y, out double width, out double height) {
         bool left = position == HtmlCssPageMarginPosition.LeftTop || position == HtmlCssPageMarginPosition.LeftMiddle || position == HtmlCssPageMarginPosition.LeftBottom;
-        double marginWidth = left ? _options.Margins.Left : _options.Margins.Right;
-        double contentHeight = Math.Max(1D, page.Height - _options.Margins.Top - _options.Margins.Bottom);
+        double marginWidth = left ? page.Margins.Left : page.Margins.Right;
+        double contentHeight = Math.Max(1D, page.Height - page.Margins.Top - page.Margins.Bottom);
         if (marginWidth <= 0.01D) {
             x = y = width = height = 0D;
             return false;
@@ -100,7 +100,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         x = left ? 0D : page.Width - marginWidth;
         width = marginWidth;
         height = Math.Max(0.01D, Math.Min(lineHeight, sectionHeight));
-        y = _options.Margins.Top + section * sectionHeight + Math.Max(0D, (sectionHeight - height) / 2D);
+        y = page.Margins.Top + section * sectionHeight + Math.Max(0D, (sectionHeight - height) / 2D);
         return true;
     }
 

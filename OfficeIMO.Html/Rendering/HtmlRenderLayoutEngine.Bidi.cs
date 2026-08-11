@@ -154,7 +154,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 segmentWidth,
                 sources[ordered[start].SourceSegmentIndex].Run,
                 logicalText,
-                bidiResolved: true));
+                bidiResolved: true,
+                logicalEndProgress: sources[ordered[start].SourceSegmentIndex].LogicalEndProgress));
             start = end;
         }
         return result.AsReadOnly();

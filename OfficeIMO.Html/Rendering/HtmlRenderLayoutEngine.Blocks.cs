@@ -175,7 +175,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private HtmlRenderFlowBlock LayoutElement(IElement element, double containingWidth, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, int depth) {
+    private HtmlRenderFlowBlock LayoutElement(
+        IElement element,
+        double containingWidth,
+        HtmlRenderBoxStyle style,
+        HtmlRenderBoxStyle parentStyle,
+        int depth,
+        int inlineSkipLogicalCharacters = 0) {
         EnsureDepth(depth, element);
         ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(element));
         ReportUnsupportedFloatValues(element, style);
@@ -212,6 +218,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var continuationGroups = new List<HtmlRenderContinuationGroup>();
         var trailingGroups = new List<HtmlRenderTrailingGroup>();
         var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
+        HtmlInlineLayout? inlineLayout = null;
         double contentHeight = 0D;
         bool usesBlockFormatting = HasBlockChildren(element, contentWidth, style, depth);
         List<HtmlRenderFlowBlock> children = usesBlockFormatting
@@ -270,7 +277,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AppendFlowPaintLayers(contentVisuals, childPaintLayers);
         } else {
             string? prefix = tag == "li" ? ResolveListPrefix(element, style) : null;
-            HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth, prefix, element);
+            HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth, prefix, element, inlineSkipLogicalCharacters);
+            inlineLayout = inline;
             contentVisuals.AddRange(inline.Visuals);
             contentHeight = inline.Height;
             contentBreakOffsets.AddRange(inline.BreakOffsets);
@@ -364,7 +372,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             runningStringAssignments: runningStringAssignments
                 .Select(assignment => assignment.Translate(contentYForBreaks))
                 .Concat(positionedRunningStringAssignments)
-                .OrderBy(assignment => assignment.OrderOffset));
+                .OrderBy(assignment => assignment.OrderOffset),
+            inlineBreakProgress: inlineLayout?.BreakProgress.Select(progress =>
+                new HtmlInlineBreakProgress(contentYForBreaks + progress.Offset, progress.LogicalCharacters)),
+            inlineContinuationStart: inlineSkipLogicalCharacters,
+            supportsInlineContinuationReflow: inlineLayout?.SupportsContinuationReflow == true);
         block = ApplyElementSemantics(block, element);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
         return AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element), style, element, collapsesThrough);

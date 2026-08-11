@@ -62,7 +62,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (_registeredAbsoluteElements.Contains(directParent) || _registeredFixedElements.Contains(directParent)) return directParent;
         if (EstablishesSupportedAbsoluteContainingBlock(directParentStyle)) return directParent;
 
-        double referenceWidth = Math.Max(1D, (_options.Mode == HtmlRenderMode.Paged ? _options.PageWidth : _options.ViewportWidth) - _options.Margins.Left - _options.Margins.Right);
+        double referenceWidth = Math.Max(1D, ActiveSurfaceWidth - ActiveMargins.Left - ActiveMargins.Right);
         bool flattenedFlexOrGridChild = directParentStyle.Display == "contents";
         for (IElement? ancestor = directParent.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
             if (ReferenceEquals(ancestor, root)) return root;
@@ -157,8 +157,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 request,
                 contentWidth,
                 contentHeight,
-                _options.Margins.Left,
-                _options.Margins.Top)));
+                ActiveMargins.Left,
+                ActiveMargins.Top)));
         }
         placements.AddRange(_fixedPositionedElements.Select(request =>
             new PositionedRequestPlacement(request, surfaceWidth, surfaceHeight, 0D, 0D)));

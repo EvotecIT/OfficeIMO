@@ -33,8 +33,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double inlineX = inlineContainerOrigin.X + inlinePosition.X;
                 double inlineY = inlineContainerOrigin.Y + inlinePosition.Y;
                 if (request.Style.Position == "fixed") {
-                    inlineX += _options.Margins.Left;
-                    inlineY += _options.Margins.Top;
+                    inlineX += ActiveMargins.Left;
+                    inlineY += ActiveMargins.Top;
                 }
                 return new PositionedPoint(inlineX, inlineY);
             }
@@ -44,8 +44,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double x = parentContentOrigin.X + request.StaticAnchor.X;
             double y = parentContentOrigin.Y + request.StaticAnchor.Y;
             if (request.Style.Position == "fixed") {
-                x += _options.Margins.Left;
-                y += _options.Margins.Top;
+                x += ActiveMargins.Left;
+                y += ActiveMargins.Top;
             }
             return new PositionedPoint(x, y);
         }

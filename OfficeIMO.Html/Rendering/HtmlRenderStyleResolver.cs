@@ -7,12 +7,21 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderStyleResolver {
     private readonly HtmlComputedStyleSet _computedStyles;
     private readonly HtmlRenderOptions _options;
+    private double _viewportWidth;
+    private double _viewportHeight;
     private double _activeContainerWidth = double.NaN;
     private double _activeContainerHeight = double.NaN;
 
     internal HtmlRenderStyleResolver(HtmlComputedStyleSet computedStyles, HtmlRenderOptions options) {
         _computedStyles = computedStyles;
         _options = options;
+        _viewportWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth;
+        _viewportHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
+    }
+
+    internal void SetViewport(double width, double height) {
+        _viewportWidth = width;
+        _viewportHeight = height;
     }
 
     private bool TryResolveLength(string? value, double reference, double fontSize, double rootFontSize, out double result) =>
@@ -21,8 +30,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             reference,
             fontSize,
             rootFontSize,
-            _options.Mode == HtmlRenderMode.Paged ? _options.PageWidth : _options.ViewportWidth,
-            _options.Mode == HtmlRenderMode.Paged ? _options.PageHeight : _options.ViewportHeight ?? 1056D,
+            _viewportWidth,
+            _viewportHeight,
             _activeContainerWidth,
             _activeContainerHeight,
             out result);
@@ -58,8 +67,8 @@ internal sealed partial class HtmlRenderStyleResolver {
         bool pseudoElement,
         string pseudoSemanticRole) {
         string tag = element.TagName.ToLowerInvariant();
-        double viewportWidth = _options.Mode == HtmlRenderMode.Paged ? _options.PageWidth : _options.ViewportWidth;
-        double viewportHeight = _options.Mode == HtmlRenderMode.Paged ? _options.PageHeight : _options.ViewportHeight ?? 1056D;
+        double viewportWidth = _viewportWidth;
+        double viewportHeight = _viewportHeight;
         _activeContainerWidth = parent?.ContainerType == "inline-size" || parent?.ContainerType == "size"
             ? containingWidth
             : parent?.ContainerUnitWidth ?? viewportWidth;
@@ -432,8 +441,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             reference,
             fontSize,
             _options.DefaultFontSize,
-            _options.Mode == HtmlRenderMode.Paged ? _options.PageWidth : _options.ViewportWidth,
-            _options.Mode == HtmlRenderMode.Paged ? _options.PageHeight : _options.ViewportHeight ?? 1056D,
+            _viewportWidth,
+            _viewportHeight,
             ref style.MarginTop,
             ref style.MarginRight,
             ref style.MarginBottom,
@@ -449,8 +458,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             reference,
             fontSize,
             _options.DefaultFontSize,
-            _options.Mode == HtmlRenderMode.Paged ? _options.PageWidth : _options.ViewportWidth,
-            _options.Mode == HtmlRenderMode.Paged ? _options.PageHeight : _options.ViewportHeight ?? 1056D,
+            _viewportWidth,
+            _viewportHeight,
             ref style.PaddingTop,
             ref style.PaddingRight,
             ref style.PaddingBottom,

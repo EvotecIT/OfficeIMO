@@ -12,7 +12,15 @@ public sealed class HtmlRenderPage {
     private readonly OfficeFontFaceCollection _fonts;
     private readonly HtmlCssRunningStringPageContext? _runningStrings;
 
-    internal HtmlRenderPage(int pageNumber, double width, double height, IEnumerable<HtmlRenderVisual> visuals, string? pageName = null, OfficeFontFaceCollection? fonts = null, HtmlCssRunningStringPageContext? runningStrings = null) {
+    internal HtmlRenderPage(
+        int pageNumber,
+        double width,
+        double height,
+        IEnumerable<HtmlRenderVisual> visuals,
+        string? pageName = null,
+        OfficeFontFaceCollection? fonts = null,
+        HtmlCssRunningStringPageContext? runningStrings = null,
+        HtmlRenderMargins? margins = null) {
         if (pageNumber <= 0) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber));
         }
@@ -24,6 +32,7 @@ public sealed class HtmlRenderPage {
         PageNumber = pageNumber;
         Width = width;
         Height = height;
+        Margins = margins ?? HtmlRenderMargins.All(0D);
         PageName = pageName == null || string.IsNullOrWhiteSpace(pageName) ? null : pageName.Trim();
         _scene = new List<HtmlRenderVisual>(visuals ?? throw new ArgumentNullException(nameof(visuals)))
             .OrderBy(item => item.PaintOrder)
@@ -43,6 +52,9 @@ public sealed class HtmlRenderPage {
 
     /// <summary>Page height in CSS pixels.</summary>
     public double Height { get; }
+
+    /// <summary>Resolved page margins in CSS pixels.</summary>
+    public HtmlRenderMargins Margins { get; }
 
     /// <summary>CSS named-page identifier selected for this page, or <see langword="null"/> for the generic page master.</summary>
     public string? PageName { get; }

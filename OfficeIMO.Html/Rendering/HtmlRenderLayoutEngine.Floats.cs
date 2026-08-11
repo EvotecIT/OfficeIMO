@@ -207,11 +207,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle paragraphStyle,
         IElement? formattingContainer,
         IReadOnlyList<InlineFloatPlacement>? floatPlacements = null,
-        double minimumHeight = 0D) {
+        double minimumHeight = 0D,
+        bool supportsContinuationReflow = false) {
         var visuals = new List<HtmlRenderVisual>();
         var ownedVisuals = new Dictionary<IElement, List<HtmlRenderVisual>>();
         var inlineBounds = new Dictionary<IElement, InlineContainingBounds>();
         var breakOffsets = new SortedSet<double>();
+        var breakProgress = new List<HtmlInlineBreakProgress>();
         var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
         IReadOnlyList<IReadOnlyList<InlineSegment>> mergedLines = lines
             .Select(static line => (IReadOnlyList<InlineSegment>)MergeAdjacentInlineSegments(line.Segments))
@@ -253,6 +255,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         double flowY = 0D;
+        int logicalCharacters = 0;
         for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
             InlineLine current = lines[lineIndex];
             double lineHeight = current.ResolveLineHeight(paragraphStyle.LineHeight);
@@ -379,7 +382,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             flowY = Math.Max(flowY, lineY + lineHeight);
-            if (lineHeight > 0D) breakOffsets.Add(lineY + lineHeight);
+            logicalCharacters = Math.Max(
+                logicalCharacters,
+                mergedLines[lineIndex].Select(segment => segment.LogicalEndProgress).DefaultIfEmpty(logicalCharacters).Max());
+            if (lineHeight > 0D) {
+                double breakOffset = lineY + lineHeight;
+                breakOffsets.Add(breakOffset);
+                breakProgress.Add(new HtmlInlineBreakProgress(breakOffset, logicalCharacters));
+            }
         }
 
         double height = Math.Max(flowY, minimumHeight);
@@ -388,7 +398,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer),
             height,
             breakOffsets,
-            runningStringAssignments.OrderBy(assignment => assignment.OrderOffset));
+            runningStringAssignments.OrderBy(assignment => assignment.OrderOffset),
+            breakProgress,
+            supportsContinuationReflow);
     }
 
     private sealed class InlineFloatContext {

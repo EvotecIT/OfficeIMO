@@ -69,26 +69,38 @@ internal static class HtmlCssPageSettingsResolver {
     }
 
     private static bool TryApplyPageSize(string value, HtmlRenderOptions options) {
+        if (!TryResolvePageSize(value, options.PageWidth, options.PageHeight, options.DefaultFontSize, out double width, out double height)) return false;
+        options.PageSize = new OfficePageSize(width / HtmlRenderOptions.CssPixelsPerInch, height / HtmlRenderOptions.CssPixelsPerInch);
+        return true;
+    }
+
+    internal static bool TryResolvePageSize(string value, double currentWidth, double currentHeight, double fontSize, out double width, out double height) {
+        width = currentWidth;
+        height = currentHeight;
         IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value);
         if (parts.Count == 0) return false;
         OfficePageSize? named = ResolveNamedSize(parts[0]);
         bool landscape = parts.Any(part => string.Equals(part, "landscape", StringComparison.OrdinalIgnoreCase));
         bool portrait = parts.Any(part => string.Equals(part, "portrait", StringComparison.OrdinalIgnoreCase));
         if (named.HasValue) {
-            options.PageSize = landscape ? named.Value.Landscape() : portrait ? named.Value.Portrait() : named.Value;
+            OfficePageSize resolved = landscape ? named.Value.Landscape() : portrait ? named.Value.Portrait() : named.Value;
+            width = resolved.WidthInches * HtmlRenderOptions.CssPixelsPerInch;
+            height = resolved.HeightInches * HtmlRenderOptions.CssPixelsPerInch;
             return true;
         }
 
         var lengths = new List<double>();
         foreach (string part in parts) {
             if (string.Equals(part, "landscape", StringComparison.OrdinalIgnoreCase) || string.Equals(part, "portrait", StringComparison.OrdinalIgnoreCase)) continue;
-            if (!HtmlRenderCssValues.TryLength(part, options.PageWidth, options.DefaultFontSize, options.DefaultFontSize, options.PageWidth, options.PageHeight, out double length) || length <= 0D) return false;
+            if (!HtmlRenderCssValues.TryLength(part, currentWidth, fontSize, fontSize, currentWidth, currentHeight, out double length) || length <= 0D) return false;
             lengths.Add(length);
         }
 
         if (lengths.Count != 2) return false;
         var custom = new OfficePageSize(lengths[0] / HtmlRenderOptions.CssPixelsPerInch, lengths[1] / HtmlRenderOptions.CssPixelsPerInch);
-        options.PageSize = landscape ? custom.Landscape() : portrait ? custom.Portrait() : custom;
+        OfficePageSize customResolved = landscape ? custom.Landscape() : portrait ? custom.Portrait() : custom;
+        width = customResolved.WidthInches * HtmlRenderOptions.CssPixelsPerInch;
+        height = customResolved.HeightInches * HtmlRenderOptions.CssPixelsPerInch;
         return true;
     }
 
@@ -193,12 +205,17 @@ internal static class HtmlCssPageSettingsResolver {
             if (size.Length > 0 && !TryApplyPageSize(size, options)) {
                 diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSizeUnsupported, "The @page size declaration could not be mapped to a supported physical page size.", HtmlDiagnosticSeverity.Warning, "@page", size);
             }
-        } else if (size.Length > 0 || HasPageMarginDeclaration(body)) {
-            diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PagePseudoGeometryPending, "Pseudo-page size and margin declarations require page-by-page body reflow and were not applied to body geometry.", HtmlDiagnosticSeverity.Warning, "@page " + selectorText);
         }
 
+        var geometry = new HtmlCssPageGeometryDeclaration(
+            size,
+            FindTopLevelDeclaration(body, "margin"),
+            FindTopLevelDeclaration(body, "margin-top"),
+            FindTopLevelDeclaration(body, "margin-right"),
+            FindTopLevelDeclaration(body, "margin-bottom"),
+            FindTopLevelDeclaration(body, "margin-left"));
         IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> marginBoxes = ExtractMarginBoxes(body, selectorText, options, diagnostics);
-        if (marginBoxes.Count > 0) pageRules.Add(new HtmlCssPageRule(pageName, selector, marginBoxes));
+        if (marginBoxes.Count > 0 || !geometry.IsEmpty) pageRules.Add(new HtmlCssPageRule(pageName, selector, marginBoxes, geometry));
     }
 
     private static bool TryParsePageSelector(string selectorText, out string? pageName, out HtmlCssPageSelector selector) {
