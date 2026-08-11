@@ -88,6 +88,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_FitContentLimitDoesNotShrinkBelowMinContent() {
+        const string html = """
+            <div style="display:grid;width:260px;grid-template-columns:fit-content(10px) 20px;justify-content:start">
+              <span id="fit-floor" style="white-space:nowrap;background:#ff0000">unbreakable-intrinsic-floor</span>
+              <span id="fit-sibling" style="background:#0000ff">B</span>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 280D);
+        HtmlRenderShape fitted = FindGridShape(rendered, "span#fit-floor");
+        HtmlRenderShape sibling = FindGridShape(rendered, "span#fit-sibling");
+
+        Assert.True(fitted.Width > 10D);
+        Assert.Equal(fitted.X + fitted.Width, sibling.X, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlGrid_ColumnSubgridAcceptsAdditionalLineNames() {
         const string html = """
             <div style="display:grid;width:210px;grid-template-columns:60px 140px;column-gap:10px">

@@ -94,6 +94,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FormFieldZeroMaximumLengthStaticFallback = "HtmlRenderFormFieldZeroMaximumLengthStaticFallback";
     /// <summary>A radio group with duplicate submitted values used static rendering because PDF appearance states must be unique.</summary>
     public const string RadioDuplicateValueStaticFallback = "HtmlRenderRadioDuplicateValueStaticFallback";
+    /// <summary>A multi-select with duplicate selected submitted values used static rendering because value-only PDF choice selections cannot preserve both option identities.</summary>
+    public const string ChoiceDuplicateSelectedValueStaticFallback = "HtmlRenderChoiceDuplicateSelectedValueStaticFallback";
     /// <summary>A CSS opacity value used the opaque fallback.</summary>
     public const string OpacityValueUnsupported = "HtmlRenderOpacityValueUnsupported";
     /// <summary>A non-atomic inline paint effect could not form an isolated group.</summary>
@@ -205,6 +207,7 @@ public static class HtmlRenderDiagnosticCodes {
         FormFieldTransformStaticFallback,
         FormFieldZeroMaximumLengthStaticFallback,
         RadioDuplicateValueStaticFallback,
+        ChoiceDuplicateSelectedValueStaticFallback,
         OpacityValueUnsupported,
         InlinePaintEffectUnsupported,
         BorderRadiusValueUnsupported,

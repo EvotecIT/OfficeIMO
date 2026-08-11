@@ -281,8 +281,8 @@ internal static class HtmlGeneratedContentResolver {
         HtmlCounterStyleRegistry counterStyles,
         out string formatted,
         out bool representationLimited) {
-        if (HtmlCounterStyleFormatter.TryFormat(value, style, out formatted, out representationLimited)) return true;
-        return counterStyles.TryFormat(value, style, out formatted, out representationLimited);
+        if (counterStyles.TryFormat(value, style, out formatted, out representationLimited)) return true;
+        return HtmlCounterStyleFormatter.TryFormat(value, style, out formatted, out representationLimited);
     }
 
     private static bool TryReadQuoted(string value, ref int cursor, out string text) {

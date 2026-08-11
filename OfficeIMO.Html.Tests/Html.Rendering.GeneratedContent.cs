@@ -214,6 +214,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGeneratedContent_HonorsAuthoredOverridesOfPredefinedCounterStyles() {
+        const string html = """
+            <style>
+              @counter-style decimal { system:cyclic; symbols:"X"; }
+              body { counter-reset:item; }
+              p::before { counter-increment:item; content:counter(item, decimal) " "; }
+            </style>
+            <p>Body</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+
+        Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Source == "p::before" && text.Text == "X ");
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedCounterUnsupported);
+    }
+
+    [Fact]
     public void HtmlGeneratedContent_FormatsSymbolsFunctionsThroughTheSharedCounterOwner() {
         const string html = """
             <style>

@@ -139,6 +139,21 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_DuplicateSelectedChoiceValuesUseTruthfulStaticFallback() {
+        const string html = "<select name='choice' multiple size='3'><option value='same' selected>First</option><option value='same' selected>Second</option><option value='other'>Other</option></select>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals), visual => visual is HtmlRenderFormField);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ChoiceDuplicateSelectedValueStaticFallback);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        string searchableText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        Assert.Contains("First", searchableText, StringComparison.Ordinal);
+        Assert.Contains("Second", searchableText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_CheckBoxPreservesUnicodeExportValueSeparatelyFromAppearanceState() {
         const string html = "<input type='checkbox' name='choice' value='caf\u00E9' checked>";
 

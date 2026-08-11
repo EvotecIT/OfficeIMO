@@ -541,7 +541,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool multiple = tag == "select" && element.HasAttribute("multiple");
 
         if (fieldKind == HtmlRenderFormFieldKind.Choice) {
-            ResolveChoiceFieldValues(element, out options, out optionValues, out values);
+            ResolveChoiceFieldValues(element, out options, out optionValues, out values, out bool hasDuplicateSelectedValues);
+            if (multiple && hasDuplicateSelectedValues) {
+                ReportDuplicateSelectedChoiceValueFallback(source);
+                return false;
+            }
             value = values.FirstOrDefault() ?? string.Empty;
         } else if (fieldKind == HtmlRenderFormFieldKind.RadioButton) {
             radioOption = ResolveRadioOptionToken(value, nodeId);
@@ -635,6 +639,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             OfficeConversionLossKind.Approximation);
     }
 
+    private void ReportDuplicateSelectedChoiceValueFallback(string source) {
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.ChoiceDuplicateSelectedValueStaticFallback,
+            "An HTML multi-select with duplicate selected submitted values was rendered as static content because a value-only PDF choice selection cannot preserve both selected option identities.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            "duplicate selected option values",
+            OfficeConversionLossKind.Approximation);
+    }
+
     private static bool IsInteractiveTextInputType(string type) {
         switch (type) {
             case "date":
@@ -660,11 +675,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement select,
         out IReadOnlyList<string> options,
         out IReadOnlyList<string> optionValues,
-        out IReadOnlyList<string> values) {
+        out IReadOnlyList<string> values,
+        out bool hasDuplicateSelectedValues) {
         IElement[] optionElements = select.QuerySelectorAll("option").ToArray();
         var labels = new List<string>(optionElements.Length);
         var exports = new List<string>(optionElements.Length);
         var selectedExports = new List<string>();
+        hasDuplicateSelectedValues = false;
         IReadOnlyList<IElement> selectedOptions = HtmlFormControlSemantics.GetEffectiveSelectedOptions(select);
         for (int index = 0; index < optionElements.Length; index++) {
             IElement option = optionElements[index];
@@ -674,7 +691,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string export = HtmlFormControlSemantics.GetOptionValue(option);
             labels.Add(label);
             exports.Add(export);
-            if (selectedOptions.Contains(option) && !selectedExports.Contains(export, StringComparer.Ordinal)) selectedExports.Add(export);
+            if (selectedOptions.Contains(option)) {
+                if (selectedExports.Contains(export, StringComparer.Ordinal)) hasDuplicateSelectedValues = true;
+                selectedExports.Add(export);
+            }
         }
         options = labels;
         optionValues = exports;
