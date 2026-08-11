@@ -133,6 +133,8 @@ public sealed partial class PdfReadPage {
                     channels |= ResolveVisibleType3PrimitivePaintChannels(primitive, pageWidth, pageHeight);
                 },
                 scaleStrokeWidthWithTransform: true,
+                unsupportedShadingTransformVisitor: () => channels |= PdfType3PaintChannels.Both,
+                requireExactType3ShadingProjection: true,
                 retainPrimitiveData: false);
 
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
@@ -204,6 +206,7 @@ public sealed partial class PdfReadPage {
                              pageContentBudget,
                              type3GlyphBudget,
                              depth + 1),
+                         visibleShadingVisitor: _ => channels |= PdfType3PaintChannels.Fill,
                          pageWidth: pageWidth)) {
                 if (invocation.InlineImage != null &&
                     !IsInvisibleInlineImageInvocation(invocation, resources, pageWidth, pageHeight)) {
@@ -268,40 +271,49 @@ public sealed partial class PdfReadPage {
         Type3GlyphBudget type3GlyphBudget,
         int depth) {
         if (HasVisibleSoftMaskBackdrop(softMask)) return false;
-        PdfDictionary maskResources = ResolveDictionary(
-            softMask.Group.Dictionary.Items.TryGetValue("Resources", out PdfObject? value) ? value : null) ??
-            parentResources ??
-            new PdfDictionary();
-        var maskState = new PdfPageXObjectPaintState(
-            transform,
-            clipPath: null,
-            fillOpacity: null,
-            strokeOpacity: null,
-            strokeWidth: 1D,
-            strokeDashStyle: OfficeStrokeDashStyle.Solid,
-            strokeLineCap: null,
-            strokeLineJoin: null);
-        PdfType3PaintChannels channels = ResolveVisibleFormPaintChannels(
-            softMask.Group,
-            maskResources,
-            maskState,
-            pageWidth,
-            pageHeight,
-            cache,
-            activeStreams,
-            pageContentBudget,
-            type3GlyphBudget,
-            depth);
-        if (channels == PdfType3PaintChannels.None) return true;
-        return softMask.Mode == OfficeSoftMaskMode.Luminosity &&
-               IsLuminositySoftMaskEntirelyBlack(
-                   softMask,
-                   transform,
-                   pageWidth,
-                   pageHeight,
-                   cache,
-                   pageContentBudget,
-                   type3GlyphBudget);
+        // Transparency proof is only an optimization. A repeated group means
+        // the mask graph is cyclic, so keep its paint visible and let strict
+        // projection validation reject the cycle.
+        if (!cache.ActiveSoftMaskTransparencyProofs.Add(softMask.Group)) return false;
+        try {
+            Type3SoftMaskValidationContext validation = type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this);
+            PdfDictionary maskResources = ResolveDictionary(
+                softMask.Group.Dictionary.Items.TryGetValue("Resources", out PdfObject? value) ? value : null) ??
+                parentResources ??
+                new PdfDictionary();
+            var maskState = new PdfPageXObjectPaintState(
+                transform,
+                clipPath: null,
+                fillOpacity: null,
+                strokeOpacity: null,
+                strokeWidth: 1D,
+                strokeDashStyle: OfficeStrokeDashStyle.Solid,
+                strokeLineCap: null,
+                strokeLineJoin: null);
+            PdfType3PaintChannels channels = ResolveVisibleFormPaintChannels(
+                softMask.Group,
+                maskResources,
+                maskState,
+                pageWidth,
+                pageHeight,
+                cache,
+                activeStreams,
+                validation.PageContentBudget,
+                validation.Type3GlyphBudget,
+                depth);
+            if (channels == PdfType3PaintChannels.None) return true;
+            return softMask.Mode == OfficeSoftMaskMode.Luminosity &&
+                   IsLuminositySoftMaskEntirelyBlack(
+                       softMask,
+                       transform,
+                       pageWidth,
+                       pageHeight,
+                       cache,
+                       validation.PageContentBudget,
+                       validation.Type3GlyphBudget);
+        } finally {
+            cache.ActiveSoftMaskTransparencyProofs.Remove(softMask.Group);
+        }
     }
 
     private bool IsLuminositySoftMaskEntirelyBlack(
@@ -378,6 +390,8 @@ public sealed partial class PdfReadPage {
                softMask.BackdropColor.B > 0);
 
     private sealed class Type3PaintChannelCache {
+        internal HashSet<PdfStream> ActiveSoftMaskTransparencyProofs { get; } = new HashSet<PdfStream>();
+
         internal Dictionary<(
             PdfStream Stream,
             PdfDictionary Resources,
