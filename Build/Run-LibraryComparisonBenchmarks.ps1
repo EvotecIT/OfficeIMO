@@ -3,12 +3,25 @@ param(
     [string] $RunMode = 'quick',
     [ValidateSet('net8.0', 'net10.0')]
     [string] $Framework = 'net10.0',
-    [ValidateSet('all', 'csv', 'csvwrite', 'xls', 'xlsx', 'xlsxwrite', 'xlsb')]
+    [ValidateSet(
+        'all',
+        'csv',
+        'csvwrite',
+        'xls',
+        'xlsx',
+        'xlsxwrite',
+        'xlsb',
+        'word',
+        'wordcreate',
+        'wordreport',
+        'wordread',
+        'wordreplace')]
     [string] $Workload = 'all',
     [string] $OutputRoot = (Join-Path ([System.IO.Path]::GetTempPath()) 'OfficeIMO\Benchmarks\Runs'),
     [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
     [ValidateSet('net8.0', 'net10.0')]
     [string] $PowerForgeFramework = 'net8.0',
+    [switch] $AcceptNPOIOSMFLicense,
     [switch] $Publish
 )
 
@@ -51,6 +64,7 @@ $definitions = [ordered]@{
         Filter = '*MarkPflug65KCsvBenchmarks*'
         ComparisonId = "markpflug-65k-csv-decoded-$Framework"
         Suite = 'OfficeIMO.CSV.MarkPflug65K'
+        IdentityVariables = @()
         ExpectedCases = @('OfficeIMO', 'Sep', 'Sylvan', 'CsvHelper', 'DataplatDbatools', 'LumenWorks')
     }
     csvwrite = [pscustomobject]@{
@@ -58,6 +72,7 @@ $definitions = [ordered]@{
         Filter = '*CsvDataReaderWriteBenchmarks*'
         ComparisonId = "csv-25k-datareader-write-$Framework"
         Suite = 'OfficeIMO.CSV.DataReaderWrite25K'
+        IdentityVariables = @('rowcount')
         ExpectedCases = @(
             'OfficeIMO_WriteDataReader|RowCount=25000&Shape=Mixed'
             'OfficeIMO_WriteDataReader|RowCount=25000&Shape=Quoted'
@@ -72,6 +87,7 @@ $definitions = [ordered]@{
         Filter = '*MarkPflug65KXlsBenchmarks*'
         ComparisonId = "markpflug-65k-xls-typed-$Framework"
         Suite = 'OfficeIMO.Excel.Xls.MarkPflug65K'
+        IdentityVariables = @()
         ExpectedCases = @('OfficeIMO', 'Sylvan', 'ExcelDataReader')
     }
     xlsx = [pscustomobject]@{
@@ -79,6 +95,7 @@ $definitions = [ordered]@{
         Filter = '*MarkPflug65KXlsxBenchmarks*'
         ComparisonId = "markpflug-65k-xlsx-typed-$Framework"
         Suite = 'OfficeIMO.Excel.Xlsx.MarkPflug65K'
+        IdentityVariables = @()
         ExpectedCases = @('OfficeIMO', 'Sylvan', 'ExcelDataReader', 'ClosedXML', 'EPPlus', 'MiniExcel')
     }
     xlsxwrite = [pscustomobject]@{
@@ -86,6 +103,7 @@ $definitions = [ordered]@{
         Filter = '*ExcelDataReaderWriteBenchmarks*'
         ComparisonId = "xlsx-25k-datareader-write-$Framework"
         Suite = 'OfficeIMO.Excel.DataReaderWrite25K'
+        IdentityVariables = @('rowcount')
         ExpectedCases = @(
             'OfficeIMO|RowCount=25000'
             'SpreadCheetah|RowCount=25000'
@@ -98,14 +116,98 @@ $definitions = [ordered]@{
         Filter = '*MarkPflug65KXlsbBenchmarks*'
         ComparisonId = "markpflug-65k-xlsb-typed-$Framework"
         Suite = 'OfficeIMO.Excel.Xlsb.MarkPflug65K'
+        IdentityVariables = @()
         ExpectedCases = @('OfficeIMO', 'Sylvan', 'ExcelDataReader')
+    }
+    wordcreate = [pscustomobject]@{
+        Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
+        Filter = '*WordCreateParagraphComparisonBenchmarks*'
+        ComparisonId = "word-docx-create-paragraphs-$Framework"
+        Suite = 'OfficeIMO.Word.CreateParagraphs'
+        IdentityVariables = @('itemcount')
+        ExpectedCases = @(
+            'OfficeIMO|ItemCount=100'
+            'OfficeIMO|ItemCount=1000'
+            'DocX|ItemCount=100'
+            'DocX|ItemCount=1000'
+            'NPOI|ItemCount=100'
+            'NPOI|ItemCount=1000'
+            'OpenXmlSdk|ItemCount=100'
+            'OpenXmlSdk|ItemCount=1000'
+        )
+    }
+    wordreport = [pscustomobject]@{
+        Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
+        Filter = '*WordCreateReportComparisonBenchmarks*'
+        ComparisonId = "word-docx-create-report-$Framework"
+        Suite = 'OfficeIMO.Word.CreateReport'
+        IdentityVariables = @('rowcount')
+        ExpectedCases = @(
+            'OfficeIMO|RowCount=100'
+            'OfficeIMO|RowCount=1000'
+            'DocX|RowCount=100'
+            'DocX|RowCount=1000'
+            'NPOI|RowCount=100'
+            'NPOI|RowCount=1000'
+            'OpenXmlSdk|RowCount=100'
+            'OpenXmlSdk|RowCount=1000'
+        )
+    }
+    wordread = [pscustomobject]@{
+        Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
+        Filter = '*WordReadComparisonBenchmarks*'
+        ComparisonId = "word-docx-read-paragraphs-$Framework"
+        Suite = 'OfficeIMO.Word.ReadParagraphs'
+        IdentityVariables = @('itemcount')
+        ExpectedCases = @(
+            'OfficeIMO|ItemCount=100'
+            'OfficeIMO|ItemCount=1000'
+            'DocX|ItemCount=100'
+            'DocX|ItemCount=1000'
+            'NPOI|ItemCount=100'
+            'NPOI|ItemCount=1000'
+            'OpenXmlSdk|ItemCount=100'
+            'OpenXmlSdk|ItemCount=1000'
+        )
+    }
+    wordreplace = [pscustomobject]@{
+        Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
+        Filter = '*WordReplaceComparisonBenchmarks*'
+        ComparisonId = "word-docx-replace-and-save-$Framework"
+        Suite = 'OfficeIMO.Word.ReplaceAndSave'
+        IdentityVariables = @('itemcount')
+        ExpectedCases = @(
+            'OfficeIMO|ItemCount=100'
+            'OfficeIMO|ItemCount=1000'
+            'DocX|ItemCount=100'
+            'DocX|ItemCount=1000'
+            'NPOI|ItemCount=100'
+            'NPOI|ItemCount=1000'
+            'OpenXmlSdk|ItemCount=100'
+            'OpenXmlSdk|ItemCount=1000'
+        )
     }
 }
 
 $selected = if ($Workload -eq 'all') {
     @($definitions.Keys)
+} elseif ($Workload -eq 'word') {
+    @('wordcreate', 'wordreport', 'wordread', 'wordreplace')
 } else {
     @($Workload)
+}
+
+if ($Publish -and @($selected | Where-Object { $_ -like 'word*' }).Count -gt 0) {
+    throw @'
+DocX is distributed under the Xceed Community License, which prohibits publishing benchmark or performance comparison results without Xceed's advance permission. Word comparison evidence is local-only. Obtain written permission and update this reviewed publication gate before publishing it.
+'@
+}
+
+if (@($selected | Where-Object { $_ -like 'word*' }).Count -gt 0 -and
+    -not $AcceptNPOIOSMFLicense) {
+    throw @'
+The Word comparison suite includes NPOI 2.8.0. Review the NPOI binary EULA at https://github.com/nissl-lab/npoi/blob/master/OSMFEULA.txt, then rerun with -AcceptNPOIOSMFLicense to acknowledge it for this opt-in benchmark run.
+'@
 }
 
 $stamp = [DateTimeOffset]::UtcNow.ToString('yyyyMMdd-HHmmss')
@@ -143,7 +245,12 @@ foreach ($name in $selected) {
         'run',
         '-c', 'Release',
         '-f', $Framework,
-        '--project', (Join-Path $repositoryRoot $definition.Project),
+        '--project', (Join-Path $repositoryRoot $definition.Project)
+    )
+    if ($name -like 'word*') {
+        $arguments += '-p:AcceptNPOIOSMFLicense=true'
+    }
+    $arguments += @(
         '--',
         '--filter', $definition.Filter,
         '--artifacts', $artifactsPath
@@ -174,7 +281,11 @@ foreach ($name in $selected) {
                 $_.SampleCount -gt 0 -and
                 $null -ne $_.MedianMs
             } |
-            ForEach-Object { Get-BenchmarkEvidenceCaseIdentity -Row $_ } |
+            ForEach-Object {
+                Get-BenchmarkEvidenceCaseIdentity `
+                    -Row $_ `
+                    -VariableName $definition.IdentityVariables
+            } |
             Sort-Object -Unique
     )
     $missingCases = @(

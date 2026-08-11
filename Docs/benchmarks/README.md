@@ -8,6 +8,31 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 
 Reader benchmark code lives in `OfficeIMO.Reader.Benchmarks`.
 
+## Word comparisons
+
+`OfficeIMO.Word.Benchmarks` contains validated BenchmarkDotNet comparisons for
+plain DOCX creation, structured reports, full paragraph traversal, and
+replace-and-save workflows. It compares OfficeIMO.Word with DocX and the Open
+XML SDK, plus opt-in NPOI 2.8.0, only where each implementation performs
+equivalent work. The project also contains a machine-readable feature and
+license catalog.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- validate
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- features
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload word -RunMode full -Framework net8.0 -AcceptNPOIOSMFLicense
+```
+
+The public repository keeps the benchmark code, inputs, validators, feature
+catalog, and reproduction instructions. Raw BenchmarkDotNet and PowerForge
+evidence stays in ignored or temporary output roots. Numerical Word comparison
+results are local-only because the Xceed Community License requires advance
+permission before publishing DocX benchmark or performance comparisons; the
+shared runner enforces that boundary. The isolated benchmark project records
+the acknowledgement required by NPOI's binary EULA; the EULA may also require
+a maintenance fee for revenue-generating use, but it does not prohibit
+benchmark publication and is not the reason results stay local.
+
 ## Excel artifacts
 
 ## Artifact types

@@ -1,0 +1,78 @@
+{
+  "libraries": [
+    {
+      "id": "officeimo",
+      "name": "OfficeIMO.Word",
+      "version": "current project source",
+      "license": "MIT",
+      "source": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Word"
+    },
+    {
+      "id": "docx",
+      "name": "DocX 5.2.0",
+      "version": "5.2.0",
+      "license": "Xceed Community License; open-source and non-commercial use; benchmark publication requires advance permission",
+      "source": "https://www.nuget.org/packages/DocX/5.2.0"
+    },
+    {
+      "id": "npoi",
+      "name": "NPOI 2.8.0",
+      "version": "2.8.0",
+      "license": "Apache-2.0 source; binary EULA maintenance fee may apply to revenue-generating use; explicit acknowledgement required",
+      "source": "https://www.nuget.org/packages/NPOI/2.8.0"
+    },
+    {
+      "id": "openxml",
+      "name": "Open XML SDK 3.5.1",
+      "version": "3.5.1",
+      "license": "MIT",
+      "source": "https://github.com/dotnet/Open-XML-SDK"
+    }
+  ],
+  "capabilities": [
+    {
+      "name": "Create, load, and save DOCX",
+      "support": { "officeimo": "yes", "docx": "yes", "npoi": "yes", "openxml": "low-level" }
+    },
+    {
+      "name": "Paragraph and run formatting",
+      "support": { "officeimo": "yes", "docx": "yes", "npoi": "yes", "openxml": "low-level" }
+    },
+    {
+      "name": "Tables, headers, and footers",
+      "support": { "officeimo": "yes", "docx": "yes", "npoi": "yes", "openxml": "low-level" }
+    },
+    {
+      "name": "Whole-document search and replace",
+      "support": { "officeimo": "yes", "docx": "yes", "npoi": "no-built-in", "openxml": "no-built-in" }
+    },
+    {
+      "name": "Templates and mail merge",
+      "support": { "officeimo": "yes", "docx": "yes", "npoi": "no-built-in", "openxml": "no-built-in" }
+    },
+    {
+      "name": "Legacy binary DOC read and write",
+      "support": { "officeimo": "partial", "docx": "no-built-in", "npoi": "partial", "openxml": "no-built-in" }
+    },
+    {
+      "name": "HTML and Markdown conversion",
+      "support": { "officeimo": "adjacent-package", "docx": "no-built-in", "npoi": "no-built-in", "openxml": "no-built-in" }
+    },
+    {
+      "name": "Dependency-free PDF conversion",
+      "support": { "officeimo": "adjacent-package", "docx": "no-built-in", "npoi": "no-built-in", "openxml": "no-built-in" }
+    },
+    {
+      "name": "Structured comparison and redline output",
+      "support": { "officeimo": "yes", "docx": "no-built-in", "npoi": "no-built-in", "openxml": "no-built-in" }
+    },
+    {
+      "name": "Content-control value extraction and binding",
+      "support": { "officeimo": "yes", "docx": "partial", "npoi": "partial", "openxml": "low-level" }
+    },
+    {
+      "name": "OPC and VBA signature workflows",
+      "support": { "officeimo": "adjacent-package", "docx": "no-built-in", "npoi": "no-built-in", "openxml": "no-built-in" }
+    }
+  ]
+}
