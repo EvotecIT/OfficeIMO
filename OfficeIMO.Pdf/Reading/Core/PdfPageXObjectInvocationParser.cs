@@ -68,13 +68,14 @@ internal static class PdfPageXObjectInvocationParser {
         IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns = null,
         IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns = null,
         Func<PdfPageType3GlyphInvocation, PdfType3PaintChannels>? type3PaintChannelResolver = null,
-        Func<string, Matrix2D, PdfPageClipPath?, double?, double?, PdfType3PaintChannels>? xObjectPaintChannelResolver = null,
+        Func<string, PdfPageXObjectPaintState, PdfType3PaintChannels>? xObjectPaintChannelResolver = null,
+        Func<PdfPageSoftMaskResource, Matrix2D, bool>? softMaskVisibilityResolver = null,
         double? pageWidth = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver);
+        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver);
         return parser.Parse();
     }
 
@@ -97,6 +98,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
         private readonly Stack<PatternState> _patternStack = new Stack<PatternState>();
         private readonly Stack<TextState> _textStack = new Stack<TextState>();
+        private readonly Stack<(PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform)> _softMaskStack = new Stack<(PdfPageSoftMaskResource?, Matrix2D?)>();
         private readonly Stack<bool> _hiddenContentStack = new Stack<bool>();
         private readonly List<(double X, double Y)> _path = new List<(double X, double Y)>();
         private readonly List<OfficePathCommand> _pathCommands = new List<OfficePathCommand>();
@@ -134,12 +136,15 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Action<string>? _patternInvocationVisitor;
         private readonly Action<string>? _authoredPatternInvocationVisitor;
         private readonly Func<PdfPageType3GlyphInvocation, PdfType3PaintChannels>? _type3PaintChannelResolver;
-        private readonly Func<string, Matrix2D, PdfPageClipPath?, double?, double?, PdfType3PaintChannels>? _xObjectPaintChannelResolver;
+        private readonly Func<string, PdfPageXObjectPaintState, PdfType3PaintChannels>? _xObjectPaintChannelResolver;
+        private readonly Func<PdfPageSoftMaskResource, Matrix2D, bool>? _softMaskVisibilityResolver;
         private readonly Action<PdfPageGraphicsStateResource>? _graphicsStateVisitor;
         private readonly bool _allowSupportedGraphicsEffects;
         private string _textFont = string.Empty;
         private double _currentPaintOrder;
         private int _currentOperatorIndex;
+        private PdfPageSoftMaskResource? _softMask;
+        private Matrix2D? _softMaskTransform;
 
         public Parser(
             string content,
@@ -188,7 +193,8 @@ internal static class PdfPageXObjectInvocationParser {
             IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns,
             IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns,
             Func<PdfPageType3GlyphInvocation, PdfType3PaintChannels>? type3PaintChannelResolver,
-            Func<string, Matrix2D, PdfPageClipPath?, double?, double?, PdfType3PaintChannels>? xObjectPaintChannelResolver) {
+            Func<string, PdfPageXObjectPaintState, PdfType3PaintChannels>? xObjectPaintChannelResolver,
+            Func<PdfPageSoftMaskResource, Matrix2D, bool>? softMaskVisibilityResolver) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -227,6 +233,7 @@ internal static class PdfPageXObjectInvocationParser {
             _authoredPatternInvocationVisitor = authoredPatternInvocationVisitor;
             _type3PaintChannelResolver = type3PaintChannelResolver;
             _xObjectPaintChannelResolver = xObjectPaintChannelResolver;
+            _softMaskVisibilityResolver = softMaskVisibilityResolver;
             _graphicsStateVisitor = graphicsStateVisitor;
             _allowSupportedGraphicsEffects = allowSupportedGraphicsEffects;
         }
@@ -301,7 +308,7 @@ internal static class PdfPageXObjectInvocationParser {
             }
 
             bool usesType3GlyphProgram = IsActiveType3Font();
-            bool isVisible = !HasHiddenContent();
+            bool isVisible = !HasHiddenContent() && !IsCurrentPaintSuppressedBySoftMask();
             bool ordinaryTextAffectsOutput = isVisible && TextAffectsOutput(_textRenderingMode);
             if (ordinaryTextAffectsOutput) _visibleFontVisitor?.Invoke(_textFont);
             List<PdfPageType3GlyphInvocation>? glyphs = CreateType3GlyphBatch(usesType3GlyphProgram, isVisible, bytes.Length);
@@ -399,7 +406,7 @@ internal static class PdfPageXObjectInvocationParser {
             }
 
             bool usesType3GlyphProgram = IsActiveType3Font();
-            bool isVisible = !HasHiddenContent();
+            bool isVisible = !HasHiddenContent() && !IsCurrentPaintSuppressedBySoftMask();
             long glyphCount = 0;
             for (int i = 0; i < items.Count; i++) {
                 if (items[i] is byte[] bytes) glyphCount += bytes.Length;
@@ -496,11 +503,17 @@ internal static class PdfPageXObjectInvocationParser {
                     _stack.Push(_state);
                     _patternStack.Push(_patternState);
                     _textStack.Push(CaptureTextState());
+                    _softMaskStack.Push((_softMask, _softMaskTransform));
                     break;
                 case "Q":
                     _state = _stack.Count > 0 ? _stack.Pop() : _initialState;
                     _patternState = _patternStack.Count > 0 ? _patternStack.Pop() : _initialPatternState;
                     RestoreTextState(_textStack.Count > 0 ? _textStack.Pop() : TextState.Default);
+                    (PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform) restoredSoftMask = _softMaskStack.Count > 0
+                        ? _softMaskStack.Pop()
+                        : (null, null);
+                    _softMask = restoredSoftMask.SoftMask;
+                    _softMaskTransform = restoredSoftMask.Transform;
                     break;
                 case "cm":
                     if (_args.Count >= 6) {
@@ -626,7 +639,7 @@ internal static class PdfPageXObjectInvocationParser {
                     if (op == "s" || op == "b" || op == "b*") {
                         ClosePath();
                     }
-                    if (!HasHiddenContent() && _pathCommands.Count > 0) {
+                    if (!HasHiddenContent() && !IsCurrentPaintSuppressedBySoftMask() && _pathCommands.Count > 0) {
                         PdfType3PaintChannels channels = ResolveVisiblePathPaintChannels(
                             OperatorFillsPath(op),
                             OperatorStrokesPath(op),
@@ -636,6 +649,7 @@ internal static class PdfPageXObjectInvocationParser {
                             (channels & PdfType3PaintChannels.Stroke) != 0);
                     }
                     if (!HasHiddenContent() &&
+                        !IsCurrentPaintSuppressedBySoftMask() &&
                         OperatorStrokesPath(op) &&
                         _state.StrokeWidth > 0D &&
                         !double.IsPositiveInfinity(_state.StrokeWidth) &&
@@ -891,12 +905,19 @@ internal static class PdfPageXObjectInvocationParser {
                         _args[_args.Count - 1] is string name &&
                         !string.IsNullOrEmpty(name)) {
                         if (_patternState.FillDeferredVisibleUse || _patternState.StrokeDeferredVisibleUse) {
-                            PdfType3PaintChannels channels = _xObjectPaintChannelResolver?.Invoke(
-                                name,
-                                _state.Transform,
-                                _state.ClipPath,
-                                _state.FillOpacity,
-                                _state.StrokeOpacity) ?? PdfType3PaintChannels.Both;
+                            PdfType3PaintChannels channels = IsCurrentPaintSuppressedBySoftMask()
+                                ? PdfType3PaintChannels.None
+                                : _xObjectPaintChannelResolver?.Invoke(
+                                    name,
+                                    new PdfPageXObjectPaintState(
+                                        _state.Transform,
+                                        _state.ClipPath,
+                                        _state.FillOpacity,
+                                        _state.StrokeOpacity,
+                                        _state.StrokeWidth,
+                                        _state.StrokeDashStyle,
+                                        _state.StrokeLineCap,
+                                        _state.StrokeLineJoin)) ?? PdfType3PaintChannels.Both;
                             PublishDeferredPatternUse(
                                 (channels & PdfType3PaintChannels.Fill) != 0,
                                 (channels & PdfType3PaintChannels.Stroke) != 0);
@@ -908,7 +929,8 @@ internal static class PdfPageXObjectInvocationParser {
                 case "BI":
                     if (_currentInlineImage is not null && !HasHiddenContent()) {
                         PublishDeferredPatternUse(
-                            fill: ResolveVisibleInlineImagePaintChannels() != PdfType3PaintChannels.None,
+                            fill: !IsCurrentPaintSuppressedBySoftMask() &&
+                                  ResolveVisibleInlineImagePaintChannels() != PdfType3PaintChannels.None,
                             stroke: false);
                         var stream = new PdfStream(_currentInlineImage.Dictionary, _currentInlineImage.Data);
                         var inlineImage = new PdfPageInlineImage(
@@ -1085,6 +1107,10 @@ internal static class PdfPageXObjectInvocationParser {
             }
 
             _state = _state.WithGraphicsStateResource(resource);
+            if (resource.HasSoftMask) {
+                _softMask = resource.SoftMask;
+                _softMaskTransform = resource.SoftMask == null ? null : _state.Transform;
+            }
             if (!HasHiddenContent()) _graphicsStateVisitor?.Invoke(resource);
             if (!HasHiddenContent() &&
                 ((!_allowSupportedGraphicsEffects &&
@@ -1105,6 +1131,11 @@ internal static class PdfPageXObjectInvocationParser {
 
             return false;
         }
+
+        private bool IsCurrentPaintSuppressedBySoftMask() =>
+            _softMask != null &&
+            _softMaskVisibilityResolver != null &&
+            !_softMaskVisibilityResolver(_softMask, _softMaskTransform ?? _state.Transform);
 
         private bool IsHiddenOptionalContent(object? tag, object? property) =>
             tag is string tagName &&
@@ -1678,6 +1709,47 @@ internal static class PdfPageXObjectInvocationParser {
     }
 }
 
+internal readonly struct PdfPageXObjectPaintState {
+    internal PdfPageXObjectPaintState(
+        Matrix2D transform,
+        PdfPageClipPath? clipPath,
+        double? fillOpacity,
+        double? strokeOpacity,
+        double strokeWidth,
+        OfficeStrokeDashStyle? strokeDashStyle,
+        OfficeStrokeLineCap? strokeLineCap,
+        OfficeStrokeLineJoin? strokeLineJoin) {
+        Transform = transform;
+        ClipPath = clipPath;
+        FillOpacity = fillOpacity;
+        StrokeOpacity = strokeOpacity;
+        StrokeWidth = strokeWidth;
+        StrokeDashStyle = strokeDashStyle;
+        StrokeLineCap = strokeLineCap;
+        StrokeLineJoin = strokeLineJoin;
+    }
+
+    internal Matrix2D Transform { get; }
+    internal PdfPageClipPath? ClipPath { get; }
+    internal double? FillOpacity { get; }
+    internal double? StrokeOpacity { get; }
+    internal double StrokeWidth { get; }
+    internal OfficeStrokeDashStyle? StrokeDashStyle { get; }
+    internal OfficeStrokeLineCap? StrokeLineCap { get; }
+    internal OfficeStrokeLineJoin? StrokeLineJoin { get; }
+
+    internal PdfPageXObjectPaintState WithTransformAndClip(Matrix2D transform, PdfPageClipPath? clipPath) =>
+        new PdfPageXObjectPaintState(
+            transform,
+            clipPath,
+            FillOpacity,
+            StrokeOpacity,
+            StrokeWidth,
+            StrokeDashStyle,
+            StrokeLineCap,
+            StrokeLineJoin);
+}
+
 internal readonly struct PdfPageXObjectInvocation {
     public PdfPageXObjectInvocation(
         string name,
@@ -1798,6 +1870,16 @@ internal readonly struct PdfPageXObjectInvocation {
     public OfficeStrokeLineCap? StrokeLineCap { get; }
 
     public OfficeStrokeLineJoin? StrokeLineJoin { get; }
+
+    internal PdfPageXObjectPaintState PaintState => new PdfPageXObjectPaintState(
+        Transform,
+        ClipPath,
+        FillOpacity,
+        StrokeOpacity,
+        StrokeWidth,
+        StrokeDashStyle,
+        StrokeLineCap,
+        StrokeLineJoin);
 
     public double PaintOrder { get; }
 
