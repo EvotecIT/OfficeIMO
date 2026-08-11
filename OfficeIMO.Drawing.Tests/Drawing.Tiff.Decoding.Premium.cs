@@ -139,6 +139,24 @@ public sealed class DrawingPremiumTiffDecodingTests {
         Assert.False(OfficeImageReader.TryValidateContent(tiff, "raw-adobe-deflate.tiff", out _));
     }
 
+    [Fact]
+    public void TiffDecoderRejectsDeflateOutputBeyondTheDeclaredStripWithoutThrowing() {
+        byte[] tiff = CreateTiff(
+            width: 1,
+            height: 1,
+            photometric: 1,
+            samples: 1,
+            pixels: new byte[] { 0 });
+        byte[] oversizedStrip = OfficeZlibCodec.Compress(new byte[4096]);
+        int stripOffset = ReadUInt32(tiff, FindEntryValueOffset(tiff, 273));
+        Array.Resize(ref tiff, stripOffset + oversizedStrip.Length);
+        Buffer.BlockCopy(oversizedStrip, 0, tiff, stripOffset, oversizedStrip.Length);
+        WriteUInt32(tiff, FindEntryValueOffset(tiff, 279), oversizedStrip.Length);
+
+        Assert.False(OfficeTiffCodec.TryDecode(tiff, out _));
+        Assert.False(OfficeImageReader.TryValidateContent(tiff, "oversized-deflate-strip.tiff", out _));
+    }
+
     private static byte[] CreateTiff(
         int width,
         int height,

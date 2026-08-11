@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel.Fluent {
         private ExcelSheet _sheet;
         private int _row;
         private static readonly HashSet<string> HeaderAcronyms = new HashSet<string>(new[] {
-            "ID", "URL", "URI", "DNS", "MX", "SPF", "DKIM", "DMARC", "BIMI", "IP", "TLS", "AAA", "AAAA", "SRV", "TXT", "CNAME", "NS", "CAA", "MTA", "STS", "TLS-RPT"
+            "AD", "ID", "URL", "URI", "DNS", "MX", "SPF", "DKIM", "DMARC", "BIMI", "IP", "TLS", "AAA", "AAAA", "SRV", "TXT", "CNAME", "NS", "CAA", "MTA", "STS", "TLS-RPT"
         }, StringComparer.OrdinalIgnoreCase);
 
         /// <summary>

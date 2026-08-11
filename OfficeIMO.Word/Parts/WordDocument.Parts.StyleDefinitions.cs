@@ -10,13 +10,13 @@ namespace OfficeIMO.Word {
         private static void AddTableStyles(Styles styles, bool overrideExisting) {
             var listOfTableStyles = global::OfficeIMO.Internal.EnumCompat.GetValues<WordTableStyle>();
             foreach (var style in listOfTableStyles) {
-                var definition = WordTableStyles.GetStyleDefinition(style);
-                var existing = styles.OfType<Style>().FirstOrDefault(s => s.StyleId?.Value == definition.StyleId?.Value);
+                string? styleId = WordTableStyles.GetStyle(style).Val?.Value;
+                var existing = styles.OfType<Style>().FirstOrDefault(s => s.StyleId?.Value == styleId);
                 if (existing == null) {
-                    styles.Append((Style)definition.CloneNode(true));
+                    styles.Append(WordTableStyles.GetStyleDefinition(style));
                 } else if (overrideExisting) {
                     existing.Remove();
-                    styles.Append((Style)definition.CloneNode(true));
+                    styles.Append(WordTableStyles.GetStyleDefinition(style));
                 }
             }
         }
