@@ -48,6 +48,30 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.True(stroke.A > 0);
     }
 
+    [Fact]
+    public void RenderPage_AnalyzesGlyphFormsInTheProjectedTextPosition() {
+        const string pageContent = "/OC /Hidden BDC /Pattern cs /P1 scn EMC " +
+            "BT /FType3 18 Tf 20 100 Td (A) Tj ET";
+        string[] objects = {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [10 0 R] /D << /OFF [10 0 R] >> >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /FType3 5 0 R >> /Pattern << /P1 9 0 R >> /Properties << /Hidden 10 0 R >> >> /Contents 4 0 R >>\nendobj",
+            StreamObject(4, "<<", pageContent),
+            "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 2 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Nested 8 0 R >> >> >>\nendobj",
+            StreamObject(6, "<<", "500 0 d0 /Nested Do"),
+            StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [300 0 500 700]", "300 0 200 700 re f"),
+            StreamObject(9, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>", "1 0 0 rg 0 0 5 5 re f"),
+            "10 0 obj\n<< /Type /OCG /Name (Hidden) >>\nendobj"
+        };
+        byte[] pdf = Encoding.ASCII.GetBytes("%PDF-1.4\n" + string.Join("\n", objects) + "\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(27, 96));
+    }
+
     private static byte[] BuildPaintChannelBudgetPdf(
         string pageContent,
         string glyphContent,

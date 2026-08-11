@@ -728,21 +728,29 @@ public sealed partial class PdfReadPage {
     }
 
     private PdfType3PaintChannels ResolveType3PaintChannels(
-        PdfFontResource font,
-        byte[] bytes,
+        PdfPageType3GlyphInvocation glyph,
         Type3PaintChannelCache cache,
         HashSet<PdfStream> activeStreams,
-        PageContentBudget pageContentBudget) {
-        if (font.Type3 is not PdfType3FontResource type3) return PdfType3PaintChannels.Both;
-        PdfType3PaintChannels channels = PdfType3PaintChannels.None;
-        var seenCodes = new HashSet<byte>();
-        for (int index = 0; index < bytes.Length; index++) {
-            byte code = bytes[index];
-            if (!seenCodes.Add(code) || !type3.TryGetGlyph(code, out PdfStream stream)) continue;
-            channels |= ResolveType3PaintChannels(stream, type3.Resources, cache, activeStreams, pageContentBudget, 0);
-            if (channels == PdfType3PaintChannels.Both) break;
+        PageContentBudget pageContentBudget,
+        int depth = 0) {
+        if (glyph.Font.Type3 is not PdfType3FontResource type3 ||
+            !type3.TryGetGlyph(glyph.CharacterCode, out PdfStream stream)) {
+            return PdfType3PaintChannels.Both;
         }
-        return channels;
+        (double Width, double Height) visualPageSize = GetVisualPageSize();
+        return ResolveType3PaintChannels(
+            stream,
+            type3.Resources,
+            Matrix2D.Multiply(glyph.Transform, type3.FontMatrix),
+            glyph.ClipPath,
+            glyph.FillOpacity,
+            glyph.StrokeOpacity,
+            visualPageSize.Width,
+            visualPageSize.Height,
+            cache,
+            activeStreams,
+            pageContentBudget,
+            depth);
     }
 
     private PdfType3PaintChannels ResolveXObjectPaintChannels(
@@ -826,12 +834,26 @@ public sealed partial class PdfReadPage {
     private PdfType3PaintChannels ResolveType3PaintChannels(
         PdfStream stream,
         PdfDictionary resources,
+        Matrix2D programTransform,
+        PdfPageClipPath? programClipPath,
+        double? fillOpacity,
+        double? strokeOpacity,
+        double pageWidth,
+        double pageHeight,
         Type3PaintChannelCache cache,
         HashSet<PdfStream> activeStreams,
         PageContentBudget pageContentBudget,
         int depth) {
         EnsureContentNestingBudget(depth);
-        var cacheKey = (Stream: stream, Resources: resources);
+        var cacheKey = (
+            Stream: stream,
+            Resources: resources,
+            ProgramTransform: programTransform,
+            ProgramClipPath: programClipPath,
+            FillOpacity: fillOpacity,
+            StrokeOpacity: strokeOpacity,
+            PageWidth: pageWidth,
+            PageHeight: pageHeight);
         if (cache.Streams.TryGetValue(cacheKey, out PdfType3PaintChannels cached)) return cached;
         if (!activeStreams.Add(stream)) return PdfType3PaintChannels.Both;
         try {
@@ -840,21 +862,27 @@ public sealed partial class PdfReadPage {
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
+            var geometryBudget = new VisualGeometryBudget();
+            var patternPaintCache = new Dictionary<PdfPageTilingPatternResource, bool>();
             _ = PdfPageContentVisualParser.Parse(
-                content,
-                GetPageSize().Width,
-                GetPageSize().Height,
+                WrapContentWithTransform(content, programTransform),
+                pageWidth,
+                pageHeight,
                 GetGraphicsStateResources(resources),
                 colorSpaces,
                 GetShadingResources(resources),
                 GetShadingPatternResources(resources),
                 null,
                 GetOptionalContentVisibility(resources),
+                initialClipPath: programClipPath,
+                initialFillOpacity: fillOpacity,
+                initialStrokeOpacity: strokeOpacity,
                 maxOperations: _limits.MaxContentOperations,
                 patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
                 primitiveVisitor: primitive => {
+                    if (!IsVisibleVisualPrimitive(primitive, pageWidth, pageHeight, geometryBudget, patternPaintCache)) return;
                     if (primitive.HasFillPaint) channels |= PdfType3PaintChannels.Fill;
                     if (primitive.HasStrokePaint) channels |= PdfType3PaintChannels.Stroke;
                 },
@@ -862,11 +890,14 @@ public sealed partial class PdfReadPage {
 
             foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                          content,
-                         Matrix2D.Identity,
-                         GetPageSize().Height,
+                         programTransform,
+                         pageHeight,
                          GetGraphicsStateResources(resources),
                          colorSpaces,
                          GetOptionalContentVisibility(resources),
+                         initialFillOpacity: fillOpacity,
+                         initialClipPath: programClipPath,
+                         initialStrokeOpacity: strokeOpacity,
                          maxOperations: _limits.MaxContentOperations,
                          maxNestingDepth: _limits.MaxContentNestingDepth,
                          maxOperands: _limits.MaxContentOperands,
@@ -875,14 +906,8 @@ public sealed partial class PdfReadPage {
                          type3TextVisitor: nested => {
                              for (int glyphIndex = 0; glyphIndex < nested.Glyphs.Count; glyphIndex++) {
                                  PdfPageType3GlyphInvocation glyph = nested.Glyphs[glyphIndex];
-                                 if (glyph.Font.Type3 is not PdfType3FontResource nestedType3 ||
-                                     !nestedType3.TryGetGlyph(glyph.CharacterCode, out PdfStream nestedStream)) {
-                                     channels = PdfType3PaintChannels.Both;
-                                     return true;
-                                 }
                                  channels |= ResolveType3PaintChannels(
-                                     nestedStream,
-                                     nestedType3.Resources,
+                                     glyph,
                                      cache,
                                      activeStreams,
                                      pageContentBudget,
@@ -897,8 +922,8 @@ public sealed partial class PdfReadPage {
                              transform,
                              clipPath,
                              fillOpacity,
-                             GetPageSize().Width,
-                             GetPageSize().Height,
+                             pageWidth,
+                             pageHeight,
                              cache,
                              activeStreams,
                              pageContentBudget,
@@ -907,21 +932,20 @@ public sealed partial class PdfReadPage {
                     if (!IsInvisibleInlineImageInvocation(
                             invocation,
                             resources,
-                            GetPageSize().Width,
-                            GetPageSize().Height)) {
+                            pageWidth,
+                            pageHeight)) {
                         channels |= PdfType3PaintChannels.Fill;
                     }
                     continue;
                 }
-                (double Width, double Height) visualPageSize = GetVisualPageSize();
                 channels |= ResolveXObjectPaintChannels(
                     resources,
                     invocation.Name,
                     invocation.Transform,
                     invocation.ClipPath,
                     invocation.FillOpacity,
-                    visualPageSize.Width,
-                    visualPageSize.Height,
+                    pageWidth,
+                    pageHeight,
                     cache,
                     activeStreams,
                     pageContentBudget,
