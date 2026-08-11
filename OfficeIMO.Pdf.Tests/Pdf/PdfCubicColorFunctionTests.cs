@@ -23,7 +23,7 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
-    public void Type0_Order3FallsBackToLinearWhenTheOnlySampleDimensionHasFewerThanFourEntries() {
+    public void Type0_Order3UsesNaturalCubicSplineForThreeSampleDimension() {
         PdfStream functionObject = SampledFunction(
             inputCount: 1,
             outputCount: 1,
@@ -36,7 +36,7 @@ public sealed partial class PdfColorFunctionTests {
         IReadOnlyList<double>? result = transform(new[] { 0.25D });
 
         Assert.NotNull(result);
-        Assert.Equal(32D / 255D, result![0], 8);
+        Assert.Equal(643D / 8160D, result![0], 8);
     }
 
     [Fact]
@@ -55,6 +55,27 @@ public sealed partial class PdfColorFunctionTests {
         Assert.NotNull(result);
         Assert.Equal(0.75D, result![0], 8);
         Assert.Equal(0.25D, result[1], 8);
+    }
+
+    [Fact]
+    public void Type0_Order3PricesNaturalSplineByItsTwoReadsPerOutput() {
+        PdfStream functionObject = SampledFunction(
+            inputCount: 1,
+            outputCount: 3,
+            sizes: new[] { 4 },
+            bitsPerSample: 8,
+            samples: new byte[] { 0, 0, 0, 64, 64, 64, 192, 192, 192, 255, 255, 255 },
+            order: 3);
+
+        Assert.True(PdfColorSpaceFunctionResolver.TryCreateFunction(
+            functionObject,
+            1,
+            3,
+            new Dictionary<int, PdfIndirectObject>(),
+            1024,
+            out PdfColorFunction function));
+
+        Assert.Equal(6, function.CubicEvaluationCost);
     }
 
     [Fact]
@@ -227,6 +248,39 @@ public sealed partial class PdfColorFunctionTests {
         Assert.True(normalization.CanConvertPixelCount(43_690));
         Assert.False(normalization.CanConvertPixelCount(43_691));
         Assert.False(normalization.CanConvertPixelCount(1_000_000));
+    }
+
+    [Fact]
+    public void ImageNormalization_PreservesCubicWorkThroughUnsupportedIccAlternate() {
+        PdfStream function = SampledFunction(
+            1,
+            3,
+            new[] { 4 },
+            8,
+            new byte[] { 0, 0, 0, 64, 64, 64, 192, 192, 192, 255, 255, 255 },
+            order: 3);
+        PdfArray separation = Array(
+            new PdfName("Separation"),
+            new PdfName("Spot"),
+            new PdfName("DeviceRGB"),
+            function);
+        PdfStream unsupportedProfile = new(
+            Dictionary(
+                ("N", Number(1)),
+                ("Alternate", separation)),
+            new byte[] { 0 });
+        PdfArray colorSpace = Array(new PdfName("ICCBased"), unsupportedProfile);
+
+        Assert.True(PdfImageColorSpaceNormalization.TryResolve(
+            colorSpace,
+            string.Empty,
+            new Dictionary<int, PdfIndirectObject>(),
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            out PdfImageColorSpaceNormalization normalization));
+
+        long maximumPixels = (PdfReadLimits.DefaultMaxDecodedStreamBytes / sizeof(double)) / 6;
+        Assert.True(normalization.CanConvertPixelCount(maximumPixels));
+        Assert.False(normalization.CanConvertPixelCount(maximumPixels + 1));
     }
 
     [Fact]

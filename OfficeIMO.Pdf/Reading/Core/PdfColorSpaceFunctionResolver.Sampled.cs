@@ -33,7 +33,11 @@ internal static partial class PdfColorSpaceFunctionResolver {
         evaluator = values => useCubic
             ? EvaluateCubicSampled(values, domain, encode, sizes, interpolationBounds, strides, bitsPerSample, maximumSample, decode, samples, outputCount, secondDerivatives)
             : EvaluateLinearSampled(values, domain, encode, sizes, strides, bitsPerSample, maximumSample, decode, samples, outputCount);
-        if (useCubic) cubicEvaluationCost = CalculateCubicEvaluationCost(interpolationBounds, outputCount);
+        if (useCubic) {
+            cubicEvaluationCost = secondDerivatives != null
+                ? checked(2 * outputCount)
+                : CalculateCubicEvaluationCost(interpolationBounds, outputCount);
+        }
         return true;
     }
 
@@ -227,7 +231,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
         int leafReads = 1;
         for (int input = 0; input < interpolationBounds.InputCount; input++) {
             int branchCount = interpolationBounds.UsesCubic(input)
-                ? 4
+                ? (interpolationBounds.GetEnd(input) - interpolationBounds.GetStart(input) + 1 >= 4 ? 4 : 3)
                 : interpolationBounds.GetStart(input) == interpolationBounds.GetEnd(input) ? 1 : 2;
             leafReads = checked(leafReads * branchCount);
         }
@@ -235,7 +239,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
     }
 
     private static int GetNaturalSplinePointCount(int order, int inputCount, double[] encode, int[] sizes) {
-        return order == 3 && inputCount == 1 && sizes[0] >= 4 ? sizes[0] : 0;
+        return order == 3 && inputCount == 1 && sizes[0] >= 3 ? sizes[0] : 0;
     }
 
     private static SampleInterpolationBounds CreateSampleInterpolationBounds(int order, double[] encode, int[] sizes) {
@@ -246,7 +250,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
         for (int input = 0; input < sizes.Length; input++) {
             starts[input] = 0;
             ends[input] = sizes[input] - 1;
-            cubic[input] = order == 3 && sizes[input] >= 4;
+            cubic[input] = order == 3 && sizes[input] >= 3;
             hasCubic |= cubic[input];
         }
         return new SampleInterpolationBounds(starts, ends, cubic, hasCubic);

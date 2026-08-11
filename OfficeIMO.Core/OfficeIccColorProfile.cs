@@ -31,6 +31,7 @@ public sealed partial class OfficeIccColorProfile {
     private const int TagTableHeaderLength = 4;
     private const int TagEntryLength = 12;
     private const int MaximumCurveEntries = 65536;
+    private const int MaximumMabClutGridPoints = 33;
     private const double D50X = 0.9642D;
     private const double D50Y = 1D;
     private const double D50Z = 0.8249D;
