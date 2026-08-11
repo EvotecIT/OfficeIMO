@@ -68,7 +68,7 @@ internal static class PdfPageXObjectInvocationParser {
         IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns = null,
         IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns = null,
         Func<PdfFontResource, byte[], PdfType3PaintChannels>? type3PaintChannelResolver = null,
-        Func<string, Matrix2D, PdfPageClipPath?, PdfType3PaintChannels>? xObjectPaintChannelResolver = null) {
+        Func<string, Matrix2D, PdfPageClipPath?, double?, PdfType3PaintChannels>? xObjectPaintChannelResolver = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
@@ -132,7 +132,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Action<string>? _patternInvocationVisitor;
         private readonly Action<string>? _authoredPatternInvocationVisitor;
         private readonly Func<PdfFontResource, byte[], PdfType3PaintChannels>? _type3PaintChannelResolver;
-        private readonly Func<string, Matrix2D, PdfPageClipPath?, PdfType3PaintChannels>? _xObjectPaintChannelResolver;
+        private readonly Func<string, Matrix2D, PdfPageClipPath?, double?, PdfType3PaintChannels>? _xObjectPaintChannelResolver;
         private readonly Action<PdfPageGraphicsStateResource>? _graphicsStateVisitor;
         private readonly bool _allowSupportedGraphicsEffects;
         private string _textFont = string.Empty;
@@ -185,7 +185,7 @@ internal static class PdfPageXObjectInvocationParser {
             IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns,
             IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns,
             Func<PdfFontResource, byte[], PdfType3PaintChannels>? type3PaintChannelResolver,
-            Func<string, Matrix2D, PdfPageClipPath?, PdfType3PaintChannels>? xObjectPaintChannelResolver) {
+            Func<string, Matrix2D, PdfPageClipPath?, double?, PdfType3PaintChannels>? xObjectPaintChannelResolver) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -620,7 +620,7 @@ internal static class PdfPageXObjectInvocationParser {
                 case "B*":
                 case "b":
                 case "b*":
-                    if (!HasHiddenContent()) {
+                    if (!HasHiddenContent() && _pathCommands.Count > 0) {
                         PublishDeferredPatternUse(OperatorFillsPath(op), OperatorStrokesPath(op));
                     }
                     if (!HasHiddenContent() &&
@@ -888,7 +888,11 @@ internal static class PdfPageXObjectInvocationParser {
                         _args.Count >= 1 &&
                         _args[_args.Count - 1] is string name &&
                         !string.IsNullOrEmpty(name)) {
-                        PdfType3PaintChannels channels = _xObjectPaintChannelResolver?.Invoke(name, _state.Transform, _state.ClipPath) ?? PdfType3PaintChannels.Both;
+                        PdfType3PaintChannels channels = _xObjectPaintChannelResolver?.Invoke(
+                            name,
+                            _state.Transform,
+                            _state.ClipPath,
+                            _state.FillOpacity) ?? PdfType3PaintChannels.Both;
                         PublishDeferredPatternUse(
                             (channels & PdfType3PaintChannels.Fill) != 0,
                             (channels & PdfType3PaintChannels.Stroke) != 0);

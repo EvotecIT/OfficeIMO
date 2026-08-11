@@ -88,19 +88,21 @@ public sealed partial class PdfReadPage {
                          },
                          unsupportedTextVisitor: () => channels = PdfType3PaintChannels.Both,
                          type3PaintChannelResolver: (font, bytes) => ResolveType3PaintChannels(font, bytes, cache, activeStreams, pageContentBudget),
-                         xObjectPaintChannelResolver: (name, transform, clipPath) => ResolveXObjectPaintChannels(
+                         xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity) => ResolveXObjectPaintChannels(
                              resources,
                              name,
                              transform,
                              clipPath,
+                             fillOpacity,
                              pageWidth,
                              pageHeight,
                              cache,
                              activeStreams,
                              pageContentBudget,
                              depth + 1))) {
-                if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
-                    if ((invocation.FillOpacity ?? 1D) > 0D) channels |= PdfType3PaintChannels.Fill;
+                if (invocation.InlineImage != null &&
+                    !IsInvisibleInlineImageInvocation(invocation, resources, pageWidth, pageHeight)) {
+                    channels |= PdfType3PaintChannels.Fill;
                     continue;
                 }
                 channels |= ResolveXObjectPaintChannels(
@@ -108,6 +110,7 @@ public sealed partial class PdfReadPage {
                     invocation.Name,
                     invocation.Transform,
                     invocation.ClipPath,
+                    invocation.FillOpacity,
                     pageWidth,
                     pageHeight,
                     cache,
