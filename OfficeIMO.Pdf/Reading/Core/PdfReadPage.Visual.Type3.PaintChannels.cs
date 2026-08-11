@@ -71,14 +71,8 @@ public sealed partial class PdfReadPage {
                          type3TextVisitor: nested => {
                              for (int glyphIndex = 0; glyphIndex < nested.Glyphs.Count; glyphIndex++) {
                                  PdfPageType3GlyphInvocation glyph = nested.Glyphs[glyphIndex];
-                                 if (glyph.Font.Type3 is not PdfType3FontResource nestedType3 ||
-                                     !nestedType3.TryGetGlyph(glyph.CharacterCode, out PdfStream nestedStream)) {
-                                     channels = PdfType3PaintChannels.Both;
-                                     return true;
-                                 }
                                  channels |= ResolveType3PaintChannels(
-                                     nestedStream,
-                                     nestedType3.Resources,
+                                     glyph,
                                      cache,
                                      activeStreams,
                                      pageContentBudget,
@@ -87,7 +81,7 @@ public sealed partial class PdfReadPage {
                              return true;
                          },
                          unsupportedTextVisitor: () => channels = PdfType3PaintChannels.Both,
-                         type3PaintChannelResolver: (font, bytes) => ResolveType3PaintChannels(font, bytes, cache, activeStreams, pageContentBudget),
+                         type3PaintChannelResolver: glyph => ResolveType3PaintChannels(glyph, cache, activeStreams, pageContentBudget, depth + 1),
                          xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity) => ResolveXObjectPaintChannels(
                              resources,
                              name,
@@ -128,8 +122,24 @@ public sealed partial class PdfReadPage {
     }
 
     private sealed class Type3PaintChannelCache {
-        internal Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfType3PaintChannels> Streams { get; } =
-            new Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfType3PaintChannels>();
+        internal Dictionary<(
+            PdfStream Stream,
+            PdfDictionary Resources,
+            Matrix2D ProgramTransform,
+            PdfPageClipPath? ProgramClipPath,
+            double? FillOpacity,
+            double? StrokeOpacity,
+            double PageWidth,
+            double PageHeight), PdfType3PaintChannels> Streams { get; } =
+            new Dictionary<(
+                PdfStream Stream,
+                PdfDictionary Resources,
+                Matrix2D ProgramTransform,
+                PdfPageClipPath? ProgramClipPath,
+                double? FillOpacity,
+                double? StrokeOpacity,
+                double PageWidth,
+                double PageHeight), PdfType3PaintChannels>();
 
         internal Dictionary<(
             PdfStream Stream,

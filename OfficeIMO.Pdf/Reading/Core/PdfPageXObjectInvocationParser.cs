@@ -67,7 +67,7 @@ internal static class PdfPageXObjectInvocationParser {
         PdfPageColorSpace? initialStrokePatternBaseColorSpace = null,
         IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns = null,
         IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns = null,
-        Func<PdfFontResource, byte[], PdfType3PaintChannels>? type3PaintChannelResolver = null,
+        Func<PdfPageType3GlyphInvocation, PdfType3PaintChannels>? type3PaintChannelResolver = null,
         Func<string, Matrix2D, PdfPageClipPath?, double?, PdfType3PaintChannels>? xObjectPaintChannelResolver = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
@@ -131,7 +131,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Action<string>? _visibleFontVisitor;
         private readonly Action<string>? _patternInvocationVisitor;
         private readonly Action<string>? _authoredPatternInvocationVisitor;
-        private readonly Func<PdfFontResource, byte[], PdfType3PaintChannels>? _type3PaintChannelResolver;
+        private readonly Func<PdfPageType3GlyphInvocation, PdfType3PaintChannels>? _type3PaintChannelResolver;
         private readonly Func<string, Matrix2D, PdfPageClipPath?, double?, PdfType3PaintChannels>? _xObjectPaintChannelResolver;
         private readonly Action<PdfPageGraphicsStateResource>? _graphicsStateVisitor;
         private readonly bool _allowSupportedGraphicsEffects;
@@ -184,7 +184,7 @@ internal static class PdfPageXObjectInvocationParser {
             PdfPageColorSpace? initialStrokePatternBaseColorSpace,
             IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns,
             IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns,
-            Func<PdfFontResource, byte[], PdfType3PaintChannels>? type3PaintChannelResolver,
+            Func<PdfPageType3GlyphInvocation, PdfType3PaintChannels>? type3PaintChannelResolver,
             Func<string, Matrix2D, PdfPageClipPath?, double?, PdfType3PaintChannels>? xObjectPaintChannelResolver) {
             _content = content;
             _baseTransform = baseTransform;
@@ -299,11 +299,11 @@ internal static class PdfPageXObjectInvocationParser {
             bool usesType3GlyphProgram = IsActiveType3Font();
             bool isVisible = !HasHiddenContent();
             if (isVisible) _visibleFontVisitor?.Invoke(_textFont);
-            if (isVisible && usesType3GlyphProgram) {
-                AdvertiseInheritedType3Patterns(bytes);
-            }
             List<PdfPageType3GlyphInvocation>? glyphs = CreateType3GlyphBatch(usesType3GlyphProgram, isVisible, bytes.Length);
             (double X, double Y) advance = ProcessShownText(bytes, glyphs);
+            if (isVisible && usesType3GlyphProgram) {
+                AdvertiseInheritedType3Patterns(ResolveType3PaintChannels(glyphs));
+            }
             PublishType3GlyphBatch(glyphs);
             if (isVisible && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
             if (isVisible && !usesType3GlyphProgram) ApplyTextClippingPath(advance.X);
@@ -316,13 +316,15 @@ internal static class PdfPageXObjectInvocationParser {
             font.Type3 != null;
 
         private List<PdfPageType3GlyphInvocation>? CreateType3GlyphBatch(bool usesType3GlyphProgram, bool isVisible, int glyphCount) {
-            if (!usesType3GlyphProgram || !isVisible || _type3TextVisitor == null || glyphCount <= 0) return null;
+            if (!usesType3GlyphProgram || !isVisible ||
+                (_type3TextVisitor == null && _type3PaintChannelResolver == null) ||
+                glyphCount <= 0) return null;
             _type3GlyphBudgetConsumer?.Invoke(glyphCount);
             return new List<PdfPageType3GlyphInvocation>(glyphCount);
         }
 
         private void PublishType3GlyphBatch(List<PdfPageType3GlyphInvocation>? glyphs) {
-            if (glyphs != null && glyphs.Count > 0 &&
+            if (_type3TextVisitor != null && glyphs != null && glyphs.Count > 0 &&
                 _type3TextVisitor!(new PdfPageType3TextInvocation(glyphs, _currentPaintOrder, _currentOperatorIndex))) {
                 _renderedType3PaintOrders?.Add(_currentPaintOrder);
             }
@@ -403,13 +405,6 @@ internal static class PdfPageXObjectInvocationParser {
             }
             List<PdfPageType3GlyphInvocation>? glyphs = CreateType3GlyphBatch(usesType3GlyphProgram, isVisible, (int)glyphCount);
             if (isVisible && glyphCount > 0) _visibleFontVisitor?.Invoke(_textFont);
-            if (isVisible && usesType3GlyphProgram && glyphCount > 0) {
-                PdfType3PaintChannels channels = PdfType3PaintChannels.None;
-                for (int i = 0; i < items.Count; i++) {
-                    if (items[i] is byte[] bytes) channels |= ResolveType3PaintChannels(bytes);
-                }
-                AdvertiseInheritedType3Patterns(channels);
-            }
             for (int i = 0; i < items.Count; i++) {
                 if (items[i] is byte[] bytes) {
                     (double X, double Y) advance = ProcessShownText(bytes, glyphs);
@@ -420,12 +415,12 @@ internal static class PdfPageXObjectInvocationParser {
                     _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(delta, 0D));
                 }
             }
+            if (isVisible && usesType3GlyphProgram && glyphCount > 0) {
+                AdvertiseInheritedType3Patterns(ResolveType3PaintChannels(glyphs));
+            }
             PublishType3GlyphBatch(glyphs);
             if (isVisible && glyphCount > 0 && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
         }
-
-        private void AdvertiseInheritedType3Patterns(byte[] bytes) =>
-            AdvertiseInheritedType3Patterns(ResolveType3PaintChannels(bytes));
 
         private void AdvertiseInheritedType3Patterns(PdfType3PaintChannels channels) {
             PublishDeferredPatternUse(
@@ -439,14 +434,16 @@ internal static class PdfPageXObjectInvocationParser {
             }
         }
 
-        private PdfType3PaintChannels ResolveType3PaintChannels(byte[] bytes) {
-            if (_type3PaintChannelResolver == null ||
-                _fonts == null ||
-                !_fonts.TryGetValue(_textFont, out PdfFontResource? font) ||
-                font.Type3 == null) {
+        private PdfType3PaintChannels ResolveType3PaintChannels(List<PdfPageType3GlyphInvocation>? glyphs) {
+            if (_type3PaintChannelResolver == null || glyphs == null || glyphs.Count == 0) {
                 return PdfType3PaintChannels.Both;
             }
-            return _type3PaintChannelResolver(font, bytes);
+            PdfType3PaintChannels channels = PdfType3PaintChannels.None;
+            for (int i = 0; i < glyphs.Count; i++) {
+                channels |= _type3PaintChannelResolver(glyphs[i]);
+                if (channels == PdfType3PaintChannels.Both) break;
+            }
+            return channels;
         }
 
         private double EstimateTextAdvance(byte[] bytes) {

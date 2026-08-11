@@ -344,9 +344,8 @@ public sealed partial class PdfReadPage {
                 initialFillPatternBaseColorSpace: initialFillPatternBaseColorSpace,
                 initialStrokePattern: initialStrokePattern,
                 initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
-                type3PaintChannelResolver: (font, bytes) => ResolveType3PaintChannels(
-                    font,
-                    bytes,
+                type3PaintChannelResolver: glyph => ResolveType3PaintChannels(
+                    glyph,
                     type3PaintChannelCache,
                     activeType3PaintChannelStreams,
                     pageContentBudget),
@@ -545,9 +544,8 @@ public sealed partial class PdfReadPage {
                          initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
                          tilingPatterns: tilingPatterns,
                          shadingPatterns: shadingPatterns,
-                         type3PaintChannelResolver: (font, bytes) => ResolveType3PaintChannels(
-                             font,
-                             bytes,
+                         type3PaintChannelResolver: glyph => ResolveType3PaintChannels(
+                             glyph,
                              type3PaintChannelCache,
                              activeType3PaintChannelStreams,
                              pageContentBudget),
