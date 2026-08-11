@@ -121,7 +121,8 @@ public sealed partial class PdfReadPage {
                         new HashSet<PdfStream>(),
                         PdfPageDrawingEffect.Default,
                         pageContentBudget: pageContentBudget,
-                        contentOrderPrefix: glyphOrderPrefix);
+                        contentOrderPrefix: glyphOrderPrefix,
+                        skipTransparencyGroupForms: true);
                 } catch (Exception exception) when (IsRecoverableType3ProjectionFailure(exception)) {
                     return false;
                 }
@@ -770,6 +771,10 @@ public sealed partial class PdfReadPage {
                     continue;
                 }
                 if (!TryGetFormStream(resources, invocation.Name, out PdfStream form)) {
+                    channels = PdfType3PaintChannels.Both;
+                    continue;
+                }
+                if (form.Dictionary.Items.ContainsKey("Group")) {
                     channels = PdfType3PaintChannels.Both;
                     continue;
                 }

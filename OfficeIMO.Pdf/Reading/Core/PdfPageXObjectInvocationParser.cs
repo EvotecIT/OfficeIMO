@@ -424,6 +424,9 @@ internal static class PdfPageXObjectInvocationParser {
             AdvertiseInheritedType3Patterns(ResolveType3PaintChannels(bytes));
 
         private void AdvertiseInheritedType3Patterns(PdfType3PaintChannels channels) {
+            PublishDeferredPatternUse(
+                (channels & PdfType3PaintChannels.Fill) != 0,
+                (channels & PdfType3PaintChannels.Stroke) != 0);
             if ((channels & PdfType3PaintChannels.Fill) != 0 && _patternState.Fill.HasValue) {
                 _patternInvocationVisitor?.Invoke(_patternState.Fill.Value.Name);
             }
@@ -613,6 +616,9 @@ internal static class PdfPageXObjectInvocationParser {
                 case "B*":
                 case "b":
                 case "b*":
+                    if (!HasHiddenContent()) {
+                        PublishDeferredPatternUse(OperatorFillsPath(op), OperatorStrokesPath(op));
+                    }
                     if (!HasHiddenContent() &&
                         OperatorStrokesPath(op) &&
                         _state.StrokeWidth > 0D &&
@@ -675,7 +681,8 @@ internal static class PdfPageXObjectInvocationParser {
                                     ResolveTilingPattern(fillPatternName),
                                     ResolveShadingPattern(fillPatternName),
                                     _state.Transform),
-                                _patternState.FillBaseColorSpace);
+                                _patternState.FillBaseColorSpace,
+                                deferredVisibleUse: HasHiddenContent());
                         } else if (!HasHiddenContent()) {
                             _unsupportedColorVisitor?.Invoke();
                         }
@@ -710,7 +717,8 @@ internal static class PdfPageXObjectInvocationParser {
                                     ResolveTilingPattern(strokePatternName),
                                     ResolveShadingPattern(strokePatternName),
                                     _state.Transform),
-                                _patternState.StrokeBaseColorSpace);
+                                _patternState.StrokeBaseColorSpace,
+                                deferredVisibleUse: HasHiddenContent());
                         } else if (!HasHiddenContent()) {
                             _unsupportedColorVisitor?.Invoke();
                         }
@@ -876,12 +884,14 @@ internal static class PdfPageXObjectInvocationParser {
                         _args.Count >= 1 &&
                         _args[_args.Count - 1] is string name &&
                         !string.IsNullOrEmpty(name)) {
+                        PublishDeferredPatternUse(fill: true, stroke: true);
                         _invocations.Add(new PdfPageXObjectInvocation(name, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _patternState.Fill, _patternState.FillBaseColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _patternState.Stroke, _patternState.StrokeBaseColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder, _currentOperatorIndex));
                     }
 
                     break;
                 case "BI":
                     if (_currentInlineImage is not null && !HasHiddenContent()) {
+                        PublishDeferredPatternUse(fill: true, stroke: false);
                         var stream = new PdfStream(_currentInlineImage.Dictionary, _currentInlineImage.Data);
                         var inlineImage = new PdfPageInlineImage(
                             "__inline" + (++_inlineImageIndex).ToString(CultureInfo.InvariantCulture),
@@ -1280,6 +1290,26 @@ internal static class PdfPageXObjectInvocationParser {
         private static bool OperatorStrokesPath(string op) =>
             op == "S" || op == "s" || op == "B" || op == "B*" || op == "b" || op == "b*";
 
+        private static bool OperatorFillsPath(string op) =>
+            op == "f" || op == "F" || op == "f*" || op == "B" || op == "B*" || op == "b" || op == "b*";
+
+        private void PublishDeferredPatternUse(bool fill, bool stroke) {
+            if (fill && _patternState.FillDeferredVisibleUse && _patternState.Fill.HasValue) {
+                PublishPatternUse(_patternState.Fill.Value.Name);
+                _patternState = _patternState.WithFillDeferredVisibleUse(false);
+            }
+            if (stroke && _patternState.StrokeDeferredVisibleUse && _patternState.Stroke.HasValue) {
+                PublishPatternUse(_patternState.Stroke.Value.Name);
+                _patternState = _patternState.WithStrokeDeferredVisibleUse(false);
+            }
+        }
+
+        private void PublishPatternUse(string name) {
+            _authoredPatternInvocationVisitor?.Invoke(name);
+            _unsupportedPatternVisitor?.Invoke();
+            _patternInvocationVisitor?.Invoke(name);
+        }
+
         private static bool IsConformalStrokeTransform(Matrix2D transform) {
             double firstLengthSquared = (transform.A * transform.A) + (transform.B * transform.B);
             double secondLengthSquared = (transform.C * transform.C) + (transform.D * transform.D);
@@ -1341,23 +1371,35 @@ internal static class PdfPageXObjectInvocationParser {
             PdfPagePatternSelection? fill,
             PdfPageColorSpace? fillBaseColorSpace,
             PdfPagePatternSelection? stroke,
-            PdfPageColorSpace? strokeBaseColorSpace) {
+            PdfPageColorSpace? strokeBaseColorSpace,
+            bool fillDeferredVisibleUse = false,
+            bool strokeDeferredVisibleUse = false) {
             Fill = fill;
             FillBaseColorSpace = fillBaseColorSpace;
             Stroke = stroke;
             StrokeBaseColorSpace = strokeBaseColorSpace;
+            FillDeferredVisibleUse = fillDeferredVisibleUse;
+            StrokeDeferredVisibleUse = strokeDeferredVisibleUse;
         }
 
         internal PdfPagePatternSelection? Fill { get; }
         internal PdfPageColorSpace? FillBaseColorSpace { get; }
         internal PdfPagePatternSelection? Stroke { get; }
         internal PdfPageColorSpace? StrokeBaseColorSpace { get; }
+        internal bool FillDeferredVisibleUse { get; }
+        internal bool StrokeDeferredVisibleUse { get; }
 
-        internal PatternState WithFill(PdfPagePatternSelection? fill, PdfPageColorSpace? baseColorSpace) =>
-            new PatternState(fill, baseColorSpace, Stroke, StrokeBaseColorSpace);
+        internal PatternState WithFill(PdfPagePatternSelection? fill, PdfPageColorSpace? baseColorSpace, bool deferredVisibleUse = false) =>
+            new PatternState(fill, baseColorSpace, Stroke, StrokeBaseColorSpace, deferredVisibleUse, StrokeDeferredVisibleUse);
 
-        internal PatternState WithStroke(PdfPagePatternSelection? stroke, PdfPageColorSpace? baseColorSpace) =>
-            new PatternState(Fill, FillBaseColorSpace, stroke, baseColorSpace);
+        internal PatternState WithStroke(PdfPagePatternSelection? stroke, PdfPageColorSpace? baseColorSpace, bool deferredVisibleUse = false) =>
+            new PatternState(Fill, FillBaseColorSpace, stroke, baseColorSpace, FillDeferredVisibleUse, deferredVisibleUse);
+
+        internal PatternState WithFillDeferredVisibleUse(bool value) =>
+            new PatternState(Fill, FillBaseColorSpace, Stroke, StrokeBaseColorSpace, value, StrokeDeferredVisibleUse);
+
+        internal PatternState WithStrokeDeferredVisibleUse(bool value) =>
+            new PatternState(Fill, FillBaseColorSpace, Stroke, StrokeBaseColorSpace, FillDeferredVisibleUse, value);
     }
 
     private readonly struct GraphicsState {

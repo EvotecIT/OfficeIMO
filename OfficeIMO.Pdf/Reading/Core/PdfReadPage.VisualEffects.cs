@@ -156,7 +156,8 @@ public sealed partial class PdfReadPage {
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
         int contentNestingDepth = 0,
         PageContentBudget? pageContentBudget = null,
-        PdfContentOrderKey? contentOrderPrefix = null) {
+        PdfContentOrderKey? contentOrderPrefix = null,
+        bool skipTransparencyGroupForms = false) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
@@ -212,6 +213,9 @@ public sealed partial class PdfReadPage {
             PdfPageDrawingEffect inherited = ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect, formOrderPrefix);
             try {
                 PdfDictionary dictionary = formStream.Dictionary;
+                if (skipTransparencyGroupForms && dictionary.Items.ContainsKey("Group")) {
+                    continue;
+                }
                 PdfDictionary? formResources = ResolveDictionary(dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, dictionary);
                 string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), dictionary);
@@ -238,7 +242,8 @@ public sealed partial class PdfReadPage {
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
                     contentNestingDepth: contentNestingDepth + 1,
                     pageContentBudget: pageContentBudget,
-                    contentOrderPrefix: formOrderPrefix);
+                    contentOrderPrefix: formOrderPrefix,
+                    skipTransparencyGroupForms: skipTransparencyGroupForms);
                 transitions.Add(new PdfPageDrawingEffectTransition(
                     invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.25D),
                     inherited,
