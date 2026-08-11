@@ -96,6 +96,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly List<PdfPageXObjectInvocation> _invocations = new List<PdfPageXObjectInvocation>();
         private readonly List<object> _args = new List<object>(8);
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
+        private readonly Stack<GraphicsEffectState> _graphicsEffectStack = new Stack<GraphicsEffectState>();
         private readonly Stack<PatternState> _patternStack = new Stack<PatternState>();
         private readonly Stack<TextState> _textStack = new Stack<TextState>();
         private readonly Stack<(PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform)> _softMaskStack = new Stack<(PdfPageSoftMaskResource?, Matrix2D?)>();
@@ -106,6 +107,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly GraphicsState _initialState;
         private readonly PatternState _initialPatternState;
         private GraphicsState _state;
+        private GraphicsEffectState _graphicsEffectState;
         private PatternState _patternState;
         private bool _inText;
         private double _textSize = 12D;
@@ -324,6 +326,7 @@ internal static class PdfPageXObjectInvocationParser {
             if (isVisible && usesType3GlyphProgram) {
                 AdvertiseInheritedType3Patterns(type3PaintChannels);
             }
+            if (isVisible && (usesType3GlyphProgram || ordinaryTextAffectsOutput)) PublishActiveGraphicsEffectUse();
             PublishType3GlyphBatch(glyphs);
             if (ordinaryTextAffectsOutput && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
             if (isVisible && !usesType3GlyphProgram) ApplyTextClippingPath(advance.X);
@@ -449,6 +452,7 @@ internal static class PdfPageXObjectInvocationParser {
             if (isVisible && usesType3GlyphProgram && glyphCount > 0) {
                 AdvertiseInheritedType3Patterns(type3PaintChannels);
             }
+            if (isVisible && glyphCount > 0 && (usesType3GlyphProgram || ordinaryTextAffectsOutput)) PublishActiveGraphicsEffectUse();
             PublishType3GlyphBatch(glyphs);
             if (ordinaryTextAffectsOutput && glyphCount > 0 && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
         }
@@ -548,12 +552,14 @@ internal static class PdfPageXObjectInvocationParser {
             switch (op) {
                 case "q":
                     _stack.Push(_state);
+                    _graphicsEffectStack.Push(_graphicsEffectState);
                     _patternStack.Push(_patternState);
                     _textStack.Push(CaptureTextState());
                     _softMaskStack.Push((_softMask, _softMaskTransform));
                     break;
                 case "Q":
                     _state = _stack.Count > 0 ? _stack.Pop() : _initialState;
+                    _graphicsEffectState = _graphicsEffectStack.Count > 0 ? _graphicsEffectStack.Pop() : default;
                     _patternState = _patternStack.Count > 0 ? _patternStack.Pop() : _initialPatternState;
                     RestoreTextState(_textStack.Count > 0 ? _textStack.Pop() : TextState.Default);
                     (PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform) restoredSoftMask = _softMaskStack.Count > 0
@@ -694,6 +700,7 @@ internal static class PdfPageXObjectInvocationParser {
                         PublishDeferredPatternUse(
                             (channels & PdfType3PaintChannels.Fill) != 0,
                             (channels & PdfType3PaintChannels.Stroke) != 0);
+                        if (channels != PdfType3PaintChannels.None) PublishActiveGraphicsEffectUse();
                     }
                     if (!HasHiddenContent() &&
                         !IsCurrentPaintSuppressedBySoftMask() &&
@@ -951,34 +958,38 @@ internal static class PdfPageXObjectInvocationParser {
                         _args.Count >= 1 &&
                         _args[_args.Count - 1] is string name &&
                         !string.IsNullOrEmpty(name)) {
+                        PdfType3PaintChannels channels = IsCurrentPaintSuppressedBySoftMask()
+                            ? PdfType3PaintChannels.None
+                            : _xObjectPaintChannelResolver?.Invoke(
+                                name,
+                                new PdfPageXObjectPaintState(
+                                    _state.Transform,
+                                    _state.ClipPath,
+                                    _state.FillOpacity,
+                                    _state.StrokeOpacity,
+                                    _state.StrokeWidth,
+                                    _state.StrokeDashStyle,
+                                    _state.StrokeLineCap,
+                                    _state.StrokeLineJoin)) ?? PdfType3PaintChannels.Both;
                         if (_patternState.FillDeferredVisibleUse || _patternState.StrokeDeferredVisibleUse) {
-                            PdfType3PaintChannels channels = IsCurrentPaintSuppressedBySoftMask()
-                                ? PdfType3PaintChannels.None
-                                : _xObjectPaintChannelResolver?.Invoke(
-                                    name,
-                                    new PdfPageXObjectPaintState(
-                                        _state.Transform,
-                                        _state.ClipPath,
-                                        _state.FillOpacity,
-                                        _state.StrokeOpacity,
-                                        _state.StrokeWidth,
-                                        _state.StrokeDashStyle,
-                                        _state.StrokeLineCap,
-                                        _state.StrokeLineJoin)) ?? PdfType3PaintChannels.Both;
                             PublishDeferredPatternUse(
                                 (channels & PdfType3PaintChannels.Fill) != 0,
                                 (channels & PdfType3PaintChannels.Stroke) != 0);
                         }
+                        if (channels != PdfType3PaintChannels.None) PublishActiveGraphicsEffectUse();
                         _invocations.Add(new PdfPageXObjectInvocation(name, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _patternState.Fill, _patternState.FillBaseColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _patternState.Stroke, _patternState.StrokeBaseColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder, _currentOperatorIndex));
                     }
 
                     break;
                 case "BI":
                     if (_currentInlineImage is not null && !HasHiddenContent()) {
+                        PdfType3PaintChannels channels = IsCurrentPaintSuppressedBySoftMask()
+                            ? PdfType3PaintChannels.None
+                            : ResolveVisibleInlineImagePaintChannels();
                         PublishDeferredPatternUse(
-                            fill: !IsCurrentPaintSuppressedBySoftMask() &&
-                                  ResolveVisibleInlineImagePaintChannels() != PdfType3PaintChannels.None,
+                            fill: channels != PdfType3PaintChannels.None,
                             stroke: false);
+                        if (channels != PdfType3PaintChannels.None) PublishActiveGraphicsEffectUse();
                         var stream = new PdfStream(_currentInlineImage.Dictionary, _currentInlineImage.Data);
                         var inlineImage = new PdfPageInlineImage(
                             "__inline" + (++_inlineImageIndex).ToString(CultureInfo.InvariantCulture),
@@ -1158,13 +1169,18 @@ internal static class PdfPageXObjectInvocationParser {
                 _softMask = resource.SoftMask;
                 _softMaskTransform = resource.SoftMask == null ? null : _state.Transform;
             }
-            if (!HasHiddenContent()) _graphicsStateVisitor?.Invoke(resource, _state.Transform);
-            if (!HasHiddenContent() &&
-                ((!_allowSupportedGraphicsEffects &&
-                  ((resource.BlendMode.HasValue && resource.BlendMode.Value != OfficeBlendMode.Normal) ||
-                   (resource.HasSoftMask && resource.SoftMask != null))) ||
-                 resource.HasUnsupportedSoftMask ||
-                 resource.HasUnsupportedBlendMode)) {
+            _graphicsEffectState = _graphicsEffectState.Apply(resource, _state.Transform);
+        }
+
+        private void PublishActiveGraphicsEffectUse() {
+            if (!_graphicsEffectState.HasEffect) return;
+            PdfPageGraphicsStateResource resource = _graphicsEffectState.ToResource();
+            _graphicsStateVisitor?.Invoke(resource, _graphicsEffectState.SoftMaskTransform);
+            if ((!_allowSupportedGraphicsEffects &&
+                 ((resource.BlendMode.HasValue && resource.BlendMode.Value != OfficeBlendMode.Normal) ||
+                  (resource.HasSoftMask && resource.SoftMask != null))) ||
+                resource.HasUnsupportedSoftMask ||
+                resource.HasUnsupportedBlendMode) {
                 _unsupportedGraphicsEffectVisitor?.Invoke();
             }
         }
@@ -1759,6 +1775,76 @@ internal static class PdfPageXObjectInvocationParser {
                 resource.StrokeDashStyle ?? StrokeDashStyle,
                 resource.StrokeLineCap ?? StrokeLineCap,
                 resource.StrokeLineJoin ?? StrokeLineJoin);
+    }
+
+    private readonly struct GraphicsEffectState {
+        private GraphicsEffectState(
+            OfficeBlendMode? blendMode,
+            bool hasUnsupportedBlendMode,
+            bool hasSoftMask,
+            PdfPageSoftMaskResource? softMask,
+            bool hasUnsupportedSoftMask,
+            Matrix2D softMaskTransform) {
+            BlendMode = blendMode;
+            HasUnsupportedBlendMode = hasUnsupportedBlendMode;
+            HasSoftMask = hasSoftMask;
+            SoftMask = softMask;
+            HasUnsupportedSoftMask = hasUnsupportedSoftMask;
+            SoftMaskTransform = softMaskTransform;
+        }
+
+        private OfficeBlendMode? BlendMode { get; }
+        private bool HasUnsupportedBlendMode { get; }
+        private bool HasSoftMask { get; }
+        private PdfPageSoftMaskResource? SoftMask { get; }
+        private bool HasUnsupportedSoftMask { get; }
+        internal Matrix2D SoftMaskTransform { get; }
+        internal bool HasEffect =>
+            (BlendMode.HasValue && BlendMode.Value != OfficeBlendMode.Normal) ||
+            HasUnsupportedBlendMode ||
+            HasSoftMask ||
+            HasUnsupportedSoftMask;
+
+        internal GraphicsEffectState Apply(PdfPageGraphicsStateResource resource, Matrix2D transform) {
+            OfficeBlendMode? blendMode = BlendMode;
+            bool hasUnsupportedBlendMode = HasUnsupportedBlendMode;
+            if (resource.BlendMode.HasValue || resource.HasUnsupportedBlendMode) {
+                blendMode = resource.BlendMode;
+                hasUnsupportedBlendMode = resource.HasUnsupportedBlendMode;
+            }
+
+            bool hasSoftMask = HasSoftMask;
+            PdfPageSoftMaskResource? softMask = SoftMask;
+            bool hasUnsupportedSoftMask = HasUnsupportedSoftMask;
+            Matrix2D softMaskTransform = SoftMaskTransform;
+            if (resource.HasSoftMask || resource.HasUnsupportedSoftMask) {
+                hasSoftMask = resource.HasSoftMask && resource.SoftMask != null;
+                softMask = resource.SoftMask;
+                hasUnsupportedSoftMask = resource.HasUnsupportedSoftMask;
+                softMaskTransform = transform;
+            }
+
+            return new GraphicsEffectState(
+                blendMode,
+                hasUnsupportedBlendMode,
+                hasSoftMask,
+                softMask,
+                hasUnsupportedSoftMask,
+                softMaskTransform);
+        }
+
+        internal PdfPageGraphicsStateResource ToResource() => new PdfPageGraphicsStateResource(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            BlendMode,
+            HasSoftMask,
+            SoftMask,
+            HasUnsupportedSoftMask,
+            HasUnsupportedBlendMode);
     }
 }
 

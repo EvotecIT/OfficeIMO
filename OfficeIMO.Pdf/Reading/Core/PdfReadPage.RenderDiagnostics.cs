@@ -397,13 +397,17 @@ public sealed partial class PdfReadPage {
                     type3GlyphBudget,
                     depth + 1),
                 pageWidth: surfaceWidth);
+            if (invokedPatternNames.Count > 0 && softMaskNestingDepth != null) {
+                softMaskNestingDepth.Cacheable = false;
+            }
             Dictionary<string, PdfPageTilingPatternResource> tilingPatterns = GetTilingPatternResources(
                 resources,
                 invokedPatternNames,
                 textOutputBudget: CreateTextOutputBudget(),
                 pageContentBudget: pageContentBudget,
                 type3GlyphBudget: type3GlyphBudget,
-                requireSupportedType3Content: true);
+                requireSupportedType3Content: true,
+                contentNestingDepth: depth);
             Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources);
             bool usesFillPaint = false;
             bool usesStrokePaint = false;
@@ -598,7 +602,8 @@ public sealed partial class PdfReadPage {
                                              textOutputBudget: CreateTextOutputBudget(),
                                              pageContentBudget: pageContentBudget,
                                              type3GlyphBudget: type3GlyphBudget,
-                                             requireSupportedType3Content: true)
+                                             requireSupportedType3Content: true,
+                                             contentNestingDepth: depth)
                                          .ContainsKey(name) &&
                                          type3GlyphBudget.FailureVersion == failureVersion;
                                  }

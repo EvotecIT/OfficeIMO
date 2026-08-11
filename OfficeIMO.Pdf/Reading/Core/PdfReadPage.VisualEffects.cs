@@ -174,7 +174,10 @@ public sealed partial class PdfReadPage {
                 projectionPageHeight,
                 textOutputBudget);
             nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, groupNestingDepth.Maximum);
-            if (supported) validatedGroups[cacheKey] = groupNestingDepth.Maximum - contentNestingDepth;
+            nestingDepth.Cacheable &= groupNestingDepth.Cacheable;
+            if (supported && groupNestingDepth.Cacheable) {
+                validatedGroups[cacheKey] = groupNestingDepth.Maximum - contentNestingDepth;
+            }
             return supported;
         } catch (PdfReadLimitException) {
             throw;
@@ -267,6 +270,7 @@ public sealed partial class PdfReadPage {
                 activeType3PaintChannelStreams,
                 pageContentBudget,
                 type3GlyphBudget));
+        if (invokedPatternNames.Count > 0) nestingDepth.Cacheable = false;
         Dictionary<string, PdfPageTilingPatternResource> tilingPatterns = GetTilingPatternResources(
             resources,
             invokedPatternNames,
@@ -521,6 +525,8 @@ public sealed partial class PdfReadPage {
         }
 
         internal int Maximum { get; set; }
+
+        internal bool Cacheable { get; set; } = true;
     }
 
     private IReadOnlyList<PdfPageDrawingEffectTransition> GetGraphicsEffectTransitions(Matrix2D pageTransform, double pageHeight, PageContentBudget? pageContentBudget = null) {
