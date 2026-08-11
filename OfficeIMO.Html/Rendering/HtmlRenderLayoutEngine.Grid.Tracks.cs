@@ -300,11 +300,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (content.Length == 0) {
             measured = 1D;
         } else if (style.PreventTextWrapping) {
-            measured = MeasureText(ApplyTextTransform(content, style.TextTransform), style.Font);
+            measured = MeasureInlineText(ApplyTextTransform(content, style.TextTransform), style);
         } else {
             measured = content
                 .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-                .Select(token => MeasureText(ApplyTextTransform(token, style.TextTransform), style.Font))
+                .Select(token => MeasureInlineText(ApplyTextTransform(token, style.TextTransform), style))
                 .DefaultIfEmpty(1D)
                 .Max();
         }
@@ -319,7 +319,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string content = CollapseFlexText(item.TextContent);
         double measured = content.Length == 0
             ? 1D
-            : MeasureText(ApplyTextTransform(content, style.TextTransform), style.Font);
+            : MeasureInlineText(ApplyTextTransform(content, style.TextTransform), style);
         return ResolveGridMeasuredContribution(style, measured);
     }
 

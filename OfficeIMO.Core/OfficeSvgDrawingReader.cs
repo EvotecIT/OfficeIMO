@@ -567,6 +567,7 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("font-weight", element.Attribute("font-weight")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("text-anchor", element.Attribute("text-anchor")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("dominant-baseline", element.Attribute("dominant-baseline")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("baseline-shift", element.Attribute("baseline-shift")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("display", element.Attribute("display")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("visibility", element.Attribute("visibility")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("filter", element.Attribute("filter")?.Value, paintServers, ref result, ref unsupported);
@@ -680,6 +681,11 @@ public static partial class OfficeSvgDrawingReader {
                 else if (baseline is "middle" or "central") style.DominantBaseline = SvgDominantBaseline.Middle;
                 else if (baseline is "text-after-edge" or "ideographic") style.DominantBaseline = SvgDominantBaseline.TextAfterEdge;
                 else unsupported++;
+                break;
+            case "baseline-shift":
+                if (normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase)) break;
+                if (!TryParseBaselineShift(normalized, out SvgBaselineShift baselineShift)) unsupported++;
+                else style.BaselineShift = baselineShift;
                 break;
             case "display":
                 if (normalized.Equals("none", StringComparison.OrdinalIgnoreCase)) style.Visible = false;
@@ -866,6 +872,7 @@ public static partial class OfficeSvgDrawingReader {
         internal OfficeFontStyle FontStyle;
         internal string TextAnchor;
         internal SvgDominantBaseline DominantBaseline;
+        internal SvgBaselineShift BaselineShift;
         internal bool Visible;
 
         internal void SetFill(SvgResolvedPaint paint) {
@@ -899,6 +906,7 @@ public static partial class OfficeSvgDrawingReader {
             FontStyle = OfficeFontStyle.Regular,
             TextAnchor = "start",
             DominantBaseline = SvgDominantBaseline.Alphabetic,
+            BaselineShift = default,
             Visible = true
         };
     }
@@ -908,5 +916,47 @@ public static partial class OfficeSvgDrawingReader {
         Hanging,
         Middle,
         TextAfterEdge
+    }
+
+    private readonly struct SvgBaselineShift {
+        internal SvgBaselineShift(double value, bool relativeToFontSize) {
+            Value = value;
+            RelativeToFontSize = relativeToFontSize;
+        }
+
+        internal double Value { get; }
+        internal bool RelativeToFontSize { get; }
+
+        internal double Resolve(double fontSize) => RelativeToFontSize ? Value * fontSize : Value;
+    }
+
+    private static bool TryParseBaselineShift(string value, out SvgBaselineShift shift) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized == "baseline") {
+            shift = default;
+            return true;
+        }
+        if (normalized == "super") {
+            shift = new SvgBaselineShift(0.6D, relativeToFontSize: true);
+            return true;
+        }
+        if (normalized == "sub") {
+            shift = new SvgBaselineShift(-0.2D, relativeToFontSize: true);
+            return true;
+        }
+        if (normalized.EndsWith("%", StringComparison.Ordinal)
+            && double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
+                CultureInfo.InvariantCulture, out double percentage)
+            && !double.IsNaN(percentage)
+            && !double.IsInfinity(percentage)) {
+            shift = new SvgBaselineShift(percentage / 100D, relativeToFontSize: true);
+            return true;
+        }
+        if (TrySvgLength(normalized, out double length)) {
+            shift = new SvgBaselineShift(length, relativeToFontSize: false);
+            return true;
+        }
+        shift = default;
+        return false;
     }
 }

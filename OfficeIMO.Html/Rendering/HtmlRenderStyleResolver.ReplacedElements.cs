@@ -13,6 +13,16 @@ internal sealed partial class HtmlRenderStyleResolver {
             out string unsupportedPosition);
         if (unsupportedPosition.Length > 0) unsupported.Add(unsupportedPosition);
 
+        style.ApplyEmbeddedImageOrientation = HtmlCssReplacedElementParser.ResolveImageOrientation(
+            computed.GetValue("image-orientation"),
+            out string unsupportedOrientation);
+        if (unsupportedOrientation.Length > 0) unsupported.Add(unsupportedOrientation);
+
+        style.ImageResolutionDpi = HtmlCssReplacedElementParser.ResolveImageResolution(
+            computed.GetValue("image-resolution"),
+            out string unsupportedResolution);
+        if (unsupportedResolution.Length > 0) unsupported.Add(unsupportedResolution);
+
         if (!HtmlCssReplacedElementParser.TryParseAspectRatio(
                 computed.GetValue("aspect-ratio"),
                 out style.AspectRatio,

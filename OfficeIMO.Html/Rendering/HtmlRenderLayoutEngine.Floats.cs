@@ -123,7 +123,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     previousWasCollapsibleSpace = false;
                 }
 
-                double measured = MeasureText(normalizedToken, run.Style.Font);
+                double measured = MeasureInlineText(normalizedToken, run.Style);
                 if (!whitespace && measured > line.AvailableWidth) {
                     AddBrokenFloatToken(lines, ref line, ref y, context, paragraphStyle.LineHeight, run, normalizedToken);
                     continue;
@@ -150,7 +150,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlInlineRun run,
         string token) {
         foreach (string value in OfficeTextElements.Enumerate(token)) {
-            double elementWidth = MeasureText(value, run.Style.Font);
+            double elementWidth = MeasureInlineText(value, run.Style);
             if (line.HasFlowContent && line.Width + elementWidth > line.AvailableWidth) {
                 CommitFloatLine(lines, ref line, ref y, context, lineHeight);
             }

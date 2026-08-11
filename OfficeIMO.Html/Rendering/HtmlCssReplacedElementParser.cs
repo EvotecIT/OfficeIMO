@@ -16,6 +16,45 @@ internal static class HtmlCssReplacedElementParser {
         return "fill";
     }
 
+    internal static bool ResolveImageOrientation(string value, out string unsupported) {
+        unsupported = string.Empty;
+        string normalized = string.IsNullOrWhiteSpace(value) ? "from-image" : value.Trim().ToLowerInvariant();
+        if (normalized == "from-image") return true;
+        if (normalized == "none") return false;
+        unsupported = "image-orientation=" + normalized;
+        return true;
+    }
+
+    internal static double? ResolveImageResolution(string value, out string unsupported) {
+        unsupported = string.Empty;
+        string normalized = string.IsNullOrWhiteSpace(value) ? "from-image" : value.Trim().ToLowerInvariant();
+        if (normalized == "from-image") return null;
+        double multiplier;
+        string number;
+        if (normalized.EndsWith("dppx", StringComparison.Ordinal)) {
+            multiplier = 96D;
+            number = normalized.Substring(0, normalized.Length - 4);
+        } else if (normalized.EndsWith("dpcm", StringComparison.Ordinal)) {
+            multiplier = 2.54D;
+            number = normalized.Substring(0, normalized.Length - 4);
+        } else if (normalized.EndsWith("dpi", StringComparison.Ordinal)) {
+            multiplier = 1D;
+            number = normalized.Substring(0, normalized.Length - 3);
+        } else if (normalized.EndsWith("x", StringComparison.Ordinal)) {
+            multiplier = 96D;
+            number = normalized.Substring(0, normalized.Length - 1);
+        } else {
+            unsupported = "image-resolution=" + normalized;
+            return null;
+        }
+        if (double.TryParse(number.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double scalar)) {
+            double dpi = scalar * multiplier;
+            if (dpi > 0D && dpi <= 1000000D && !double.IsNaN(dpi) && !double.IsInfinity(dpi)) return dpi;
+        }
+        unsupported = "image-resolution=" + normalized;
+        return null;
+    }
+
     internal static string NormalizeObjectPosition(string value, double fontSize, double rootFontSize, out string unsupported) {
         unsupported = string.Empty;
         string normalized = string.IsNullOrWhiteSpace(value) ? "50% 50%" : value.Trim().ToLowerInvariant();
@@ -75,6 +114,16 @@ internal static class HtmlCssReplacedElementParser {
 
     internal static bool IsSupportedObjectFitSyntax(string value) {
         NormalizeObjectFit(value, out string unsupported);
+        return unsupported.Length == 0;
+    }
+
+    internal static bool IsSupportedImageOrientationSyntax(string value) {
+        ResolveImageOrientation(value, out string unsupported);
+        return unsupported.Length == 0;
+    }
+
+    internal static bool IsSupportedImageResolutionSyntax(string value) {
+        ResolveImageResolution(value, out string unsupported);
         return unsupported.Length == 0;
     }
 

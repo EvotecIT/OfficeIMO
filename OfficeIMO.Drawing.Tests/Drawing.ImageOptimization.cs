@@ -169,6 +169,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImageOrientationNormalizer_AppliesOrIgnoresExifWithoutPlatformCodecs() {
+            var source = new OfficeRasterImage(2, 1);
+            source.SetPixel(0, 0, OfficeColor.Red);
+            source.SetPixel(1, 0, OfficeColor.Blue);
+            byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions {
+                Quality = 100,
+                Subsampling = OfficeJpegSubsampling.Y444,
+                Metadata = new OfficeJpegMetadata(exif: CreateExifOrientation(6))
+            });
+
+            Assert.True(OfficeImageOrientationNormalizer.TryRead(jpeg, out OfficeImageOrientation orientation));
+            Assert.Equal(OfficeImageOrientation.Rotate90Clockwise, orientation);
+            Assert.True(OfficeImageOrientationNormalizer.TryNormalizeToPng(jpeg, true, out byte[] orientedPng, out OfficeImageInfo? orientedInfo));
+            Assert.True(OfficeImageOrientationNormalizer.TryNormalizeToPng(jpeg, false, out byte[] rawPng, out OfficeImageInfo? rawInfo));
+            Assert.Equal((1, 2), (orientedInfo!.Width, orientedInfo.Height));
+            Assert.Equal((2, 1), (rawInfo!.Width, rawInfo.Height));
+            Assert.True(OfficePngReader.TryDecode(orientedPng, out OfficeRasterImage? oriented));
+            Assert.True(OfficePngReader.TryDecode(rawPng, out OfficeRasterImage? raw));
+            AssertColorNear(oriented!.GetPixel(0, 0), OfficeColor.Red, 12);
+            AssertColorNear(oriented.GetPixel(0, 1), OfficeColor.Blue, 12);
+            AssertColorNear(raw!.GetPixel(0, 0), OfficeColor.Red, 12);
+            AssertColorNear(raw.GetPixel(1, 0), OfficeColor.Blue, 12);
+        }
+
+        [Fact]
         public void OfficeJpegCodec_RejectsOrientedDecodeBeforeAllocatingSecondRgbaBuffer() {
             var source = new OfficeRasterImage(8, 8, OfficeColor.Red);
             byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions {

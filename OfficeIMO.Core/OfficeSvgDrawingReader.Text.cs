@@ -81,7 +81,8 @@ public static partial class OfficeSvgDrawingReader {
                 if (text.Length == 0) continue;
                 double fontSize = Math.Max(0.1D, style.FontSize);
                 double width = Math.Max(0.1D, text.Length * fontSize * 0.62D);
-                double baseline = ResolveTextBaseline(cursor.Baseline, fontSize, style.DominantBaseline);
+                double baseline = ResolveTextBaseline(cursor.Baseline, fontSize, style.DominantBaseline)
+                    - style.BaselineShift.Resolve(fontSize);
                 runs.Add(new SvgTextRun(text, cursor.X, baseline, width, fontSize, cursor.Chunk, style.TextAnchor, style, transform));
                 cursor.X += width;
                 cursor.HasText = true;

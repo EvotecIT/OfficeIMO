@@ -75,8 +75,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(text);
         string normalized = string.Join(" ", tokens);
         double insets = style.HorizontalInsets;
-        minimum = tokens.Count == 0 ? insets + 1D : tokens.Max(token => MeasureText(token, style.Font)) + insets;
-        preferred = Math.Max(minimum, MeasureText(normalized, style.Font) + insets);
+        minimum = tokens.Count == 0 ? insets + 1D : tokens.Max(token => MeasureInlineText(token, style)) + insets;
+        preferred = Math.Max(minimum, MeasureInlineText(normalized, style) + insets);
         if (style.ExplicitWidth.HasValue) {
             double authored = style.ExplicitWidth.Value + (style.BorderBox ? 0D : insets);
             minimum = Math.Max(minimum, authored);

@@ -161,6 +161,12 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "object-fit", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssReplacedElementParser.IsSupportedObjectFitSyntax(normalized);
         }
+        if (string.Equals(propertyName, "image-orientation", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssReplacedElementParser.IsSupportedImageOrientationSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "image-resolution", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssReplacedElementParser.IsSupportedImageResolutionSyntax(normalized);
+        }
         if (string.Equals(propertyName, "object-position", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssReplacedElementParser.IsSupportedObjectPositionSyntax(normalized);
         }

@@ -8,16 +8,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         TryResolveImageSource(
             element.GetAttribute("src"),
             HtmlRenderStyleResolver.DescribeSource(element),
-            out _,
+            out byte[]? bytes,
             out _,
             out OfficeImageInfo? imageInfo,
             reportDiagnostics: false);
         bool hasIntrinsicSize = imageInfo != null && imageInfo.Width > 0 && imageInfo.Height > 0;
+        bool swapsAxes = hasIntrinsicSize
+            && style.ApplyEmbeddedImageOrientation
+            && OfficeImageOrientationNormalizer.TryRead(bytes, out OfficeImageOrientation orientation)
+            && orientation is OfficeImageOrientation.Transpose
+                or OfficeImageOrientation.Rotate90Clockwise
+                or OfficeImageOrientation.Transverse
+                or OfficeImageOrientation.Rotate90CounterClockwise;
+        double sourceWidth = swapsAxes ? imageInfo!.Height : imageInfo?.Width ?? 0D;
+        double sourceHeight = swapsAxes ? imageInfo!.Width : imageInfo?.Height ?? 0D;
+        double sourceDpiX = swapsAxes ? imageInfo!.DpiY : imageInfo?.DpiX ?? 96D;
+        double sourceDpiY = swapsAxes ? imageInfo!.DpiX : imageInfo?.DpiY ?? 96D;
         double intrinsicWidth = hasIntrinsicSize
-            ? imageInfo!.Width * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiX)
+            ? sourceWidth * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, style.ImageResolutionDpi ?? sourceDpiX)
             : 300D;
         double intrinsicHeight = hasIntrinsicSize
-            ? imageInfo!.Height * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiY)
+            ? sourceHeight * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, style.ImageResolutionDpi ?? sourceDpiY)
             : 150D;
         ReplacedContentSize size = ResolveReplacedContentSize(style, intrinsicWidth, intrinsicHeight, hasIntrinsicSize);
         double boxWidth = size.Width + style.HorizontalInsets;

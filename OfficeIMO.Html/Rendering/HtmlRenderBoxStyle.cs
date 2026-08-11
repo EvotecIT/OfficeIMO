@@ -126,6 +126,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal double? MaxHeight;
     internal string ObjectFit = "fill";
     internal string ObjectPosition = "50% 50%";
+    internal bool ApplyEmbeddedImageOrientation = true;
+    internal double? ImageResolutionDpi;
     internal double? AspectRatio;
     internal bool AspectRatioPrefersIntrinsic = true;
     internal string UnsupportedReplacedElementLayout = string.Empty;

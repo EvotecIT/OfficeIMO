@@ -226,6 +226,27 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderAppliesLengthKeywordAndPercentageBaselineShiftsToSearchableText() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 30' fill='navy'>"
+            + "<text x='2' y='20' font-size='10'>Base"
+            + "<tspan baseline-shift='super'>Sup</tspan>"
+            + "<tspan style='baseline-shift:-3px'>Sub</tspan>"
+            + "<tspan baseline-shift='50%'>Half</tspan></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText[] runs = drawing!.Elements.OfType<OfficeDrawingText>().ToArray();
+        Assert.Equal(new[] { "Base", "Sup", "Sub", "Half" }, runs.Select(run => run.Text));
+        Assert.Equal(10D, runs[0].Y, 6);
+        Assert.Equal(4D, runs[1].Y, 6);
+        Assert.Equal(13D, runs[2].Y, 6);
+        Assert.Equal(5D, runs[3].Y, 6);
+        Assert.All(runs, run => Assert.Equal(OfficeColor.Navy, run.Color));
+        Assert.Contains(">Sup</text>", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SvgReaderPreservesRgbAndRgbaPaint() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"
             + "<rect width='10' height='10' fill='rgba(36,87,166,0.502)'/>"

@@ -107,18 +107,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (tag == "progress" || tag == "meter") return 144D;
         if (tag == "textarea") {
             int columns = ParsePositiveInteger(element.GetAttribute("cols"), 20, 1, 200);
-            return Math.Max(80D, MeasureText(new string('0', columns), style.Font));
+            return Math.Max(80D, MeasureInlineText(new string('0', columns), style));
         }
         if (tag == "button" || tag == "input" && IsButtonInputType(type)) {
             string label = ResolveButtonLabel(element, type);
-            return Math.Max(44D, MeasureText(label, style.Font) + 12D);
+            return Math.Max(44D, MeasureInlineText(label, style) + 12D);
         }
         if (tag == "select") {
             string longest = element.QuerySelectorAll("option")
                 .Select(HtmlFormControlSemantics.GetOptionLabel)
                 .OrderByDescending(text => text.Length)
                 .FirstOrDefault() ?? string.Empty;
-            return Math.Max(108D, MeasureText(longest, style.Font) + 24D);
+            return Math.Max(108D, MeasureInlineText(longest, style) + 24D);
         }
         if (tag == "input" && type == "file") return 220D;
         return 168D;
