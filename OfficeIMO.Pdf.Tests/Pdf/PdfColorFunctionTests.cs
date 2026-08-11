@@ -5,7 +5,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public sealed class PdfColorFunctionTests {
+public sealed partial class PdfColorFunctionTests {
     public static IEnumerable<object[]> SampleWidths() {
         yield return new object[] { 1, new byte[] { 0x40 } };
         yield return new object[] { 2, new byte[] { 0x30 } };
@@ -171,16 +171,15 @@ public sealed class PdfColorFunctionTests {
     }
 
     [Fact]
-    public void FunctionResolver_RejectsReferenceCyclesAndCubicSampleOrder() {
+    public void FunctionResolver_RejectsReferenceCyclesAndUnsupportedSampleOrder() {
         var objects = new Dictionary<int, PdfIndirectObject> {
             [1] = new PdfIndirectObject(1, 0, new PdfReference(2, 0)),
             [2] = new PdfIndirectObject(2, 0, new PdfReference(1, 0))
         };
-        PdfStream cubic = SampledFunction(1, 1, new[] { 2 }, 8, new byte[] { 0, 255 });
-        cubic.Dictionary.Items["Order"] = Number(3);
+        PdfStream unsupported = SampledFunction(1, 1, new[] { 2 }, 8, new byte[] { 0, 255 }, order: 2);
 
         Assert.False(PdfColorSpaceFunctionResolver.TryCreateFunction(new PdfReference(1, 0), 1, 1, objects, 1024, out _));
-        Assert.False(PdfColorSpaceFunctionResolver.TryCreateFunction(cubic, 1, 1, new Dictionary<int, PdfIndirectObject>(), 1024, out _));
+        Assert.False(PdfColorSpaceFunctionResolver.TryCreateFunction(unsupported, 1, 1, new Dictionary<int, PdfIndirectObject>(), 1024, out _));
     }
 
     [Fact]
@@ -641,7 +640,8 @@ public sealed class PdfColorFunctionTests {
         int[] sizes,
         int bitsPerSample,
         byte[] samples,
-        double[]? encode = null) {
+        double[]? encode = null,
+        int order = 1) {
         var entries = new List<(string Key, PdfObject Value)> {
             ("FunctionType", Number(0)),
             ("Domain", Numbers(Enumerable.Range(0, inputCount).SelectMany(static _ => new[] { 0D, 1D }).ToArray())),
@@ -650,6 +650,7 @@ public sealed class PdfColorFunctionTests {
             ("BitsPerSample", Number(bitsPerSample))
         };
         if (encode != null) entries.Add(("Encode", Numbers(encode)));
+        if (order != 1) entries.Add(("Order", Number(order)));
         return new PdfStream(Dictionary(entries.ToArray()), samples);
     }
 
@@ -682,11 +683,13 @@ public sealed class PdfColorFunctionTests {
         int outputCount,
         string size,
         int bitsPerSample,
-        string asciiHexSamples) {
+        string asciiHexSamples,
+        int order = 1) {
         string intervals = string.Join(" ", Enumerable.Range(0, inputCount).Select(static _ => "0 1"));
         string ranges = string.Join(" ", Enumerable.Range(0, outputCount).Select(static _ => "0 1"));
+        string orderEntry = order == 1 ? string.Empty : " /Order " + order;
         return objectNumber + " 0 obj\n<< /FunctionType 0 /Domain [" + intervals + "] /Range [" + ranges + "] /Size " + size +
-               " /BitsPerSample " + bitsPerSample + " /Filter /ASCIIHexDecode /Length " + asciiHexSamples.Length + " >>\nstream\n" +
+               " /BitsPerSample " + bitsPerSample + orderEntry + " /Filter /ASCIIHexDecode /Length " + asciiHexSamples.Length + " >>\nstream\n" +
                asciiHexSamples + "\nendstream\nendobj";
     }
 

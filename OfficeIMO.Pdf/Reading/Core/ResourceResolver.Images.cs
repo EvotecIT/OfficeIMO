@@ -25,12 +25,20 @@ internal static partial class ResourceResolver {
         if (bitsPerComponent != 8) return false;
 
         string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
-        return PdfImageColorSpaceNormalization.TryResolve(
-            effectiveColorSpace,
-            colorSpaceName,
-            objects,
-            maxDecodedStreamBytes,
-            out _);
+        if (!PdfImageColorSpaceNormalization.TryResolve(
+                effectiveColorSpace,
+                colorSpaceName,
+                objects,
+                maxDecodedStreamBytes,
+                out PdfImageColorSpaceNormalization normalization)) {
+            return false;
+        }
+
+        int width = (int)(image.Get<PdfNumber>("Width")?.Value ?? 0);
+        int height = (int)(image.Get<PdfNumber>("Height")?.Value ?? 0);
+        return width > 0 &&
+               height > 0 &&
+               normalization.CanConvertPixelCount((long)width * height);
     }
 
     private static bool TryBuildExtractedImageMaskPng(

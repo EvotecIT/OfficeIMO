@@ -1076,6 +1076,9 @@ internal static partial class ResourceResolver {
         if (!PdfImageColorSpaceNormalization.TryResolve(colorSpaceObj, colorSpace, objects, maxDecodedStreamBytes, out var colorNormalization)) {
             return false;
         }
+        if (!colorNormalization.CanConvertPixelCount((long)width * height)) {
+            return false;
+        }
 
         if (PdfImageMaskSemantics.HasSoftMask(stream.Dictionary, objects)) {
             if (colorNormalization.SourceColorCount != 1 &&

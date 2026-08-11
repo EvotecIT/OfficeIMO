@@ -15,12 +15,14 @@ internal sealed class PdfColorFunction {
         double[]? range,
         Func<double[], double[]?> evaluateCore,
         IReadOnlyList<double>? breakpoints = null,
-        IReadOnlyList<double>? discontinuities = null) {
+        IReadOnlyList<double>? discontinuities = null,
+        int cubicEvaluationCost = 0) {
         InputCount = inputCount;
         OutputCount = outputCount;
         _domain = (double[])domain.Clone();
         _range = range == null ? null : (double[])range.Clone();
         _evaluateCore = evaluateCore;
+        CubicEvaluationCost = Math.Max(0, cubicEvaluationCost);
 
         double[] points = breakpoints == null
             ? Array.Empty<double>()
@@ -35,6 +37,9 @@ internal sealed class PdfColorFunction {
     internal int InputCount { get; }
 
     internal int OutputCount { get; }
+
+    /// <summary>Worst-case decoded-sample reads for cubic interpolation during one evaluation; zero when no cubic path is reachable.</summary>
+    internal int CubicEvaluationCost { get; }
 
     internal IReadOnlyList<double> Domain => _domain;
 
