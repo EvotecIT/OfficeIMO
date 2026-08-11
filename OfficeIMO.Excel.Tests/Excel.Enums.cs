@@ -151,6 +151,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObjectFlattenerExplicitColumnsProjectsSubsetBeforeColumnLimit() {
+            var options = new ObjectFlattenerOptions {
+                Columns = new[] { "Name" },
+                MaxColumns = 1
+            };
+
+            Dictionary<string, object?> values = new ObjectFlattener().Flatten(
+                new ObjectFlattenerWideRow { Name = "Alice", Status = "Active" }, options);
+
+            Assert.Single(values);
+            Assert.Equal("Alice", values["Name"]);
+        }
+
+        [Fact]
+        public void ObjectFlattenerExplicitColumnsProjectsDictionarySubsetBeforeColumnLimit() {
+            var options = new ObjectFlattenerOptions {
+                Columns = new[] { "Name" },
+                MaxColumns = 1
+            };
+            var row = new Dictionary<string, object?> {
+                ["Status"] = "Active",
+                ["Name"] = "Alice"
+            };
+
+            Dictionary<string, object?> values = new ObjectFlattener().Flatten(row, options);
+
+            Assert.Single(values);
+            Assert.Equal("Alice", values["Name"]);
+        }
+
+        [Fact]
         public void ObjectFlattenerExplicitColumnsRejectsResolvedDistinctPathsBeyondLimit() {
             var options = new ObjectFlattenerOptions {
                 Columns = new[] { "Name", "Status" },
@@ -182,6 +213,12 @@ namespace OfficeIMO.Tests {
 
         private sealed class ObjectFlattenerSinglePropertyRow {
             public string Name { get; set; } = string.Empty;
+        }
+
+        private sealed class ObjectFlattenerWideRow {
+            public string Name { get; set; } = string.Empty;
+
+            public string Status { get; set; } = string.Empty;
         }
 
         private sealed class ObjectFlattenerSelectionPathRow {

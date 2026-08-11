@@ -111,6 +111,20 @@ public sealed class ExcelAllSeverityBatch15SecurityTests {
         }
     }
 
+    [Theory]
+    [InlineData(OverflowMode.Shrink)]
+    [InlineData(OverflowMode.Summarize)]
+    public void FixedGridOverflowReducesColumnsBeforeWorksheetBoundaryCheck(OverflowMode overflowMode) {
+        using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        var composer = new SheetComposer.ColumnComposer(sheet, new SheetTheme(), 1, A1.MaxColumns);
+        composer.SetGridConstraints(3, overflowMode);
+
+        string range = composer.TableFrom(new[] { new WideRow("Alpha", 1, 2) });
+
+        Assert.Equal("XFD1:XFD2", range);
+    }
+
     [Fact]
     public void ParallelRowAutoFitAndRowMutationsSerializeOpenXmlTraversal() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());

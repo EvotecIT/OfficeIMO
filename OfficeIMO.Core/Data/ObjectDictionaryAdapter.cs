@@ -17,27 +17,41 @@ namespace OfficeIMO.Data {
         private static readonly ConcurrentDictionary<Type, DictionaryEntryAccessor> EntryAccessorCache = new();
 
         internal static bool TryGetEntries(object? value, int maximumItems, out List<ObjectDictionaryEntry> entries) {
+            return TryGetEntries(value, maximumItems, includeKey: null, maximumItems, out entries);
+        }
+
+        internal static bool TryGetEntries(
+            object? value,
+            int maximumItems,
+            Func<object?, bool>? includeKey,
+            int maximumEntries,
+            out List<ObjectDictionaryEntry> entries) {
             entries = new List<ObjectDictionaryEntry>();
             if (value == null) return false;
             if (maximumItems <= 0) throw new ArgumentOutOfRangeException(nameof(maximumItems));
+            if (maximumEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maximumEntries));
+            int itemCount = 0;
 
             if (value is IDictionary dictionary) {
                 foreach (DictionaryEntry entry in dictionary) {
-                    AddBounded(entries, new ObjectDictionaryEntry(entry.Key, entry.Value), maximumItems);
+                    AddBounded(entries, new ObjectDictionaryEntry(entry.Key, entry.Value), maximumItems,
+                        includeKey, maximumEntries, ref itemCount);
                 }
                 return true;
             }
 
             if (value is IDictionary<string, object?> genericObjectDictionary) {
                 foreach (KeyValuePair<string, object?> entry in genericObjectDictionary) {
-                    AddBounded(entries, new ObjectDictionaryEntry(entry.Key, entry.Value), maximumItems);
+                    AddBounded(entries, new ObjectDictionaryEntry(entry.Key, entry.Value), maximumItems,
+                        includeKey, maximumEntries, ref itemCount);
                 }
                 return true;
             }
 
             if (value is IReadOnlyDictionary<string, object?> readOnlyObjectDictionary) {
                 foreach (KeyValuePair<string, object?> entry in readOnlyObjectDictionary) {
-                    AddBounded(entries, new ObjectDictionaryEntry(entry.Key, entry.Value), maximumItems);
+                    AddBounded(entries, new ObjectDictionaryEntry(entry.Key, entry.Value), maximumItems,
+                        includeKey, maximumEntries, ref itemCount);
                 }
                 return true;
             }
@@ -55,10 +69,9 @@ namespace OfficeIMO.Data {
                     return false;
                 }
 
-                AddBounded(
-                    entries,
+                AddBounded(entries,
                     new ObjectDictionaryEntry(accessor.Key!.GetValue(item), accessor.Value!.GetValue(item)),
-                    maximumItems);
+                    maximumItems, includeKey, maximumEntries, ref itemCount);
             }
 
             return true;
@@ -70,9 +83,19 @@ namespace OfficeIMO.Data {
                 || DictionaryTypeCache.GetOrAdd(type, IsGenericDictionaryType);
         }
 
-        private static void AddBounded(List<ObjectDictionaryEntry> entries, ObjectDictionaryEntry entry, int maximumItems) {
-            if (entries.Count >= maximumItems) {
+        private static void AddBounded(
+            List<ObjectDictionaryEntry> entries,
+            ObjectDictionaryEntry entry,
+            int maximumItems,
+            Func<object?, bool>? includeKey,
+            int maximumEntries,
+            ref int itemCount) {
+            if (itemCount++ >= maximumItems) {
                 throw new InvalidDataException($"The dictionary exceeds the {maximumItems}-item flattening limit.");
+            }
+            if (includeKey != null && !includeKey(entry.Key)) return;
+            if (entries.Count >= maximumEntries) {
+                throw new InvalidDataException($"The dictionary exceeds the {maximumEntries}-column flattening limit.");
             }
             entries.Add(entry);
         }

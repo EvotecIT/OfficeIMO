@@ -142,6 +142,14 @@ public sealed class ExcelAllSeverityBatch13SecurityTests {
     }
 
     [Fact]
+    public void RowsFromSimpleFastPathRejectsColumnsBeyondConfiguredLimit() {
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            SheetBuilder.EnsureRowsFromColumnLimit(2, 1));
+
+        Assert.Contains("1-column", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RowsFromHonorsFinalCellLimitDuringNestedExpansion() {
         using var stream = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(stream);

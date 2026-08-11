@@ -18,6 +18,7 @@ namespace OfficeIMO.Data {
 
                 string path = string.IsNullOrEmpty(prefix) ? name! : prefix + "." + name;
                 if (ShouldIgnorePath(path, opts.Ignore)) continue;
+                if (!IsExplicitPathRelevant(path, opts.Columns)) continue;
                 if (dict.Count >= opts.MaxColumns && !dict.ContainsKey(path)) {
                     throw new InvalidDataException(
                         $"Object flattening exceeds the {opts.MaxColumns}-column limit.");

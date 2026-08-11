@@ -291,8 +291,22 @@ namespace OfficeIMO.Data {
 
         private static void FlattenInternalCore(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts, HashSet<object> activeObjects, Type type) {
 
-            int dictionaryLimit = Math.Min(opts.MaxCollectionItems, opts.MaxColumns);
-            if (ObjectDictionaryAdapter.TryGetEntries(obj, dictionaryLimit, out var dictionaryEntries)) {
+            bool hasExplicitColumns = opts.Columns != null && opts.Columns.Length > 0;
+            int dictionaryItemLimit = hasExplicitColumns
+                ? opts.MaxCollectionItems
+                : Math.Min(opts.MaxCollectionItems, opts.MaxColumns);
+            Func<object?, bool>? includeDictionaryKey = hasExplicitColumns
+                ? key => !string.IsNullOrWhiteSpace(key?.ToString())
+                    && IsExplicitPathRelevant(
+                        string.IsNullOrEmpty(prefix) ? key!.ToString()! : prefix + "." + key,
+                        opts.Columns)
+                : null;
+            if (ObjectDictionaryAdapter.TryGetEntries(
+                    obj,
+                    dictionaryItemLimit,
+                    includeDictionaryKey,
+                    opts.MaxColumns,
+                    out var dictionaryEntries)) {
                 FlattenDictionary(dictionaryEntries, dict, prefix, depth, opts, activeObjects);
                 return;
             }
@@ -310,9 +324,11 @@ namespace OfficeIMO.Data {
             }
 
             foreach (var prop in props) {
-                var value = prop.GetValue(obj);
                 var path = string.IsNullOrEmpty(prefix) ? prop.Name : prefix + "." + prop.Name;
                 if (ShouldIgnorePath(path, opts.Ignore)) continue;
+                if (!IsExplicitPathRelevant(path, opts.Columns)) continue;
+
+                var value = prop.GetValue(obj);
 
                 bool expand = opts.ExpandProperties.Contains(prop.Name) || opts.ExpandProperties.Contains(path);
                 bool isCollection = value is IEnumerable && value is not string;
@@ -367,6 +383,7 @@ namespace OfficeIMO.Data {
                 }
                 for (int i = 0; i < tuple.Length; i++) {
                     var path = string.IsNullOrEmpty(prefix) ? $"Item{i + 1}" : $"{prefix}.Item{i + 1}";
+                    if (!IsExplicitPathRelevant(path, opts.Columns)) continue;
                     var val = tuple[i];
                     if (val == null) {
                         dict[path] = ApplyNullPolicy(path, null, opts);
@@ -394,6 +411,10 @@ namespace OfficeIMO.Data {
                     }
 
                     var path = string.IsNullOrEmpty(prefix) ? $"Item{idx}" : $"{prefix}.Item{idx}";
+                    if (!IsExplicitPathRelevant(path, opts.Columns)) {
+                        idx++;
+                        continue;
+                    }
                     object? value = field.GetValue(current);
                     if (value == null) {
                         dict[path] = ApplyNullPolicy(path, null, opts);
@@ -435,6 +456,7 @@ namespace OfficeIMO.Data {
 
                 var colPath = basePath + "." + key;
                 if (ShouldIgnorePath(colPath, opts.Ignore)) continue;
+                if (!IsExplicitPathRelevant(colPath, opts.Columns)) continue;
                 if (dict.Count >= opts.MaxColumns && !dict.ContainsKey(colPath)) {
                     throw new InvalidDataException(
                         $"Object flattening exceeds the {opts.MaxColumns}-column limit.");
@@ -446,9 +468,11 @@ namespace OfficeIMO.Data {
 
         private static void FlattenInternalWithoutExpansion(object obj, Dictionary<string, object?> dict, string prefix, ObjectFlattenerOptions opts, ObjectFlattenerProperty[] props) {
             foreach (var prop in props) {
-                var value = prop.GetValue(obj);
                 var path = string.IsNullOrEmpty(prefix) ? prop.Name : prefix + "." + prop.Name;
                 if (ShouldIgnorePath(path, opts.Ignore)) continue;
+                if (!IsExplicitPathRelevant(path, opts.Columns)) continue;
+
+                var value = prop.GetValue(obj);
 
                 if (value == null) {
                     dict[path] = ApplyNullPolicy(path, null, opts);
@@ -626,6 +650,22 @@ namespace OfficeIMO.Data {
             if (options.MaxCells <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(options.MaxCells));
             }
+        }
+
+        private static bool IsExplicitPathRelevant(string path, string[]? columns) {
+            if (columns == null || columns.Length == 0) return true;
+
+            foreach (string column in columns) {
+                if (string.IsNullOrWhiteSpace(column)) continue;
+                if (string.Equals(path, column, StringComparison.OrdinalIgnoreCase)) return true;
+                if (column.Length > path.Length
+                    && column.StartsWith(path, StringComparison.OrdinalIgnoreCase)
+                    && column[path.Length] == '.') {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private sealed class ObjectReferenceComparer : IEqualityComparer<object> {

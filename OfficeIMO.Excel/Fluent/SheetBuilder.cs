@@ -216,6 +216,7 @@ namespace OfficeIMO.Excel.Fluent {
                 return false;
             }
 
+            EnsureRowsFromColumnLimit(typePlan.Headers.Length, options.MaxColumns);
             EnsureRowsFromCellLimit(rows.Count, typePlan.Headers.Length, options.MaxCells);
             var directRows = MaterializeSimpleRowsFromProperties(typePlan, rows, out var columnTypes);
             int tableEndRow = startRow + rows.Count;
@@ -238,6 +239,13 @@ namespace OfficeIMO.Excel.Fluent {
             if (projectedCells > maximumCells) {
                 throw new InvalidDataException(
                     $"RowsFrom exceeds the {maximumCells}-cell materialization limit.");
+            }
+        }
+
+        internal static void EnsureRowsFromColumnLimit(int columnCount, int maximumColumns) {
+            if (columnCount > maximumColumns) {
+                throw new InvalidDataException(
+                    $"RowsFrom exceeds the {maximumColumns}-column materialization limit.");
             }
         }
 
