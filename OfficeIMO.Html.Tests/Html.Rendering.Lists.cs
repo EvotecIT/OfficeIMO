@@ -54,4 +54,50 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(new[] { marker, "Item" }, rendered.Text.Split('\n'));
     }
+
+    [Fact]
+    public void HtmlRendering_FormatsAuthorDefinedCounterStyleMarkers() {
+        const string html = """
+            <style>
+              @counter-style binary {
+                system:numeric;
+                symbols:"0" "1";
+                pad:4 "0";
+                prefix:"[";
+                suffix:"] ";
+              }
+              ol { list-style-type:binary; }
+            </style>
+            <ol start="3"><li>Item</li></ol>
+            """;
+
+        var options = new HtmlRenderOptions();
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+        HtmlCounterStyleRegistry registry = HtmlCounterStyleRegistry.Parse(document, options);
+        Assert.True(registry.TryFormatMarker(3, "binary", out string directMarker));
+        Assert.Equal("[0011] ", directMarker);
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Equal(new[] { "[0011] ", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
+    public void HtmlRendering_AppliesCounterStyleConditionalRulesForTheActiveMedia() {
+        const string html = """
+            <style>
+              @media screen { @counter-style screen-only { system:cyclic; symbols:"S"; } }
+              @media print { @counter-style print-only { system:cyclic; symbols:"P"; } }
+            </style>
+            """;
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged };
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+
+        HtmlCounterStyleRegistry registry = HtmlCounterStyleRegistry.Parse(document, options);
+
+        Assert.True(registry.TryFormat(1, "print-only", out string printed));
+        Assert.Equal("P", printed);
+        Assert.False(registry.TryFormat(1, "screen-only", out _));
+    }
+
 }

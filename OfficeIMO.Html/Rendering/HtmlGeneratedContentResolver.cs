@@ -12,7 +12,8 @@ internal static class HtmlGeneratedContentResolver {
         IHtmlDocument document,
         HtmlComputedStyleSet styles,
         HtmlDiagnosticReport diagnostics,
-        int maximumDepth) {
+        int maximumDepth,
+        HtmlCounterStyleRegistry counterStyles) {
         if (maximumDepth <= 0) throw new ArgumentOutOfRangeException(nameof(maximumDepth));
         var content = new Dictionary<IElement, HtmlGeneratedPseudoContentPair>();
         if (!styles.HasPseudoElements) return new HtmlGeneratedContentSet(content);
@@ -20,7 +21,7 @@ internal static class HtmlGeneratedContentResolver {
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) {
             int level = counters.EnterLevel();
-            TraverseElement(root, level, 0, maximumDepth, styles, diagnostics, counters, content);
+            TraverseElement(root, level, 0, maximumDepth, styles, diagnostics, counters, content, counterStyles);
             counters.ExitLevel(level);
         }
 
@@ -35,7 +36,8 @@ internal static class HtmlGeneratedContentResolver {
         HtmlComputedStyleSet styles,
         HtmlDiagnosticReport diagnostics,
         CounterState counters,
-        IDictionary<IElement, HtmlGeneratedPseudoContentPair> content) {
+        IDictionary<IElement, HtmlGeneratedPseudoContentPair> content,
+        HtmlCounterStyleRegistry counterStyles) {
         if (depth > maximumDepth) {
             throw new HtmlDomLimitException(
                 HtmlRenderDiagnosticCodes.DepthLimitExceeded,
@@ -51,15 +53,15 @@ internal static class HtmlGeneratedContentResolver {
         }
 
         ApplyCounterProperties(elementStyle, level, counters, diagnostics, HtmlRenderStyleResolver.DescribeSource(element));
-        ResolvePseudo(element, HtmlPseudoElementKind.Before, level, styles, diagnostics, counters, content);
+        ResolvePseudo(element, HtmlPseudoElementKind.Before, level, styles, diagnostics, counters, content, counterStyles);
 
         int childLevel = counters.EnterLevel();
         foreach (IElement child in element.Children) {
-            if (!ShouldSkipSubtree(child)) TraverseElement(child, childLevel, depth + 1, maximumDepth, styles, diagnostics, counters, content);
+            if (!ShouldSkipSubtree(child)) TraverseElement(child, childLevel, depth + 1, maximumDepth, styles, diagnostics, counters, content, counterStyles);
         }
 
         counters.ExitLevel(childLevel);
-        ResolvePseudo(element, HtmlPseudoElementKind.After, level, styles, diagnostics, counters, content);
+        ResolvePseudo(element, HtmlPseudoElementKind.After, level, styles, diagnostics, counters, content, counterStyles);
     }
 
     private static void ResolvePseudo(
@@ -69,7 +71,8 @@ internal static class HtmlGeneratedContentResolver {
         HtmlComputedStyleSet styles,
         HtmlDiagnosticReport diagnostics,
         CounterState counters,
-        IDictionary<IElement, HtmlGeneratedPseudoContentPair> content) {
+        IDictionary<IElement, HtmlGeneratedPseudoContentPair> content,
+        HtmlCounterStyleRegistry counterStyles) {
         if (!styles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle pseudoStyle)
             || string.Equals(pseudoStyle.GetValue("display"), "none", StringComparison.OrdinalIgnoreCase)) {
             return;
@@ -85,7 +88,7 @@ internal static class HtmlGeneratedContentResolver {
             return;
         }
 
-        if (!TryEvaluate(expression, element, counters, out string generated, out string detail)) {
+        if (!TryEvaluate(expression, element, counters, counterStyles, out string generated, out string detail)) {
             diagnostics.Add(
                 ComponentName,
                 HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
@@ -173,6 +176,7 @@ internal static class HtmlGeneratedContentResolver {
         string expression,
         IElement element,
         CounterState counters,
+        HtmlCounterStyleRegistry counterStyles,
         out string generated,
         out string detail) {
         var text = new StringBuilder();
@@ -217,7 +221,8 @@ internal static class HtmlGeneratedContentResolver {
 
                 string name = HtmlCssEscapeDecoder.Decode(parts[0].Trim());
                 string style = parts.Count == 2 ? parts[1].Trim() : "decimal";
-                if (!HtmlCounterStyleFormatter.TryFormat(counters.Get(name), style, out string formatted)) {
+                if (!HtmlCounterStyleFormatter.TryFormat(counters.Get(name), style, out string formatted)
+                    && !counterStyles.TryFormat(counters.Get(name), style, out formatted)) {
                     generated = string.Empty;
                     detail = "unsupported counter style " + style;
                     return false;
@@ -234,7 +239,8 @@ internal static class HtmlGeneratedContentResolver {
 
                 var formattedValues = new List<string>();
                 foreach (int value in counters.GetAll(name)) {
-                    if (!HtmlCounterStyleFormatter.TryFormat(value, style, out string formatted)) {
+                    if (!HtmlCounterStyleFormatter.TryFormat(value, style, out string formatted)
+                        && !counterStyles.TryFormat(value, style, out formatted)) {
                         generated = string.Empty;
                         detail = "unsupported counter style " + style;
                         return false;

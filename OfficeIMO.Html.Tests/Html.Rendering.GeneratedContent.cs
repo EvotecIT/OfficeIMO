@@ -241,6 +241,33 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGeneratedContent_FormatsNamedAdditiveStylesAndRangeFallbacks() {
+        const string html = """
+            <style>
+              @counter-style tally {
+                system:additive;
+                additive-symbols:5 "V", 1 "I";
+                range:1 9;
+                fallback:decimal;
+              }
+              body { counter-reset:item 6 overflow 10; }
+              .tally::before { counter-increment:item; content:counter(item, tally) " "; }
+              .fallback::before { counter-increment:overflow; content:counter(overflow, tally) " "; }
+            </style>
+            <p class="tally">Tally</p><p class="fallback">Fallback</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+
+        Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(),
+            text => text.Source == "p.tally::before" && text.Text == "VII ");
+        Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(),
+            text => text.Source == "p.fallback::before" && text.Text == "11 ");
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
+    }
+
+    [Fact]
     public void HtmlGeneratedContent_UsesTheSharedLayoutDepthLimit() {
         string html = "<style>div::before{content:'x'}</style>"
             + string.Concat(Enumerable.Repeat("<div>", 8))

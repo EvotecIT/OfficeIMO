@@ -11,6 +11,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HtmlDiagnosticReport _diagnostics;
     private readonly HtmlRenderStyleResolver _styleResolver;
     private readonly HtmlGeneratedContentSet _generatedContent;
+    private readonly HtmlCounterStyleRegistry _counterStyles;
     private readonly HtmlResourceSession _resources;
     private readonly HtmlCssPageRuleSet _pageRules;
     private readonly OfficeFontFaceCollection _fonts;
@@ -69,7 +70,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _options = options;
         _diagnostics = diagnostics;
         _styleResolver = new HtmlRenderStyleResolver(computedStyles, options);
-        _generatedContent = HtmlGeneratedContentResolver.Resolve(document, computedStyles, diagnostics, options.MaxLayoutDepth);
+        _counterStyles = HtmlCounterStyleRegistry.Parse(document, options);
+        _generatedContent = HtmlGeneratedContentResolver.Resolve(document, computedStyles, diagnostics, options.MaxLayoutDepth, _counterStyles);
         _resources = resources ?? new HtmlResourceSession();
         _pageRules = pageRules ?? new HtmlCssPageRuleSet();
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();

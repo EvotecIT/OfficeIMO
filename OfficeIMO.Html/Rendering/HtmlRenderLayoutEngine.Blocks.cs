@@ -675,13 +675,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _options.MaxLayoutDepth);
     }
 
-    private static string? ResolveListPrefix(IElement element, HtmlRenderBoxStyle style) {
+    private string? ResolveListPrefix(IElement element, HtmlRenderBoxStyle style) {
         if (string.Equals(style.ListStyleType, "none", StringComparison.OrdinalIgnoreCase)) return null;
         IElement? parent = element.ParentElement;
         if (parent == null) return "• ";
         bool ordered = string.Equals(parent.TagName, "ol", StringComparison.OrdinalIgnoreCase);
         string listStyle = style.ListStyleType.Length == 0 ? ordered ? "decimal" : "disc" : style.ListStyleType;
         int ordinal = ordered && HtmlListSemantics.TryResolveOrdinal(element, out int resolvedOrdinal) ? resolvedOrdinal : 1;
+        if (_counterStyles.TryFormatMarker(ordinal, listStyle, out string customMarker)) {
+            return customMarker.Length == 0 ? null : customMarker;
+        }
         if (!HtmlCounterStyleFormatter.TryFormat(ordinal, listStyle, out string marker)) {
             marker = ordered ? ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) : "•";
         }

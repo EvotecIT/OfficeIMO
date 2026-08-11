@@ -128,7 +128,7 @@ internal static class HtmlCounterStyleFormatter {
         }
     }
 
-    private static bool TryTokenizeSymbols(string value, out IReadOnlyList<string> tokens) {
+    internal static bool TryTokenizeSymbols(string value, out IReadOnlyList<string> tokens) {
         var result = new List<string>();
         int cursor = 0;
         while (cursor < value.Length) {
@@ -163,7 +163,7 @@ internal static class HtmlCounterStyleFormatter {
         return (slashes & 1) != 0;
     }
 
-    private static string FormatNumericSymbols(int value, IReadOnlyList<string> symbols) {
+    internal static string FormatNumericSymbols(int value, IReadOnlyList<string> symbols) {
         if (value == 0) return symbols[0];
         bool negative = value < 0;
         long remaining = Math.Abs((long)value);
@@ -184,7 +184,7 @@ internal static class HtmlCounterStyleFormatter {
         return result.ToString();
     }
 
-    private static bool TryUnquote(string value, out string result) {
+    internal static bool TryUnquote(string value, out string result) {
         if (value.Length >= 2 && (value[0] == '\'' && value[value.Length - 1] == '\'' || value[0] == '"' && value[value.Length - 1] == '"')) {
             result = value.Substring(1, value.Length - 2);
             return true;
@@ -204,7 +204,7 @@ internal static class HtmlCounterStyleFormatter {
         return result.ToString();
     }
 
-    private static string FormatAlphabetic(int value, IReadOnlyList<string> alphabet) {
+    internal static string FormatAlphabetic(int value, IReadOnlyList<string> alphabet) {
         var result = new List<string>();
         int remaining = value;
         while (remaining > 0) {
