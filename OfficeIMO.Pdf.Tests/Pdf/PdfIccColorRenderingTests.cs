@@ -58,6 +58,19 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_UsesDeclaredSeparationAlternateForUnsupportedIccProfile() {
+        byte[] pdf = BuildIccContentPdf(
+            PdfIccProfiles.SrgbIec6196621,
+            "/N 1 /Alternate [/Separation /Spot /DeviceRGB 7 0 R]",
+            "1 scn",
+            extraObjects: "7 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [0 1 0] /N 1 >>\nendobj\n");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Equal(OfficeColor.FromRgb(0, 255, 0), Assert.Single(drawing.Shapes).Shape.FillColor);
+    }
+
+    [Fact]
     public void ExtractImages_AppliesEmbeddedMatrixTrcProfileAndDefaultIccRangeDecode() {
         byte[] profile = PdfIccProfiles.SrgbIec6196621;
         SwapTagPayload(profile, "rXYZ", "bXYZ");
@@ -220,6 +233,80 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void ExtractImages_ConvertsDirectCalGrayToRgbScanlines() {
+        byte[] pdf = BuildIccImagePdf(
+            PdfIccProfiles.SrgbIec6196621,
+            new byte[] { 128 },
+            "/N 3",
+            imageColorSpace: "[/CalGray << /WhitePoint [0.9505 1 1.089] /Gamma 2 >>]");
+
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        OfficeColor expected = OfficeColorSpaceConverter.FromCalibratedGray(
+            128D / 255D,
+            0.9505D,
+            1D,
+            1.089D,
+            2D);
+        Assert.Equal(expected, raster!.GetPixel(0, 0));
+    }
+
+    [Theory]
+    [InlineData("/None")]
+    [InlineData("null")]
+    public void ExtractImages_TreatsIndexedEmptySoftMaskAsNoMask(string softMask) {
+        byte[] pdf = BuildIccImagePdf(
+            PdfIccProfiles.SrgbIec6196621,
+            new byte[] { 0 },
+            "/N 3",
+            imageEntries: "/SMask " + softMask,
+            imageColorSpace: "[/Indexed /DeviceRGB 0 <FF0000>]");
+
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        Assert.Equal(OfficeColor.Red, raster!.GetPixel(0, 0));
+    }
+
+    [Fact]
+    public void ExtractImages_PreservesIccComponentCountForDeviceNAlternate() {
+        byte[] pdf = BuildIccImagePdf(
+            PdfIccProfiles.SrgbIec6196621,
+            new byte[] { 0, 255, 255, 0 },
+            "/N 4 /Alternate [/DeviceN [/Cyan /Magenta /Yellow /Black] /DeviceCMYK 7 0 R]",
+            extraObjects: "7 0 obj\n<< /FunctionType 4 /Domain [0 1 0 1 0 1 0 1] /Range [0 1 0 1 0 1 0 1] /Length 2 >>\nstream\n{}\nendstream\nendobj\n");
+
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        Assert.Equal(OfficeColor.Red, raster!.GetPixel(0, 0));
+    }
+
+    [Theory]
+    [InlineData(2, "/A /B")]
+    [InlineData(5, "/A /B /C /D /E")]
+    public void RenderPage_ReportsUnsupportedDeviceNImageWhenTintProgramCannotProject(
+        int componentCount,
+        string colorantNames) {
+        byte[] samples = new byte[componentCount];
+        string domain = string.Join(" ", Enumerable.Repeat("0 1", componentCount));
+        string functionObject =
+            "7 0 obj\n<< /FunctionType 4 /Domain [" + domain + "] /Range [0 1 0 1 0 1] /Length 2 >>\nstream\n{}\nendstream\nendobj\n";
+        byte[] pdf = BuildIccImagePdf(
+            PdfIccProfiles.SrgbIec6196621,
+            samples,
+            "/N " + componentCount.ToString(CultureInfo.InvariantCulture) +
+            " /Alternate [/DeviceN [" + colorantNames + "] /DeviceRGB 7 0 R]",
+            extraObjects: functionObject);
+
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+    }
+
+    [Fact]
     public void ExtractImages_UsesDeclaredSeparationAlternateForUnsupportedIccProfile() {
         byte[] unsupportedProfile = PdfIccProfiles.SrgbIec6196621;
         unsupportedProfile[16] = (byte)'C';
@@ -257,7 +344,11 @@ public class PdfIccColorRenderingTests {
         Assert.Equal(profile.Length - 1, exception.Limit);
     }
 
-    private static byte[] BuildIccContentPdf(byte[] profile, string profileEntries, string colorOperation) {
+    private static byte[] BuildIccContentPdf(
+        byte[] profile,
+        string profileEntries,
+        string colorOperation,
+        string extraObjects = "") {
         string content = "/CsIcc cs\n" + colorOperation + "\n40 80 70 40 re\nf";
         byte[] contentBytes = Encoding.ASCII.GetBytes(content);
         using var output = new MemoryStream();
@@ -270,7 +361,9 @@ public class PdfIccColorRenderingTests {
         WriteAscii(output, "\nendstream\nendobj\n");
         WriteAscii(output, "5 0 obj\n<< " + profileEntries + " /Length " + profile.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
         output.Write(profile, 0, profile.Length);
-        WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, extraObjects);
+        WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }
 

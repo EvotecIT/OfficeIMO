@@ -40,7 +40,8 @@ internal sealed class PdfImageColorSpaceNormalization {
     internal PdfPageColorSpaceKind Kind => _colorSpace.Kind;
 
     internal bool RequiresColorConversion => _iccProfile != null || _alternateNormalization != null ||
-        _colorSpace.Kind is PdfPageColorSpaceKind.CalGray or PdfPageColorSpaceKind.CalRgb or PdfPageColorSpaceKind.Lab;
+        _colorSpace.Kind is PdfPageColorSpaceKind.CalGray or PdfPageColorSpaceKind.CalRgb or
+        PdfPageColorSpaceKind.Lab or PdfPageColorSpaceKind.Indexed;
 
     internal bool UsesIccApproximation { get; }
 
@@ -69,7 +70,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         color = OfficeColor.Black;
         if (components == null || components.Count < SourceColorCount) return false;
         if (_iccProfile != null) {
-            var normalized = new double[SourceColorCount];
+            double[] normalized = components as double[] ?? new double[SourceColorCount];
             for (int index = 0; index < SourceColorCount; index++) {
                 double minimum = _componentRanges[index * 2];
                 double maximum = _componentRanges[index * 2 + 1];
@@ -188,6 +189,7 @@ internal sealed class PdfImageColorSpaceNormalization {
                 alternate.PngColorType,
                 componentRanges: ranges,
                 alternateNormalization: alternate,
+                sourceColorCount: componentCount,
                 usesIccApproximation: true);
             return true;
         }

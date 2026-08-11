@@ -31,7 +31,7 @@ internal static class PdfIndexedImageNormalizer {
         }
 
         var decodeTransform = PdfImageDecodeTransform.CreateIndexed(stream.Dictionary, indexedPalette.Length / 3 - 1, objects);
-        if (stream.Dictionary.Items.ContainsKey("SMask")) {
+        if (PdfImageMaskSemantics.HasSoftMask(stream.Dictionary, objects)) {
             return TryBuildPngFileFromIndexedPixelsWithSoftMask(width, height, bitsPerComponent, indexedPalette, decodeTransform, indexedPixels, stream, objects, out pngBytes);
         }
 

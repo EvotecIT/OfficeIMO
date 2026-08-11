@@ -43,6 +43,23 @@ badge.StrokeColor = accent;
 badge.Shadow = new OfficeShadow(OfficeColor.Black, 0.18, 3, 4);
 ```
 
+Use `OfficeIccColorProfile` when an application already has embedded ICC profile bytes and needs the
+same bounded, dependency-free conversion used by OfficeIMO renderers:
+
+```csharp
+using OfficeIMO.Drawing;
+
+byte[] profileBytes = File.ReadAllBytes("display.icc");
+if (OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile) &&
+    profile.TryConvert(new[] { 0.25D, 0.5D, 0.75D }, out OfficeColor converted)) {
+    Console.WriteLine(converted.ToHex());
+}
+```
+
+The managed contract currently accepts bounded RGB and Gray matrix/TRC input profiles. `TryCreate`
+returns `false` for other profile classes and transform types so the caller can choose an explicit color
+management provider or fallback instead of receiving a silent approximation.
+
 ### Image metadata and complete-content validation
 
 ```csharp

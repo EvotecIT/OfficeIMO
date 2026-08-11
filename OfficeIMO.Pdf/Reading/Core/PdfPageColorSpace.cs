@@ -124,17 +124,17 @@ internal readonly struct PdfPageColorSpace {
             return true;
         }
 
-        if (Kind is PdfPageColorSpaceKind.Separation or PdfPageColorSpaceKind.DeviceN) {
-            if (_custom?.Alternate is not PdfPageColorSpace alternate || _custom.Transform == null) return false;
-            IReadOnlyList<double>? transformed = _custom.Transform(components);
-            return transformed != null && alternate.TryConvertColor(transformed, out color);
-        }
-
         if (_custom?.ColorTransform != null) {
             OfficeColor? transformed = _custom.ColorTransform(components);
             if (!transformed.HasValue) return false;
             color = transformed.Value;
             return true;
+        }
+
+        if (Kind is PdfPageColorSpaceKind.Separation or PdfPageColorSpaceKind.DeviceN) {
+            if (_custom?.Alternate is not PdfPageColorSpace alternate || _custom.Transform == null) return false;
+            IReadOnlyList<double>? transformed = _custom.Transform(components);
+            return transformed != null && alternate.TryConvertColor(transformed, out color);
         }
 
         switch (Kind) {
