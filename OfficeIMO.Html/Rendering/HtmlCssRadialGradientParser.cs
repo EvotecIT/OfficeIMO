@@ -13,8 +13,15 @@ internal static class HtmlCssRadialGradientParser {
         if (string.IsNullOrWhiteSpace(value) || maximumStops < 2) return false;
 
         string text = value!.Trim();
-        const string functionName = "radial-gradient";
-        if (!text.StartsWith(functionName, StringComparison.OrdinalIgnoreCase)) return false;
+        string functionName;
+        bool repeating;
+        if (text.StartsWith("repeating-radial-gradient", StringComparison.OrdinalIgnoreCase)) {
+            functionName = "repeating-radial-gradient";
+            repeating = true;
+        } else if (text.StartsWith("radial-gradient", StringComparison.OrdinalIgnoreCase)) {
+            functionName = "radial-gradient";
+            repeating = false;
+        } else return false;
         int open = functionName.Length;
         if (open >= text.Length || text[open] != '(' || text[text.Length - 1] != ')') return false;
 
@@ -29,7 +36,7 @@ internal static class HtmlCssRadialGradientParser {
         int stopStart = HtmlCssGradientStops.IsColorStop(arguments[0]) ? 0 : 1;
         if (!HtmlCssGradientStops.TryParse(arguments, stopStart, maximumStops, out HtmlCssGradientStops? stops, out stopLimitExceeded)
             || stops == null
-            || !TryParseDescriptor(stopStart == 0 ? string.Empty : arguments[0], stops, out definition)) {
+            || !TryParseDescriptor(stopStart == 0 ? string.Empty : arguments[0], stops, repeating, out definition)) {
             return false;
         }
 
@@ -39,6 +46,7 @@ internal static class HtmlCssRadialGradientParser {
     private static bool TryParseDescriptor(
         string descriptor,
         HtmlCssGradientStops stops,
+        bool repeating,
         out HtmlCssRadialGradientDefinition? definition) {
         definition = null;
         List<string> parts = HtmlRenderCssValues.SplitWhitespace(descriptor)
@@ -83,7 +91,7 @@ internal static class HtmlCssRadialGradientParser {
             return false;
         }
 
-        definition = new HtmlCssRadialGradientDefinition(shape, size, centerX, centerY, radiusX, radiusY, stops);
+        definition = new HtmlCssRadialGradientDefinition(shape, size, centerX, centerY, radiusX, radiusY, stops, repeating);
         return true;
     }
 

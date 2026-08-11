@@ -512,7 +512,13 @@ internal sealed partial class HtmlRenderStyleResolver {
                     continue;
                 }
 
-                if (linearStopLimitExceeded || radialStopLimitExceeded) {
+                if (HtmlCssConicGradientParser.TryParse(sourceLayer, _options.MaxGradientStops, out HtmlCssConicGradientDefinition? conicGradient, out bool conicStopLimitExceeded)
+                    && conicGradient != null) {
+                    layers.Add(new HtmlRenderBackgroundLayer(conicGradient, position, repeat, size));
+                    continue;
+                }
+
+                if (linearStopLimitExceeded || radialStopLimitExceeded || conicStopLimitExceeded) {
                     gradientStopLimitExceededCount++;
                 } else {
                     unsupportedLayerCount++;

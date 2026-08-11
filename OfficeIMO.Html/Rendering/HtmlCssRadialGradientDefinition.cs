@@ -13,7 +13,8 @@ internal sealed class HtmlCssRadialGradientDefinition {
         string centerY,
         string? radiusX,
         string? radiusY,
-        HtmlCssGradientStops stops) {
+        HtmlCssGradientStops stops,
+        bool repeating = false) {
         Shape = shape;
         Size = size;
         CenterX = centerX;
@@ -21,6 +22,7 @@ internal sealed class HtmlCssRadialGradientDefinition {
         RadiusX = radiusX;
         RadiusY = radiusY;
         Stops = stops;
+        Repeating = repeating;
     }
 
     private HtmlCssRadialGradientShape Shape { get; }
@@ -30,6 +32,7 @@ internal sealed class HtmlCssRadialGradientDefinition {
     private string? RadiusX { get; }
     private string? RadiusY { get; }
     private HtmlCssGradientStops Stops { get; }
+    private bool Repeating { get; }
 
     internal bool TryResolve(
         double width,
@@ -37,7 +40,18 @@ internal sealed class HtmlCssRadialGradientDefinition {
         double fontSize,
         double rootFontSize,
         out OfficeRadialGradient? gradient) {
+        return TryResolve(width, height, fontSize, rootFontSize, out gradient, out _);
+    }
+
+    internal bool TryResolve(
+        double width,
+        double height,
+        double fontSize,
+        double rootFontSize,
+        out OfficeRadialGradient? gradient,
+        out bool stopLimitExceeded) {
         gradient = null;
+        stopLimitExceeded = false;
         if (!IsFinitePositive(width) || !IsFinitePositive(height)
             || !HtmlRenderCssValues.TryLength(CenterX, width, fontSize, rootFontSize, out double centerXPixels)
             || !HtmlRenderCssValues.TryLength(CenterY, height, fontSize, rootFontSize, out double centerYPixels)
@@ -71,7 +85,7 @@ internal sealed class HtmlCssRadialGradientDefinition {
         double radiusX = Math.Max(MinimumRadius, radiusXPixels) / width;
         double radiusY = Math.Max(MinimumRadius, radiusYPixels) / height;
         if (!IsFinite(centerX) || !IsFinite(centerY) || !IsFinitePositive(radiusX) || !IsFinitePositive(radiusY)
-            || !Stops.TryResolve(Math.Max(MinimumRadius, radiusXPixels), fontSize, rootFontSize, out IReadOnlyList<OfficeGradientStop>? stops)
+            || !Stops.TryResolve(Math.Max(MinimumRadius, radiusXPixels), fontSize, rootFontSize, Repeating, out IReadOnlyList<OfficeGradientStop>? stops, out stopLimitExceeded)
             || stops == null) return false;
         gradient = new OfficeRadialGradient(centerX, centerY, 0D, 0D, centerX, centerY, radiusX, radiusY, stops);
         return true;

@@ -10,8 +10,15 @@ internal static class HtmlCssLinearGradientParser {
         if (string.IsNullOrWhiteSpace(value) || maximumStops < 2) return false;
 
         string text = value!.Trim();
-        const string functionName = "linear-gradient";
-        if (!text.StartsWith(functionName, StringComparison.OrdinalIgnoreCase)) return false;
+        string functionName;
+        bool repeating;
+        if (text.StartsWith("repeating-linear-gradient", StringComparison.OrdinalIgnoreCase)) {
+            functionName = "repeating-linear-gradient";
+            repeating = true;
+        } else if (text.StartsWith("linear-gradient", StringComparison.OrdinalIgnoreCase)) {
+            functionName = "linear-gradient";
+            repeating = false;
+        } else return false;
         int open = functionName.Length;
         if (open >= text.Length || text[open] != '(' || text[text.Length - 1] != ')') return false;
 
@@ -32,7 +39,7 @@ internal static class HtmlCssLinearGradientParser {
         }
 
         if (!HtmlCssGradientStops.TryParse(arguments, stopStart, maximumStops, out HtmlCssGradientStops? stops, out stopLimitExceeded) || stops == null) return false;
-        definition = new HtmlCssLinearGradientDefinition(officeAngle, stops);
+        definition = new HtmlCssLinearGradientDefinition(officeAngle, stops, repeating);
         return true;
     }
 
