@@ -53,7 +53,7 @@ public sealed partial class PdfReadPage {
             }
             if (operation.InlineImage is PdfContentInlineImage inlineImage) {
                 CollectImageColorSpaceCapabilityDiagnostic(
-                    inlineImage.Dictionary,
+                    new PdfStream(inlineImage.Dictionary, inlineImage.Data),
                     resources,
                     diagnostics,
                     seen,
@@ -242,7 +242,7 @@ public sealed partial class PdfReadPage {
             string? subtype = stream.Dictionary.Get<PdfName>("Subtype")?.Name;
             if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
                 CollectImageColorSpaceCapabilityDiagnostic(
-                    stream.Dictionary,
+                    stream,
                     resources,
                     diagnostics,
                     seen,
@@ -266,12 +266,12 @@ public sealed partial class PdfReadPage {
     }
 
     private void CollectImageColorSpaceCapabilityDiagnostic(
-        PdfDictionary image,
+        PdfStream image,
         PdfDictionary? resources,
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
         string imageName) {
-        if (!image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)) {
+        if (!image.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)) {
             return;
         }
 

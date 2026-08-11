@@ -75,9 +75,12 @@ public sealed class PdfExtractedImage {
     public string Filter { get; }
 
     /// <summary>
-    /// Extracted bytes. JPEG images are returned as JPEG files. Simple PNG-predictor Flate
-    /// images, supported ImageMask stencil streams, color-key masked simple and Indexed streams, Decode-aware simple 8-bit DeviceGray/DeviceRGB/basic-converted DeviceCMYK streams, basic ICCBased N=1/3/4 streams, and Decode-aware Indexed palette streams are returned as PNG files when their filters are supported.
-    /// JPEG images with PDF transparency masks can expose unresolved mask metadata when the JPEG payload is passed through without alpha conversion. Other supported image streams return their original encoded bytes.
+    /// Extracted bytes. Simple device-color JPEG images without PDF color or transparency transforms are returned as JPEG files.
+    /// Color-managed DCT/JPEG samples, supported ImageMask stencil streams, simple PNG-predictor Flate images,
+    /// color-key and soft-masked images, Decode-aware 8-bit DeviceGray/DeviceRGB/DeviceCMYK images, supported ICCBased
+    /// N=1/3/4 images, and Decode-aware Indexed palette images are returned as PNG files when their filters are supported.
+    /// A malformed pass-through JPEG with an unresolved transparency mask can retain the encoded payload and expose
+    /// unresolved mask metadata. Other supported image streams return their original encoded bytes.
     /// </summary>
     public byte[] Bytes => (byte[])_bytes.Clone();
 

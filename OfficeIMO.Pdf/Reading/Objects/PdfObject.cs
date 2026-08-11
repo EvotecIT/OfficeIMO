@@ -122,4 +122,19 @@ internal static class PdfObjectLookup {
 
         return value;
     }
+
+    public static PdfObject? ResolveChain(
+        System.Collections.Generic.Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value) {
+        System.Collections.Generic.HashSet<(int ObjectNumber, int Generation)>? visited = null;
+        while (value is PdfReference reference) {
+            visited ??= new System.Collections.Generic.HashSet<(int ObjectNumber, int Generation)>();
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
+                !TryGet(objects, reference, out PdfIndirectObject indirect)) {
+                return value;
+            }
+            value = indirect.Value;
+        }
+        return value;
+    }
 }

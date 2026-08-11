@@ -3,6 +3,14 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfIndexedImageNormalizer {
+    internal static bool IsIndexedColorSpace(
+        PdfObject? colorSpaceObj,
+        Dictionary<int, PdfIndirectObject> objects) =>
+        ResolveObject(colorSpaceObj, objects) is PdfArray { Items.Count: >= 1 } colorSpaceArray &&
+        ResolveObject(colorSpaceArray.Items[0], objects) is PdfName indexedName &&
+        (string.Equals(indexedName.Name, "Indexed", StringComparison.Ordinal) ||
+         string.Equals(indexedName.Name, "I", StringComparison.Ordinal));
+
     internal static bool CanNormalizeColorSpace(
         PdfObject? colorSpaceObj,
         int bitsPerComponent,
@@ -46,6 +54,30 @@ internal static class PdfIndexedImageNormalizer {
         int maxDecodedStreamBytes,
         OfficeIccRenderingIntent renderingIntent,
         out byte[] pngBytes) {
+        return TryBuildPngFile(
+            colorSpaceObj,
+            width,
+            height,
+            bitsPerComponent,
+            stream,
+            objects,
+            maxDecodedStreamBytes,
+            renderingIntent,
+            decodedPixels: null,
+            out pngBytes);
+    }
+
+    internal static bool TryBuildPngFile(
+        PdfObject? colorSpaceObj,
+        int width,
+        int height,
+        int bitsPerComponent,
+        PdfStream stream,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
+        OfficeIccRenderingIntent renderingIntent,
+        byte[]? decodedPixels,
+        out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (width <= 0 ||
             height <= 0 ||
@@ -53,16 +85,32 @@ internal static class PdfIndexedImageNormalizer {
             return false;
         }
 
-        if (!TryReadDecodedStreamBytes(stream, objects, out var indexedPixels)) {
+        byte[] indexedPixels;
+        if (decodedPixels is null) {
+            if (!TryReadDecodedStreamBytes(stream, objects, out indexedPixels)) {
+                return false;
+            }
+        } else if (decodedPixels.Length == 0) {
             return false;
+        } else {
+            indexedPixels = decodedPixels;
         }
 
-        var decodeTransform = PdfImageDecodeTransform.CreateIndexed(stream.Dictionary, objects);
+        if (!PdfImageDecodeTransform.TryCreateIndexedDeclaration(
+                stream.Dictionary,
+                objects,
+                out PdfImageDecodeTransform? decodeTransform) ||
+            !PdfImageColorKeyMask.TryCreateDeclaration(
+                stream.Dictionary,
+                componentCount: 1,
+                objects,
+                out PdfImageColorKeyMask? colorKeyMask)) {
+            return false;
+        }
         if (PdfImageMaskSemantics.HasSoftMask(stream.Dictionary, objects)) {
             return TryBuildPngFileFromIndexedPixelsWithSoftMask(width, height, bitsPerComponent, indexedPalette, decodeTransform, indexedPixels, stream, objects, out pngBytes);
         }
 
-        var colorKeyMask = PdfImageColorKeyMask.Create(stream.Dictionary, 1, objects);
         if (colorKeyMask is not null) {
             return TryBuildPngFileFromIndexedPixelsWithColorKeyMask(width, height, bitsPerComponent, indexedPalette, decodeTransform, colorKeyMask, indexedPixels, out pngBytes);
         }
@@ -445,6 +493,6 @@ internal static class PdfIndexedImageNormalizer {
     }
 
     private static PdfObject? ResolveObject(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
-        return PdfObjectLookup.Resolve(objects, obj);
+        return PdfObjectLookup.ResolveChain(objects, obj);
     }
 }

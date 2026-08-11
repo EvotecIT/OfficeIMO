@@ -823,6 +823,21 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_ColorManagesAbbreviatedInlineDctImage() {
+        byte[] pdf = BuildInlineDctImagePdf();
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        var image = Assert.Single(drawing.Images);
+        Assert.Equal("image/png", image.ContentType);
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        OfficeColor pixel = raster!.GetPixel(0, 0);
+        Assert.InRange(pixel.R, 0, 35);
+        Assert.InRange(pixel.G, 220, 255);
+        Assert.InRange(pixel.B, 220, 255);
+    }
+
+    [Fact]
     public void RenderPage_PreservesRotatedImageXObjectProjection() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CompressWithDeflate(new byte[] { 255, 0, 0, 0, 0, 255 }),
@@ -2917,6 +2932,32 @@ public class PdfPageImageRendererTests {
         WriteAscii(pdf, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
         WriteAscii(pdf, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj\n");
         WriteAscii(pdf, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << /CsRgb /DeviceRGB >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(pdf, "4 0 obj\n<< /Length " + contentBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        pdf.Write(contentBytes, 0, contentBytes.Length);
+        WriteAscii(pdf, "\nendstream\nendobj\n");
+        WriteAscii(pdf, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return pdf.ToArray();
+    }
+
+    private static byte[] BuildInlineDctImagePdf() {
+        byte[] jpeg = OfficeJpegCodec.Encode(
+            OfficeRasterImage.FromRgba32(1, 1, new byte[] { 255, 0, 0, 255 }),
+            new OfficeJpegEncodeOptions {
+                Quality = 100,
+                Subsampling = OfficeJpegSubsampling.Y444
+            });
+        byte[] encodedJpeg = Encoding.ASCII.GetBytes(Convert.ToHexString(jpeg) + ">");
+        using var content = new MemoryStream();
+        WriteAscii(content, "q\n20 0 0 20 40 80 cm\nBI\n/W 1\n/H 1\n/CS /RGB\n/BPC 8\n/F [/AHx /DCT]\n/D [1 0 1 0 1 0]\nID\n");
+        content.Write(encodedJpeg, 0, encodedJpeg.Length);
+        WriteAscii(content, "\nEI\nQ");
+        byte[] contentBytes = content.ToArray();
+
+        using var pdf = new MemoryStream();
+        WriteAscii(pdf, "%PDF-1.4\n");
+        WriteAscii(pdf, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(pdf, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj\n");
+        WriteAscii(pdf, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << >> /Contents 4 0 R >>\nendobj\n");
         WriteAscii(pdf, "4 0 obj\n<< /Length " + contentBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
         pdf.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(pdf, "\nendstream\nendobj\n");

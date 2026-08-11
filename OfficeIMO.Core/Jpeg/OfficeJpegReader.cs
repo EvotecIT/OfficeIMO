@@ -87,6 +87,50 @@ internal static partial class OfficeJpegReader {
     /// Decodes a JPEG image to an RGBA buffer.
     /// </summary>
     public static byte[] DecodeRgba32(byte[] data, out int width, out int height, OfficeJpegDecodeOptions options) {
+        return Decode(
+            data,
+            out width,
+            out height,
+            out _,
+            options,
+            requestedColorTransform: null,
+            usePdfColorTransformDefault: false,
+            returnColorComponents: false);
+    }
+
+    internal static byte[] DecodeColorComponents(
+        byte[] data,
+        out int width,
+        out int height,
+        out int componentCount,
+        int? requestedColorTransform,
+        bool usePdfColorTransformDefault,
+        OfficeJpegDecodeOptions options = default) {
+        if (requestedColorTransform.HasValue && requestedColorTransform.Value is not (0 or 1)) {
+            throw new ArgumentOutOfRangeException(nameof(requestedColorTransform));
+        }
+
+        return Decode(
+            data,
+            out width,
+            out height,
+            out componentCount,
+            options,
+            requestedColorTransform,
+            usePdfColorTransformDefault,
+            returnColorComponents: true);
+    }
+
+    private static byte[] Decode(
+        byte[] data,
+        out int width,
+        out int height,
+        out int componentCount,
+        OfficeJpegDecodeOptions options,
+        int? requestedColorTransform,
+        bool usePdfColorTransformDefault,
+        bool returnColorComponents) {
+        componentCount = 0;
         if (!IsJpeg(data)) throw new FormatException("Invalid JPEG signature.");
         OfficeRasterGuards.EnsurePayloadWithinLimits(data.Length, "JPEG payload exceeds size limits.");
 
@@ -256,20 +300,58 @@ internal static partial class OfficeJpegReader {
             offset += length - 2;
         }
 
+        if (adobeTransform.HasValue &&
+            !IsCompatibleAdobeTransform(adobeTransform.Value, frame.ComponentCount)) {
+            throw new FormatException("JPEG Adobe APP14 transform is invalid for the component count.");
+        }
+
         if (!progressive && hasFrame && baselineState is not null) {
             width = frame.Width;
             height = frame.Height;
+            if (returnColorComponents) {
+                return baselineState.RenderColorComponents(
+                    frame,
+                    adobeTransform,
+                    requestedColorTransform,
+                    usePdfColorTransformDefault,
+                    options.HighQualityChroma,
+                    out componentCount);
+            }
             var rgba = baselineState.RenderRgba(frame, adobeTransform, options.HighQualityChroma);
+            componentCount = 4;
             return ApplyOrientation(rgba, ref width, ref height, orientation);
         }
 
         if (progressive && hasFrame && progressiveState is not null) {
             width = frame.Width;
             height = frame.Height;
+            if (returnColorComponents) {
+                return progressiveState.RenderColorComponents(
+                    frame,
+                    adobeTransform,
+                    requestedColorTransform,
+                    usePdfColorTransformDefault,
+                    options.HighQualityChroma,
+                    out componentCount);
+            }
             var rgba = progressiveState.RenderRgba(frame, adobeTransform, options.HighQualityChroma);
+            componentCount = 4;
             return ApplyOrientation(rgba, ref width, ref height, orientation);
         }
 
         throw new FormatException("JPEG scan not found.");
+    }
+
+    private static bool IsCompatibleAdobeTransform(int transform, int componentCount) {
+        switch (transform) {
+            case 0:
+                return componentCount is >= 1 and <= 4;
+            case 1:
+                return componentCount == 3;
+            case 2:
+                return componentCount == 4;
+            default:
+                return false;
+        }
     }
 }

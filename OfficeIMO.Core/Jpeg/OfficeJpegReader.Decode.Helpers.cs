@@ -37,7 +37,36 @@ internal static partial class OfficeJpegReader {
     }
 
     private static byte[] ComposeRgba(JpegFrame frame, BaselineComponentState[] states, int? adobeTransform, bool highQualityChroma) {
-        var rgba = OfficeRasterGuards.AllocateRgba32(frame.Width, frame.Height, JpegDimensionsLimitMessage);
+        return ComposeColorComponents(
+            frame,
+            states,
+            adobeTransform,
+            requestedColorTransform: null,
+            usePdfColorTransformDefault: false,
+            highQualityChroma,
+            outputRgba: true,
+            out _);
+    }
+
+    private static byte[] ComposeColorComponents(
+        JpegFrame frame,
+        BaselineComponentState[] states,
+        int? adobeTransform,
+        int? requestedColorTransform,
+        bool usePdfColorTransformDefault,
+        bool highQualityChroma,
+        bool outputRgba,
+        out int componentCount) {
+        componentCount = frame.ComponentCount;
+        if (componentCount < 1 || componentCount > 4) {
+            throw new FormatException("Unsupported JPEG component count.");
+        }
+        if (outputRgba && componentCount is not (1 or 3 or 4)) {
+            throw new FormatException("Unsupported JPEG component count.");
+        }
+        byte[] components = outputRgba
+            ? OfficeRasterGuards.AllocateRgba32(frame.Width, frame.Height, JpegDimensionsLimitMessage)
+            : new byte[checked(frame.Width * frame.Height * componentCount)];
         var maxH = frame.MaxH;
         var maxV = frame.MaxV;
 
@@ -59,7 +88,9 @@ internal static partial class OfficeJpegReader {
                 }
             }
 
-            var isYcck = adobeTransform == 2;
+            var isYcck = adobeTransform.HasValue
+                ? adobeTransform.Value == 2
+                : requestedColorTransform == 1;
             var ycckY = FindComponentIndex(frame.Components, 1);
             var ycckCb = FindComponentIndex(frame.Components, 2);
             var ycckCr = FindComponentIndex(frame.Components, 3);
@@ -73,43 +104,43 @@ internal static partial class OfficeJpegReader {
 
             for (var y = 0; y < frame.Height; y++) {
                 for (var x = 0; x < frame.Width; x++) {
-                    byte r;
-                    byte g;
-                    byte b;
+                    byte c;
+                    byte m;
+                    byte y0;
                     var kVal = SampleComponent(states, isYcck ? ycckK : kIndex, x, y, maxH, maxV, 0, highQualityChroma);
 
                     if (isYcck) {
                         var yVal = SampleComponent(states, ycckY, x, y, maxH, maxV, 128, highQualityChroma);
                         var cbVal = SampleComponent(states, ycckCb, x, y, maxH, maxV, 128, highQualityChroma);
                         var crVal = SampleComponent(states, ycckCr, x, y, maxH, maxV, 128, highQualityChroma);
-                        YccToRgb(yVal, cbVal, crVal, out r, out g, out b);
+                        YccToRgb(yVal, cbVal, crVal, out byte r, out byte g, out byte b);
+                        if (adobeTransform.HasValue) {
+                            c = r;
+                            m = g;
+                            y0 = b;
+                            kVal = 255 - kVal;
+                        } else {
+                            c = (byte)(255 - r);
+                            m = (byte)(255 - g);
+                            y0 = (byte)(255 - b);
+                        }
                     } else {
-                        var c = SampleComponent(states, cIndex, x, y, maxH, maxV, 0, highQualityChroma);
-                        var m = SampleComponent(states, mIndex, x, y, maxH, maxV, 0, highQualityChroma);
-                        var y0 = SampleComponent(states, yIndex, x, y, maxH, maxV, 0, highQualityChroma);
-                        r = ApplyCmyk(c, kVal);
-                        g = ApplyCmyk(m, kVal);
-                        b = ApplyCmyk(y0, kVal);
+                        c = (byte)SampleComponent(states, cIndex, x, y, maxH, maxV, 0, highQualityChroma);
+                        m = (byte)SampleComponent(states, mIndex, x, y, maxH, maxV, 0, highQualityChroma);
+                        y0 = (byte)SampleComponent(states, yIndex, x, y, maxH, maxV, 0, highQualityChroma);
+                        if (adobeTransform.HasValue) {
+                            c = (byte)(255 - c);
+                            m = (byte)(255 - m);
+                            y0 = (byte)(255 - y0);
+                            kVal = 255 - kVal;
+                        }
                     }
 
-                    if (isYcck) {
-                        var c = (byte)(255 - r);
-                        var m = (byte)(255 - g);
-                        var y0 = (byte)(255 - b);
-                        r = ApplyCmyk(c, kVal);
-                        g = ApplyCmyk(m, kVal);
-                        b = ApplyCmyk(y0, kVal);
-                    }
-
-                    var p = (y * frame.Width + x) * 4;
-                    rgba[p + 0] = r;
-                    rgba[p + 1] = g;
-                    rgba[p + 2] = b;
-                    rgba[p + 3] = 255;
+                    WriteCmykPixel(components, y * frame.Width + x, c, m, y0, (byte)kVal, outputRgba);
                 }
             }
 
-            return rgba;
+            return components;
         }
 
         if (frame.ComponentCount == 1) {
@@ -118,20 +149,21 @@ internal static partial class OfficeJpegReader {
             for (var y = 0; y < frame.Height; y++) {
                 for (var x = 0; x < frame.Width; x++) {
                     var v = SampleComponent(states, grayIndex, x, y, maxH, maxV, 0, highQualityChroma);
-                    var p = (y * frame.Width + x) * 4;
-                    rgba[p + 0] = (byte)v;
-                    rgba[p + 1] = (byte)v;
-                    rgba[p + 2] = (byte)v;
-                    rgba[p + 3] = 255;
+                    WriteGrayPixel(components, y * frame.Width + x, (byte)v, outputRgba);
                 }
             }
-            return rgba;
+            return components;
         }
 
         var rIndex = FindComponentIndex(frame.Components, (byte)'R');
         var gIndex = FindComponentIndex(frame.Components, (byte)'G');
         var bIndex = FindComponentIndex(frame.Components, (byte)'B');
-        var rgb = rIndex >= 0 && gIndex >= 0 && bIndex >= 0;
+        var hasRgbComponentIds = rIndex >= 0 && gIndex >= 0 && bIndex >= 0;
+        bool transformToRgb = adobeTransform.HasValue
+            ? adobeTransform.Value == 1
+            : requestedColorTransform.HasValue
+                ? requestedColorTransform.Value == 1
+                : usePdfColorTransformDefault || !hasRgbComponentIds;
 
         var yIndex2 = FindComponentIndex(frame.Components, 1);
         if (yIndex2 < 0) yIndex2 = 0;
@@ -144,30 +176,76 @@ internal static partial class OfficeJpegReader {
 
         for (var y = 0; y < frame.Height; y++) {
             for (var x = 0; x < frame.Width; x++) {
-                byte r;
-                byte g;
-                byte b;
-                if (rgb) {
-                    r = (byte)SampleComponent(states, rIndex, x, y, maxH, maxV, 0, highQualityChroma);
-                    g = (byte)SampleComponent(states, gIndex, x, y, maxH, maxV, 0, highQualityChroma);
-                    b = (byte)SampleComponent(states, bIndex, x, y, maxH, maxV, 0, highQualityChroma);
-                } else {
+                if (frame.ComponentCount == 3 && !transformToRgb) {
+                    int firstIndex = hasRgbComponentIds ? rIndex : 0;
+                    int secondIndex = hasRgbComponentIds ? gIndex : 1;
+                    int thirdIndex = hasRgbComponentIds ? bIndex : 2;
+                    WriteRgbPixel(
+                        components,
+                        y * frame.Width + x,
+                        (byte)SampleComponent(states, firstIndex, x, y, maxH, maxV, 0, highQualityChroma),
+                        (byte)SampleComponent(states, secondIndex, x, y, maxH, maxV, 0, highQualityChroma),
+                        (byte)SampleComponent(states, thirdIndex, x, y, maxH, maxV, 0, highQualityChroma),
+                        outputRgba);
+                } else if (frame.ComponentCount == 3) {
+                    byte r;
+                    byte g;
+                    byte b;
                     var yVal = SampleComponent(states, yIndex2, x, y, maxH, maxV, 128, highQualityChroma);
                     var cbVal = SampleComponent(states, cbIndex, x, y, maxH, maxV, 128, highQualityChroma);
                     var crVal = SampleComponent(states, crIndex, x, y, maxH, maxV, 128, highQualityChroma);
-
                     YccToRgb(yVal, cbVal, crVal, out r, out g, out b);
+                    WriteRgbPixel(components, y * frame.Width + x, r, g, b, outputRgba);
+                } else {
+                    int p = (y * frame.Width + x) * componentCount;
+                    for (int component = 0; component < componentCount; component++) {
+                        components[p + component] = (byte)SampleComponent(
+                            states,
+                            component,
+                            x,
+                            y,
+                            maxH,
+                            maxV,
+                            0,
+                            highQualityChroma);
+                    }
                 }
-
-                var p = (y * frame.Width + x) * 4;
-                rgba[p + 0] = r;
-                rgba[p + 1] = g;
-                rgba[p + 2] = b;
-                rgba[p + 3] = 255;
             }
         }
 
-        return rgba;
+        return components;
+    }
+
+    private static void WriteGrayPixel(byte[] output, int pixel, byte gray, bool outputRgba) {
+        int target = pixel * (outputRgba ? 4 : 1);
+        output[target] = gray;
+        if (!outputRgba) return;
+        output[target + 1] = gray;
+        output[target + 2] = gray;
+        output[target + 3] = 255;
+    }
+
+    private static void WriteRgbPixel(byte[] output, int pixel, byte red, byte green, byte blue, bool outputRgba) {
+        int target = pixel * (outputRgba ? 4 : 3);
+        output[target] = red;
+        output[target + 1] = green;
+        output[target + 2] = blue;
+        if (outputRgba) output[target + 3] = 255;
+    }
+
+    private static void WriteCmykPixel(byte[] output, int pixel, byte cyan, byte magenta, byte yellow, byte black, bool outputRgba) {
+        int target = pixel * 4;
+        if (outputRgba) {
+            output[target] = ApplyCmyk(cyan, black);
+            output[target + 1] = ApplyCmyk(magenta, black);
+            output[target + 2] = ApplyCmyk(yellow, black);
+            output[target + 3] = 255;
+            return;
+        }
+        output[target] = cyan;
+        output[target + 1] = magenta;
+        output[target + 2] = yellow;
+        output[target + 3] = black;
     }
 
     private static void YccToRgb(int y, int cb, int cr, out byte r, out byte g, out byte b) {
@@ -841,6 +919,28 @@ internal static partial class OfficeJpegReader {
 
             return ComposeRgba(frame, Components, adobeTransform, highQualityChroma);
         }
+
+        public byte[] RenderColorComponents(
+            JpegFrame frame,
+            int? adobeTransform,
+            int? requestedColorTransform,
+            bool usePdfColorTransformDefault,
+            bool highQualityChroma,
+            out int componentCount) {
+            for (var i = 0; i < DecodedComponents.Length; i++) {
+                if (!DecodedComponents[i]) throw new FormatException("Missing JPEG component scan.");
+            }
+
+            return ComposeColorComponents(
+                frame,
+                Components,
+                adobeTransform,
+                requestedColorTransform,
+                usePdfColorTransformDefault,
+                highQualityChroma,
+                outputRgba: false,
+                out componentCount);
+        }
     }
 
     private sealed class BaselineComponentState {
@@ -926,6 +1026,30 @@ internal static partial class OfficeJpegReader {
         }
 
         public byte[] RenderRgba(JpegFrame frame, int? adobeTransform, bool highQualityChroma) {
+            BaselineComponentState[] baselineStates = CreateBaselineStates();
+            return ComposeRgba(frame, baselineStates, adobeTransform, highQualityChroma);
+        }
+
+        public byte[] RenderColorComponents(
+            JpegFrame frame,
+            int? adobeTransform,
+            int? requestedColorTransform,
+            bool usePdfColorTransformDefault,
+            bool highQualityChroma,
+            out int componentCount) {
+            BaselineComponentState[] baselineStates = CreateBaselineStates();
+            return ComposeColorComponents(
+                frame,
+                baselineStates,
+                adobeTransform,
+                requestedColorTransform,
+                usePdfColorTransformDefault,
+                highQualityChroma,
+                outputRgba: false,
+                out componentCount);
+        }
+
+        private BaselineComponentState[] CreateBaselineStates() {
             for (var i = 0; i < Components.Length; i++) {
                 var compState = Components[i];
                 for (var by = 0; by < compState.BlocksPerCol; by++) {
@@ -949,7 +1073,7 @@ internal static partial class OfficeJpegReader {
                     compState.Buffer);
             }
 
-            return ComposeRgba(frame, baselineStates, adobeTransform, highQualityChroma);
+            return baselineStates;
         }
     }
 

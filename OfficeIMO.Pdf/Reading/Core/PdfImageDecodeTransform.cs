@@ -19,11 +19,24 @@ internal sealed class PdfImageDecodeTransform {
         return TryCreate(dictionary, componentCount, objects, out var transform) ? transform : null;
     }
 
+    internal static bool TryCreateColorDeclaration(
+        PdfDictionary dictionary,
+        int componentCount,
+        Dictionary<int, PdfIndirectObject> objects,
+        out PdfImageDecodeTransform? transform) =>
+        TryCreateDeclaration(dictionary, componentCount, objects, out transform);
+
     internal static PdfImageDecodeTransform? CreateIndexed(
         PdfDictionary dictionary,
         Dictionary<int, PdfIndirectObject> objects) {
         return TryCreate(dictionary, 1, objects, out var transform) ? transform : null;
     }
+
+    internal static bool TryCreateIndexedDeclaration(
+        PdfDictionary dictionary,
+        Dictionary<int, PdfIndirectObject> objects,
+        out PdfImageDecodeTransform? transform) =>
+        TryCreateDeclaration(dictionary, 1, objects, out transform);
 
     internal byte TransformColorComponent(byte sample, int componentIndex) {
         double decoded = TransformColorComponentValue(sample, componentIndex);
@@ -69,6 +82,40 @@ internal sealed class PdfImageDecodeTransform {
                 return false;
             }
 
+            minimums[component] = minimum.Value;
+            maximums[component] = maximum.Value;
+        }
+
+        transform = new PdfImageDecodeTransform(minimums, maximums);
+        return true;
+    }
+
+    private static bool TryCreateDeclaration(
+        PdfDictionary dictionary,
+        int componentCount,
+        Dictionary<int, PdfIndirectObject> objects,
+        out PdfImageDecodeTransform? transform) {
+        transform = null;
+        if (!dictionary.Items.TryGetValue("Decode", out PdfObject? decodeObject)) return true;
+        PdfObject? resolvedDecode = PdfObjectLookup.ResolveChain(objects, decodeObject);
+        if (resolvedDecode is null or PdfNull) return true;
+        if (componentCount <= 0 ||
+            resolvedDecode is not PdfArray decodeArray ||
+            decodeArray.Items.Count != componentCount * 2) {
+            return false;
+        }
+
+        var minimums = new double[componentCount];
+        var maximums = new double[componentCount];
+        for (int component = 0; component < componentCount; component++) {
+            if (PdfObjectLookup.ResolveChain(objects, decodeArray.Items[component * 2]) is not PdfNumber minimum ||
+                PdfObjectLookup.ResolveChain(objects, decodeArray.Items[component * 2 + 1]) is not PdfNumber maximum ||
+                double.IsNaN(minimum.Value) ||
+                double.IsInfinity(minimum.Value) ||
+                double.IsNaN(maximum.Value) ||
+                double.IsInfinity(maximum.Value)) {
+                return false;
+            }
             minimums[component] = minimum.Value;
             maximums[component] = maximum.Value;
         }

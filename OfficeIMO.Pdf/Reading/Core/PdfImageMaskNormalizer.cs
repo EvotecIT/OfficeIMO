@@ -65,7 +65,7 @@ internal static class PdfImageMaskNormalizer {
 
     internal static bool IsImageMask(PdfStream stream, Dictionary<int, PdfIndirectObject> objects) {
         return stream.Dictionary.Items.TryGetValue("ImageMask", out var imageMaskObj) &&
-            PdfObjectLookup.Resolve(objects, imageMaskObj) is PdfBoolean imageMask &&
+            PdfObjectLookup.ResolveChain(objects, imageMaskObj) is PdfBoolean imageMask &&
             imageMask.Value;
     }
 

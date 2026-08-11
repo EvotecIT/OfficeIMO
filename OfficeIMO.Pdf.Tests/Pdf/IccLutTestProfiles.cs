@@ -10,6 +10,9 @@ internal static class IccLutTestProfiles {
 
     internal static byte[] CreateRgbLut16() => Create("RGB ", 3, precision: 2);
 
+    internal static byte[] CreateRgbLut16WithDistinctRelativeIntent() =>
+        Create("RGB ", 3, precision: 2, includeDistinctRelativeIntent: true);
+
     internal static byte[] CreateRgbLut16WithMediaWhite(double x, double y, double z) =>
         Create("RGB ", 3, precision: 2, mediaWhiteX: x, mediaWhiteY: y, mediaWhiteZ: z);
 
