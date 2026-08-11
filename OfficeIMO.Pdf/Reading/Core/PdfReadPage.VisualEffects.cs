@@ -38,7 +38,7 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private PdfPageSoftMaskResource? ReadSoftMask(PdfDictionary state) {
+    private PdfPageSoftMaskResource? ReadSoftMask(PdfDictionary state, PdfDictionary? parentResources = null) {
         PdfObject? resolved = ResolveEffectObject(state.Items.TryGetValue("SMask", out PdfObject? value) ? value : null);
         if (resolved is PdfName { Name: "None" } || resolved is not PdfDictionary mask ||
             ResolveEffectObject(mask.Items.TryGetValue("G", out PdfObject? groupObject) ? groupObject : null) is not PdfStream group) return null;
@@ -74,7 +74,7 @@ public sealed partial class PdfReadPage {
                 ? OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[0]), ToColorByte(values[0]))
                 : OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[1]), ToColorByte(values[2]));
         }
-        return new PdfPageSoftMaskResource(group, mode, backdrop);
+        return new PdfPageSoftMaskResource(group, mode, backdrop, parentResources);
     }
 
     private PdfObject? ResolveEffectObject(PdfObject? value) {
@@ -95,7 +95,7 @@ public sealed partial class PdfReadPage {
         PdfPageSoftMaskResource? resource,
         Matrix2D groupTransform,
         PageContentBudget pageContentBudget,
-        Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int> validatedGroups,
+        Dictionary<(PdfStream Group, PdfDictionary? ParentResources, Matrix2D Transform, double Width, double Height), int> validatedGroups,
         Type3GlyphBudget type3GlyphBudget,
         int contentNestingDepth,
         HashSet<PdfStream>? activeType3Glyphs = null,
@@ -125,7 +125,7 @@ public sealed partial class PdfReadPage {
         PdfPageSoftMaskResource? resource,
         Matrix2D groupTransform,
         PageContentBudget pageContentBudget,
-        Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int> validatedGroups,
+        Dictionary<(PdfStream Group, PdfDictionary? ParentResources, Matrix2D Transform, double Width, double Height), int> validatedGroups,
         Type3GlyphBudget type3GlyphBudget,
         HashSet<PdfStream> activeGroups,
         HashSet<PdfStream> activeForms,
@@ -139,7 +139,7 @@ public sealed partial class PdfReadPage {
         EnsureContentNestingBudget(contentNestingDepth);
         nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
         Matrix2D effectiveGroupTransform = ApplyFormMatrix(groupTransform, resource.Group.Dictionary);
-        var cacheKey = (resource.Group, effectiveGroupTransform, projectionPageWidth, projectionPageHeight);
+        var cacheKey = (resource.Group, resource.ParentResources, effectiveGroupTransform, projectionPageWidth, projectionPageHeight);
         if (validatedGroups.TryGetValue(cacheKey, out int cachedNestingSpan)) {
             int cachedMaximumDepth = contentNestingDepth + cachedNestingSpan;
             EnsureContentNestingBudget(cachedMaximumDepth);
@@ -152,11 +152,10 @@ public sealed partial class PdfReadPage {
             string content = WrapFormContentWithBoundingBoxClip(
                 PdfEncoding.Latin1GetString(pageContentBudget.Decode(resource.Group)),
                 resource.Group.Dictionary);
-            PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
             PdfDictionary? resources = ResolveDictionary(
                 resource.Group.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject)
                     ? resourceObject
-                    : null) ?? pageResources;
+                    : null) ?? resource.ParentResources ?? ResolveDictionary(GetInheritedValue("Resources"));
             var groupNestingDepth = new SoftMaskNestingDepth(contentNestingDepth);
             bool supported = CanDecodeType3SoftMasksInContent(
                 content,
@@ -197,7 +196,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources,
         Matrix2D baseTransform,
         PageContentBudget pageContentBudget,
-        Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int> validatedGroups,
+        Dictionary<(PdfStream Group, PdfDictionary? ParentResources, Matrix2D Transform, double Width, double Height), int> validatedGroups,
         Type3GlyphBudget type3GlyphBudget,
         HashSet<PdfStream> activeGroups,
         HashSet<PdfStream> activeForms,
@@ -383,8 +382,8 @@ public sealed partial class PdfReadPage {
             unsupportedTextVisitor: () => {
                 if (!currentOrdinaryFontSupported) supported = false;
             },
-            ordinaryTextPaintVisitor: (channels, _, _) => {
-                if (channels != PdfType3PaintChannels.Fill) supported = false;
+            ordinaryTextPaintVisitor: (channels, _, _, addsToClip) => {
+                if (addsToClip || channels != PdfType3PaintChannels.Fill) supported = false;
             },
             unsupportedGraphicsEffectVisitor: () => supported = false,
             unsupportedColorVisitor: () => supported = false,
@@ -725,18 +724,18 @@ public sealed partial class PdfReadPage {
         double width,
         double height,
         Matrix2D pageTransform,
-        Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask> cache,
+        Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask> cache,
         HashSet<PdfStream> active,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget) {
-        var cacheKey = (resource.Group, resource.Mode, resource.BackdropColor, pageTransform, width, height);
+        var cacheKey = (resource.Group, resource.ParentResources, resource.Mode, resource.BackdropColor, pageTransform, width, height);
         if (cache.TryGetValue(cacheKey, out OfficeDrawingSoftMask? existing)) return existing;
         if (!active.Add(resource.Group)) {
             return new OfficeDrawingSoftMask(new OfficeDrawing(width, height), resource.Mode, backdropColor: resource.BackdropColor);
         }
         try {
-            OfficeDrawing drawing = CreateFormDrawing(resource.Group, width, height, pageTransform, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget);
+            OfficeDrawing drawing = CreateFormDrawing(resource.Group, resource.ParentResources, width, height, pageTransform, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget);
             var mask = new OfficeDrawingSoftMask(drawing, resource.Mode, backdropColor: resource.BackdropColor);
             cache[cacheKey] = mask;
             return mask;
@@ -747,17 +746,20 @@ public sealed partial class PdfReadPage {
 
     private OfficeDrawing CreateFormDrawing(
         PdfStream form,
+        PdfDictionary? fallbackResources,
         double width,
         double height,
         Matrix2D pageTransform,
-        Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask> softMasks,
+        Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask> softMasks,
         HashSet<PdfStream> activeSoftMasks,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget) {
         var drawing = new OfficeDrawing(width, height);
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
-        PdfDictionary? resources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? pageResources;
+        PdfDictionary? resources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ??
+            fallbackResources ??
+            pageResources;
         RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
         string content = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)), form.Dictionary);
         if (content.Length == 0) return drawing;

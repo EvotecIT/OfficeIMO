@@ -230,6 +230,9 @@ public sealed partial class PdfReadPage {
         var elements = new List<PdfPageDrawingElement>();
         var primitives = new List<PdfPageVisualPrimitive>();
         var renderedType3PaintOrders = new HashSet<double>();
+        Type3SoftMaskValidationContext? softMaskValidation = requireSupportedType3Content
+            ? type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this)
+            : null;
         CollectVisualPrimitivesAndForms(
             content,
             resources,
@@ -248,6 +251,22 @@ public sealed partial class PdfReadPage {
             type3ImageVisitor: (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
             type3PrimitiveVisitor: (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
             type3GroupVisitor: (group, transform, paintOrder, key, effect) => elements.Add(PdfPageDrawingElement.FromGroup(group, transform, paintOrder, key, elements.Count).WithEffect(effect)),
+            graphicsStateVisitor: softMaskValidation == null
+                ? null
+                : (state, stateTransform) => {
+                    if (!CanDecodeType3SoftMask(
+                            state.SoftMask,
+                            stateTransform,
+                            softMaskValidation.PageContentBudget,
+                            softMaskValidation.ValidatedGroups,
+                            softMaskValidation.Type3GlyphBudget,
+                            contentNestingDepth + 1,
+                            projectionPageWidth: width,
+                            projectionPageHeight: height,
+                            textOutputBudget: softMaskValidation.TextOutputBudget)) {
+                        type3GlyphBudget.RecordFailure();
+                    }
+                },
             textOutputBudget: textOutputBudget,
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: PdfContentOrderKey.Root);
@@ -303,7 +322,7 @@ public sealed partial class PdfReadPage {
         SortGraphicsEffectTransitions(enclosingEffects);
         OverlayDrawingEffects(elements, enclosingEffects);
         SortDrawingElements(elements);
-        var softMasks = new Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
+        var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
         var activeSoftMasks = new HashSet<PdfStream>();
         for (int i = 0; i < elements.Count; i++) {
             AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);

@@ -52,8 +52,8 @@ public sealed partial class PdfReadPage {
 
         internal PageContentBudget PageContentBudget { get; }
 
-        internal Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int> ValidatedGroups { get; } =
-            new Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int>();
+        internal Dictionary<(PdfStream Group, PdfDictionary? ParentResources, Matrix2D Transform, double Width, double Height), int> ValidatedGroups { get; } =
+            new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, Matrix2D Transform, double Width, double Height), int>();
 
         internal Type3GlyphBudget Type3GlyphBudget { get; }
 

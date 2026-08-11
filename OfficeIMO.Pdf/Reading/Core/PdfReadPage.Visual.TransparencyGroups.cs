@@ -260,7 +260,7 @@ public sealed partial class PdfReadPage {
         SortDrawingElements(elements);
 
         var contentDrawing = new OfficeDrawing(localPageWidth, localPageHeight);
-        var softMasks = new Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
+        var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
         var activeSoftMasks = new HashSet<PdfStream>();
         TextContentParser.TextOutputBudget outputBudget = textOutputBudget ?? CreateTextOutputBudget();
         for (int i = 0; i < elements.Count; i++) {

@@ -18,7 +18,7 @@ public sealed partial class PdfReadPage {
 
         List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget);
         IReadOnlyList<PdfPageDrawingEffectTransition> effects = GetGraphicsEffectTransitions(pageTransform, size.Height, pageContentBudget);
-        var softMasks = new Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
+        var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
         var activeSoftMasks = new HashSet<PdfStream>();
         for (int i = 0; i < pageElements.Count; i++) {
             PdfPageDrawingElement element = pageElements[i].WithEffect(
@@ -122,7 +122,7 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         Matrix2D pageTransform,
         PdfPageDrawingElement element,
-        Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask> softMasks,
+        Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask> softMasks,
         HashSet<PdfStream> activeSoftMasks,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
@@ -498,6 +498,7 @@ public sealed partial class PdfReadPage {
         Action<PdfImagePlacement, PdfExtractedImage, PdfPageDrawingEffect>? type3ImageVisitor = null,
         Action<PdfPageVisualPrimitive, PdfPageDrawingEffect>? type3PrimitiveVisitor = null,
         Action<OfficeDrawing, OfficeTransform, double, PdfContentOrderKey?, PdfPageDrawingEffect>? type3GroupVisitor = null,
+        Action<PdfPageGraphicsStateResource, Matrix2D>? graphicsStateVisitor = null,
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
@@ -693,6 +694,7 @@ public sealed partial class PdfReadPage {
                       authoredPatternInvocationVisitor: requireNestedType3Uncolored
                           ? _ => type3GlyphBudget.RecordFailure()
                           : null,
+                      graphicsStateVisitor: graphicsStateVisitor,
                       allowSupportedGraphicsEffects: requireSupportedType3Content,
                       patternBaseColorSpaces: patternBaseColorSpaces,
                       initialFillPattern: initialFillPattern,
@@ -856,6 +858,7 @@ public sealed partial class PdfReadPage {
                     type3ImageVisitor: type3ImageVisitor,
                     type3PrimitiveVisitor: type3PrimitiveVisitor,
                     type3GroupVisitor: type3GroupVisitor,
+                    graphicsStateVisitor: graphicsStateVisitor,
                     tilingPatternResourceCache: tilingPatternResourceCache,
                     textOutputBudget: textOutputBudget,
                     pageContentBudget: pageContentBudget,
@@ -1230,7 +1233,7 @@ public sealed partial class PdfReadPage {
             OfficeBlendMode? blendMode = ReadBlendMode(state);
             bool hasUnsupportedBlendMode = state.Items.ContainsKey("BM") && !blendMode.HasValue;
             bool hasSoftMask = state.Items.ContainsKey("SMask");
-            PdfPageSoftMaskResource? softMask = hasSoftMask ? ReadSoftMask(state) : null;
+            PdfPageSoftMaskResource? softMask = hasSoftMask ? ReadSoftMask(state, resources) : null;
             bool clearsSoftMask = hasSoftMask &&
                 state.Items.TryGetValue("SMask", out PdfObject? authoredSoftMask) &&
                 ResolveEffectObject(authoredSoftMask) is PdfName { Name: "None" };
@@ -1552,7 +1555,7 @@ public sealed partial class PdfReadPage {
             OverlayDrawingEffects(elements, appearanceEffects);
 
             SortDrawingElements(elements);
-            var appearanceSoftMasks = new Dictionary<(PdfStream Group, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
+            var appearanceSoftMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
             var activeAppearanceSoftMasks = new HashSet<PdfStream>();
             for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
                 AddDrawingElement(drawing, pageHeight, appearanceTransform, elements[elementIndex], appearanceSoftMasks, activeAppearanceSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);
