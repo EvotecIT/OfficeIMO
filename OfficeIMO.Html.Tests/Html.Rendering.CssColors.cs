@@ -32,4 +32,32 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("#0066cc", svg, StringComparison.OrdinalIgnoreCase);
         Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToPng(options));
     }
+
+    [Fact]
+    public void HtmlRenderer_UsesSharedCssColorLevelFourPaintAcrossTheSceneAndExporters() {
+        const string html = "<div id='modern-color' style='width:30px;height:14px;"
+            + "background:color-mix(in srgb, red 25%, blue);border:2px solid hwb(120 0% 0% / 50%)'>Color</div>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 60D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            options);
+        HtmlRenderShape fill = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            item => item.Source == "div#modern-color" && item.Shape.FillColor.HasValue);
+        HtmlRenderShape border = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            item => item.Source == "div#modern-color" && item.Shape.StrokeColor.HasValue);
+        string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
+
+        Assert.Equal(OfficeColor.FromRgb(64, 0, 191), fill.Shape.FillColor);
+        Assert.Equal(OfficeColor.FromRgba(0, 255, 0, 128), border.Shape.StrokeColor);
+        Assert.Contains("#4000bf", svg, StringComparison.OrdinalIgnoreCase);
+        Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToPng(options));
+    }
 }

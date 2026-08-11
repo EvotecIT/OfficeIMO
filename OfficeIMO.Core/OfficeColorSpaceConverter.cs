@@ -18,6 +18,24 @@ public static class OfficeColorSpaceConverter {
         return OfficeColor.FromRgb(ToByte((1D - c) * (1D - k)), ToByte((1D - m) * (1D - k)), ToByte((1D - y) * (1D - k)));
     }
 
+    /// <summary>Converts linear-light sRGB components to encoded sRGB.</summary>
+    public static OfficeColor FromLinearSrgb(double red, double green, double blue) =>
+        OfficeColor.FromRgb(ToSrgbByte(red), ToSrgbByte(green), ToSrgbByte(blue));
+
+    /// <summary>Converts OKLab coordinates to encoded sRGB.</summary>
+    public static OfficeColor FromOklab(double lightness, double a, double b) {
+        double lRoot = lightness + (0.3963377774D * a) + (0.2158037573D * b);
+        double mRoot = lightness - (0.1055613458D * a) - (0.0638541728D * b);
+        double sRoot = lightness - (0.0894841775D * a) - (1.291485548D * b);
+        double l = lRoot * lRoot * lRoot;
+        double m = mRoot * mRoot * mRoot;
+        double s = sRoot * sRoot * sRoot;
+        return FromLinearSrgb(
+            (4.0767416621D * l) - (3.3077115913D * m) + (0.2309699292D * s),
+            (-1.2684380046D * l) + (2.6097574011D * m) - (0.3413193965D * s),
+            (-0.0041960863D * l) - (0.7034186147D * m) + (1.707614701D * s));
+    }
+
     /// <summary>Converts CIE L*a*b* using the D50 reference white to sRGB.</summary>
     public static OfficeColor FromLab(double lightness, double a, double b) =>
         FromLab(lightness, a, b, 0.96422D, 1D, 0.82521D);

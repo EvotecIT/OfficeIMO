@@ -7,7 +7,7 @@ public readonly partial struct OfficeColor {
     private const int MaximumCssColorLength = 256;
 
     /// <summary>
-    /// Parses a CSS named, hexadecimal, rgb(), rgba(), hsl(), or hsla() color.
+    /// Parses a CSS named, hexadecimal, legacy, or CSS Color Level 4 color.
     /// Both legacy comma syntax and modern space/slash syntax are accepted.
     /// </summary>
     public static OfficeColor ParseCss(string value) {
@@ -16,12 +16,15 @@ public readonly partial struct OfficeColor {
     }
 
     /// <summary>
-    /// Tries to parse a CSS named, hexadecimal, rgb(), rgba(), hsl(), or hsla() color.
+    /// Tries to parse a CSS named, hexadecimal, legacy, or CSS Color Level 4 color.
     /// Out-of-range numeric channels are clamped as required by CSS color serialization.
     /// </summary>
-    public static bool TryParseCss(string? value, out OfficeColor color) {
+    public static bool TryParseCss(string? value, out OfficeColor color) =>
+        TryParseCss(value, 0, out color);
+
+    private static bool TryParseCss(string? value, int depth, out OfficeColor color) {
         color = default;
-        if (string.IsNullOrWhiteSpace(value) || value!.Length > MaximumCssColorLength) return false;
+        if (depth > 8 || string.IsNullOrWhiteSpace(value) || value!.Length > MaximumCssColorLength) return false;
 
         string normalized = value.Trim();
         if (normalized[0] == '#') return TryParseHex(normalized, out color);
@@ -34,6 +37,13 @@ public readonly partial struct OfficeColor {
         if (name == "hsl" || name == "hsla") {
             return TryParseHsl(arguments, out color);
         }
+        if (name == "hwb") return TryParseHwb(arguments, out color);
+        if (name == "lab") return TryParseLab(arguments, cylindrical: false, perceptual: false, out color);
+        if (name == "lch") return TryParseLab(arguments, cylindrical: true, perceptual: false, out color);
+        if (name == "oklab") return TryParseLab(arguments, cylindrical: false, perceptual: true, out color);
+        if (name == "oklch") return TryParseLab(arguments, cylindrical: true, perceptual: true, out color);
+        if (name == "color") return TryParseColorFunction(arguments, out color);
+        if (name == "color-mix") return TryParseColorMix(arguments, depth + 1, out color);
         return false;
     }
 
@@ -41,10 +51,21 @@ public readonly partial struct OfficeColor {
         name = string.Empty;
         arguments = string.Empty;
         int open = value.IndexOf('(');
-        if (open <= 0 || value[value.Length - 1] != ')' || value.IndexOf('(', open + 1) >= 0) return false;
+        if (open <= 0 || value[value.Length - 1] != ')') return false;
+        int depth = 0;
+        for (int index = open; index < value.Length; index++) {
+            if (value[index] == '(') {
+                depth++;
+                if (depth > 8) return false;
+            } else if (value[index] == ')') {
+                depth--;
+                if (depth < 0 || depth == 0 && index != value.Length - 1) return false;
+            }
+        }
+        if (depth != 0) return false;
         name = value.Substring(0, open).Trim().ToLowerInvariant();
         arguments = value.Substring(open + 1, value.Length - open - 2).Trim();
-        return arguments.Length > 0 && arguments.IndexOf(')') < 0;
+        return arguments.Length > 0;
     }
 
     private static bool TryParseRgb(string arguments, out OfficeColor color) {
