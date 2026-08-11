@@ -12,6 +12,7 @@ Run a focused group when you are checking one package:
 
 ```powershell
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --pdf-showcase
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --html-renderer-gallery
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --visio-showcase
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --opendocument
@@ -24,6 +25,7 @@ dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- 
 - `--pdf-professional`: generate a professional `OfficeIMO.Pdf` report sample.
 - `--pdf-table-styles`: generate the Word-like table style gallery.
 - `--pdf-showcase`: generate richer statement, dashboard, and manipulation PDF samples.
+- `--html-renderer-gallery`: generate matching HTML, searchable interactive PDF, PNG, and SVG renderer proof.
 - `--powerpoint`: run PowerPoint examples.
 - `--opendocument`: generate native ODT/ODS/ODP, flat XML, formula, tracked-change, animation, and explicit conversion examples.
 - `--onenote`: generate a native `.one` section and `.onepkg`, reopen them offline, and emit Markdown, HTML, PDF, and Reader projections.

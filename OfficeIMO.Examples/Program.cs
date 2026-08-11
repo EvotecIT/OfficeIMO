@@ -223,6 +223,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--html-renderer-gallery")) {
+                Html.Html.Example_HtmlManagedRendererGallery(folderPath, HasArgument(args, "--open-pdf"));
+                return;
+            }
+
             if (HasArgument(args, "--pdf-professional")) {
                 Pdf.ProfessionalReportPdf.Example_Pdf_ProfessionalReport(folderPath, false);
                 return;

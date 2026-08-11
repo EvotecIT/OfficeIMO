@@ -7,6 +7,7 @@
     { "id": "powershell", "label": "PowerShell" },
     { "id": "create", "label": "Create" },
     { "id": "convert", "label": "Convert" },
+    { "id": "render", "label": "Render" },
     { "id": "extract", "label": "Extract" },
     { "id": "validate", "label": "Validate" }
   ],
@@ -77,6 +78,29 @@
       "source_url": "https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Examples/Pdf/Pdf.ShowcaseDashboard.cs",
       "guide_url": "/docs/pdf/authoring/",
       "api_url": "/api/pdf/"
+    },
+    {
+      "format": "HTML renderer",
+      "tags": "dotnet create convert render validate",
+      "badge_tags": [".NET", "Render", "Validate"],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/html/managed-renderer-gallery.png",
+      "image_width": 1123,
+      "image_height": 794,
+      "image_alt": "OfficeIMO managed HTML renderer field guide generated as a PNG from the same scene as the interactive PDF and vector SVG",
+      "title": "Managed HTML renderer field guide",
+      "description": "Render one stylesheet-authored document through a bounded managed pipeline with layered CSS, document layout, vector paint, MathML, and native PDF fields.",
+      "input": "HTML + CSS + policy",
+      "output": "PDF / PNG / SVG",
+      "proof": "The HTML, PDF, PNG, and SVG are emitted by one runnable example. The PDF retains searchable text, named page-margin content, vector gradients, MathML, and four AcroForm fields.",
+      "limit": "This is a deterministic document renderer, not a JavaScript or browser runtime. Advanced print-production features such as page floats, footnotes, cross-references, and crop or bleed marks remain outside this proof.",
+      "artifact_url": "/downloads/showcase/html/managed-renderer-gallery.pdf",
+      "artifact_label": "Download interactive PDF",
+      "evidence_url": "/downloads/showcase/html/managed-renderer-gallery.svg",
+      "evidence_label": "Open vector SVG proof",
+      "source_url": "https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Examples/Converters/Html/HtmlManagedRendererGallery.cs",
+      "guide_url": "/docs/html/render-and-convert/",
+      "api_url": "/api/html/"
     },
     {
       "format": "HTML",
