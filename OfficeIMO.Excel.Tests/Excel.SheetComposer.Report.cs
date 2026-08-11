@@ -426,6 +426,86 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Composer_TableFrom_ManagedSvgPreservesDirectHeaderGradientFill() {
+            using var doc = ExcelDocument.Create();
+            ExcelSheet? report = null;
+            doc.Compose("Report", c => {
+                report = c.Sheet;
+                c.TableFrom(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
+                c.Finish(autoFitColumns: false);
+            });
+            report!.CellAt(1, 1).SetGradientFill("C00000", "00A000", 45D);
+
+            ExcelRangeVisualSnapshot snapshot = report.Range("A1:B2").CreateVisualSnapshot();
+            string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+
+            ExcelVisualCell header = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1);
+            Assert.Equal("FFC00000", header.Style.FillGradientStartColorArgb);
+            Assert.Equal("FF00A000", header.Style.FillGradientEndColorArgb);
+            Assert.Equal(45D, header.Style.FillGradientDegree);
+            Assert.Contains("xl-gradient-1-1", svg, StringComparison.Ordinal);
+            Assert.Contains("stop-color=\"#C00000\"", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("stop-color=\"#00A000\"", svg, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Composer_TableFrom_ManagedSvgProjectsLightTableHeaderBorder() {
+            using var doc = ExcelDocument.Create();
+            ExcelSheet? report = null;
+            doc.Compose("Report", c => {
+                report = c.Sheet;
+                c.TableFrom(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleLight1);
+                c.Finish(autoFitColumns: false);
+            });
+
+            ExcelRangeVisualSnapshot snapshot = report!.Range("A1:B2").CreateVisualSnapshot();
+            string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            string borderArgb = Assert.IsType<string>(doc.ResolveThemeColorArgb(0U, -0.35D));
+            string expectedBorder = borderArgb.Substring(borderArgb.Length - 6);
+
+            ExcelVisualCell header = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1);
+            Assert.Equal(expectedBorder, header.Style.Border?.Bottom?.ColorArgb, ignoreCase: true);
+            Assert.Contains($"stroke=\"#{expectedBorder}\"", svg, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Composer_TableFrom_ManagedSvgPreservesDirectHeaderBorder() {
+            using var doc = ExcelDocument.Create();
+            ExcelSheet? report = null;
+            doc.Compose("Report", c => {
+                report = c.Sheet;
+                c.TableFrom(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleLight1);
+                c.Finish(autoFitColumns: false);
+            });
+            report!.CellAt(1, 1).SetBorder(ExcelBorderStyle.Double, "C00000");
+
+            ExcelRangeVisualSnapshot snapshot = report.Range("A1:B2").CreateVisualSnapshot();
+            string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+
+            ExcelVisualCell header = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1);
+            Assert.Equal("double", header.Style.Border?.Bottom?.Style);
+            Assert.Equal("FFC00000", header.Style.Border?.Bottom?.ColorArgb);
+            Assert.Contains("stroke=\"#C00000\"", svg, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void TableHeaderVisualStyleResolver_PreservesDirectPatternFill() {
+            var directStyle = new ExcelCellStyleSnapshot {
+                StyleIndex = 1U,
+                FillPatternType = "darkGrid",
+                FillPatternForegroundColorArgb = "FFC00000",
+                FillPatternBackgroundColorArgb = "FFFFE5E5"
+            };
+            var tableStyle = new ExcelTableHeaderVisualStyle("FF4472C4", "FFFFFFFF", bold: true, borderColorArgb: "FF4472C4");
+
+            ExcelCellStyleSnapshot resolved = ExcelTableHeaderVisualStyleResolver.Apply(directStyle, tableStyle);
+
+            Assert.Equal("darkGrid", resolved.FillPatternType);
+            Assert.Equal("FFC00000", resolved.FillPatternForegroundColorArgb);
+            Assert.Equal("FFFFE5E5", resolved.FillPatternBackgroundColorArgb);
+        }
+
+        [Fact]
         public void Composer_TableFrom_ManagedSvgPreservesNonBoldDarkHeaderContract() {
             using var doc = ExcelDocument.Create();
             ExcelSheet? report = null;
