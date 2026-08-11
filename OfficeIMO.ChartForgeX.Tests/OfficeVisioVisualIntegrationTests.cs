@@ -56,6 +56,24 @@ public sealed class OfficeVisioVisualIntegrationTests {
     }
 
     [Fact]
+    public void DetailLabelsCannotOverwriteReservedShapeDataFields() {
+        VisualArtifactInterchangeEnvelope envelope = CreateTopologyEnvelope();
+        envelope.Nodes.Single(node => node.Id == "api").Details.Add(new VisualArtifactInterchangeDetail {
+            Label = "Icon",
+            Value = "Redis"
+        });
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
+
+        VisioShape api = result.Page.Shapes.Single(shape => shape.Id == "api");
+        Assert.Equal("Redis", api.GetShapeDataValue("Detail.2.Field.Icon"));
+        Assert.Null(api.GetShapeDataValue("Detail.2.Icon"));
+        Assert.Equal("Icon", api.GetShapeDataValue("Detail.2.Label"));
+        Assert.Equal("Redis", api.GetShapeDataValue("Detail.2.Value"));
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("Detail.2.Field.Icon") && warning.Contains("reserved"));
+    }
+
+    [Fact]
     public void SequenceEnvelopeCreatesNativeParticipantsMessagesActivationsNotesAndFragments() {
         var envelope = new VisualArtifactInterchangeEnvelope {
             Id = "checkout",
@@ -429,7 +447,10 @@ public sealed class OfficeVisioVisualIntegrationTests {
     [Fact]
     public void SequenceProjectionPreservesExplicitMessageLineStylesAndReportsUnsupportedTokens() {
         var envelope = new VisualArtifactInterchangeEnvelope { Id = "styled-sequence", Kind = VisualArtifactKind.Sequence };
-        envelope.Nodes.Add(Participant("caller", "Caller", "Actor", 0));
+        VisualArtifactInterchangeNode caller = Participant("caller", "Caller", "Actor", 0);
+        caller.Color = "#123456";
+        caller.BackgroundColor = "#ABCDEF";
+        envelope.Nodes.Add(caller);
         envelope.Nodes.Add(Participant("service", "Service", "Control", 1));
         envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "solid", SourceId = "caller", TargetId = "service", Label = "Solid", Order = 0, LineStyle = "Solid" });
         envelope.Edges.Add(new VisualArtifactInterchangeEdge { Id = "dashed", SourceId = "service", TargetId = "caller", Label = "Dashed", Order = 1, LineStyle = "Dashed" });
@@ -442,6 +463,8 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Equal(2, result.Page.Connectors.Single(connector => connector.Id == "dashed").LinePattern);
         Assert.Equal(3, result.Page.Connectors.Single(connector => connector.Id == "dotted").LinePattern);
         Assert.Equal(Color.Parse("#336699"), result.Page.Connectors.Single(connector => connector.Id == "dotted").LineColor);
+        Assert.Equal(Color.Parse("#123456"), result.Page.Shapes.Single(shape => shape.Id == "caller").LineColor);
+        Assert.Equal(Color.Parse("#ABCDEF"), result.Page.Shapes.Single(shape => shape.Id == "caller").FillColor);
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("LongDash") && warning.Contains("native Visio theme pattern"));
 
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
@@ -451,6 +474,8 @@ public sealed class OfficeVisioVisualIntegrationTests {
             VisioDocument loaded = VisioDocument.Load(path);
             Assert.Equal(3, loaded.Pages[0].Connectors.Single(connector => connector.Id == "dotted").LinePattern);
             Assert.Equal(Color.Parse("#336699"), loaded.Pages[0].Connectors.Single(connector => connector.Id == "dotted").LineColor);
+            Assert.Equal(Color.Parse("#123456"), loaded.Pages[0].Shapes.Single(shape => shape.Id == "caller").LineColor);
+            Assert.Equal(Color.Parse("#ABCDEF"), loaded.Pages[0].Shapes.Single(shape => shape.Id == "caller").FillColor);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -524,6 +549,31 @@ public sealed class OfficeVisioVisualIntegrationTests {
 
         Assert.True(fitted.Page.Width < natural.Page.Width);
         Assert.True(natural.Page.Width >= 9D);
+    }
+
+    [Theory]
+    [InlineData("LeftToRight")]
+    [InlineData("TopToBottom")]
+    public void CompactGraphNaturalViewportGrowsOnlyToContentAndCentersIt(string direction) {
+        var envelope = new VisualArtifactInterchangeEnvelope {
+            Id = "compact-graph",
+            Kind = VisualArtifactKind.Topology,
+            Direction = direction,
+            Width = 192,
+            Height = 144
+        };
+        envelope.Nodes.Add(new VisualArtifactInterchangeNode { Id = "service", Label = "Service" });
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions {
+            UseNaturalPageSize = true,
+            PixelsPerInch = 96D
+        });
+
+        Assert.InRange(result.Page.Width, 3.2D, 3.5D);
+        Assert.InRange(result.Page.Height, 2.4D, 2.7D);
+        VisioShapeBounds bounds = result.Page.GetContentBounds();
+        Assert.True(Math.Abs(bounds.CenterX - result.Page.Width / 2D) < 0.001D);
+        Assert.True(Math.Abs(bounds.CenterY - result.Page.Height / 2D) < 0.001D);
     }
 
     [Fact]
