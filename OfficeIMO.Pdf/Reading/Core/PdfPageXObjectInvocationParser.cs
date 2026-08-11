@@ -1076,8 +1076,12 @@ internal static class PdfPageXObjectInvocationParser {
                         PdfType3PaintChannels channels = IsCurrentPaintSuppressedBySoftMask()
                             ? PdfType3PaintChannels.None
                             : ResolveVisibleInlineImagePaintChannels();
+                        bool consumesFillColor =
+                            channels != PdfType3PaintChannels.None &&
+                            _currentInlineImage.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) &&
+                            imageMaskObject is PdfBoolean { Value: true };
                         PublishDeferredPatternUse(
-                            fill: channels != PdfType3PaintChannels.None,
+                            fill: consumesFillColor,
                             stroke: false);
                         if (channels != PdfType3PaintChannels.None) PublishActiveGraphicsEffectUse();
                         var stream = new PdfStream(_currentInlineImage.Dictionary, _currentInlineImage.Data);
