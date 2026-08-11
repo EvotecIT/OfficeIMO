@@ -151,6 +151,36 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingSvgExporter_AppliesExpansionLimitPerSiblingPattern() {
+        var tile = new OfficeDrawing(1D, 1D);
+        OfficeShape square = OfficeShape.Rectangle(1D, 1D);
+        square.FillColor = OfficeColor.Red;
+        square.StrokeWidth = 0D;
+        tile.AddShape(square, 0D, 0D);
+        var drawing = new OfficeDrawing(6D, 2D);
+        drawing.AddTilingPattern(
+            tile,
+            new OfficeImagePlacement(0D, 0D, 6D, 1D),
+            1D,
+            1D,
+            repeatX: true,
+            repeatY: false,
+            maximumTileCount: 10);
+        drawing.AddTilingPattern(
+            tile,
+            new OfficeImagePlacement(0D, 1D, 6D, 1D),
+            1D,
+            1D,
+            repeatX: true,
+            repeatY: false,
+            maximumTileCount: 10);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Equal(2, CountOccurrences(svg, "<clipPath id=\"officeimo-pattern-clip-"));
+    }
+
+    [Fact]
     public void OfficeDrawingSvgExporter_SkipsTransparentNestedTilingBeforeExpansionBudget() {
         var leaf = new OfficeDrawing(1D, 1D);
         OfficeShape square = OfficeShape.Rectangle(1D, 1D);

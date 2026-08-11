@@ -678,8 +678,7 @@ public sealed partial class PdfReadPage {
                         seen,
                         surfaceWidth,
                         surfaceHeight);
-                    if ((!requireImageMask && invocation.FillPattern.HasValue && !HasUsableInheritedPattern(invocation.FillPattern)) ||
-                        !canProjectImage) supported = false;
+                    if (!canProjectImage) supported = false;
                     continue;
                 }
                 if (!TryGetFormStream(resources, invocation.Name, out PdfStream form)) {
