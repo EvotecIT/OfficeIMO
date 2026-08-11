@@ -556,6 +556,11 @@ public partial class WordRtfConverterTests {
         RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
 
         Assert.NotNull(conversion.Value);
+        RtfConversionDiagnostic diagnostic = Assert.Single(
+            conversion.Report.Diagnostics,
+            item => item.Code == "WordRtfImagesOmitted");
+        Assert.Equal(1, diagnostic.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
     }
 
     [Fact]

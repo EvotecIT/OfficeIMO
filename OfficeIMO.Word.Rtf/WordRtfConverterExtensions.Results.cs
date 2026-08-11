@@ -272,8 +272,8 @@ public static partial class WordRtfConverterExtensions {
         int omittedImageCount = 0;
         int normalizedImageCount = 0;
         int flattenedAnimationCount = 0;
-        foreach ((WordImage Image, bool OmittedByConverter) candidate in EnumerateWordImageCandidates(document, storyRoots)) {
-            if (candidate.OmittedByConverter) {
+        foreach ((WordImage? Image, bool OmittedByConverter) candidate in EnumerateWordImageCandidates(document, storyRoots)) {
+            if (candidate.OmittedByConverter || candidate.Image == null) {
                 omittedImageCount++;
                 continue;
             }
@@ -342,7 +342,7 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static IEnumerable<(WordImage Image, bool OmittedByConverter)> EnumerateWordImageCandidates(
+    private static IEnumerable<(WordImage? Image, bool OmittedByConverter)> EnumerateWordImageCandidates(
         WordDocument document,
         IEnumerable<WordStoryRootCandidate> storyRoots) {
         var visitedParagraphs = new HashSet<Paragraph>();
@@ -355,11 +355,52 @@ public static partial class WordRtfConverterExtensions {
                 foreach ((Run Run, bool OmittedByConverter) runCandidate in EnumerateConvertibleWordRunsWithFieldState(paragraph)) {
                     if (!visitedRuns.Add(runCandidate.Run)) continue;
                     var candidate = new WordParagraph(document, paragraph, runCandidate.Run);
-                    if (!TryEnumerateImages(candidate, out IReadOnlyList<WordImage> images)) continue;
+                    if (!TryEnumerateImages(candidate, out IReadOnlyList<WordImage> images)) {
+                        int unavailableImages = Math.Max(1, CountImageElements(runCandidate.Run));
+                        for (int index = 0; index < unavailableImages; index++) {
+                            yield return (null, true);
+                        }
+                        continue;
+                    }
                     foreach (WordImage image in images) {
                         yield return (image, paragraphOmitted || runCandidate.OmittedByConverter);
                     }
                 }
+            }
+        }
+    }
+
+    private static int CountImageElements(Run run) {
+        int count = 0;
+        foreach (OpenXmlElement element in EnumerateEffectiveRunContent(run)) {
+            IEnumerable<DocumentFormat.OpenXml.Wordprocessing.Drawing> drawings =
+                element is DocumentFormat.OpenXml.Wordprocessing.Drawing directDrawing
+                    ? new[] { directDrawing }
+                    : element.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>();
+            count += drawings.Count(drawing =>
+                drawing.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Any());
+
+            IEnumerable<DocumentFormat.OpenXml.Vml.Shape> shapes =
+                element is DocumentFormat.OpenXml.Vml.Shape directShape
+                    ? new[] { directShape }
+                    : element.Descendants<DocumentFormat.OpenXml.Vml.Shape>();
+            count += shapes.Count(shape =>
+                shape.GetFirstChild<DocumentFormat.OpenXml.Vml.ImageData>() != null);
+        }
+        return count;
+    }
+
+    private static IEnumerable<OpenXmlElement> EnumerateEffectiveRunContent(Run run) {
+        foreach (OpenXmlElement child in run.ChildElements) {
+            if (child is not AlternateContent alternateContent) {
+                yield return child;
+                continue;
+            }
+
+            OpenXmlCompositeElement? branch = WordAlternateContentResolver.SelectBranch(alternateContent);
+            if (branch == null) continue;
+            foreach (OpenXmlElement branchChild in branch.ChildElements) {
+                yield return branchChild;
             }
         }
     }
