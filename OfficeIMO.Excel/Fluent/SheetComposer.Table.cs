@@ -71,10 +71,6 @@ namespace OfficeIMO.Excel.Fluent {
                 _row++;
             }
             Sheet.CellValues(cells);
-            for (int i = 0; i < paths.Count; i++) {
-                Sheet.CellBold(headerRow, i + 1, true);
-                Sheet.CellBackground(headerRow, i + 1, _theme.KeyFillHex);
-            }
 
             int lastRow = _row - 1;
             string start = $"A{headerRow}";
