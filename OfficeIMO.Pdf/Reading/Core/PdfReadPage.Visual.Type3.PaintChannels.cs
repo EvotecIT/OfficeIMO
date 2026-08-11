@@ -298,8 +298,8 @@ public sealed partial class PdfReadPage {
                 pageHeight,
                 cache,
                 activeStreams,
-                validation.PageContentBudget,
-                validation.Type3GlyphBudget,
+                validation.TransparencyProofPageContentBudget,
+                validation.TransparencyProofType3GlyphBudget,
                 depth);
             if (channels == PdfType3PaintChannels.None) return true;
             return softMask.Mode == OfficeSoftMaskMode.Luminosity &&
@@ -309,8 +309,8 @@ public sealed partial class PdfReadPage {
                        pageWidth,
                        pageHeight,
                        cache,
-                       validation.PageContentBudget,
-                       validation.Type3GlyphBudget);
+                       validation.TransparencyProofPageContentBudget,
+                       validation.TransparencyProofType3GlyphBudget);
         } finally {
             cache.ActiveSoftMaskTransparencyProofs.Remove(softMask.Group);
         }
