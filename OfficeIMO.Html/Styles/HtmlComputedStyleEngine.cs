@@ -22,6 +22,7 @@ public static partial class HtmlComputedStyleEngine {
         "line-height",
         "list-style",
         "list-style-type",
+        "tab-size",
         "orphans",
         "page",
         "text-align",
@@ -171,8 +172,10 @@ public static partial class HtmlComputedStyleEngine {
         "right",
         "row-gap",
         "string-set",
+        "tab-size",
         "text-align",
         "text-decoration-line",
+        "text-overflow",
         "text-transform",
         "table-layout",
         "transform",
@@ -184,6 +187,8 @@ public static partial class HtmlComputedStyleEngine {
         "width",
         "widows",
         "word-break",
+        "line-clamp",
+        "-webkit-line-clamp",
         "z-index"
     };
 

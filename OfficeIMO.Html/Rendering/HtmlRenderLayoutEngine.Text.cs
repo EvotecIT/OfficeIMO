@@ -331,26 +331,112 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     whitespace = IsWhitespaceToken(normalizedToken);
                 }
 
-                double measured = MeasureText(normalizedToken, run.Style.Font);
-                if (!whitespace && measured > width && AllowsEmergencyTokenBreak(run.Style)) {
-                    AddBrokenToken(lines, ref line, run, normalizedToken, normalizedLogicalToken, width, visibleTokenStart);
+                string paintToken = paragraphStyle.PreserveWhitespace && normalizedToken.IndexOf('\t') >= 0
+                    ? ExpandTabs(normalizedToken, run.Style, line.Width)
+                    : normalizedToken;
+                double measured = MeasureText(paintToken, run.Style.Font);
+                if (!paragraphStyle.PreventTextWrapping && !whitespace && measured > width && AllowsEmergencyTokenBreak(run.Style)) {
+                    AddBrokenToken(lines, ref line, run, paintToken, normalizedLogicalToken, width, visibleTokenStart);
                     continue;
                 }
 
-                if (line.HasFlowContent && line.Width + measured > width) {
+                if (!paragraphStyle.PreventTextWrapping && line.HasFlowContent && line.Width + measured > width) {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
                     if (whitespace && !paragraphStyle.PreserveWhitespace) continue;
                 }
 
-                line.Add(new InlineSegment(normalizedToken, measured, run, normalizedLogicalToken, logicalEndProgress: tokenEnd));
+                line.Add(new InlineSegment(paintToken, measured, run, normalizedLogicalToken, logicalEndProgress: tokenEnd));
             }
         }
 
         TrimTrailingWhitespace(line);
         if (line.Segments.Count > 0 || lines.Count == 0) lines.Add(line);
+        int completeLogicalProgress = lines
+            .SelectMany(candidate => candidate.Segments)
+            .Select(segment => segment.LogicalEndProgress)
+            .DefaultIfEmpty(canonicalProgress)
+            .Max();
+        if (paragraphStyle.LineClamp.HasValue && lines.Count > paragraphStyle.LineClamp.Value) {
+            lines.RemoveRange(paragraphStyle.LineClamp.Value, lines.Count - paragraphStyle.LineClamp.Value);
+            ApplyEndEllipsis(lines[lines.Count - 1], width, completeLogicalProgress);
+        } else if (paragraphStyle.TextOverflow == "ellipsis"
+            && paragraphStyle.PreventTextWrapping
+            && paragraphStyle.OverflowX != "visible"
+            && lines.Count > 0
+            && lines[0].Width > width + 0.0001D) {
+            ApplyEndEllipsis(lines[0], width, completeLogicalProgress);
+        }
         return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, supportsContinuationReflow: supportsContinuationReflow);
+    }
+
+    private string ExpandTabs(string value, HtmlRenderBoxStyle style, double currentWidth) {
+        if (value.IndexOf('\t') < 0) return value;
+        double spaceWidth = Math.Max(0.01D, MeasureText(" ", style.Font));
+        double stopWidth = Math.Max(spaceWidth, style.TabSize * spaceWidth);
+        double cursor = Math.Max(0D, currentWidth);
+        var expanded = new StringBuilder();
+        foreach (char character in value) {
+            if (character != '\t') {
+                expanded.Append(character);
+                cursor += MeasureText(character.ToString(), style.Font);
+                continue;
+            }
+            double nextStop = (Math.Floor(cursor / stopWidth) + 1D) * stopWidth;
+            int spaces = Math.Max(1, (int)Math.Round((nextStop - cursor) / spaceWidth));
+            expanded.Append(' ', spaces);
+            cursor += spaces * spaceWidth;
+        }
+        return expanded.ToString();
+    }
+
+    private void ApplyEndEllipsis(InlineLine line, double width, int completeLogicalProgress) {
+        double availableWidth = line.HasExplicitPlacement ? line.AvailableWidth : width;
+        TrimTrailingWhitespace(line);
+        HtmlInlineRun? ellipsisRun = line.Segments
+            .LastOrDefault(segment => segment.Run.AtomicBlock == null && segment.Text.Length > 0)?.Run;
+        while (line.Segments.Count > 0) {
+            InlineSegment segment = line.Segments[line.Segments.Count - 1];
+            if (segment.Run.AtomicBlock != null || segment.Text.Length == 0) {
+                line.RemoveAt(line.Segments.Count - 1);
+                continue;
+            }
+
+            ellipsisRun = segment.Run;
+            line.RemoveAt(line.Segments.Count - 1);
+            double remainingWidth = Math.Max(0D, availableWidth - line.Width);
+            double ellipsisWidth = MeasureText("\u2026", segment.Run.Style.Font);
+            if (ellipsisWidth > remainingWidth + 0.0001D) continue;
+
+            var paint = new StringBuilder();
+            var logical = new StringBuilder();
+            IReadOnlyList<string> paintElements = OfficeTextElements.Split(segment.Text);
+            IReadOnlyList<string> logicalElements = OfficeTextElements.Split(segment.LogicalText);
+            for (int index = 0; index < paintElements.Count; index++) {
+                string candidate = paint.ToString() + paintElements[index];
+                if (MeasureText(candidate, segment.Run.Style.Font) + ellipsisWidth > remainingWidth + 0.0001D) break;
+                paint.Append(paintElements[index]);
+                if (index < logicalElements.Count) logical.Append(logicalElements[index]);
+            }
+
+            string text = paint.ToString() + "\u2026";
+            string logicalText = logical.ToString() + "\u2026";
+            line.Add(new InlineSegment(
+                text,
+                MeasureText(text, segment.Run.Style.Font),
+                segment.Run,
+                logicalText,
+                logicalEndProgress: completeLogicalProgress));
+            return;
+        }
+
+        if (ellipsisRun != null) {
+            double ellipsisWidth = MeasureText("\u2026", ellipsisRun.Style.Font);
+            if (ellipsisWidth <= availableWidth + 0.0001D) {
+                line.Add(new InlineSegment("\u2026", ellipsisWidth, ellipsisRun, "\u2026", logicalEndProgress: completeLogicalProgress));
+            }
+        }
     }
 
     private static bool AllowsEmergencyTokenBreak(HtmlRenderBoxStyle style) =>

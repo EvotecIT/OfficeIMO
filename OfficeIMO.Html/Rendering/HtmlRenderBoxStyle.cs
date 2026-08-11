@@ -130,6 +130,9 @@ internal sealed class HtmlRenderBoxStyle {
     internal bool BorderBox;
     internal bool PreserveWhitespace;
     internal bool PreventTextWrapping;
+    internal double TabSize = 8D;
+    internal string TextOverflow = "clip";
+    internal int? LineClamp;
     internal string ListStyleType = string.Empty;
     internal string TextTransform = "none";
     internal string Direction = "ltr";

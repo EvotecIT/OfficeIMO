@@ -217,7 +217,7 @@ internal static class HtmlGeneratedContentResolver {
 
                 string name = HtmlCssEscapeDecoder.Decode(parts[0].Trim());
                 string style = parts.Count == 2 ? parts[1].Trim() : "decimal";
-                if (!TryFormatCounter(counters.Get(name), style, out string formatted)) {
+                if (!HtmlCounterStyleFormatter.TryFormat(counters.Get(name), style, out string formatted)) {
                     generated = string.Empty;
                     detail = "unsupported counter style " + style;
                     return false;
@@ -234,7 +234,7 @@ internal static class HtmlGeneratedContentResolver {
 
                 var formattedValues = new List<string>();
                 foreach (int value in counters.GetAll(name)) {
-                    if (!TryFormatCounter(value, style, out string formatted)) {
+                    if (!HtmlCounterStyleFormatter.TryFormat(value, style, out string formatted)) {
                         generated = string.Empty;
                         detail = "unsupported counter style " + style;
                         return false;
@@ -384,68 +384,6 @@ internal static class HtmlGeneratedContentResolver {
         if (!TryReadQuoted(trimmed, ref cursor, out result)) return false;
         while (cursor < trimmed.Length && char.IsWhiteSpace(trimmed[cursor])) cursor++;
         return cursor == trimmed.Length;
-    }
-
-    private static bool TryFormatCounter(int value, string style, out string formatted) {
-        string normalized = HtmlCssEscapeDecoder.Decode(style.Trim()).ToLowerInvariant();
-        switch (normalized) {
-            case "decimal-leading-zero":
-                formatted = value >= -9 && value <= 9
-                    ? value < 0 ? "-0" + (-value).ToString(CultureInfo.InvariantCulture) : "0" + value.ToString(CultureInfo.InvariantCulture)
-                    : value.ToString(CultureInfo.InvariantCulture);
-                return true;
-            case "lower-alpha":
-            case "lower-latin":
-                formatted = value > 0 ? FormatAlpha(value, false) : value.ToString(CultureInfo.InvariantCulture);
-                return true;
-            case "upper-alpha":
-            case "upper-latin":
-                formatted = value > 0 ? FormatAlpha(value, true) : value.ToString(CultureInfo.InvariantCulture);
-                return true;
-            case "lower-roman":
-                formatted = value > 0 && value <= 3999 ? FormatRoman(value).ToLowerInvariant() : value.ToString(CultureInfo.InvariantCulture);
-                return true;
-            case "upper-roman":
-                formatted = value > 0 && value <= 3999 ? FormatRoman(value) : value.ToString(CultureInfo.InvariantCulture);
-                return true;
-            case "none":
-                formatted = string.Empty;
-                return true;
-            case "decimal":
-            case "":
-                formatted = value.ToString(CultureInfo.InvariantCulture);
-                return true;
-            default:
-                formatted = string.Empty;
-                return false;
-        }
-    }
-
-    private static string FormatAlpha(int value, bool upper) {
-        var result = new StringBuilder();
-        int remaining = value;
-        char first = upper ? 'A' : 'a';
-        while (remaining > 0) {
-            remaining--;
-            result.Insert(0, (char)(first + remaining % 26));
-            remaining /= 26;
-        }
-
-        return result.ToString();
-    }
-
-    private static string FormatRoman(int value) {
-        var result = new StringBuilder();
-        int[] values = { 1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1 };
-        string[] symbols = { "M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I" };
-        for (int index = 0; index < values.Length; index++) {
-            while (value >= values[index]) {
-                result.Append(symbols[index]);
-                value -= values[index];
-            }
-        }
-
-        return result.ToString();
     }
 
     private static bool IsCounterName(string value) {

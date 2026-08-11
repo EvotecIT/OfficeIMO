@@ -679,9 +679,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (string.Equals(style.ListStyleType, "none", StringComparison.OrdinalIgnoreCase)) return null;
         IElement? parent = element.ParentElement;
         if (parent == null) return "• ";
-        if (!string.Equals(parent.TagName, "ol", StringComparison.OrdinalIgnoreCase)) return "• ";
-        return HtmlListSemantics.TryResolveOrdinal(element, out int ordinal)
-            ? ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) + ". "
-            : "1. ";
+        bool ordered = string.Equals(parent.TagName, "ol", StringComparison.OrdinalIgnoreCase);
+        string listStyle = style.ListStyleType.Length == 0 ? ordered ? "decimal" : "disc" : style.ListStyleType;
+        int ordinal = ordered && HtmlListSemantics.TryResolveOrdinal(element, out int resolvedOrdinal) ? resolvedOrdinal : 1;
+        if (!HtmlCounterStyleFormatter.TryFormat(ordinal, listStyle, out string marker)) {
+            marker = ordered ? ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) : "•";
+        }
+        if (marker.Length == 0) return null;
+        return marker + (ordered ? ". " : " ");
     }
 }

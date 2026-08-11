@@ -98,6 +98,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
             PreserveWhitespace = IsPreformatted(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
             PreventTextWrapping = PreventsTextWrapping(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
+            TabSize = ResolveTabSize(computed.GetValue("tab-size"), parent?.TabSize ?? 8D),
+            TextOverflow = ResolveTextOverflow(computed.GetValue("text-overflow")),
+            LineClamp = ResolveLineClamp(computed),
             ListStyleType = ResolveListStyleType(computed),
             TextTransform = string.IsNullOrWhiteSpace(computed.GetValue("text-transform")) ? parent?.TextTransform ?? "none" : computed.GetValue("text-transform").Trim().ToLowerInvariant(),
             Direction = direction,
@@ -150,6 +153,32 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited ?? "normal";
         if (normalized == "normal" || normalized == "break-all" || normalized == "keep-all" || normalized == "break-word") return normalized;
         return "normal";
+    }
+
+    private static double ResolveTabSize(string value, double inherited) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited;
+        return double.TryParse(normalized, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double parsed)
+            && parsed >= 0D && !double.IsNaN(parsed) && !double.IsInfinity(parsed)
+            ? Math.Min(parsed, 100D)
+            : 8D;
+    }
+
+    private static string ResolveTextOverflow(string value) {
+        IReadOnlyList<string> values = HtmlRenderCssValues.SplitWhitespace(value.Trim().ToLowerInvariant());
+        return values.Count > 0 && string.Equals(values[values.Count - 1], "ellipsis", StringComparison.Ordinal)
+            ? "ellipsis"
+            : "clip";
+    }
+
+    private static int? ResolveLineClamp(HtmlComputedStyle computed) {
+        string value = computed.GetValue("line-clamp").Trim();
+        if (value.Length == 0) value = computed.GetValue("-webkit-line-clamp").Trim();
+        string token = HtmlRenderCssValues.SplitWhitespace(value).FirstOrDefault() ?? string.Empty;
+        return int.TryParse(token, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int parsed)
+            && parsed > 0
+            ? Math.Min(parsed, 10000)
+            : null;
     }
 
     private static bool ResolvePaintVisibility(string value, HtmlRenderBoxStyle? parent) {
