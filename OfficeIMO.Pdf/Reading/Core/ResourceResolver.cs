@@ -290,14 +290,14 @@ internal static partial class ResourceResolver {
                             continue;
                         }
 
-                        result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, imageMaskColor, resources, colorizeImageMasks));
+                        result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, imageMaskColor, resources, colorizeImageMasks, limits.MaxDecodedStreamBytes));
                     }
                 } else {
                     if (!addedImageKeys.Add(BuildImageResourceKey(pageNumber, kv.Key, objectNumber, directStreamIdentity))) {
                         continue;
                     }
 
-                    result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, resources: resources));
+                    result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, resources: resources, maxDecodedStreamBytes: limits.MaxDecodedStreamBytes));
                 }
 
                 continue;
@@ -893,7 +893,8 @@ internal static partial class ResourceResolver {
         Dictionary<int, PdfIndirectObject> objects,
         OfficeColor? imageMaskColor = null,
         PdfDictionary? resources = null,
-        bool colorizeImageMask = false) {
+        bool colorizeImageMask = false,
+        int maxDecodedStreamBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes) {
         int width = (int)(stream.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
         int height = (int)(stream.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
         int bitsPerComponent = (int)(stream.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
@@ -924,7 +925,7 @@ internal static partial class ResourceResolver {
             extension = "png";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
             isImageFile = true;
-        } else if (TryBuildPngFile(stream, width, height, bitsPerComponent, effectiveColorSpaceObject, colorSpace, filter, objects, out var pngBytes)) {
+        } else if (TryBuildPngFile(stream, width, height, bitsPerComponent, effectiveColorSpaceObject, colorSpace, filter, objects, maxDecodedStreamBytes, out var pngBytes)) {
             bytes = pngBytes;
             extension = "png";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
@@ -1057,13 +1058,14 @@ internal static partial class ResourceResolver {
         string colorSpace,
         string filter,
         Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (width <= 0 || height <= 0) {
             return false;
         }
 
-        if (PdfIndexedImageNormalizer.TryBuildPngFile(colorSpaceObj, width, height, bitsPerComponent, stream, objects, out pngBytes)) {
+        if (PdfIndexedImageNormalizer.TryBuildPngFile(colorSpaceObj, width, height, bitsPerComponent, stream, objects, maxDecodedStreamBytes, out pngBytes)) {
             return true;
         }
 
@@ -1071,7 +1073,7 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        if (!PdfImageColorSpaceNormalization.TryResolve(colorSpaceObj, colorSpace, objects, out var colorNormalization)) {
+        if (!PdfImageColorSpaceNormalization.TryResolve(colorSpaceObj, colorSpace, objects, maxDecodedStreamBytes, out var colorNormalization)) {
             return false;
         }
 
@@ -1088,8 +1090,7 @@ internal static partial class ResourceResolver {
                 width,
                 height,
                 bitsPerComponent,
-                colorNormalization.SourceColorCount,
-                colorNormalization.PngColorType,
+                colorNormalization,
                 decodeTransform,
                 objects,
                 out pngBytes);
@@ -1105,8 +1106,7 @@ internal static partial class ResourceResolver {
                 width,
                 height,
                 bitsPerComponent,
-                colorNormalization.SourceColorCount,
-                colorNormalization.PngColorType,
+                colorNormalization,
                 colorDecodeTransform,
                 colorKeyMask,
                 pixels,
@@ -1114,11 +1114,11 @@ internal static partial class ResourceResolver {
         }
 
         if (string.IsNullOrEmpty(filter)) {
-            return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization.SourceColorCount, colorNormalization.PngColorType, colorDecodeTransform, stream.Data, out pngBytes);
+            return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization, colorDecodeTransform, stream.Data, out pngBytes);
         }
 
         if (!string.Equals(filter, "FlateDecode", System.StringComparison.Ordinal)) {
-            return TryBuildPngFileFromSupportedDecodedStream(stream, width, height, bitsPerComponent, colorNormalization.SourceColorCount, colorNormalization.PngColorType, colorDecodeTransform, objects, out pngBytes);
+            return TryBuildPngFileFromSupportedDecodedStream(stream, width, height, bitsPerComponent, colorNormalization, colorDecodeTransform, objects, out pngBytes);
         }
 
         PdfDictionary? decodeParms = null;
@@ -1131,7 +1131,7 @@ internal static partial class ResourceResolver {
             if (!TryDecodeImageStream(stream, objects, out byte[] pixels)) {
                 return false;
             }
-            return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization.SourceColorCount, colorNormalization.PngColorType, colorDecodeTransform, pixels, out pngBytes);
+            return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization, colorDecodeTransform, pixels, out pngBytes);
         }
 
         if (predictor < 10 || predictor > 15) {
@@ -1139,12 +1139,13 @@ internal static partial class ResourceResolver {
         }
 
         if ((colorNormalization.SourceColorCount != 1 && colorNormalization.SourceColorCount != 3) ||
+            colorNormalization.RequiresColorConversion ||
             colorDecodeTransform is not null ||
             !CanWrapPngPredictorScanlines(decodeParms, width, bitsPerComponent, colorNormalization.SourceColorCount)) {
             if (!TryDecodeImageStream(stream, objects, out byte[] pixels)) {
                 return false;
             }
-            return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization.SourceColorCount, colorNormalization.PngColorType, colorDecodeTransform, pixels, out pngBytes);
+            return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization, colorDecodeTransform, pixels, out pngBytes);
         }
 
         if (!TryDecodeImageStream(stream, objects, out _)) {
@@ -1173,8 +1174,7 @@ internal static partial class ResourceResolver {
         int width,
         int height,
         int bitsPerComponent,
-        int sourceColorCount,
-        int pngColorType,
+        PdfImageColorSpaceNormalization colorNormalization,
         PdfImageDecodeTransform? decodeTransform,
         Dictionary<int, PdfIndirectObject> objects,
         out byte[] pngBytes) {
@@ -1182,19 +1182,20 @@ internal static partial class ResourceResolver {
         if (!TryDecodeImageStream(stream, objects, out byte[] pixels)) {
             return false;
         }
-        return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, sourceColorCount, pngColorType, decodeTransform, pixels, out pngBytes);
+        return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization, decodeTransform, pixels, out pngBytes);
     }
 
     private static bool TryBuildPngFileFromDecodedPixels(
         int width,
         int height,
         int bitsPerComponent,
-        int sourceColorCount,
-        int pngColorType,
+        PdfImageColorSpaceNormalization colorNormalization,
         PdfImageDecodeTransform? decodeTransform,
         byte[] pixels,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
+        int sourceColorCount = colorNormalization.SourceColorCount;
+        int pngColorType = colorNormalization.PngColorType;
         if (pixels.Length == 0) {
             return false;
         }
@@ -1221,11 +1222,23 @@ internal static partial class ResourceResolver {
         }
 
         byte[] scanlines = new byte[(1 + outputRowLength) * height];
+        double[]? colorComponents = colorNormalization.RequiresColorConversion
+            ? colorNormalization.CreateComponentBuffer()
+            : null;
         for (int row = 0; row < height; row++) {
             int outputRow = row * (1 + outputRowLength);
             int sourceRow = row * sourceRowLength;
             scanlines[outputRow] = 0;
-            if (sourceColorCount == 4) {
+            if (colorNormalization.RequiresColorConversion) {
+                for (int pixel = 0; pixel < width; pixel++) {
+                    int sourcePixel = sourceRow + pixel * sourceColorCount;
+                    int targetPixel = outputRow + 1 + pixel * 3;
+                    if (!colorNormalization.TryConvertPixel(pixels, sourcePixel, decodeTransform, colorComponents!, out OfficeColor color)) return false;
+                    scanlines[targetPixel] = color.R;
+                    scanlines[targetPixel + 1] = color.G;
+                    scanlines[targetPixel + 2] = color.B;
+                }
+            } else if (sourceColorCount == 4) {
                 CopyDeviceCmykRowAsRgb(pixels, sourceRow, scanlines, outputRow + 1, width, decodeTransform);
             } else if (decodeTransform is not null) {
                 CopyDecodedColorRow(pixels, sourceRow, scanlines, outputRow + 1, width, sourceColorCount, decodeTransform);
@@ -1248,13 +1261,14 @@ internal static partial class ResourceResolver {
         int width,
         int height,
         int bitsPerComponent,
-        int sourceColorCount,
-        int pngColorType,
+        PdfImageColorSpaceNormalization colorNormalization,
         PdfImageDecodeTransform? decodeTransform,
         PdfImageColorKeyMask colorKeyMask,
         byte[] pixels,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
+        int sourceColorCount = colorNormalization.SourceColorCount;
+        int pngColorType = colorNormalization.PngColorType;
         if (pixels.Length == 0) {
             return false;
         }
@@ -1284,6 +1298,9 @@ internal static partial class ResourceResolver {
 
         int outputChannels = outputBaseColors + 1;
         byte[] scanlines = new byte[(1 + outputRowLength) * height];
+        double[]? colorComponents = colorNormalization.RequiresColorConversion
+            ? colorNormalization.CreateComponentBuffer()
+            : null;
         for (int row = 0; row < height; row++) {
             int outputRow = row * (1 + outputRowLength);
             int sourceRow = row * sourceRowLength;
@@ -1292,7 +1309,12 @@ internal static partial class ResourceResolver {
             for (int pixel = 0; pixel < width; pixel++) {
                 int sourcePixel = sourceRow + pixel * sourceColorCount;
                 int outputPixel = outputRow + 1 + pixel * outputChannels;
-                if (sourceColorCount == 4) {
+                if (colorNormalization.RequiresColorConversion) {
+                    if (!colorNormalization.TryConvertPixel(pixels, sourcePixel, decodeTransform, colorComponents!, out OfficeColor color)) return false;
+                    scanlines[outputPixel] = color.R;
+                    scanlines[outputPixel + 1] = color.G;
+                    scanlines[outputPixel + 2] = color.B;
+                } else if (sourceColorCount == 4) {
                     CopyDeviceCmykRowAsRgb(pixels, sourcePixel, scanlines, outputPixel, 1, decodeTransform);
                 } else {
                     for (int channel = 0; channel < outputBaseColors; channel++) {
@@ -1368,12 +1390,13 @@ internal static partial class ResourceResolver {
         int width,
         int height,
         int bitsPerComponent,
-        int sourceColorCount,
-        int pngColorType,
+        PdfImageColorSpaceNormalization colorNormalization,
         PdfImageDecodeTransform? decodeTransform,
         Dictionary<int, PdfIndirectObject> objects,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
+        int sourceColorCount = colorNormalization.SourceColorCount;
+        int pngColorType = colorNormalization.PngColorType;
         if (!stream.Dictionary.Items.TryGetValue("SMask", out var softMaskObj)) {
             return false;
         }
@@ -1397,7 +1420,10 @@ internal static partial class ResourceResolver {
 
         int outputBaseColors;
         int alphaColorType;
-        if (sourceColorCount == 1 && pngColorType == 0) {
+        if (colorNormalization.RequiresColorConversion) {
+            outputBaseColors = 3;
+            alphaColorType = 6;
+        } else if (sourceColorCount == 1 && pngColorType == 0) {
             outputBaseColors = 1;
             alphaColorType = 4;
         } else if (sourceColorCount == 3 && pngColorType == 2) {
@@ -1438,6 +1464,9 @@ internal static partial class ResourceResolver {
         int outputChannels = outputBaseColors + 1;
         var alphaDecodeTransform = PdfImageDecodeTransform.CreateColor(softMask.Dictionary, 1, objects);
         byte[] scanlines = new byte[(1 + outputRowLength) * height];
+        double[]? colorComponents = colorNormalization.RequiresColorConversion
+            ? colorNormalization.CreateComponentBuffer()
+            : null;
         for (int row = 0; row < height; row++) {
             int outputRow = row * (1 + outputRowLength);
             int baseRow = row * baseRowLength;
@@ -1447,7 +1476,12 @@ internal static partial class ResourceResolver {
             for (int pixel = 0; pixel < width; pixel++) {
                 int outputPixel = outputRow + 1 + pixel * outputChannels;
                 int basePixel = baseRow + pixel * sourceColorCount;
-                if (sourceColorCount == 4) {
+                if (colorNormalization.RequiresColorConversion) {
+                    if (!colorNormalization.TryConvertPixel(basePixels, basePixel, decodeTransform, colorComponents!, out OfficeColor color)) return false;
+                    scanlines[outputPixel] = color.R;
+                    scanlines[outputPixel + 1] = color.G;
+                    scanlines[outputPixel + 2] = color.B;
+                } else if (sourceColorCount == 4) {
                     CopyDeviceCmykRowAsRgb(basePixels, basePixel, scanlines, outputPixel, 1, decodeTransform);
                 } else {
                     for (int channel = 0; channel < outputBaseColors; channel++) {

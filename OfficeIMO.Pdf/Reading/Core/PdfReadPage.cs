@@ -350,7 +350,8 @@ public sealed partial class PdfReadPage {
                     _objects,
                     placement.ImageMaskColor,
                     placement.InlineImageResources ?? resources,
-                    colorizeImageMasks));
+                    colorizeImageMasks,
+                    _limits.MaxDecodedStreamBytes));
             }
         }
 

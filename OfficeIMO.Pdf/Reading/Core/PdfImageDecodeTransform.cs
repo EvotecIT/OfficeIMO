@@ -30,9 +30,12 @@ internal sealed class PdfImageDecodeTransform {
     }
 
     internal byte TransformColorComponent(byte sample, int componentIndex) {
-        double decoded = Decode(sample / 255D, componentIndex);
+        double decoded = TransformColorComponentValue(sample, componentIndex);
         return ClampToByte(decoded * 255D);
     }
+
+    internal double TransformColorComponentValue(byte sample, int componentIndex) =>
+        Decode(sample / 255D, componentIndex);
 
     internal int TransformIndexedSample(int sample, int bitsPerComponent, int highValue) {
         int maxSample = (1 << bitsPerComponent) - 1;

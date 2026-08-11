@@ -1001,7 +1001,7 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPage_ReportsUnsupportedNamedImageXObjectColorSpace() {
+    public void RenderPage_ProjectsNamedSeparationImageXObjectColorSpace() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CompressWithDeflate(new byte[] { 0x7F }),
             colorSpace: "/CsSpot",
@@ -1011,11 +1011,13 @@ public class PdfPageImageRendererTests {
                 "7 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 0 0] /N 1 >>\nendobj"
             });
 
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
             options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }));
 
-        Assert.Contains(
+        Assert.Equal("image/png", Assert.Single(drawing.Images).ContentType);
+        Assert.DoesNotContain(
             result.CapabilityDiagnostics,
             diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId &&
                 diagnostic.Subject == "CsSpot");
@@ -1065,17 +1067,19 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPage_ReportsUnsupportedNamedInlineImageColorSpace() {
+    public void RenderPage_ProjectsNamedSeparationInlineImageColorSpace() {
         byte[] pdf = BuildSingleStreamPdf(
             "BI\n/W 1\n/H 1\n/CS /CsSpot\n/BPC 8\nID\nA\nEI",
             "<< /ColorSpace << /CsSpot [/Separation /Spot /DeviceRGB 5 0 R] >> >>",
             "5 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 0 0] /N 1 >>\nendobj");
 
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
             options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }));
 
-        Assert.Contains(
+        Assert.Equal("image/png", Assert.Single(drawing.Images).ContentType);
+        Assert.DoesNotContain(
             result.CapabilityDiagnostics,
             diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId &&
                 diagnostic.Subject == "CsSpot");
@@ -2708,7 +2712,7 @@ public class PdfPageImageRendererTests {
         var objects = new Dictionary<int, PdfIndirectObject>();
 
         Assert.False(PdfImageMaskNormalizer.TryBuildPngFile(8, 1, maskStream, objects, out _));
-        Assert.False(PdfIndexedImageNormalizer.TryBuildPngFile(indexedColorSpace, 8, 1, 1, indexedStream, objects, out _));
+        Assert.False(PdfIndexedImageNormalizer.TryBuildPngFile(indexedColorSpace, 8, 1, 1, indexedStream, objects, PdfReadLimits.DefaultMaxDecodedStreamBytes, out _));
     }
 
     [Fact]

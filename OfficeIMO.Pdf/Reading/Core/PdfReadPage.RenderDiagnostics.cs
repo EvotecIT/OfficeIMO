@@ -287,7 +287,7 @@ public sealed partial class PdfReadPage {
             return;
         }
 
-        if (ResourceResolver.CanProjectImageColorSpace(image, resources, _objects)) {
+        if (ResourceResolver.CanProjectImageColorSpace(image, resources, _objects, _limits.MaxDecodedStreamBytes)) {
             PdfObject? diagnosticColorSpace = colorSpaceObject;
             if (ResolveObject(colorSpaceObject) is PdfName resourceName) {
                 PdfDictionary? colorSpaces = ResolveDictionary(resources?.Items.TryGetValue("ColorSpace", out PdfObject? value) == true ? value : null);

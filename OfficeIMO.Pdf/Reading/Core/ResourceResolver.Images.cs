@@ -7,7 +7,8 @@ internal static partial class ResourceResolver {
     internal static bool CanProjectImageColorSpace(
         PdfDictionary image,
         PdfDictionary? resources,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes) {
         if (image.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) &&
             ResolveObject(imageMaskObject, objects) is PdfBoolean { Value: true }) {
             return true;
@@ -18,7 +19,7 @@ internal static partial class ResourceResolver {
             : null;
         PdfObject? effectiveColorSpace = ResolveColorSpaceResource(authoredColorSpace, resources, objects);
         int bitsPerComponent = (int)(image.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
-        if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(effectiveColorSpace, bitsPerComponent, objects)) {
+        if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(effectiveColorSpace, bitsPerComponent, objects, maxDecodedStreamBytes)) {
             return true;
         }
 
@@ -27,6 +28,7 @@ internal static partial class ResourceResolver {
             effectiveColorSpace,
             colorSpaceName,
             objects,
+            maxDecodedStreamBytes,
             out _);
     }
 

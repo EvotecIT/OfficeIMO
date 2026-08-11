@@ -121,6 +121,7 @@ public static class PdfRenderCapabilities {
     internal const string CffFontSubstitutionId = "render.resource.font-cff-substitution";
     internal const string ColorSpaceId = "render.resource.colorspace-unsupported";
     internal const string IccColorSpaceId = "render.colorspace.icc";
+    internal const string IccMatrixColorSpaceId = "render.colorspace.icc-matrix-trc";
     internal const string TilingPatternId = "render.resource.tiling-pattern";
     internal const string BlendModeId = "render.resource.blend-mode";
     internal const string SoftMaskId = "render.resource.soft-mask";
@@ -149,7 +150,8 @@ public static class PdfRenderCapabilities {
             Entry(AnnotationAppearanceId, "annotation", "Annotations without appearance streams", PdfRenderSupportLevel.Unsupported, "The annotation is skipped because it has no usable appearance stream."),
             Entry("render.colorspace.device", "color", "DeviceGray, DeviceRGB, and DeviceCMYK", PdfRenderSupportLevel.Supported, "Device color spaces are projected to shared Drawing colors."),
             Entry("render.colorspace.calibrated", "color", "CalGray, CalRGB, and Lab color spaces", PdfRenderSupportLevel.Simplified, "Calibrated colors are projected through managed device-color approximations."),
-            Entry(IccColorSpaceId, "color", "ICCBased color spaces", PdfRenderSupportLevel.Simplified, "ICCBased colors are projected through their declared component count without applying the embedded profile."),
+            Entry(IccMatrixColorSpaceId, "color", "Matrix/TRC ICCBased color spaces", PdfRenderSupportLevel.Supported, "Bounded RGB and Gray matrix/TRC ICC profiles are applied through the shared managed color engine."),
+            Entry(IccColorSpaceId, "color", "Unsupported ICCBased profile fallback", PdfRenderSupportLevel.Simplified, "ICCBased colors whose embedded profile is unsupported use their declared alternate or component-count device fallback."),
             Entry("render.colorspace.indexed-content", "color", "Indexed content-paint color spaces", PdfRenderSupportLevel.Supported, "Bounded Indexed palettes are projected for path, text, pattern, and nested-form painting."),
             Entry("render.colorspace.indexed-image", "color", "Indexed image color spaces", PdfRenderSupportLevel.Supported, "Indexed image palettes are decoded and projected through shared Drawing images."),
             Entry("render.colorspace.alternate", "color", "Separation, DeviceN, and NChannel alternate color spaces", PdfRenderSupportLevel.Supported, "Bounded exponential and identity calculator tint transforms are projected through their declared alternate color space."),

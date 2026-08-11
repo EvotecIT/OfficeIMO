@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -34,5 +35,102 @@ public class OfficeColorSpaceConverterTests {
         Assert.InRange(labRed.G, 0, 15);
         Assert.InRange(labRed.B, 0, 15);
         Assert.Equal(OfficeColor.Red, cmykRed);
+    }
+
+    [Fact]
+    public void IccMatrixProfile_ParsesAndConvertsThroughEmbeddedTrcs() {
+        byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.NotNull(profile);
+        Assert.Equal(3, profile!.ComponentCount);
+        Assert.True(profile.TryConvert(new[] { 0.25D, 0.5D, 0.75D }, out OfficeColor color));
+        Assert.InRange(color.R, 65, 75);
+        Assert.InRange(color.G, 120, 140);
+        Assert.InRange(color.B, 185, 205);
+    }
+
+    [Fact]
+    public void IccMatrixProfile_RejectsUnsupportedOrMalformedProfiles() {
+        byte[] cmykProfile = PdfIccProfiles.SrgbIec6196621;
+        cmykProfile[16] = (byte)'C';
+        cmykProfile[17] = (byte)'M';
+        cmykProfile[18] = (byte)'Y';
+        cmykProfile[19] = (byte)'K';
+        byte[] badSignature = PdfIccProfiles.SrgbIec6196621;
+        badSignature[36] = (byte)'x';
+
+        Assert.False(OfficeIccColorProfile.TryCreate(cmykProfile, out _));
+        Assert.False(OfficeIccColorProfile.TryCreate(badSignature, out _));
+        Assert.False(OfficeIccColorProfile.TryCreate(null!, out _));
+    }
+
+    [Fact]
+    public void IccMatrixProfile_AppliesParametricCurves() {
+        byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;
+        int curveOffset = FindTagOffset(profileBytes, "rTRC");
+        WriteSignature(profileBytes, curveOffset, "para");
+        Array.Clear(profileBytes, curveOffset + 4, 8);
+        WriteS15Fixed16(profileBytes, curveOffset + 12, 2D);
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.True(profile!.TryConvert(new[] { 0.5D, 0.5D, 0.5D }, out OfficeColor color));
+        Assert.InRange(color.R, 130, 145);
+        Assert.InRange(color.G, 130, 145);
+        Assert.InRange(color.B, 130, 145);
+    }
+
+    [Fact]
+    public void IccGrayProfile_UsesGrayTrcAndMediaWhitePoint() {
+        byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;
+        WriteSignature(profileBytes, 16, "GRAY");
+        RenameTag(profileBytes, "rTRC", "kTRC");
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.Equal(1, profile!.ComponentCount);
+        Assert.True(profile.TryConvert(new[] { 0.5D }, out OfficeColor color));
+        Assert.InRange(Math.Abs(color.R - color.G), 0, 2);
+        Assert.InRange(Math.Abs(color.G - color.B), 0, 2);
+        Assert.InRange(color.R, 120, 140);
+    }
+
+    private static int FindTagOffset(byte[] profile, string signature) {
+        uint target = ToSignature(signature);
+        int count = checked((int)ReadUInt32(profile, 128));
+        for (int index = 0; index < count; index++) {
+            int entry = 132 + index * 12;
+            if (ReadUInt32(profile, entry) == target) return checked((int)ReadUInt32(profile, entry + 4));
+        }
+        throw new InvalidOperationException("ICC tag was not found: " + signature + ".");
+    }
+
+    private static void RenameTag(byte[] profile, string oldSignature, string newSignature) {
+        uint target = ToSignature(oldSignature);
+        int count = checked((int)ReadUInt32(profile, 128));
+        for (int index = 0; index < count; index++) {
+            int entry = 132 + index * 12;
+            if (ReadUInt32(profile, entry) != target) continue;
+            WriteSignature(profile, entry, newSignature);
+            return;
+        }
+        throw new InvalidOperationException("ICC tag was not found: " + oldSignature + ".");
+    }
+
+    private static uint ToSignature(string value) =>
+        ((uint)value[0] << 24) | ((uint)value[1] << 16) | ((uint)value[2] << 8) | value[3];
+
+    private static uint ReadUInt32(byte[] bytes, int offset) =>
+        unchecked(((uint)bytes[offset] << 24) | ((uint)bytes[offset + 1] << 16) | ((uint)bytes[offset + 2] << 8) | bytes[offset + 3]);
+
+    private static void WriteSignature(byte[] bytes, int offset, string signature) {
+        for (int index = 0; index < 4; index++) bytes[offset + index] = (byte)signature[index];
+    }
+
+    private static void WriteS15Fixed16(byte[] bytes, int offset, double value) {
+        uint encoded = unchecked((uint)(int)Math.Round(value * 65536D));
+        bytes[offset] = (byte)(encoded >> 24);
+        bytes[offset + 1] = (byte)(encoded >> 16);
+        bytes[offset + 2] = (byte)(encoded >> 8);
+        bytes[offset + 3] = (byte)encoded;
     }
 }

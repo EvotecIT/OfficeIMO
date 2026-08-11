@@ -6,8 +6,9 @@ internal static class PdfIndexedImageNormalizer {
     internal static bool CanNormalizeColorSpace(
         PdfObject? colorSpaceObj,
         int bitsPerComponent,
-        Dictionary<int, PdfIndirectObject> objects) =>
-        TryResolveIndexedPalette(colorSpaceObj, bitsPerComponent, objects, out _);
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes) =>
+        TryResolveIndexedPalette(colorSpaceObj, bitsPerComponent, objects, maxDecodedStreamBytes, out _);
 
     internal static bool TryBuildPngFile(
         PdfObject? colorSpaceObj,
@@ -16,11 +17,12 @@ internal static class PdfIndexedImageNormalizer {
         int bitsPerComponent,
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (width <= 0 ||
             height <= 0 ||
-            !TryResolveIndexedPalette(colorSpaceObj, bitsPerComponent, objects, out var indexedPalette)) {
+            !TryResolveIndexedPalette(colorSpaceObj, bitsPerComponent, objects, maxDecodedStreamBytes, out var indexedPalette)) {
             return false;
         }
 
@@ -45,6 +47,7 @@ internal static class PdfIndexedImageNormalizer {
         PdfObject? colorSpaceObj,
         int bitsPerComponent,
         Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
         out byte[] rgbPalette) {
         rgbPalette = Array.Empty<byte>();
         if (bitsPerComponent != 1 && bitsPerComponent != 2 && bitsPerComponent != 4 && bitsPerComponent != 8) {
@@ -56,7 +59,6 @@ internal static class PdfIndexedImageNormalizer {
             ResolveObject(colorSpaceArray.Items[0], objects) is not PdfName indexedName ||
             (!string.Equals(indexedName.Name, "Indexed", StringComparison.Ordinal) &&
              !string.Equals(indexedName.Name, "I", StringComparison.Ordinal)) ||
-            ResolveObject(colorSpaceArray.Items[1], objects) is not PdfName baseColorSpace ||
             ResolveObject(colorSpaceArray.Items[2], objects) is not PdfNumber highValueNumber) {
             return false;
         }
@@ -66,16 +68,20 @@ internal static class PdfIndexedImageNormalizer {
             return false;
         }
 
-        int baseComponentCount;
-        if (string.Equals(baseColorSpace.Name, "DeviceGray", StringComparison.Ordinal)) {
-            baseComponentCount = 1;
-        } else if (string.Equals(baseColorSpace.Name, "DeviceRGB", StringComparison.Ordinal)) {
-            baseComponentCount = 3;
-        } else if (string.Equals(baseColorSpace.Name, "DeviceCMYK", StringComparison.Ordinal)) {
-            baseComponentCount = 4;
-        } else {
+        PdfObject? baseColorSpaceObject = colorSpaceArray.Items[1];
+        string baseColorSpaceName = ResolveObject(baseColorSpaceObject, objects) is PdfName baseName
+            ? baseName.Name
+            : string.Empty;
+        if (!PdfImageColorSpaceNormalization.TryResolve(
+                baseColorSpaceObject,
+                baseColorSpaceName,
+                objects,
+                maxDecodedStreamBytes,
+                out PdfImageColorSpaceNormalization baseColorSpace) ||
+            baseColorSpace.Kind is PdfPageColorSpaceKind.Indexed or PdfPageColorSpaceKind.Pattern) {
             return false;
         }
+        int baseComponentCount = baseColorSpace.SourceColorCount;
 
         int paletteEntryCount = highValue + 1;
         int expectedLookupLength = paletteEntryCount * baseComponentCount;
@@ -92,27 +98,19 @@ internal static class PdfIndexedImageNormalizer {
         }
 
         rgbPalette = new byte[paletteEntryCount * 3];
+        var components = new double[baseComponentCount];
         for (int entry = 0; entry < paletteEntryCount; entry++) {
             int lookupOffset = entry * baseComponentCount;
             int paletteOffset = entry * 3;
-            if (baseComponentCount == 1) {
-                byte gray = lookupBytes[lookupOffset];
-                rgbPalette[paletteOffset] = gray;
-                rgbPalette[paletteOffset + 1] = gray;
-                rgbPalette[paletteOffset + 2] = gray;
-            } else if (baseComponentCount == 3) {
-                rgbPalette[paletteOffset] = lookupBytes[lookupOffset];
-                rgbPalette[paletteOffset + 1] = lookupBytes[lookupOffset + 1];
-                rgbPalette[paletteOffset + 2] = lookupBytes[lookupOffset + 2];
-            } else {
-                byte c = lookupBytes[lookupOffset];
-                byte m = lookupBytes[lookupOffset + 1];
-                byte y = lookupBytes[lookupOffset + 2];
-                byte k = lookupBytes[lookupOffset + 3];
-                rgbPalette[paletteOffset] = ConvertDeviceCmykComponentToRgb(c, k);
-                rgbPalette[paletteOffset + 1] = ConvertDeviceCmykComponentToRgb(m, k);
-                rgbPalette[paletteOffset + 2] = ConvertDeviceCmykComponentToRgb(y, k);
+            for (int component = 0; component < baseComponentCount; component++) {
+                components[component] = baseColorSpace.MapLookupByteToComponent(
+                    component,
+                    lookupBytes[lookupOffset + component]);
             }
+            if (!baseColorSpace.TryConvertComponents(components, out OfficeColor color)) return false;
+            rgbPalette[paletteOffset] = color.R;
+            rgbPalette[paletteOffset + 1] = color.G;
+            rgbPalette[paletteOffset + 2] = color.B;
         }
 
         return true;
@@ -399,11 +397,6 @@ internal static class PdfIndexedImageNormalizer {
         int shift = 8 - bitsPerComponent - (bitOffset % 8);
         int mask = (1 << bitsPerComponent) - 1;
         return (sourceByte >> shift) & mask;
-    }
-
-    private static byte ConvertDeviceCmykComponentToRgb(byte colorant, byte black) {
-        int ink = colorant + black;
-        return (byte)(255 - (ink > 255 ? 255 : ink));
     }
 
     private static byte TransformColorComponent(byte sample, int componentIndex, PdfImageDecodeTransform? decodeTransform) {

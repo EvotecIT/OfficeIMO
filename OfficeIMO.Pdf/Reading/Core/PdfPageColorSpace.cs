@@ -44,8 +44,52 @@ internal readonly struct PdfPageColorSpace {
         IReadOnlyList<double>? matrix) =>
         new PdfPageColorSpace(new PdfPageCalRgbParameters(whiteX, whiteY, whiteZ, gamma, matrix));
 
+    public static PdfPageColorSpace CalGray(double whiteX, double whiteY, double whiteZ, double gamma) =>
+        new PdfPageColorSpace(
+            PdfPageColorSpaceKind.CalGray,
+            new PdfPageCustomColorSpace(
+                1,
+                components => OfficeColorSpaceConverter.FromCalibratedGray(
+                    components[0], whiteX, whiteY, whiteZ, gamma)));
+
+    public static PdfPageColorSpace Lab(
+        double whiteX,
+        double whiteY,
+        double whiteZ,
+        IReadOnlyList<double> abRange) =>
+        new PdfPageColorSpace(
+            PdfPageColorSpaceKind.Lab,
+            new PdfPageCustomColorSpace(
+                3,
+                components => OfficeColorSpaceConverter.FromLab(
+                    Clamp(components[0], 0D, 100D),
+                    Clamp(components[1], abRange[0], abRange[1]),
+                    Clamp(components[2], abRange[2], abRange[3]),
+                    whiteX,
+                    whiteY,
+                    whiteZ)));
+
     public static PdfPageColorSpace IccBased(PdfPageColorSpaceKind alternateKind) =>
         new PdfPageColorSpace(alternateKind, new PdfPageCustomColorSpace(ComponentCountFor(alternateKind), true));
+
+    public static PdfPageColorSpace IccBased(OfficeIccColorProfile profile, IReadOnlyList<double>? ranges = null) =>
+        new PdfPageColorSpace(
+            profile.ComponentCount == 1 ? PdfPageColorSpaceKind.DeviceGray : PdfPageColorSpaceKind.DeviceRgb,
+            new PdfPageCustomColorSpace(
+                profile.ComponentCount,
+                components => profile.TryConvert(NormalizeIccComponents(components, profile.ComponentCount, ranges), out OfficeColor color)
+                    ? color
+                    : (OfficeColor?)null));
+
+    public static PdfPageColorSpace IccFallback(PdfPageColorSpace alternate) =>
+        new PdfPageColorSpace(
+            alternate.Kind,
+            new PdfPageCustomColorSpace(
+                alternate.ComponentCount,
+                components => alternate.TryConvertColor(components, out OfficeColor color)
+                    ? color
+                    : (OfficeColor?)null,
+                usesIccApproximation: true));
 
     public static PdfPageColorSpace Indexed(IReadOnlyList<OfficeColor> palette, bool usesIccApproximation) =>
         new PdfPageColorSpace(PdfPageColorSpaceKind.Indexed, new PdfPageCustomColorSpace(palette, usesIccApproximation));
@@ -84,6 +128,13 @@ internal readonly struct PdfPageColorSpace {
             if (_custom?.Alternate is not PdfPageColorSpace alternate || _custom.Transform == null) return false;
             IReadOnlyList<double>? transformed = _custom.Transform(components);
             return transformed != null && alternate.TryConvertColor(transformed, out color);
+        }
+
+        if (_custom?.ColorTransform != null) {
+            OfficeColor? transformed = _custom.ColorTransform(components);
+            if (!transformed.HasValue) return false;
+            color = transformed.Value;
+            return true;
         }
 
         switch (Kind) {
@@ -125,13 +176,38 @@ internal readonly struct PdfPageColorSpace {
         _ => 1
     };
 
+    private static IReadOnlyList<double> NormalizeIccComponents(
+        IReadOnlyList<double> components,
+        int componentCount,
+        IReadOnlyList<double>? ranges) {
+        if (ranges == null) return components;
+        var normalized = new double[componentCount];
+        for (int index = 0; index < componentCount; index++) {
+            double minimum = ranges[index * 2];
+            double maximum = ranges[index * 2 + 1];
+            double value = components[index];
+            normalized[index] = value <= minimum ? 0D : value >= maximum ? 1D : (value - minimum) / (maximum - minimum);
+        }
+        return normalized;
+    }
+
     private static byte ToByte(double value) => (byte)Math.Round(Clamp01(value) * 255D);
     private static double Clamp01(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
+    private static double Clamp(double value, double minimum, double maximum) => value < minimum ? minimum : value > maximum ? maximum : value;
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     private sealed class PdfPageCustomColorSpace {
         public PdfPageCustomColorSpace(int componentCount, bool usesIccApproximation) {
             ComponentCount = componentCount;
+            UsesIccApproximation = usesIccApproximation;
+        }
+
+        public PdfPageCustomColorSpace(
+            int componentCount,
+            Func<IReadOnlyList<double>, OfficeColor?> colorTransform,
+            bool usesIccApproximation = false) {
+            ComponentCount = componentCount;
+            ColorTransform = colorTransform;
             UsesIccApproximation = usesIccApproximation;
         }
 
@@ -156,6 +232,7 @@ internal readonly struct PdfPageColorSpace {
         public IReadOnlyList<OfficeColor>? Palette { get; }
         public PdfPageColorSpace? Alternate { get; }
         public Func<IReadOnlyList<double>, IReadOnlyList<double>?>? Transform { get; }
+        public Func<IReadOnlyList<double>, OfficeColor?>? ColorTransform { get; }
     }
 
     private sealed class PdfPageCalRgbParameters {

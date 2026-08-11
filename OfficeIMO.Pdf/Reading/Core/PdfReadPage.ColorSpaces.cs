@@ -1,4 +1,3 @@
-using System.Text;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -23,7 +22,7 @@ public sealed partial class PdfReadPage {
 
         switch (arrayName.Name) {
             case "ICCBased":
-                return TryReadIccColorSpace(array, out colorSpace);
+                return TryReadIccColorSpace(array, depth, out colorSpace);
             case "Indexed":
             case "I":
                 return TryReadIndexedColorSpace(array, depth, out colorSpace);
@@ -43,10 +42,11 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private bool TryReadIccColorSpace(PdfArray array, out PdfPageColorSpace colorSpace) {
+    private bool TryReadIccColorSpace(PdfArray array, int depth, out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (array.Items.Count < 2) return false;
-        PdfDictionary? profile = ResolveObject(array.Items[1]) switch {
+        PdfObject? resolvedProfile = ResolveObject(array.Items[1]);
+        PdfDictionary? profile = resolvedProfile switch {
             PdfStream stream => stream.Dictionary,
             PdfDictionary dictionary => dictionary,
             _ => null
@@ -61,6 +61,34 @@ public sealed partial class PdfReadPage {
             _ => PdfPageColorSpaceKind.Pattern
         };
         if (kind == PdfPageColorSpaceKind.Pattern) return false;
+        IReadOnlyList<double>? ranges = null;
+        if (profile != null && profile.Items.TryGetValue("Range", out PdfObject? rangeObject)) {
+            ranges = ReadNumberArray(rangeObject);
+            if (ranges.Count != components * 2) return false;
+            for (int index = 0; index < components; index++) {
+                double minimum = ranges[index * 2];
+                double maximum = ranges[index * 2 + 1];
+                if (!IsFinite(minimum) || !IsFinite(maximum) || minimum >= maximum) return false;
+            }
+        }
+
+        if (resolvedProfile is PdfStream profileStream) {
+            if (PdfIccProfileCache.TryRead(profileStream, _objects, _limits.MaxDecodedStreamBytes, out OfficeIccColorProfile? parsedProfile) &&
+                parsedProfile != null && parsedProfile.ComponentCount == components) {
+                colorSpace = PdfPageColorSpace.IccBased(parsedProfile, ranges);
+                return true;
+            }
+        }
+
+        if (profile != null &&
+            profile.Items.TryGetValue("Alternate", out PdfObject? alternateObject) &&
+            TryReadExtendedColorSpaceResource(alternateObject, depth + 1, out PdfPageColorSpace alternate) &&
+            alternate.Kind is not PdfPageColorSpaceKind.Pattern and not PdfPageColorSpaceKind.Indexed &&
+            alternate.ComponentCount == components) {
+            colorSpace = PdfPageColorSpace.IccFallback(alternate);
+            return true;
+        }
+
         colorSpace = PdfPageColorSpace.IccBased(kind);
         return true;
     }
@@ -109,7 +137,13 @@ public sealed partial class PdfReadPage {
         if (array.Items.Count < 4 || componentCount < 1 || componentCount > MaxDeviceNComponents ||
             !TryReadExtendedColorSpaceResource(array.Items[2], depth + 1, out PdfPageColorSpace alternate) ||
             alternate.Kind is PdfPageColorSpaceKind.Pattern or PdfPageColorSpaceKind.Indexed ||
-            !TryCreateTintTransform(array.Items[3], componentCount, alternate.ComponentCount, out Func<IReadOnlyList<double>, IReadOnlyList<double>?> transform)) {
+            !PdfColorSpaceFunctionResolver.TryCreateTintTransform(
+                array.Items[3],
+                componentCount,
+                alternate.ComponentCount,
+                _objects,
+                _limits.MaxDecodedStreamBytes,
+                out Func<IReadOnlyList<double>, IReadOnlyList<double>?> transform)) {
             return false;
         }
 
@@ -123,105 +157,4 @@ public sealed partial class PdfReadPage {
         return names.Items.All(item => ResolveObject(item) is PdfName) ? names.Items.Count : 0;
     }
 
-    private bool TryCreateTintTransform(
-        PdfObject? value,
-        int inputCount,
-        int outputCount,
-        out Func<IReadOnlyList<double>, IReadOnlyList<double>?> transform) {
-        transform = null!;
-        PdfObject? resolved = ResolveObject(value);
-        PdfDictionary? dictionary = resolved switch {
-            PdfStream stream => stream.Dictionary,
-            PdfDictionary direct => direct,
-            _ => null
-        };
-        if (dictionary == null) return false;
-
-        int? functionType = TryReadInteger(dictionary.Items.TryGetValue("FunctionType", out PdfObject? type) ? type : null);
-        if (functionType == 2 && inputCount == 1) {
-            IReadOnlyList<double> c0 = dictionary.Items.TryGetValue("C0", out PdfObject? c0Value)
-                ? ReadNumberArray(c0Value)
-                : new[] { 0D };
-            IReadOnlyList<double> c1 = dictionary.Items.TryGetValue("C1", out PdfObject? c1Value)
-                ? ReadNumberArray(c1Value)
-                : new[] { 1D };
-            if (!dictionary.Items.TryGetValue("N", out PdfObject? exponentValue) ||
-                ResolveObject(exponentValue) is not PdfNumber exponentNumber) return false;
-            double exponent = exponentNumber.Value;
-            if (c0.Count != outputCount || c1.Count != outputCount ||
-                c0.Any(value => !IsFinite(value)) || c1.Any(value => !IsFinite(value)) ||
-                !IsFinite(exponent) || exponent <= 0D ||
-                !HasUnitFunctionBounds(dictionary, inputCount, outputCount, requireRange: false)) return false;
-            transform = components => EvaluateType2TintTransform(components, c0, c1, exponent);
-            return true;
-        }
-
-        if (functionType == 4 && resolved is PdfStream calculator &&
-            HasUnitFunctionBounds(dictionary, inputCount, outputCount, requireRange: true) &&
-            TryReadBoundedCalculatorProgram(calculator, inputCount, outputCount, out int duplicateCount)) {
-            transform = components => EvaluateIdentityTintTransform(components, inputCount, outputCount, duplicateCount);
-            return true;
-        }
-
-        return false;
-    }
-
-    private bool HasUnitFunctionBounds(PdfDictionary dictionary, int inputCount, int outputCount, bool requireRange) {
-        if (!dictionary.Items.TryGetValue("Domain", out PdfObject? domainObject) ||
-            !HasUnitIntervals(ReadNumberArray(domainObject), inputCount)) return false;
-        if (!dictionary.Items.TryGetValue("Range", out PdfObject? rangeObject)) return !requireRange;
-        return HasUnitIntervals(ReadNumberArray(rangeObject), outputCount);
-    }
-
-    private static bool HasUnitIntervals(IReadOnlyList<double> values, int count) {
-        if (values.Count != count * 2) return false;
-        for (int index = 0; index < count; index++) {
-            if (values[index * 2] != 0D || values[index * 2 + 1] != 1D) return false;
-        }
-        return true;
-    }
-
-    private bool TryReadBoundedCalculatorProgram(PdfStream stream, int inputCount, int outputCount, out int duplicateCount) {
-        duplicateCount = 0;
-        if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).Count != 0) return false;
-        int decodeLimit = Math.Min(257, _limits.MaxDecodedStreamBytes);
-        byte[] bytes = Filters.StreamDecoder.Decode(
-            stream.Dictionary,
-            stream.Data,
-            _objects,
-            decodeLimit);
-        if (bytes.Length > 256) return false;
-        string program = Encoding.ASCII.GetString(bytes).Trim();
-        if (program.Length < 2 || program[0] != '{' || program[program.Length - 1] != '}') return false;
-        string body = program.Substring(1, program.Length - 2).Trim();
-        if (body.Length == 0) return inputCount == outputCount;
-        string[] tokens = body.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        if (inputCount != 1 || tokens.Length > MaxDeviceNComponents || tokens.Any(token => !string.Equals(token, "dup", StringComparison.Ordinal))) return false;
-        duplicateCount = tokens.Length;
-        return outputCount == duplicateCount + 1;
-    }
-
-    private static double[]? EvaluateType2TintTransform(
-        IReadOnlyList<double> components,
-        IReadOnlyList<double> c0,
-        IReadOnlyList<double> c1,
-        double exponent) {
-        if (components.Count < 1 || !IsFinite(components[0])) return null;
-        double factor = Math.Pow(ClampColorComponent(components[0]), exponent);
-        var result = new double[c0.Count];
-        for (int i = 0; i < result.Length; i++) result[i] = c0[i] + factor * (c1[i] - c0[i]);
-        return result;
-    }
-
-    private static double[]? EvaluateIdentityTintTransform(
-        IReadOnlyList<double> components,
-        int inputCount,
-        int outputCount,
-        int duplicateCount) {
-        if (components.Count < inputCount || components.Take(inputCount).Any(value => !IsFinite(value))) return null;
-        if (duplicateCount == 0) return components.Take(outputCount).Select(ClampColorComponent).ToArray();
-        return Enumerable.Repeat(ClampColorComponent(components[0]), outputCount).ToArray();
-    }
-
-    private static double ClampColorComponent(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
 }
