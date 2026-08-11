@@ -92,6 +92,73 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_ReusesSoftMaskValidationBudgetAcrossPatternGlyphs() {
+        string outerFont = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
+        string outerGlyph = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
+        string outerState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
+        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency >> /Resources << /Pattern << /P1 9 0 R >> >>", "/Pattern cs /P1 scn 0 0 500 700 re f");
+        string pattern = BuildStreamObject(9, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /Font << /Nested 10 0 R >> >>", "BT /Nested 10 Tf (B) Tj ET");
+        string nestedFont = "10 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 11 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << /ExtGState << /GS2 12 0 R >> >> >>\nendobj";
+        string nestedGlyph = BuildStreamObject(11, "<<", "500 0 d0 /GS2 gs 0 0 500 700 re f");
+        string nestedState = "12 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 13 0 R >> >>\nendobj";
+        string nestedMask = BuildStreamObject(13, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency >> /Resources << /Font << /Deep 14 0 R >> >>", "BT /Deep 500 Tf (C) Tj ET /Missing Do");
+        string deepFont = "14 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /C 15 0 R >> /Encoding << /Differences [67 /C] >> /FirstChar 67 /LastChar 67 /Widths [500] /Resources << >> >>\nendobj";
+        string deepGlyph = BuildStreamObject(15, "<<", "500 0 d0 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            "<< /Font << /FType3 5 0 R >> >>",
+            outerFont,
+            outerGlyph,
+            outerState,
+            outerMask,
+            pattern,
+            nestedFont,
+            nestedGlyph,
+            nestedState,
+            nestedMask,
+            deepFont,
+            deepGlyph);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 1 }
+        });
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.Type3GlyphInvocations, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void RenderPage_CarriesSoftMaskDepthIntoStrictPatternCells() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
+        string outerState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
+        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency >> /Resources << /Pattern << /P1 9 0 R >> >>", "/Pattern cs /P1 scn 0 0 500 700 re f");
+        string pattern = BuildStreamObject(9, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /XObject << /F1 10 0 R >> >>", "/F1 Do /Missing Do");
+        string firstForm = BuildStreamObject(10, "<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /XObject << /F2 11 0 R >> >>", "/F2 Do");
+        string secondForm = BuildStreamObject(11, "<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << >>", "0 0 10 10 re f");
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            "<< /Font << /FType3 5 0 R >> >>",
+            type3Font,
+            glyphA,
+            outerState,
+            outerMask,
+            pattern,
+            firstForm,
+            secondForm);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxContentNestingDepth = 4 }
+        });
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.ContentNestingDepth, exception.Kind);
+        Assert.Equal(4, exception.Limit);
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForUnsupportedTilingPatternPayloadInsideType3SoftMask() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
