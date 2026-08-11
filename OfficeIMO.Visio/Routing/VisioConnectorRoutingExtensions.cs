@@ -81,6 +81,29 @@ namespace OfficeIMO.Visio {
                 new VisioConnectorWaypoint(endX, laneY));
         }
 
+        /// <summary>Routes a connector from a shape back to itself as an external orthogonal loop.</summary>
+        /// <param name="connector">Self-connector to route.</param>
+        /// <param name="clearance">Clearance outside the shape bounds, in page units.</param>
+        public static VisioConnector RouteSelfLoop(this VisioConnector connector, double clearance = 0.35D) {
+            if (connector == null) {
+                throw new ArgumentNullException(nameof(connector));
+            }
+            if (!ReferenceEquals(connector.From, connector.To)) {
+                throw new ArgumentException("Self-loop routing requires the same source and target shape.", nameof(connector));
+            }
+            if (clearance <= 0D || double.IsNaN(clearance) || double.IsInfinity(clearance)) {
+                throw new ArgumentOutOfRangeException(nameof(clearance), "Self-loop clearance must be a positive finite value.");
+            }
+
+            VisioShape shape = connector.From;
+            double right = shape.PinX + (shape.Width / 2D);
+            double top = shape.PinY + (shape.Height / 2D);
+            return connector.RouteThrough(
+                new VisioConnectorWaypoint(right + clearance, shape.PinY),
+                new VisioConnectorWaypoint(right + clearance, top + clearance),
+                new VisioConnectorWaypoint(shape.PinX, top + clearance));
+        }
+
         /// <summary>
         /// Generates an orthogonal route that avoids unrelated obstacle shapes when a clear lane is available.
         /// </summary>

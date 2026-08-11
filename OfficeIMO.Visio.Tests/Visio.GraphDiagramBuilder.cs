@@ -87,6 +87,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GraphDiagramBuilderRoutesSelfEdgesOutsideTheirNode() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath)
+                .GraphDiagram("Retry Loop", graph => graph
+                    .Node("worker", "Worker")
+                    .Edge("retry", "worker", "worker", "retry"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape worker = Assert.Single(page.Shapes, shape => shape.Id == "worker");
+            VisioConnector retry = Assert.Single(page.Connectors, connector => connector.Id == "retry");
+            Assert.Same(worker, retry.From);
+            Assert.Same(worker, retry.To);
+            Assert.Contains(retry.Waypoints, point => point.X > worker.PinX + (worker.Width / 2D));
+            Assert.Contains(retry.Waypoints, point => point.Y > worker.PinY + (worker.Height / 2D));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+            VisioConnector loaded = Assert.Single(VisioDocument.Load(filePath).Pages[0].Connectors, connector => connector.Id == "retry");
+            Assert.Equal(3, loaded.Waypoints.Count);
+        }
+
+        [Fact]
         public void GraphDiagramBuilderAvoidsGeneratedStencilCaptionIdCollisions() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioStencilShape serverStencil = VisioStencils.Network.Get("server");
