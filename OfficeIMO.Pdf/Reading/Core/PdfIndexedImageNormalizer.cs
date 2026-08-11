@@ -8,7 +8,13 @@ internal static class PdfIndexedImageNormalizer {
         int bitsPerComponent,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes) =>
-        TryResolveIndexedPalette(colorSpaceObj, bitsPerComponent, objects, maxDecodedStreamBytes, out _);
+        TryResolveIndexedPalette(
+            colorSpaceObj,
+            bitsPerComponent,
+            objects,
+            maxDecodedStreamBytes,
+            OfficeIccRenderingIntent.RelativeColorimetric,
+            out _);
 
     internal static bool TryBuildPngFile(
         PdfObject? colorSpaceObj,
@@ -18,11 +24,32 @@ internal static class PdfIndexedImageNormalizer {
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
+        out byte[] pngBytes) =>
+        TryBuildPngFile(
+            colorSpaceObj,
+            width,
+            height,
+            bitsPerComponent,
+            stream,
+            objects,
+            maxDecodedStreamBytes,
+            OfficeIccRenderingIntent.RelativeColorimetric,
+            out pngBytes);
+
+    internal static bool TryBuildPngFile(
+        PdfObject? colorSpaceObj,
+        int width,
+        int height,
+        int bitsPerComponent,
+        PdfStream stream,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
+        OfficeIccRenderingIntent renderingIntent,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (width <= 0 ||
             height <= 0 ||
-            !TryResolveIndexedPalette(colorSpaceObj, bitsPerComponent, objects, maxDecodedStreamBytes, out var indexedPalette)) {
+            !TryResolveIndexedPalette(colorSpaceObj, bitsPerComponent, objects, maxDecodedStreamBytes, renderingIntent, out var indexedPalette)) {
             return false;
         }
 
@@ -48,6 +75,7 @@ internal static class PdfIndexedImageNormalizer {
         int bitsPerComponent,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
+        OfficeIccRenderingIntent renderingIntent,
         out byte[] rgbPalette) {
         rgbPalette = Array.Empty<byte>();
         if (bitsPerComponent != 1 && bitsPerComponent != 2 && bitsPerComponent != 4 && bitsPerComponent != 8) {
@@ -77,6 +105,7 @@ internal static class PdfIndexedImageNormalizer {
                 baseColorSpaceName,
                 objects,
                 maxDecodedStreamBytes,
+                renderingIntent,
                 out PdfImageColorSpaceNormalization baseColorSpace) ||
             baseColorSpace.Kind is PdfPageColorSpaceKind.Indexed or PdfPageColorSpaceKind.Pattern) {
             return false;

@@ -113,14 +113,14 @@ public sealed partial class PdfReadPage {
         return clippedMask;
     }
 
-    private Dictionary<string, PdfPageTilingPatternResource> GetTilingPatternResources(
+    private Dictionary<string, Lazy<PdfPageTilingPatternResource?>> GetTilingPatternResources(
         PdfDictionary? resources,
         HashSet<string> invokedNames,
-        Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? resourceCache = null,
+        Dictionary<(PdfStream Stream, PdfDictionary Resources, OfficeIccRenderingIntent RenderingIntent), Lazy<PdfPageTilingPatternResource?>>? resourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null) {
         pageContentBudget ??= new PageContentBudget(this);
-        var result = new Dictionary<string, PdfPageTilingPatternResource>(StringComparer.Ordinal);
+        var result = new Dictionary<string, Lazy<PdfPageTilingPatternResource?>>(StringComparer.Ordinal);
         if (resources == null || !resources.Items.TryGetValue("Pattern", out PdfObject? patternObject)) return result;
         PdfDictionary? patterns = ResolveDictionary(patternObject);
         if (patterns == null) return result;
@@ -129,28 +129,28 @@ public sealed partial class PdfReadPage {
                 continue;
             }
 
-            var cacheKey = (Stream: stream, Resources: resources);
-            if (resourceCache != null &&
-                resourceCache.TryGetValue(cacheKey, out PdfPageTilingPatternResource? cached)) {
-                if (cached != null) {
-                    result[entry.Key] = cached;
+            foreach (OfficeIccRenderingIntent renderingIntent in PdfRenderingIntentResolver.All) {
+                var cacheKey = (Stream: stream, Resources: resources, RenderingIntent: renderingIntent);
+                if (resourceCache != null &&
+                    resourceCache.TryGetValue(cacheKey, out Lazy<PdfPageTilingPatternResource?>? cached)) {
+                    result[PdfRenderingIntentResolver.BuildResourceKey(entry.Key, renderingIntent)] = cached;
+                    continue;
                 }
-                continue;
-            }
 
-            PdfPageTilingPatternResource? pattern = TryReadTilingPattern(
-                stream,
-                resources,
-                textOutputBudget,
-                pageContentBudget,
-                out PdfPageTilingPatternResource? parsed)
-                ? parsed
-                : null;
-            if (resourceCache != null) {
-                resourceCache[cacheKey] = pattern;
-            }
-            if (pattern != null) {
-                result[entry.Key] = pattern;
+                var pattern = new Lazy<PdfPageTilingPatternResource?>(() =>
+                    TryReadTilingPattern(
+                        stream,
+                        resources,
+                        textOutputBudget,
+                        pageContentBudget,
+                        renderingIntent,
+                        out PdfPageTilingPatternResource? parsed)
+                            ? parsed
+                            : null);
+                if (resourceCache != null) {
+                    resourceCache[cacheKey] = pattern;
+                }
+                result[PdfRenderingIntentResolver.BuildResourceKey(entry.Key, renderingIntent)] = pattern;
             }
         }
         return result;
@@ -161,6 +161,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary parentResources,
         TextContentParser.TextOutputBudget? textOutputBudget,
         PageContentBudget pageContentBudget,
+        OfficeIccRenderingIntent renderingIntent,
         out PdfPageTilingPatternResource pattern) {
         pattern = null!;
         int? paintType;
@@ -178,7 +179,7 @@ public sealed partial class PdfReadPage {
         double height = box.Y2 - box.Y1;
         if (width <= 0D || height <= 0D) return false;
         PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
-        OfficeDrawing tile = CreatePatternTileDrawing(stream, resources, box, width, height, textOutputBudget ?? CreateTextOutputBudget(), pageContentBudget);
+        OfficeDrawing tile = CreatePatternTileDrawing(stream, resources, box, width, height, textOutputBudget ?? CreateTextOutputBudget(), pageContentBudget, renderingIntent);
         Matrix2D matrix = stream.Dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)
             ? ReadPatternMatrix(matrixObject)
             : Matrix2D.Identity;
@@ -200,7 +201,8 @@ public sealed partial class PdfReadPage {
         double width,
         double height,
         TextContentParser.TextOutputBudget textOutputBudget,
-        PageContentBudget pageContentBudget) {
+        PageContentBudget pageContentBudget,
+        OfficeIccRenderingIntent renderingIntent) {
         var drawing = new OfficeDrawing(width, height);
         RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
         string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
@@ -219,7 +221,8 @@ public sealed partial class PdfReadPage {
             activeForms,
             includeTilingPatterns: false,
             textOutputBudget: textOutputBudget,
-            pageContentBudget: pageContentBudget);
+            pageContentBudget: pageContentBudget,
+            initialRenderingIntent: renderingIntent);
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
 
         var spans = new List<PdfTextSpan>();
@@ -239,11 +242,12 @@ public sealed partial class PdfReadPage {
             paintOrderOffset: -transformedOffset,
             useLogicalTextFilters: false,
             textOutputBudget: textOutputBudget,
-            pageContentBudget: pageContentBudget);
+            pageContentBudget: pageContentBudget,
+            initialRenderingIntent: renderingIntent);
         for (int i = 0; i < spans.Count; i++) elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
 
         var placements = new List<PdfImagePlacement>();
-        CollectImagePlacementsAndForms(content, resources, 0, transform, height, placements, activeForms, pageContentBudget: pageContentBudget);
+        CollectImagePlacementsAndForms(content, resources, 0, transform, height, placements, activeForms, initialRenderingIntent: renderingIntent, pageContentBudget: pageContentBudget);
         if (placements.Count > 0) {
             IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(resources, 0, placements, colorizeImageMasks: true);
             for (int i = 0; i < placements.Count; i++) {

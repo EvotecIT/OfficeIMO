@@ -10,6 +10,7 @@ internal readonly struct PdfPageGraphicsStateResource {
         OfficeStrokeDashStyle? strokeDashStyle,
         OfficeStrokeLineCap? strokeLineCap,
         OfficeStrokeLineJoin? strokeLineJoin,
+        OfficeIccRenderingIntent? renderingIntent = null,
         OfficeBlendMode? blendMode = null,
         bool hasSoftMask = false,
         PdfPageSoftMaskResource? softMask = null) {
@@ -19,6 +20,7 @@ internal readonly struct PdfPageGraphicsStateResource {
         StrokeDashStyle = strokeDashStyle;
         StrokeLineCap = strokeLineCap;
         StrokeLineJoin = strokeLineJoin;
+        RenderingIntent = renderingIntent;
         BlendMode = blendMode;
         HasSoftMask = hasSoftMask;
         SoftMask = softMask;
@@ -35,6 +37,8 @@ internal readonly struct PdfPageGraphicsStateResource {
     public OfficeStrokeLineCap? StrokeLineCap { get; }
 
     public OfficeStrokeLineJoin? StrokeLineJoin { get; }
+
+    public OfficeIccRenderingIntent? RenderingIntent { get; }
 
     public OfficeBlendMode? BlendMode { get; }
 

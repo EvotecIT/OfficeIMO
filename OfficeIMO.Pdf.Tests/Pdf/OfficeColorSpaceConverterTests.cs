@@ -179,10 +179,51 @@ public class OfficeColorSpaceConverterTests {
     }
 
     [Fact]
-    public void IccLutProfile_RejectsIntentDependentTransformsUntilIntentSelectionIsSupported() {
+    public void IccLutProfile_SelectsAuthoredIntentTransformsAndFallsBackToPerceptual() {
         byte[] profileBytes = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
 
-        Assert.False(OfficeIccColorProfile.TryCreate(profileBytes, out _));
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        double[] white = { 0D, 0D, 0D, 0D };
+        Assert.True(profile!.TryConvert(white, OfficeIccRenderingIntent.Perceptual, out OfficeColor perceptual));
+        Assert.True(profile.TryConvert(white, OfficeIccRenderingIntent.RelativeColorimetric, out OfficeColor relative));
+        Assert.True(profile.TryConvert(white, OfficeIccRenderingIntent.Saturation, out OfficeColor saturationFallback));
+
+        Assert.NotEqual(perceptual, relative);
+        Assert.Equal(perceptual, saturationFallback);
+        Assert.False(profile.TryConvert(white, (OfficeIccRenderingIntent)99, out _));
+    }
+
+    [Fact]
+    public void IccLutProfile_AppliesMediaWhitePointForAbsoluteColorimetricIntent() {
+        byte[] profileBytes = IccLutTestProfiles.CreateRgbLut16WithMediaWhite(0.75D, 0.8D, 0.6D);
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        double[] white = { 1D, 1D, 1D };
+        Assert.True(profile!.TryConvert(white, OfficeIccRenderingIntent.RelativeColorimetric, out OfficeColor relative));
+        Assert.True(profile.TryConvert(white, OfficeIccRenderingIntent.AbsoluteColorimetric, out OfficeColor absolute));
+
+        Assert.InRange(relative.R, 250, 255);
+        Assert.InRange(relative.G, 250, 255);
+        Assert.InRange(relative.B, 250, 255);
+        Assert.NotEqual(relative, absolute);
+        Assert.True(absolute.R < relative.R || absolute.G < relative.G || absolute.B < relative.B);
+    }
+
+    [Fact]
+    public void IccMatrixProfile_AppliesMediaWhitePointForAbsoluteColorimetricIntent() {
+        byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;
+        int mediaWhiteOffset = FindTagOffset(profileBytes, "wtpt") + 8;
+        WriteS15Fixed16(profileBytes, mediaWhiteOffset, 0.75D);
+        WriteS15Fixed16(profileBytes, mediaWhiteOffset + 4, 0.8D);
+        WriteS15Fixed16(profileBytes, mediaWhiteOffset + 8, 0.6D);
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        double[] white = { 1D, 1D, 1D };
+        Assert.True(profile!.TryConvert(white, OfficeIccRenderingIntent.RelativeColorimetric, out OfficeColor relative));
+        Assert.True(profile.TryConvert(white, OfficeIccRenderingIntent.AbsoluteColorimetric, out OfficeColor absolute));
+
+        Assert.NotEqual(relative, absolute);
+        Assert.True(absolute.R < relative.R || absolute.G < relative.G || absolute.B < relative.B);
     }
 
     [Fact]

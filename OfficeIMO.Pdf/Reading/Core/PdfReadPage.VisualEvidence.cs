@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
@@ -10,7 +12,7 @@ public sealed partial class PdfReadPage {
         var visibilityBudget = new VisualGeometryBudget();
         var patternPaintCache = new Dictionary<PdfPageTilingPatternResource, bool>();
         var tilingPatternResourceCache =
-            new Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>();
+            new Dictionary<(PdfStream Stream, PdfDictionary Resources, OfficeIccRenderingIntent RenderingIntent), Lazy<PdfPageTilingPatternResource?>>();
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
         var pageContentBudget = new PageContentBudget(this);

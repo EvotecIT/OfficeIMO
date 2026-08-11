@@ -91,6 +91,7 @@ public sealed partial class PdfReadPage {
         OfficeStrokeDashStyle? initialStrokeDashStyle = null,
         OfficeStrokeLineCap? initialStrokeLineCap = null,
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
+        OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         int contentNestingDepth = 0,
         PageContentBudget? pageContentBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
@@ -132,7 +133,8 @@ public sealed partial class PdfReadPage {
                      initialStrokeLineJoin,
                      _limits.MaxContentOperations,
                      _limits.MaxContentNestingDepth,
-                     _limits.MaxContentOperands)) {
+                     _limits.MaxContentOperands,
+                     initialRenderingIntent)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream) || !activeForms.Add(formStream)) continue;
             PdfPageDrawingEffect inherited = ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect);
             try {
@@ -161,6 +163,7 @@ public sealed partial class PdfReadPage {
                     initialStrokeDashStyle: invocation.StrokeDashStyle,
                     initialStrokeLineCap: invocation.StrokeLineCap,
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
+                    initialRenderingIntent: invocation.RenderingIntent,
                     contentNestingDepth: contentNestingDepth + 1,
                     pageContentBudget: pageContentBudget);
                 transitions.Add(new PdfPageDrawingEffectTransition(invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.25D), inherited));
@@ -184,16 +187,25 @@ public sealed partial class PdfReadPage {
 
     private OfficeDrawingSoftMask GetOrCreateSoftMask(
         PdfPageSoftMaskResource resource,
+        OfficeIccRenderingIntent renderingIntent,
         double width,
         double height,
         Matrix2D pageTransform,
-        Dictionary<PdfPageSoftMaskResource, OfficeDrawingSoftMask> cache,
+        Dictionary<(PdfPageSoftMaskResource Resource, OfficeIccRenderingIntent RenderingIntent), OfficeDrawingSoftMask> cache,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget) {
-        if (cache.TryGetValue(resource, out OfficeDrawingSoftMask? existing)) return existing;
-        OfficeDrawing drawing = CreateFormDrawing(resource.Group, width, height, pageTransform, textOutputBudget, pageContentBudget);
+        var key = (Resource: resource, RenderingIntent: renderingIntent);
+        if (cache.TryGetValue(key, out OfficeDrawingSoftMask? existing)) return existing;
+        OfficeDrawing drawing = CreateFormDrawing(
+            resource.Group,
+            width,
+            height,
+            pageTransform,
+            renderingIntent,
+            textOutputBudget,
+            pageContentBudget);
         var mask = new OfficeDrawingSoftMask(drawing, resource.Mode, backdropColor: resource.BackdropColor);
-        cache[resource] = mask;
+        cache[key] = mask;
         return mask;
     }
 
@@ -202,6 +214,7 @@ public sealed partial class PdfReadPage {
         double width,
         double height,
         Matrix2D pageTransform,
+        OfficeIccRenderingIntent renderingIntent,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget) {
         var drawing = new OfficeDrawing(width, height);
@@ -222,6 +235,7 @@ public sealed partial class PdfReadPage {
             height,
             primitives.Add,
             activeForms,
+            initialRenderingIntent: renderingIntent,
             textOutputBudget: textOutputBudget,
             pageContentBudget: pageContentBudget);
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
@@ -243,13 +257,23 @@ public sealed partial class PdfReadPage {
             activeForms,
             height,
             paintOrderOffset: -transformedOffset,
+            initialRenderingIntent: renderingIntent,
             useLogicalTextFilters: false,
             textOutputBudget: textOutputBudget,
             pageContentBudget: pageContentBudget);
         for (int i = 0; i < spans.Count; i++) elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
 
         var placements = new List<PdfImagePlacement>();
-        CollectImagePlacementsAndForms(content, resources, 0, transform, height, placements, activeForms, pageContentBudget: pageContentBudget);
+        CollectImagePlacementsAndForms(
+            content,
+            resources,
+            0,
+            transform,
+            height,
+            placements,
+            activeForms,
+            initialRenderingIntent: renderingIntent,
+            pageContentBudget: pageContentBudget);
         if (placements.Count > 0) {
             IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(resources, 0, placements, colorizeImageMasks: true);
             for (int i = 0; i < placements.Count; i++) {

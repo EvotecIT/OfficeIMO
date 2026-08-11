@@ -41,6 +41,16 @@ internal static class PdfPageGraphicsEffectTimelineParser {
                             ApplyState(state.Apply(resource), paintOrder);
                         }
                         break;
+                    case "ri":
+                        string? renderingIntentName = operation.Operands.Count == 0
+                            ? null
+                            : operation.Operands[operation.Operands.Count - 1] as string;
+                        if (renderingIntentName is not null) {
+                            ApplyState(
+                                state.WithRenderingIntent(PdfRenderingIntentResolver.FromName(renderingIntentName)),
+                                paintOrder);
+                        }
+                        break;
                 }
             },
             maxNestingDepth: maxNestingDepth,
@@ -61,5 +71,6 @@ internal static class PdfPageGraphicsEffectTimelineParser {
 
     private static bool SameEffect(PdfPageDrawingEffect left, PdfPageDrawingEffect right) =>
         left.BlendMode == right.BlendMode &&
-        ReferenceEquals(left.SoftMask, right.SoftMask);
+        ReferenceEquals(left.SoftMask, right.SoftMask) &&
+        left.RenderingIntent == right.RenderingIntent;
 }

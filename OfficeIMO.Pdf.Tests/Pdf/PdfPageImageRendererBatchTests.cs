@@ -27,7 +27,8 @@ public class PdfPageImageRendererBatchTests {
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
         Assert.Contains(result.CapabilityDiagnostics, static diagnostic => diagnostic.Code == "render.operator.miter-limit-simplified" && diagnostic.Subject == "M");
-        Assert.Contains(result.CapabilityDiagnostics, static diagnostic => diagnostic.Code == "render.operator.rendering-intent-simplified" && diagnostic.Subject == "ri");
+        Assert.Contains(manifest.Entries, static entry => entry.Id == "render.operator.rendering-intent" && entry.SupportLevel == PdfRenderSupportLevel.Simplified);
+        Assert.DoesNotContain(result.CapabilityDiagnostics, static diagnostic => diagnostic.Subject == "ri");
         Assert.Contains(result.CapabilityDiagnostics, static diagnostic => diagnostic.Code == "render.operator.flatness-simplified" && diagnostic.Subject == "i");
         Assert.Contains(result.CapabilityDiagnostics, static diagnostic => diagnostic.Code == "render.operator.marked-point-simplified" && diagnostic.Subject == "MP");
         Assert.Contains(result.CapabilityDiagnostics, static diagnostic => diagnostic.Code == "render.operator.unsupported" && diagnostic.Subject == "FuturePaint");

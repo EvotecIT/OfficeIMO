@@ -45,6 +45,240 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_AppliesContentAndExtGStateRenderingIntent() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        OfficeColor perceptual = Assert.Single(PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            "/Perceptual ri 0 0 0 0 scn")).Shapes).Shape.FillColor!.Value;
+        OfficeColor relative = Assert.Single(PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            "0 0 0 0 scn")).Shapes).Shape.FillColor!.Value;
+        OfficeColor extGStatePerceptual = Assert.Single(PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            "/IntentGs gs 0 0 0 0 scn",
+            extraResourceEntries: "/ExtGState << /IntentGs << /RI /Perceptual >> >>")).Shapes).Shape.FillColor!.Value;
+        OfficeColor lateRelative = Assert.Single(PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            "0 0 0 0 scn /RelativeColorimetric ri")).Shapes).Shape.FillColor!.Value;
+        OfficeColor lateExtGStatePerceptual = Assert.Single(PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            "/RelativeColorimetric ri 0 0 0 0 scn /IntentGs gs",
+            extraResourceEntries: "/ExtGState << /IntentGs << /RI /Perceptual >> >>")).Shapes).Shape.FillColor!.Value;
+
+        Assert.NotEqual(perceptual, relative);
+        Assert.Equal(perceptual, extGStatePerceptual);
+        Assert.Equal(relative, lateRelative);
+        Assert.Equal(perceptual, lateExtGStatePerceptual);
+    }
+
+    [Fact]
+    public void RenderPage_ResolvesIndirectExtGStateIntentAndTreatsNullAsAbsent() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        const string content =
+            "/Perceptual ri /NullIntent gs /CsIcc cs 0 0 0 0 scn 0 0 10 10 re f\n" +
+            "/RelativeColorimetric ri /IndirectIntent gs /CsIcc cs 0 0 0 0 scn 20 0 10 10 re f";
+        OfficeColor[] colors = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            extraObjects: "7 0 obj\n8 0 R\nendobj\n8 0 obj\n/Perceptual\nendobj\n",
+            extraResourceEntries:
+                "/ExtGState << /NullIntent << /RI null >> /IndirectIntent << /RI 7 0 R >> >>",
+            contentOverride: content)).Shapes.Select(shape => shape.Shape.FillColor!.Value).ToArray();
+
+        Assert.Equal(2, colors.Length);
+        Assert.Equal(colors[0], colors[1]);
+    }
+
+    [Fact]
+    public void RenderPage_RestoresRenderingIntentAcrossGraphicsStateAndPropagatesIntoForm() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        const string twoShapes =
+            "q /Perceptual ri /CsIcc cs 0 0 0 0 scn 0 0 10 10 re f Q\n" +
+            "/CsIcc cs 0 0 0 0 scn 20 0 10 10 re f";
+        OfficeDrawing stateDrawing = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            contentOverride: twoShapes));
+        OfficeColor[] stateColors = stateDrawing.Shapes.Select(shape => shape.Shape.FillColor!.Value).ToArray();
+
+        const string formContent = "/CsIcc cs 0 0 0 0 scn 0 0 10 10 re f";
+        string formObject =
+            "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length " +
+            Encoding.ASCII.GetByteCount(formContent).ToString(CultureInfo.InvariantCulture) +
+            " >>\nstream\n" + formContent + "\nendstream\nendobj\n";
+        OfficeColor formPerceptual = Assert.Single(PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            extraObjects: formObject,
+            extraResourceEntries: "/XObject << /Fm 7 0 R >>",
+            contentOverride: "/Perceptual ri /Fm Do")).Shapes).Shape.FillColor!.Value;
+        const string inheritedFormContent = "/RelativeColorimetric ri 0 0 10 10 re f";
+        string inheritedFormObject =
+            "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length " +
+            Encoding.ASCII.GetByteCount(inheritedFormContent).ToString(CultureInfo.InvariantCulture) +
+            " >>\nstream\n" + inheritedFormContent + "\nendstream\nendobj\n";
+        OfficeColor inheritedFormRelative = Assert.Single(PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            extraObjects: inheritedFormObject,
+            extraResourceEntries: "/XObject << /Fm 7 0 R >>",
+            contentOverride: "/Perceptual ri /CsIcc cs 0 0 0 0 scn /Fm Do")).Shapes).Shape.FillColor!.Value;
+
+        Assert.Equal(2, stateColors.Length);
+        Assert.NotEqual(stateColors[0], stateColors[1]);
+        Assert.Equal(stateColors[0], formPerceptual);
+        Assert.Equal(stateColors[1], inheritedFormRelative);
+    }
+
+    [Fact]
+    public void GetTextSpans_AppliesRenderingIntentToIccTextPaint() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        const string text = "BT /F1 12 Tf /CsIcc cs 0 0 0 0 scn /Perceptual ri 40 80 Td (X) Tj ET";
+        byte[] pdf = BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            extraResourceEntries: "/Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >>",
+            contentOverride: text);
+
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetTextSpans());
+        OfficeColor expected = Assert.Single(PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            "/Perceptual ri 0 0 0 0 scn")).Shapes).Shape.FillColor!.Value;
+
+        Assert.Equal(expected, span.Color);
+    }
+
+    [Fact]
+    public void RenderPage_AppliesPaintTimeIntentToInheritedImageMaskTint() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        OfficeColor perceptual = ReadSingleRenderedImagePixel(BuildIccImageMaskPdf(
+            profile,
+            "/N 4",
+            "/CsIcc cs 0 0 0 0 scn /RelativeColorimetric ri /Perceptual ri q 40 0 0 40 40 80 cm /Im1 Do Q"));
+        OfficeColor relative = ReadSingleRenderedImagePixel(BuildIccImageMaskPdf(
+            profile,
+            "/N 4",
+            "/CsIcc cs 0 0 0 0 scn /Perceptual ri /RelativeColorimetric ri q 40 0 0 40 40 80 cm /Im1 Do Q"));
+
+        Assert.NotEqual(perceptual, relative);
+    }
+
+    [Fact]
+    public void RenderPage_AppliesRenderingIntentToIccShadingStops() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        const string shadingObjects =
+            "7 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 5 0 R] /Coords [0 0 100 0] /Function 8 0 R >>\nendobj\n" +
+            "8 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 1 1 1] /N 1 >>\nendobj\n";
+        OfficeDrawing perceptualDrawing = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            extraObjects: shadingObjects,
+            extraResourceEntries: "/Shading << /Sh 7 0 R >>",
+            contentOverride: "/Perceptual ri /Sh sh"));
+        OfficeDrawing relativeDrawing = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            extraObjects: shadingObjects,
+            extraResourceEntries: "/Shading << /Sh 7 0 R >>",
+            contentOverride: "/RelativeColorimetric ri /Sh sh"));
+
+        OfficeColor perceptual = Assert.Single(perceptualDrawing.Shapes).Shape.FillGradient!.Stops[0].Color;
+        OfficeColor relative = Assert.Single(relativeDrawing.Shapes).Shape.FillGradient!.Stops[0].Color;
+        Assert.NotEqual(perceptual, relative);
+    }
+
+    [Fact]
+    public void RenderPage_AppliesRenderingIntentToIccShadingPatternStops() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        const string shadingObjects =
+            "7 0 obj\n<< /Type /Pattern /PatternType 2 /Shading 8 0 R >>\nendobj\n" +
+            "8 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 5 0 R] /Coords [0 0 100 0] /Function 9 0 R >>\nendobj\n" +
+            "9 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 1 1 1] /N 1 >>\nendobj\n";
+        OfficeDrawing perceptualDrawing = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            extraObjects: shadingObjects,
+            extraResourceEntries: "/Pattern << /Sp 7 0 R >>",
+            contentOverride: "/RelativeColorimetric ri /Pattern cs /Sp scn /Perceptual ri 0 0 100 100 re f"));
+        OfficeDrawing relativeDrawing = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            extraObjects: shadingObjects,
+            extraResourceEntries: "/Pattern << /Sp 7 0 R >>",
+            contentOverride: "/Perceptual ri /Pattern cs /Sp scn /RelativeColorimetric ri 0 0 100 100 re f"));
+
+        OfficeColor perceptual = Assert.Single(perceptualDrawing.Shapes).Shape.FillGradient!.Stops[0].Color;
+        OfficeColor relative = Assert.Single(relativeDrawing.Shapes).Shape.FillGradient!.Stops[0].Color;
+        Assert.NotEqual(perceptual, relative);
+    }
+
+    [Fact]
+    public void RenderPage_AppliesRenderingIntentInsideTilingPattern() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        const string tileContent = "/CsIcc cs 0 0 0 0 scn 0 0 10 10 re f";
+        string patternObject =
+            "7 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] " +
+            "/XStep 10 /YStep 10 /Resources << /ColorSpace << /CsIcc [/ICCBased 5 0 R] >> >> /Length " +
+            Encoding.ASCII.GetByteCount(tileContent).ToString(CultureInfo.InvariantCulture) +
+            " >>\nstream\n" + tileContent + "\nendstream\nendobj\n";
+        OfficeRasterImage perceptual = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            extraObjects: patternObject,
+            extraResourceEntries: "/Pattern << /P 7 0 R >>",
+            contentOverride: "/RelativeColorimetric ri /Pattern cs /P scn /Perceptual ri 0 0 100 100 re f")));
+        OfficeRasterImage relative = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            extraObjects: patternObject,
+            extraResourceEntries: "/Pattern << /P 7 0 R >>",
+            contentOverride: "/Perceptual ri /Pattern cs /P scn /RelativeColorimetric ri 0 0 100 100 re f")));
+
+        Assert.NotEqual(perceptual.GetPixel(50, 150), relative.GetPixel(50, 150));
+    }
+
+    [Fact]
+    public void RenderPage_RendersSharedSoftMaskUnderEachInheritedRenderingIntent() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        const string maskContent = "/CsIcc cs 0 0 0 0 scn 0 0 240 200 re f";
+        string maskObjects =
+            "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Group << /S /Transparency /CS /DeviceRGB >> " +
+            "/Resources << /ColorSpace << /CsIcc [/ICCBased 5 0 R] >> >> /Length " +
+            Encoding.ASCII.GetByteCount(maskContent).ToString(CultureInfo.InvariantCulture) +
+            " >>\nstream\n" + maskContent + "\nendstream\nendobj\n" +
+            "8 0 obj\n<< /S /Luminosity /G 7 0 R >>\nendobj\n";
+        const string content =
+            "q /Perceptual ri /Mask gs 1 0 0 rg 0 0 100 100 re f Q\n" +
+            "q /RelativeColorimetric ri /Mask gs 1 0 0 rg 120 0 100 100 re f Q";
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            extraObjects: maskObjects,
+            extraResourceEntries: "/ExtGState << /Mask << /SMask 8 0 R >> >>",
+            contentOverride: content)));
+
+        Assert.NotEqual(raster.GetPixel(50, 150), raster.GetPixel(170, 150));
+    }
+
+    [Fact]
     public void RenderPage_AppliesEmbeddedMatrixTrcProfileWithoutApproximationDiagnostic() {
         byte[] profile = PdfIccProfiles.SrgbIec6196621;
         SwapTagPayload(profile, "rXYZ", "bXYZ");
@@ -144,6 +378,26 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_AppliesPaintTimeIntentToIndexedIccContentPalette() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        const string indexed = "/CsIcc [/Indexed [/ICCBased 5 0 R] 0 <00000000>]";
+        OfficeColor perceptual = Assert.Single(PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            colorSpaceResources: indexed,
+            contentOverride: "/CsIcc cs 0 scn /Perceptual ri 0 0 10 10 re f")).Shapes).Shape.FillColor!.Value;
+        OfficeColor relative = Assert.Single(PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            colorSpaceResources: indexed,
+            contentOverride: "/CsIcc cs 0 scn /RelativeColorimetric ri 0 0 10 10 re f")).Shapes).Shape.FillColor!.Value;
+
+        Assert.NotEqual(perceptual, relative);
+    }
+
+    [Fact]
     public void RenderPage_UsesDeclaredSeparationAlternateForUnsupportedIccProfile() {
         byte[] pdf = BuildIccContentPdf(
             PdfIccProfiles.SrgbIec6196621,
@@ -184,6 +438,103 @@ public class PdfIccColorRenderingTests {
         Assert.InRange(pixel.R, 245, 255);
         Assert.InRange(pixel.G, 0, 15);
         Assert.InRange(pixel.B, 0, 15);
+    }
+
+    [Fact]
+    public void ExtractImages_UsesImageRenderingIntentAndPdfRelativeDefault() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        byte[] samples = { 0, 0, 0, 0 };
+        OfficeColor perceptual = ReadSinglePixel(BuildIccImagePdf(
+            profile,
+            samples,
+            "/N 4",
+            imageEntries: "/Intent /Perceptual"));
+        OfficeColor relative = ReadSinglePixel(BuildIccImagePdf(
+            profile,
+            samples,
+            "/N 4",
+            imageEntries: "/Intent /RelativeColorimetric"));
+        OfficeColor inheritedDefault = ReadSinglePixel(BuildIccImagePdf(profile, samples, "/N 4"));
+        OfficeColor unknownDefault = ReadSinglePixel(BuildIccImagePdf(
+            profile,
+            samples,
+            "/N 4",
+            imageEntries: "/Intent /ProducerSpecific"));
+        OfficeColor indirectPerceptual = ReadSinglePixel(BuildIccImagePdf(
+            profile,
+            samples,
+            "/N 4",
+            imageEntries: "/Intent 7 0 R",
+            extraObjects: "7 0 obj\n/Perceptual\nendobj\n"));
+
+        Assert.NotEqual(perceptual, relative);
+        Assert.Equal(relative, inheritedDefault);
+        Assert.Equal(relative, unknownDefault);
+        Assert.Equal(perceptual, indirectPerceptual);
+    }
+
+    [Fact]
+    public void ExtractImages_PropagatesRenderingIntentThroughIndexedIccPalette() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        const string indexed = "[/Indexed [/ICCBased 6 0 R] 0 <00000000>]";
+        OfficeColor perceptual = ReadSinglePixel(BuildIccImagePdf(
+            profile,
+            new byte[] { 0 },
+            "/N 4",
+            imageEntries: "/Intent /Perceptual",
+            imageColorSpace: indexed));
+        OfficeColor relative = ReadSinglePixel(BuildIccImagePdf(
+            profile,
+            new byte[] { 0 },
+            "/N 4",
+            imageEntries: "/Intent /RelativeColorimetric",
+            imageColorSpace: indexed));
+
+        Assert.NotEqual(perceptual, relative);
+    }
+
+    [Fact]
+    public void ExtractImages_PreservesDistinctInheritedIntentsForRepeatedImageResource() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        const string content =
+            "q /Perceptual ri 40 0 0 40 40 80 cm /Im1 Do Q\n" +
+            "q /RelativeColorimetric ri 40 0 0 40 100 80 cm /Im1 Do Q";
+        byte[] pdf = BuildIccImagePdf(
+            profile,
+            new byte[] { 0, 0, 0, 0 },
+            "/N 4",
+            contentOperations: content);
+
+        IReadOnlyList<PdfExtractedImage> images = PdfReadDocument.Open(pdf).Pages[0].GetImages();
+        OfficeColor[] colors = images.Select(image => {
+            Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+            return raster!.GetPixel(0, 0);
+        }).ToArray();
+
+        Assert.Equal(2, colors.Length);
+        Assert.NotEqual(colors[0], colors[1]);
+    }
+
+    [Fact]
+    public void ExtractImages_ExplicitImageIntentOverridesEachInheritedIntent() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        const string content =
+            "q /Perceptual ri 40 0 0 40 40 80 cm /Im1 Do Q\n" +
+            "q /RelativeColorimetric ri 40 0 0 40 100 80 cm /Im1 Do Q";
+        byte[] pdf = BuildIccImagePdf(
+            profile,
+            new byte[] { 0, 0, 0, 0 },
+            "/N 4",
+            imageEntries: "/Intent /Perceptual",
+            contentOperations: content);
+
+        OfficeColor[] colors = PdfReadDocument.Open(pdf).Pages[0].GetImages().Select(image => {
+            Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+            return raster!.GetPixel(0, 0);
+        }).ToArray();
+
+        Assert.Equal(2, colors.Length);
+        Assert.Equal(colors[0], colors[1]);
     }
 
     [Fact]
@@ -630,14 +981,16 @@ public class PdfIccColorRenderingTests {
         string colorOperation,
         string extraObjects = "",
         string colorSpaceName = "CsIcc",
-        string colorSpaceResources = "/CsIcc [/ICCBased 5 0 R]") {
-        string content = "/" + colorSpaceName + " cs\n" + colorOperation + "\n40 80 70 40 re\nf";
+        string colorSpaceResources = "/CsIcc [/ICCBased 5 0 R]",
+        string extraResourceEntries = "",
+        string? contentOverride = null) {
+        string content = contentOverride ?? ("/" + colorSpaceName + " cs\n" + colorOperation + "\n40 80 70 40 re\nf");
         byte[] contentBytes = Encoding.ASCII.GetBytes(content);
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.4\n");
         WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
         WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj\n");
-        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << " + colorSpaceResources + " >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << " + colorSpaceResources + " >> " + extraResourceEntries + " >> /Contents 4 0 R >>\nendobj\n");
         WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
         output.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(output, "\nendstream\nendobj\n");
@@ -657,8 +1010,9 @@ public class PdfIccColorRenderingTests {
         byte? softMaskSample = null,
         string imageColorSpace = "[/ICCBased 6 0 R]",
         string extraObjects = "",
-        int bitsPerComponent = 8) {
-        byte[] contentBytes = Encoding.ASCII.GetBytes("q\n40 0 0 40 40 80 cm\n/Im1 Do\nQ");
+        int bitsPerComponent = 8,
+        string? contentOperations = null) {
+        byte[] contentBytes = Encoding.ASCII.GetBytes(contentOperations ?? "q\n40 0 0 40 40 80 cm\n/Im1 Do\nQ");
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.4\n");
         WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
@@ -680,6 +1034,28 @@ public class PdfIccColorRenderingTests {
         }
         WriteAscii(output, extraObjects);
         WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildIccImageMaskPdf(
+        byte[] profile,
+        string profileEntries,
+        string contentOperations) {
+        byte[] contentBytes = Encoding.ASCII.GetBytes(contentOperations);
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.4\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << /CsIcc [/ICCBased 6 0 R] >> /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(contentBytes, 0, contentBytes.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Length 1 >>\nstream\n");
+        output.WriteByte(0x80);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< " + profileEntries + " /Length " + profile.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(profile, 0, profile.Length);
+        WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }
 
@@ -734,6 +1110,18 @@ public class PdfIccColorRenderingTests {
     }
 
     private static byte[] Compress(byte[] bytes) => OfficeZlibCodec.Compress(bytes);
+
+    private static OfficeColor ReadSinglePixel(byte[] pdf) {
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        return raster!.GetPixel(0, 0);
+    }
+
+    private static OfficeColor ReadSingleRenderedImagePixel(byte[] pdf) {
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        Assert.True(OfficePngReader.TryDecode(Assert.Single(drawing.Images).Bytes, out OfficeRasterImage? raster));
+        return raster!.GetPixel(0, 0);
+    }
 
     private static void SwapTagPayload(byte[] profile, string firstSignature, string secondSignature) {
         (int Offset, int Length) first = FindTag(profile, firstSignature);

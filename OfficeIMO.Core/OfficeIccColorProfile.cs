@@ -23,10 +23,7 @@ public sealed partial class OfficeIccColorProfile {
     private const uint AToB0TagSignature = 0x41324230U;
     private const uint AToB1TagSignature = 0x41324231U;
     private const uint AToB2TagSignature = 0x41324232U;
-    private const uint DToB0TagSignature = 0x44324230U;
-    private const uint DToB1TagSignature = 0x44324231U;
-    private const uint DToB2TagSignature = 0x44324232U;
-    private const uint DToB3TagSignature = 0x44324233U;
+    private const uint MediaWhitePointTagSignature = 0x77747074U;
     private const int HeaderLength = 128;
     private const int TagTableHeaderLength = 4;
     private const int TagEntryLength = 12;
@@ -43,8 +40,8 @@ public sealed partial class OfficeIccColorProfile {
     private readonly XyzValue _greenColumn;
     private readonly XyzValue _blueColumn;
     private readonly XyzValue _whitePoint;
-    private readonly LutTransform? _lutTransform;
-    private readonly MabTransform? _mabTransform;
+    private readonly XyzValue _mediaWhitePoint;
+    private readonly IDeviceToPcsTransform?[]? _deviceToPcsTransforms;
 
     private OfficeIccColorProfile(
         int componentCount,
@@ -54,7 +51,8 @@ public sealed partial class OfficeIccColorProfile {
         XyzValue redColumn,
         XyzValue greenColumn,
         XyzValue blueColumn,
-        XyzValue whitePoint) {
+        XyzValue whitePoint,
+        XyzValue mediaWhitePoint) {
         ComponentCount = componentCount;
         _redCurve = redCurve;
         _greenCurve = greenCurve;
@@ -63,11 +61,15 @@ public sealed partial class OfficeIccColorProfile {
         _greenColumn = greenColumn;
         _blueColumn = blueColumn;
         _whitePoint = whitePoint;
-        _lutTransform = null;
-        _mabTransform = null;
+        _mediaWhitePoint = mediaWhitePoint;
+        _deviceToPcsTransforms = null;
     }
 
-    private OfficeIccColorProfile(int componentCount, LutTransform lutTransform, XyzValue whitePoint) {
+    private OfficeIccColorProfile(
+        int componentCount,
+        IDeviceToPcsTransform?[] deviceToPcsTransforms,
+        XyzValue whitePoint,
+        XyzValue mediaWhitePoint) {
         ComponentCount = componentCount;
         _redCurve = ToneCurve.Identity;
         _greenCurve = ToneCurve.Identity;
@@ -76,21 +78,8 @@ public sealed partial class OfficeIccColorProfile {
         _greenColumn = default;
         _blueColumn = default;
         _whitePoint = whitePoint;
-        _lutTransform = lutTransform;
-        _mabTransform = null;
-    }
-
-    private OfficeIccColorProfile(int componentCount, MabTransform mabTransform, XyzValue whitePoint) {
-        ComponentCount = componentCount;
-        _redCurve = ToneCurve.Identity;
-        _greenCurve = ToneCurve.Identity;
-        _blueCurve = ToneCurve.Identity;
-        _redColumn = default;
-        _greenColumn = default;
-        _blueColumn = default;
-        _whitePoint = whitePoint;
-        _lutTransform = null;
-        _mabTransform = mabTransform;
+        _mediaWhitePoint = mediaWhitePoint;
+        _deviceToPcsTransforms = deviceToPcsTransforms;
     }
 
     /// <summary>Gets the number of device components accepted by this profile.</summary>
@@ -115,9 +104,9 @@ public sealed partial class OfficeIccColorProfile {
         if (!hasAuthoredDeviceToPcsTransform &&
             deviceColorSpace == GraySignature && profileConnectionSpace == XyzSignature) {
             if (!TryReadToneCurve(profileBytes, tags, 0x6B545243U, out ToneCurve grayCurve)) return false; // kTRC
-            if (TryReadXyzTag(profileBytes, tags, 0x77747074U, out XyzValue mediaWhite) && mediaWhite.IsPositive) {
-                whitePoint = mediaWhite;
-            }
+            XyzValue mediaWhite = TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue authoredMediaWhite) && authoredMediaWhite.IsPositive
+                ? authoredMediaWhite
+                : whitePoint;
             profile = new OfficeIccColorProfile(
                 1,
                 grayCurve,
@@ -126,7 +115,8 @@ public sealed partial class OfficeIccColorProfile {
                 whitePoint,
                 default,
                 default,
-                whitePoint);
+                whitePoint,
+                mediaWhite);
             return true;
         }
 
@@ -138,6 +128,9 @@ public sealed partial class OfficeIccColorProfile {
             TryReadXyzTag(profileBytes, tags, 0x7258595AU, out XyzValue redColumn) && // rXYZ
             TryReadXyzTag(profileBytes, tags, 0x6758595AU, out XyzValue greenColumn) && // gXYZ
             TryReadXyzTag(profileBytes, tags, 0x6258595AU, out XyzValue blueColumn)) { // bXYZ
+            XyzValue mediaWhite = TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue authoredMediaWhite) && authoredMediaWhite.IsPositive
+                ? authoredMediaWhite
+                : whitePoint;
             profile = new OfficeIccColorProfile(
                 3,
                 redCurve,
@@ -146,30 +139,23 @@ public sealed partial class OfficeIccColorProfile {
                 redColumn,
                 greenColumn,
                 blueColumn,
-                whitePoint);
+                whitePoint,
+                mediaWhite);
             return true;
         }
 
         int lutComponentCount = deviceColorSpace == RgbSignature ? 3 : deviceColorSpace == 0x434D594BU ? 4 : 0; // CMYK
         if (lutComponentCount != 0 &&
-            TryReadLutTransform(
+            TryReadDeviceToPcsTransforms(
                 profileBytes,
                 tags,
                 lutComponentCount,
                 profileConnectionSpace == LabSignature,
-                out LutTransform lutTransform)) {
-            profile = new OfficeIccColorProfile(lutComponentCount, lutTransform, whitePoint);
-            return true;
-        }
-
-        if (lutComponentCount != 0 &&
-            TryReadMabTransform(
-                profileBytes,
-                tags,
-                lutComponentCount,
-                profileConnectionSpace == LabSignature,
-                out MabTransform mabTransform)) {
-            profile = new OfficeIccColorProfile(lutComponentCount, mabTransform, whitePoint);
+                out IDeviceToPcsTransform?[] transforms)) {
+            XyzValue mediaWhitePoint = TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue authoredMediaWhite) && authoredMediaWhite.IsPositive
+                ? authoredMediaWhite
+                : whitePoint;
+            profile = new OfficeIccColorProfile(lutComponentCount, transforms, whitePoint, mediaWhitePoint);
             return true;
         }
 
@@ -178,26 +164,48 @@ public sealed partial class OfficeIccColorProfile {
 
     /// <summary>Attempts to convert device components through the ICC profile to sRGB.</summary>
     public bool TryConvert(IReadOnlyList<double> components, out OfficeColor color) {
+        return TryConvert(components, OfficeIccRenderingIntent.Perceptual, out color);
+    }
+
+    /// <summary>Attempts to convert device components through the ICC profile to sRGB using the requested rendering intent.</summary>
+    public bool TryConvert(
+        IReadOnlyList<double> components,
+        OfficeIccRenderingIntent renderingIntent,
+        out OfficeColor color) {
         color = OfficeColor.Black;
-        if (components == null || components.Count < ComponentCount) return false;
+        if (components == null || components.Count < ComponentCount ||
+            renderingIntent < OfficeIccRenderingIntent.Perceptual ||
+            renderingIntent > OfficeIccRenderingIntent.AbsoluteColorimetric) return false;
         for (int index = 0; index < ComponentCount; index++) {
             if (!IsFinite(components[index])) return false;
         }
 
-        if (_lutTransform != null) {
-            return _lutTransform.TryConvert(components, _whitePoint, out color);
-        }
-
-        if (_mabTransform != null) {
-            return _mabTransform.TryConvert(components, _whitePoint, out color);
+        IDeviceToPcsTransform? transform = SelectDeviceToPcsTransform(renderingIntent);
+        if (transform != null) {
+            if (!transform.TryTransform(components, _whitePoint, out XyzValue pcsXyz)) return false;
+            pcsXyz = ApplyRenderingIntentToPcs(pcsXyz, renderingIntent);
+            color = OfficeColorSpaceConverter.FromXyz(
+                pcsXyz.X,
+                pcsXyz.Y,
+                pcsXyz.Z,
+                _whitePoint.X,
+                _whitePoint.Y,
+                _whitePoint.Z);
+            return true;
         }
 
         if (ComponentCount == 1) {
             double level = _redCurve.Evaluate(Clamp01(components[0]));
+            XyzValue pcsXyz = ApplyRenderingIntentToPcs(
+                new XyzValue(
+                    _redColumn.X * level,
+                    _redColumn.Y * level,
+                    _redColumn.Z * level),
+                renderingIntent);
             color = OfficeColorSpaceConverter.FromXyz(
-                _redColumn.X * level,
-                _redColumn.Y * level,
-                _redColumn.Z * level,
+                pcsXyz.X,
+                pcsXyz.Y,
+                pcsXyz.Z,
                 _whitePoint.X,
                 _whitePoint.Y,
                 _whitePoint.Z);
@@ -207,13 +215,63 @@ public sealed partial class OfficeIccColorProfile {
         double red = _redCurve.Evaluate(Clamp01(components[0]));
         double green = _greenCurve.Evaluate(Clamp01(components[1]));
         double blue = _blueCurve.Evaluate(Clamp01(components[2]));
+        XyzValue matrixPcsXyz = ApplyRenderingIntentToPcs(
+            new XyzValue(
+                (_redColumn.X * red) + (_greenColumn.X * green) + (_blueColumn.X * blue),
+                (_redColumn.Y * red) + (_greenColumn.Y * green) + (_blueColumn.Y * blue),
+                (_redColumn.Z * red) + (_greenColumn.Z * green) + (_blueColumn.Z * blue)),
+            renderingIntent);
         color = OfficeColorSpaceConverter.FromXyz(
-            (_redColumn.X * red) + (_greenColumn.X * green) + (_blueColumn.X * blue),
-            (_redColumn.Y * red) + (_greenColumn.Y * green) + (_blueColumn.Y * blue),
-            (_redColumn.Z * red) + (_greenColumn.Z * green) + (_blueColumn.Z * blue),
+            matrixPcsXyz.X,
+            matrixPcsXyz.Y,
+            matrixPcsXyz.Z,
             _whitePoint.X,
             _whitePoint.Y,
             _whitePoint.Z);
+        return true;
+    }
+
+    private XyzValue ApplyRenderingIntentToPcs(
+        XyzValue pcsXyz,
+        OfficeIccRenderingIntent renderingIntent) =>
+        renderingIntent == OfficeIccRenderingIntent.AbsoluteColorimetric
+            ? new XyzValue(
+                pcsXyz.X * (_mediaWhitePoint.X / _whitePoint.X),
+                pcsXyz.Y * (_mediaWhitePoint.Y / _whitePoint.Y),
+                pcsXyz.Z * (_mediaWhitePoint.Z / _whitePoint.Z))
+            : pcsXyz;
+
+    private IDeviceToPcsTransform? SelectDeviceToPcsTransform(OfficeIccRenderingIntent renderingIntent) {
+        if (_deviceToPcsTransforms == null) return null;
+        int index = renderingIntent switch {
+            OfficeIccRenderingIntent.RelativeColorimetric or OfficeIccRenderingIntent.AbsoluteColorimetric => 1,
+            OfficeIccRenderingIntent.Saturation => 2,
+            _ => 0
+        };
+        return _deviceToPcsTransforms[index] ?? _deviceToPcsTransforms[0];
+    }
+
+    private static bool TryReadDeviceToPcsTransforms(
+        byte[] bytes,
+        Dictionary<uint, TagRange> tags,
+        int expectedInputChannels,
+        bool pcsIsLab,
+        out IDeviceToPcsTransform?[] transforms) {
+        transforms = new IDeviceToPcsTransform?[3];
+        uint[] signatures = { AToB0TagSignature, AToB1TagSignature, AToB2TagSignature };
+        for (int index = 0; index < signatures.Length; index++) {
+            if (!tags.TryGetValue(signatures[index], out TagRange range)) {
+                if (index == 0) return false;
+                continue;
+            }
+            if (TryReadLutTransform(bytes, range, expectedInputChannels, pcsIsLab, out LutTransform lut)) {
+                transforms[index] = lut;
+            } else if (TryReadMabTransform(bytes, range, expectedInputChannels, pcsIsLab, out MabTransform mab)) {
+                transforms[index] = mab;
+            } else {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -235,11 +293,7 @@ public sealed partial class OfficeIccColorProfile {
     private static bool HasAuthoredDeviceToPcsTransform(Dictionary<uint, TagRange> tags) =>
         tags.ContainsKey(AToB0TagSignature) ||
         tags.ContainsKey(AToB1TagSignature) ||
-        tags.ContainsKey(AToB2TagSignature) ||
-        tags.ContainsKey(DToB0TagSignature) ||
-        tags.ContainsKey(DToB1TagSignature) ||
-        tags.ContainsKey(DToB2TagSignature) ||
-        tags.ContainsKey(DToB3TagSignature);
+        tags.ContainsKey(AToB2TagSignature);
 
     private static bool TryReadXyzTag(byte[] bytes, Dictionary<uint, TagRange> tags, uint signature, out XyzValue value) {
         value = default;
@@ -274,18 +328,12 @@ public sealed partial class OfficeIccColorProfile {
 
     private static bool TryReadLutTransform(
         byte[] bytes,
-        Dictionary<uint, TagRange> tags,
+        TagRange range,
         int expectedInputChannels,
         bool pcsIsLab,
         out LutTransform transform) {
         transform = null!;
-        if (tags.ContainsKey(DToB0TagSignature) ||
-            tags.ContainsKey(DToB1TagSignature) ||
-            tags.ContainsKey(DToB2TagSignature) ||
-            tags.ContainsKey(DToB3TagSignature)) return false;
-        if (!tags.TryGetValue(AToB0TagSignature, out TagRange range) || range.Length < 52) return false;
-        if (!HasEquivalentOptionalTag(bytes, tags, AToB1TagSignature, range) ||
-            !HasEquivalentOptionalTag(bytes, tags, AToB2TagSignature, range)) return false;
+        if (range.Length < 52) return false;
         uint type = ReadUInt32(bytes, range.Offset);
         int precision = type == Lut8TypeSignature ? 1 : type == Lut16TypeSignature ? 2 : 0;
         if (precision == 0 || (precision == 1 && !pcsIsLab) ||
@@ -327,20 +375,6 @@ public sealed partial class OfficeIccColorProfile {
             checked(tableOffset + (int)inputBytes),
             checked(tableOffset + (int)inputBytes + (int)clutBytes),
             pcsIsLab);
-        return true;
-    }
-
-    private static bool HasEquivalentOptionalTag(
-        byte[] bytes,
-        Dictionary<uint, TagRange> tags,
-        uint signature,
-        TagRange primary) {
-        if (!tags.TryGetValue(signature, out TagRange candidate)) return true;
-        if (candidate.Length != primary.Length) return false;
-        if (candidate.Offset == primary.Offset) return true;
-        for (int index = 0; index < primary.Length; index++) {
-            if (bytes[candidate.Offset + index] != bytes[primary.Offset + index]) return false;
-        }
         return true;
     }
 
@@ -430,7 +464,11 @@ public sealed partial class OfficeIccColorProfile {
         internal bool IsPositive => X > 0D && Y > 0D && Z > 0D;
     }
 
-    private sealed class LutTransform {
+    private interface IDeviceToPcsTransform {
+        bool TryTransform(IReadOnlyList<double> components, XyzValue whitePoint, out XyzValue pcsXyz);
+    }
+
+    private sealed class LutTransform : IDeviceToPcsTransform {
         private const double PcsXyzScale = 65535D / 32768D;
         private readonly byte[] _payload;
         private readonly int _inputChannels;
@@ -469,8 +507,8 @@ public sealed partial class OfficeIccColorProfile {
             _pcsIsLab = pcsIsLab;
         }
 
-        internal bool TryConvert(IReadOnlyList<double> components, XyzValue whitePoint, out OfficeColor color) {
-            color = OfficeColor.Black;
+        public bool TryTransform(IReadOnlyList<double> components, XyzValue whitePoint, out XyzValue pcsXyz) {
+            pcsXyz = default;
             if (components.Count < _inputChannels) return false;
             double input0 = LookupInput(components, 0);
             double input1 = LookupInput(components, 1);
@@ -484,21 +522,22 @@ public sealed partial class OfficeIccColorProfile {
                 double lightness = _precision == 1 ? output0 * 100D : output0 * (65535D / 65280D) * 100D;
                 double a = _precision == 1 ? output1 * 255D - 128D : output1 * (65535D / 256D) - 128D;
                 double b = _precision == 1 ? output2 * 255D - 128D : output2 * (65535D / 256D) - 128D;
-                color = OfficeColorSpaceConverter.FromLab(
+                OfficeColorSpaceConverter.ConvertLabToXyz(
                     lightness,
                     a,
                     b,
                     whitePoint.X,
                     whitePoint.Y,
-                    whitePoint.Z);
+                    whitePoint.Z,
+                    out double x,
+                    out double y,
+                    out double z);
+                pcsXyz = new XyzValue(x, y, z);
             } else {
-                color = OfficeColorSpaceConverter.FromXyz(
+                pcsXyz = new XyzValue(
                     output0 * PcsXyzScale,
                     output1 * PcsXyzScale,
-                    output2 * PcsXyzScale,
-                    whitePoint.X,
-                    whitePoint.Y,
-                    whitePoint.Z);
+                    output2 * PcsXyzScale);
             }
             return true;
         }

@@ -6,19 +6,12 @@ namespace OfficeIMO.Drawing;
 public sealed partial class OfficeIccColorProfile {
     private static bool TryReadMabTransform(
         byte[] bytes,
-        Dictionary<uint, TagRange> tags,
+        TagRange range,
         int expectedInputChannels,
         bool pcsIsLab,
         out MabTransform transform) {
         transform = null!;
-        if (tags.ContainsKey(DToB0TagSignature) ||
-            tags.ContainsKey(DToB1TagSignature) ||
-            tags.ContainsKey(DToB2TagSignature) ||
-            tags.ContainsKey(DToB3TagSignature) ||
-            !tags.TryGetValue(AToB0TagSignature, out TagRange range) ||
-            range.Length < 32 ||
-            !HasEquivalentOptionalTag(bytes, tags, AToB1TagSignature, range) ||
-            !HasEquivalentOptionalTag(bytes, tags, AToB2TagSignature, range) ||
+        if (range.Length < 32 ||
             ReadUInt32(bytes, range.Offset) != LutAToBTypeSignature ||
             !AreZero(bytes, range.Offset + 4, 4) ||
             !AreZero(bytes, range.Offset + 10, 2)) {
@@ -274,7 +267,7 @@ public sealed partial class OfficeIccColorProfile {
         internal bool IsCurve { get; }
     }
 
-    private sealed class MabTransform {
+    private sealed class MabTransform : IDeviceToPcsTransform {
         private const double PcsXyzScale = 65535D / 32768D;
         private readonly int _inputChannels;
         private readonly ToneCurve[]? _aCurves;
@@ -301,8 +294,8 @@ public sealed partial class OfficeIccColorProfile {
             _pcsIsLab = pcsIsLab;
         }
 
-        internal bool TryConvert(IReadOnlyList<double> components, XyzValue whitePoint, out OfficeColor color) {
-            color = OfficeColor.Black;
+        public bool TryTransform(IReadOnlyList<double> components, XyzValue whitePoint, out XyzValue pcsXyz) {
+            pcsXyz = default;
             if (components.Count < _inputChannels) return false;
             double value0 = Evaluate(_aCurves, 0, components[0]);
             double value1 = Evaluate(_aCurves, 1, components[1]);
@@ -327,21 +320,24 @@ public sealed partial class OfficeIccColorProfile {
             value1 = _bCurves[1].Evaluate(Clamp01(value1));
             value2 = _bCurves[2].Evaluate(Clamp01(value2));
 
-            color = _pcsIsLab
-                ? OfficeColorSpaceConverter.FromLab(
+            if (_pcsIsLab) {
+                OfficeColorSpaceConverter.ConvertLabToXyz(
                     value0 * 100D,
                     value1 * 255D - 128D,
                     value2 * 255D - 128D,
                     whitePoint.X,
                     whitePoint.Y,
-                    whitePoint.Z)
-                : OfficeColorSpaceConverter.FromXyz(
+                    whitePoint.Z,
+                    out double x,
+                    out double y,
+                    out double z);
+                pcsXyz = new XyzValue(x, y, z);
+            } else {
+                pcsXyz = new XyzValue(
                     value0 * PcsXyzScale,
                     value1 * PcsXyzScale,
-                    value2 * PcsXyzScale,
-                    whitePoint.X,
-                    whitePoint.Y,
-                    whitePoint.Z);
+                    value2 * PcsXyzScale);
+            }
             return true;
         }
 

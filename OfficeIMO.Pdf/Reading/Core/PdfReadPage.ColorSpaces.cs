@@ -122,18 +122,18 @@ public sealed partial class PdfReadPage {
                 out byte[] lookupBytes)) return false;
         if (lookupBytes.Length < paletteCount * componentCount) return false;
 
-        var palette = new OfficeColor[paletteCount];
-        var components = new double[componentCount];
+        var lookupComponents = new IReadOnlyList<double>[paletteCount];
         for (int entry = 0; entry < paletteCount; entry++) {
+            var components = new double[componentCount];
             for (int component = 0; component < componentCount; component++) {
                 components[component] = baseColorSpace.MapLookupByteToComponent(
                     component,
                     lookupBytes[entry * componentCount + component]);
             }
-            if (!baseColorSpace.TryConvertColor(components, out palette[entry])) return false;
+            lookupComponents[entry] = components;
         }
 
-        colorSpace = PdfPageColorSpace.Indexed(palette, baseColorSpace.UsesIccApproximation);
+        colorSpace = PdfPageColorSpace.Indexed(baseColorSpace, lookupComponents);
         return true;
     }
 

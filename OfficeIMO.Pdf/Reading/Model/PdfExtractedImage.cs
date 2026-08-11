@@ -25,7 +25,8 @@ public sealed class PdfExtractedImage {
         bool transparencyMaskResolved = false,
         int directStreamIdentity = 0,
         bool isImageMask = false,
-        OfficeColor? imageMaskColor = null) {
+        OfficeColor? imageMaskColor = null,
+        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -43,6 +44,7 @@ public sealed class PdfExtractedImage {
         DirectStreamIdentity = directStreamIdentity;
         IsImageMask = isImageMask;
         ImageMaskColor = imageMaskColor ?? OfficeColor.Black;
+        RenderingIntent = renderingIntent;
     }
 
     /// <summary>One-based page number containing the image resource.</summary>
@@ -104,4 +106,6 @@ public sealed class PdfExtractedImage {
     public bool IsImageMask { get; }
 
     internal OfficeColor ImageMaskColor { get; }
+
+    internal OfficeIccRenderingIntent RenderingIntent { get; }
 }

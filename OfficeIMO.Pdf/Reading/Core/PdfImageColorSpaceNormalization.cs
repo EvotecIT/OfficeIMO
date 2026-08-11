@@ -15,6 +15,7 @@ internal sealed class PdfImageColorSpaceNormalization {
     private readonly double[] _componentRanges;
     private readonly int _evaluationCost;
     private readonly long _maximumEvaluationWork;
+    private readonly OfficeIccRenderingIntent _renderingIntent;
 
     private PdfImageColorSpaceNormalization(
         PdfPageColorSpace colorSpace,
@@ -26,7 +27,8 @@ internal sealed class PdfImageColorSpaceNormalization {
         int? sourceColorCount = null,
         bool usesIccApproximation = false,
         int evaluationCost = 0,
-        long maximumEvaluationWork = 0L) {
+        long maximumEvaluationWork = 0L,
+        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric) {
         _colorSpace = usesIccApproximation ? PdfPageColorSpace.IccFallback(colorSpace) : colorSpace;
         SourceColorCount = sourceColorCount ?? iccProfile?.ComponentCount ?? colorSpace.ComponentCount;
         PngColorType = pngColorType;
@@ -36,6 +38,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         _componentRanges = componentRanges ?? CreateUnitRanges(SourceColorCount);
         _evaluationCost = Math.Max(0, evaluationCost);
         _maximumEvaluationWork = Math.Max(0L, maximumEvaluationWork);
+        _renderingIntent = renderingIntent;
         UsesIccApproximation = usesIccApproximation;
     }
 
@@ -88,7 +91,7 @@ internal sealed class PdfImageColorSpaceNormalization {
                 double value = components[index];
                 normalized[index] = value <= minimum ? 0D : value >= maximum ? 1D : (value - minimum) / (maximum - minimum);
             }
-            return _iccProfile.TryConvert(normalized, out color);
+            return _iccProfile.TryConvert(normalized, _renderingIntent, out color);
         }
         if (_alternateNormalization != null) {
             double[] clippedComponents = ClipComponentsToRanges(components);
@@ -131,13 +134,30 @@ internal sealed class PdfImageColorSpaceNormalization {
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
         out PdfImageColorSpaceNormalization normalization) =>
-        TryResolve(colorSpaceObj, colorSpaceName, objects, maxDecodedStreamBytes, depth: 0, out normalization);
+        TryResolve(
+            colorSpaceObj,
+            colorSpaceName,
+            objects,
+            maxDecodedStreamBytes,
+            OfficeIccRenderingIntent.RelativeColorimetric,
+            depth: 0,
+            out normalization);
+
+    internal static bool TryResolve(
+        PdfObject? colorSpaceObj,
+        string colorSpaceName,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
+        OfficeIccRenderingIntent renderingIntent,
+        out PdfImageColorSpaceNormalization normalization) =>
+        TryResolve(colorSpaceObj, colorSpaceName, objects, maxDecodedStreamBytes, renderingIntent, depth: 0, out normalization);
 
     private static bool TryResolve(
         PdfObject? colorSpaceObj,
         string colorSpaceName,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
+        OfficeIccRenderingIntent renderingIntent,
         int depth,
         out PdfImageColorSpaceNormalization normalization) {
         normalization = null!;
@@ -164,20 +184,21 @@ internal sealed class PdfImageColorSpaceNormalization {
                     colorSpaceArray,
                     objects,
                     maxDecodedStreamBytes,
+                    renderingIntent,
                     depth,
                     out normalization);
             case "Indexed":
             case "I":
-                return TryCreateIndexed(colorSpaceArray, objects, maxDecodedStreamBytes, depth, out normalization);
+                return TryCreateIndexed(colorSpaceArray, objects, maxDecodedStreamBytes, renderingIntent, depth, out normalization);
             case "Separation":
-                return TryCreateSpecial(colorSpaceArray, PdfPageColorSpaceKind.Separation, 1, objects, maxDecodedStreamBytes, depth, out normalization);
+                return TryCreateSpecial(colorSpaceArray, PdfPageColorSpaceKind.Separation, 1, objects, maxDecodedStreamBytes, renderingIntent, depth, out normalization);
             case "DeviceN":
             case "NChannel":
                 if (colorSpaceArray.Items.Count < 2 ||
                     ResolveObject(colorSpaceArray.Items[1], objects) is not PdfArray names ||
                     names.Items.Count < 1 || names.Items.Count > 32 ||
                     names.Items.Any(item => ResolveObject(item, objects) is not PdfName)) return false;
-                return TryCreateSpecial(colorSpaceArray, PdfPageColorSpaceKind.DeviceN, names.Items.Count, objects, maxDecodedStreamBytes, depth, out normalization);
+                return TryCreateSpecial(colorSpaceArray, PdfPageColorSpaceKind.DeviceN, names.Items.Count, objects, maxDecodedStreamBytes, renderingIntent, depth, out normalization);
             default:
                 return false;
         }
@@ -187,6 +208,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         PdfArray colorSpaceArray,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
+        OfficeIccRenderingIntent renderingIntent,
         int depth,
         out PdfImageColorSpaceNormalization normalization) {
         normalization = null!;
@@ -201,13 +223,13 @@ internal sealed class PdfImageColorSpaceNormalization {
             PdfPageColorSpace output = profile.ComponentCount == 1
                 ? PdfPageColorSpaceKind.DeviceGray
                 : PdfPageColorSpaceKind.DeviceRgb;
-            normalization = new PdfImageColorSpaceNormalization(output, 2, profile, ranges);
+            normalization = new PdfImageColorSpaceNormalization(output, 2, profile, ranges, renderingIntent: renderingIntent);
             return true;
         }
 
         if (profileStream.Dictionary.Items.TryGetValue("Alternate", out PdfObject? alternateObject)) {
             string alternateName = ResolveObject(alternateObject, objects) is PdfName name ? name.Name : string.Empty;
-            if (!TryResolve(alternateObject, alternateName, objects, maxDecodedStreamBytes, depth + 1, out PdfImageColorSpaceNormalization alternate) ||
+            if (!TryResolve(alternateObject, alternateName, objects, maxDecodedStreamBytes, renderingIntent, depth + 1, out PdfImageColorSpaceNormalization alternate) ||
                 alternate.SourceColorCount != componentCount) return false;
             normalization = new PdfImageColorSpaceNormalization(
                 alternate._colorSpace,
@@ -283,6 +305,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         PdfArray colorSpaceArray,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
+        OfficeIccRenderingIntent renderingIntent,
         int depth,
         out PdfImageColorSpaceNormalization normalization) {
         normalization = null!;
@@ -291,7 +314,7 @@ internal sealed class PdfImageColorSpaceNormalization {
             highValue < 0 || highValue > 255) return false;
         PdfObject? baseObject = colorSpaceArray.Items[1];
         string baseName = ResolveObject(baseObject, objects) is PdfName name ? name.Name : string.Empty;
-        if (!TryResolve(baseObject, baseName, objects, maxDecodedStreamBytes, depth + 1, out PdfImageColorSpaceNormalization baseColorSpace) ||
+        if (!TryResolve(baseObject, baseName, objects, maxDecodedStreamBytes, renderingIntent, depth + 1, out PdfImageColorSpaceNormalization baseColorSpace) ||
             baseColorSpace.Kind is PdfPageColorSpaceKind.Indexed or PdfPageColorSpaceKind.Pattern) return false;
         int paletteCount = highValue + 1;
         if (!baseColorSpace.CanConvertPixelCount(paletteCount)) return false;
@@ -324,13 +347,14 @@ internal sealed class PdfImageColorSpaceNormalization {
         int componentCount,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
+        OfficeIccRenderingIntent renderingIntent,
         int depth,
         out PdfImageColorSpaceNormalization normalization) {
         normalization = null!;
         if (colorSpaceArray.Items.Count < 4) return false;
         PdfObject? alternateObject = colorSpaceArray.Items[2];
         string alternateName = ResolveObject(alternateObject, objects) is PdfName name ? name.Name : string.Empty;
-        if (!TryResolve(alternateObject, alternateName, objects, maxDecodedStreamBytes, depth + 1, out PdfImageColorSpaceNormalization alternate) ||
+        if (!TryResolve(alternateObject, alternateName, objects, maxDecodedStreamBytes, renderingIntent, depth + 1, out PdfImageColorSpaceNormalization alternate) ||
             !PdfColorSpaceFunctionResolver.TryCreateTintTransform(
                 colorSpaceArray.Items[3],
                 componentCount,

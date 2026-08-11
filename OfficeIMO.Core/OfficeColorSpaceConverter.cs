@@ -24,18 +24,28 @@ public static class OfficeColorSpaceConverter {
 
     /// <summary>Converts CIE L*a*b* using an explicit XYZ reference white to sRGB.</summary>
     public static OfficeColor FromLab(double lightness, double a, double b, double whiteX, double whiteY, double whiteZ) {
+        ConvertLabToXyz(lightness, a, b, whiteX, whiteY, whiteZ, out double x, out double y, out double z);
+        return FromXyz(x, y, z, whiteX, whiteY, whiteZ);
+    }
+
+    internal static void ConvertLabToXyz(
+        double lightness,
+        double a,
+        double b,
+        double whiteX,
+        double whiteY,
+        double whiteZ,
+        out double x,
+        out double y,
+        out double z) {
         ValidateWhitePoint(whiteX, whiteY, whiteZ);
         double l = Clamp(lightness, 0D, 100D);
         double fy = (l + 16D) / 116D;
         double fx = fy + (Clamp(a, -128D, 127D) / 500D);
         double fz = fy - (Clamp(b, -128D, 127D) / 200D);
-        return FromXyz(
-            whiteX * InverseLabPivot(fx),
-            whiteY * InverseLabPivot(fy),
-            whiteZ * InverseLabPivot(fz),
-            whiteX,
-            whiteY,
-            whiteZ);
+        x = whiteX * InverseLabPivot(fx);
+        y = whiteY * InverseLabPivot(fy);
+        z = whiteZ * InverseLabPivot(fz);
     }
 
     /// <summary>Converts a calibrated gray component and gamma using an explicit XYZ white point.</summary>

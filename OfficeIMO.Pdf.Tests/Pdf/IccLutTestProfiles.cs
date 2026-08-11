@@ -10,6 +10,9 @@ internal static class IccLutTestProfiles {
 
     internal static byte[] CreateRgbLut16() => Create("RGB ", 3, precision: 2);
 
+    internal static byte[] CreateRgbLut16WithMediaWhite(double x, double y, double z) =>
+        Create("RGB ", 3, precision: 2, mediaWhiteX: x, mediaWhiteY: y, mediaWhiteZ: z);
+
     internal static byte[] CreateRgbLabLut16() => Create("RGB ", 3, precision: 2, pcsIsLab: true);
 
     internal static byte[] CreateCmykXyzLut8() => Create("CMYK", 4, precision: 1);
@@ -22,7 +25,10 @@ internal static class IccLutTestProfiles {
         int inputChannels,
         int precision,
         bool pcsIsLab = false,
-        bool includeDistinctRelativeIntent = false) {
+        bool includeDistinctRelativeIntent = false,
+        double mediaWhiteX = WhiteX,
+        double mediaWhiteY = WhiteY,
+        double mediaWhiteZ = WhiteZ) {
         const int gridPoints = 2;
         int inputEntries = precision == 1 ? 256 : 2;
         int outputEntries = precision == 1 ? 256 : 2;
@@ -30,9 +36,12 @@ internal static class IccLutTestProfiles {
         int gridSamples = 1 << inputChannels;
         int tagLength = tableOffset + inputChannels * inputEntries * precision + gridSamples * 3 * precision + 3 * outputEntries * precision;
         int paddedTagLength = (tagLength + 3) & ~3;
-        const int tagOffset = 156;
+        int tagCount = includeDistinctRelativeIntent ? 3 : 2;
+        int tagOffset = 128 + 4 + tagCount * 12;
         int secondTagOffset = tagOffset + paddedTagLength;
-        var profile = new byte[tagOffset + paddedTagLength * (includeDistinctRelativeIntent ? 2 : 1)];
+        int mediaWhiteOffset = tagOffset + paddedTagLength * (includeDistinctRelativeIntent ? 2 : 1);
+        const int mediaWhiteLength = 20;
+        var profile = new byte[mediaWhiteOffset + mediaWhiteLength];
         WriteUInt32(profile, 0, (uint)profile.Length);
         WriteSignature(profile, 12, "scnr");
         WriteSignature(profile, 16, colorSpace);
@@ -41,15 +50,19 @@ internal static class IccLutTestProfiles {
         WriteS15Fixed16(profile, 68, WhiteX);
         WriteS15Fixed16(profile, 72, WhiteY);
         WriteS15Fixed16(profile, 76, WhiteZ);
-        WriteUInt32(profile, 128, includeDistinctRelativeIntent ? 2U : 1U);
+        WriteUInt32(profile, 128, (uint)tagCount);
         WriteSignature(profile, 132, "A2B0");
-        WriteUInt32(profile, 136, tagOffset);
+        WriteUInt32(profile, 136, (uint)tagOffset);
         WriteUInt32(profile, 140, (uint)tagLength);
         if (includeDistinctRelativeIntent) {
             WriteSignature(profile, 144, "A2B1");
             WriteUInt32(profile, 148, (uint)secondTagOffset);
             WriteUInt32(profile, 152, (uint)tagLength);
         }
+        int mediaWhiteEntryOffset = includeDistinctRelativeIntent ? 156 : 144;
+        WriteSignature(profile, mediaWhiteEntryOffset, "wtpt");
+        WriteUInt32(profile, mediaWhiteEntryOffset + 4, (uint)mediaWhiteOffset);
+        WriteUInt32(profile, mediaWhiteEntryOffset + 8, (uint)mediaWhiteLength);
 
         WriteSignature(profile, tagOffset, precision == 1 ? "mft1" : "mft2");
         profile[tagOffset + 8] = (byte)inputChannels;
@@ -119,6 +132,10 @@ internal static class IccLutTestProfiles {
             Buffer.BlockCopy(profile, tagOffset, profile, secondTagOffset, tagLength);
             profile[secondTagOffset + tableOffset + inputChannels * inputEntries * precision] ^= 1;
         }
+        WriteSignature(profile, mediaWhiteOffset, "XYZ ");
+        WriteS15Fixed16(profile, mediaWhiteOffset + 8, mediaWhiteX);
+        WriteS15Fixed16(profile, mediaWhiteOffset + 12, mediaWhiteY);
+        WriteS15Fixed16(profile, mediaWhiteOffset + 16, mediaWhiteZ);
         return profile;
     }
 
