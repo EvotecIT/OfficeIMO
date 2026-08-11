@@ -571,6 +571,41 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void VisualParser_UsesSelectionTransformForRadialShadingStroke() {
+        var shading = new PdfPageShadingResource(
+            25D, 106D, 0D, 25D, 106D, 8D,
+            OfficeColor.Red,
+            OfficeColor.Blue);
+        var pattern = new PdfPageShadingPatternResource(shading, Matrix2D.Identity);
+        var selection = new PdfPagePatternSelection(
+            "P1",
+            tint: null,
+            baseColorSpace: null,
+            tilingPattern: null,
+            shadingPattern: pattern,
+            paintTransform: Matrix2D.Identity);
+        bool rejected = false;
+
+        IReadOnlyList<PdfPageVisualPrimitive> primitives = PdfPageContentVisualParser.Parse(
+            "2 0 0 1 0 0 cm 60 w 30 30 440 640 re S",
+            1200D,
+            800D,
+            graphicsStates: null,
+            colorSpaces: null,
+            shadings: null,
+            shadingPatterns: null,
+            tilingPatterns: null,
+            initialStrokeWidth: 60D,
+            unsupportedShadingTransformVisitor: () => rejected = true,
+            requireExactType3ShadingProjection: true,
+            initialStrokePattern: selection);
+
+        PdfPageVisualPrimitive primitive = Assert.Single(primitives);
+        Assert.False(rejected);
+        Assert.NotNull(primitive.StrokeRadialGradient);
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForShearedOuterRadialShadingPattern() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",

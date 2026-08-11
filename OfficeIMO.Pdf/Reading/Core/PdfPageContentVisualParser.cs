@@ -1324,7 +1324,7 @@ internal static class PdfPageContentVisualParser {
             bool unsupportedDash = _state.StrokeDashStyle != OfficeStrokeDashStyle.Solid;
             bool unsupportedRadialTransform = _state.StrokePattern.HasValue &&
                 _state.StrokePattern.Value.Shading.IsRadial &&
-                !IsSupportedShadingStrokeTransform(_state.StrokePattern.Value, _state.Transform);
+                !IsSupportedShadingStrokeTransform(_state.StrokePattern.Value, _strokePatternPaintTransform);
             if (!unsupportedDash && !unsupportedRadialTransform) return;
             strokeGradient = null;
             strokeRadialGradient = null;
