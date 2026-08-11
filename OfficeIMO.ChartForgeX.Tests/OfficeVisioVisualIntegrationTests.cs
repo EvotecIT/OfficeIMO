@@ -491,8 +491,10 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.True(matrixResult.Page.Shapes.Where(shape => shape.Id.StartsWith("node-", StringComparison.Ordinal)).Select(shape => shape.PinY).Distinct().Count() > 1);
 
         matrix.Layout = "Geographic";
+        matrix.Direction = "Diagonal";
         OfficeVisioVisualConversionResult geographicResult = matrix.ToOfficeVisio();
         Assert.Contains(geographicResult.Report.Warnings, warning => warning.Contains("Geographic") && warning.Contains("layered layout"));
+        Assert.Contains(geographicResult.Report.Warnings, warning => warning.Contains("Diagonal") && warning.Contains("left-to-right graph layout"));
     }
 
     [Fact]
@@ -511,11 +513,17 @@ public sealed class OfficeVisioVisualIntegrationTests {
     public void SequenceMetadataLossIsReportedWhenShapeDataProjectionIsDisabled() {
         var envelope = new VisualArtifactInterchangeEnvelope { Id = "metadata-sequence", Kind = VisualArtifactKind.Sequence };
         envelope.Metadata["Owner"] = "Platform";
-        envelope.Nodes.Add(Participant("service", "Service", "Control", 0));
+        VisualArtifactInterchangeNode service = Participant("service", "Service", "Control", 0);
+        service.X = 100D;
+        service.Width = 160D;
+        service.Ports.Add(new VisualArtifactInterchangePort { Id = "request", Side = "Left" });
+        envelope.Nodes.Add(service);
 
         OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { IncludeShapeData = false });
 
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("Sequence-level metadata") && warning.Contains("Shape Data projection was disabled"));
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("participant coordinates and dimensions") && warning.Contains("recomputed"));
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("participant ports") && warning.Contains("remain only in the CFX envelope") && warning.Contains("Shape Data projection was disabled"));
     }
 
     [Fact]
