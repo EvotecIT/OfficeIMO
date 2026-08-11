@@ -115,6 +115,7 @@ public sealed partial class PdfReadPage {
 
     private Dictionary<string, PdfPageTilingPatternResource> GetTilingPatternResources(
         PdfDictionary? resources,
+        HashSet<string> invokedNames,
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? resourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null) {
@@ -124,7 +125,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary? patterns = ResolveDictionary(patternObject);
         if (patterns == null) return result;
         foreach (KeyValuePair<string, PdfObject> entry in patterns.Items) {
-            if (ResolveObject(entry.Value) is not PdfStream stream) {
+            if (!invokedNames.Contains(entry.Key) || ResolveObject(entry.Value) is not PdfStream stream) {
                 continue;
             }
 

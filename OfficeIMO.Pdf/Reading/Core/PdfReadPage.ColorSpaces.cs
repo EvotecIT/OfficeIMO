@@ -37,6 +37,14 @@ public sealed partial class PdfReadPage {
                 return array.Items.Count > 1 &&
                     ResolveDictionary(array.Items[1]) is PdfDictionary calibration &&
                     TryReadCalRgbColorSpace(calibration, out colorSpace);
+            case "CalGray":
+                return array.Items.Count > 1 &&
+                    ResolveDictionary(array.Items[1]) is PdfDictionary grayCalibration &&
+                    TryReadCalGrayColorSpace(grayCalibration, out colorSpace);
+            case "Lab":
+                return array.Items.Count > 1 &&
+                    ResolveDictionary(array.Items[1]) is PdfDictionary labCalibration &&
+                    TryReadLabColorSpace(labCalibration, out colorSpace);
             default:
                 return TryReadStandardColorSpaceName(arrayName.Name, out colorSpace);
         }
@@ -85,7 +93,7 @@ public sealed partial class PdfReadPage {
             TryReadExtendedColorSpaceResource(alternateObject, depth + 1, out PdfPageColorSpace alternate) &&
             alternate.Kind is not PdfPageColorSpaceKind.Pattern and not PdfPageColorSpaceKind.Indexed &&
             alternate.ComponentCount == components) {
-            colorSpace = PdfPageColorSpace.IccFallback(alternate);
+            colorSpace = PdfPageColorSpace.IccFallback(alternate, ranges);
             return true;
         }
 
@@ -118,7 +126,9 @@ public sealed partial class PdfReadPage {
         var components = new double[componentCount];
         for (int entry = 0; entry < paletteCount; entry++) {
             for (int component = 0; component < componentCount; component++) {
-                components[component] = lookupBytes[entry * componentCount + component] / 255D;
+                components[component] = baseColorSpace.MapLookupByteToComponent(
+                    component,
+                    lookupBytes[entry * componentCount + component]);
             }
             if (!baseColorSpace.TryConvertColor(components, out palette[entry])) return false;
         }
@@ -155,6 +165,40 @@ public sealed partial class PdfReadPage {
         if (array.Items.Count < 2 || ResolveObject(array.Items[1]) is not PdfArray names) return 0;
         if (names.Items.Count < 1 || names.Items.Count > MaxDeviceNComponents) return 0;
         return names.Items.All(item => ResolveObject(item) is PdfName) ? names.Items.Count : 0;
+    }
+
+    private bool TryReadCalGrayColorSpace(PdfDictionary calibration, out PdfPageColorSpace colorSpace) {
+        colorSpace = PdfPageColorSpaceKind.DeviceGray;
+        if (!calibration.Items.TryGetValue("WhitePoint", out PdfObject? whitePointObject)) return false;
+        IReadOnlyList<double> whitePoint = ReadNumberArray(whitePointObject);
+        if (whitePoint.Count != 3 || whitePoint.Any(static value => !IsFinite(value) || value <= 0D)) return false;
+
+        double gamma = 1D;
+        if (calibration.Items.TryGetValue("Gamma", out PdfObject? gammaObject)) {
+            if (ResolveObject(gammaObject) is not PdfNumber gammaNumber ||
+                !IsFinite(gammaNumber.Value) || gammaNumber.Value <= 0D) return false;
+            gamma = gammaNumber.Value;
+        }
+
+        colorSpace = PdfPageColorSpace.CalGray(whitePoint[0], whitePoint[1], whitePoint[2], gamma);
+        return true;
+    }
+
+    private bool TryReadLabColorSpace(PdfDictionary calibration, out PdfPageColorSpace colorSpace) {
+        colorSpace = PdfPageColorSpaceKind.DeviceGray;
+        if (!calibration.Items.TryGetValue("WhitePoint", out PdfObject? whitePointObject)) return false;
+        IReadOnlyList<double> whitePoint = ReadNumberArray(whitePointObject);
+        if (whitePoint.Count != 3 || whitePoint.Any(static value => !IsFinite(value) || value <= 0D)) return false;
+
+        IReadOnlyList<double> abRange = new[] { -100D, 100D, -100D, 100D };
+        if (calibration.Items.TryGetValue("Range", out PdfObject? rangeObject)) {
+            abRange = ReadNumberArray(rangeObject);
+            if (abRange.Count != 4 || abRange.Any(static value => !IsFinite(value)) ||
+                abRange[0] >= abRange[1] || abRange[2] >= abRange[3]) return false;
+        }
+
+        colorSpace = PdfPageColorSpace.Lab(whitePoint[0], whitePoint[1], whitePoint[2], abRange);
+        return true;
     }
 
 }

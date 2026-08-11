@@ -396,17 +396,18 @@ public sealed partial class PdfReadPage {
         PageContentBudget? pageContentBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content);
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         _ = PdfPageContentVisualParser.Parse(
             transformedContent,
             pageWidth,
             pageHeight,
             GetGraphicsStateResources(resources),
-            GetColorSpaceResources(resources),
-            GetShadingResources(resources),
-            GetShadingPatternResources(resources),
+            GetColorSpaceResources(resources, invokedResources.ColorSpaces),
+            GetShadingResources(resources, invokedResources.Shadings),
+            GetShadingPatternResources(resources, invokedResources.Patterns),
             includeTilingPatterns
-                ? GetTilingPatternResources(resources, tilingPatternResourceCache, textOutputBudget, pageContentBudget)
+                ? GetTilingPatternResources(resources, invokedResources.Patterns, tilingPatternResourceCache, textOutputBudget, pageContentBudget)
                 : null,
             GetOptionalContentVisibility(resources),
             paintOrderBase,
@@ -424,7 +425,7 @@ public sealed partial class PdfReadPage {
             initialStrokeLineCap,
             initialStrokeLineJoin,
             maxOperations: _limits.MaxContentOperations,
-            patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
+            patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces),
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
             primitiveVisitor: primitiveVisitor,
@@ -435,7 +436,7 @@ public sealed partial class PdfReadPage {
                      baseTransform,
                      pageHeight,
                      GetGraphicsStateResources(resources),
-                     GetColorSpaceResources(resources),
+                     GetColorSpaceResources(resources, invokedResources.ColorSpaces),
                       GetOptionalContentVisibility(resources),
                       paintOrderBase: paintOrderBase,
                       paintOrderScale: paintOrderScale,
@@ -500,7 +501,9 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private Dictionary<string, PdfPageShadingResource> GetShadingResources(PdfDictionary? resources) {
+    private Dictionary<string, PdfPageShadingResource> GetShadingResources(
+        PdfDictionary? resources,
+        HashSet<string> invokedNames) {
         var result = new Dictionary<string, PdfPageShadingResource>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("Shading", out PdfObject? shadingObject)) {
@@ -513,7 +516,8 @@ public sealed partial class PdfReadPage {
         }
 
         foreach (KeyValuePair<string, PdfObject> entry in shadings.Items) {
-            if (TryReadShading(entry.Value, out PdfPageShadingResource shading)) {
+            if (invokedNames.Contains(entry.Key) &&
+                TryReadShading(entry.Value, out PdfPageShadingResource shading)) {
                 result[entry.Key] = shading;
             }
         }
@@ -521,7 +525,9 @@ public sealed partial class PdfReadPage {
         return result;
     }
 
-    private Dictionary<string, PdfPageShadingPatternResource> GetShadingPatternResources(PdfDictionary? resources) {
+    private Dictionary<string, PdfPageShadingPatternResource> GetShadingPatternResources(
+        PdfDictionary? resources,
+        HashSet<string> invokedNames) {
         var result = new Dictionary<string, PdfPageShadingPatternResource>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("Pattern", out PdfObject? patternObject)) {
@@ -534,7 +540,8 @@ public sealed partial class PdfReadPage {
         }
 
         foreach (KeyValuePair<string, PdfObject> entry in patterns.Items) {
-            if (TryReadShadingPattern(entry.Value, out PdfPageShadingPatternResource pattern)) {
+            if (invokedNames.Contains(entry.Key) &&
+                TryReadShadingPattern(entry.Value, out PdfPageShadingPatternResource pattern)) {
                 result[entry.Key] = pattern;
             }
         }
@@ -774,7 +781,9 @@ public sealed partial class PdfReadPage {
         return result;
     }
 
-    private Dictionary<string, PdfPageColorSpace> GetColorSpaceResources(PdfDictionary? resources) {
+    private Dictionary<string, PdfPageColorSpace> GetColorSpaceResources(
+        PdfDictionary? resources,
+        HashSet<string> invokedNames) {
         var result = new Dictionary<string, PdfPageColorSpace>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject)) {
@@ -791,7 +800,8 @@ public sealed partial class PdfReadPage {
         }
 
         foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
-            if (TryReadColorSpaceResource(entry.Value, out PdfPageColorSpace colorSpace)) {
+            if (invokedNames.Contains(entry.Key) &&
+                TryReadColorSpaceResource(entry.Value, out PdfPageColorSpace colorSpace)) {
                 result[entry.Key] = colorSpace;
             }
         }
@@ -799,7 +809,9 @@ public sealed partial class PdfReadPage {
         return result;
     }
 
-    private Dictionary<string, PdfPageColorSpace> GetPatternBaseColorSpaceResources(PdfDictionary? resources) {
+    private Dictionary<string, PdfPageColorSpace> GetPatternBaseColorSpaceResources(
+        PdfDictionary? resources,
+        HashSet<string> invokedNames) {
         var result = new Dictionary<string, PdfPageColorSpace>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject) ||
@@ -812,7 +824,8 @@ public sealed partial class PdfReadPage {
         }
 
         foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
-            if (ResolveObject(entry.Value) is not PdfArray array ||
+            if (!invokedNames.Contains(entry.Key) ||
+                ResolveObject(entry.Value) is not PdfArray array ||
                 array.Items.Count < 2 ||
                 ResolveObject(array.Items[0]) is not PdfName { Name: "Pattern" } ||
                 !TryReadColorSpaceResource(array.Items[1], out PdfPageColorSpace baseColorSpace) ||
@@ -822,6 +835,37 @@ public sealed partial class PdfReadPage {
             result[entry.Key] = baseColorSpace;
         }
         return result;
+    }
+
+    private PdfPageInvokedResourceNames GetInvokedResourceNames(string content) {
+        var names = new PdfPageInvokedResourceNames();
+        PdfContentStreamInterpreter.Interpret(
+            content,
+            _limits.MaxContentOperations,
+            operation => {
+                if ((operation.Name == "cs" || operation.Name == "CS") &&
+                    operation.Operands.Count > 0 &&
+                    operation.Operands[operation.Operands.Count - 1] is string name) {
+                    names.ColorSpaces.Add(name);
+                } else if (operation.Name == "sh" &&
+                    operation.Operands.Count > 0 &&
+                    operation.Operands[operation.Operands.Count - 1] is string shadingName) {
+                    names.Shadings.Add(shadingName);
+                } else if ((operation.Name == "scn" || operation.Name == "SCN") &&
+                    operation.Operands.Count > 0 &&
+                    operation.Operands[operation.Operands.Count - 1] is string patternName) {
+                    names.Patterns.Add(patternName);
+                }
+            },
+            maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxOperands: _limits.MaxContentOperands);
+        return names;
+    }
+
+    private sealed class PdfPageInvokedResourceNames {
+        internal HashSet<string> ColorSpaces { get; } = new HashSet<string>(StringComparer.Ordinal);
+        internal HashSet<string> Patterns { get; } = new HashSet<string>(StringComparer.Ordinal);
+        internal HashSet<string> Shadings { get; } = new HashSet<string>(StringComparer.Ordinal);
     }
 
     private bool TryReadColorSpaceResource(PdfObject? value, out PdfPageColorSpace colorSpace) {

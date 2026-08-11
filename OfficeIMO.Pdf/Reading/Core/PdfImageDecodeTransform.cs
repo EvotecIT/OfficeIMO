@@ -13,20 +13,16 @@ internal sealed class PdfImageDecodeTransform {
         PdfDictionary dictionary,
         int componentCount,
         Dictionary<int, PdfIndirectObject> objects) {
-        return TryCreate(dictionary, componentCount, objects, out var transform) &&
-            !transform.IsIdentity(0, 1)
-            ? transform
-            : null;
+        // An explicit identity Decode array is still authored behavior. Calibrated and ICCBased
+        // spaces have non-unit default ranges, so callers must be able to distinguish it from an
+        // omitted Decode entry.
+        return TryCreate(dictionary, componentCount, objects, out var transform) ? transform : null;
     }
 
     internal static PdfImageDecodeTransform? CreateIndexed(
         PdfDictionary dictionary,
-        int highValue,
         Dictionary<int, PdfIndirectObject> objects) {
-        return TryCreate(dictionary, 1, objects, out var transform) &&
-            !transform.IsIdentity(0, highValue)
-            ? transform
-            : null;
+        return TryCreate(dictionary, 1, objects, out var transform) ? transform : null;
     }
 
     internal byte TransformColorComponent(byte sample, int componentIndex) {
@@ -78,17 +74,6 @@ internal sealed class PdfImageDecodeTransform {
         }
 
         transform = new PdfImageDecodeTransform(minimums, maximums);
-        return true;
-    }
-
-    private bool IsIdentity(double expectedMinimum, double expectedMaximum) {
-        for (int i = 0; i < _minimums.Length; i++) {
-            if (System.Math.Abs(_minimums[i] - expectedMinimum) > double.Epsilon ||
-                System.Math.Abs(_maximums[i] - expectedMaximum) > double.Epsilon) {
-                return false;
-            }
-        }
-
         return true;
     }
 

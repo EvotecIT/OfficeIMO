@@ -497,6 +497,7 @@ public sealed partial class PdfReadPage {
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.DrawingFontFamily : null;
         byte[]? ResolveActualTextProperty(string propertyName) =>
             GetMarkedContentActualTextBytes(resources, propertyName);
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content);
 
         spans.AddRange(TextContentParser.Parse(
             content,
@@ -504,7 +505,7 @@ public sealed partial class PdfReadPage {
             SumWidth1000,
             actualTextForProperty: ResolveActualTextProperty,
             graphicsStates: GetGraphicsStateResources(resources),
-            colorSpaces: GetColorSpaceResources(resources),
+            colorSpaces: GetColorSpaceResources(resources, invokedResources.ColorSpaces),
             baseFontForResource: ResolveBaseFont,
             drawingFontFamilyForResource: ResolveDrawingFontFamily,
             optionalContentVisibility: GetOptionalContentVisibility(resources),
@@ -536,7 +537,7 @@ public sealed partial class PdfReadPage {
                      paintOrderScale,
                      paintOrderOffset,
                      GetGraphicsStateResources(resources),
-                     GetColorSpaceResources(resources),
+                     GetColorSpaceResources(resources, invokedResources.ColorSpaces),
                      pageHeight,
                      initialFillColor,
                      initialFillColorSpace,
@@ -615,12 +616,13 @@ public sealed partial class PdfReadPage {
         PageContentBudget? pageContentBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content);
         foreach (var invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
                      baseTransform,
                      pageHeight,
                      GetGraphicsStateResources(resources),
-                     GetColorSpaceResources(resources),
+                     GetColorSpaceResources(resources, invokedResources.ColorSpaces),
                      GetOptionalContentVisibility(resources),
                      initialFillColor,
                      initialFillColorSpace,

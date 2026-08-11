@@ -14,6 +14,13 @@ public sealed class OfficeIccColorProfile {
     private const uint XyzSignature = 0x58595A20U;
     private const uint CurveTypeSignature = 0x63757276U;
     private const uint ParametricCurveTypeSignature = 0x70617261U;
+    private const uint AToB0TagSignature = 0x41324230U;
+    private const uint AToB1TagSignature = 0x41324231U;
+    private const uint AToB2TagSignature = 0x41324232U;
+    private const uint DToB0TagSignature = 0x44324230U;
+    private const uint DToB1TagSignature = 0x44324231U;
+    private const uint DToB2TagSignature = 0x44324232U;
+    private const uint DToB3TagSignature = 0x44324233U;
     private const int HeaderLength = 128;
     private const int TagTableHeaderLength = 4;
     private const int TagEntryLength = 12;
@@ -59,7 +66,8 @@ public sealed class OfficeIccColorProfile {
             return false;
         }
 
-        if (!TryReadTagTable(profileBytes, out Dictionary<uint, TagRange> tags)) return false;
+        if (!TryReadTagTable(profileBytes, out Dictionary<uint, TagRange> tags) ||
+            HasUnsupportedDeviceToPcsTransform(tags)) return false;
         uint deviceColorSpace = ReadUInt32(profileBytes, 16);
         if (deviceColorSpace == GraySignature) {
             if (!TryReadToneCurve(profileBytes, tags, 0x6B545243U, out ToneCurve grayCurve)) return false; // kTRC
@@ -147,6 +155,15 @@ public sealed class OfficeIccColorProfile {
         }
         return true;
     }
+
+    private static bool HasUnsupportedDeviceToPcsTransform(Dictionary<uint, TagRange> tags) =>
+        tags.ContainsKey(AToB0TagSignature) ||
+        tags.ContainsKey(AToB1TagSignature) ||
+        tags.ContainsKey(AToB2TagSignature) ||
+        tags.ContainsKey(DToB0TagSignature) ||
+        tags.ContainsKey(DToB1TagSignature) ||
+        tags.ContainsKey(DToB2TagSignature) ||
+        tags.ContainsKey(DToB3TagSignature);
 
     private static bool TryReadXyzTag(byte[] bytes, Dictionary<uint, TagRange> tags, uint signature, out XyzValue value) {
         value = default;

@@ -22,6 +22,7 @@ internal static partial class ResourceResolver {
         if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(effectiveColorSpace, bitsPerComponent, objects, maxDecodedStreamBytes)) {
             return true;
         }
+        if (bitsPerComponent != 8) return false;
 
         string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
         return PdfImageColorSpaceNormalization.TryResolve(

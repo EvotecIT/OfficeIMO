@@ -108,12 +108,13 @@ public sealed partial class PdfReadPage {
             _limits.MaxContentOperands);
         transitions.AddRange(local);
 
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content);
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
                      baseTransform,
                      pageHeight,
                      graphicsStates,
-                     GetColorSpaceResources(resources),
+                     GetColorSpaceResources(resources, invokedResources.ColorSpaces),
                      GetOptionalContentVisibility(resources),
                      initialFillColor,
                      initialFillColorSpace,

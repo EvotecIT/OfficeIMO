@@ -21,8 +21,7 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         int depth) {
         EnsureContentNestingBudget(depth);
-        HashSet<string> unsupportedColorSpaces = GetUnsupportedColorSpaceResourceNames(resources);
-        HashSet<string> approximatedIccColorSpaces = GetApproximatedIccColorSpaceResourceNames(resources);
+        var invokedColorSpaces = new HashSet<string>(StringComparer.Ordinal);
         var invokedXObjects = new HashSet<string>(StringComparer.Ordinal);
         var invokedFonts = new HashSet<string>(StringComparer.Ordinal);
         var invokedShadings = new HashSet<string>(StringComparer.Ordinal);
@@ -50,11 +49,7 @@ public sealed partial class PdfReadPage {
             if ((operation.Name == "cs" || operation.Name == "CS") &&
                 operation.Operands.Count > 0 &&
                 operation.Operands[operation.Operands.Count - 1] is string colorSpaceName) {
-                if (unsupportedColorSpaces.Contains(colorSpaceName)) {
-                    AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.ColorSpaceId, colorSpaceName);
-                } else if (approximatedIccColorSpaces.Contains(colorSpaceName)) {
-                    AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.IccColorSpaceId, colorSpaceName);
-                }
+                invokedColorSpaces.Add(colorSpaceName);
             }
             if (operation.InlineImage is PdfContentInlineImage inlineImage) {
                 CollectImageColorSpaceCapabilityDiagnostic(
@@ -67,6 +62,8 @@ public sealed partial class PdfReadPage {
         },
         maxNestingDepth: _limits.MaxContentNestingDepth,
         maxOperands: _limits.MaxContentOperands);
+
+        CollectColorSpaceCapabilityDiagnostics(resources, invokedColorSpaces, diagnostics, seen);
 
         if (resources == null) return;
         CollectFontCapabilityDiagnostics(resources, invokedFonts, diagnostics, seen);
@@ -104,31 +101,23 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private HashSet<string> GetUnsupportedColorSpaceResourceNames(PdfDictionary? resources) {
-        var unsupported = new HashSet<string>(StringComparer.Ordinal);
-        if (resources == null) return unsupported;
-        PdfDictionary? colorSpaces = ResolveDictionary(resources.Items.TryGetValue("ColorSpace", out PdfObject? value) ? value : null);
-        if (colorSpaces == null) return unsupported;
-        foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
-            if (!TryReadColorSpaceResource(entry.Value, out _)) {
-                unsupported.Add(entry.Key);
+    private void CollectColorSpaceCapabilityDiagnostics(
+        PdfDictionary? resources,
+        HashSet<string> invokedNames,
+        List<PdfRenderCapabilityDiagnostic> diagnostics,
+        HashSet<string> seen) {
+        if (resources == null || invokedNames.Count == 0) return;
+        PdfDictionary? colorSpaces = ResolveDictionary(
+            resources.Items.TryGetValue("ColorSpace", out PdfObject? value) ? value : null);
+        if (colorSpaces == null) return;
+        foreach (string name in invokedNames) {
+            if (!colorSpaces.Items.TryGetValue(name, out PdfObject? colorSpaceObject)) continue;
+            if (!TryReadColorSpaceResource(colorSpaceObject, out PdfPageColorSpace colorSpace)) {
+                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.ColorSpaceId, name);
+            } else if (colorSpace.UsesIccApproximation) {
+                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.IccColorSpaceId, name);
             }
         }
-
-        return unsupported;
-    }
-
-    private HashSet<string> GetApproximatedIccColorSpaceResourceNames(PdfDictionary? resources) {
-        var approximated = new HashSet<string>(StringComparer.Ordinal);
-        if (resources == null) return approximated;
-        PdfDictionary? colorSpaces = ResolveDictionary(resources.Items.TryGetValue("ColorSpace", out PdfObject? value) ? value : null);
-        if (colorSpaces == null) return approximated;
-        foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
-            if (TryReadColorSpaceResource(entry.Value, out PdfPageColorSpace colorSpace) && colorSpace.UsesIccApproximation) {
-                approximated.Add(entry.Key);
-            }
-        }
-        return approximated;
     }
 
     private void CollectShadingCapabilityDiagnostics(

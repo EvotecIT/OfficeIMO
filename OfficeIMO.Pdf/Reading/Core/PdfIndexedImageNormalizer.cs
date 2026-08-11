@@ -30,7 +30,7 @@ internal static class PdfIndexedImageNormalizer {
             return false;
         }
 
-        var decodeTransform = PdfImageDecodeTransform.CreateIndexed(stream.Dictionary, indexedPalette.Length / 3 - 1, objects);
+        var decodeTransform = PdfImageDecodeTransform.CreateIndexed(stream.Dictionary, objects);
         if (PdfImageMaskSemantics.HasSoftMask(stream.Dictionary, objects)) {
             return TryBuildPngFileFromIndexedPixelsWithSoftMask(width, height, bitsPerComponent, indexedPalette, decodeTransform, indexedPixels, stream, objects, out pngBytes);
         }
@@ -200,10 +200,7 @@ internal static class PdfIndexedImageNormalizer {
                 if (decodeTransform is not null) {
                     paletteIndex = decodeTransform.TransformIndexedSample(paletteIndex, bitsPerComponent, paletteEntryCount - 1);
                 }
-
-                if (paletteIndex < 0 || paletteIndex >= paletteEntryCount) {
-                    return false;
-                }
+                paletteIndex = ClampPaletteIndex(paletteIndex, paletteEntryCount);
 
                 int paletteOffset = paletteIndex * 3;
                 int outputPixel = outputRow + 1 + pixel * 3;
@@ -266,10 +263,7 @@ internal static class PdfIndexedImageNormalizer {
                 if (decodeTransform is not null) {
                     paletteIndex = decodeTransform.TransformIndexedSample(paletteIndex, bitsPerComponent, paletteEntryCount - 1);
                 }
-
-                if (paletteIndex < 0 || paletteIndex >= paletteEntryCount) {
-                    return false;
-                }
+                paletteIndex = ClampPaletteIndex(paletteIndex, paletteEntryCount);
 
                 int paletteOffset = paletteIndex * 3;
                 int outputPixel = outputRow + 1 + pixel * 4;
@@ -363,10 +357,7 @@ internal static class PdfIndexedImageNormalizer {
                 if (decodeTransform is not null) {
                     paletteIndex = decodeTransform.TransformIndexedSample(paletteIndex, bitsPerComponent, paletteEntryCount - 1);
                 }
-
-                if (paletteIndex < 0 || paletteIndex >= paletteEntryCount) {
-                    return false;
-                }
+                paletteIndex = ClampPaletteIndex(paletteIndex, paletteEntryCount);
 
                 int paletteOffset = paletteIndex * 3;
                 int outputPixel = outputRow + 1 + pixel * 4;
@@ -397,6 +388,12 @@ internal static class PdfIndexedImageNormalizer {
         int shift = 8 - bitsPerComponent - (bitOffset % 8);
         int mask = (1 << bitsPerComponent) - 1;
         return (sourceByte >> shift) & mask;
+    }
+
+    private static int ClampPaletteIndex(int value, int paletteEntryCount) {
+        if (value <= 0) return 0;
+        int maximum = paletteEntryCount - 1;
+        return value >= maximum ? maximum : value;
     }
 
     private static byte TransformColorComponent(byte sample, int componentIndex, PdfImageDecodeTransform? decodeTransform) {

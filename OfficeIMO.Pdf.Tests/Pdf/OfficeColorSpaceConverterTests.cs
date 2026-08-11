@@ -59,9 +59,12 @@ public class OfficeColorSpaceConverterTests {
         cmykProfile[19] = (byte)'K';
         byte[] badSignature = PdfIccProfiles.SrgbIec6196621;
         badSignature[36] = (byte)'x';
+        byte[] authoredLutTransform = PdfIccProfiles.SrgbIec6196621;
+        RenameTag(authoredLutTransform, "desc", "A2B0");
 
         Assert.False(OfficeIccColorProfile.TryCreate(cmykProfile, out _));
         Assert.False(OfficeIccColorProfile.TryCreate(badSignature, out _));
+        Assert.False(OfficeIccColorProfile.TryCreate(authoredLutTransform, out _));
         Assert.False(OfficeIccColorProfile.TryCreate(null!, out _));
     }
 

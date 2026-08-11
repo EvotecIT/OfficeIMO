@@ -80,7 +80,10 @@ internal sealed class PdfImageColorSpaceNormalization {
             return _iccProfile.TryConvert(normalized, out color);
         }
         if (_alternateNormalization != null) {
-            IReadOnlyList<double>? alternateComponents = _tintTransform == null ? components : _tintTransform(components);
+            double[] clippedComponents = ClipComponentsToRanges(components);
+            IReadOnlyList<double>? alternateComponents = _tintTransform == null
+                ? clippedComponents
+                : _tintTransform(clippedComponents);
             return alternateComponents != null && _alternateNormalization.TryConvertComponents(alternateComponents, out color);
         }
         if (_colorSpace.Kind == PdfPageColorSpaceKind.DeviceCmyk) {
@@ -99,6 +102,17 @@ internal sealed class PdfImageColorSpaceNormalization {
 
     internal double MapLookupByteToComponent(int component, byte value) =>
         MapUnitToComponentRange(component, value / 255D);
+
+    private double[] ClipComponentsToRanges(IReadOnlyList<double> components) {
+        double[] clipped = components as double[] ?? new double[SourceColorCount];
+        for (int index = 0; index < SourceColorCount; index++) {
+            double minimum = _componentRanges[index * 2];
+            double maximum = _componentRanges[index * 2 + 1];
+            double value = components[index];
+            clipped[index] = value < minimum ? minimum : value > maximum ? maximum : value;
+        }
+        return clipped;
+    }
 
     internal static bool TryResolve(
         PdfObject? colorSpaceObj,
