@@ -248,6 +248,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Single(values);
             Assert.Equal("last", values["Name"]);
+            Assert.Equal("Name", Assert.Single(values).Key);
 
             var heterogeneousKeys = new Dictionary<object, object?> {
                 [1] = "number",
@@ -318,6 +319,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObjectFlattenerTypePathDiscoveryCountsCaseInsensitiveDistinctPaths() {
+            List<string> paths = new ObjectFlattener().GetPaths(
+                typeof(ObjectFlattenerCaseDistinctRow),
+                new ObjectFlattenerOptions { MaxColumns = 1 });
+
+            Assert.Equal("A", Assert.Single(paths));
+        }
+
+        [Fact]
         public void ObjectFlattenerExplicitColumnsRejectsResolvedDistinctPathsBeyondLimit() {
             var options = new ObjectFlattenerOptions {
                 Columns = new[] { "Name", "Status" },
@@ -382,6 +392,12 @@ namespace OfficeIMO.Tests {
             public ObjectFlattenerRecursiveType? Right { get; set; }
 
             public int Value { get; set; }
+        }
+
+        private sealed class ObjectFlattenerCaseDistinctRow {
+            public int A { get; set; }
+
+            public int a { get; set; }
         }
 
         private sealed class ObjectFlattenerSelectionPathRow {

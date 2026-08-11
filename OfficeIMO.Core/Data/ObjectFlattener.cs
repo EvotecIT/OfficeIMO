@@ -209,7 +209,8 @@ namespace OfficeIMO.Data {
         private List<string> GetPathsPrepared([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] Type type, ObjectFlattenerOptions opts) {
             ValidateLimits(opts);
             var paths = new List<string>(Math.Min(GetInitialFlattenCapacity(type, opts), opts.MaxColumns));
-            BuildPaths(type, string.Empty, 0, opts, paths);
+            var addedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            BuildPaths(type, string.Empty, 0, opts, paths, addedPaths);
             return ResolvePathsPrepared(paths, opts);
         }
 
@@ -508,7 +509,7 @@ namespace OfficeIMO.Data {
             "Trimming",
             "IL2072",
             Justification = "The public GetPaths(Type) boundary requires public properties and fields, and recursive expansion is explicitly selected by the caller. NativeAOT callers that expand nested models must preserve those nested model members as part of their application contract.")]
-        private static void BuildPaths([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] Type type, string prefix, int depth, ObjectFlattenerOptions opts, List<string> paths) {
+        private static void BuildPaths([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] Type type, string prefix, int depth, ObjectFlattenerOptions opts, List<string> paths, HashSet<string> addedPaths) {
             if (depth >= opts.MaxDepth) return;
             if (IsValueTuple(type)) {
                 int itemCount = GetValueTupleItemCount(
@@ -521,14 +522,14 @@ namespace OfficeIMO.Data {
 
                 for (int i = 1; i <= itemCount; i++) {
                     var path = string.IsNullOrEmpty(prefix) ? $"Item{i}" : $"{prefix}.Item{i}";
-                    AddTypePathBounded(paths, path, opts);
+                    AddTypePathBounded(paths, addedPaths, path, opts);
                 }
                 return;
             }
 
             var props = GetObjectFlattenerProperties(type);
             if (opts.ExpandProperties.Count == 0) {
-                BuildPathsWithoutExpansion(prefix, opts, paths, props);
+                BuildPathsWithoutExpansion(prefix, opts, paths, addedPaths, props);
                 return;
             }
 
@@ -541,20 +542,21 @@ namespace OfficeIMO.Data {
                 bool traversePath = expand && !IsSimple(prop.PropertyType) && CanContainSelectedDescendant(path, opts);
                 if (!materializePath && !traversePath) continue;
                 if (isCollection) {
-                    if (materializePath) AddTypePathBounded(paths, path, opts);
+                    if (materializePath) AddTypePathBounded(paths, addedPaths, path, opts);
                     continue;
                 }
                 if (materializePath && (!expand || opts.IncludeFullObjects || IsSimple(prop.PropertyType))) {
-                    AddTypePathBounded(paths, path, opts);
+                    AddTypePathBounded(paths, addedPaths, path, opts);
                 }
                 if (traversePath) {
-                    BuildPaths(prop.PropertyType, path, depth + 1, opts, paths);
+                    BuildPaths(prop.PropertyType, path, depth + 1, opts, paths, addedPaths);
                 }
             }
         }
 
-        private static void AddTypePathBounded(List<string> paths, string path, ObjectFlattenerOptions opts) {
+        private static void AddTypePathBounded(List<string> paths, HashSet<string> addedPaths, string path, ObjectFlattenerOptions opts) {
             if (!IsPathSelectedForMaterialization(path, opts)) return;
+            if (!addedPaths.Add(path)) return;
             if (paths.Count >= opts.MaxColumns) {
                 throw new InvalidDataException(
                     $"Object path discovery exceeds the {opts.MaxColumns}-column limit.");
@@ -831,10 +833,10 @@ namespace OfficeIMO.Data {
             return row => property.GetValue(row, null);
         }
 
-        private static void BuildPathsWithoutExpansion(string prefix, ObjectFlattenerOptions opts, List<string> paths, ObjectFlattenerProperty[] props) {
+        private static void BuildPathsWithoutExpansion(string prefix, ObjectFlattenerOptions opts, List<string> paths, HashSet<string> addedPaths, ObjectFlattenerProperty[] props) {
             foreach (var prop in props) {
                 var path = string.IsNullOrEmpty(prefix) ? prop.Name : prefix + "." + prop.Name;
-                AddTypePathBounded(paths, path, opts);
+                AddTypePathBounded(paths, addedPaths, path, opts);
             }
         }
 

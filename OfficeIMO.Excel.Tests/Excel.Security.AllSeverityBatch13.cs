@@ -120,6 +120,26 @@ public sealed class ExcelAllSeverityBatch13SecurityTests {
         Assert.Equal(2, enumeratedRows);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RowsFromEmptyInputSkipsUnrenderedProjectionLimits(bool constrainColumns) {
+        using var stream = new MemoryStream();
+        using ExcelDocument document = ExcelDocument.Create(stream);
+
+        Exception? exception = Record.Exception(() =>
+            document.AsFluent().Sheet("Data", sheet =>
+                sheet.RowsFrom(Array.Empty<WideSimpleRow>(), options => {
+                    if (constrainColumns) {
+                        options.MaxColumns = 1;
+                    } else {
+                        options.MaxCells = 1;
+                    }
+                })));
+
+        Assert.Null(exception);
+    }
+
     [Fact]
     public void TableFromStopsUnboundedSourceEnumerationAtConfiguredLimit() {
         using var stream = new MemoryStream();

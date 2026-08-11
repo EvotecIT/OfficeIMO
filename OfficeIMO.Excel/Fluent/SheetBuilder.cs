@@ -91,7 +91,12 @@ namespace OfficeIMO.Excel.Fluent {
             }
             options.MaxRows = maximumDataRows;
             var flattener = new ObjectFlattener();
-            ObjectTableProjection projection = flattener.FlattenRows(data, options, "RowsFrom", headerRowCount: 1);
+            ObjectTableProjection projection = flattener.FlattenRows(
+                data,
+                options,
+                "RowsFrom",
+                headerRowCount: 1,
+                enforceEmptyProjectionLimits: false);
             if (projection.Rows.Count == 0) return this;
             IReadOnlyList<string> paths = projection.Columns;
             var headers = BuildTransformedHeaders(paths, options);

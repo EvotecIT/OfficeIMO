@@ -105,7 +105,8 @@ namespace OfficeIMO.Data {
                 resolvedKey = entry.Key?.ToString();
                 if (string.IsNullOrWhiteSpace(resolvedKey)) return;
                 if (retainedIndexes.TryGetValue(resolvedKey!, out int retainedIndex)) {
-                    entries[retainedIndex] = entry;
+                    ObjectDictionaryEntry retained = entries[retainedIndex];
+                    entries[retainedIndex] = new ObjectDictionaryEntry(retained.Key, entry.Value);
                     return;
                 }
             }
