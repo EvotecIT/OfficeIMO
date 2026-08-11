@@ -407,6 +407,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private HyphenationToken PrepareHyphenationToken(string paintToken, string logicalToken, HtmlRenderBoxStyle style) {
+        if (paintToken.IndexOf('\u00AD') < 0
+            && (style.Hyphens != "auto" || _options.TextHyphenationCallback == null)) {
+            return new HyphenationToken(
+                paintToken,
+                logicalToken,
+                Array.Empty<int>(),
+                Array.Empty<int>(),
+                Array.Empty<int>());
+        }
         var paint = new StringBuilder(paintToken.Length);
         var logical = new StringBuilder(logicalToken.Length);
         var manualBreaks = new List<int>();
@@ -521,6 +530,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             if (selectedEnd < 0) {
                 if (!line.HasFlowContent) {
+                    if (AllowsEmergencyTokenBreak(run.Style)) return false;
                     string paintRemainder = token.PaintText.Substring(start);
                     string logicalRemainder = token.LogicalText.Substring(start);
                     line.Add(new InlineSegment(
@@ -801,6 +811,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private double MeasureInlineText(string value, HtmlRenderBoxStyle style) {
         double measured = MeasureText(value, style.Font);
+        if (Math.Abs(style.LetterSpacing) <= 0.000001D && Math.Abs(style.WordSpacing) <= 0.000001D) {
+            return Math.Max(0.01D, measured);
+        }
         IReadOnlyList<string> elements = OfficeTextElements.Split(value);
         if (elements.Count == 0) return measured;
         measured += style.LetterSpacing * elements.Count;

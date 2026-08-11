@@ -306,7 +306,16 @@ public static partial class HtmlComputedStyleEngine {
                 return true;
             }
         }
-        return HtmlRenderCssValues.TryLength(text, context.Width, 16D, 16D, environment.Width, environment.Height, out value);
+        return HtmlRenderCssValues.TryLength(
+            text,
+            context.Width,
+            16D,
+            16D,
+            environment.Width,
+            environment.Height,
+            context.Width,
+            context.Height ?? double.NaN,
+            out value);
     }
 
     private static bool CompareContainerValues(double left, double right, string operation) {

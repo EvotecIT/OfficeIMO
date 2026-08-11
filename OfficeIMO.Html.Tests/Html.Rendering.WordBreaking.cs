@@ -41,6 +41,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_EmergencyWrappingRunsWhenNoAuthoredHyphenationPointFits() {
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 120D,
+            TextHyphenationCallback = token => token == "typography" ? new[] { 8 } : Array.Empty<int>()
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<div style='width:12px;font-size:12px;hyphens:auto;overflow-wrap:anywhere'>typography</div>",
+            options);
+        HtmlRenderText[] fragments = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
+
+        Assert.True(fragments.Select(fragment => fragment.Y).Distinct().Count() > 1);
+        Assert.Equal("typography", string.Concat(fragments.Select(fragment => fragment.Text)));
+        Assert.All(fragments, fragment => Assert.True(fragment.TextAdvanceWidth <= 12.001D));
+    }
+
+    [Fact]
     public void HtmlRendering_ManualSoftHyphensUseTheAuthorHyphenCharacterWithoutChangingLogicalText() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<div style='width:42px;font-size:12px;hyphens:manual;hyphenate-character:\"·\"'>ty\u00ADpography</div>",

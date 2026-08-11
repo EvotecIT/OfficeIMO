@@ -247,6 +247,23 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderAccumulatesNestedBaselineShiftsAndRestoresTheParentShift() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40'>"
+            + "<text x='2' y='25' font-size='10'><tspan baseline-shift='10px'>Outer"
+            + "<tspan baseline-shift='5px'>Inner</tspan>After</tspan></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText[] runs = drawing!.Elements.OfType<OfficeDrawingText>().ToArray();
+
+        Assert.Equal(new[] { "Outer", "Inner", "After" }, runs.Select(run => run.Text));
+        Assert.Equal(5D, runs[0].Y, 6);
+        Assert.Equal(0D, runs[1].Y, 6);
+        Assert.Equal(5D, runs[2].Y, 6);
+    }
+
+    [Fact]
     public void SvgReaderPreservesRgbAndRgbaPaint() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"
             + "<rect width='10' height='10' fill='rgba(36,87,166,0.502)'/>"

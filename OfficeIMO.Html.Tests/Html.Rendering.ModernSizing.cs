@@ -94,6 +94,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_ContainerQueryThresholdUnitsUseTheQueriedContainer() {
+        const string html = """
+            <style>@container (width > 50cqw) { .item { background:red; } }</style>
+            <section style="width:200px;container-type:inline-size"><div id="item" class="item">Container threshold</div></section>
+            """;
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 1000D,
+            ViewportHeight = 120D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
+    }
+
+    [Fact]
     public void HtmlRendering_ViewportUnitsReachTransformsAndGradientGeometry() {
         Assert.True(HtmlCssTransformParser.TryParse(
             "translate(10vw, 10vh)",

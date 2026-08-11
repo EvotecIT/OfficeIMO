@@ -109,6 +109,38 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_DuplicateRadioValuesUseTruthfulStaticFallback() {
+        const string html = "<input type='radio' name='answer' value='same'><input type='radio' name='answer' value='same' checked>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals), visual => visual is HtmlRenderFormField);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.RadioDuplicateValueStaticFallback);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+    }
+
+    [Fact]
+    public void HtmlToPdf_PartiallyClippedControlUsesStaticAppearance() {
+        const string html = "<div style='width:80px;height:24px;overflow:hidden'><input name='clipped' value='Clipped value' style='width:120px;height:20px'></div>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        string searchableText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        Assert.Contains("Clippedvalue", searchableText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToPdf_ControlOutsideClipDoesNotCreateAnInteractiveWidget() {
+        const string html = "<div style='position:relative;width:80px;height:24px;overflow:hidden'><input name='outside' value='Outside value' style='position:absolute;left:100px;width:80px;height:20px'></div>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+    }
+
+    [Fact]
     public void HtmlToPdf_TransformedControlUsesSearchableStaticAppearance() {
         const string html = "<input name='tilted' value='Tilted value' style='width:140px;transform:rotate(12deg)'>";
 

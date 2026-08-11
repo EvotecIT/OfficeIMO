@@ -167,6 +167,7 @@ public class HtmlLongDocumentBenchmarks {
             HtmlConversionLimits.CreateUntrustedProfile());
         _fonts = new OfficeFontFaceCollection();
         _resources = new HtmlResourceSession();
+        RequireLongDocumentContract(HtmlRenderEngine.Render(_document, _renderOptions));
     }
 
     [Benchmark]
@@ -198,6 +199,26 @@ public class HtmlLongDocumentBenchmarks {
     private HtmlRenderDocument RequirePageCount(HtmlRenderDocument rendered) {
         if (rendered.Pages.Count != PageCount) {
             throw new InvalidOperationException($"Expected {PageCount} rendered pages but observed {rendered.Pages.Count}.");
+        }
+        return rendered;
+    }
+
+    private HtmlRenderDocument RequireLongDocumentContract(HtmlRenderDocument rendered) {
+        RequirePageCount(rendered);
+        string text = rendered.Text;
+        var markers = new HashSet<int>();
+        int cursor = 0;
+        while ((cursor = text.IndexOf("PAGE-", cursor, StringComparison.Ordinal)) >= 0) {
+            int digits = cursor + 5;
+            if (digits + 4 > text.Length
+                || !int.TryParse(text.Substring(digits, 4), out int marker)
+                || !markers.Add(marker)) {
+                throw new InvalidOperationException($"Long-document marker at text offset {cursor} was malformed or duplicated.");
+            }
+            cursor = digits + 4;
+        }
+        if (markers.Count != PageCount || Enumerable.Range(0, PageCount).Any(marker => !markers.Contains(marker))) {
+            throw new InvalidOperationException($"Expected {PageCount} unique long-document markers but observed {markers.Count}.");
         }
         return rendered;
     }

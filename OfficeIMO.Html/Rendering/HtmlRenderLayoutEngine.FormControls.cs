@@ -517,6 +517,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         else if (tag == "input" && IsInteractiveTextInputType(type)) fieldKind = HtmlRenderFormFieldKind.Text;
         else return false;
 
+        if (fieldKind == HtmlRenderFormFieldKind.RadioButton && _staticRadioGroupKeys.TryGetValue(element, out string? staticGroupKey)) {
+            ReportDuplicateRadioValueFallback(source, staticGroupKey);
+            return false;
+        }
+
         int nodeId = GetSemanticNodeId(element);
         string mappingName = NormalizeControlText(element.GetAttribute("name"));
         if (mappingName.Length == 0) mappingName = NormalizeControlText(element.GetAttribute("id"));
@@ -539,7 +544,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ResolveChoiceFieldValues(element, out options, out optionValues, out values);
             value = values.FirstOrDefault() ?? string.Empty;
         } else if (fieldKind == HtmlRenderFormFieldKind.RadioButton) {
-            radioOption = ResolveRadioOptionToken(element, name, value, nodeId);
+            radioOption = ResolveRadioOptionToken(value, nodeId);
             value = radioOption;
         } else if (fieldKind == HtmlRenderFormFieldKind.CheckBox) {
             value = ResolveButtonOptionToken(value, nodeId);
@@ -605,6 +610,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             OfficeConversionLossKind.Approximation);
     }
 
+    private void ReportDuplicateRadioValueFallback(string source, string groupKey) {
+        if (!_reportedStaticRadioGroups.Add(groupKey)) return;
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.RadioDuplicateValueStaticFallback,
+            "An HTML radio group with duplicate submitted values was rendered as static content because PDF radio appearance-state values must be unique.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            "group=" + groupKey.Substring(groupKey.LastIndexOf('\n') + 1),
+            OfficeConversionLossKind.Approximation);
+    }
+
     private static bool IsInteractiveTextInputType(string type) {
         switch (type) {
             case "date":
@@ -651,20 +668,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
         values = selectedExports;
     }
 
-    private string ResolveRadioOptionToken(IElement element, string fieldName, string value, int nodeId) {
-        string owner = ResolveFormOwnerKey(element);
-        string key = owner + "\n" + fieldName;
-        if (!_radioOptionTokens.TryGetValue(key, out HashSet<string>? used)) {
-            used = new HashSet<string>(StringComparer.Ordinal);
-            _radioOptionTokens[key] = used;
-        }
-        string candidate = IsPdfNameValue(value) && !string.Equals(value, "Off", StringComparison.Ordinal)
+    private static string ResolveRadioOptionToken(string value, int nodeId) {
+        return IsPdfNameValue(value) && !string.Equals(value, "Off", StringComparison.Ordinal)
             ? value
             : "option-" + nodeId.ToString(CultureInfo.InvariantCulture);
-        if (used.Add(candidate)) return candidate;
-        candidate += "-" + nodeId.ToString(CultureInfo.InvariantCulture);
-        used.Add(candidate);
-        return candidate;
+    }
+
+    private void IdentifyStaticRadioGroups() {
+        _staticRadioGroupKeys.Clear();
+        IElement[] radios = _document.QuerySelectorAll("input")
+            .Where(element => NormalizeInputType(element) == "radio")
+            .Where(element => NormalizeControlText(element.GetAttribute("name")).Length > 0)
+            .ToArray();
+        foreach (IGrouping<IElement?, IElement> ownerGroup in radios.GroupBy(HtmlFormControlSemantics.ResolveFormOwner)) {
+            foreach (IGrouping<string, IElement> group in ownerGroup.GroupBy(
+                         element => NormalizeControlText(element.GetAttribute("name")),
+                         StringComparer.Ordinal)) {
+                IElement[] members = group.ToArray();
+                bool hasDuplicateValue = members
+                .GroupBy(element => HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty, StringComparer.Ordinal)
+                .Any(values => values.Skip(1).Any());
+                if (!hasDuplicateValue) continue;
+                string key = HtmlRenderStyleResolver.DescribeSource(members[0]) + "\n" + group.Key;
+                foreach (IElement element in members) _staticRadioGroupKeys[element] = key;
+            }
+        }
     }
 
     private string ResolveRadioFieldName(IElement element, string mappingName, int nodeId) {

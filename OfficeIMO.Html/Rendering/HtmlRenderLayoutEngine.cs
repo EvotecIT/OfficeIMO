@@ -41,7 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<int, int> _rootStackingPaintOrders = new Dictionary<int, int>();
     private readonly Dictionary<IElement, int> _positionedSourceOrdersByElement = new Dictionary<IElement, int>();
     private readonly Dictionary<IElement, int> _semanticNodeIds = new Dictionary<IElement, int>();
-    private readonly Dictionary<string, HashSet<string>> _radioOptionTokens = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+    private readonly Dictionary<IElement, string> _staticRadioGroupKeys = new Dictionary<IElement, string>();
     private readonly HashSet<string> _formFieldNames = new HashSet<string>(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _radioFieldNames = new Dictionary<string, string>(StringComparer.Ordinal);
     private readonly HashSet<IElement> _registeredFixedElements = new HashSet<IElement>();
@@ -57,6 +57,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<string> _reportedOutlinePaintFallbacks = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedReplacedElementFallbacks = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedTransformedFormFieldFallbacks = new HashSet<string>(StringComparer.Ordinal);
+    private readonly HashSet<string> _reportedStaticRadioGroups = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<IElement> _reportedBidiElements = new HashSet<IElement>();
     private readonly HashSet<string> _reportedPageContinuationReflow = new HashSet<string>(StringComparer.Ordinal);
@@ -127,6 +128,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     internal HtmlRenderDocument Render() {
         CheckCancellation();
+        IdentifyStaticRadioGroups();
         IElement root = _document.Body ?? _document.DocumentElement ?? throw new InvalidOperationException("The parsed HTML document has no renderable root element.");
         HtmlCssPageGeometry initialGeometry = _options.Mode == HtmlRenderMode.Paged
             ? _pageRules.ResolveGeometry(1, null, _options)
@@ -203,7 +205,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _rootStackingPaintOrders.Clear();
         _positionedSourceOrdersByElement.Clear();
         _semanticNodeIds.Clear();
-        _radioOptionTokens.Clear();
         _formFieldNames.Clear();
         _radioFieldNames.Clear();
         _registeredFixedElements.Clear();
@@ -506,11 +507,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static HtmlInlineBreakProgress? ResolveInlineContinuationProgress(HtmlRenderFlowBlock block, double fragmentEnd) {
         if (!block.SupportsInlineContinuationReflow) return null;
-        List<HtmlInlineBreakProgress> progress = block.InlineBreakProgress
-            .Where(item => item.OwnerElement != null && Math.Abs(item.Offset - fragmentEnd) <= 0.0001D)
-            .OrderBy(item => item.Offset)
-            .ToList();
-        return progress.Count == 0 ? null : progress[progress.Count - 1];
+        HtmlInlineBreakProgress? selected = null;
+        foreach (HtmlInlineBreakProgress item in block.InlineBreakProgress) {
+            if (item.OwnerElement != null && Math.Abs(item.Offset - fragmentEnd) <= 0.0001D) selected = item;
+        }
+        return selected;
     }
 
     private bool TryRelayoutInlineContinuation(

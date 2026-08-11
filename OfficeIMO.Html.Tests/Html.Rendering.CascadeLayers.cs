@@ -162,6 +162,22 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlCssNesting_PreservesSourceOrderAroundConditionalBlocks() {
+        const string html = """
+            <style>
+              .conditional-first { @media screen { color:red; } color:blue; }
+              .conditional-last { color:blue; @media screen { color:red; } }
+            </style>
+            <span class="conditional-first">First</span><span class="conditional-last">Last</span>
+            """;
+        var document = HtmlDocumentParser.ParseDocument(html);
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document);
+
+        Assert.Equal("rgba(0, 0, 255, 1)", styles[document.QuerySelector(".conditional-first")!].GetValue("color"));
+        Assert.Equal("rgba(255, 0, 0, 1)", styles[document.QuerySelector(".conditional-last")!].GetValue("color"));
+    }
+
+    [Fact]
     public void HtmlCssNesting_PreservesLiteralAmpersandsInsideAttributeSelectors() {
         const string html = "<style>.card { &[data-code='A&B'] { color:red; } }</style><div class='card' data-code='A&B'>Matched</div>";
         var document = HtmlDocumentParser.ParseDocument(html);

@@ -87,6 +87,23 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
     }
 
+    [Theory]
+    [InlineData("alpha-beta")]
+    [InlineData("alpha/beta")]
+    [InlineData("alpha\u200Bbeta")]
+    [InlineData("漢字仮名")]
+    public void HtmlGrid_MinContentUsesSharedUnicodeAndPunctuationBreaks(string content) {
+        string html = "<div style='display:grid;width:260px;grid-template-columns:min-content max-content;justify-content:start'>"
+            + "<span id='minimum' style='background:red'>" + content + "</span>"
+            + "<span id='maximum' style='background:blue'>" + content + "</span></div>";
+
+        HtmlRenderDocument rendered = RenderGrid(html, 280D);
+        HtmlRenderShape minimum = FindGridShape(rendered, "span#minimum");
+        HtmlRenderShape maximum = FindGridShape(rendered, "span#maximum");
+
+        Assert.True(minimum.Width < maximum.Width, content);
+    }
+
     [Fact]
     public void HtmlGrid_MaxContentTrackIncludesReplacedContentInsideAWrapper() {
         const string pixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";

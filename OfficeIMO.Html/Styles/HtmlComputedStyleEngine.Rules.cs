@@ -352,12 +352,7 @@ public static partial class HtmlComputedStyleEngine {
             if (IsConditionalGroupingPrelude(prelude)) {
                 output.Append(prelude).Append('{').Append(ExpandNestedConditionalRules(body)).Append('}');
             } else if (!prelude.StartsWith("@", StringComparison.Ordinal)) {
-                ExtractNestedConditionalBlocks(body, out string retainedBody, out IReadOnlyList<NestedConditionalBlock> nestedBlocks);
-                output.Append(prelude).Append('{').Append(retainedBody).Append('}');
-                foreach (NestedConditionalBlock nested in nestedBlocks) {
-                    output.Append(nested.Prelude).Append('{')
-                        .Append(prelude).Append('{').Append(nested.Body).Append("}}");
-                }
+                AppendNestedStyleRuleExpansion(output, prelude, body);
             } else {
                 output.Append(prelude).Append('{').Append(body).Append('}');
             }
@@ -367,23 +362,33 @@ public static partial class HtmlComputedStyleEngine {
         return output.ToString();
     }
 
-    private static void ExtractNestedConditionalBlocks(
-        string body,
-        out string retainedBody,
-        out IReadOnlyList<NestedConditionalBlock> nestedBlocks) {
-        var retained = new System.Text.StringBuilder(body.Length);
-        var blocks = new List<NestedConditionalBlock>();
+    private static void AppendNestedStyleRuleExpansion(
+        System.Text.StringBuilder output,
+        string selector,
+        string body) {
         int cursor = 0;
         while (TryFindNestedConditionalBlock(body, cursor, out int start, out int open, out int close)) {
-            retained.Append(body, cursor, start - cursor);
+            AppendStyleRuleSegment(output, selector, body, cursor, start - cursor);
             string prelude = body.Substring(start, open - start).Trim();
             string nestedBody = body.Substring(open + 1, close - open - 1);
-            blocks.Add(new NestedConditionalBlock(prelude, nestedBody));
+            output.Append(prelude).Append('{')
+                .Append(ExpandNestedConditionalRules(selector + "{" + nestedBody + "}"))
+                .Append('}');
             cursor = close + 1;
         }
-        retained.Append(body, cursor, body.Length - cursor);
-        retainedBody = retained.ToString();
-        nestedBlocks = blocks.AsReadOnly();
+        AppendStyleRuleSegment(output, selector, body, cursor, body.Length - cursor);
+    }
+
+    private static void AppendStyleRuleSegment(
+        System.Text.StringBuilder output,
+        string selector,
+        string body,
+        int start,
+        int length) {
+        if (length <= 0) return;
+        string segment = body.Substring(start, length);
+        if (string.IsNullOrWhiteSpace(segment)) return;
+        output.Append(selector).Append('{').Append(segment).Append('}');
     }
 
     private static bool TryFindNextTopLevelBlock(
@@ -528,16 +533,6 @@ public static partial class HtmlComputedStyleEngine {
     private static bool StartsWithAtRuleName(string value, string name) =>
         value.StartsWith(name, StringComparison.OrdinalIgnoreCase)
         && (value.Length == name.Length || char.IsWhiteSpace(value[name.Length]) || value[name.Length] == '(');
-
-    private readonly struct NestedConditionalBlock {
-        internal NestedConditionalBlock(string prelude, string body) {
-            Prelude = prelude;
-            Body = body;
-        }
-
-        internal string Prelude { get; }
-        internal string Body { get; }
-    }
 
     private static void AddRawRetainedStyleRules(
         string css,

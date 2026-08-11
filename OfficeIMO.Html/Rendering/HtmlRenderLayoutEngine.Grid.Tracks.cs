@@ -306,7 +306,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         } else {
             measured = content
                 .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-                .Select(token => MeasureInlineText(ApplyTextTransform(token, style.TextTransform), style))
+                .SelectMany(token => SplitGridMinContentSegments(token, style.WordBreak != "keep-all"))
+                .Select(segment => MeasureInlineText(ApplyTextTransform(segment, style.TextTransform), style))
                 .DefaultIfEmpty(1D)
                 .Max();
         }
@@ -325,6 +326,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : MeasureInlineText(ApplyTextTransform(content, style.TextTransform), style);
         measured = Math.Max(measured, ResolveDescendantReplacedGridContribution(item, availableSize));
         return ResolveGridMeasuredContribution(style, measured);
+    }
+
+    private static IEnumerable<string> SplitGridMinContentSegments(string token, bool allowCjkBreaks) {
+        int start = 0;
+        foreach (int end in OfficeTextLineBreaks.GetBreakPositions(token, allowCjkBreaks).Concat(new[] { token.Length })) {
+            if (end <= start || end > token.Length) continue;
+            yield return token.Substring(start, end - start);
+            start = end;
+        }
     }
 
     private double ResolveDescendantReplacedGridContribution(FlexItem item, double availableSize) {
