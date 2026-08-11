@@ -1315,7 +1315,7 @@ internal static class PdfPageXObjectInvocationParser {
             bool stroke,
             OfficeFillRule fillRule) {
             if (!fill && !stroke) return PdfType3PaintChannels.None;
-            double visibilityStrokeWidth = double.IsPositiveInfinity(_state.StrokeWidth) ? 1D : _state.StrokeWidth;
+            double visibilityStrokeWidth = GetProjectedStrokeWidth();
             if (!PdfPageVisualPrimitive.TryCreatePath(
                     _pathCommands,
                     fill ? OfficeColor.Black : (OfficeColor?)null,
@@ -1337,9 +1337,9 @@ internal static class PdfPageXObjectInvocationParser {
                     null,
                     retainPathCommands: true,
                     out PdfPageVisualPrimitive primitive)) {
-                if (!stroke || !TryCreateDegenerateStrokePrimitive(visibilityStrokeWidth, out primitive)) {
-                    return PdfType3PaintChannels.None;
-                }
+                return stroke
+                    ? ResolveVisibleDegenerateStrokePaintChannels(visibilityStrokeWidth)
+                    : PdfType3PaintChannels.None;
             }
 
             return PdfReadPage.ResolveVisibleType3PrimitivePaintChannels(
@@ -1348,37 +1348,57 @@ internal static class PdfPageXObjectInvocationParser {
                 _pageHeight);
         }
 
-        private bool TryCreateDegenerateStrokePrimitive(
-            double strokeWidth,
-            out PdfPageVisualPrimitive primitive) {
-            primitive = default;
-            OfficePoint? first = null;
-            OfficePoint? last = null;
+        private PdfType3PaintChannels ResolveVisibleDegenerateStrokePaintChannels(double strokeWidth) {
+            PdfType3PaintChannels channels = PdfType3PaintChannels.None;
+            OfficePoint current = default;
+            OfficePoint subpathStart = default;
+            bool hasCurrent = false;
+            bool hasSubpathStart = false;
             for (int i = 0; i < _pathCommands.Count; i++) {
                 OfficePathCommand command = _pathCommands[i];
-                if (command.Kind == OfficePathCommandKind.Close) continue;
-                if (!first.HasValue) first = command.Point;
-                if (command.Kind != OfficePathCommandKind.MoveTo) last = command.Point;
+                if (command.Kind == OfficePathCommandKind.MoveTo) {
+                    current = command.Point;
+                    subpathStart = command.Point;
+                    hasCurrent = true;
+                    hasSubpathStart = true;
+                    continue;
+                }
+                OfficePoint next = command.Kind == OfficePathCommandKind.Close && hasSubpathStart
+                    ? subpathStart
+                    : command.Point;
+                if (hasCurrent && (!NearlyEqual(current.X, next.X) || !NearlyEqual(current.Y, next.Y))) {
+                    PdfPageVisualPrimitive segment = PdfPageVisualPrimitive.Line(
+                        current.X,
+                        current.Y,
+                        next.X,
+                        next.Y,
+                        OfficeColor.Black,
+                        null,
+                        null,
+                        strokeWidth,
+                        _state.StrokeDashStyle ?? OfficeStrokeDashStyle.Solid,
+                        _state.StrokeLineCap,
+                        _state.StrokeLineJoin,
+                        _state.StrokeOpacity,
+                        _state.ClipPath);
+                    channels |= PdfReadPage.ResolveVisibleType3PrimitivePaintChannels(segment, _pageWidth, _pageHeight);
+                    if (channels == PdfType3PaintChannels.Stroke) return channels;
+                }
+                current = next;
+                hasCurrent = true;
             }
-            if (!first.HasValue || !last.HasValue ||
-                (NearlyEqual(first.Value.X, last.Value.X) && NearlyEqual(first.Value.Y, last.Value.Y))) {
-                return false;
-            }
-            primitive = PdfPageVisualPrimitive.Line(
-                first.Value.X,
-                first.Value.Y,
-                last.Value.X,
-                last.Value.Y,
-                OfficeColor.Black,
-                null,
-                null,
-                strokeWidth,
-                _state.StrokeDashStyle ?? OfficeStrokeDashStyle.Solid,
-                _state.StrokeLineCap,
-                _state.StrokeLineJoin,
-                _state.StrokeOpacity,
-                _state.ClipPath);
-            return true;
+            return channels;
+        }
+
+        private double GetProjectedStrokeWidth() {
+            if (double.IsPositiveInfinity(_state.StrokeWidth)) return 0.25D;
+            double squaredScale = ((_state.Transform.A * _state.Transform.A) +
+                                   (_state.Transform.B * _state.Transform.B) +
+                                   (_state.Transform.C * _state.Transform.C) +
+                                   (_state.Transform.D * _state.Transform.D)) / 2D;
+            return squaredScale > 0D && !double.IsNaN(squaredScale) && !double.IsInfinity(squaredScale)
+                ? _state.StrokeWidth * Math.Sqrt(squaredScale)
+                : _state.StrokeWidth;
         }
 
         private PdfType3PaintChannels ResolveVisibleInlineImagePaintChannels() {
