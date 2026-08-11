@@ -62,7 +62,9 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filte
 ```
 
 The shared repository runner adds provenance capture and PowerForge-normalized
-JSON/CSV/Markdown evidence. `word` expands to the four comparison workloads:
+JSON/CSV/Markdown evidence. Word workloads are excluded from the default `all`
+selection so ordinary comparison runs do not restore NPOI or require its license
+acknowledgement. `word` expands to the four comparison workloads:
 
 ```powershell
 .\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload word -RunMode full -Framework net8.0 -AcceptNPOIOSMFLicense

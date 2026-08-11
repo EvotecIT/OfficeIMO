@@ -190,7 +190,7 @@ $definitions = [ordered]@{
 }
 
 $selected = if ($Workload -eq 'all') {
-    @($definitions.Keys)
+    @($definitions.Keys | Where-Object { $_ -notlike 'word*' })
 } elseif ($Workload -eq 'word') {
     @('wordcreate', 'wordreport', 'wordread', 'wordreplace')
 } else {
