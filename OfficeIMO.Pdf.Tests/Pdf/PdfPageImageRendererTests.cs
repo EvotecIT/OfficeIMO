@@ -1206,6 +1206,21 @@ public class PdfPageImageRendererTests {
         AssertType3FallsBackWithoutNativeShapes(pdf);
     }
 
+    [Theory]
+    [InlineData("/Missing sh", "", null)]
+    [InlineData("/Sh1 sh", "/Shading << /Sh1 9 0 R >>", "9 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [0 0 500 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 2 >> /Extend [true true] >>\nendobj")]
+    public void RenderPage_FailsClosedForUnsupportedDirectShadingInsideType3SoftMask(string maskContent, string shadingResources, string? shadingObject) {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
+        string outerState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
+        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency >> /Resources << " + shadingResources + " >>", maskContent);
+        var objects = new List<string> { type3Font, glyphA, outerState, outerMask };
+        if (shadingObject != null) objects.Add(shadingObject);
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", objects.ToArray());
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
     [Fact]
     public void RenderPage_FailsClosedForCyclicSoftMaskInsideNestedType3MaskGlyph() {
         string outerFont = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";

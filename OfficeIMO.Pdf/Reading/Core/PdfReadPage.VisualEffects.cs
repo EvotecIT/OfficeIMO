@@ -252,6 +252,42 @@ public sealed partial class PdfReadPage {
             type3GlyphBudget: type3GlyphBudget,
             requireSupportedType3Content: false);
         Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources);
+        Dictionary<string, PdfPageShadingResource> shadings = GetShadingResources(resources);
+        _ = PdfPageContentVisualParser.Parse(
+            WrapContentWithTransform(content, baseTransform),
+            visualPageSize.Width,
+            visualPageSize.Height,
+            GetGraphicsStateResources(resources),
+            colorSpaces,
+            shadings,
+            shadingPatterns,
+            tilingPatterns,
+            GetOptionalContentVisibility(resources),
+            initialClipPath: initialState?.ClipPath,
+            initialFillColor: initialState?.FillColor,
+            initialFillColorSpace: initialState?.FillColorSpace ?? default,
+            initialFillOpacity: initialState?.FillOpacity,
+            initialStrokeColor: initialState?.StrokeColor,
+            initialStrokeColorSpace: initialState?.StrokeColorSpace ?? default,
+            initialStrokeOpacity: initialState?.StrokeOpacity,
+            initialStrokeWidth: initialState?.StrokeWidth,
+            initialStrokeDashStyle: initialState?.StrokeDashStyle,
+            initialStrokeLineCap: initialState?.StrokeLineCap,
+            initialStrokeLineJoin: initialState?.StrokeLineJoin,
+            maxOperations: _limits.MaxContentOperations,
+            patternBaseColorSpaces: patternBaseColorSpaces,
+            maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxOperands: _limits.MaxContentOperands,
+            retainPrimitiveData: false,
+            unsupportedShadingTransformVisitor: () => supported = false,
+            requireExactType3ShadingProjection: true,
+            authoredShadingInvocationVisitor: name => {
+                if (!shadings.TryGetValue(name, out PdfPageShadingResource shading) ||
+                    !shading.SupportsExactType3Projection) {
+                    supported = false;
+                }
+            });
+        if (!supported) return false;
         var validationDiagnostics = new List<PdfRenderCapabilityDiagnostic>();
         var validationDiagnosticKeys = new HashSet<string>(StringComparer.Ordinal);
         IReadOnlyList<PdfPageXObjectInvocation> invocations = PdfPageXObjectInvocationParser.Parse(
