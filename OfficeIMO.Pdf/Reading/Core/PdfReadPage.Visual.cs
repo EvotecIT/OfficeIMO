@@ -854,10 +854,15 @@ public sealed partial class PdfReadPage {
         if (dictionary.Items.TryGetValue("Domain", out PdfObject? shadingDomainObject) &&
             !IsCanonicalUnitIntervals(ReadNumberArray(shadingDomainObject), 1)) return false;
 
-        PdfArray? extend = ResolveArray(dictionary.Items.TryGetValue("Extend", out PdfObject? extendObject) ? extendObject : null);
-        if (extend == null || extend.Items.Count != 2 ||
-            ResolveObject(extend.Items[0]) is not PdfBoolean { Value: true } ||
-            ResolveObject(extend.Items[1]) is not PdfBoolean { Value: true }) return false;
+        bool extendsBothEnds = false;
+        if (dictionary.Items.TryGetValue("Extend", out PdfObject? extendObject) &&
+            ResolveObject(extendObject) is not PdfNull) {
+            PdfArray? extend = ResolveArray(extendObject);
+            if (extend == null || extend.Items.Count != 2 ||
+                ResolveObject(extend.Items[0]) is not PdfBoolean extendStart ||
+                ResolveObject(extend.Items[1]) is not PdfBoolean extendEnd) return false;
+            extendsBothEnds = extendStart.Value && extendEnd.Value;
+        }
 
         PdfObject? functionObject = dictionary.Items.TryGetValue("Function", out PdfObject? authoredFunction) ? authoredFunction : null;
         if (!TryReadShadingStops(functionObject, colorSpace, out IReadOnlyList<OfficeGradientStop> stops)) {
@@ -872,7 +877,7 @@ public sealed partial class PdfReadPage {
                 coords[2],
                 coords[3],
                 stops,
-                exactColorInterpolation && !hasShadingBoundingBox);
+                exactColorInterpolation && !hasShadingBoundingBox && extendsBothEnds);
             return true;
         }
 
@@ -891,7 +896,7 @@ public sealed partial class PdfReadPage {
                 coords[4],
                 Math.Max(0D, coords[5]),
                 stops,
-                exactColorInterpolation && !hasShadingBoundingBox && exactRadialFamily);
+                exactColorInterpolation && !hasShadingBoundingBox && extendsBothEnds && exactRadialFamily);
             return true;
         }
 
