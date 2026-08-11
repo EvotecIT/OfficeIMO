@@ -227,6 +227,104 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Composer_TableFrom_LeavesHeaderAppearanceToTheTableStyle() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            var rows = new[] { new ComposerTableRow("Alpha", 10) };
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                doc.Compose("Report", c => {
+                    c.TableFrom(rows, style: ExcelTableStyle.TableStyleMedium9);
+                    c.Finish(autoFitColumns: false);
+                });
+                doc.Save();
+            }
+
+            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+                var worksheet = ss.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var headerCells = worksheet.Descendants<Cell>()
+                    .Where(cell => cell.CellReference?.Value == "A1" || cell.CellReference?.Value == "B1")
+                    .ToList();
+
+                Assert.Equal(2, headerCells.Count);
+                Assert.All(headerCells, cell => Assert.Null(cell.StyleIndex));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Composer_TableFrom_PreservesAdAsAHeaderAcronym() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            var rows = new[] { new AdStateComposerTableRow("Enabled") };
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                doc.Compose("Report", c => {
+                    c.TableFrom(rows);
+                    c.Finish(autoFitColumns: false);
+                });
+                doc.Save();
+            }
+
+            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+                var worksheet = ss.WorkbookPart!.WorksheetParts.First();
+                Assert.Equal("AD State", GetCellText(ss, worksheet, "A1"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Composer_ColumnTableFrom_LeavesHeaderAppearanceToTheTableStyle() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            var rows = new[] { new ComposerTableRow("Alpha", 10) };
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                doc.Compose("Report", c => {
+                    c.Columns(2, columns => {
+                        columns[0].TableFrom(rows, style: ExcelTableStyle.TableStyleMedium4);
+                    });
+                    c.Finish(autoFitColumns: false);
+                });
+                doc.Save();
+            }
+
+            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+                var worksheet = ss.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var headerCells = worksheet.Descendants<Cell>()
+                    .Where(cell => cell.CellReference?.Value == "A1" || cell.CellReference?.Value == "B1")
+                    .ToList();
+
+                Assert.Equal(2, headerCells.Count);
+                Assert.All(headerCells, cell => Assert.Null(cell.StyleIndex));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void TableOfContents_LeavesHeaderAppearanceToTheTableStyle() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                doc.AddWorksheet("Data").Cell(1, 1, "Value");
+                doc.AddTableOfContents(sheetName: "Index", styled: true);
+                doc.Save();
+            }
+
+            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+                var worksheet = ss.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var headerCells = worksheet.Descendants<Cell>()
+                    .Where(cell => cell.CellReference?.Value == "A3" || cell.CellReference?.Value == "B3")
+                    .ToList();
+
+                Assert.Equal(2, headerCells.Count);
+                Assert.All(headerCells, cell => Assert.Null(cell.StyleIndex));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Composer_ColumnTableFrom_SummarizeOverflowPreservesMoreColumn() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             var rows = new[] {
@@ -267,6 +365,14 @@ namespace OfficeIMO.Tests {
             public string Name { get; }
 
             public int Score { get; }
+        }
+
+        private sealed class AdStateComposerTableRow {
+            public AdStateComposerTableRow(string adState) {
+                ADState = adState;
+            }
+
+            public string ADState { get; }
         }
 
         private sealed class WideComposerTableRow {
