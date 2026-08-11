@@ -182,9 +182,18 @@ namespace OfficeIMO.Word {
                 AddStyleDefinitions(styleDefinitionsPart, overrideStyles);
             } else {
                 // Create Styles part if it doesn't exist yet.
-                var styleDefinitionsPart1 = mainPart.AddNewPart<StyleDefinitionsPart>("rId1");
+                var styleDefinitionsPart1 = mainPart.AddNewPart<StyleDefinitionsPart>();
                 GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
             }
+        }
+
+        private void EnsureStyleDefinitionsInitialized() {
+            if (_styleDefinitionsInitialized) {
+                return;
+            }
+
+            InitialiseStyleDefinitions(_wordprocessingDocument, readOnly: false, overrideStyles: false);
+            _styleDefinitionsInitialized = true;
         }
 
         internal WordSection _currentSection => this.Sections.Last();
