@@ -95,12 +95,16 @@ public sealed partial class PdfReadPage {
         PdfPageSoftMaskResource? resource,
         Matrix2D groupTransform,
         PageContentBudget pageContentBudget,
-        Dictionary<(PdfStream Group, Matrix2D Transform), int> validatedGroups,
+        Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int> validatedGroups,
         Type3GlyphBudget type3GlyphBudget,
         int contentNestingDepth,
         HashSet<PdfStream>? activeType3Glyphs = null,
-        SoftMaskNestingDepth? nestingDepth = null) {
+        SoftMaskNestingDepth? nestingDepth = null,
+        double? projectionPageWidth = null,
+        double? projectionPageHeight = null,
+        TextContentParser.TextOutputBudget? textOutputBudget = null) {
         nestingDepth ??= new SoftMaskNestingDepth(contentNestingDepth);
+        (double Width, double Height) pageSize = GetVisualPageSize();
         return CanDecodeType3SoftMask(
             resource,
             groupTransform,
@@ -111,24 +115,30 @@ public sealed partial class PdfReadPage {
             new HashSet<PdfStream>(),
             activeType3Glyphs ?? new HashSet<PdfStream>(),
             contentNestingDepth,
-            nestingDepth);
+            nestingDepth,
+            projectionPageWidth ?? pageSize.Width,
+            projectionPageHeight ?? pageSize.Height,
+            textOutputBudget ?? CreateTextOutputBudget());
     }
 
     private bool CanDecodeType3SoftMask(
         PdfPageSoftMaskResource? resource,
         Matrix2D groupTransform,
         PageContentBudget pageContentBudget,
-        Dictionary<(PdfStream Group, Matrix2D Transform), int> validatedGroups,
+        Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int> validatedGroups,
         Type3GlyphBudget type3GlyphBudget,
         HashSet<PdfStream> activeGroups,
         HashSet<PdfStream> activeForms,
         HashSet<PdfStream> activeType3Glyphs,
         int contentNestingDepth,
-        SoftMaskNestingDepth nestingDepth) {
+        SoftMaskNestingDepth nestingDepth,
+        double projectionPageWidth,
+        double projectionPageHeight,
+        TextContentParser.TextOutputBudget textOutputBudget) {
         if (resource == null) return true;
         EnsureContentNestingBudget(contentNestingDepth);
         nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
-        var cacheKey = (resource.Group, groupTransform);
+        var cacheKey = (resource.Group, groupTransform, projectionPageWidth, projectionPageHeight);
         if (validatedGroups.TryGetValue(cacheKey, out int cachedNestingSpan)) {
             int cachedMaximumDepth = contentNestingDepth + cachedNestingSpan;
             EnsureContentNestingBudget(cachedMaximumDepth);
@@ -158,7 +168,10 @@ public sealed partial class PdfReadPage {
                 activeForms,
                 activeType3Glyphs,
                 contentNestingDepth,
-                groupNestingDepth);
+                groupNestingDepth,
+                projectionPageWidth,
+                projectionPageHeight,
+                textOutputBudget);
             nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, groupNestingDepth.Maximum);
             if (supported) validatedGroups[cacheKey] = groupNestingDepth.Maximum - contentNestingDepth;
             return supported;
@@ -180,13 +193,16 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources,
         Matrix2D baseTransform,
         PageContentBudget pageContentBudget,
-        Dictionary<(PdfStream Group, Matrix2D Transform), int> validatedGroups,
+        Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int> validatedGroups,
         Type3GlyphBudget type3GlyphBudget,
         HashSet<PdfStream> activeGroups,
         HashSet<PdfStream> activeForms,
         HashSet<PdfStream> activeType3Glyphs,
         int contentNestingDepth,
         SoftMaskNestingDepth nestingDepth,
+        double projectionPageWidth,
+        double projectionPageHeight,
+        TextContentParser.TextOutputBudget textOutputBudget,
         PdfPageXObjectInvocation? initialState = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
@@ -195,7 +211,7 @@ public sealed partial class PdfReadPage {
         Dictionary<string, Func<byte[], double>> widthProviders = resources == null
             ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
             : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
-        (double Width, double Height) visualPageSize = GetVisualPageSize();
+        var visualPageSize = (Width: projectionPageWidth, Height: projectionPageHeight);
         Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
         Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources);
         var type3PaintChannelCache = new Type3PaintChannelCache();
@@ -236,11 +252,12 @@ public sealed partial class PdfReadPage {
                 type3PaintChannelCache,
                 activeType3PaintChannelStreams,
                 pageContentBudget),
-            xObjectPaintChannelResolver: (name, transform, clipPath) => ResolveXObjectPaintChannels(
+            xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity) => ResolveXObjectPaintChannels(
                 resources,
                 name,
                 transform,
                 clipPath,
+                fillOpacity,
                 visualPageSize.Width,
                 visualPageSize.Height,
                 type3PaintChannelCache,
@@ -249,10 +266,10 @@ public sealed partial class PdfReadPage {
         Dictionary<string, PdfPageTilingPatternResource> tilingPatterns = GetTilingPatternResources(
             resources,
             invokedPatternNames,
-            textOutputBudget: CreateTextOutputBudget(),
+            textOutputBudget: textOutputBudget,
             pageContentBudget: pageContentBudget,
             type3GlyphBudget: type3GlyphBudget,
-            requireSupportedType3Content: false);
+            requireSupportedType3Content: true);
         Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources);
         Dictionary<string, PdfPageShadingResource> shadings = GetShadingResources(resources);
         _ = PdfPageContentVisualParser.Parse(
@@ -344,6 +361,7 @@ public sealed partial class PdfReadPage {
                 return supported;
             },
             type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
+            unsupportedTextVisitor: () => supported = false,
             unsupportedGraphicsEffectVisitor: () => supported = false,
             unsupportedColorVisitor: () => supported = false,
             graphicsStateVisitor: (state, stateTransform) => {
@@ -357,7 +375,10 @@ public sealed partial class PdfReadPage {
                         activeForms,
                         activeType3Glyphs,
                         contentNestingDepth + 1,
-                        nestingDepth)) {
+                        nestingDepth,
+                        projectionPageWidth,
+                        projectionPageHeight,
+                        textOutputBudget)) {
                     supported = false;
                 }
             },
@@ -383,11 +404,12 @@ public sealed partial class PdfReadPage {
                 type3PaintChannelCache,
                 activeType3PaintChannelStreams,
                 pageContentBudget),
-            xObjectPaintChannelResolver: (name, transform, clipPath) => ResolveXObjectPaintChannels(
+            xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity) => ResolveXObjectPaintChannels(
                 resources,
                 name,
                 transform,
                 clipPath,
+                fillOpacity,
                 visualPageSize.Width,
                 visualPageSize.Height,
                 type3PaintChannelCache,
@@ -402,7 +424,7 @@ public sealed partial class PdfReadPage {
                         invocation,
                         resources,
                         requireImageMask: false,
-                        inheritedFillPattern: null,
+                        inheritedFillPattern: invocation.FillPattern,
                         diagnostics: validationDiagnostics,
                         seen: validationDiagnosticKeys,
                         projectionPageWidth: visualPageSize.Width,
@@ -445,6 +467,9 @@ public sealed partial class PdfReadPage {
                         activeType3Glyphs,
                         contentNestingDepth + 1,
                         nestingDepth,
+                        projectionPageWidth,
+                        projectionPageHeight,
+                        textOutputBudget,
                         invocation)) {
                     return false;
                 }

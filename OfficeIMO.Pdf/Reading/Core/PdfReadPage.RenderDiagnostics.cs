@@ -306,7 +306,7 @@ public sealed partial class PdfReadPage {
         HashSet<string> seen,
         int depth,
         SoftMaskNestingDepth? softMaskNestingDepth = null,
-        Dictionary<(PdfStream Group, Matrix2D Transform), int>? validatedSoftMaskGroups = null,
+        Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int>? validatedSoftMaskGroups = null,
         double? projectionPageWidth = null,
         double? projectionPageHeight = null) {
         EnsureContentNestingBudget(depth);
@@ -327,7 +327,7 @@ public sealed partial class PdfReadPage {
             double surfaceWidth = projectionPageWidth ?? visualPageSize.Width;
             double surfaceHeight = projectionPageHeight ?? visualPageSize.Height;
             bool supported = true;
-            validatedSoftMaskGroups ??= new Dictionary<(PdfStream Group, Matrix2D Transform), int>();
+            validatedSoftMaskGroups ??= new Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int>();
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
@@ -566,7 +566,9 @@ public sealed partial class PdfReadPage {
                                      type3GlyphBudget,
                                      depth + 1,
                                      activeStreams,
-                                     softMaskNestingDepth)) {
+                                     softMaskNestingDepth,
+                                     surfaceWidth,
+                                     surfaceHeight)) {
                                  supported = false;
                              }
                          },
@@ -823,6 +825,7 @@ public sealed partial class PdfReadPage {
         }
         CollectImageColorSpaceCapabilityDiagnostic(imageDictionary, resources, diagnostics, seen, invocation.Name);
         if (image == null || !image.IsImageFile || (requireImageMask && !image.IsImageMask)) return false;
+        if (!requireImageMask && image.IsImageMask && inheritedFillPattern.HasValue) return false;
         if (requireImageMask && inheritedFillPattern.HasValue) {
             Type3PatternImageMaskDrawingResult result = TryPrepareInheritedPatternImageMaskDrawing(
                 inheritedFillPattern,
