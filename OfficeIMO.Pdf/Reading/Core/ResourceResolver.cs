@@ -965,7 +965,8 @@ internal static partial class ResourceResolver {
     private static string? GetTransparencyMaskKind(PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {
         if (dictionary.Items.TryGetValue("SMask", out var softMaskObj)) {
             var resolvedSoftMask = ResolveObject(softMaskObj, objects);
-            if (resolvedSoftMask is PdfName softMaskName &&
+            if (resolvedSoftMask is PdfNull ||
+                resolvedSoftMask is PdfName softMaskName &&
                 string.Equals(softMaskName.Name, "None", System.StringComparison.Ordinal)) {
                 return null;
             }
@@ -978,6 +979,9 @@ internal static partial class ResourceResolver {
         }
 
         var resolvedMask = ResolveObject(maskObj, objects);
+        if (resolvedMask is PdfNull) {
+            return null;
+        }
         if (resolvedMask is PdfArray) {
             return "color-key-mask";
         }
@@ -1249,8 +1253,8 @@ internal static partial class ResourceResolver {
         }
 
         byte[] scanlines = new byte[scanlineBytes];
-        double[]? colorComponents = colorNormalization.RequiresColorConversion
-            ? colorNormalization.CreateComponentBuffer()
+        PdfImageColorConversionBuffer? colorComponents = colorNormalization.RequiresColorConversion
+            ? colorNormalization.CreateConversionBuffer()
             : null;
         for (int row = 0; row < height; row++) {
             int outputRow = row * (1 + outputRowLength);
@@ -1335,8 +1339,8 @@ internal static partial class ResourceResolver {
         }
 
         byte[] scanlines = new byte[scanlineBytes];
-        double[]? colorComponents = colorNormalization.RequiresColorConversion
-            ? colorNormalization.CreateComponentBuffer()
+        PdfImageColorConversionBuffer? colorComponents = colorNormalization.RequiresColorConversion
+            ? colorNormalization.CreateConversionBuffer()
             : null;
         for (int row = 0; row < height; row++) {
             int outputRow = row * (1 + outputRowLength);
@@ -1503,8 +1507,8 @@ internal static partial class ResourceResolver {
 
         var alphaDecodeTransform = PdfImageDecodeTransform.CreateColor(softMask.Dictionary, 1, objects);
         byte[] scanlines = new byte[scanlineBytes];
-        double[]? colorComponents = colorNormalization.RequiresColorConversion
-            ? colorNormalization.CreateComponentBuffer()
+        PdfImageColorConversionBuffer? colorComponents = colorNormalization.RequiresColorConversion
+            ? colorNormalization.CreateConversionBuffer()
             : null;
         for (int row = 0; row < height; row++) {
             int outputRow = row * (1 + outputRowLength);
