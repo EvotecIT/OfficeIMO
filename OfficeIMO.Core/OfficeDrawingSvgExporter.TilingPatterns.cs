@@ -6,6 +6,7 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
     private static void AppendTilingPattern(StringBuilder sb, OfficeDrawingTilingPattern pattern, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget) {
+        if (pattern.Opacity <= 0D) return;
         string clipId = idPrefix + "officeimo-pattern-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
         OfficeImagePlacement area = pattern.Area;
         sb.Append("<defs><clipPath id=\"").Append(clipId).Append("\"><rect x=\"")

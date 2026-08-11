@@ -815,7 +815,8 @@ internal static class PdfPageXObjectInvocationParser {
                                     _patternState.FillBaseColorSpace,
                                     tilingPattern,
                                     shadingPattern,
-                                    _state.Transform),
+                                    _state.Transform,
+                                    CountPatternComponents()),
                                 _patternState.FillBaseColorSpace,
                                 deferredVisibleUse: true);
                         } else if (!HasHiddenContent()) {
@@ -858,7 +859,8 @@ internal static class PdfPageXObjectInvocationParser {
                                     _patternState.StrokeBaseColorSpace,
                                     tilingPattern,
                                     shadingPattern,
-                                    _state.Transform),
+                                    _state.Transform,
+                                    CountPatternComponents()),
                                 _patternState.StrokeBaseColorSpace,
                                 deferredVisibleUse: true);
                         } else if (!HasHiddenContent()) {
@@ -1666,12 +1668,25 @@ internal static class PdfPageXObjectInvocationParser {
 
         private void PublishDeferredPatternUse(bool fill, bool stroke) {
             if (fill && _patternState.FillDeferredVisibleUse && _patternState.Fill.HasValue) {
+                ValidateDeferredPatternSelection(_patternState.Fill.Value);
                 PublishPatternUse(_patternState.Fill.Value.Name);
                 _patternState = _patternState.WithFillDeferredVisibleUse(false);
             }
             if (stroke && _patternState.StrokeDeferredVisibleUse && _patternState.Stroke.HasValue) {
+                ValidateDeferredPatternSelection(_patternState.Stroke.Value);
                 PublishPatternUse(_patternState.Stroke.Value.Name);
                 _patternState = _patternState.WithStrokeDeferredVisibleUse(false);
+            }
+        }
+
+        private void ValidateDeferredPatternSelection(PdfPagePatternSelection selection) {
+            if (!IsValidPatternSelection(
+                    ResolveTilingPattern(selection.Name),
+                    ResolveShadingPattern(selection.Name),
+                    selection.BaseColorSpace,
+                    selection.Tint,
+                    selection.ComponentCount)) {
+                _invalidPatternSelectionVisitor?.Invoke();
             }
         }
 
