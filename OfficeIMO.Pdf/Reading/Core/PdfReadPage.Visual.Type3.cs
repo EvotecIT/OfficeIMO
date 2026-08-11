@@ -694,15 +694,16 @@ public sealed partial class PdfReadPage {
     private PdfType3PaintChannels ResolveType3PaintChannels(
         PdfFontResource font,
         byte[] bytes,
-        Dictionary<PdfStream, PdfType3PaintChannels> cache,
-        HashSet<PdfStream> activeStreams) {
+        Type3PaintChannelCache cache,
+        HashSet<PdfStream> activeStreams,
+        PageContentBudget pageContentBudget) {
         if (font.Type3 is not PdfType3FontResource type3) return PdfType3PaintChannels.Both;
         PdfType3PaintChannels channels = PdfType3PaintChannels.None;
         var seenCodes = new HashSet<byte>();
         for (int index = 0; index < bytes.Length; index++) {
             byte code = bytes[index];
             if (!seenCodes.Add(code) || !type3.TryGetGlyph(code, out PdfStream stream)) continue;
-            channels |= ResolveType3PaintChannels(stream, type3.Resources, cache, activeStreams, 0);
+            channels |= ResolveType3PaintChannels(stream, type3.Resources, cache, activeStreams, pageContentBudget, 0);
             if (channels == PdfType3PaintChannels.Both) break;
         }
         return channels;
@@ -715,8 +716,9 @@ public sealed partial class PdfReadPage {
         PdfPageClipPath? invocationClipPath,
         double pageWidth,
         double pageHeight,
-        Dictionary<PdfStream, PdfType3PaintChannels> cache,
+        Type3PaintChannelCache cache,
         HashSet<PdfStream> activeStreams,
+        PageContentBudget pageContentBudget,
         int depth = 0) {
         EnsureContentNestingBudget(depth);
         if (TryGetImageXObject(resources, name, out _, out _)) return PdfType3PaintChannels.Fill;
@@ -745,20 +747,23 @@ public sealed partial class PdfReadPage {
             pageHeight,
             cache,
             activeStreams,
+            pageContentBudget,
             depth);
     }
 
     private PdfType3PaintChannels ResolveType3PaintChannels(
         PdfStream stream,
         PdfDictionary resources,
-        Dictionary<PdfStream, PdfType3PaintChannels> cache,
+        Type3PaintChannelCache cache,
         HashSet<PdfStream> activeStreams,
+        PageContentBudget pageContentBudget,
         int depth) {
         EnsureContentNestingBudget(depth);
-        if (cache.TryGetValue(stream, out PdfType3PaintChannels cached)) return cached;
+        var cacheKey = (Stream: stream, Resources: resources);
+        if (cache.Streams.TryGetValue(cacheKey, out PdfType3PaintChannels cached)) return cached;
         if (!activeStreams.Add(stream)) return PdfType3PaintChannels.Both;
         try {
-            string content = PdfEncoding.Latin1GetString(new PageContentBudget(this).Decode(stream));
+            string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
             PdfType3PaintChannels channels = PdfType3PaintChannels.None;
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
@@ -808,6 +813,7 @@ public sealed partial class PdfReadPage {
                                      nestedType3.Resources,
                                      cache,
                                      activeStreams,
+                                     pageContentBudget,
                                      depth + 1);
                              }
                              return true;
@@ -817,30 +823,20 @@ public sealed partial class PdfReadPage {
                     channels |= PdfType3PaintChannels.Fill;
                     continue;
                 }
-                if (!TryGetFormStream(resources, invocation.Name, out PdfStream form)) {
-                    channels = PdfType3PaintChannels.Both;
-                    continue;
-                }
-                if (form.Dictionary.Items.ContainsKey("Group")) {
-                    (double Width, double Height) visualPageSize = GetVisualPageSize();
-                    Type3TransparencyGroupDrawingResult boundsResult = TryGetVisibleType3TransparencyGroupBounds(
-                        form.Dictionary,
-                        ApplyFormMatrix(invocation.Transform, form.Dictionary),
-                        invocation.ClipPath,
-                        visualPageSize.Width,
-                        visualPageSize.Height,
-                        out _);
-                    if (boundsResult == Type3TransparencyGroupDrawingResult.Invisible) continue;
-                    if (boundsResult == Type3TransparencyGroupDrawingResult.Unsupported) {
-                        channels = PdfType3PaintChannels.Both;
-                        continue;
-                    }
-                }
-                PdfDictionary formResources = ResolveDictionary(
-                    form.Dictionary.Items.TryGetValue("Resources", out PdfObject? value) ? value : null) ?? resources;
-                channels |= ResolveType3PaintChannels(form, formResources, cache, activeStreams, depth + 1);
+                (double Width, double Height) visualPageSize = GetVisualPageSize();
+                channels |= ResolveXObjectPaintChannels(
+                    resources,
+                    invocation.Name,
+                    invocation.Transform,
+                    invocation.ClipPath,
+                    visualPageSize.Width,
+                    visualPageSize.Height,
+                    cache,
+                    activeStreams,
+                    pageContentBudget,
+                    depth + 1);
             }
-            cache[stream] = channels;
+            cache.Streams[cacheKey] = channels;
             return channels;
         } catch (Exception exception) when (IsRecoverableType3ProjectionFailure(exception)) {
             return PdfType3PaintChannels.Both;

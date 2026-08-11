@@ -8,13 +8,23 @@ public sealed partial class PdfReadPage {
         PdfPageClipPath? invocationClipPath,
         double pageWidth,
         double pageHeight,
-        Dictionary<PdfStream, PdfType3PaintChannels> cache,
+        Type3PaintChannelCache cache,
         HashSet<PdfStream> activeStreams,
+        PageContentBudget pageContentBudget,
         int depth) {
+        EnsureContentNestingBudget(depth);
+        var cacheKey = (
+            Stream: form,
+            Resources: resources,
+            InvocationTransform: invocationTransform,
+            InvocationClipPath: invocationClipPath,
+            PageWidth: pageWidth,
+            PageHeight: pageHeight);
+        if (cache.VisibleForms.TryGetValue(cacheKey, out PdfType3PaintChannels cached)) return cached;
         if (!activeStreams.Add(form)) return PdfType3PaintChannels.Both;
         try {
             string content = WrapFormContentWithBoundingBoxClip(
-                PdfEncoding.Latin1GetString(new PageContentBudget(this).Decode(form)),
+                PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)),
                 form.Dictionary);
             Matrix2D formTransform = ApplyFormMatrix(invocationTransform, form.Dictionary);
             PdfType3PaintChannels channels = PdfType3PaintChannels.None;
@@ -71,12 +81,13 @@ public sealed partial class PdfReadPage {
                                      nestedType3.Resources,
                                      cache,
                                      activeStreams,
+                                     pageContentBudget,
                                      depth + 1);
                              }
                              return true;
                          },
                          unsupportedTextVisitor: () => channels = PdfType3PaintChannels.Both,
-                         type3PaintChannelResolver: (font, bytes) => ResolveType3PaintChannels(font, bytes, cache, activeStreams),
+                         type3PaintChannelResolver: (font, bytes) => ResolveType3PaintChannels(font, bytes, cache, activeStreams, pageContentBudget),
                          xObjectPaintChannelResolver: (name, transform, clipPath) => ResolveXObjectPaintChannels(
                              resources,
                              name,
@@ -86,6 +97,7 @@ public sealed partial class PdfReadPage {
                              pageHeight,
                              cache,
                              activeStreams,
+                             pageContentBudget,
                              depth + 1))) {
                 if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     if ((invocation.FillOpacity ?? 1D) > 0D) channels |= PdfType3PaintChannels.Fill;
@@ -100,13 +112,35 @@ public sealed partial class PdfReadPage {
                     pageHeight,
                     cache,
                     activeStreams,
+                    pageContentBudget,
                     depth + 1);
             }
+            cache.VisibleForms[cacheKey] = channels;
             return channels;
         } catch (Exception exception) when (IsRecoverableType3ProjectionFailure(exception)) {
             return PdfType3PaintChannels.Both;
         } finally {
             activeStreams.Remove(form);
         }
+    }
+
+    private sealed class Type3PaintChannelCache {
+        internal Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfType3PaintChannels> Streams { get; } =
+            new Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfType3PaintChannels>();
+
+        internal Dictionary<(
+            PdfStream Stream,
+            PdfDictionary Resources,
+            Matrix2D InvocationTransform,
+            PdfPageClipPath? InvocationClipPath,
+            double PageWidth,
+            double PageHeight), PdfType3PaintChannels> VisibleForms { get; } =
+            new Dictionary<(
+                PdfStream Stream,
+                PdfDictionary Resources,
+                Matrix2D InvocationTransform,
+                PdfPageClipPath? InvocationClipPath,
+                double PageWidth,
+                double PageHeight), PdfType3PaintChannels>();
     }
 }
