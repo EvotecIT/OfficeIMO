@@ -36,9 +36,8 @@ public sealed partial class PdfReadPage {
         var glyphImages = new List<(PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect)>();
         var glyphGroups = new List<(OfficeDrawing Drawing, OfficeTransform Transform, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)>();
         var extractedImageCache = new Dictionary<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor), PdfExtractedImage>();
-        var validatedSoftMaskGroups = new Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int>();
-        var softMaskValidationBudget = new PageContentBudget(this);
-        var softMaskValidationType3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
+        Type3SoftMaskValidationContext softMaskValidation =
+            type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this, textOutputBudget);
         double nextPaintOrder = invocation.PaintOrder;
         double paintOrderLimit = invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.5D);
         for (int i = 0; i < invocation.Glyphs.Count; i++) {
@@ -133,12 +132,13 @@ public sealed partial class PdfReadPage {
                     if (!CanDecodeType3SoftMask(
                             localEffects[effectIndex].Effect.SoftMask,
                             localEffects[effectIndex].Effect.SoftMaskTransform ?? glyphTransform,
-                            softMaskValidationBudget,
-                            validatedSoftMaskGroups,
-                            softMaskValidationType3GlyphBudget,
+                            softMaskValidation.PageContentBudget,
+                            softMaskValidation.ValidatedGroups,
+                            softMaskValidation.Type3GlyphBudget,
                             localEffects[effectIndex].ContentNestingDepth + 1,
                             projectionPageWidth: pageWidth,
-                            projectionPageHeight: pageHeight)) {
+                            projectionPageHeight: pageHeight,
+                            textOutputBudget: softMaskValidation.TextOutputBudget)) {
                         return false;
                     }
                 }
@@ -979,6 +979,7 @@ public sealed partial class PdfReadPage {
         private readonly int _maximum;
         private int _count;
         private int _failureVersion;
+        private Type3SoftMaskValidationContext? _softMaskValidationContext;
 
         internal Type3GlyphBudget(int maximum) {
             _maximum = maximum;
@@ -994,8 +995,36 @@ public sealed partial class PdfReadPage {
 
         internal int FailureVersion => _failureVersion;
 
+        internal Type3SoftMaskValidationContext GetOrCreateSoftMaskValidationContext(
+            PdfReadPage owner,
+            TextContentParser.TextOutputBudget? textOutputBudget) =>
+            _softMaskValidationContext ??= new Type3SoftMaskValidationContext(
+                owner,
+                _maximum,
+                textOutputBudget ?? owner.CreateTextOutputBudget());
+
         internal void RecordFailure() {
             _failureVersion++;
         }
+    }
+
+    private sealed class Type3SoftMaskValidationContext {
+        internal Type3SoftMaskValidationContext(
+            PdfReadPage owner,
+            int maximumType3GlyphInvocations,
+            TextContentParser.TextOutputBudget textOutputBudget) {
+            PageContentBudget = new PageContentBudget(owner);
+            Type3GlyphBudget = new Type3GlyphBudget(maximumType3GlyphInvocations);
+            TextOutputBudget = textOutputBudget;
+        }
+
+        internal PageContentBudget PageContentBudget { get; }
+
+        internal Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int> ValidatedGroups { get; } =
+            new Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int>();
+
+        internal Type3GlyphBudget Type3GlyphBudget { get; }
+
+        internal TextContentParser.TextOutputBudget TextOutputBudget { get; }
     }
 }

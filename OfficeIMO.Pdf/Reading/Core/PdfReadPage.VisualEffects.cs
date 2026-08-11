@@ -138,7 +138,8 @@ public sealed partial class PdfReadPage {
         if (resource == null) return true;
         EnsureContentNestingBudget(contentNestingDepth);
         nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
-        var cacheKey = (resource.Group, groupTransform, projectionPageWidth, projectionPageHeight);
+        Matrix2D effectiveGroupTransform = ApplyFormMatrix(groupTransform, resource.Group.Dictionary);
+        var cacheKey = (resource.Group, effectiveGroupTransform, projectionPageWidth, projectionPageHeight);
         if (validatedGroups.TryGetValue(cacheKey, out int cachedNestingSpan)) {
             int cachedMaximumDepth = contentNestingDepth + cachedNestingSpan;
             EnsureContentNestingBudget(cachedMaximumDepth);
@@ -160,7 +161,7 @@ public sealed partial class PdfReadPage {
             bool supported = CanDecodeType3SoftMasksInContent(
                 content,
                 resources,
-                groupTransform,
+                effectiveGroupTransform,
                 pageContentBudget,
                 validatedGroups,
                 type3GlyphBudget,
@@ -246,18 +247,18 @@ public sealed partial class PdfReadPage {
             initialFillPatternBaseColorSpace: initialState?.FillPatternBaseColorSpace,
             initialStrokePattern: initialState?.StrokePattern,
             initialStrokePatternBaseColorSpace: initialState?.StrokePatternBaseColorSpace,
-            type3PaintChannelResolver: (font, bytes) => ResolveType3PaintChannels(
-                font,
-                bytes,
+            type3PaintChannelResolver: glyph => ResolveType3PaintChannels(
+                glyph,
                 type3PaintChannelCache,
                 activeType3PaintChannelStreams,
                 pageContentBudget),
-            xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity) => ResolveXObjectPaintChannels(
+            xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity, strokeOpacity) => ResolveXObjectPaintChannels(
                 resources,
                 name,
                 transform,
                 clipPath,
                 fillOpacity,
+                strokeOpacity,
                 visualPageSize.Width,
                 visualPageSize.Height,
                 type3PaintChannelCache,
@@ -398,18 +399,18 @@ public sealed partial class PdfReadPage {
             initialStrokePatternBaseColorSpace: initialState?.StrokePatternBaseColorSpace,
             tilingPatterns: tilingPatterns,
             shadingPatterns: shadingPatterns,
-            type3PaintChannelResolver: (font, bytes) => ResolveType3PaintChannels(
-                font,
-                bytes,
+            type3PaintChannelResolver: glyph => ResolveType3PaintChannels(
+                glyph,
                 type3PaintChannelCache,
                 activeType3PaintChannelStreams,
                 pageContentBudget),
-            xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity) => ResolveXObjectPaintChannels(
+            xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity, strokeOpacity) => ResolveXObjectPaintChannels(
                 resources,
                 name,
                 transform,
                 clipPath,
                 fillOpacity,
+                strokeOpacity,
                 visualPageSize.Width,
                 visualPageSize.Height,
                 type3PaintChannelCache,
@@ -437,15 +438,19 @@ public sealed partial class PdfReadPage {
             try {
                 if (Filters.StreamDecoder.GetUnsupportedFilters(form.Dictionary, _objects).Count != 0) return false;
                 if (form.Dictionary.Items.ContainsKey("Group")) {
-                    if ((invocation.FillOpacity ?? 1D) <= 0D) continue;
-                    Type3TransparencyGroupDrawingResult boundsResult = TryGetVisibleType3TransparencyGroupBounds(
-                        form.Dictionary,
-                        ApplyFormMatrix(invocation.Transform, form.Dictionary),
+                    PdfType3PaintChannels channels = ResolveXObjectPaintChannels(
+                        resources,
+                        invocation.Name,
+                        invocation.Transform,
                         invocation.ClipPath,
+                        invocation.FillOpacity,
+                        invocation.StrokeOpacity,
                         visualPageSize.Width,
                         visualPageSize.Height,
-                        out _);
-                    if (boundsResult == Type3TransparencyGroupDrawingResult.Invisible) continue;
+                        type3PaintChannelCache,
+                        activeType3PaintChannelStreams,
+                        pageContentBudget);
+                    if (channels == PdfType3PaintChannels.None) continue;
                     return false;
                 }
                 string formContent = WrapFormContentWithBoundingBoxClip(
