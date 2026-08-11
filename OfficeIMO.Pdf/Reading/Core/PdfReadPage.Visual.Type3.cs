@@ -37,7 +37,7 @@ public sealed partial class PdfReadPage {
         var glyphGroups = new List<(OfficeDrawing Drawing, OfficeTransform Transform, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)>();
         var extractedImageCache = new Dictionary<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor), PdfExtractedImage>();
         Type3SoftMaskValidationContext softMaskValidation =
-            type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this, textOutputBudget);
+            type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this);
         double nextPaintOrder = invocation.PaintOrder;
         double paintOrderLimit = invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.5D);
         for (int i = 0; i < invocation.Glyphs.Count; i++) {

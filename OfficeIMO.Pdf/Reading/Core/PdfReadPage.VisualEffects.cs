@@ -377,6 +377,9 @@ public sealed partial class PdfReadPage {
             unsupportedTextVisitor: () => {
                 if (!currentOrdinaryFontSupported) supported = false;
             },
+            ordinaryTextPaintVisitor: (channels, _, _) => {
+                if (channels != PdfType3PaintChannels.Fill) supported = false;
+            },
             unsupportedGraphicsEffectVisitor: () => supported = false,
             unsupportedColorVisitor: () => supported = false,
             graphicsStateVisitor: (state, stateTransform) => {
@@ -507,8 +510,7 @@ public sealed partial class PdfReadPage {
         return font.BaseFont switch {
             "Courier" or "Courier-Bold" or "Courier-Oblique" or "Courier-BoldOblique" or
             "Helvetica" or "Helvetica-Bold" or "Helvetica-Oblique" or "Helvetica-BoldOblique" or
-            "Times-Roman" or "Times-Bold" or "Times-Italic" or "Times-BoldItalic" or
-            "Symbol" or "ZapfDingbats" => true,
+            "Times-Roman" or "Times-Bold" or "Times-Italic" or "Times-BoldItalic" => true,
             _ => false
         };
     }
