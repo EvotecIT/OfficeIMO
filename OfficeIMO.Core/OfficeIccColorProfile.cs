@@ -7,9 +7,10 @@ namespace OfficeIMO.Drawing;
 /// <remarks>
 /// Supports RGB and Gray matrix/TRC input profiles, RGB and CMYK LUT8 input transforms with a Lab
 /// profile connection space, and RGB and CMYK LUT16 input transforms with an XYZ or Lab profile
-/// connection space. Other transform types are rejected for explicit fallback.
+/// connection space. Bounded RGB and CMYK ICC v4 AToB transforms using the mAB type are also
+/// supported. Other transform types are rejected for explicit fallback.
 /// </remarks>
-public sealed class OfficeIccColorProfile {
+public sealed partial class OfficeIccColorProfile {
     private const uint GraySignature = 0x47524159U;
     private const uint RgbSignature = 0x52474220U;
     private const uint XyzSignature = 0x58595A20U;
@@ -18,6 +19,7 @@ public sealed class OfficeIccColorProfile {
     private const uint ParametricCurveTypeSignature = 0x70617261U;
     private const uint Lut8TypeSignature = 0x6D667431U;
     private const uint Lut16TypeSignature = 0x6D667432U;
+    private const uint LutAToBTypeSignature = 0x6D414220U;
     private const uint AToB0TagSignature = 0x41324230U;
     private const uint AToB1TagSignature = 0x41324231U;
     private const uint AToB2TagSignature = 0x41324232U;
@@ -42,6 +44,7 @@ public sealed class OfficeIccColorProfile {
     private readonly XyzValue _blueColumn;
     private readonly XyzValue _whitePoint;
     private readonly LutTransform? _lutTransform;
+    private readonly MabTransform? _mabTransform;
 
     private OfficeIccColorProfile(
         int componentCount,
@@ -61,6 +64,7 @@ public sealed class OfficeIccColorProfile {
         _blueColumn = blueColumn;
         _whitePoint = whitePoint;
         _lutTransform = null;
+        _mabTransform = null;
     }
 
     private OfficeIccColorProfile(int componentCount, LutTransform lutTransform, XyzValue whitePoint) {
@@ -73,6 +77,20 @@ public sealed class OfficeIccColorProfile {
         _blueColumn = default;
         _whitePoint = whitePoint;
         _lutTransform = lutTransform;
+        _mabTransform = null;
+    }
+
+    private OfficeIccColorProfile(int componentCount, MabTransform mabTransform, XyzValue whitePoint) {
+        ComponentCount = componentCount;
+        _redCurve = ToneCurve.Identity;
+        _greenCurve = ToneCurve.Identity;
+        _blueCurve = ToneCurve.Identity;
+        _redColumn = default;
+        _greenColumn = default;
+        _blueColumn = default;
+        _whitePoint = whitePoint;
+        _lutTransform = null;
+        _mabTransform = mabTransform;
     }
 
     /// <summary>Gets the number of device components accepted by this profile.</summary>
@@ -144,6 +162,17 @@ public sealed class OfficeIccColorProfile {
             return true;
         }
 
+        if (lutComponentCount != 0 &&
+            TryReadMabTransform(
+                profileBytes,
+                tags,
+                lutComponentCount,
+                profileConnectionSpace == LabSignature,
+                out MabTransform mabTransform)) {
+            profile = new OfficeIccColorProfile(lutComponentCount, mabTransform, whitePoint);
+            return true;
+        }
+
         return false;
     }
 
@@ -157,6 +186,10 @@ public sealed class OfficeIccColorProfile {
 
         if (_lutTransform != null) {
             return _lutTransform.TryConvert(components, _whitePoint, out color);
+        }
+
+        if (_mabTransform != null) {
+            return _mabTransform.TryConvert(components, _whitePoint, out color);
         }
 
         if (ComponentCount == 1) {

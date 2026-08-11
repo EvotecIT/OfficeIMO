@@ -9,6 +9,24 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfIccColorRenderingTests {
     [Fact]
+    public void RenderPage_AppliesEmbeddedCmykMabProfileWithoutApproximationDiagnostic() {
+        byte[] pdf = BuildIccContentPdf(
+            IccMabTestProfiles.CreateCmykLab8(),
+            "/N 4",
+            "0 1 1 0 scn");
+
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+
+        OfficeColor fill = Assert.Single(drawing.Shapes).Shape.FillColor!.Value;
+        Assert.InRange(fill.R, 245, 255);
+        Assert.InRange(fill.G, 0, 15);
+        Assert.InRange(fill.B, 0, 15);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId);
+    }
+
+    [Fact]
     public void RenderPage_AppliesEmbeddedCmykLabLut8ProfileWithoutApproximationDiagnostic() {
         byte[] pdf = BuildIccContentPdf(
             IccLutTestProfiles.CreateCmykLut8(),
@@ -156,6 +174,22 @@ public class PdfIccColorRenderingTests {
     public void ExtractImages_AppliesEmbeddedCmykLut8Profile() {
         byte[] pdf = BuildIccImagePdf(
             IccLutTestProfiles.CreateCmykLut8(),
+            new byte[] { 0, 255, 255, 0 },
+            "/N 4");
+
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        OfficeColor pixel = raster!.GetPixel(0, 0);
+        Assert.InRange(pixel.R, 245, 255);
+        Assert.InRange(pixel.G, 0, 15);
+        Assert.InRange(pixel.B, 0, 15);
+    }
+
+    [Fact]
+    public void ExtractImages_AppliesEmbeddedCmykMabProfile() {
+        byte[] pdf = BuildIccImagePdf(
+            IccMabTestProfiles.CreateCmykLab8(),
             new byte[] { 0, 255, 255, 0 },
             "/N 4");
 

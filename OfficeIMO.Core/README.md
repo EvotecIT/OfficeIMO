@@ -58,9 +58,10 @@ if (OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? pro
 
 The managed contract accepts bounded RGB and Gray matrix/TRC input profiles plus intent-invariant A2B0
 LUT transforms: RGB or CMYK LUT8 with a Lab profile connection space, and RGB or CMYK LUT16 with an
-XYZ or Lab profile connection space. `TryCreate` returns `false` for other profile classes and transform
-types so the caller can choose an explicit color-management provider or fallback instead of receiving a
-silent approximation.
+XYZ or Lab profile connection space. It also accepts bounded ICC v4 RGB and CMYK A2B0 `mAB` transforms
+using the specification-defined curve, variable-grid CLUT, matrix, and offset combinations. `TryCreate`
+returns `false` for other profile classes and transform types so the caller can choose an explicit
+color-management provider or fallback instead of receiving a silent approximation.
 
 ### Image metadata and complete-content validation
 

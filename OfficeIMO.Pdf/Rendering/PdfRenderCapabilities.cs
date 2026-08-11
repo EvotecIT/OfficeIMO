@@ -123,6 +123,7 @@ public static class PdfRenderCapabilities {
     internal const string IccColorSpaceId = "render.colorspace.icc";
     internal const string IccMatrixColorSpaceId = "render.colorspace.icc-matrix-trc";
     internal const string IccLutColorSpaceId = "render.colorspace.icc-lut8-lut16";
+    internal const string IccMabColorSpaceId = "render.colorspace.icc-mab";
     internal const string TilingPatternId = "render.resource.tiling-pattern";
     internal const string BlendModeId = "render.resource.blend-mode";
     internal const string SoftMaskId = "render.resource.soft-mask";
@@ -153,6 +154,7 @@ public static class PdfRenderCapabilities {
             Entry("render.colorspace.calibrated", "color", "CalGray, CalRGB, and Lab color spaces", PdfRenderSupportLevel.Simplified, "Calibrated colors are projected through managed device-color approximations."),
             Entry(IccMatrixColorSpaceId, "color", "Matrix/TRC ICCBased color spaces", PdfRenderSupportLevel.Supported, "Bounded RGB and Gray matrix/TRC ICC profiles are applied through the shared managed color engine."),
             Entry(IccLutColorSpaceId, "color", "LUT8/LUT16 ICCBased color spaces", PdfRenderSupportLevel.Supported, "Bounded, intent-invariant RGB and CMYK A2B0 transforms are applied through the shared managed color engine: LUT8 with Lab PCS, and LUT16 with XYZ or Lab PCS."),
+            Entry(IccMabColorSpaceId, "color", "ICC v4 mAB ICCBased color spaces", PdfRenderSupportLevel.Supported, "Bounded, intent-invariant RGB and CMYK A2B0 mAB transforms are applied through the shared managed color engine."),
             Entry(IccColorSpaceId, "color", "Unsupported ICCBased profile fallback", PdfRenderSupportLevel.Simplified, "ICCBased colors whose embedded profile is unsupported use their declared alternate or component-count device fallback."),
             Entry("render.colorspace.indexed-content", "color", "Indexed content-paint color spaces", PdfRenderSupportLevel.Supported, "Bounded Indexed palettes are projected for path, text, pattern, and nested-form painting."),
             Entry("render.colorspace.indexed-image", "color", "Indexed image color spaces", PdfRenderSupportLevel.Supported, "Indexed image palettes are decoded and projected through shared Drawing images."),
