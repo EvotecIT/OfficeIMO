@@ -97,12 +97,113 @@ public class OfficeColorSpaceConverterTests {
         Assert.InRange(color.R, 120, 140);
     }
 
+    [Fact]
+    public void IccLut8Profile_ConvertsCmykThroughMultidimensionalClut() {
+        byte[] profileBytes = IccLutTestProfiles.CreateCmykLut8();
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.Equal(4, profile!.ComponentCount);
+        Assert.True(profile.TryConvert(new[] { 0D, 1D, 1D, 0D }, out OfficeColor color));
+        Assert.InRange(color.R, 245, 255);
+        Assert.InRange(color.G, 0, 15);
+        Assert.InRange(color.B, 0, 15);
+    }
+
+    [Fact]
+    public void IccLut8Profile_InterpolatesInteriorCmykClutCoordinates() {
+        byte[] profileBytes = IccLutTestProfiles.CreateCmykLut8();
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.True(profile!.TryConvert(new[] { 0.25D, 0.5D, 0.75D, 0.2D }, out OfficeColor color));
+        Assert.InRange(color.R, 140, 175);
+        Assert.InRange(color.G, 80, 125);
+        Assert.InRange(color.B, 25, 80);
+    }
+
+    [Fact]
+    public void IccLut16Profile_InterpolatesRgbInputAndOutputTables() {
+        byte[] profileBytes = IccLutTestProfiles.CreateRgbLut16();
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.Equal(3, profile!.ComponentCount);
+        Assert.True(profile.TryConvert(new[] { 0.5D, 0.25D, 0.75D }, out OfficeColor color));
+        Assert.InRange(color.R, 180, 195);
+        Assert.InRange(color.G, 125, 145);
+        Assert.InRange(color.B, 220, 235);
+    }
+
+    [Fact]
+    public void IccLut16Profile_ConvertsLabProfileConnectionSpace() {
+        byte[] profileBytes = IccLutTestProfiles.CreateRgbLabLut16();
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.True(profile!.TryConvert(new[] { 1D, 0D, 0D }, out OfficeColor color));
+        OfficeColor expected = OfficeColorSpaceConverter.FromXyz(
+            0.4361D,
+            0.2225D,
+            0.0139D,
+            0.9642D,
+            1D,
+            0.8249D);
+        Assert.InRange(Math.Abs(color.R - expected.R), 0, 1);
+        Assert.InRange(Math.Abs(color.G - expected.G), 0, 1);
+        Assert.InRange(Math.Abs(color.B - expected.B), 0, 1);
+    }
+
+    [Fact]
+    public void IccLut8Profile_RejectsUndefinedXyzProfileConnectionEncoding() {
+        byte[] profileBytes = IccLutTestProfiles.CreateCmykXyzLut8();
+
+        Assert.False(OfficeIccColorProfile.TryCreate(profileBytes, out _));
+    }
+
+    [Fact]
+    public void IccLutProfile_RejectsNonIdentityDeviceMatrix() {
+        byte[] profileBytes = IccLutTestProfiles.CreateCmykLut8();
+        int transformOffset = FindTagOffset(profileBytes, "A2B0");
+        WriteS15Fixed16(profileBytes, transformOffset + 16, 0.5D);
+
+        Assert.False(OfficeIccColorProfile.TryCreate(profileBytes, out _));
+    }
+
+    [Fact]
+    public void IccLutProfile_RejectsNonD50IlluminantAndUnexpectedTagPayload() {
+        byte[] nonD50Profile = IccLutTestProfiles.CreateCmykLut8();
+        WriteS15Fixed16(nonD50Profile, 68, 0.95D);
+        byte[] oversizedTagProfile = IccLutTestProfiles.CreateCmykLut8();
+        int tagEntry = FindTagEntryOffset(oversizedTagProfile, "A2B0");
+        WriteUInt32(oversizedTagProfile, tagEntry + 8, ReadUInt32(oversizedTagProfile, tagEntry + 8) + 1U);
+
+        Assert.False(OfficeIccColorProfile.TryCreate(nonD50Profile, out _));
+        Assert.False(OfficeIccColorProfile.TryCreate(oversizedTagProfile, out _));
+    }
+
+    [Fact]
+    public void IccLutProfile_RejectsIntentDependentTransformsUntilIntentSelectionIsSupported() {
+        byte[] profileBytes = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+
+        Assert.False(OfficeIccColorProfile.TryCreate(profileBytes, out _));
+    }
+
+    [Fact]
+    public void IccLutProfile_RejectsUnsupportedDToBTransformWithoutMatrixFallback() {
+        byte[] profileBytes = IccLutTestProfiles.CreateRgbLut16();
+        WriteSignature(profileBytes, FindTagEntryOffset(profileBytes, "A2B0"), "D2B0");
+
+        Assert.False(OfficeIccColorProfile.TryCreate(profileBytes, out _));
+    }
+
     private static int FindTagOffset(byte[] profile, string signature) {
+        int entry = FindTagEntryOffset(profile, signature);
+        return checked((int)ReadUInt32(profile, entry + 4));
+    }
+
+    private static int FindTagEntryOffset(byte[] profile, string signature) {
         uint target = ToSignature(signature);
         int count = checked((int)ReadUInt32(profile, 128));
         for (int index = 0; index < count; index++) {
             int entry = 132 + index * 12;
-            if (ReadUInt32(profile, entry) == target) return checked((int)ReadUInt32(profile, entry + 4));
+            if (ReadUInt32(profile, entry) == target) return entry;
         }
         throw new InvalidOperationException("ICC tag was not found: " + signature + ".");
     }
@@ -135,5 +236,12 @@ public class OfficeColorSpaceConverterTests {
         bytes[offset + 1] = (byte)(encoded >> 16);
         bytes[offset + 2] = (byte)(encoded >> 8);
         bytes[offset + 3] = (byte)encoded;
+    }
+
+    private static void WriteUInt32(byte[] bytes, int offset, uint value) {
+        bytes[offset] = (byte)(value >> 24);
+        bytes[offset + 1] = (byte)(value >> 16);
+        bytes[offset + 2] = (byte)(value >> 8);
+        bytes[offset + 3] = (byte)value;
     }
 }
