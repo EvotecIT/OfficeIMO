@@ -39,7 +39,8 @@ public sealed partial class PdfReadPage {
         PdfPageColorSpace? initialFillPatternBaseColorSpace = null,
         PdfPageColorSpace initialStrokeColorSpace = default,
         PdfPagePatternSelection? initialStrokePattern = null,
-        PdfPageColorSpace? initialStrokePatternBaseColorSpace = null) {
+        PdfPageColorSpace? initialStrokePatternBaseColorSpace = null,
+        PdfPageClipPath? initialClipPath = null) {
         EnsureContentNestingBudget(depth);
         HashSet<string> unsupportedColorSpaces = GetUnsupportedColorSpaceResourceNames(resources);
         HashSet<string> approximatedIccColorSpaces = GetApproximatedIccColorSpaceResourceNames(resources);
@@ -123,6 +124,7 @@ public sealed partial class PdfReadPage {
             initialStrokeColorSpace,
             initialStrokePattern,
             initialStrokePatternBaseColorSpace,
+            initialClipPath,
             pageContentBudget,
             type3GlyphBudget,
             invokedFonts,
@@ -162,6 +164,7 @@ public sealed partial class PdfReadPage {
         PdfPageColorSpace initialStrokeColorSpace,
         PdfPagePatternSelection? initialStrokePattern,
         PdfPageColorSpace? initialStrokePatternBaseColorSpace,
+        PdfPageClipPath? initialClipPath,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
         HashSet<string> invokedFonts,
@@ -187,6 +190,7 @@ public sealed partial class PdfReadPage {
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
+            initialClipPath: initialClipPath,
             initialFillColorSpace: initialFillColorSpace,
             initialStrokeColorSpace: initialStrokeColorSpace,
             fonts: fonts,
@@ -227,6 +231,7 @@ public sealed partial class PdfReadPage {
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
+            initialClipPath: initialClipPath,
             initialFillColorSpace: initialFillColorSpace,
             initialStrokeColorSpace: initialStrokeColorSpace,
             fonts: fonts,
@@ -241,6 +246,7 @@ public sealed partial class PdfReadPage {
                             stream,
                             type3.Resources,
                             Matrix2D.Multiply(glyph.Transform, type3.FontMatrix),
+                            glyph.ClipPath,
                             type3.IsUncolored,
                             glyph.FillPattern,
                             glyph.FillPatternBaseColorSpace,
@@ -281,6 +287,7 @@ public sealed partial class PdfReadPage {
         PdfStream stream,
         PdfDictionary resources,
         Matrix2D programTransform,
+        PdfPageClipPath? programClipPath,
         bool requireImageMask,
         PdfPagePatternSelection? initialFillPattern,
         PdfPageColorSpace? initialFillPatternBaseColorSpace,
@@ -321,6 +328,7 @@ public sealed partial class PdfReadPage {
                 maxOperations: _limits.MaxContentOperations,
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
+                initialClipPath: programClipPath,
                 fonts: fonts,
                 fontWidthProviders: widthProviders,
                 patternInvocationVisitor: name => invokedPatternNames.Add(name),
@@ -355,6 +363,7 @@ public sealed partial class PdfReadPage {
                 patternBaseColorSpaces: patternBaseColorSpaces,
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
+                initialClipPath: programClipPath,
                 primitiveVisitor: primitive => {
                     usesFillPaint |= primitive.HasFillPaint;
                     usesStrokePaint |= primitive.HasStrokePaint;
@@ -426,6 +435,7 @@ public sealed partial class PdfReadPage {
                          maxOperations: _limits.MaxContentOperations,
                          maxNestingDepth: _limits.MaxContentNestingDepth,
                          maxOperands: _limits.MaxContentOperands,
+                         initialClipPath: programClipPath,
                          fonts: fonts,
                          fontWidthProviders: widthProviders,
                          type3TextVisitor: nested => {
@@ -439,6 +449,7 @@ public sealed partial class PdfReadPage {
                                          nestedStream,
                                          nestedType3.Resources,
                                          Matrix2D.Multiply(glyph.Transform, nestedType3.FontMatrix),
+                                         glyph.ClipPath,
                                          requireImageMask || nestedType3.IsUncolored,
                                          glyph.FillPattern,
                                          glyph.FillPatternBaseColorSpace,
@@ -531,6 +542,7 @@ public sealed partial class PdfReadPage {
                         form,
                         formResources,
                         ApplyFormMatrix(invocation.Transform, form.Dictionary),
+                        invocation.ClipPath,
                         requireImageMask,
                         invocation.FillPattern,
                         invocation.FillPatternBaseColorSpace,
@@ -907,8 +919,17 @@ public sealed partial class PdfReadPage {
                 if (!distinctStates.Add(stateKey) || !activeForms.Add(stream)) continue;
                 try {
                     PdfDictionary? formResources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceObject) ? formResourceObject : null) ?? resources;
+                    Matrix2D formTransform = states.Count == 1 && string.IsNullOrEmpty(invocation.Name)
+                        ? Matrix2D.Identity
+                        : ApplyFormMatrix(invocation.Transform, stream.Dictionary);
+                    PdfPageClipPath? formClip = CreateTransformedFormBoundingBoxClip(stream.Dictionary, formTransform);
+                    if (invocation.ClipPath.HasValue) {
+                        formClip = formClip.HasValue
+                            ? PdfPageClipPath.ResolveActiveClip(invocation.ClipPath.Value, formClip.Value)
+                            : invocation.ClipPath;
+                    }
                     CollectRenderCapabilityDiagnostics(
-                        PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream)),
+                        WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream)), stream.Dictionary),
                         formResources,
                         diagnostics,
                         seen,
@@ -916,15 +937,14 @@ public sealed partial class PdfReadPage {
                         pageContentBudget,
                         type3GlyphBudget,
                         depth + 1,
-                        states.Count == 1 && string.IsNullOrEmpty(invocation.Name)
-                            ? Matrix2D.Identity
-                            : ApplyFormMatrix(invocation.Transform, stream.Dictionary),
+                        formTransform,
                         invocation.FillColorSpace,
                         invocation.FillPattern,
                         invocation.FillPatternBaseColorSpace,
                         invocation.StrokeColorSpace,
                         invocation.StrokePattern,
-                        invocation.StrokePatternBaseColorSpace);
+                        invocation.StrokePatternBaseColorSpace,
+                        formClip);
                 } finally {
                     activeForms.Remove(stream);
                 }
@@ -971,6 +991,26 @@ public sealed partial class PdfReadPage {
         return false;
     }
 
+    private PdfPageClipPath? CreateTransformedFormBoundingBoxClip(PdfDictionary dictionary, Matrix2D transform) {
+        if (!TryReadBox(dictionary.Items.TryGetValue("BBox", out PdfObject? bboxObject) ? bboxObject : null, out (double X1, double Y1, double X2, double Y2) bbox) ||
+            bbox.X2 <= bbox.X1 || bbox.Y2 <= bbox.Y1) return null;
+        double pageHeight = GetVisualPageSize().Height;
+        (double X, double Y) p0 = transform.Transform(bbox.X1, bbox.Y1);
+        (double X, double Y) p1 = transform.Transform(bbox.X2, bbox.Y1);
+        (double X, double Y) p2 = transform.Transform(bbox.X2, bbox.Y2);
+        (double X, double Y) p3 = transform.Transform(bbox.X1, bbox.Y2);
+        var commands = new[] {
+            OfficePathCommand.MoveTo(p0.X, pageHeight - p0.Y),
+            OfficePathCommand.LineTo(p1.X, pageHeight - p1.Y),
+            OfficePathCommand.LineTo(p2.X, pageHeight - p2.Y),
+            OfficePathCommand.LineTo(p3.X, pageHeight - p3.Y),
+            OfficePathCommand.Close()
+        };
+        return PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath clip)
+            ? clip
+            : null;
+    }
+
     private void CollectAnnotationCapabilityDiagnostics(
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
@@ -992,7 +1032,32 @@ public sealed partial class PdfReadPage {
             if (synthesized) {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.SynthesizedAnnotationAppearanceId, subtype + "[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
             }
-            CollectOneAuxiliarySurfaceCapabilityDiagnostics(appearance, pageResources ?? new PdfDictionary(), diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, 0);
+            if (!TryReadRectangle(annotation.Items.TryGetValue("Rect", out PdfObject? rectangleObject) ? rectangleObject : null, out (double X1, double Y1, double X2, double Y2) rectangle) ||
+                !activeForms.Add(appearance)) continue;
+            try {
+                PdfDictionary appearanceResources = ResolveDictionary(appearance.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null)
+                    ?? pageResources
+                    ?? new PdfDictionary();
+                string appearanceContent = WrapFormContentWithBoundingBoxClip(
+                    PdfEncoding.Latin1GetString(pageContentBudget.Decode(appearance)),
+                    appearance.Dictionary);
+                Matrix2D appearanceTransform = Matrix2D.Multiply(
+                    GetVisualPageTransform(),
+                    CreateAnnotationAppearanceTransform(rectangle, appearance.Dictionary));
+                CollectRenderCapabilityDiagnostics(
+                    appearanceContent,
+                    appearanceResources,
+                    diagnostics,
+                    seen,
+                    activeForms,
+                    pageContentBudget,
+                    type3GlyphBudget,
+                    1,
+                    appearanceTransform,
+                    initialClipPath: CreateTransformedFormBoundingBoxClip(appearance.Dictionary, appearanceTransform));
+            } finally {
+                activeForms.Remove(appearance);
+            }
         }
     }
 

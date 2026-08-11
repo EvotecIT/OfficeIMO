@@ -377,7 +377,12 @@ public sealed partial class PdfReadPage {
 
         var maskDrawing = new OfficeDrawing(fitted.Width, fitted.Height);
         OfficeImageProjection localProjection = projection.Translate(-fitted.X, -fitted.Y);
-        if (fitted.IsRectangle) {
+        (double localLeft, double localTop, double localRight, double localBottom) = localProjection.GetDestinationBounds();
+        bool projectionFitsDrawing = localLeft >= -0.000001D &&
+            localTop >= -0.000001D &&
+            localRight <= fitted.Width + 0.000001D &&
+            localBottom <= fitted.Height + 0.000001D;
+        if (fitted.IsRectangle && projectionFitsDrawing) {
             maskDrawing.AddImage(
                 image.Bytes,
                 image.MimeType,
@@ -421,7 +426,7 @@ public sealed partial class PdfReadPage {
         tilingPaint = null;
         fillGradient = null;
         fillRadialGradient = null;
-        if (!selection.HasValue || !image.IsImageMask) return Type3PatternImageMaskDrawingResult.Unsupported;
+        if (!selection.HasValue || !image.IsImageMask || !image.IsImageFile) return Type3PatternImageMaskDrawingResult.Unsupported;
         if (!TryCreateImageProjection(
                 placement,
                 pageHeight,
