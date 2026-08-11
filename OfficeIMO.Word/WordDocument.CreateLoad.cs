@@ -199,6 +199,7 @@ namespace OfficeIMO.Word {
 
             StyleDefinitionsPart styleDefinitionsPart1 = mainPart.AddNewPart<StyleDefinitionsPart>("rId1");
             GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
+            word._styleDefinitionsInitialized = true;
 
             WebSettingsPart webSettingsPart1 = mainPart.AddNewPart<WebSettingsPart>("rId3");
             GenerateWebSettingsPart1Content(webSettingsPart1);
@@ -252,7 +253,6 @@ namespace OfficeIMO.Word {
             Sections.Clear();
             InitializeSdtIdState();
             // add settings if not existing
-            new WordSettings(this);
             new WordApplicationProperties(this);
             new WordBuiltinDocumentProperties(this);
             new WordCustomProperties(this);
@@ -363,7 +363,10 @@ namespace OfficeIMO.Word {
                 var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
 
                 bool applyOverrideStyles = resolved.OverrideStyles && !readOnly;
-                InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
+                if (applyOverrideStyles) {
+                    InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
+                    word._styleDefinitionsInitialized = true;
+                }
 
                 word.FilePath = filePath;
                 word._ownedPackageStream = memoryStream;
@@ -378,7 +381,7 @@ namespace OfficeIMO.Word {
                 word.LoadDocument();
                 if (applyOverrideStyles) {
                     // Ensure overrides are applied after any document initialization that may touch styles
-                    InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
+                    InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
                     EnsureCustomStyleNames(wordDocument);
                 }
                 WordChart.InitializeAxisIdSeed(wordDocument);
@@ -495,10 +498,13 @@ namespace OfficeIMO.Word {
             };
 
             bool applyOverrideStyles = resolved.OverrideStyles && !readOnly;
-            InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
+            if (applyOverrideStyles) {
+                InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
+                word._styleDefinitionsInitialized = true;
+            }
             word.LoadDocument();
             if (applyOverrideStyles) {
-                InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
+                InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
                 EnsureCustomStyleNames(wordDocument);
             }
             WordChart.InitializeAxisIdSeed(wordDocument);
@@ -583,13 +589,16 @@ namespace OfficeIMO.Word {
 
                 var wordDocument = WordprocessingDocument.Open(packageStream, !readOnly, effectiveOpenSettings);
                 bool applyOverrideStyles = resolved.OverrideStyles && !readOnly;
-                InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
 
                 document._wordprocessingDocument = wordDocument;
                 document._document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.");
+                if (applyOverrideStyles) {
+                    InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
+                    document._styleDefinitionsInitialized = true;
+                }
                 document.LoadDocument();
                 if (applyOverrideStyles) {
-                    InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
+                    InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
                     EnsureCustomStyleNames(wordDocument);
                 }
 
