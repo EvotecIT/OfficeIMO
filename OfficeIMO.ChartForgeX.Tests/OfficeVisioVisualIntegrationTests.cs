@@ -500,6 +500,28 @@ public sealed class OfficeVisioVisualIntegrationTests {
     }
 
     [Fact]
+    public void TypedSequenceBranchesReserveAllNativeOperandHelpers() {
+        VisualArtifactInterchangeEnvelope envelope = SequenceEnvelope("typed-branch-ids");
+        envelope.Nodes.Add(Participant("branch-label", "Guard helper", SequenceArtifactParticipantKind.Actor, 0));
+        envelope.Nodes.Add(Participant("partition-from", "Divider start", SequenceArtifactParticipantKind.Participant, 1));
+        envelope.Nodes.Add(Participant("partition-to", "Divider end", SequenceArtifactParticipantKind.Control, 2));
+        envelope.Edges.Add(Message("first", "branch-label", "partition-from", "First", 0));
+        envelope.Edges.Add(Message("second", "partition-from", "partition-to", "Second", 1));
+        envelope.Annotations.Add(SequenceBlock("fragment", "Choice", SequenceArtifactBlockKind.Alt, 0, 1));
+        envelope.Annotations.Add(SequenceBranch("branch", "Primary", SequenceArtifactBlockKind.Alt, "Primary", 0, 0, 0));
+        envelope.Annotations.Add(SequenceBranch("partition", "Alternate", SequenceArtifactBlockKind.Alt, "Else", 1, 1, 0));
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
+
+        Assert.Equal(result.Page.Shapes.Count, result.Page.Shapes.Select(shape => shape.Id).Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(result.Page.Connectors.Count, result.Page.Connectors.Select(connector => connector.Id).Distinct(StringComparer.Ordinal).Count());
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.IdRemapped &&
+            diagnostic.EntityKind == OfficeVisioVisualEntityKind.Annotation && diagnostic.EntityId == "branch");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.IdRemapped &&
+            diagnostic.EntityKind == OfficeVisioVisualEntityKind.Annotation && diagnostic.EntityId == "partition");
+    }
+
+    [Fact]
     public void GraphProjectionPreservesForwardBackwardAndBidirectionalArrows() {
         VisualArtifactInterchangeEnvelope envelope = CreateTopologyEnvelope();
         envelope.Edges.Clear();

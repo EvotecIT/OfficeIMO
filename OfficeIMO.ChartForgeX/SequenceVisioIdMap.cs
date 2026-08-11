@@ -23,9 +23,11 @@ internal sealed class SequenceVisioIdMap {
             _messages.Add(message.Id, Allocate(message.Id, "message-", "-from", "-to"));
         }
         foreach (VisualArtifactInterchangeAnnotation annotation in annotations) {
-            string[] helpers = annotation.Role == VisualArtifactInterchangeAnnotationRole.SequenceBlock
-                ? new[] { "-label" }
-                : Array.Empty<string>();
+            string[] helpers = annotation.Role switch {
+                VisualArtifactInterchangeAnnotationRole.SequenceBlock => new[] { "-label" },
+                VisualArtifactInterchangeAnnotationRole.SequenceBranch => new[] { "-label", "-from", "-to" },
+                _ => Array.Empty<string>()
+            };
             _annotations.Add(annotation.Id, Allocate(annotation.Id, "annotation-", helpers));
         }
         if (includeTitle) TitleId = Allocate("cfx-title", "title-");
