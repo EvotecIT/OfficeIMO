@@ -27,10 +27,9 @@ internal static class PdfDocumentReaders {
     };
 
     private static PdfReadObservation ReadWithOfficeImo(byte[] pdf) {
-        OfficePdfDocument document = OfficePdfDocument.Open(pdf);
-        string text = document.Read.Text();
-        int pages = document.Inspect().PageCount;
-        return PdfBenchmarkValidation.Observe(pages, text);
+        global::OfficeIMO.Pdf.PdfReadDocument document = global::OfficeIMO.Pdf.PdfReadDocument.Open(pdf);
+        string text = document.ExtractText();
+        return PdfBenchmarkValidation.Observe(document.Pages.Count, text);
     }
 
     private static PdfReadObservation ReadWithIText(byte[] pdf) {

@@ -129,8 +129,12 @@ internal static partial class PdfSyntax {
             }
         }
 
-        int? rootObjectNumber = TryReadFirstReferenceObjectNumber(trailerRaw, "Root") ?? fallback.RootObjectNumber;
-        int? infoObjectNumber = TryReadFirstReferenceObjectNumber(trailerRaw, "Info") ?? fallback.InfoObjectNumber;
+        PdfReference? rootReference = TryReadFirstReference(trailerRaw, "Root");
+        int? rootObjectNumber = rootReference?.ObjectNumber ?? fallback.RootObjectNumber;
+        int? rootObjectGeneration = rootReference?.Generation ?? fallback.RootObjectGeneration;
+        PdfReference? infoReference = TryReadFirstReference(trailerRaw, "Info");
+        int? infoObjectNumber = infoReference?.ObjectNumber ?? fallback.InfoObjectNumber;
+        int? infoObjectGeneration = infoReference?.Generation ?? fallback.InfoObjectGeneration;
         bool hasByteRange = byteRangeValueCount > 0 || ContainsPdfName(text, "ByteRange");
 
         return new PdfDocumentSecurityInfo(
@@ -161,9 +165,9 @@ internal static partial class PdfSyntax {
             usageRightsObjectNumbers.Count == 0 ? Array.Empty<int>() : usageRightsObjectNumbers.AsReadOnly(),
             documentSecurityStore,
             rootObjectNumber,
-            fallback.RootObjectGeneration,
+            rootObjectGeneration,
             infoObjectNumber,
-            fallback.InfoObjectGeneration,
+            infoObjectGeneration,
             fallback.HasTrailerId,
             fallback.StartXrefCount,
             fallback.LastStartXrefOffset,
