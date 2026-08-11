@@ -307,6 +307,8 @@ public sealed partial class PdfReadPage {
         int depth,
         SoftMaskNestingDepth? softMaskNestingDepth = null,
         Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int>? validatedSoftMaskGroups = null,
+        HashSet<PdfStream>? activeSoftMaskGroups = null,
+        HashSet<PdfStream>? activeSoftMaskForms = null,
         double? projectionPageWidth = null,
         double? projectionPageHeight = null) {
         EnsureContentNestingBudget(depth);
@@ -328,6 +330,9 @@ public sealed partial class PdfReadPage {
             double surfaceHeight = projectionPageHeight ?? visualPageSize.Height;
             bool supported = true;
             validatedSoftMaskGroups ??= new Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int>();
+            activeSoftMaskGroups ??= new HashSet<PdfStream>();
+            activeSoftMaskForms ??= new HashSet<PdfStream>();
+            softMaskNestingDepth ??= new SoftMaskNestingDepth(depth);
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
@@ -550,6 +555,8 @@ public sealed partial class PdfReadPage {
                                          depth + 1,
                                          softMaskNestingDepth,
                                          validatedSoftMaskGroups,
+                                         activeSoftMaskGroups,
+                                         activeSoftMaskForms,
                                          surfaceWidth,
                                          surfaceHeight)) {
                                      supported = false;
@@ -562,17 +569,22 @@ public sealed partial class PdfReadPage {
                          unsupportedGraphicsEffectVisitor: () => supported = false,
                          allowSupportedGraphicsEffects: true,
                          graphicsStateVisitor: (resource, resourceTransform) => {
+                             Type3SoftMaskValidationContext validation =
+                                 type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this);
                              if (!CanDecodeType3SoftMask(
                                      resource.SoftMask,
                                      resourceTransform,
                                      pageContentBudget,
                                      validatedSoftMaskGroups,
                                      type3GlyphBudget,
-                                     depth + 1,
+                                     activeSoftMaskGroups,
+                                     activeSoftMaskForms,
                                      activeStreams,
-                                     softMaskNestingDepth,
+                                     depth + 1,
+                                     softMaskNestingDepth!,
                                      surfaceWidth,
-                                     surfaceHeight)) {
+                                     surfaceHeight,
+                                     validation.TextOutputBudget)) {
                                  supported = false;
                              }
                          },
@@ -748,6 +760,8 @@ public sealed partial class PdfReadPage {
                         depth + 1,
                         softMaskNestingDepth,
                         validatedSoftMaskGroups,
+                        activeSoftMaskGroups,
+                        activeSoftMaskForms,
                         formSurfaceWidth,
                         formSurfaceHeight)) supported = false;
             }

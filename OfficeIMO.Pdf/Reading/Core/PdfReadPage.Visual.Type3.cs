@@ -883,6 +883,8 @@ public sealed partial class PdfReadPage {
                     channels |= ResolveVisibleType3PrimitivePaintChannels(primitive, pageWidth, pageHeight);
                 },
                 scaleStrokeWidthWithTransform: true,
+                unsupportedShadingTransformVisitor: () => channels |= PdfType3PaintChannels.Both,
+                requireExactType3ShadingProjection: true,
                 retainPrimitiveData: false);
 
             foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
@@ -943,6 +945,7 @@ public sealed partial class PdfReadPage {
                              pageContentBudget,
                              type3GlyphBudget,
                              depth + 1),
+                         visibleShadingVisitor: _ => channels |= PdfType3PaintChannels.Fill,
                          pageWidth: pageWidth)) {
                 if (invocation.InlineImage != null) {
                     if (!IsInvisibleInlineImageInvocation(

@@ -257,13 +257,10 @@ public sealed partial class PdfReadPage {
                 activeType3PaintChannelStreams,
                 pageContentBudget,
                 type3GlyphBudget),
-            xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity, strokeOpacity) => ResolveXObjectPaintChannels(
+            xObjectPaintChannelResolver: (name, paintState) => ResolveXObjectPaintChannels(
                 resources,
                 name,
-                transform,
-                clipPath,
-                fillOpacity,
-                strokeOpacity,
+                paintState,
                 visualPageSize.Width,
                 visualPageSize.Height,
                 type3PaintChannelCache,
@@ -349,8 +346,15 @@ public sealed partial class PdfReadPage {
                         !CanProjectType3GlyphProgram(
                             glyphStream,
                             type3.Resources,
-                            Matrix2D.Multiply(glyph.Transform, type3.FontMatrix),
-                            glyph.ClipPath,
+                            new PdfPageXObjectPaintState(
+                                Matrix2D.Multiply(glyph.Transform, type3.FontMatrix),
+                                glyph.ClipPath,
+                                glyph.FillOpacity,
+                                glyph.StrokeOpacity,
+                                glyph.StrokeWidth,
+                                glyph.StrokeDashStyle,
+                                glyph.StrokeLineCap,
+                                glyph.StrokeLineJoin),
                             type3.IsUncolored,
                             glyph.FillPattern,
                             glyph.FillPatternBaseColorSpace,
@@ -363,7 +367,9 @@ public sealed partial class PdfReadPage {
                             validationDiagnosticKeys,
                             contentNestingDepth + 1,
                             nestingDepth,
-                            validatedGroups)) {
+                            validatedGroups,
+                            activeGroups,
+                            activeForms)) {
                         supported = false;
                     }
                 }
@@ -422,13 +428,10 @@ public sealed partial class PdfReadPage {
                 activeType3PaintChannelStreams,
                 pageContentBudget,
                 type3GlyphBudget),
-            xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity, strokeOpacity) => ResolveXObjectPaintChannels(
+            xObjectPaintChannelResolver: (name, paintState) => ResolveXObjectPaintChannels(
                 resources,
                 name,
-                transform,
-                clipPath,
-                fillOpacity,
-                strokeOpacity,
+                paintState,
                 visualPageSize.Width,
                 visualPageSize.Height,
                 type3PaintChannelCache,
@@ -460,10 +463,7 @@ public sealed partial class PdfReadPage {
                     PdfType3PaintChannels channels = ResolveXObjectPaintChannels(
                         resources,
                         invocation.Name,
-                        invocation.Transform,
-                        invocation.ClipPath,
-                        invocation.FillOpacity,
-                        invocation.StrokeOpacity,
+                        invocation.PaintState,
                         visualPageSize.Width,
                         visualPageSize.Height,
                         type3PaintChannelCache,
