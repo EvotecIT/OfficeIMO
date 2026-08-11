@@ -142,6 +142,22 @@ public sealed class ExcelAllSeverityBatch13SecurityTests {
     }
 
     [Fact]
+    public void RowsFromHonorsFinalCellLimitDuringNestedExpansion() {
+        using var stream = new MemoryStream();
+        using ExcelDocument document = ExcelDocument.Create(stream);
+        var rows = new[] { new NestedRow { Name = "A", Values = new[] { 1, 2, 3 } } };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            document.AsFluent().Sheet("Data", sheet =>
+                sheet.RowsFrom(rows, options => {
+                    options.MaxCells = 5;
+                    options.CollectionMode = CollectionMode.ExpandRows;
+                })));
+
+        Assert.Contains("5-cell", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ObjectFlattenerStopsUnboundedNestedCollectionEnumeration() {
         var flattener = new ObjectFlattener();
         var options = new ObjectFlattenerOptions { MaxCollectionItems = 2 };

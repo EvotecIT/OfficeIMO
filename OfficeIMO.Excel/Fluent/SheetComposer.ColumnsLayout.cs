@@ -92,6 +92,7 @@ namespace OfficeIMO.Excel.Fluent {
 
                 var opts = new ObjectFlattenerOptions();
                 configure?.Invoke(opts);
+                opts.MaxColumns = System.Math.Min(opts.MaxColumns, A1.MaxColumns - _baseCol + 1);
                 var flattener = new ObjectFlattener();
 
                 ObjectTableProjection projection = flattener.FlattenRows(items, opts, "ColumnComposer TableFrom");

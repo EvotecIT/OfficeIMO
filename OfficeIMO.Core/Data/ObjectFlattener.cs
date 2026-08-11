@@ -13,6 +13,10 @@ namespace OfficeIMO.Data {
     /// Configuration for flattening objects into key/value pairs where keys represent dotted paths.
     /// </summary>
     public class ObjectFlattenerOptions {
+        /// <summary>Default maximum number of projected table columns.</summary>
+        public const int DefaultMaxColumns = 16_384;
+        /// <summary>Default maximum number of projected table cells, including the header row.</summary>
+        public const long DefaultMaxCells = 1_000_000L;
         /// <summary>Property names or dotted paths to expand (descend into) rather than treat as simple values.</summary>
         public List<string> ExpandProperties { get; } = new();
         /// <summary>When true, includes the original object under its path in addition to expanded fields.</summary>
@@ -24,6 +28,10 @@ namespace OfficeIMO.Data {
         /// The default matches the maximum Excel data rows available below one header row.
         /// </summary>
         public int MaxRows { get; set; } = 1_048_575;
+        /// <summary>Maximum number of projected table columns.</summary>
+        public int MaxColumns { get; set; } = DefaultMaxColumns;
+        /// <summary>Maximum number of projected table cells, including the header row.</summary>
+        public long MaxCells { get; set; } = DefaultMaxCells;
         /// <summary>Maximum number of items enumerated from one nested collection.</summary>
         public int MaxCollectionItems { get; set; } = 1_048_575;
         /// <summary>Header casing strategy for generated column names.</summary>
@@ -208,6 +216,10 @@ namespace OfficeIMO.Data {
                 : GetInitialFlattenCapacity(sourceType, opts);
             var result = new Dictionary<string, object?>(capacity, StringComparer.OrdinalIgnoreCase);
             FlattenInternal(source, result, string.Empty, 0, opts, new HashSet<object>(ObjectReferenceComparer.Instance));
+            if (result.Count > opts.MaxColumns) {
+                throw new InvalidDataException(
+                    $"Object flattening exceeds the {opts.MaxColumns}-column limit.");
+            }
 
             List<string> selectedPaths = ResolvePaths(result.Keys, opts);
             var selected = new Dictionary<string, object?>(selectedPaths.Count, StringComparer.OrdinalIgnoreCase);
@@ -279,7 +291,8 @@ namespace OfficeIMO.Data {
 
         private static void FlattenInternalCore(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts, HashSet<object> activeObjects, Type type) {
 
-            if (ObjectDictionaryAdapter.TryGetEntries(obj, opts.MaxCollectionItems, out var dictionaryEntries)) {
+            int dictionaryLimit = Math.Min(opts.MaxCollectionItems, opts.MaxColumns);
+            if (ObjectDictionaryAdapter.TryGetEntries(obj, dictionaryLimit, out var dictionaryEntries)) {
                 FlattenDictionary(dictionaryEntries, dict, prefix, depth, opts, activeObjects);
                 return;
             }
@@ -422,6 +435,10 @@ namespace OfficeIMO.Data {
 
                 var colPath = basePath + "." + key;
                 if (ShouldIgnorePath(colPath, opts.Ignore)) continue;
+                if (dict.Count >= opts.MaxColumns && !dict.ContainsKey(colPath)) {
+                    throw new InvalidDataException(
+                        $"Object flattening exceeds the {opts.MaxColumns}-column limit.");
+                }
                 var value = accessors.GetValue(item);
                 dict[colPath] = ApplyFormatting(colPath, value, opts);
             }
@@ -602,6 +619,16 @@ namespace OfficeIMO.Data {
             }
             if (options.MaxCollectionItems <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(options.MaxCollectionItems));
+            }
+            if (options.MaxColumns <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(options.MaxColumns));
+            }
+            if (options.MaxCells <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(options.MaxCells));
+            }
+            if (options.Columns != null && options.Columns.Length > options.MaxColumns) {
+                throw new InvalidDataException(
+                    $"Explicit columns exceed the {options.MaxColumns}-column limit.");
             }
         }
 

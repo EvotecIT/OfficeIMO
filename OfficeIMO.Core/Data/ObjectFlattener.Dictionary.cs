@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 
 namespace OfficeIMO.Data {
     public partial class ObjectFlattener {
@@ -17,6 +18,10 @@ namespace OfficeIMO.Data {
 
                 string path = string.IsNullOrEmpty(prefix) ? name! : prefix + "." + name;
                 if (ShouldIgnorePath(path, opts.Ignore)) continue;
+                if (dict.Count >= opts.MaxColumns && !dict.ContainsKey(path)) {
+                    throw new InvalidDataException(
+                        $"Object flattening exceeds the {opts.MaxColumns}-column limit.");
+                }
 
                 object? value = entry.Value;
                 if (value == null) {

@@ -11,6 +11,28 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 namespace OfficeIMO.Tests {
     public class VisioShapeDataTests {
         [Fact]
+        public void DocumentModelProjection_DefaultsToBoundedShapeDataRows() {
+            VisioDocument document = VisioDocument.Create();
+            VisioPage page = document.AddPage("Bounded", 8.5, 6);
+            VisioShape shape = page.AddRectangle(2.5, 4, 2.2, 1, "Server");
+            for (int index = 0; index < 201; index++) {
+                shape.SetShapeData("Key" + index, index.ToString());
+            }
+
+            OfficeDocumentModel model = document.ToOfficeDocumentModel();
+            VisioInspectionSnapshot boundedSnapshot = document.CreateInspectionSnapshot(200);
+
+            OfficeDocumentModelTable table = Assert.Single(model.Tables);
+            Assert.Equal(200, table.Rows.Count);
+            Assert.Equal(201, table.TotalRowCount);
+            Assert.True(table.Truncated);
+            Assert.DoesNotContain("Key200=", model.Markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain(model.Blocks, block =>
+                block.Text?.Contains("Key200=", StringComparison.Ordinal) == true);
+            Assert.Empty(Assert.Single(boundedSnapshot.Pages).Shapes.Single().Data);
+        }
+
+        [Fact]
         public void TypedShapeDataSavesLoadsPreservesMetadataAndKeepsDictionaryCompatibility() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");

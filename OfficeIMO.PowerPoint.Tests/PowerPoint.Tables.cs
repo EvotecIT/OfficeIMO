@@ -24,6 +24,45 @@ namespace OfficeIMO.Tests {
 
         [Fact]
 
+        public void ObjectTableRejectsColumnsBeyondConfiguredLimit() {
+
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            var rows = new[] {
+                new System.Collections.Generic.Dictionary<string, object?> {
+                    ["A"] = 1,
+                    ["B"] = 2,
+                    ["C"] = 3
+                }
+            };
+
+            Assert.Throws<InvalidDataException>(() =>
+                slide.AddTable(rows, options => options.MaxColumns = 2));
+        }
+
+        [Fact]
+
+        public void ObjectTableRejectsFinalCellsDuringNestedExpansion() {
+
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            var rows = new[] {
+                new System.Collections.Generic.Dictionary<string, object?> {
+                    ["Name"] = "A",
+                    ["Values"] = new[] { 1, 2, 3 }
+                }
+            };
+
+            Assert.Throws<InvalidDataException>(() => slide.AddTable(rows, options => {
+                options.MaxCells = 5;
+                options.CollectionMode = OfficeIMO.Data.CollectionMode.ExpandRows;
+            }));
+        }
+
+        [Fact]
+
         public void CanManipulateTableCellsAndPreserveStyle() {
 
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");

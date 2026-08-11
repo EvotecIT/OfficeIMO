@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 
 namespace OfficeIMO.Data {
     /// <summary>
@@ -13,6 +14,7 @@ namespace OfficeIMO.Data {
             string consumerName) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (options == null) throw new ArgumentNullException(nameof(options));
+            ValidateLimits(options);
 
             List<T> items = MaterializeRowsBounded(source, options, consumerName);
             var rows = new List<Dictionary<string, object?>>(items.Count);
@@ -30,16 +32,38 @@ namespace OfficeIMO.Data {
                 rows.Add(row);
                 foreach (string path in row.Keys) {
                     if (!string.IsNullOrWhiteSpace(path) && discoveredColumnSet.Add(path)) {
+                        if (discoveredColumns.Count >= options.MaxColumns) {
+                            throw new InvalidDataException(
+                                $"{consumerName} exceeds the {options.MaxColumns}-column materialization limit.");
+                        }
                         discoveredColumns.Add(path);
                     }
                 }
+                EnsureTableCellLimit(rows.Count, discoveredColumns.Count, options, consumerName);
             }
 
             IEnumerable<string> columnCandidates = options.Columns != null && options.Columns.Length > 0
                 ? options.Columns
                 : discoveredColumns;
             List<string> columns = ResolvePaths(columnCandidates, options);
+            if (columns.Count > options.MaxColumns) {
+                throw new InvalidDataException(
+                    $"{consumerName} exceeds the {options.MaxColumns}-column materialization limit.");
+            }
+            EnsureTableCellLimit(rows.Count, columns.Count, options, consumerName);
             return new ObjectTableProjection(rows, columns);
+        }
+
+        private static void EnsureTableCellLimit(
+            int rowCount,
+            int columnCount,
+            ObjectFlattenerOptions options,
+            string consumerName) {
+            long projectedCells = ((long)rowCount + 1L) * columnCount;
+            if (projectedCells > options.MaxCells) {
+                throw new InvalidDataException(
+                    $"{consumerName} exceeds the {options.MaxCells}-cell materialization limit.");
+            }
         }
     }
 

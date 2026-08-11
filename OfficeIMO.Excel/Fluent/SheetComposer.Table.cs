@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel.Fluent {
 
             var opts = new ObjectFlattenerOptions();
             configure?.Invoke(opts);
+            opts.MaxColumns = System.Math.Min(opts.MaxColumns, A1.MaxColumns);
             var flattener = new ObjectFlattener();
 
             ObjectTableProjection projection = flattener.FlattenRows(items, opts, "TableFrom");

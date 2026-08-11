@@ -29,6 +29,9 @@ public sealed class ReaderMhtmlModularTests {
 
         Assert.Contains(".mht", capability.Extensions);
         Assert.Contains(".mhtml", capability.Extensions);
+        Assert.Equal(
+            OfficeDocumentReaderBuilderMhtmlExtensions.DefaultMaxInputBytes,
+            reader.GetHandlerDefaultMaxInputBytes("message.mhtml"));
     }
 
     [Fact]

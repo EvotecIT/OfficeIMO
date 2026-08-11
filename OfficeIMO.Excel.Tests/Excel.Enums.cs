@@ -125,6 +125,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObjectFlattenerCollectionMapColumnsStopsAtColumnLimit() {
+            var options = new ObjectFlattenerOptions { MaxColumns = 1 };
+            options.CollectionMapColumns["Metrics"] = new CollectionColumnMapping {
+                KeyProperty = nameof(ObjectFlattenerMetric.Name),
+                ValueProperty = nameof(ObjectFlattenerMetric.Value)
+            };
+
+            Assert.Throws<System.IO.InvalidDataException>(() =>
+                new ObjectFlattener().Flatten(new ObjectFlattenerMetricsRow(), options));
+        }
+
+        [Fact]
         public void ObjectFlattenerValueTuplePreservesItemPaths() {
             var flattener = new ObjectFlattener();
             var options = new ObjectFlattenerOptions();

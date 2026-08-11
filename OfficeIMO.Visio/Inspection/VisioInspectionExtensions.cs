@@ -12,9 +12,17 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Creates a stable, data-oriented snapshot of the document structure.
         /// </summary>
-        public static VisioInspectionSnapshot CreateInspectionSnapshot(this VisioDocument document) {
+        public static VisioInspectionSnapshot CreateInspectionSnapshot(this VisioDocument document) =>
+            CreateInspectionSnapshot(document, int.MaxValue);
+
+        internal static VisioInspectionSnapshot CreateInspectionSnapshot(
+            this VisioDocument document,
+            int maxShapeDataRowsPerPage) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
+            }
+            if (maxShapeDataRowsPerPage <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(maxShapeDataRowsPerPage));
             }
 
             IReadOnlyList<VisioInspectionMasterSnapshot> masters = document.Masters
@@ -51,7 +59,7 @@ namespace OfficeIMO.Visio {
             IReadOnlyList<VisioInspectionPageSnapshot> pages = document.Pages
                 .OrderBy(page => page.Id)
                 .ThenBy(page => page.Name, StringComparer.OrdinalIgnoreCase)
-                .Select(CreatePageSnapshot)
+                .Select(page => CreatePageSnapshot(page, maxShapeDataRowsPerPage))
                 .ToList()
                 .AsReadOnly();
 
@@ -67,18 +75,29 @@ namespace OfficeIMO.Visio {
                 pages);
         }
 
-        private static VisioInspectionPageSnapshot CreatePageSnapshot(VisioPage page) {
-            IReadOnlyList<VisioInspectionShapeSnapshot> shapes = page.AllShapes()
-                .OrderBy(shape => shape.Id, StringComparer.OrdinalIgnoreCase)
-                .Select(CreateShapeSnapshot)
-                .ToList()
-                .AsReadOnly();
+        private static VisioInspectionPageSnapshot CreatePageSnapshot(
+            VisioPage page,
+            int maxShapeDataRows) {
+            int remainingShapeDataRows = maxShapeDataRows;
+            int totalShapeDataRows = 0;
+            bool includeFullDataMirror = maxShapeDataRows == int.MaxValue;
+            var shapeSnapshots = new List<VisioInspectionShapeSnapshot>();
+            foreach (VisioShape shape in page.AllShapes()
+                         .OrderBy(shape => shape.Id, StringComparer.OrdinalIgnoreCase)) {
+                totalShapeDataRows = AddSaturating(totalShapeDataRows, shape.ShapeData.Count);
+                shapeSnapshots.Add(CreateShapeSnapshot(
+                    shape, ref remainingShapeDataRows, includeFullDataMirror));
+            }
+            IReadOnlyList<VisioInspectionShapeSnapshot> shapes = shapeSnapshots.AsReadOnly();
 
-            IReadOnlyList<VisioInspectionConnectorSnapshot> connectors = page.Connectors
-                .OrderBy(connector => connector.Id, StringComparer.OrdinalIgnoreCase)
-                .Select(CreateConnectorSnapshot)
-                .ToList()
-                .AsReadOnly();
+            var connectorSnapshots = new List<VisioInspectionConnectorSnapshot>();
+            foreach (VisioConnector connector in page.Connectors
+                         .OrderBy(connector => connector.Id, StringComparer.OrdinalIgnoreCase)) {
+                totalShapeDataRows = AddSaturating(totalShapeDataRows, connector.ShapeData.Count);
+                connectorSnapshots.Add(CreateConnectorSnapshot(
+                    connector, ref remainingShapeDataRows, includeFullDataMirror));
+            }
+            IReadOnlyList<VisioInspectionConnectorSnapshot> connectors = connectorSnapshots.AsReadOnly();
 
             IReadOnlyList<string> layers = page.Layers
                 .Select(layer => layer.Name)
@@ -92,12 +111,16 @@ namespace OfficeIMO.Visio {
                 page.NameU,
                 page.Width,
                 page.Height,
+                totalShapeDataRows,
                 layers,
                 shapes,
                 connectors);
         }
 
-        private static VisioInspectionShapeSnapshot CreateShapeSnapshot(VisioShape shape) {
+        private static VisioInspectionShapeSnapshot CreateShapeSnapshot(
+            VisioShape shape,
+            ref int remainingShapeDataRows,
+            bool includeFullDataMirror) {
             return new VisioInspectionShapeSnapshot(
                 shape.Id,
                 shape.Name,
@@ -124,14 +147,17 @@ namespace OfficeIMO.Visio {
                 shape.IsDiagramAdornment,
                 shape.CalloutTargetId,
                 SortStrings(shape.LayerNames),
-                CreateShapeDataSnapshot(shape.ShapeData),
+                CreateShapeDataSnapshot(shape.ShapeData, ref remainingShapeDataRows),
                 CreateUserCellSnapshot(shape.UserCells),
-                CreateDataSnapshot(shape.Data),
+                CreateDataSnapshot(shape.Data, includeFullDataMirror),
                 CreateConnectionPointSnapshot(shape.ConnectionPoints),
                 shape.Children.Select(child => child.Id).OrderBy(id => id, StringComparer.OrdinalIgnoreCase).ToList().AsReadOnly());
         }
 
-        private static VisioInspectionConnectorSnapshot CreateConnectorSnapshot(VisioConnector connector) {
+        private static VisioInspectionConnectorSnapshot CreateConnectorSnapshot(
+            VisioConnector connector,
+            ref int remainingShapeDataRows,
+            bool includeFullDataMirror) {
             VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
             ResolveConnectorLabelPin(connector, placement, out double? labelResolvedPinX, out double? labelResolvedPinY);
 
@@ -163,8 +189,8 @@ namespace OfficeIMO.Visio {
                 connector.BeginArrow?.ToString(),
                 connector.EndArrow?.ToString(),
                 SortStrings(connector.LayerNames),
-                CreateShapeDataSnapshot(connector.ShapeData),
-                CreateDataSnapshot(connector.Data));
+                CreateShapeDataSnapshot(connector.ShapeData, ref remainingShapeDataRows),
+                CreateDataSnapshot(connector.Data, includeFullDataMirror));
         }
 
         private static void ResolveConnectorLabelPin(VisioConnector connector, VisioConnectorLabelPlacement? placement, out double? pinX, out double? pinY) {
@@ -247,13 +273,23 @@ namespace OfficeIMO.Visio {
                 : (absX, absY);
         }
 
-        private static IReadOnlyList<VisioInspectionShapeDataSnapshot> CreateShapeDataSnapshot(IEnumerable<VisioShapeDataRow> rows) {
-            return rows
+        private static IReadOnlyList<VisioInspectionShapeDataSnapshot> CreateShapeDataSnapshot(
+            IEnumerable<VisioShapeDataRow> rows,
+            ref int remainingRows) {
+            if (remainingRows == 0) return Array.Empty<VisioInspectionShapeDataSnapshot>();
+            List<VisioShapeDataRow> retained = remainingRows == int.MaxValue
+                ? rows.ToList()
+                : rows.Take(remainingRows).ToList();
+            if (remainingRows != int.MaxValue) remainingRows -= retained.Count;
+            return retained
                 .OrderBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(row => new VisioInspectionShapeDataSnapshot(row.Name, row.Label, row.Value, row.Type?.ToString(), row.Format, row.Prompt))
                 .ToList()
                 .AsReadOnly();
         }
+
+        private static int AddSaturating(int left, int right) =>
+            left > int.MaxValue - right ? int.MaxValue : left + right;
 
         private static IReadOnlyList<VisioInspectionUserCellSnapshot> CreateUserCellSnapshot(IEnumerable<VisioUserCell> rows) {
             return rows
@@ -270,7 +306,13 @@ namespace OfficeIMO.Visio {
                 .AsReadOnly();
         }
 
-        private static IReadOnlyDictionary<string, string> CreateDataSnapshot(IDictionary<string, string> data) {
+        private static IReadOnlyDictionary<string, string> CreateDataSnapshot(
+            IDictionary<string, string> data,
+            bool includeData) {
+            if (!includeData) {
+                return new ReadOnlyDictionary<string, string>(
+                    new Dictionary<string, string>(StringComparer.Ordinal));
+            }
             return new ReadOnlyDictionary<string, string>(
                 data.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));

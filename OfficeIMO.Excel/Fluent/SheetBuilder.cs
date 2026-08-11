@@ -61,6 +61,7 @@ namespace OfficeIMO.Excel.Fluent {
             var options = new ObjectFlattenerOptions();
             configure?.Invoke(options);
             if (options.MaxRows <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxRows));
+            options.MaxColumns = Math.Min(options.MaxColumns, A1.MaxColumns);
             int maximumDataRows = Math.Min(options.MaxRows, Math.Max(0, A1.MaxRows - _currentRow));
 
             var rows = MaterializeRowsBounded(data, maximumDataRows);
@@ -69,7 +70,7 @@ namespace OfficeIMO.Excel.Fluent {
             int startRow = _currentRow;
             if (configure == null
                 && !ObjectDictionaryAdapter.IsDictionaryType(typeof(T))
-                && TryRowsFromSimpleFastPath(rows, startRow)) {
+                && TryRowsFromSimpleFastPath(rows, startRow, options)) {
                 return this;
             }
 
@@ -92,7 +93,9 @@ namespace OfficeIMO.Excel.Fluent {
                             collectionPath,
                             coll,
                             maximumDataRows - dataRows,
-                            options.MaxCollectionItems);
+                            options.MaxCollectionItems,
+                            options.MaxCells,
+                            dataRows);
                         continue;
                     }
                 }
@@ -100,6 +103,7 @@ namespace OfficeIMO.Excel.Fluent {
                 if (dataRows >= maximumDataRows) {
                     throw new InvalidDataException($"RowsFrom exceeds the {maximumDataRows}-row materialization limit.");
                 }
+                EnsureRowsFromCellLimit(dataRows + 1, paths.Count, options.MaxCells);
                 rowValues.Add(ProjectRowsFromValues(paths, dict, options.DefaultValues));
                 dataRows++;
             }
@@ -150,7 +154,9 @@ namespace OfficeIMO.Excel.Fluent {
             string collectionPath,
             IEnumerable collection,
             int maximumRows,
-            int maximumCollectionItems) {
+            int maximumCollectionItems,
+            long maximumCells,
+            int existingRows) {
             int added = 0;
             foreach (object? element in collection) {
                 if (added >= maximumCollectionItems) {
@@ -159,6 +165,7 @@ namespace OfficeIMO.Excel.Fluent {
                 if (added >= maximumRows) {
                     throw new InvalidDataException($"RowsFrom nested expansion exceeds the configured row materialization limit.");
                 }
+                EnsureRowsFromCellLimit(existingRows + added + 1, paths.Count, maximumCells);
                 rowValues.Add(ProjectRowsFromValues(paths, values, defaultValues, collectionPath, element));
                 added++;
             }
@@ -167,6 +174,7 @@ namespace OfficeIMO.Excel.Fluent {
                 if (maximumRows <= 0) {
                     throw new InvalidDataException("RowsFrom nested expansion exceeds the configured row materialization limit.");
                 }
+                EnsureRowsFromCellLimit(existingRows + 1, paths.Count, maximumCells);
                 rowValues.Add(ProjectRowsFromValues(paths, values, defaultValues: null));
                 return 1;
             }
@@ -198,7 +206,7 @@ namespace OfficeIMO.Excel.Fluent {
             return projected;
         }
 
-        private bool TryRowsFromSimpleFastPath<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IReadOnlyList<T> rows, int startRow) {
+        private bool TryRowsFromSimpleFastPath<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IReadOnlyList<T> rows, int startRow, ObjectFlattenerOptions options) {
             if (Sheet == null) {
                 return false;
             }
@@ -208,6 +216,7 @@ namespace OfficeIMO.Excel.Fluent {
                 return false;
             }
 
+            EnsureRowsFromCellLimit(rows.Count, typePlan.Headers.Length, options.MaxCells);
             var directRows = MaterializeSimpleRowsFromProperties(typePlan, rows, out var columnTypes);
             int tableEndRow = startRow + rows.Count;
             string[] headers = typePlan.Headers;
@@ -222,6 +231,14 @@ namespace OfficeIMO.Excel.Fluent {
             _currentRow = tableEndRow + 1;
             _lastRange = range;
             return true;
+        }
+
+        private static void EnsureRowsFromCellLimit(int dataRowCount, int columnCount, long maximumCells) {
+            long projectedCells = ((long)dataRowCount + 1L) * columnCount;
+            if (projectedCells > maximumCells) {
+                throw new InvalidDataException(
+                    $"RowsFrom exceeds the {maximumCells}-cell materialization limit.");
+            }
         }
 
         /// <summary>Adds a table over the last added block (from RowsFrom) using the specified name.</summary>
