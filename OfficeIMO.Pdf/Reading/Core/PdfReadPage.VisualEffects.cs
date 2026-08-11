@@ -343,6 +343,7 @@ public sealed partial class PdfReadPage {
             },
             type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
             unsupportedGraphicsEffectVisitor: () => supported = false,
+            unsupportedColorVisitor: () => supported = false,
             graphicsStateVisitor: (state, stateTransform) => {
                 if (!CanDecodeType3SoftMask(
                         state.SoftMask,
@@ -359,6 +360,14 @@ public sealed partial class PdfReadPage {
                 }
             },
             allowSupportedGraphicsEffects: true,
+            patternInvocationVisitor: name => {
+                bool supportedPattern = tilingPatterns.ContainsKey(name) ||
+                    (shadingPatterns.TryGetValue(name, out PdfPageShadingPatternResource shadingPattern) &&
+                     shadingPattern.SupportsExactType3Projection) ||
+                    IsResolvedInheritedSoftMaskPattern(initialState?.FillPattern, name) ||
+                    IsResolvedInheritedSoftMaskPattern(initialState?.StrokePattern, name);
+                if (!supportedPattern) supported = false;
+            },
             patternBaseColorSpaces: patternBaseColorSpaces,
             initialFillPattern: initialState?.FillPattern,
             initialFillPatternBaseColorSpace: initialState?.FillPatternBaseColorSpace,
@@ -401,7 +410,18 @@ public sealed partial class PdfReadPage {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream form) || !activeForms.Add(form)) return false;
             try {
                 if (Filters.StreamDecoder.GetUnsupportedFilters(form.Dictionary, _objects).Count != 0) return false;
-                if (form.Dictionary.Items.ContainsKey("Group")) return false;
+                if (form.Dictionary.Items.ContainsKey("Group")) {
+                    if ((invocation.FillOpacity ?? 1D) <= 0D) continue;
+                    Type3TransparencyGroupDrawingResult boundsResult = TryGetVisibleType3TransparencyGroupBounds(
+                        form.Dictionary,
+                        ApplyFormMatrix(invocation.Transform, form.Dictionary),
+                        invocation.ClipPath,
+                        visualPageSize.Width,
+                        visualPageSize.Height,
+                        out _);
+                    if (boundsResult == Type3TransparencyGroupDrawingResult.Invisible) continue;
+                    return false;
+                }
                 string formContent = WrapFormContentWithBoundingBoxClip(
                     PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)),
                     form.Dictionary);
@@ -430,6 +450,12 @@ public sealed partial class PdfReadPage {
         }
         return true;
     }
+
+    private static bool IsResolvedInheritedSoftMaskPattern(PdfPagePatternSelection? selection, string name) =>
+        selection.HasValue &&
+        string.Equals(selection.Value.Name, name, StringComparison.Ordinal) &&
+        (selection.Value.TilingPattern != null ||
+         (selection.Value.ShadingPattern.HasValue && selection.Value.ShadingPattern.Value.SupportsExactType3Projection));
 
     private sealed class SoftMaskNestingDepth {
         internal SoftMaskNestingDepth(int maximum) {
