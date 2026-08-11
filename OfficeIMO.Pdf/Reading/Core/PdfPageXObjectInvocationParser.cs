@@ -71,7 +71,7 @@ internal static class PdfPageXObjectInvocationParser {
         Func<string, PdfPageXObjectPaintState, PdfType3PaintChannels>? xObjectPaintChannelResolver = null,
         Func<PdfPageSoftMaskResource, Matrix2D, bool>? softMaskVisibilityResolver = null,
         Action<string>? visibleShadingVisitor = null,
-        Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?>? ordinaryTextPaintVisitor = null,
+        Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? ordinaryTextPaintVisitor = null,
         double? pageWidth = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
@@ -144,7 +144,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Func<PdfPageSoftMaskResource, Matrix2D, bool>? _softMaskVisibilityResolver;
         private readonly Action<string>? _visibleShadingVisitor;
         private readonly Action<PdfPageGraphicsStateResource, Matrix2D>? _graphicsStateVisitor;
-        private readonly Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?>? _ordinaryTextPaintVisitor;
+        private readonly Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? _ordinaryTextPaintVisitor;
         private readonly bool _allowSupportedGraphicsEffects;
         private string _textFont = string.Empty;
         private double _currentPaintOrder;
@@ -202,7 +202,7 @@ internal static class PdfPageXObjectInvocationParser {
             Func<string, PdfPageXObjectPaintState, PdfType3PaintChannels>? xObjectPaintChannelResolver,
             Func<PdfPageSoftMaskResource, Matrix2D, bool>? softMaskVisibilityResolver,
             Action<string>? visibleShadingVisitor,
-            Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?>? ordinaryTextPaintVisitor) {
+            Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? ordinaryTextPaintVisitor) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -341,8 +341,10 @@ internal static class PdfPageXObjectInvocationParser {
             }
             PublishType3GlyphBatch(glyphs);
             if (ordinaryTextAffectsOutput && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
-            if (ordinaryTextAffectsOutput && ordinaryTextPaintChannels != PdfType3PaintChannels.None) {
-                _ordinaryTextPaintVisitor?.Invoke(ordinaryTextPaintChannels, _patternState.Fill, _patternState.Stroke);
+            bool ordinaryTextAddsClip = ordinaryTextAffectsOutput && AddsTextToClippingPath(_textRenderingMode);
+            if (ordinaryTextAffectsOutput &&
+                (ordinaryTextPaintChannels != PdfType3PaintChannels.None || ordinaryTextAddsClip)) {
+                _ordinaryTextPaintVisitor?.Invoke(ordinaryTextPaintChannels, _patternState.Fill, _patternState.Stroke, ordinaryTextAddsClip);
             }
             if (isVisible && !usesType3GlyphProgram) ApplyTextClippingPath(advance.X);
             _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(advance.X, advance.Y));
@@ -474,10 +476,11 @@ internal static class PdfPageXObjectInvocationParser {
             }
             PublishType3GlyphBatch(glyphs);
             if (ordinaryTextAffectsOutput && glyphCount > 0 && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
+            bool ordinaryTextAddsClip = ordinaryTextAffectsOutput && AddsTextToClippingPath(_textRenderingMode);
             if (ordinaryTextAffectsOutput &&
-                ordinaryTextPaintChannels != PdfType3PaintChannels.None &&
+                (ordinaryTextPaintChannels != PdfType3PaintChannels.None || ordinaryTextAddsClip) &&
                 glyphCount > 0) {
-                _ordinaryTextPaintVisitor?.Invoke(ordinaryTextPaintChannels, _patternState.Fill, _patternState.Stroke);
+                _ordinaryTextPaintVisitor?.Invoke(ordinaryTextPaintChannels, _patternState.Fill, _patternState.Stroke, ordinaryTextAddsClip);
             }
         }
 

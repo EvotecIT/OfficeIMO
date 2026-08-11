@@ -306,7 +306,7 @@ public sealed partial class PdfReadPage {
         HashSet<string> seen,
         int depth,
         SoftMaskNestingDepth? softMaskNestingDepth = null,
-        Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int>? validatedSoftMaskGroups = null,
+        Dictionary<(PdfStream Group, PdfDictionary? ParentResources, Matrix2D Transform, double Width, double Height), int>? validatedSoftMaskGroups = null,
         HashSet<PdfStream>? activeSoftMaskGroups = null,
         HashSet<PdfStream>? activeSoftMaskForms = null,
         double? projectionPageWidth = null,
@@ -329,7 +329,7 @@ public sealed partial class PdfReadPage {
             double surfaceWidth = projectionPageWidth ?? visualPageSize.Width;
             double surfaceHeight = projectionPageHeight ?? visualPageSize.Height;
             bool supported = true;
-            validatedSoftMaskGroups ??= new Dictionary<(PdfStream Group, Matrix2D Transform, double Width, double Height), int>();
+            validatedSoftMaskGroups ??= new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, Matrix2D Transform, double Width, double Height), int>();
             activeSoftMaskGroups ??= new HashSet<PdfStream>();
             activeSoftMaskForms ??= new HashSet<PdfStream>();
             softMaskNestingDepth ??= new SoftMaskNestingDepth(depth);
@@ -607,17 +607,7 @@ public sealed partial class PdfReadPage {
                                          diagnostics,
                                          seen);
                                  } else if (!requireImageMask) {
-                                     int failureVersion = type3GlyphBudget.FailureVersion;
-                                     canProject = GetTilingPatternResources(
-                                             resources,
-                                             new HashSet<string>(StringComparer.Ordinal) { name },
-                                             textOutputBudget: softMaskValidation.TextOutputBudget,
-                                             pageContentBudget: pageContentBudget,
-                                             type3GlyphBudget: type3GlyphBudget,
-                                             requireSupportedType3Content: true,
-                                             contentNestingDepth: depth)
-                                         .ContainsKey(name) &&
-                                         type3GlyphBudget.FailureVersion == failureVersion;
+                                     canProject = tilingPatterns.ContainsKey(name);
                                  }
                                  patternSupport[name] = canProject;
                              }
@@ -841,7 +831,7 @@ public sealed partial class PdfReadPage {
             AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.OptionalImageCodecId, invocation.Name);
         }
         CollectImageColorSpaceCapabilityDiagnostic(imageDictionary, resources, diagnostics, seen, invocation.Name);
-        if (image == null || !image.IsImageFile || (requireImageMask && !image.IsImageMask)) return false;
+        if (image == null || !image.IsImageFile || image.HasUnresolvedTransparencyMask || (requireImageMask && !image.IsImageMask)) return false;
         if (!requireImageMask && image.IsImageMask && inheritedFillPattern.HasValue) return false;
         if (requireImageMask && inheritedFillPattern.HasValue) {
             Type3PatternImageMaskDrawingResult result = TryPrepareInheritedPatternImageMaskDrawing(
