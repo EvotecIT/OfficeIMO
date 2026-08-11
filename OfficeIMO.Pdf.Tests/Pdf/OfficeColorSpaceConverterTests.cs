@@ -277,6 +277,33 @@ public class OfficeColorSpaceConverterTests {
         Assert.False(OfficeIccColorProfile.TryCreate(unsupportedPrecision, out _));
     }
 
+    [Fact]
+    public void IccMabProfile_RejectsTransformDeclaredByPreV4Profile() {
+        byte[] profileBytes = IccMabTestProfiles.CreateCmykLab8();
+        profileBytes[8] = 3;
+        profileBytes[9] = 0x40;
+
+        Assert.False(OfficeIccColorProfile.TryCreate(profileBytes, out _));
+    }
+
+    [Fact]
+    public void IccMabProfile_AcceptsBoundedZeroPaddingAndRejectsAuthoredTailData() {
+        byte[] original = IccMabTestProfiles.CreateCmykLab8();
+        const int tailLength = 1024 * 1024;
+        var profileBytes = new byte[original.Length + tailLength];
+        Buffer.BlockCopy(original, 0, profileBytes, 0, original.Length);
+        IccMabTestProfiles.WriteUInt32(profileBytes, 0, (uint)profileBytes.Length);
+        IccMabTestProfiles.WriteUInt32(
+            profileBytes,
+            140,
+            checked(ReadUInt32(original, 140) + (uint)tailLength));
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out _));
+
+        profileBytes[^1] = 1;
+        Assert.False(OfficeIccColorProfile.TryCreate(profileBytes, out _));
+    }
+
     private static void ApplyMabStages(
         double input0,
         double input1,
