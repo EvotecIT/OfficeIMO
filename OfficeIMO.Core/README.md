@@ -54,14 +54,23 @@ if (OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? pro
     profile.TryConvert(new[] { 0.25D, 0.5D, 0.75D }, out OfficeColor converted)) {
     Console.WriteLine(converted.ToHex());
 }
+
+if (profile?.HasOutputTransform == true &&
+    profile.TryConvertToDevice(OfficeColor.CornflowerBlue, OfficeIccRenderingIntent.RelativeColorimetric, out double[] deviceColor) &&
+    profile.TrySoftProof(OfficeColor.CornflowerBlue, OfficeIccRenderingIntent.RelativeColorimetric, out OfficeColor proofed)) {
+    Console.WriteLine($"Device channels: {string.Join(", ", deviceColor)}; proof: {proofed.ToHex()}");
+}
 ```
 
 The managed contract accepts bounded RGB and Gray matrix/TRC input profiles plus intent-invariant A2B0
 LUT transforms: RGB or CMYK LUT8 with a Lab profile connection space, and RGB or CMYK LUT16 with an
-XYZ or Lab profile connection space. It also accepts bounded ICC v4 RGB and CMYK A2B0 `mAB` transforms
-using the specification-defined curve, variable-grid CLUT, matrix, and offset combinations. `TryCreate`
-returns `false` for other profile classes and transform types so the caller can choose an explicit
-color-management provider or fallback instead of receiving a silent approximation.
+XYZ or Lab profile connection space. It also accepts bounded ICC v4 RGB and CMYK A2B `mAB` input
+transforms and B2A `mBA` output transforms using the specification-defined curve, variable-grid CLUT,
+matrix, and offset combinations. Output conversion is available only when a valid `B2A0` transform is
+present; optional intent-specific tags fall back to `B2A0`. `TryCreate` returns `false` for unsupported
+input profile classes and transform types, while malformed or unsupported optional output transforms
+leave `HasOutputTransform` false so the caller can choose an explicit color-management provider or
+fallback instead of receiving a silent approximation.
 
 ### Image metadata and complete-content validation
 

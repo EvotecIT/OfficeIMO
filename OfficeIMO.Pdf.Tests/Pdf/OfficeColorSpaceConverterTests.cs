@@ -318,6 +318,151 @@ public class OfficeColorSpaceConverterTests {
         Assert.False(OfficeIccColorProfile.TryCreate(unsupportedPrecision, out _));
     }
 
+    [Fact]
+    public void IccMbaProfile_ConvertsSrgbThroughBToAStagesInSpecificationOrder() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16BidirectionalWithTransformedOutput();
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.True(profile!.HasOutputTransform);
+        OfficeColor source = OfficeColor.FromRgb(128, 64, 192);
+        Assert.True(profile.TryConvertToDevice(source, OfficeIccRenderingIntent.RelativeColorimetric, out double[] components));
+        Assert.Equal(3, components.Length);
+
+        OfficeColorSpaceConverter.ConvertRgbToXyz(
+            source.R / 255D,
+            source.G / 255D,
+            source.B / 255D,
+            0.9642D,
+            1D,
+            0.8249D,
+            out double x,
+            out double y,
+            out double z);
+        ApplyMbaStages(
+            x / (65535D / 32768D),
+            y / (65535D / 32768D),
+            z / (65535D / 32768D),
+            out double expected0,
+            out double expected1,
+            out double expected2);
+        Assert.InRange(Math.Abs(components[0] - expected0), 0D, 0.0001D);
+        Assert.InRange(Math.Abs(components[1] - expected1), 0D, 0.0001D);
+        Assert.InRange(Math.Abs(components[2] - expected2), 0D, 0.0001D);
+    }
+
+    [Fact]
+    public void IccMbaProfile_ProjectsFourOutputChannelsAndSoftProofsWithoutLosingAlpha() {
+        byte[] profileBytes = IccMabTestProfiles.CreateCmykLab8Bidirectional();
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        OfficeColor source = OfficeColor.FromRgba(220, 80, 40, 123);
+        Assert.True(profile!.TryConvertToDevice(source, out double[] components));
+        Assert.Equal(4, components.Length);
+        Assert.All(components, component => Assert.InRange(component, 0D, 1D));
+        Assert.True(profile.TrySoftProof(source, out OfficeColor proofed));
+        Assert.Equal(source.A, proofed.A);
+        Assert.NotEqual(source, proofed);
+    }
+
+    [Fact]
+    public void IccMbaProfile_UsesMatrixInputProfileAndInverseMediaWhiteForAbsoluteOutput() {
+        byte[] profileBytes = IccMabTestProfiles.AddRgbXyzOutputTransform(PdfIccProfiles.SrgbIec6196621);
+        int mediaWhiteOffset = FindTagOffset(profileBytes, "wtpt") + 8;
+        WriteS15Fixed16(profileBytes, mediaWhiteOffset, 0.75D);
+        WriteS15Fixed16(profileBytes, mediaWhiteOffset + 4, 0.8D);
+        WriteS15Fixed16(profileBytes, mediaWhiteOffset + 8, 0.6D);
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.True(profile!.HasOutputTransform);
+        OfficeColor source = OfficeColor.FromRgb(90, 120, 150);
+        Assert.True(profile.TryConvertToDevice(source, OfficeIccRenderingIntent.RelativeColorimetric, out double[] relative));
+        Assert.True(profile.TryConvertToDevice(source, OfficeIccRenderingIntent.AbsoluteColorimetric, out double[] absolute));
+        Assert.True(
+            Math.Abs(relative[0] - absolute[0]) > 0.0001D ||
+            Math.Abs(relative[1] - absolute[1]) > 0.0001D ||
+            Math.Abs(relative[2] - absolute[2]) > 0.0001D);
+
+        OfficeColorSpaceConverter.ConvertRgbToXyz(
+            source.R / 255D,
+            source.G / 255D,
+            source.B / 255D,
+            0.9642D,
+            1D,
+            0.8249D,
+            out double x,
+            out double y,
+            out double z);
+        const double pcsXyzScale = 65535D / 32768D;
+        Assert.InRange(Math.Abs(absolute[0] - Math.Clamp(x * (0.9642D / 0.75D) / pcsXyzScale, 0D, 1D)), 0D, 0.0001D);
+        Assert.InRange(Math.Abs(absolute[1] - Math.Clamp(y * (1D / 0.8D) / pcsXyzScale, 0D, 1D)), 0D, 0.0001D);
+        Assert.InRange(Math.Abs(absolute[2] - Math.Clamp(z * (0.8249D / 0.6D) / pcsXyzScale, 0D, 1D)), 0D, 0.0001D);
+    }
+
+    [Fact]
+    public void IccMbaProfile_SelectsAuthoredOutputIntentAndFallsBackToPerceptual() {
+        Assert.True(OfficeIccColorProfile.TryCreate(
+            IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents(),
+            out OfficeIccColorProfile? profile));
+        OfficeColor source = OfficeColor.FromRgb(128, 64, 192);
+
+        Assert.True(profile!.TryConvertToDevice(source, OfficeIccRenderingIntent.Perceptual, out double[] perceptual));
+        Assert.True(profile.TryConvertToDevice(source, OfficeIccRenderingIntent.RelativeColorimetric, out double[] relative));
+        Assert.True(profile.TryConvertToDevice(source, OfficeIccRenderingIntent.Saturation, out double[] saturation));
+        Assert.True(profile.TryConvertToDevice(source, OfficeIccRenderingIntent.AbsoluteColorimetric, out double[] absolute));
+
+        Assert.Equal(perceptual, saturation);
+        Assert.Equal(relative, absolute);
+        Assert.True(
+            Math.Abs(perceptual[0] - relative[0]) > 0.0001D ||
+            Math.Abs(perceptual[1] - relative[1]) > 0.0001D ||
+            Math.Abs(perceptual[2] - relative[2]) > 0.0001D);
+    }
+
+    [Fact]
+    public void IccMbaProfile_OffersAllocationFreeBufferedOutputAndSoftProofPaths() {
+        Assert.True(OfficeIccColorProfile.TryCreate(
+            IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+            out OfficeIccColorProfile? profile));
+        OfficeColor source = OfficeColor.FromRgba(80, 120, 160, 200);
+        var destination = new double[4];
+        Assert.False(profile!.TryConvertToDevice(source, new double[3]));
+        Assert.False(profile.TryConvertToDevice(source, null!));
+        Assert.True(profile.TryConvertToDevice(source, OfficeIccRenderingIntent.Saturation, destination));
+        Assert.True(profile.TrySoftProof(source, OfficeIccRenderingIntent.Saturation, out _));
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        bool succeeded = true;
+        for (int index = 0; index < 1000; index++) {
+            succeeded &= profile.TryConvertToDevice(source, OfficeIccRenderingIntent.Saturation, destination);
+            succeeded &= profile.TrySoftProof(source, OfficeIccRenderingIntent.Saturation, out _);
+        }
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(succeeded);
+        Assert.Equal(0L, allocated);
+    }
+
+    [Fact]
+    public void IccMbaProfile_FailsOutputConversionClosedWhenAuthoredTransformIsMalformedOrMissing() {
+        byte[] malformed = IccMabTestProfiles.CreateCmykLab8Bidirectional();
+        int outputTransformOffset = IccMabTestProfiles.FindOutputTransformOffset(malformed);
+        malformed[outputTransformOffset + 9] = 3;
+
+        Assert.True(OfficeIccColorProfile.TryCreate(malformed, out OfficeIccColorProfile? malformedProfile));
+        Assert.False(malformedProfile!.HasOutputTransform);
+        Assert.False(malformedProfile.TryConvertToDevice(OfficeColor.Red, out double[] malformedComponents));
+        Assert.Empty(malformedComponents);
+        Assert.False(malformedProfile.TrySoftProof(OfficeColor.Red, out _));
+
+        Assert.True(OfficeIccColorProfile.TryCreate(IccMabTestProfiles.CreateCmykLab8(), out OfficeIccColorProfile? inputOnlyProfile));
+        Assert.False(inputOnlyProfile!.HasOutputTransform);
+        Assert.False(inputOnlyProfile.TryConvertToDevice(OfficeColor.Red, out _));
+
+        Assert.True(OfficeIccColorProfile.TryCreate(IccMabTestProfiles.CreateCmykLab8Bidirectional(), out OfficeIccColorProfile? validOutputProfile));
+        Assert.False(validOutputProfile!.TryConvertToDevice(OfficeColor.Red, (OfficeIccRenderingIntent)99, out double[] invalidIntentComponents));
+        Assert.Empty(invalidIntentComponents);
+    }
+
     private static void ApplyMabStages(
         double input0,
         double input1,
@@ -337,6 +482,27 @@ public class OfficeColorSpaceConverterTests {
         output0 = Math.Pow(Math.Min(1D, 0.5D * m0 + 0.1D), 1.25D);
         output1 = Math.Pow(Math.Min(1D, 0.5D * m1 + 0.1D), 1.5D);
         output2 = Math.Pow(Math.Min(1D, 0.5D * m2 + 0.1D), 1.75D);
+    }
+
+    private static void ApplyMbaStages(
+        double input0,
+        double input1,
+        double input2,
+        out double output0,
+        out double output1,
+        out double output2) {
+        double b0 = Math.Pow(Math.Clamp(input0, 0D, 1D), 1.25D);
+        double b1 = Math.Pow(Math.Clamp(input1, 0D, 1D), 1.5D);
+        double b2 = Math.Pow(Math.Clamp(input2, 0D, 1D), 1.75D);
+        double matrix0 = Math.Min(1D, 0.5D * b0 + 0.1D);
+        double matrix1 = Math.Min(1D, 0.5D * b1 + 0.1D);
+        double matrix2 = Math.Min(1D, 0.5D * b2 + 0.1D);
+        double m0 = Math.Pow(matrix0, 1.5D);
+        double m1 = Math.Pow(matrix1, 1.75D);
+        double m2 = Math.Pow(matrix2, 2D);
+        output0 = Math.Pow(m0 * (0.25D + 0.75D * m1), 1.1D);
+        output1 = Math.Pow(m1 * (0.25D + 0.75D * m2), 1.2D);
+        output2 = Math.Pow(m2 * (0.25D + 0.75D * m0), 1.3D);
     }
 
     private static int FindTagOffset(byte[] profile, string signature) {

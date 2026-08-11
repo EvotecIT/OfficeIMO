@@ -95,14 +95,47 @@ public static class OfficeColorSpaceConverter {
         return OfficeColor.FromRgb(ToSrgbByte(linearRed), ToSrgbByte(linearGreen), ToSrgbByte(linearBlue));
     }
 
+    internal static void ConvertRgbToXyz(
+        double red,
+        double green,
+        double blue,
+        double targetWhiteX,
+        double targetWhiteY,
+        double targetWhiteZ,
+        out double x,
+        out double y,
+        out double z) {
+        ValidateWhitePoint(targetWhiteX, targetWhiteY, targetWhiteZ);
+        double linearRed = FromSrgb(Clamp01(red));
+        double linearGreen = FromSrgb(Clamp01(green));
+        double linearBlue = FromSrgb(Clamp01(blue));
+        x = (0.4124564D * linearRed) + (0.3575761D * linearGreen) + (0.1804375D * linearBlue);
+        y = (0.2126729D * linearRed) + (0.7151522D * linearGreen) + (0.072175D * linearBlue);
+        z = (0.0193339D * linearRed) + (0.119192D * linearGreen) + (0.9503041D * linearBlue);
+        AdaptWhitePoint(ref x, ref y, ref z, D65X, D65Y, D65Z, targetWhiteX, targetWhiteY, targetWhiteZ);
+    }
+
     private static void AdaptToD65(ref double x, ref double y, ref double z, double whiteX, double whiteY, double whiteZ) {
-        if (NearlyEqual(whiteX, D65X) && NearlyEqual(whiteY, D65Y) && NearlyEqual(whiteZ, D65Z)) return;
-        double sourceL = (0.8951D * whiteX) + (0.2664D * whiteY) - (0.1614D * whiteZ);
-        double sourceM = (-0.7502D * whiteX) + (1.7135D * whiteY) + (0.0367D * whiteZ);
-        double sourceS = (0.0389D * whiteX) - (0.0685D * whiteY) + (1.0296D * whiteZ);
-        double targetL = (0.8951D * D65X) + (0.2664D * D65Y) - (0.1614D * D65Z);
-        double targetM = (-0.7502D * D65X) + (1.7135D * D65Y) + (0.0367D * D65Z);
-        double targetS = (0.0389D * D65X) - (0.0685D * D65Y) + (1.0296D * D65Z);
+        AdaptWhitePoint(ref x, ref y, ref z, whiteX, whiteY, whiteZ, D65X, D65Y, D65Z);
+    }
+
+    private static void AdaptWhitePoint(
+        ref double x,
+        ref double y,
+        ref double z,
+        double sourceWhiteX,
+        double sourceWhiteY,
+        double sourceWhiteZ,
+        double targetWhiteX,
+        double targetWhiteY,
+        double targetWhiteZ) {
+        if (NearlyEqual(sourceWhiteX, targetWhiteX) && NearlyEqual(sourceWhiteY, targetWhiteY) && NearlyEqual(sourceWhiteZ, targetWhiteZ)) return;
+        double sourceL = (0.8951D * sourceWhiteX) + (0.2664D * sourceWhiteY) - (0.1614D * sourceWhiteZ);
+        double sourceM = (-0.7502D * sourceWhiteX) + (1.7135D * sourceWhiteY) + (0.0367D * sourceWhiteZ);
+        double sourceS = (0.0389D * sourceWhiteX) - (0.0685D * sourceWhiteY) + (1.0296D * sourceWhiteZ);
+        double targetL = (0.8951D * targetWhiteX) + (0.2664D * targetWhiteY) - (0.1614D * targetWhiteZ);
+        double targetM = (-0.7502D * targetWhiteX) + (1.7135D * targetWhiteY) + (0.0367D * targetWhiteZ);
+        double targetS = (0.0389D * targetWhiteX) - (0.0685D * targetWhiteY) + (1.0296D * targetWhiteZ);
         double l = ((0.8951D * x) + (0.2664D * y) - (0.1614D * z)) * (targetL / sourceL);
         double m = ((-0.7502D * x) + (1.7135D * y) + (0.0367D * z)) * (targetM / sourceM);
         double s = ((0.0389D * x) - (0.0685D * y) + (1.0296D * z)) * (targetS / sourceS);
@@ -119,6 +152,9 @@ public static class OfficeColorSpaceConverter {
         double value = linear <= 0.0031308D ? 12.92D * linear : (1.055D * Math.Pow(Math.Max(0D, linear), 1D / 2.4D)) - 0.055D;
         return ToByte(value);
     }
+    private static double FromSrgb(double value) => value <= 0.04045D
+        ? value / 12.92D
+        : Math.Pow((value + 0.055D) / 1.055D, 2.4D);
     private static byte ToByte(double value) => (byte)Math.Round(Clamp01(value) * 255D);
     private static double Component(IReadOnlyList<double>? values, int index, double fallback) => values != null && index < values.Count ? values[index] : fallback;
     private static double Clamp01(double value) => Clamp(value, 0D, 1D);

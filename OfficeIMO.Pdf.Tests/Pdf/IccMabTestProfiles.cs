@@ -28,7 +28,136 @@ internal static class IccMabTestProfiles {
     internal static byte[] CreateRgbXyzMatrixOnly() =>
         Create("RGB ", 3, precision: 2, pcsIsLab: false, transformedStages: true, includeMatrix: true, includeClut: false);
 
+    internal static byte[] CreateRgbXyz16BidirectionalWithTransformedOutput() =>
+        AppendMba(
+            CreateRgbXyzBOnly(),
+            outputChannels: 3,
+            precision: 2,
+            pcsIsLab: false,
+            transformedStages: true,
+            includeMatrix: true);
+
+    internal static byte[] CreateCmykLab8Bidirectional() =>
+        AppendMba(
+            CreateCmykLab8(),
+            outputChannels: 4,
+            precision: 1,
+            pcsIsLab: true,
+            transformedStages: false,
+            includeMatrix: false);
+
+    internal static byte[] AddRgbXyzOutputTransform(byte[] inputProfile) =>
+        AppendMba(
+            inputProfile,
+            outputChannels: 3,
+            precision: 2,
+            pcsIsLab: false,
+            transformedStages: false,
+            includeMatrix: false);
+
+    internal static byte[] CreateRgbXyz16WithDistinctOutputIntents() {
+        byte[] profile = AppendMba(
+            CreateRgbXyzBOnly(),
+            outputChannels: 3,
+            precision: 2,
+            pcsIsLab: false,
+            transformedStages: false,
+            includeMatrix: false);
+        return AppendMba(
+            profile,
+            outputChannels: 3,
+            precision: 2,
+            pcsIsLab: false,
+            transformedStages: true,
+            includeMatrix: true,
+            tagSignature: "B2A1");
+    }
+
     internal static int FindTransformOffset(byte[] profile) => checked((int)ReadUInt32(profile, 136));
+
+    internal static int FindOutputTransformOffset(byte[] profile) => checked((int)ReadUInt32(profile, 148));
+
+    private static byte[] AppendMba(
+        byte[] inputProfile,
+        int outputChannels,
+        int precision,
+        bool pcsIsLab,
+        bool transformedStages,
+        bool includeMatrix,
+        string tagSignature = "B2A0") {
+        const int bOffset = 32;
+        int cursor = bOffset + 3 * 16;
+        int matrixOffset = includeMatrix ? cursor : 0;
+        if (includeMatrix) cursor += 48;
+        int mOffset = includeMatrix ? cursor : 0;
+        if (includeMatrix) cursor += 3 * 16;
+        int clutOffset = cursor;
+        cursor += Align4(20 + GetGridSampleCount(3, variableGrid: false) * outputChannels * precision);
+        int aOffset = cursor;
+        cursor += outputChannels * 16;
+        int tagLength = cursor;
+        const int tagOffset = 0;
+        var tag = new byte[tagLength];
+
+        WriteSignature(tag, tagOffset, "mBA ");
+        tag[tagOffset + 8] = 3;
+        tag[tagOffset + 9] = (byte)outputChannels;
+        WriteUInt32(tag, tagOffset + 12, bOffset);
+        WriteUInt32(tag, tagOffset + 16, (uint)matrixOffset);
+        WriteUInt32(tag, tagOffset + 20, (uint)mOffset);
+        WriteUInt32(tag, tagOffset + 24, (uint)clutOffset);
+        WriteUInt32(tag, tagOffset + 28, (uint)aOffset);
+
+        WriteCurveSet(
+            tag,
+            tagOffset + bOffset,
+            3,
+            transformedStages ? 1.25D : 1D,
+            transformedStages ? 0.25D : 0D,
+            sampled: false);
+        if (includeMatrix) {
+            WriteMatrix(tag, tagOffset + matrixOffset, transformedStages);
+            WriteCurveSet(
+                tag,
+                tagOffset + mOffset,
+                3,
+                transformedStages ? 1.5D : 1D,
+                transformedStages ? 0.25D : 0D,
+                sampled: false);
+        }
+        WriteMbaClut(tag, tagOffset + clutOffset, outputChannels, precision, pcsIsLab, transformedStages);
+        WriteCurveSet(
+            tag,
+            tagOffset + aOffset,
+            outputChannels,
+            transformedStages ? 1.1D : 1D,
+            transformedStages ? 0.1D : 0D,
+            sampled: false);
+        return AppendTag(inputProfile, tagSignature, tag);
+    }
+
+    private static byte[] AppendTag(byte[] inputProfile, string signature, byte[] tag) {
+        int count = checked((int)ReadUInt32(inputProfile, 128));
+        int oldTableEnd = checked(132 + count * 12);
+        const int tableGrowth = 12;
+        int shiftedLength = checked(inputProfile.Length + tableGrowth);
+        int tagOffset = Align4(shiftedLength);
+        var profile = new byte[checked(tagOffset + tag.Length)];
+        Buffer.BlockCopy(inputProfile, 0, profile, 0, oldTableEnd);
+        Buffer.BlockCopy(inputProfile, oldTableEnd, profile, oldTableEnd + tableGrowth, inputProfile.Length - oldTableEnd);
+        for (int index = 0; index < count; index++) {
+            int entry = 132 + index * 12;
+            uint oldOffset = ReadUInt32(profile, entry + 4);
+            WriteUInt32(profile, entry + 4, checked(oldOffset + tableGrowth));
+        }
+        WriteUInt32(profile, 0, (uint)profile.Length);
+        WriteUInt32(profile, 128, (uint)(count + 1));
+        WriteSignature(profile, oldTableEnd, signature);
+        WriteUInt32(profile, oldTableEnd + 4, (uint)tagOffset);
+        WriteUInt32(profile, oldTableEnd + 8, (uint)tag.Length);
+        Buffer.BlockCopy(tag, 0, profile, tagOffset, tag.Length);
+        return profile;
+    }
 
     private static byte[] Create(
         string colorSpace,
@@ -197,6 +326,49 @@ internal static class IccMabTestProfiles {
             WriteNormalized(bytes, valueOffset, output0, precision);
             WriteNormalized(bytes, valueOffset + precision, output1, precision);
             WriteNormalized(bytes, valueOffset + precision * 2, output2, precision);
+        }
+    }
+
+    private static void WriteMbaClut(
+        byte[] bytes,
+        int offset,
+        int outputChannels,
+        int precision,
+        bool pcsIsLab,
+        bool transformedStages) {
+        for (int channel = 0; channel < 3; channel++) bytes[offset + channel] = 2;
+        bytes[offset + 16] = (byte)precision;
+        const int gridSamples = 8;
+        for (int index = 0; index < gridSamples; index++) {
+            double input0 = (index >> 2) & 1;
+            double input1 = (index >> 1) & 1;
+            double input2 = index & 1;
+            double output0;
+            double output1;
+            double output2;
+            double output3;
+            if (transformedStages) {
+                output0 = input0 * (0.25D + 0.75D * input1);
+                output1 = input1 * (0.25D + 0.75D * input2);
+                output2 = input2 * (0.25D + 0.75D * input0);
+                output3 = 0D;
+            } else if (pcsIsLab) {
+                output0 = 1D - input0;
+                output1 = input1;
+                output2 = input2;
+                output3 = Math.Min(input0, Math.Min(input1, input2)) * 0.5D;
+            } else {
+                output0 = input0;
+                output1 = input1;
+                output2 = input2;
+                output3 = 0D;
+            }
+
+            int valueOffset = offset + 20 + index * outputChannels * precision;
+            WriteNormalized(bytes, valueOffset, output0, precision);
+            WriteNormalized(bytes, valueOffset + precision, output1, precision);
+            WriteNormalized(bytes, valueOffset + 2 * precision, output2, precision);
+            if (outputChannels == 4) WriteNormalized(bytes, valueOffset + 3 * precision, output3, precision);
         }
     }
 

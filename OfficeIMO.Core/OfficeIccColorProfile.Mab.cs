@@ -68,6 +68,70 @@ public sealed partial class OfficeIccColorProfile {
         return true;
     }
 
+    private static bool TryReadMbaTransform(
+        byte[] bytes,
+        TagRange range,
+        int expectedOutputChannels,
+        bool pcsIsLab,
+        out MbaTransform transform) {
+        transform = null!;
+        if (range.Length < 32 ||
+            ReadUInt32(bytes, range.Offset) != LutBToATypeSignature ||
+            !AreZero(bytes, range.Offset + 4, 4) ||
+            !AreZero(bytes, range.Offset + 10, 2)) {
+            return false;
+        }
+
+        int inputChannels = bytes[range.Offset + 8];
+        int outputChannels = bytes[range.Offset + 9];
+        if (inputChannels != 3 || outputChannels != expectedOutputChannels || outputChannels is < 3 or > 4) return false;
+
+        int bOffset = ReadRelativeOffset(bytes, range.Offset + 12);
+        int matrixOffset = ReadRelativeOffset(bytes, range.Offset + 16);
+        int mOffset = ReadRelativeOffset(bytes, range.Offset + 20);
+        int clutOffset = ReadRelativeOffset(bytes, range.Offset + 24);
+        int aOffset = ReadRelativeOffset(bytes, range.Offset + 28);
+        if (bOffset <= 0 || matrixOffset < 0 || mOffset < 0 || clutOffset < 0 || aOffset < 0 ||
+            (matrixOffset == 0) != (mOffset == 0) ||
+            (clutOffset == 0) != (aOffset == 0) ||
+            (clutOffset == 0 && inputChannels != outputChannels)) {
+            return false;
+        }
+
+        var regions = new ElementRegion[12];
+        int regionCount = 0;
+        if (!TryReadEmbeddedCurveSet(bytes, range, bOffset, inputChannels, out ToneCurve[] bCurves, out ElementRange[] bRegions)) {
+            return false;
+        }
+        AddCurveRegions(regions, ref regionCount, bRegions);
+
+        ToneCurve[]? mCurves = null;
+        double[]? matrix = null;
+        if (matrixOffset != 0) {
+            if (!TryReadMabMatrix(bytes, range, matrixOffset, out matrix, out ElementRange matrixRegion) ||
+                !TryReadEmbeddedCurveSet(bytes, range, mOffset, inputChannels, out mCurves, out ElementRange[] mRegions)) {
+                return false;
+            }
+            regions[regionCount++] = new ElementRegion(matrixRegion, isCurve: false);
+            AddCurveRegions(regions, ref regionCount, mRegions);
+        }
+
+        ToneCurve[]? aCurves = null;
+        MabClut? clut = null;
+        if (clutOffset != 0) {
+            if (!TryReadMabClut(bytes, range, clutOffset, inputChannels, outputChannels, out clut, out ElementRange clutRegion) ||
+                !TryReadEmbeddedCurveSet(bytes, range, aOffset, outputChannels, out aCurves, out ElementRange[] aRegions)) {
+                return false;
+            }
+            regions[regionCount++] = new ElementRegion(clutRegion, isCurve: false);
+            AddCurveRegions(regions, ref regionCount, aRegions);
+        }
+
+        if (!HasValidMabElementLayout(bytes, range, regions, regionCount)) return false;
+        transform = new MbaTransform(outputChannels, bCurves, matrix, mCurves, clut, aCurves, pcsIsLab);
+        return true;
+    }
+
     private static bool TryReadEmbeddedCurveSet(
         byte[] bytes,
         TagRange tagRange,
@@ -297,13 +361,41 @@ public sealed partial class OfficeIccColorProfile {
         public bool TryTransform(IReadOnlyList<double> components, XyzValue whitePoint, out XyzValue pcsXyz) {
             pcsXyz = default;
             if (components.Count < _inputChannels) return false;
-            double value0 = Evaluate(_aCurves, 0, components[0]);
-            double value1 = Evaluate(_aCurves, 1, components[1]);
-            double value2 = Evaluate(_aCurves, 2, components[2]);
-            double value3 = _inputChannels == 4 ? Evaluate(_aCurves, 3, components[3]) : 0D;
+            return TryTransform(
+                components[0],
+                components[1],
+                components[2],
+                _inputChannels == 4 ? components[3] : 0D,
+                whitePoint,
+                out pcsXyz);
+        }
+
+        public bool TryTransform(DeviceComponentValues components, XyzValue whitePoint, out XyzValue pcsXyz) {
+            pcsXyz = default;
+            if (components.Count < _inputChannels) return false;
+            return TryTransform(
+                components[0],
+                components[1],
+                components[2],
+                _inputChannels == 4 ? components[3] : 0D,
+                whitePoint,
+                out pcsXyz);
+        }
+
+        private bool TryTransform(
+            double component0,
+            double component1,
+            double component2,
+            double component3,
+            XyzValue whitePoint,
+            out XyzValue pcsXyz) {
+            double value0 = Evaluate(_aCurves, 0, component0);
+            double value1 = Evaluate(_aCurves, 1, component1);
+            double value2 = Evaluate(_aCurves, 2, component2);
+            double value3 = _inputChannels == 4 ? Evaluate(_aCurves, 3, component3) : 0D;
 
             if (_clut != null) {
-                _clut.Interpolate(value0, value1, value2, value3, out value0, out value1, out value2);
+                _clut.Interpolate(value0, value1, value2, value3, out value0, out value1, out value2, out _);
             }
             value0 = Evaluate(_mCurves, 0, value0);
             value1 = Evaluate(_mCurves, 1, value1);
@@ -345,6 +437,101 @@ public sealed partial class OfficeIccColorProfile {
             curves == null ? Clamp01(value) : curves[channel].Evaluate(Clamp01(value));
     }
 
+    private sealed class MbaTransform : IPcsToDeviceTransform {
+        private const double PcsXyzScale = 65535D / 32768D;
+        private readonly int _outputChannels;
+        private readonly ToneCurve[] _bCurves;
+        private readonly double[]? _matrix;
+        private readonly ToneCurve[]? _mCurves;
+        private readonly MabClut? _clut;
+        private readonly ToneCurve[]? _aCurves;
+        private readonly bool _pcsIsLab;
+
+        internal MbaTransform(
+            int outputChannels,
+            ToneCurve[] bCurves,
+            double[]? matrix,
+            ToneCurve[]? mCurves,
+            MabClut? clut,
+            ToneCurve[]? aCurves,
+            bool pcsIsLab) {
+            _outputChannels = outputChannels;
+            _bCurves = bCurves;
+            _matrix = matrix;
+            _mCurves = mCurves;
+            _clut = clut;
+            _aCurves = aCurves;
+            _pcsIsLab = pcsIsLab;
+        }
+
+        public bool TryTransform(XyzValue pcsXyz, XyzValue whitePoint, out DeviceComponentValues components) {
+            components = default;
+            double value0;
+            double value1;
+            double value2;
+            if (_pcsIsLab) {
+                ConvertXyzToLab(pcsXyz, whitePoint, out double lightness, out double a, out double b);
+                value0 = lightness / 100D;
+                value1 = (a + 128D) / 255D;
+                value2 = (b + 128D) / 255D;
+            } else {
+                value0 = pcsXyz.X / PcsXyzScale;
+                value1 = pcsXyz.Y / PcsXyzScale;
+                value2 = pcsXyz.Z / PcsXyzScale;
+            }
+
+            value0 = _bCurves[0].Evaluate(Clamp01(value0));
+            value1 = _bCurves[1].Evaluate(Clamp01(value1));
+            value2 = _bCurves[2].Evaluate(Clamp01(value2));
+            if (_matrix != null) {
+                double matrix0 = Clamp01((_matrix[0] * value0) + (_matrix[1] * value1) + (_matrix[2] * value2) + _matrix[9]);
+                double matrix1 = Clamp01((_matrix[3] * value0) + (_matrix[4] * value1) + (_matrix[5] * value2) + _matrix[10]);
+                double matrix2 = Clamp01((_matrix[6] * value0) + (_matrix[7] * value1) + (_matrix[8] * value2) + _matrix[11]);
+                value0 = matrix0;
+                value1 = matrix1;
+                value2 = matrix2;
+            }
+            value0 = Evaluate(_mCurves, 0, value0);
+            value1 = Evaluate(_mCurves, 1, value1);
+            value2 = Evaluate(_mCurves, 2, value2);
+
+            double value3 = 0D;
+            if (_clut != null) {
+                _clut.Interpolate(value0, value1, value2, 0D, out value0, out value1, out value2, out value3);
+            }
+            value0 = Evaluate(_aCurves, 0, value0);
+            value1 = Evaluate(_aCurves, 1, value1);
+            value2 = Evaluate(_aCurves, 2, value2);
+            value3 = _outputChannels == 4 ? Evaluate(_aCurves, 3, value3) : 0D;
+            components = new DeviceComponentValues(_outputChannels, value0, value1, value2, value3);
+            return true;
+        }
+
+        private static void ConvertXyzToLab(
+            XyzValue xyz,
+            XyzValue whitePoint,
+            out double lightness,
+            out double a,
+            out double b) {
+            double fx = LabFunction(xyz.X / whitePoint.X);
+            double fy = LabFunction(xyz.Y / whitePoint.Y);
+            double fz = LabFunction(xyz.Z / whitePoint.Z);
+            lightness = Clamp(116D * fy - 16D, 0D, 100D);
+            a = Clamp(500D * (fx - fy), -128D, 127D);
+            b = Clamp(200D * (fy - fz), -128D, 127D);
+        }
+
+        private static double LabFunction(double value) => value > 216D / 24389D
+            ? Math.Pow(Math.Max(0D, value), 1D / 3D)
+            : (841D / 108D * value) + (4D / 29D);
+
+        private static double Evaluate(ToneCurve[]? curves, int channel, double value) =>
+            curves == null ? Clamp01(value) : curves[channel].Evaluate(Clamp01(value));
+
+        private static double Clamp(double value, double minimum, double maximum) =>
+            value < minimum ? minimum : value > maximum ? maximum : value;
+    }
+
     private sealed class MabClut {
         private readonly byte[] _payload;
         private readonly int _inputChannels;
@@ -381,7 +568,8 @@ public sealed partial class OfficeIccColorProfile {
             double input3,
             out double output0,
             out double output1,
-            out double output2) {
+            out double output2,
+            out double output3) {
             GetGridPosition(input0, _grid0, out int lower0, out double fraction0);
             GetGridPosition(input1, _grid1, out int lower1, out double fraction1);
             GetGridPosition(input2, _grid2, out int lower2, out double fraction2);
@@ -389,6 +577,7 @@ public sealed partial class OfficeIccColorProfile {
             output0 = 0D;
             output1 = 0D;
             output2 = 0D;
+            output3 = 0D;
             int cornerCount = 1 << _inputChannels;
             for (int corner = 0; corner < cornerCount; corner++) {
                 double weight = 1D;
@@ -406,6 +595,7 @@ public sealed partial class OfficeIccColorProfile {
                 output0 += ReadNormalized(offset) * weight;
                 output1 += ReadNormalized(offset + _precision) * weight;
                 output2 += ReadNormalized(offset + 2 * _precision) * weight;
+                if (_outputChannels == 4) output3 += ReadNormalized(offset + 3 * _precision) * weight;
             }
         }
 

@@ -7,8 +7,9 @@ namespace OfficeIMO.Drawing;
 /// <remarks>
 /// Supports RGB and Gray matrix/TRC input profiles, RGB and CMYK LUT8 input transforms with a Lab
 /// profile connection space, and RGB and CMYK LUT16 input transforms with an XYZ or Lab profile
-/// connection space. Bounded RGB and CMYK ICC v4 AToB transforms using the mAB type are also
-/// supported. Other transform types are rejected for explicit fallback.
+/// connection space. Bounded RGB and CMYK ICC v4 AToB transforms using the mAB type and BToA
+/// output transforms using the mBA type are also supported. Other transform types are rejected
+/// for explicit fallback.
 /// </remarks>
 public sealed partial class OfficeIccColorProfile {
     private const uint GraySignature = 0x47524159U;
@@ -20,9 +21,13 @@ public sealed partial class OfficeIccColorProfile {
     private const uint Lut8TypeSignature = 0x6D667431U;
     private const uint Lut16TypeSignature = 0x6D667432U;
     private const uint LutAToBTypeSignature = 0x6D414220U;
+    private const uint LutBToATypeSignature = 0x6D424120U;
     private const uint AToB0TagSignature = 0x41324230U;
     private const uint AToB1TagSignature = 0x41324231U;
     private const uint AToB2TagSignature = 0x41324232U;
+    private const uint BToA0TagSignature = 0x42324130U;
+    private const uint BToA1TagSignature = 0x42324131U;
+    private const uint BToA2TagSignature = 0x42324132U;
     private const uint MediaWhitePointTagSignature = 0x77747074U;
     private const int HeaderLength = 128;
     private const int TagTableHeaderLength = 4;
@@ -42,6 +47,7 @@ public sealed partial class OfficeIccColorProfile {
     private readonly XyzValue _whitePoint;
     private readonly XyzValue _mediaWhitePoint;
     private readonly IDeviceToPcsTransform?[]? _deviceToPcsTransforms;
+    private readonly IPcsToDeviceTransform?[]? _pcsToDeviceTransforms;
 
     private OfficeIccColorProfile(
         int componentCount,
@@ -52,7 +58,8 @@ public sealed partial class OfficeIccColorProfile {
         XyzValue greenColumn,
         XyzValue blueColumn,
         XyzValue whitePoint,
-        XyzValue mediaWhitePoint) {
+        XyzValue mediaWhitePoint,
+        IPcsToDeviceTransform?[]? pcsToDeviceTransforms = null) {
         ComponentCount = componentCount;
         _redCurve = redCurve;
         _greenCurve = greenCurve;
@@ -63,11 +70,13 @@ public sealed partial class OfficeIccColorProfile {
         _whitePoint = whitePoint;
         _mediaWhitePoint = mediaWhitePoint;
         _deviceToPcsTransforms = null;
+        _pcsToDeviceTransforms = pcsToDeviceTransforms;
     }
 
     private OfficeIccColorProfile(
         int componentCount,
         IDeviceToPcsTransform?[] deviceToPcsTransforms,
+        IPcsToDeviceTransform?[]? pcsToDeviceTransforms,
         XyzValue whitePoint,
         XyzValue mediaWhitePoint) {
         ComponentCount = componentCount;
@@ -80,6 +89,7 @@ public sealed partial class OfficeIccColorProfile {
         _whitePoint = whitePoint;
         _mediaWhitePoint = mediaWhitePoint;
         _deviceToPcsTransforms = deviceToPcsTransforms;
+        _pcsToDeviceTransforms = pcsToDeviceTransforms;
     }
 
     /// <summary>Gets the number of device components accepted by this profile.</summary>
@@ -131,6 +141,14 @@ public sealed partial class OfficeIccColorProfile {
             XyzValue mediaWhite = TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue authoredMediaWhite) && authoredMediaWhite.IsPositive
                 ? authoredMediaWhite
                 : whitePoint;
+            IPcsToDeviceTransform?[]? outputTransforms = TryReadPcsToDeviceTransforms(
+                profileBytes,
+                tags,
+                expectedOutputChannels: 3,
+                pcsIsLab: false,
+                out IPcsToDeviceTransform?[] parsedOutputTransforms)
+                    ? parsedOutputTransforms
+                    : null;
             profile = new OfficeIccColorProfile(
                 3,
                 redCurve,
@@ -140,7 +158,8 @@ public sealed partial class OfficeIccColorProfile {
                 greenColumn,
                 blueColumn,
                 whitePoint,
-                mediaWhite);
+                mediaWhite,
+                outputTransforms);
             return true;
         }
 
@@ -152,10 +171,18 @@ public sealed partial class OfficeIccColorProfile {
                 lutComponentCount,
                 profileConnectionSpace == LabSignature,
                 out IDeviceToPcsTransform?[] transforms)) {
+            IPcsToDeviceTransform?[]? outputTransforms = TryReadPcsToDeviceTransforms(
+                profileBytes,
+                tags,
+                lutComponentCount,
+                profileConnectionSpace == LabSignature,
+                out IPcsToDeviceTransform?[] parsedOutputTransforms)
+                    ? parsedOutputTransforms
+                    : null;
             XyzValue mediaWhitePoint = TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue authoredMediaWhite) && authoredMediaWhite.IsPositive
                 ? authoredMediaWhite
                 : whitePoint;
-            profile = new OfficeIccColorProfile(lutComponentCount, transforms, whitePoint, mediaWhitePoint);
+            profile = new OfficeIccColorProfile(lutComponentCount, transforms, outputTransforms, whitePoint, mediaWhitePoint);
             return true;
         }
 
@@ -466,6 +493,7 @@ public sealed partial class OfficeIccColorProfile {
 
     private interface IDeviceToPcsTransform {
         bool TryTransform(IReadOnlyList<double> components, XyzValue whitePoint, out XyzValue pcsXyz);
+        bool TryTransform(DeviceComponentValues components, XyzValue whitePoint, out XyzValue pcsXyz);
     }
 
     private sealed class LutTransform : IDeviceToPcsTransform {
@@ -510,10 +538,38 @@ public sealed partial class OfficeIccColorProfile {
         public bool TryTransform(IReadOnlyList<double> components, XyzValue whitePoint, out XyzValue pcsXyz) {
             pcsXyz = default;
             if (components.Count < _inputChannels) return false;
-            double input0 = LookupInput(components, 0);
-            double input1 = LookupInput(components, 1);
-            double input2 = LookupInput(components, 2);
-            double input3 = _inputChannels == 4 ? LookupInput(components, 3) : 0D;
+            return TryTransform(
+                components[0],
+                components[1],
+                components[2],
+                _inputChannels == 4 ? components[3] : 0D,
+                whitePoint,
+                out pcsXyz);
+        }
+
+        public bool TryTransform(DeviceComponentValues components, XyzValue whitePoint, out XyzValue pcsXyz) {
+            pcsXyz = default;
+            if (components.Count < _inputChannels) return false;
+            return TryTransform(
+                components[0],
+                components[1],
+                components[2],
+                _inputChannels == 4 ? components[3] : 0D,
+                whitePoint,
+                out pcsXyz);
+        }
+
+        private bool TryTransform(
+            double component0,
+            double component1,
+            double component2,
+            double component3,
+            XyzValue whitePoint,
+            out XyzValue pcsXyz) {
+            double input0 = LookupInput(component0, 0);
+            double input1 = LookupInput(component1, 1);
+            double input2 = LookupInput(component2, 2);
+            double input3 = _inputChannels == 4 ? LookupInput(component3, 3) : 0D;
             InterpolateClut(input0, input1, input2, input3, out double output0, out double output1, out double output2);
             output0 = LookupTable(_outputOffset, _outputEntries, output0);
             output1 = LookupTable(_outputOffset + _outputEntries * _precision, _outputEntries, output1);
@@ -542,11 +598,11 @@ public sealed partial class OfficeIccColorProfile {
             return true;
         }
 
-        private double LookupInput(IReadOnlyList<double> components, int channel) =>
+        private double LookupInput(double component, int channel) =>
             LookupTable(
                 _inputOffset + channel * _inputEntries * _precision,
                 _inputEntries,
-                Clamp01(components[channel]));
+                Clamp01(component));
 
         private double LookupTable(int offset, int entries, double value) {
             double position = Clamp01(value) * (entries - 1);
