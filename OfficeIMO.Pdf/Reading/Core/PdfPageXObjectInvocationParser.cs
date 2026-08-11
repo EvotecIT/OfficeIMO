@@ -508,7 +508,15 @@ internal static class PdfPageXObjectInvocationParser {
         }
 
         private bool IsOrdinaryTextFrameVisible(double advance) {
-            if (_textSize <= 0D || Math.Abs(advance) <= 0.000001D) return false;
+            if (_textSize <= 0D) return false;
+            // A zero advance is not proof that a glyph paints no pixels. Fonts may
+            // legitimately expose non-empty outlines with a zero text advance.
+            if (Math.Abs(advance) <= 0.000001D) {
+                return _pageWidth.HasValue
+                    ? PdfReadPage.HasPositiveVisibleClipArea(_state.ClipPath, _pageWidth.Value, _pageHeight)
+                    : !_state.ClipPath.HasValue ||
+                      (_state.ClipPath.Value.Width > 0.000001D && _state.ClipPath.Value.Height > 0.000001D);
+            }
             double left = advance < 0D ? advance : 0D;
             double width = Math.Abs(advance);
             double descent = Math.Max(0.001D, _textSize * 0.25D);

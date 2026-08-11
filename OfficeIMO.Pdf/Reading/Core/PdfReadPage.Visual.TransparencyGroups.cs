@@ -294,12 +294,13 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         out PdfPageClipPath bounds) {
         bounds = default;
-        if (!TryReadBox(
+        if (!TryReadType3TransparencyGroupBox(
                 formDictionary.Items.TryGetValue("BBox", out PdfObject? bboxObject) ? bboxObject : null,
-                out (double X1, double Y1, double X2, double Y2) bbox) ||
-            bbox.X2 <= bbox.X1 ||
-            bbox.Y2 <= bbox.Y1) {
+                out (double X1, double Y1, double X2, double Y2) bbox)) {
             return Type3TransparencyGroupDrawingResult.Unsupported;
+        }
+        if (bbox.X2 <= bbox.X1 || bbox.Y2 <= bbox.Y1) {
+            return Type3TransparencyGroupDrawingResult.Invisible;
         }
 
         (double X, double Y) transformedTopLeft = transform.Transform(bbox.X1, bbox.Y1);
@@ -336,6 +337,9 @@ public sealed partial class PdfReadPage {
         if (activeClip.HasValue) {
             projectedBounds = PdfPageClipPath.ResolveActiveClip(activeClip.Value, projectedBounds);
         }
+        if (!projectedBounds.IsExact) {
+            return Type3TransparencyGroupDrawingResult.Unsupported;
+        }
         if (projectedBounds.Width <= 0D || projectedBounds.Height <= 0D) {
             return Type3TransparencyGroupDrawingResult.Invisible;
         }
@@ -362,6 +366,31 @@ public sealed partial class PdfReadPage {
                 bottomWithTolerance - topWithTolerance);
         }
         return Type3TransparencyGroupDrawingResult.Success;
+    }
+
+    private bool TryReadType3TransparencyGroupBox(
+        PdfObject? value,
+        out (double X1, double Y1, double X2, double Y2) box) {
+        box = default;
+        PdfArray? array = ResolveArray(value);
+        if (array == null || array.Items.Count < 4 ||
+            ResolveObject(array.Items[0]) is not PdfNumber x1 ||
+            ResolveObject(array.Items[1]) is not PdfNumber y1 ||
+            ResolveObject(array.Items[2]) is not PdfNumber x2 ||
+            ResolveObject(array.Items[3]) is not PdfNumber y2 ||
+            !IsFinite(x1.Value) ||
+            !IsFinite(y1.Value) ||
+            !IsFinite(x2.Value) ||
+            !IsFinite(y2.Value)) {
+            return false;
+        }
+
+        box = (
+            Math.Min(x1.Value, x2.Value),
+            Math.Min(y1.Value, y2.Value),
+            Math.Max(x1.Value, x2.Value),
+            Math.Max(y1.Value, y2.Value));
+        return true;
     }
 
     private enum Type3TransparencyGroupDrawingResult {

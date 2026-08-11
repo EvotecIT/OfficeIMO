@@ -465,6 +465,9 @@ public sealed partial class PdfReadPage {
         if (placement.ClipPath.HasValue) {
             projectedBounds = PdfPageClipPath.ResolveActiveClip(projectedBounds, placement.ClipPath.Value);
         }
+        if (!projectedBounds.IsExact) {
+            return Type3PatternImageMaskDrawingResult.Unsupported;
+        }
         if (!TryFitClipToDrawing(projectedBounds, pageWidth, pageHeight, out fitted)) {
             return Type3PatternImageMaskDrawingResult.Invisible;
         }
