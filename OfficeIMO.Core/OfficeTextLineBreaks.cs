@@ -14,7 +14,14 @@ public static class OfficeTextLineBreaks {
     /// <summary>
     /// Returns safe UTF-16 indexes where an unspaced token can wrap without inserting text.
     /// </summary>
-    public static IReadOnlyList<int> GetBreakPositions(string? text) {
+    public static IReadOnlyList<int> GetBreakPositions(string? text) =>
+        GetBreakPositions(text, allowCjkBreaks: true);
+
+    /// <summary>
+    /// Returns safe UTF-16 indexes where an unspaced token can wrap without inserting text,
+    /// optionally excluding boundaries introduced only by CJK characters.
+    /// </summary>
+    public static IReadOnlyList<int> GetBreakPositions(string? text, bool allowCjkBreaks) {
         if (text == null || text.Length == 0) {
             return Array.Empty<int>();
         }
@@ -29,7 +36,7 @@ public static class OfficeTextLineBreaks {
             int boundary = elementStarts[elementIndex];
             int left = ReadLastScalar(text, boundary);
             int right = ReadFirstScalar(text, boundary);
-            if (CanBreakBetween(left, right)) {
+            if (CanBreakBetween(left, right, allowCjkBreaks)) {
                 positions.Add(boundary);
             }
         }
@@ -47,13 +54,12 @@ public static class OfficeTextLineBreaks {
         return Array.BinarySearch(elementStarts, position) >= 0;
     }
 
-    private static bool CanBreakBetween(int left, int right) {
+    private static bool CanBreakBetween(int left, int right, bool allowCjkBreaks) {
         if (IsNonStarter(right) || IsOpeningPunctuation(left) || IsClosingPunctuation(right)) {
             return false;
         }
 
-        return IsCjkScalar(left) ||
-            IsCjkScalar(right) ||
+        return (allowCjkBreaks && (IsCjkScalar(left) || IsCjkScalar(right))) ||
             IsBreakAfterScalar(left);
     }
 

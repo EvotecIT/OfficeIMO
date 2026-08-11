@@ -335,6 +335,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     ? ExpandTabs(normalizedToken, run.Style, line.Width)
                     : normalizedToken;
                 double measured = MeasureInlineText(paintToken, run.Style);
+                if (!paragraphStyle.PreventTextWrapping
+                    && !whitespace
+                    && measured > Math.Max(0D, width - line.Width)
+                    && TryAddPreferredBreakToken(
+                        lines,
+                        ref line,
+                        run,
+                        paintToken,
+                        normalizedLogicalToken,
+                        width,
+                        visibleTokenStart)) {
+                    continue;
+                }
                 if (!paragraphStyle.PreventTextWrapping && !whitespace && measured > width && AllowsEmergencyTokenBreak(run.Style)) {
                     AddBrokenToken(lines, ref line, run, paintToken, normalizedLogicalToken, width, visibleTokenStart);
                     continue;
@@ -369,6 +382,46 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ApplyEndEllipsis(lines[0], width, completeLogicalProgress);
         }
         return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, supportsContinuationReflow: supportsContinuationReflow);
+    }
+
+    private bool TryAddPreferredBreakToken(
+        ICollection<InlineLine> lines,
+        ref InlineLine line,
+        HtmlInlineRun run,
+        string paintToken,
+        string logicalToken,
+        double width,
+        int logicalStartProgress) {
+        if (paintToken.Length != logicalToken.Length) return false;
+        IReadOnlyList<int> breaks = OfficeTextLineBreaks.GetBreakPositions(
+            paintToken,
+            allowCjkBreaks: run.Style.WordBreak != "keep-all");
+        if (breaks.Count == 0) return false;
+        int start = 0;
+        foreach (int end in breaks.Concat(new[] { paintToken.Length })) {
+            if (end <= start || end > paintToken.Length) continue;
+            string paintChunk = paintToken.Substring(start, end - start);
+            string logicalChunk = logicalToken.Substring(start, end - start);
+            double chunkWidth = MeasureInlineText(paintChunk, run.Style);
+            if (chunkWidth > width && AllowsEmergencyTokenBreak(run.Style)) {
+                AddBrokenToken(lines, ref line, run, paintChunk, logicalChunk, width, logicalStartProgress + start);
+                start = end;
+                continue;
+            }
+            if (line.HasFlowContent && line.Width + chunkWidth > width) {
+                TrimTrailingWhitespace(line);
+                lines.Add(line);
+                line = new InlineLine();
+            }
+            line.Add(new InlineSegment(
+                paintChunk,
+                chunkWidth,
+                run,
+                logicalChunk,
+                logicalEndProgress: logicalStartProgress + end));
+            start = end;
+        }
+        return start == paintToken.Length;
     }
 
     private string ExpandTabs(string value, HtmlRenderBoxStyle style, double currentWidth) {

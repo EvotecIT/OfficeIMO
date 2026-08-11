@@ -38,6 +38,8 @@ public class DrawingTextTypographyTests {
     [Fact]
     public void LineBreaks_ExposeUsefulNonCjkTokenBoundaries() {
         Assert.Equal(new[] { 6, 11 }, OfficeTextLineBreaks.GetBreakPositions("alpha-beta/gamma"));
+        Assert.Equal(new[] { 6, 11 }, OfficeTextLineBreaks.GetBreakPositions("alpha-beta/gamma", allowCjkBreaks: false));
+        Assert.Empty(OfficeTextLineBreaks.GetBreakPositions("日本語", allowCjkBreaks: false));
         Assert.True(OfficeTextLineBreaks.IsValidBreakPosition("alpha-beta", 6));
         Assert.False(OfficeTextLineBreaks.IsValidBreakPosition("alpha-beta", 0));
     }
