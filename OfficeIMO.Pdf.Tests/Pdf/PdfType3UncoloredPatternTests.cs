@@ -1000,6 +1000,27 @@ public class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void RenderPages_PreservesDistinctClipsForRepeatedFormDiagnostics() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "q 200 0 40 40 re W n /Fm1 Do Q q 0 0 240 200 re W n /Fm1 Do Q",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            invokeThroughForm: true,
+            glyphContent: "500 0 d0 q 500 100 0 700 0 0 cm /Im1 Do Q",
+            glyphResources: "<< /XObject << /Im1 9 0 R >> >>",
+            formContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            formResourceEntries: "/Font << /FType3 5 0 R >> /Pattern << /P1 7 0 R >>",
+            extraObjects: new[] {
+                StreamObject(9, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
     public void RenderPage_DiagnosesVisibleUnsupportedPatternedImageMaskWithOffsetCropBox() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 320 150 Td (A) Tj ET",

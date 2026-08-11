@@ -897,7 +897,8 @@ public sealed partial class PdfReadPage {
                 PdfPageShadingPatternResource? StrokeShadingResource,
                 Matrix2D StrokePaintTransform,
                 PdfPageColorSpace StrokeColorSpace,
-                Matrix2D InvocationTransform)>();
+                Matrix2D InvocationTransform,
+                PdfPageClipPath? InvocationClip)>();
             for (int stateIndex = 0; stateIndex < states.Count; stateIndex++) {
                 PdfPageXObjectInvocation invocation = states[stateIndex];
                 var stateKey = (
@@ -915,7 +916,8 @@ public sealed partial class PdfReadPage {
                     invocation.StrokePattern?.ShadingPattern,
                     invocation.StrokePattern?.PaintTransform ?? Matrix2D.Identity,
                     invocation.StrokeColorSpace,
-                    invocation.Transform);
+                    invocation.Transform,
+                    invocation.ClipPath);
                 if (!distinctStates.Add(stateKey) || !activeForms.Add(stream)) continue;
                 try {
                     PdfDictionary? formResources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceObject) ? formResourceObject : null) ?? resources;
