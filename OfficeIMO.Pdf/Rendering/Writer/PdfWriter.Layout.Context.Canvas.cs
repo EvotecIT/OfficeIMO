@@ -87,7 +87,8 @@ internal static partial class PdfWriter {
                     Y1 = bottomY,
                     X2 = item.X + item.Width,
                     Y2 = topY,
-                    Option = item.Option
+                    Option = item.Option,
+                    Style = item.Style
                 });
                 currentPage!.FormFields.Add(field);
                 pageDirty = true;

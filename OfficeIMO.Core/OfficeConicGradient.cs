@@ -53,7 +53,9 @@ public sealed class OfficeConicGradient {
         var ordered = new List<double>(boundaries);
         double centerX = CenterX * width;
         double centerY = CenterY * height;
-        double radius = 2D * Math.Sqrt((width * width) + (height * height));
+        double radius = Math.Max(
+            Math.Max(Distance(centerX, centerY, 0D, 0D), Distance(centerX, centerY, width, 0D)),
+            Math.Max(Distance(centerX, centerY, 0D, height), Distance(centerX, centerY, width, height))) * 1.000001D;
         var content = new OfficeDrawing(width, height);
         const double overlap = 0.000001D;
         for (int index = 1; index < ordered.Count; index++) {
@@ -153,6 +155,12 @@ public sealed class OfficeConicGradient {
         points = ClipAgainstVerticalBoundary(points, width, keepGreater: false);
         points = ClipAgainstHorizontalBoundary(points, 0D, keepGreater: true);
         return ClipAgainstHorizontalBoundary(points, height, keepGreater: false);
+    }
+
+    private static double Distance(double x1, double y1, double x2, double y2) {
+        double x = x2 - x1;
+        double y = y2 - y1;
+        return Math.Sqrt((x * x) + (y * y));
     }
 
     private static List<OfficePoint> ClipAgainstVerticalBoundary(

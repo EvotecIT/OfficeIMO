@@ -678,28 +678,13 @@ internal static partial class PdfWriter {
                     double appearanceHeight = field.Y2 - field.Y1;
                     if (field.Kind == FormFieldAnnotationKind.RadioButtonGroup) {
                         if (field.RadioWidgets.Count > 0) {
-                            RadioButtonWidgetAnnotation firstWidget = field.RadioWidgets[0];
-                            double positionedWidth = firstWidget.X2 - firstWidget.X1;
-                            double positionedHeight = firstWidget.Y2 - firstWidget.Y1;
                             if (!positionedRadioPlans.TryGetValue(field.Name, out PositionedRadioButtonSerializationPlan? plan)) {
-                                string positionedOffAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(positionedWidth, positionedHeight, selected: false, field.Style);
-                                byte[] positionedOffBytes = PdfEncoding.Latin1GetBytes(positionedOffAppearance);
-                                string positionedOffDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(positionedWidth, positionedHeight, positionedOffBytes.Length);
-                                string positionedSelectedAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(positionedWidth, positionedHeight, selected: true, field.Style);
-                                byte[] positionedSelectedBytes = PdfEncoding.Latin1GetBytes(positionedSelectedAppearance);
-                                string positionedSelectedDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(positionedWidth, positionedHeight, positionedSelectedBytes.Length);
                                 plan = new PositionedRadioButtonSerializationPlan {
                                     ParentFieldId = ReserveObject(objects),
-                                    OffAppearanceId = AddStreamObject(objects, positionedOffDictionary, positionedOffBytes),
-                                    SelectedAppearanceId = AddStreamObject(objects, positionedSelectedDictionary, positionedSelectedBytes),
-                                    Width = positionedWidth,
-                                    Height = positionedHeight,
                                     Style = field.Style
                                 };
                                 positionedRadioPlans[field.Name] = plan;
                                 formFieldIds.Add(plan.ParentFieldId);
-                            } else if (Math.Abs(plan.Width - positionedWidth) > 0.0001D || Math.Abs(plan.Height - positionedHeight) > 0.0001D) {
-                                throw new ArgumentException("Canvas radio buttons sharing one field name must use the same widget dimensions.");
                             }
 
                             for (int optionIndex = 0; optionIndex < field.Options.Count; optionIndex++) {
@@ -708,6 +693,16 @@ internal static partial class PdfWriter {
                                     throw new ArgumentException("Canvas radio button options must be unique within one field name.");
                                 }
                                 RadioButtonWidgetAnnotation widgetFrame = field.RadioWidgets[optionIndex];
+                                double widgetWidth = widgetFrame.X2 - widgetFrame.X1;
+                                double widgetHeight = widgetFrame.Y2 - widgetFrame.Y1;
+                                string positionedOffAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(widgetWidth, widgetHeight, selected: false, widgetFrame.Style);
+                                byte[] positionedOffBytes = PdfEncoding.Latin1GetBytes(positionedOffAppearance);
+                                string positionedOffDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(widgetWidth, widgetHeight, positionedOffBytes.Length);
+                                int positionedOffAppearanceId = AddStreamObject(objects, positionedOffDictionary, positionedOffBytes);
+                                string positionedSelectedAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(widgetWidth, widgetHeight, selected: true, widgetFrame.Style);
+                                byte[] positionedSelectedBytes = PdfEncoding.Latin1GetBytes(positionedSelectedAppearance);
+                                string positionedSelectedDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(widgetWidth, widgetHeight, positionedSelectedBytes.Length);
+                                int positionedSelectedAppearanceId = AddStreamObject(objects, positionedSelectedDictionary, positionedSelectedBytes);
                                 AnnotationStructureReference? widgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form");
                                 string widget = PdfAnnotationDictionaryBuilder.BuildRadioButtonWidgetAnnotation(
                                     widgetFrame.X1,
@@ -717,9 +712,9 @@ internal static partial class PdfWriter {
                                     plan.ParentFieldId,
                                     option,
                                     field.Value,
-                                    plan.OffAppearanceId,
-                                    plan.SelectedAppearanceId,
-                                    field.Style,
+                                    positionedOffAppearanceId,
+                                    positionedSelectedAppearanceId,
+                                    widgetFrame.Style,
                                     widgetStructureReference?.StructParentIndex);
                                 int widgetObjectId = AddObject(objects, widget);
                                 CompleteAnnotationStructureReference(page, widgetStructureReference, widgetObjectId);

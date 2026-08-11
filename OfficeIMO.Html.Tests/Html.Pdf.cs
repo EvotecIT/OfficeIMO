@@ -74,6 +74,32 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_RadioGroupPreservesDifferentlySizedWidgets() {
+        const string html = """
+            <input type="radio" name="size" value="Small" style="width:12px;height:12px">
+            <input type="radio" name="size" value="Large" checked style="width:24px;height:18px">
+            """;
+
+        PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdf()).FormFields);
+
+        Assert.Equal("Large", field.Value);
+        Assert.Equal(10.5D, field.Widgets[0].Width, 3);
+        Assert.Equal(19.5D, field.Widgets[1].Width, 3);
+        Assert.Equal(15D, field.Widgets[1].Height, 3);
+    }
+
+    [Fact]
+    public void HtmlToPdf_TransformedControlUsesSearchableStaticAppearance() {
+        const string html = "<input name='tilted' value='Tilted value' style='width:140px;transform:rotate(12deg)'>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        string searchableText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        Assert.Contains("Tiltedvalue", searchableText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_RepeatedNamesRemainDistinctExceptWithinOneRadioGroup() {
         const string html = """
             <form><input type="checkbox" name="tag" value="One"><input type="checkbox" name="tag" value="Two"></form>

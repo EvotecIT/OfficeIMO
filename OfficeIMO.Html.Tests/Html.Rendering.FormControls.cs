@@ -101,6 +101,22 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_TransformedControlsUseFaithfulStaticPaintInsteadOfAxisAlignedWidgets() {
+        const string html = "<input id='rotated' name='rotated' value='Tilted' style='width:140px;transform:rotate(12deg)'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+        HtmlRenderVisual[] scene = EnumerateRenderVisuals(rendered.Pages[0].Visuals).ToArray();
+
+        Assert.DoesNotContain(scene, visual => visual is HtmlRenderFormField);
+        HtmlRenderEffectGroup effect = Assert.Single(scene.OfType<HtmlRenderEffectGroup>(), group => group.Source == "input#rotated");
+        Assert.True(Math.Abs(effect.Transform.M12) > 0.0001D || Math.Abs(effect.Transform.M21) > 0.0001D);
+        Assert.Contains(scene.OfType<HtmlRenderText>(), text => text.Text == "Tilted");
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback
+            && diagnostic.Source == "input#rotated");
+    }
+
+    [Fact]
     public void HtmlRendering_SingleSelectDefaultsToFirstEnabledOption() {
         const string html = "<select><option disabled>Disabled</option><optgroup disabled><option>Group disabled</option></optgroup><option label='Enabled label'>Fallback text</option></select>";
 

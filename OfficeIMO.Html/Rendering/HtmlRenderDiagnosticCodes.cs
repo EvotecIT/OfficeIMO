@@ -70,6 +70,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string GeneratedContentUnsupported = "HtmlRenderGeneratedContentUnsupported";
     /// <summary>A CSS counter declaration was ignored because it could not be represented.</summary>
     public const string GeneratedCounterUnsupported = "HtmlRenderGeneratedCounterUnsupported";
+    /// <summary>A generated counter representation exceeded its bounded output budget and used a safe fallback.</summary>
+    public const string CounterRepresentationLimitExceeded = "HtmlRenderCounterRepresentationLimitExceeded";
     /// <summary>A replaced-element sizing or object-placement value used a deterministic fallback.</summary>
     public const string ReplacedElementValueUnsupported = "HtmlRenderReplacedElementValueUnsupported";
     /// <summary>A positioned inset could not be resolved by the current length model.</summary>
@@ -86,6 +88,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string OverflowClipMarginValueUnsupported = "HtmlRenderOverflowClipMarginValueUnsupported";
     /// <summary>A CSS transform or transform-origin value used the identity fallback.</summary>
     public const string TransformValueUnsupported = "HtmlRenderTransformValueUnsupported";
+    /// <summary>A transformed HTML form control used static rendering because an interactive PDF widget cannot preserve the authored transform.</summary>
+    public const string FormFieldTransformStaticFallback = "HtmlRenderFormFieldTransformStaticFallback";
     /// <summary>A CSS opacity value used the opaque fallback.</summary>
     public const string OpacityValueUnsupported = "HtmlRenderOpacityValueUnsupported";
     /// <summary>A non-atomic inline paint effect could not form an isolated group.</summary>
@@ -185,6 +189,7 @@ public static class HtmlRenderDiagnosticCodes {
         ForcedFragment,
         GeneratedContentUnsupported,
         GeneratedCounterUnsupported,
+        CounterRepresentationLimitExceeded,
         GridLayoutPending,
         GridTrackLimitExceeded,
         GridValueUnsupported,
@@ -193,6 +198,7 @@ public static class HtmlRenderDiagnosticCodes {
         OverflowScrollSnapshot,
         OverflowValueUnsupported,
         TransformValueUnsupported,
+        FormFieldTransformStaticFallback,
         OpacityValueUnsupported,
         InlinePaintEffectUnsupported,
         BorderRadiusValueUnsupported,

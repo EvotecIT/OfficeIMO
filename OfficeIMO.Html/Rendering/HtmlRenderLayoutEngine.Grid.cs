@@ -20,6 +20,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         double? declaredContentHeight = ResolveGridDeclaredContentHeight(style);
         bool usesColumnSubgrid = string.Equals(style.GridTemplateColumns.Trim(), "subgrid", StringComparison.OrdinalIgnoreCase)
+            && ReferenceEquals(_activeSubgridOwner, element)
             && _activeSubgridColumnSizes != null;
         List<GridTrack> columnTracks = usesColumnSubgrid
             ? _activeSubgridColumnSizes!.Select(size => GridTrack.Fixed(size, "subgrid")).ToList()
@@ -173,13 +174,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle parentStyle,
         int depth,
         GridAxisLayout columns) {
+        IElement? previousOwner = _activeSubgridOwner;
         IReadOnlyList<double>? previousSizes = _activeSubgridColumnSizes;
         double previousGap = _activeSubgridColumnGap;
         try {
+            _activeSubgridOwner = item.Item.Element;
             _activeSubgridColumnSizes = columns.Sizes.Skip(item.Column).Take(item.ColumnSpan).ToList();
             _activeSubgridColumnGap = columns.Between;
             return LayoutFlexItem(item.Item, containingWidth, parentStyle, depth);
         } finally {
+            _activeSubgridOwner = previousOwner;
             _activeSubgridColumnSizes = previousSizes;
             _activeSubgridColumnGap = previousGap;
         }

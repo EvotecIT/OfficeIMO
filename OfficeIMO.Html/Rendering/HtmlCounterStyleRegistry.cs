@@ -33,14 +33,25 @@ internal sealed class HtmlCounterStyleRegistry {
     }
 
     internal bool TryFormat(int value, string styleName, out string formatted) =>
-        TryFormat(value, styleName, new HashSet<string>(StringComparer.Ordinal), 0, out formatted);
+        TryFormat(value, styleName, out formatted, out _);
 
-    internal bool TryFormatMarker(int value, string styleName, out string marker) {
+    internal bool TryFormat(int value, string styleName, out string formatted, out bool representationLimited) =>
+        TryFormat(value, styleName, new HashSet<string>(StringComparer.Ordinal), 0, out formatted, out representationLimited);
+
+    internal bool TryFormatMarker(int value, string styleName, out string marker) =>
+        TryFormatMarker(value, styleName, out marker, out _);
+
+    internal bool TryFormatMarker(int value, string styleName, out string marker, out bool representationLimited) {
         marker = string.Empty;
+        representationLimited = false;
         string decodedName = HtmlCssEscapeDecoder.Decode(styleName.Trim());
         if (!_definitions.TryGetValue(decodedName, out Definition? definition)) return false;
-        if (!TryFormat(value, decodedName, new HashSet<string>(StringComparer.Ordinal), 0, out string representation)) return false;
+        if (!TryFormat(value, decodedName, new HashSet<string>(StringComparer.Ordinal), 0, out string representation, out representationLimited)) return false;
         marker = definition.Prefix + representation + definition.Suffix;
+        if (marker.Length > HtmlCounterStyleFormatter.MaximumGeneratedRepresentationLength) {
+            marker = value.ToString(CultureInfo.InvariantCulture) + ". ";
+            representationLimited = true;
+        }
         return true;
     }
 
@@ -49,18 +60,24 @@ internal sealed class HtmlCounterStyleRegistry {
         string styleName,
         ISet<string> active,
         int depth,
-        out string formatted) {
+        out string formatted,
+        out bool representationLimited) {
         formatted = string.Empty;
+        representationLimited = false;
         string decodedName = HtmlCssEscapeDecoder.Decode(styleName.Trim());
         if (!_definitions.TryGetValue(decodedName, out Definition? definition)) return false;
         if (depth >= MaximumFallbackDepth || !active.Add(decodedName)) {
-            return HtmlCounterStyleFormatter.TryFormat(value, "decimal", out formatted);
+            return HtmlCounterStyleFormatter.TryFormat(value, "decimal", out formatted, out representationLimited);
         }
         try {
-            if (definition.IsInRange(value) && definition.TryFormat(value, out formatted)) return true;
+            if (definition.IsInRange(value) && definition.TryFormat(value, out formatted, out representationLimited)) return true;
+            if (representationLimited) {
+                HtmlCounterStyleFormatter.TryFormat(value, "decimal", out formatted);
+                return true;
+            }
             string fallback = definition.Fallback.Length == 0 ? "decimal" : definition.Fallback;
-            if (_definitions.ContainsKey(fallback)) return TryFormat(value, fallback, active, depth + 1, out formatted);
-            return HtmlCounterStyleFormatter.TryFormat(value, fallback, out formatted)
+            if (_definitions.ContainsKey(fallback)) return TryFormat(value, fallback, active, depth + 1, out formatted, out representationLimited);
+            return HtmlCounterStyleFormatter.TryFormat(value, fallback, out formatted, out representationLimited)
                 || HtmlCounterStyleFormatter.TryFormat(value, "decimal", out formatted);
         } finally {
             active.Remove(decodedName);
@@ -255,8 +272,9 @@ internal sealed class HtmlCounterStyleRegistry {
 
         internal bool IsInRange(int value) => _ranges.Count == 0 || _ranges.Any(range => range.Contains(value));
 
-        internal bool TryFormat(int value, out string formatted) {
+        internal bool TryFormat(int value, out string formatted, out bool representationLimited) {
             formatted = string.Empty;
+            representationLimited = false;
             bool negative = value < 0;
             long magnitude = Math.Abs((long)value);
             string representation;
@@ -284,21 +302,41 @@ internal sealed class HtmlCounterStyleRegistry {
                     if (value <= 0) return false;
                     int symbolIndex = (value - 1) % _symbols.Count;
                     int repetitions = ((value - 1) / _symbols.Count) + 1;
-                    representation = string.Concat(Enumerable.Repeat(_symbols[symbolIndex], repetitions));
+                    if (!HtmlCounterStyleFormatter.TryRepeatSymbol(_symbols[symbolIndex], repetitions, out representation)) {
+                        representationLimited = true;
+                        return false;
+                    }
                     negative = false;
                     break;
                 default:
-                    if (!TryFormatAdditive(magnitude, out representation)) return false;
+                    if (!TryFormatAdditive(magnitude, out representation, out representationLimited)) return false;
                     break;
             }
 
+            if (representation.Length > HtmlCounterStyleFormatter.MaximumGeneratedRepresentationLength) {
+                representationLimited = true;
+                return false;
+            }
             int symbolCount = CountTextElements(representation);
-            if (_padWidth > symbolCount) representation = string.Concat(Enumerable.Repeat(_padSymbol, _padWidth - symbolCount)) + representation;
+            if (_padWidth > symbolCount) {
+                if (!HtmlCounterStyleFormatter.TryRepeatSymbol(_padSymbol, _padWidth - symbolCount, out string padding)
+                    || padding.Length + representation.Length > HtmlCounterStyleFormatter.MaximumGeneratedRepresentationLength) {
+                    representationLimited = true;
+                    return false;
+                }
+                representation = padding + representation;
+            }
             formatted = negative ? _negativePrefix + representation + _negativeSuffix : representation;
+            if (formatted.Length > HtmlCounterStyleFormatter.MaximumGeneratedRepresentationLength) {
+                formatted = string.Empty;
+                representationLimited = true;
+                return false;
+            }
             return true;
         }
 
-        private bool TryFormatAdditive(long value, out string representation) {
+        private bool TryFormatAdditive(long value, out string representation, out bool representationLimited) {
+            representationLimited = false;
             var result = new StringBuilder();
             long remaining = value;
             foreach (AdditiveSymbol additive in _additiveSymbols) {
@@ -308,8 +346,11 @@ internal sealed class HtmlCounterStyleRegistry {
                 }
                 long count = remaining / additive.Weight;
                 if (count <= 0) continue;
-                if (count > 4096) {
+                if (count > HtmlCounterStyleFormatter.MaximumGeneratedRepresentationLength
+                    || additive.Symbol.Length > 0
+                    && count > (HtmlCounterStyleFormatter.MaximumGeneratedRepresentationLength - result.Length) / additive.Symbol.Length) {
                     representation = string.Empty;
+                    representationLimited = true;
                     return false;
                 }
                 for (long index = 0; index < count; index++) result.Append(additive.Symbol);

@@ -63,6 +63,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly List<HtmlCssRunningStringAssignment> _currentPageRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
     private HtmlCssRunningStringPageContext? _currentRunningStringPage;
     private HtmlCssPageGeometry _activePageGeometry;
+    private IElement? _activeSubgridOwner;
     private IReadOnlyList<double>? _activeSubgridColumnSizes;
     private double _activeSubgridColumnGap;
 
@@ -207,6 +208,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _registeredFixedElements.Clear();
         _registeredAbsoluteElements.Clear();
         _reportedPositionStaticAnchorFallbacks.Clear();
+        _activeSubgridOwner = null;
         _activeSubgridColumnSizes = null;
         _activeSubgridColumnGap = 0D;
     }
@@ -286,13 +288,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int index = 0; index < blocks.Count; index++) {
             CheckCancellation();
             HtmlRenderFlowBlock block = blocks[index];
-            block = RelayoutTopLevelBlockForPage(block, pageGeometry);
             bool hasPageContent = y > pageGeometry.Margins.Top + 0.0001D;
-            if (hasPageContent && !string.Equals(currentPageName, block.PageName, StringComparison.OrdinalIgnoreCase)) {
-                CommitPage(pages, visuals, pageGeometry, currentPageName);
+            if (!string.Equals(currentPageName, block.PageName, StringComparison.OrdinalIgnoreCase)) {
+                if (hasPageContent) CommitPage(pages, visuals, pageGeometry, currentPageName);
                 BeginPage(block.PageName);
                 block = RelayoutTopLevelBlockForPage(block, pageGeometry);
                 hasPageContent = false;
+            } else {
+                block = RelayoutTopLevelBlockForPage(block, pageGeometry);
             }
 
             if (!hasPageContent) currentPageName = block.PageName;

@@ -41,6 +41,20 @@ public sealed class DrawingConicGradientTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => gradient.CreateDrawing(20D, 20D, segments));
     }
 
+    [Fact]
+    public void OfficeConicGradient_CoversTheBoxWhenTheAuthoredCenterIsOutsideIt() {
+        var gradient = new OfficeConicGradient(
+            5D,
+            0.5D,
+            0D,
+            new[] { new OfficeGradientStop(0D, OfficeColor.Red), new OfficeGradientStop(1D, OfficeColor.Blue) });
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(gradient.CreateDrawing(40D, 20D, qualitySegments: 72));
+
+        Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(0, 0));
+        Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(39, 19));
+    }
+
     private static int Count(string value, string token) {
         int count = 0;
         int index = 0;

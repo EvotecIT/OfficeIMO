@@ -199,11 +199,64 @@ public static partial class HtmlComputedStyleEngine {
             : ":is(" + string.Join(",", parentSelectors) + ")";
         var resolved = new List<string>(children.Length);
         foreach (string child in children) {
-            resolved.Add(child.IndexOf('&') >= 0
-                ? child.Replace("&", parent)
+            string nested = ReplaceNestingSelectorTokens(child, parent, out bool replaced);
+            resolved.Add(replaced
+                ? nested
                 : parent + " " + child);
         }
         return resolved.AsReadOnly();
+    }
+
+    private static string ReplaceNestingSelectorTokens(string selector, string parent, out bool replaced) {
+        replaced = false;
+        var result = new System.Text.StringBuilder(selector.Length + parent.Length);
+        char quote = '\0';
+        int attributeDepth = 0;
+        for (int index = 0; index < selector.Length; index++) {
+            char current = selector[index];
+            if (current == '\\') {
+                result.Append(current);
+                if (index + 1 < selector.Length) result.Append(selector[++index]);
+                continue;
+            }
+            if (quote != '\0') {
+                result.Append(current);
+                if (current == quote) quote = '\0';
+                continue;
+            }
+            if (current == '/' && index + 1 < selector.Length && selector[index + 1] == '*') {
+                int commentEnd = selector.IndexOf("*/", index + 2, StringComparison.Ordinal);
+                if (commentEnd < 0) {
+                    result.Append(selector, index, selector.Length - index);
+                    break;
+                }
+                result.Append(selector, index, commentEnd + 2 - index);
+                index = commentEnd + 1;
+                continue;
+            }
+            if (current is '\'' or '"') {
+                quote = current;
+                result.Append(current);
+                continue;
+            }
+            if (current == '[') {
+                attributeDepth++;
+                result.Append(current);
+                continue;
+            }
+            if (current == ']' && attributeDepth > 0) {
+                attributeDepth--;
+                result.Append(current);
+                continue;
+            }
+            if (current == '&' && attributeDepth == 0) {
+                result.Append(parent);
+                replaced = true;
+                continue;
+            }
+            result.Append(current);
+        }
+        return result.ToString();
     }
 
     private static IReadOnlyList<string> SplitLayerNames(string value) =>

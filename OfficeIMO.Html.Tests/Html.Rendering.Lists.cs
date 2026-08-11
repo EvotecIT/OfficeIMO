@@ -130,4 +130,16 @@ public sealed partial class HtmlRenderingTests {
         Assert.False(registry.TryFormat(1, "screen-only", out _));
     }
 
+    [Theory]
+    [InlineData("<ol start='2147483647' style='list-style-type:symbols(symbolic &quot;x&quot;)'><li>Item</li></ol>")]
+    [InlineData("<style>@counter-style huge{system:symbolic;symbols:'x'}</style><ol start='2147483647' style='list-style-type:huge'><li>Item</li></ol>")]
+    [InlineData("<style>@counter-style huge{system:additive;additive-symbols:1 'x'}</style><ol start='2147483647' style='list-style-type:huge'><li>Item</li></ol>")]
+    public void HtmlRendering_BoundsExpandedCounterRepresentationsAndUsesDecimalFallback(string html) {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Equal(new[] { "2147483647. ", "Item" }, rendered.Text.Split('\n'));
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.CounterRepresentationLimitExceeded);
+    }
+
 }

@@ -145,6 +145,16 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlCssNesting_PreservesLiteralAmpersandsInsideAttributeSelectors() {
+        const string html = "<style>.card { &[data-code='A&B'] { color:red; } }</style><div class='card' data-code='A&B'>Matched</div>";
+        var document = HtmlDocumentParser.ParseDocument(html);
+
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.QuerySelector(".card")!];
+
+        Assert.Equal("rgba(255, 0, 0, 1)", style.GetValue("color"));
+    }
+
+    [Fact]
     public void HtmlCascadeLayersAndNesting_FlowThroughTheManagedSceneAndExporters() {
         const string html = """
             <style>

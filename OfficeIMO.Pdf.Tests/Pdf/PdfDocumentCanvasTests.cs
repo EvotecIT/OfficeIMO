@@ -78,6 +78,21 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasRadioButtons_CanUseDifferentWidgetDimensionsWithinOneField() {
+        byte[] bytes = PdfDocument.Create()
+            .Canvas(canvas => canvas
+                .RadioButton("VariableSize", "Small", false, 20D, 20D, 12D, 12D)
+                .RadioButton("VariableSize", "Large", true, 60D, 20D, 24D, 18D))
+            .ToBytes();
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
+        Assert.Equal("Large", field.Value);
+        Assert.Equal(12D, field.Widgets[0].Width, 3);
+        Assert.Equal(24D, field.Widgets[1].Width, 3);
+        Assert.Equal(18D, field.Widgets[1].Height, 3);
+    }
+
+    [Fact]
     public void CanvasActualText_PreservesLogicalExtractionForReversePositionedFragments() {
         byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()

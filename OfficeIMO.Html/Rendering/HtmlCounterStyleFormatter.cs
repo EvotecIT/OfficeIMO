@@ -4,10 +4,17 @@ using System.Text;
 namespace OfficeIMO.Html;
 
 internal static class HtmlCounterStyleFormatter {
-    internal static bool TryFormat(int value, string style, out string formatted) {
+    internal const int MaximumGeneratedRepresentationLength = 4096;
+
+    internal static bool TryFormat(int value, string style, out string formatted) =>
+        TryFormat(value, style, out formatted, out _);
+
+    internal static bool TryFormat(int value, string style, out string formatted, out bool representationLimited) {
+        representationLimited = false;
         string decoded = HtmlCssEscapeDecoder.Decode(style.Trim());
         if (TryUnquote(decoded, out formatted)) return true;
-        if (TryFormatSymbolsFunction(value, decoded, out formatted)) return true;
+        if (TryFormatSymbolsFunction(value, decoded, out formatted, out representationLimited)) return true;
+        if (representationLimited) return true;
         string normalized = decoded.ToLowerInvariant();
         switch (normalized) {
             case "decimal-leading-zero":
@@ -115,8 +122,9 @@ internal static class HtmlCounterStyleFormatter {
         return ordered ? ". " : " ";
     }
 
-    private static bool TryFormatSymbolsFunction(int value, string style, out string formatted) {
+    private static bool TryFormatSymbolsFunction(int value, string style, out string formatted, out bool representationLimited) {
         formatted = string.Empty;
+        representationLimited = false;
         const string prefix = "symbols(";
         if (!style.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) || !style.EndsWith(")", StringComparison.Ordinal)) return false;
         string body = style.Substring(prefix.Length, style.Length - prefix.Length - 1).Trim();
@@ -160,9 +168,24 @@ internal static class HtmlCounterStyleFormatter {
                 }
                 int symbolicIndex = (value - 1) % symbols.Count;
                 int repetitions = ((value - 1) / symbols.Count) + 1;
-                formatted = string.Concat(Enumerable.Repeat(symbols[symbolicIndex], repetitions));
+                if (!TryRepeatSymbol(symbols[symbolicIndex], repetitions, out formatted)) {
+                    formatted = value.ToString(CultureInfo.InvariantCulture);
+                    representationLimited = true;
+                }
                 return true;
         }
+    }
+
+    internal static bool TryRepeatSymbol(string symbol, int repetitions, out string repeated) {
+        repeated = string.Empty;
+        if (repetitions < 0 || symbol.Length == 0) return false;
+        if (repetitions == 0) return true;
+        if (repetitions > MaximumGeneratedRepresentationLength
+            || (long)symbol.Length * repetitions > MaximumGeneratedRepresentationLength) return false;
+        var builder = new StringBuilder(symbol.Length * repetitions);
+        for (int index = 0; index < repetitions; index++) builder.Append(symbol);
+        repeated = builder.ToString();
+        return true;
     }
 
     internal static bool TryTokenizeSymbols(string value, out IReadOnlyList<string> tokens) {

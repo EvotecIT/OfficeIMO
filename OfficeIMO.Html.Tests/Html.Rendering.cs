@@ -1500,6 +1500,28 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPagedMedia_ReflowsNamedPageGeometryAfterBreakAfterCreatedAnEmptyPage() {
+        const string html = """
+            <style>
+              @page { size:300px 200px; margin:10px; }
+              @page report { size:200px 120px; margin:20px; }
+            </style>
+            <div style="break-after:page">First</div>
+            <div style="page:report">Second</div>
+            """;
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Equal(300D, rendered.Pages[0].Width, 3);
+        Assert.Equal("report", rendered.Pages[1].PageName);
+        Assert.Equal(200D, rendered.Pages[1].Width, 3);
+        Assert.Equal(120D, rendered.Pages[1].Height, 3);
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Second", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void HtmlRender_Paged_RendersCornerAndSideMarginBoxesAcrossSvgAndPdf() {
         string html = """
             <style>

@@ -503,6 +503,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source,
         out HtmlRenderFormField? formField) {
         formField = null;
+        if (!string.Equals(style.Transform, "none", StringComparison.OrdinalIgnoreCase)) {
+            AddUnsupported(
+                HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback,
+                "A transformed HTML form control was rendered as transformed static content because PDF widget annotations cannot preserve the authored appearance.",
+                element,
+                "transform=" + style.Transform,
+                OfficeConversionLossKind.Approximation);
+            return false;
+        }
         string tag = element.LocalName.ToLowerInvariant();
         string type = tag == "input" ? NormalizeInputType(element) : tag;
         HtmlRenderFormFieldKind fieldKind;

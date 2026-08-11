@@ -152,6 +152,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ResolvePositionPaintOffset(style, width, containingHeight, HtmlRenderStyleResolver.DescribeSource(element), out double controlOffsetX, out double controlOffsetY);
             double outerWidth = ResolveFormControlOuterWidth(element, style, width);
             HtmlRenderFlowBlock control = LayoutFormControl(element, outerWidth, style);
+            control = ApplyElementPaintEffects(control, style, outerWidth, element, out _);
             runs.Add(new HtmlInlineRun(
                 control,
                 style,

@@ -88,7 +88,7 @@ internal static class HtmlGeneratedContentResolver {
             return;
         }
 
-        if (!TryEvaluate(expression, element, counters, counterStyles, out string generated, out string detail)) {
+        if (!TryEvaluate(expression, element, counters, counterStyles, out string generated, out string detail, out bool counterRepresentationLimited)) {
             diagnostics.Add(
                 ComponentName,
                 HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
@@ -98,6 +98,17 @@ internal static class HtmlGeneratedContentResolver {
                 detail.Length > 0 ? detail : expression,
                 OfficeConversionLossKind.Omission);
             return;
+        }
+
+        if (counterRepresentationLimited) {
+            diagnostics.Add(
+                ComponentName,
+                HtmlRenderDiagnosticCodes.CounterRepresentationLimitExceeded,
+                "A CSS counter representation exceeded the managed rendering budget and used a decimal fallback.",
+                HtmlDiagnosticSeverity.Warning,
+                pseudoSource,
+                expression,
+                OfficeConversionLossKind.Approximation);
         }
 
         if (generated.Length == 0) return;
@@ -178,7 +189,9 @@ internal static class HtmlGeneratedContentResolver {
         CounterState counters,
         HtmlCounterStyleRegistry counterStyles,
         out string generated,
-        out string detail) {
+        out string detail,
+        out bool counterRepresentationLimited) {
+        counterRepresentationLimited = false;
         var text = new StringBuilder();
         int cursor = 0;
         while (cursor < expression.Length) {
@@ -221,12 +234,12 @@ internal static class HtmlGeneratedContentResolver {
 
                 string name = HtmlCssEscapeDecoder.Decode(parts[0].Trim());
                 string style = parts.Count == 2 ? parts[1].Trim() : "decimal";
-                if (!HtmlCounterStyleFormatter.TryFormat(counters.Get(name), style, out string formatted)
-                    && !counterStyles.TryFormat(counters.Get(name), style, out formatted)) {
+                if (!TryFormatCounter(counters.Get(name), style, counterStyles, out string formatted, out bool limited)) {
                     generated = string.Empty;
                     detail = "unsupported counter style " + style;
                     return false;
                 }
+                counterRepresentationLimited |= limited;
 
                 text.Append(formatted);
             } else if (string.Equals(functionName, "counters", StringComparison.OrdinalIgnoreCase)) {
@@ -239,12 +252,12 @@ internal static class HtmlGeneratedContentResolver {
 
                 var formattedValues = new List<string>();
                 foreach (int value in counters.GetAll(name)) {
-                    if (!HtmlCounterStyleFormatter.TryFormat(value, style, out string formatted)
-                        && !counterStyles.TryFormat(value, style, out formatted)) {
+                    if (!TryFormatCounter(value, style, counterStyles, out string formatted, out bool limited)) {
                         generated = string.Empty;
                         detail = "unsupported counter style " + style;
                         return false;
                     }
+                    counterRepresentationLimited |= limited;
 
                     formattedValues.Add(formatted);
                 }
@@ -260,6 +273,16 @@ internal static class HtmlGeneratedContentResolver {
         generated = text.ToString();
         detail = string.Empty;
         return true;
+    }
+
+    private static bool TryFormatCounter(
+        int value,
+        string style,
+        HtmlCounterStyleRegistry counterStyles,
+        out string formatted,
+        out bool representationLimited) {
+        if (HtmlCounterStyleFormatter.TryFormat(value, style, out formatted, out representationLimited)) return true;
+        return counterStyles.TryFormat(value, style, out formatted, out representationLimited);
     }
 
     private static bool TryReadQuoted(string value, ref int cursor, out string text) {

@@ -219,14 +219,11 @@ internal static partial class PdfWriter {
         public double X2 { get; set; }
         public double Y2 { get; set; }
         public string Option { get; set; } = string.Empty;
+        public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
     }
 
     private sealed class PositionedRadioButtonSerializationPlan {
         public int ParentFieldId { get; set; }
-        public int OffAppearanceId { get; set; }
-        public int SelectedAppearanceId { get; set; }
-        public double Width { get; set; }
-        public double Height { get; set; }
         public string Value { get; set; } = "Off";
         public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
         public System.Collections.Generic.List<string> Options { get; } = new();
@@ -256,12 +253,7 @@ internal static partial class PdfWriter {
                 continue;
             }
 
-            RadioButtonWidgetAnnotation first = group.RadioWidgets[0];
             RadioButtonWidgetAnnotation next = candidate.RadioWidgets[0];
-            if (Math.Abs((first.X2 - first.X1) - (next.X2 - next.X1)) > 0.0001D
-                || Math.Abs((first.Y2 - first.Y1) - (next.Y2 - next.Y1)) > 0.0001D) {
-                throw new ArgumentException("Canvas radio buttons sharing one field name must use the same widget dimensions.");
-            }
             string option = candidate.Options[0];
             if (group.Options.Contains(option, StringComparer.Ordinal)) {
                 throw new ArgumentException("Canvas radio button options must be unique within one field name.");

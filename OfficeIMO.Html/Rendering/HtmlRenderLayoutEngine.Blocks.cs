@@ -683,13 +683,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool ordered = string.Equals(parent.TagName, "ol", StringComparison.OrdinalIgnoreCase);
         string listStyle = style.ListStyleType.Length == 0 ? ordered ? "decimal" : "disc" : style.ListStyleType;
         int ordinal = ordered && HtmlListSemantics.TryResolveOrdinal(element, out int resolvedOrdinal) ? resolvedOrdinal : 1;
-        if (_counterStyles.TryFormatMarker(ordinal, listStyle, out string customMarker)) {
+        if (_counterStyles.TryFormatMarker(ordinal, listStyle, out string customMarker, out bool customMarkerLimited)) {
+            if (customMarkerLimited) ReportCounterRepresentationLimit(element, listStyle);
             return customMarker.Length == 0 ? null : customMarker;
         }
-        if (!HtmlCounterStyleFormatter.TryFormat(ordinal, listStyle, out string marker)) {
+        if (!HtmlCounterStyleFormatter.TryFormat(ordinal, listStyle, out string marker, out bool markerLimited)) {
             marker = ordered ? ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) : "•";
         }
+        if (markerLimited) ReportCounterRepresentationLimit(element, listStyle);
         if (marker.Length == 0) return null;
         return marker + HtmlCounterStyleFormatter.MarkerSuffix(listStyle, ordered);
+    }
+
+    private void ReportCounterRepresentationLimit(IElement element, string style) {
+        AddUnsupported(
+            HtmlRenderDiagnosticCodes.CounterRepresentationLimitExceeded,
+            "A CSS counter representation exceeded the managed rendering budget and used a decimal fallback.",
+            element,
+            "list-style-type=" + style,
+            OfficeConversionLossKind.Approximation);
     }
 }
