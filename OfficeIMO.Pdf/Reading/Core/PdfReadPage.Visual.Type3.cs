@@ -454,6 +454,7 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         double drawingWidth,
         double drawingHeight) {
+        if ((placement.ImageOpacity ?? 1D) <= 0D) return true;
         if (!IsFinite(placement.X) || !IsFinite(placement.Y) ||
             !IsFinite(placement.Width) || !IsFinite(placement.Height) ||
             placement.Width <= 0D || placement.Height <= 0D) return false;

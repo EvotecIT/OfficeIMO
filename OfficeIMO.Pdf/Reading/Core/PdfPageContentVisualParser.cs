@@ -824,6 +824,7 @@ internal static class PdfPageContentVisualParser {
 
         private void PaintShading(string shadingName, double paintOrder) {
             if (HasHiddenContent()) return;
+            if ((_state.FillOpacity ?? 1D) <= 0D) return;
             if (!TryGetShadingPaintBounds(out double x, out double y, out double width, out double height)) {
                 return;
             }

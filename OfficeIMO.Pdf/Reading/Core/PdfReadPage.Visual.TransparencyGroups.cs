@@ -341,6 +341,13 @@ public sealed partial class PdfReadPage {
         if (!TryFitClipToDrawing(projectedBounds, pageWidth, pageHeight, out bounds)) {
             return Type3TransparencyGroupDrawingResult.Invisible;
         }
+        var geometryBudget = new VisualGeometryBudget();
+        VisualPath? visibleBounds = VisualPath.FromClip(bounds, geometryBudget);
+        if (visibleBounds != null && !geometryBudget.Exceeded &&
+            !VisualPath.HasPositiveAreaIntersection(new[] { visibleBounds }, geometryBudget) &&
+            !geometryBudget.Exceeded) {
+            return Type3TransparencyGroupDrawingResult.Invisible;
+        }
         if (bounds.IsRectangle) {
             const double localSurfaceTolerance = 0.000000001D;
             double leftWithTolerance = Math.Max(0D, bounds.X - localSurfaceTolerance);
