@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal readonly struct PdfPageClipPath {
-    private PdfPageClipPath(double x, double y, double width, double height, bool isRectangle, OfficeFillRule fillRule, IReadOnlyList<OfficePathCommand> commands) {
+    private PdfPageClipPath(double x, double y, double width, double height, bool isRectangle, OfficeFillRule fillRule, IReadOnlyList<OfficePathCommand> commands, bool isExact = true) {
         X = x;
         Y = y;
         Width = width;
@@ -11,6 +11,7 @@ internal readonly struct PdfPageClipPath {
         IsRectangle = isRectangle;
         FillRule = fillRule;
         Commands = commands;
+        IsExact = isExact;
     }
 
     public static PdfPageClipPath Rectangle(double x, double y, double width, double height) =>
@@ -24,29 +25,34 @@ internal readonly struct PdfPageClipPath {
         PdfPageClipPath active = activeClipPath.Value;
         if (!active.IsRectangle || !clipPath.IsRectangle) {
             if (active.IsRectangle) {
-                return IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
+                PdfPageClipPath resolved = IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
                     ? IntersectPathWithRectangle(clipPath, active, intersection)
                     : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
+                return resolved.WithExactness(resolved.IsExact && active.IsExact && clipPath.IsExact);
             }
 
             if (clipPath.IsRectangle) {
-                return IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
+                PdfPageClipPath resolved = IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
                     ? IntersectPathWithRectangle(active, clipPath, intersection)
                     : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
+                return resolved.WithExactness(resolved.IsExact && active.IsExact && clipPath.IsExact);
             }
 
             if (!IntersectClipBounds(active, clipPath, out PdfPageClipPath pathIntersection)) {
-                return Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
+                return Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D)
+                    .WithExactness(active.IsExact && clipPath.IsExact);
             }
 
-            return CanServeAsExactPathClip(clipPath) || !CanServeAsExactPathClip(active)
+            PdfPageClipPath pathResult = CanServeAsExactPathClip(clipPath) || !CanServeAsExactPathClip(active)
                 ? IntersectPathWithPath(active, clipPath, pathIntersection)
                 : IntersectPathWithPath(clipPath, active, pathIntersection);
+            return pathResult.WithExactness(pathResult.IsExact && active.IsExact && clipPath.IsExact);
         }
 
-        return IntersectClipBounds(active, clipPath, out PdfPageClipPath rectangleIntersection)
+        PdfPageClipPath rectangleResult = IntersectClipBounds(active, clipPath, out PdfPageClipPath rectangleIntersection)
             ? rectangleIntersection
             : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
+        return rectangleResult.WithExactness(active.IsExact && clipPath.IsExact);
     }
 
     public static bool TryCombineTextClippingPaths(IReadOnlyList<PdfPageClipPath> paths, out PdfPageClipPath clipPath) {
@@ -113,7 +119,7 @@ internal readonly struct PdfPageClipPath {
             // Exact arbitrary path intersection needs a general polygon boolean engine.
             // Preserve a conservative superset so unsupported clip complexity cannot
             // suppress visible-content reporting or discard the rendered element.
-            return intersection;
+            return intersection.WithExactness(false);
         }
 
         for (int i = 0; i < subjectContours.Count; i++) {
@@ -567,20 +573,28 @@ internal readonly struct PdfPageClipPath {
 
     public IReadOnlyList<OfficePathCommand> Commands { get; }
 
+    internal bool IsExact { get; }
+
+    private PdfPageClipPath WithExactness(bool isExact) =>
+        IsExact == isExact
+            ? this
+            : new PdfPageClipPath(X, Y, Width, Height, IsRectangle, FillRule, Commands, isExact);
+
     internal PdfPageClipPath WithBounds(PdfPageClipPath bounds) {
         if (IsRectangle) {
-            return new PdfPageClipPath(bounds.X, bounds.Y, bounds.Width, bounds.Height, true, FillRule, Commands);
+            return new PdfPageClipPath(bounds.X, bounds.Y, bounds.Width, bounds.Height, true, FillRule, Commands, IsExact);
         }
 
         List<OfficePathCommand> clippedCommands = ClipPathCommandsToRectangle(Commands, bounds);
-        return clippedCommands.Count > 0 && TryCreatePath(clippedCommands, FillRule, out PdfPageClipPath clippedPath)
+        PdfPageClipPath result = clippedCommands.Count > 0 && TryCreatePath(clippedCommands, FillRule, out PdfPageClipPath clippedPath)
             ? clippedPath
             : Rectangle(bounds.X, bounds.Y, 0D, 0D);
+        return result.WithExactness(IsExact);
     }
 
     internal PdfPageClipPath Translate(double offsetX, double offsetY) {
         if (IsRectangle) {
-            return Rectangle(X - offsetX, Y - offsetY, Width, Height);
+            return Rectangle(X - offsetX, Y - offsetY, Width, Height).WithExactness(IsExact);
         }
 
         var translated = new List<OfficePathCommand>(Commands.Count);
@@ -615,7 +629,7 @@ internal readonly struct PdfPageClipPath {
             }
         }
 
-        return new PdfPageClipPath(X - offsetX, Y - offsetY, Width, Height, false, FillRule, translated);
+        return new PdfPageClipPath(X - offsetX, Y - offsetY, Width, Height, false, FillRule, translated, IsExact);
     }
 
     public OfficeClipPath? ToOfficeClipPath(double primitiveX, double primitiveY) {
