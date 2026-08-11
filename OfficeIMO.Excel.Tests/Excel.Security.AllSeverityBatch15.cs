@@ -125,6 +125,22 @@ public sealed class ExcelAllSeverityBatch15SecurityTests {
         Assert.Equal("XFD1:XFD2", range);
     }
 
+    [Theory]
+    [InlineData(OverflowMode.Shrink)]
+    [InlineData(OverflowMode.Summarize)]
+    public void FixedGridOverflowChargesCellLimitAgainstRenderedColumns(OverflowMode overflowMode) {
+        using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        var composer = new SheetComposer.ColumnComposer(sheet, new SheetTheme(), 1, 1);
+        composer.SetGridConstraints(1, overflowMode);
+
+        string range = composer.TableFrom(
+            new[] { new WideRow("Alpha", 1, 2) },
+            configure: options => options.MaxCells = 2);
+
+        Assert.Equal("A1:A2", range);
+    }
+
     [Fact]
     public void EmptyObjectTablesUseSingleCellFallbackWithoutChargingInferredHeaders() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());

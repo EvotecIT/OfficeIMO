@@ -138,7 +138,18 @@ public static class OfficeGifReader {
                     return false;
                 }
 
-                if (validateAllFrames || frameCount <= frameIndex) {
+                if (validateAllFrames) {
+                    if (!TryValidateImageFrame(
+                        bytes,
+                        ref offset,
+                        width,
+                        height,
+                        globalColorTable,
+                        transparentIndex,
+                        ref decodedFramePixels)) {
+                        return false;
+                    }
+                } else if (frameCount <= frameIndex) {
                     if (canvas == null) {
                         backgroundColor = ResolveCanvasBackground(globalColorTable, backgroundColorIndex, transparentIndex);
                         canvas = new OfficeRasterImage(width, height, backgroundColor);
@@ -155,13 +166,12 @@ public static class OfficeGifReader {
                         globalColorTable,
                         transparentIndex,
                         canvas,
-                        requireCompleteLzw: validateAllFrames,
                         ref decodedFramePixels,
                         out FrameRectangle frame)) {
                         return false;
                     }
 
-                    if (!validateAllFrames && frameCount == frameIndex) {
+                    if (frameCount == frameIndex) {
                         image = OfficeRasterImage.FromRgba32(canvas.Width, canvas.Height, canvas.GetPixels());
                     }
                     previousFrame = frame;
@@ -237,7 +247,6 @@ public static class OfficeGifReader {
         OfficeColor[]? globalColorTable,
         int transparentIndex,
         OfficeRasterImage canvas,
-        bool requireCompleteLzw,
         ref long decodedFramePixels,
         out FrameRectangle frame) {
         frame = default;
@@ -251,8 +260,7 @@ public static class OfficeGifReader {
         int height = ReadUInt16LittleEndian(bytes, offset + 6);
         byte packed = bytes[offset + 8];
         offset += 9;
-        if ((requireCompleteLzw && (packed & 0x18) != 0) ||
-            width <= 0 || height <= 0 || left < 0 || top < 0 ||
+        if (width <= 0 || height <= 0 || left < 0 || top < 0 ||
             left + width > canvasWidth || top + height > canvasHeight) {
             return false;
         }
@@ -268,9 +276,7 @@ public static class OfficeGifReader {
             }
         }
 
-        if (colorTable == null || colorTable.Length == 0 ||
-            requireCompleteLzw && transparentIndex >= colorTable.Length ||
-            offset >= bytes.Length) {
+        if (colorTable == null || colorTable.Length == 0 || offset >= bytes.Length) {
             return false;
         }
 
@@ -280,7 +286,7 @@ public static class OfficeGifReader {
         }
 
         if (!TryReadSubBlockBytes(bytes, ref offset, out byte[] lzwBytes) ||
-            !TryDecodeLzw(lzwBytes, minimumCodeSize, framePixels, requireCompleteLzw, out byte[] indices)) {
+            !TryDecodeLzw(lzwBytes, minimumCodeSize, framePixels, requireCompleteStream: false, colorTable.Length, out byte[] indices)) {
             return false;
         }
 
@@ -308,6 +314,45 @@ public static class OfficeGifReader {
 
         frame = new FrameRectangle(left, top, width, height);
         return true;
+    }
+
+    private static bool TryValidateImageFrame(
+        byte[] bytes,
+        ref int offset,
+        int canvasWidth,
+        int canvasHeight,
+        OfficeColor[]? globalColorTable,
+        int transparentIndex,
+        ref long decodedFramePixels) {
+        if (offset + 9 > bytes.Length) return false;
+
+        int left = ReadUInt16LittleEndian(bytes, offset);
+        int top = ReadUInt16LittleEndian(bytes, offset + 2);
+        int width = ReadUInt16LittleEndian(bytes, offset + 4);
+        int height = ReadUInt16LittleEndian(bytes, offset + 6);
+        byte packed = bytes[offset + 8];
+        offset += 9;
+        if ((packed & 0x18) != 0 || width <= 0 || height <= 0 ||
+            (long)left + width > canvasWidth || (long)top + height > canvasHeight ||
+            !OfficeRasterGuards.TryEnsurePixelCount(width, height, out int framePixels) ||
+            decodedFramePixels > OfficeRasterGuards.MaximumPixels - framePixels) {
+            return false;
+        }
+        decodedFramePixels += framePixels;
+
+        int colorCount = globalColorTable?.Length ?? 0;
+        if ((packed & 0x80) != 0) {
+            colorCount = 1 << ((packed & 0x07) + 1);
+            int colorBytes = colorCount * 3;
+            if (offset > bytes.Length - colorBytes) return false;
+            offset += colorBytes;
+        }
+        if (colorCount == 0 || transparentIndex >= colorCount || offset >= bytes.Length) return false;
+
+        int minimumCodeSize = bytes[offset++];
+        return minimumCodeSize >= 2 && minimumCodeSize <= 8 &&
+               TryReadSubBlockBytes(bytes, ref offset, out byte[] lzwBytes) &&
+               TryDecodeLzw(lzwBytes, minimumCodeSize, framePixels, requireCompleteStream: true, colorCount, out _);
     }
 
     private static bool TrySkipImageFrame(
@@ -372,31 +417,34 @@ public static class OfficeGifReader {
         int minimumCodeSize,
         int expectedPixelCount,
         bool requireCompleteStream,
+        int colorCount,
         out byte[] indices) {
         indices = Array.Empty<byte>();
         int clearCode = 1 << minimumCodeSize;
         int endCode = clearCode + 1;
-        var output = new List<byte>(expectedPixelCount);
-        var dictionary = new List<byte[]>(4096);
+        var output = requireCompleteStream ? null : new byte[expectedPixelCount];
+        var prefixes = new int[4096];
+        var suffixes = new byte[4096];
+        var stack = new byte[4096];
         var reader = new LzwBitReader(data);
         int codeSize = minimumCodeSize + 1;
         int previousCode = -1;
+        int nextCode = endCode + 1;
+        int outputCount = 0;
 
         void ResetDictionary() {
-            dictionary.Clear();
             for (int i = 0; i < clearCode; i++) {
-                dictionary.Add(new[] { (byte)i });
+                prefixes[i] = -1;
+                suffixes[i] = (byte)i;
             }
-
-            dictionary.Add(Array.Empty<byte>());
-            dictionary.Add(Array.Empty<byte>());
+            nextCode = endCode + 1;
             codeSize = minimumCodeSize + 1;
             previousCode = -1;
         }
 
         ResetDictionary();
         bool sawEndCode = false;
-        while (requireCompleteStream || output.Count < expectedPixelCount) {
+        while (requireCompleteStream || outputCount < expectedPixelCount) {
             int code = reader.ReadBits(codeSize);
             if (code < 0) {
                 return false;
@@ -412,36 +460,54 @@ public static class OfficeGifReader {
                 break;
             }
 
-            byte[] entry;
-            if (code < dictionary.Count) {
-                entry = dictionary[code];
-            } else if (code == dictionary.Count && previousCode >= 0) {
-                byte[] previous = dictionary[previousCode];
-                entry = Append(previous, previous[0]);
-            } else {
-                return false;
+            int originalCode = code;
+            int stackCount = 0;
+            bool appendFirstCharacter = code == nextCode && previousCode >= 0;
+            if (appendFirstCharacter) {
+                code = previousCode;
+            }
+            if (code < 0 || code >= nextCode) return false;
+            while (code >= clearCode) {
+                if (stackCount >= stack.Length) return false;
+                stack[stackCount++] = suffixes[code];
+                code = prefixes[code];
+            }
+            if (code < 0 || code >= clearCode || stackCount >= stack.Length) return false;
+            stack[stackCount++] = suffixes[code];
+
+            byte firstCharacter = stack[stackCount - 1];
+            int entryLength = stackCount + (appendFirstCharacter ? 1 : 0);
+            if (outputCount > expectedPixelCount - entryLength) return false;
+            for (int index = stackCount - 1; index >= 0; index--) {
+                byte value = stack[index];
+                if (value >= colorCount) return false;
+                if (output != null) output[outputCount] = value;
+                outputCount++;
+            }
+            if (appendFirstCharacter) {
+                if (firstCharacter >= colorCount) return false;
+                if (output != null) output[outputCount] = firstCharacter;
+                outputCount++;
             }
 
-            if (requireCompleteStream && entry.Length > expectedPixelCount - output.Count) {
-                return false;
-            }
-            output.AddRange(entry);
-            if (previousCode >= 0 && dictionary.Count < 4096) {
-                dictionary.Add(Append(dictionary[previousCode], entry[0]));
-                if (dictionary.Count == (1 << codeSize) && codeSize < 12) {
+            if (previousCode >= 0 && nextCode < 4096) {
+                prefixes[nextCode] = previousCode;
+                suffixes[nextCode] = firstCharacter;
+                nextCode++;
+                if (nextCode == (1 << codeSize) && codeSize < 12) {
                     codeSize++;
                 }
             }
 
-            previousCode = code;
+            previousCode = originalCode;
         }
 
-        if (requireCompleteStream && (!sawEndCode || output.Count != expectedPixelCount || !reader.HasNoTrailingBytes) ||
-            !requireCompleteStream && output.Count < expectedPixelCount) {
+        if (requireCompleteStream && (!sawEndCode || outputCount != expectedPixelCount || !reader.HasNoTrailingBytes) ||
+            !requireCompleteStream && outputCount < expectedPixelCount) {
             return false;
         }
 
-        indices = requireCompleteStream ? output.ToArray() : output.GetRange(0, expectedPixelCount).ToArray();
+        if (output != null) indices = output;
         return true;
     }
 
@@ -552,13 +618,6 @@ public static class OfficeGifReader {
                 yield return y;
             }
         }
-    }
-
-    private static byte[] Append(byte[] value, byte suffix) {
-        byte[] result = new byte[value.Length + 1];
-        Buffer.BlockCopy(value, 0, result, 0, value.Length);
-        result[result.Length - 1] = suffix;
-        return result;
     }
 
     private static int ReadUInt16LittleEndian(byte[] bytes, int offset) =>

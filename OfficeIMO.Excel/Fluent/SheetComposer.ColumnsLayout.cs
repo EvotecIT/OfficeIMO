@@ -94,9 +94,22 @@ namespace OfficeIMO.Excel.Fluent {
                 configure?.Invoke(opts);
                 opts.MaxColumns = System.Math.Min(opts.MaxColumns, A1.MaxColumns);
                 var flattener = new ObjectFlattener();
+                int availableSheetColumns = A1.MaxColumns - _baseCol + 1;
+                int maximumRenderedColumns = _maxTableColumns.HasValue
+                    ? Math.Min(_maxTableColumns.Value, availableSheetColumns)
+                    : availableSheetColumns;
+                int? renderedColumnCountForCellLimit = _maxTableColumns.HasValue &&
+                                                       _overflowMode != OverflowMode.Throw
+                    ? maximumRenderedColumns
+                    : null;
 
                 ObjectTableProjection projection = flattener.FlattenRows(
-                    items, opts, "ColumnComposer TableFrom", headerRowCount: 1, enforceEmptyProjectionLimits: false);
+                    items,
+                    opts,
+                    "ColumnComposer TableFrom",
+                    headerRowCount: 1,
+                    enforceEmptyProjectionLimits: false,
+                    renderedColumnCountForCellLimit: renderedColumnCountForCellLimit);
                 IReadOnlyList<Dictionary<string, object?>> rows = projection.Rows;
                 if (rows.Count == 0) {
                     _sheet.Cell(_row, _baseCol, "(no data)");
@@ -119,10 +132,6 @@ namespace OfficeIMO.Excel.Fluent {
                 bool summarize = false;
                 List<string>? summarizedPaths = null;
                 List<string>? summarizedLabels = null;
-                int availableSheetColumns = A1.MaxColumns - _baseCol + 1;
-                int maximumRenderedColumns = _maxTableColumns.HasValue
-                    ? Math.Min(_maxTableColumns.Value, availableSheetColumns)
-                    : availableSheetColumns;
                 if (paths.Count > maximumRenderedColumns) {
                     if (_overflowMode == OverflowMode.Throw)
                         throw new InvalidOperationException($"Table has {paths.Count} columns but only {maximumRenderedColumns} fit in the fixed grid and worksheet boundary. Increase columnWidth, move the table, or use ColumnsAdaptive(...).");

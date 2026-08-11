@@ -153,6 +153,25 @@ public class VisioImageExport {
     }
 
     [Fact]
+    public void EmbeddedSvgPreviewBoundsNestedConditionalRules() {
+        var css = new StringBuilder();
+        for (int index = 0; index < 66; index++) css.Append("@media screen{");
+        css.Append("rect{fill:red}");
+        for (int index = 0; index < 66; index++) css.Append('}');
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><style>" +
+                     css + "</style><rect width='10' height='10'/></svg>";
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        Assert.False(VisioSvgPreviewRasterizer.TryRasterize(
+            Encoding.UTF8.GetBytes(svg), null, null, null, null, null,
+            diagnostics, "nested-stylesheet.svg", default, out OfficeRasterImage? image));
+        Assert.Null(image);
+        Assert.Contains(diagnostics, diagnostic =>
+            diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceSvgPreviewLoss &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
     public void EmbeddedSvgPreviewCountsClipPathNodesAgainstTheElementBudget() {
         var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><defs><clipPath id='c'>");
         for (int index = 0; index <= 100000; index++) svg.Append("<g/>");
