@@ -34,6 +34,16 @@ public static partial class OfficeVisioVisualConversionExtensions {
         }
     }
 
+    private static void ReportTitleFidelity(
+        VisualArtifactInterchangeEnvelope envelope,
+        OfficeVisioVisualOptions options,
+        OfficeVisioVisualConversionReport report) {
+        if (HasTitle(envelope) && !options.IncludeTitle) {
+            report.Warn(OfficeVisioVisualDiagnosticCode.TitleNotProjected, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "title",
+                "The visible CFX title was omitted from the editable Visio page by conversion options and remains available as document metadata.");
+        }
+    }
+
     private static void ReportScenarioFidelity(
         VisualArtifactInterchangeEnvelope envelope,
         OfficeVisioVisualConversionReport report) {
@@ -52,14 +62,14 @@ public static partial class OfficeVisioVisualConversionExtensions {
                 report.Warn(OfficeVisioVisualDiagnosticCode.DetailsNotRendered, OfficeVisioVisualEntityKind.Node, node.Id, "details",
                     $"Node '{node.Id}' detail rows remain in the CFX envelope and, when enabled, Shape Data because the editable native Visio shape does not render them.");
             }
+            if (!string.IsNullOrWhiteSpace(node.IconId) || !string.IsNullOrWhiteSpace(node.Symbol) || !string.IsNullOrWhiteSpace(node.Badge)) {
+                report.Warn(OfficeVisioVisualDiagnosticCode.ArtworkNotProjected, OfficeVisioVisualEntityKind.Node, node.Id, "nodeAdornment",
+                    $"Node '{node.Id}' icon, symbol, or badge remains in the CFX envelope because the editable native Visio graph shape does not render those adornments.");
+            }
             if (flow) continue;
             if (node.Topology!.Artwork != null) {
                 report.Warn(OfficeVisioVisualDiagnosticCode.ArtworkNotProjected, OfficeVisioVisualEntityKind.Node, node.Id, "artwork",
                     $"Node '{node.Id}' portable artwork remains in the CFX envelope because the native graph projection selected an editable Visio stencil.");
-            }
-            if (!string.IsNullOrWhiteSpace(node.IconId) || !string.IsNullOrWhiteSpace(node.Symbol) || !string.IsNullOrWhiteSpace(node.Badge)) {
-                report.Warn(OfficeVisioVisualDiagnosticCode.ArtworkNotProjected, OfficeVisioVisualEntityKind.Node, node.Id, "nodeAdornment",
-                    $"Node '{node.Id}' icon, symbol, or badge remains in the CFX envelope because the editable native Visio graph shape does not render those adornments.");
             }
             if (node.Topology.DisplayMode is not TopologyNodeDisplayMode.Card and not TopologyNodeDisplayMode.CompactCard) {
                 report.Warn(OfficeVisioVisualDiagnosticCode.SemanticLoss, OfficeVisioVisualEntityKind.Node, node.Id, "displayMode",

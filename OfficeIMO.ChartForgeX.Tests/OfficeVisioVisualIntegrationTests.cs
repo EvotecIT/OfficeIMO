@@ -84,7 +84,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
     [Fact]
     public void LosslessShapeDataRenamesRemainInformational() {
         VisualArtifactInterchangeEnvelope envelope = TopologyEnvelope("informational-renames");
-        VisualArtifactInterchangeNode node = TopologyNode("service", "Service", TopologyNodeKind.Service);
+        VisualArtifactInterchangeNode node = TopologyNode("service", "Service", TopologyNodeKind.Generic);
         node.Extensions["Owner"] = "Platform";
         node.Extensions["owner"] = "Secondary";
         envelope.Nodes.Add(node);
