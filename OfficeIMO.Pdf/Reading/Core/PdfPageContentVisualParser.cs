@@ -862,7 +862,8 @@ internal static class PdfPageContentVisualParser {
                 height = _pageHeight;
             }
 
-            return width > 0D && height > 0D;
+            return width > 0D && height > 0D &&
+                   PdfReadPage.HasPositiveVisibleClipArea(_state.ClipPath, _pageWidth, _pageHeight);
         }
 
         private void CreateShadingGradients(PdfPageShadingResource shading, double x, double y, double width, double height, Matrix2D shadingTransform, out OfficeLinearGradient? linearGradient, out OfficeRadialGradient? radialGradient) {

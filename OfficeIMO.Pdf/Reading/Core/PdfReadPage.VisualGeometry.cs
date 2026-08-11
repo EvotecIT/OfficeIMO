@@ -295,7 +295,7 @@ public sealed partial class PdfReadPage {
                 }
             }
 
-            return true;
+            return false;
         }
 
         private static VisualPath? RoundedRectangle(

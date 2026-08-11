@@ -302,14 +302,15 @@ internal static class PdfPageXObjectInvocationParser {
 
             bool usesType3GlyphProgram = IsActiveType3Font();
             bool isVisible = !HasHiddenContent();
-            if (isVisible) _visibleFontVisitor?.Invoke(_textFont);
+            bool ordinaryTextAffectsOutput = isVisible && TextAffectsOutput(_textRenderingMode);
+            if (ordinaryTextAffectsOutput) _visibleFontVisitor?.Invoke(_textFont);
             List<PdfPageType3GlyphInvocation>? glyphs = CreateType3GlyphBatch(usesType3GlyphProgram, isVisible, bytes.Length);
             (double X, double Y) advance = ProcessShownText(bytes, glyphs);
             if (isVisible && usesType3GlyphProgram) {
                 AdvertiseInheritedType3Patterns(ResolveType3PaintChannels(glyphs));
             }
             PublishType3GlyphBatch(glyphs);
-            if (isVisible && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
+            if (ordinaryTextAffectsOutput && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
             if (isVisible && !usesType3GlyphProgram) ApplyTextClippingPath(advance.X);
             _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(advance.X, advance.Y));
         }
@@ -408,7 +409,8 @@ internal static class PdfPageXObjectInvocationParser {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.Type3GlyphInvocations, int.MaxValue, glyphCount);
             }
             List<PdfPageType3GlyphInvocation>? glyphs = CreateType3GlyphBatch(usesType3GlyphProgram, isVisible, (int)glyphCount);
-            if (isVisible && glyphCount > 0) _visibleFontVisitor?.Invoke(_textFont);
+            bool ordinaryTextAffectsOutput = isVisible && TextAffectsOutput(_textRenderingMode);
+            if (ordinaryTextAffectsOutput && glyphCount > 0) _visibleFontVisitor?.Invoke(_textFont);
             for (int i = 0; i < items.Count; i++) {
                 if (items[i] is byte[] bytes) {
                     (double X, double Y) advance = ProcessShownText(bytes, glyphs);
@@ -423,7 +425,7 @@ internal static class PdfPageXObjectInvocationParser {
                 AdvertiseInheritedType3Patterns(ResolveType3PaintChannels(glyphs));
             }
             PublishType3GlyphBatch(glyphs);
-            if (isVisible && glyphCount > 0 && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
+            if (ordinaryTextAffectsOutput && glyphCount > 0 && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
         }
 
         private void AdvertiseInheritedType3Patterns(PdfType3PaintChannels channels) {
@@ -675,11 +677,6 @@ internal static class PdfPageXObjectInvocationParser {
                 case "scn":
                     if (op == "scn" && _args.Count > 0 && _args[_args.Count - 1] is string fillPatternName) {
                         if (_state.FillColorSpace == PdfPageColorSpaceKind.Pattern) {
-                            if (!HasHiddenContent()) {
-                                _authoredPatternInvocationVisitor?.Invoke(fillPatternName);
-                                _unsupportedPatternVisitor?.Invoke();
-                                _patternInvocationVisitor?.Invoke(fillPatternName);
-                            }
                             OfficeColor? tint = _patternState.FillBaseColorSpace.HasValue &&
                                 TryReadColor(_patternState.FillBaseColorSpace.Value, out OfficeColor fillPatternTint)
                                     ? fillPatternTint
@@ -693,7 +690,7 @@ internal static class PdfPageXObjectInvocationParser {
                                     ResolveShadingPattern(fillPatternName),
                                     _state.Transform),
                                 _patternState.FillBaseColorSpace,
-                                deferredVisibleUse: HasHiddenContent());
+                                deferredVisibleUse: true);
                         } else if (!HasHiddenContent()) {
                             _unsupportedColorVisitor?.Invoke();
                         }
@@ -711,11 +708,6 @@ internal static class PdfPageXObjectInvocationParser {
                 case "SCN":
                     if (op == "SCN" && _args.Count > 0 && _args[_args.Count - 1] is string strokePatternName) {
                         if (_state.StrokeColorSpace == PdfPageColorSpaceKind.Pattern) {
-                            if (!HasHiddenContent()) {
-                                _authoredPatternInvocationVisitor?.Invoke(strokePatternName);
-                                _unsupportedPatternVisitor?.Invoke();
-                                _patternInvocationVisitor?.Invoke(strokePatternName);
-                            }
                             OfficeColor? tint = _patternState.StrokeBaseColorSpace.HasValue &&
                                 TryReadColor(_patternState.StrokeBaseColorSpace.Value, out OfficeColor strokePatternTint)
                                     ? strokePatternTint
@@ -729,7 +721,7 @@ internal static class PdfPageXObjectInvocationParser {
                                     ResolveShadingPattern(strokePatternName),
                                     _state.Transform),
                                 _patternState.StrokeBaseColorSpace,
-                                deferredVisibleUse: HasHiddenContent());
+                                deferredVisibleUse: true);
                         } else if (!HasHiddenContent()) {
                             _unsupportedColorVisitor?.Invoke();
                         }
@@ -1309,6 +1301,8 @@ internal static class PdfPageXObjectInvocationParser {
 
         private static bool AddsTextToClippingPath(int renderingMode) =>
             renderingMode >= 4 && renderingMode <= 7;
+
+        private static bool TextAffectsOutput(int renderingMode) => renderingMode != 3;
 
         private static bool OperatorStrokesPath(string op) =>
             op == "S" || op == "s" || op == "B" || op == "B*" || op == "b" || op == "b*";

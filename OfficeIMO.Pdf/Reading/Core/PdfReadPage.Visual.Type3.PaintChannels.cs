@@ -1,6 +1,54 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
+    private PdfType3PaintChannels ResolveType3PaintChannels(
+        PdfPageType3GlyphInvocation glyph,
+        Type3PaintChannelCache cache,
+        HashSet<PdfStream> activeStreams,
+        PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget,
+        int depth = 0) {
+        (double Width, double Height) visualPageSize = GetVisualPageSize();
+        return ResolveType3PaintChannels(
+            glyph,
+            cache,
+            activeStreams,
+            pageContentBudget,
+            type3GlyphBudget,
+            visualPageSize.Width,
+            visualPageSize.Height,
+            depth);
+    }
+
+    private PdfType3PaintChannels ResolveType3PaintChannels(
+        PdfPageType3GlyphInvocation glyph,
+        Type3PaintChannelCache cache,
+        HashSet<PdfStream> activeStreams,
+        PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget,
+        double pageWidth,
+        double pageHeight,
+        int depth) {
+        if (glyph.Font.Type3 is not PdfType3FontResource type3 ||
+            !type3.TryGetGlyph(glyph.CharacterCode, out PdfStream stream)) {
+            return PdfType3PaintChannels.Both;
+        }
+        return ResolveType3PaintChannels(
+            stream,
+            type3.Resources,
+            Matrix2D.Multiply(glyph.Transform, type3.FontMatrix),
+            glyph.ClipPath,
+            glyph.FillOpacity,
+            glyph.StrokeOpacity,
+            pageWidth,
+            pageHeight,
+            cache,
+            activeStreams,
+            pageContentBudget,
+            type3GlyphBudget,
+            depth);
+    }
+
     private PdfType3PaintChannels ResolveVisibleFormPaintChannels(
         PdfStream form,
         PdfDictionary resources,
@@ -82,13 +130,23 @@ public sealed partial class PdfReadPage {
                                      activeStreams,
                                      pageContentBudget,
                                      type3GlyphBudget,
+                                     pageWidth,
+                                     pageHeight,
                                      depth + 1);
                              }
                              return true;
                          },
                          type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
                          unsupportedTextVisitor: () => channels = PdfType3PaintChannels.Both,
-                         type3PaintChannelResolver: glyph => ResolveType3PaintChannels(glyph, cache, activeStreams, pageContentBudget, type3GlyphBudget, depth + 1),
+                         type3PaintChannelResolver: glyph => ResolveType3PaintChannels(
+                             glyph,
+                             cache,
+                             activeStreams,
+                             pageContentBudget,
+                             type3GlyphBudget,
+                             pageWidth,
+                             pageHeight,
+                             depth + 1),
                          xObjectPaintChannelResolver: (name, transform, clipPath, resolvedFillOpacity, resolvedStrokeOpacity) => ResolveXObjectPaintChannels(
                              resources,
                              name,

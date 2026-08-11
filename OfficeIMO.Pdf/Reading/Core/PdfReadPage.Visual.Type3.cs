@@ -717,34 +717,6 @@ public sealed partial class PdfReadPage {
         Group
     }
 
-    private PdfType3PaintChannels ResolveType3PaintChannels(
-        PdfPageType3GlyphInvocation glyph,
-        Type3PaintChannelCache cache,
-        HashSet<PdfStream> activeStreams,
-        PageContentBudget pageContentBudget,
-        Type3GlyphBudget type3GlyphBudget,
-        int depth = 0) {
-        if (glyph.Font.Type3 is not PdfType3FontResource type3 ||
-            !type3.TryGetGlyph(glyph.CharacterCode, out PdfStream stream)) {
-            return PdfType3PaintChannels.Both;
-        }
-        (double Width, double Height) visualPageSize = GetVisualPageSize();
-        return ResolveType3PaintChannels(
-            stream,
-            type3.Resources,
-            Matrix2D.Multiply(glyph.Transform, type3.FontMatrix),
-            glyph.ClipPath,
-            glyph.FillOpacity,
-            glyph.StrokeOpacity,
-            visualPageSize.Width,
-            visualPageSize.Height,
-            cache,
-            activeStreams,
-            pageContentBudget,
-            type3GlyphBudget,
-            depth);
-    }
-
     private PdfType3PaintChannels ResolveXObjectPaintChannels(
         PdfDictionary? resources,
         string name,
@@ -779,6 +751,7 @@ public sealed partial class PdfReadPage {
             return PdfType3PaintChannels.Both;
         }
         if (form.Dictionary.Items.ContainsKey("Group")) {
+            if (!HasVisibleOpacity(fillOpacity)) return PdfType3PaintChannels.None;
             Type3TransparencyGroupDrawingResult boundsResult = TryGetVisibleType3TransparencyGroupBounds(
                 form.Dictionary,
                 ApplyFormMatrix(invocationTransform, form.Dictionary),
@@ -906,6 +879,8 @@ public sealed partial class PdfReadPage {
                                      activeStreams,
                                      pageContentBudget,
                                      type3GlyphBudget,
+                                     pageWidth,
+                                     pageHeight,
                                      depth + 1);
                              }
                              return true;
