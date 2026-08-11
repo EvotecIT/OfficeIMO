@@ -514,9 +514,9 @@ public sealed partial class PdfReadPage {
         Dictionary<string, PdfPageColorSpace> colorSpaceResources = GetColorSpaceResources(resources);
         Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources);
         var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
+        var type3PaintChannelCache = new Dictionary<PdfStream, PdfType3PaintChannels>();
+        var activeType3PaintChannelStreams = new HashSet<PdfStream>();
         if (includeTilingPatterns) {
-            var type3PaintChannelCache = new Dictionary<PdfStream, PdfType3PaintChannels>();
-            var activeType3PaintChannelStreams = new HashSet<PdfStream>();
             _ = PdfPageXObjectInvocationParser.Parse(
                 content,
                 baseTransform,
@@ -552,6 +552,15 @@ public sealed partial class PdfReadPage {
                 type3PaintChannelResolver: (font, bytes) => ResolveType3PaintChannels(
                     font,
                     bytes,
+                    type3PaintChannelCache,
+                    activeType3PaintChannelStreams),
+                xObjectPaintChannelResolver: (name, transform, clipPath) => ResolveXObjectPaintChannels(
+                    resources,
+                    name,
+                    transform,
+                    clipPath,
+                    pageWidth,
+                    pageHeight,
                     type3PaintChannelCache,
                     activeType3PaintChannelStreams));
         }
@@ -688,7 +697,21 @@ public sealed partial class PdfReadPage {
                       initialStrokePattern: initialStrokePattern,
                       initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
                       tilingPatterns: tilingPatternResources,
-                      shadingPatterns: shadingPatternResources)) {
+                      shadingPatterns: shadingPatternResources,
+                      type3PaintChannelResolver: (font, bytes) => ResolveType3PaintChannels(
+                          font,
+                          bytes,
+                          type3PaintChannelCache,
+                          activeType3PaintChannelStreams),
+                      xObjectPaintChannelResolver: (name, transform, clipPath) => ResolveXObjectPaintChannels(
+                          resources,
+                          name,
+                          transform,
+                          clipPath,
+                          pageWidth,
+                          pageHeight,
+                          type3PaintChannelCache,
+                          activeType3PaintChannelStreams))) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     type3GlyphBudget.RecordFailure();

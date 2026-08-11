@@ -323,6 +323,8 @@ public sealed partial class PdfReadPage {
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
             Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources);
             var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
+            var type3PaintChannelCache = new Dictionary<PdfStream, PdfType3PaintChannels>();
+            var activeType3PaintChannelStreams = new HashSet<PdfStream>();
             _ = PdfPageXObjectInvocationParser.Parse(
                 content,
                 programTransform,
@@ -341,7 +343,21 @@ public sealed partial class PdfReadPage {
                 initialFillPattern: initialFillPattern,
                 initialFillPatternBaseColorSpace: initialFillPatternBaseColorSpace,
                 initialStrokePattern: initialStrokePattern,
-                initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace);
+                initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
+                type3PaintChannelResolver: (font, bytes) => ResolveType3PaintChannels(
+                    font,
+                    bytes,
+                    type3PaintChannelCache,
+                    activeType3PaintChannelStreams),
+                xObjectPaintChannelResolver: (name, transform, clipPath) => ResolveXObjectPaintChannels(
+                    resources,
+                    name,
+                    transform,
+                    clipPath,
+                    surfaceWidth,
+                    surfaceHeight,
+                    type3PaintChannelCache,
+                    activeType3PaintChannelStreams));
             Dictionary<string, PdfPageTilingPatternResource> tilingPatterns = GetTilingPatternResources(
                 resources,
                 invokedPatternNames,
@@ -525,7 +541,21 @@ public sealed partial class PdfReadPage {
                          initialStrokePattern: initialStrokePattern,
                          initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
                          tilingPatterns: tilingPatterns,
-                         shadingPatterns: shadingPatterns)) {
+                         shadingPatterns: shadingPatterns,
+                         type3PaintChannelResolver: (font, bytes) => ResolveType3PaintChannels(
+                             font,
+                             bytes,
+                             type3PaintChannelCache,
+                             activeType3PaintChannelStreams),
+                         xObjectPaintChannelResolver: (name, transform, clipPath) => ResolveXObjectPaintChannels(
+                             resources,
+                             name,
+                             transform,
+                             clipPath,
+                             surfaceWidth,
+                             surfaceHeight,
+                             type3PaintChannelCache,
+                             activeType3PaintChannelStreams))) {
                 if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     bool canProjectImage = CanProjectType3ImageInvocation(
                         invocation,

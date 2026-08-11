@@ -231,7 +231,8 @@ public sealed partial class PdfReadPage {
             initialStrokeLineJoin: invocation.StrokeLineJoin,
             contentNestingDepth: contentNestingDepth + 1,
             pageContentBudget: pageContentBudget,
-            contentOrderPrefix: contentOrderPrefix);
+            contentOrderPrefix: contentOrderPrefix,
+            skipTransparencyGroupForms: true);
         SortGraphicsEffectTransitions(effects);
         OverlayDrawingEffects(elements, effects);
         SortDrawingElements(elements);

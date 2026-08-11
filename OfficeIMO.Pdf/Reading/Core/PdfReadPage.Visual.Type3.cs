@@ -707,6 +707,35 @@ public sealed partial class PdfReadPage {
         return channels;
     }
 
+    private PdfType3PaintChannels ResolveXObjectPaintChannels(
+        PdfDictionary? resources,
+        string name,
+        Matrix2D invocationTransform,
+        PdfPageClipPath? invocationClipPath,
+        double pageWidth,
+        double pageHeight,
+        Dictionary<PdfStream, PdfType3PaintChannels> cache,
+        HashSet<PdfStream> activeStreams) {
+        if (TryGetImageXObject(resources, name, out _, out _)) return PdfType3PaintChannels.Fill;
+        if (resources == null || !TryGetFormStream(resources, name, out PdfStream form)) {
+            return PdfType3PaintChannels.Both;
+        }
+        if (form.Dictionary.Items.ContainsKey("Group")) {
+            Type3TransparencyGroupDrawingResult boundsResult = TryGetVisibleType3TransparencyGroupBounds(
+                form.Dictionary,
+                ApplyFormMatrix(invocationTransform, form.Dictionary),
+                invocationClipPath,
+                pageWidth,
+                pageHeight,
+                out _);
+            if (boundsResult == Type3TransparencyGroupDrawingResult.Invisible) return PdfType3PaintChannels.None;
+            if (boundsResult == Type3TransparencyGroupDrawingResult.Unsupported) return PdfType3PaintChannels.Both;
+        }
+        PdfDictionary formResources = ResolveDictionary(
+            form.Dictionary.Items.TryGetValue("Resources", out PdfObject? value) ? value : null) ?? resources;
+        return ResolveType3PaintChannels(form, formResources, cache, activeStreams, 0);
+    }
+
     private PdfType3PaintChannels ResolveType3PaintChannels(
         PdfStream stream,
         PdfDictionary resources,
@@ -781,8 +810,19 @@ public sealed partial class PdfReadPage {
                     continue;
                 }
                 if (form.Dictionary.Items.ContainsKey("Group")) {
-                    channels = PdfType3PaintChannels.Both;
-                    continue;
+                    (double Width, double Height) visualPageSize = GetVisualPageSize();
+                    Type3TransparencyGroupDrawingResult boundsResult = TryGetVisibleType3TransparencyGroupBounds(
+                        form.Dictionary,
+                        ApplyFormMatrix(invocation.Transform, form.Dictionary),
+                        invocation.ClipPath,
+                        visualPageSize.Width,
+                        visualPageSize.Height,
+                        out _);
+                    if (boundsResult == Type3TransparencyGroupDrawingResult.Invisible) continue;
+                    if (boundsResult == Type3TransparencyGroupDrawingResult.Unsupported) {
+                        channels = PdfType3PaintChannels.Both;
+                        continue;
+                    }
                 }
                 PdfDictionary formResources = ResolveDictionary(
                     form.Dictionary.Items.TryGetValue("Resources", out PdfObject? value) ? value : null) ?? resources;
