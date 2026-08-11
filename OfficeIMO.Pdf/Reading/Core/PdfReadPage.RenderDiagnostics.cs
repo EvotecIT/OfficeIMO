@@ -350,11 +350,12 @@ public sealed partial class PdfReadPage {
                     type3PaintChannelCache,
                     activeType3PaintChannelStreams,
                     pageContentBudget),
-                xObjectPaintChannelResolver: (name, transform, clipPath) => ResolveXObjectPaintChannels(
+                xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity) => ResolveXObjectPaintChannels(
                     resources,
                     name,
                     transform,
                     clipPath,
+                    fillOpacity,
                     surfaceWidth,
                     surfaceHeight,
                     type3PaintChannelCache,
@@ -550,11 +551,12 @@ public sealed partial class PdfReadPage {
                              type3PaintChannelCache,
                              activeType3PaintChannelStreams,
                              pageContentBudget),
-                         xObjectPaintChannelResolver: (name, transform, clipPath) => ResolveXObjectPaintChannels(
+                         xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity) => ResolveXObjectPaintChannels(
                              resources,
                              name,
                              transform,
                              clipPath,
+                             fillOpacity,
                              surfaceWidth,
                              surfaceHeight,
                              type3PaintChannelCache,
@@ -583,6 +585,7 @@ public sealed partial class PdfReadPage {
                         invocation.Name,
                         invocation.Transform,
                         invocation.ClipPath,
+                        invocation.FillOpacity,
                         surfaceWidth,
                         surfaceHeight,
                         type3PaintChannelCache,

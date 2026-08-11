@@ -170,13 +170,6 @@ public sealed partial class PdfReadPage {
                     contentOrderPrefix: glyphOrderPrefix,
                     skipTransparencyGroupForms: true);
                 if (type3.IsUncolored) {
-                    bool paintsFill = localPrimitives.Any(item => item.Primitive.HasFillPaint) ||
-                        localImages.Count > 0 || localImagePlacements.Count > 0;
-                    bool paintsStroke = localPrimitives.Any(item => item.Primitive.HasStrokePaint);
-                    if ((paintsFill && !IsUsableInheritedPattern(glyph.FillPattern)) ||
-                        (paintsStroke && !IsUsableInheritedPattern(glyph.StrokePattern))) {
-                        return false;
-                    }
                     for (int imageIndex = 0; imageIndex < localImages.Count; imageIndex++) {
                         (PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect) image = localImages[imageIndex];
                         if (!image.Image.IsImageMask) return false;
@@ -277,6 +270,46 @@ public sealed partial class PdfReadPage {
             groupVisitor!(group.Drawing, group.Transform, group.PaintOrder, group.ContentOrderKey, group.Effect);
         }
         return true;
+    }
+
+    private static PdfType3PaintChannels ResolveVisibleType3PrimitivePaintChannels(
+        PdfPageVisualPrimitive primitive) {
+        var budget = new VisualGeometryBudget();
+        if (!HasFinitePrimitiveGeometry(primitive, budget)) return PdfType3PaintChannels.None;
+        if (budget.Exceeded) return PdfType3PaintChannels.Both;
+
+        IReadOnlyList<VisualPath>? visibleClips = null;
+        if (primitive.ClipPath.HasValue) {
+            PdfPageClipPath authoredClip = primitive.ClipPath.Value;
+            if (!HasFiniteClipGeometry(authoredClip, budget) || authoredClip.Width <= 0D || authoredClip.Height <= 0D) {
+                return PdfType3PaintChannels.None;
+            }
+            VisualPath? clipPath = VisualPath.FromClip(authoredClip, budget);
+            if (clipPath == null) return budget.Exceeded ? PdfType3PaintChannels.Both : PdfType3PaintChannels.None;
+            visibleClips = new[] { clipPath };
+            if (!VisualPath.HasPositiveAreaIntersection(visibleClips, budget)) {
+                return budget.Exceeded ? PdfType3PaintChannels.Both : PdfType3PaintChannels.None;
+            }
+        }
+
+        PdfType3PaintChannels channels = PdfType3PaintChannels.None;
+        if (primitive.HasFillPaint && HasVisibleOpacity(primitive.FillOpacity)) {
+            VisualPath? fillPath = VisualPath.FromFill(primitive, budget);
+            if (fillPath == null) {
+                if (budget.Exceeded) channels |= PdfType3PaintChannels.Fill;
+            } else if (visibleClips == null || fillPath.IntersectsFills(visibleClips, budget)) {
+                channels |= PdfType3PaintChannels.Fill;
+            }
+        }
+        if (primitive.HasStrokePaint && primitive.StrokeWidth > 0D && HasVisibleOpacity(primitive.StrokeOpacity)) {
+            VisualPath? strokePath = VisualPath.FromStroke(primitive, budget);
+            if (strokePath == null) {
+                if (budget.Exceeded) channels |= PdfType3PaintChannels.Stroke;
+            } else if (visibleClips == null || strokePath.StrokeIntersectsFills(visibleClips, primitive.StrokeWidth / 2D, budget)) {
+                channels |= PdfType3PaintChannels.Stroke;
+            }
+        }
+        return budget.Exceeded ? PdfType3PaintChannels.Both : channels;
     }
 
     private static Type3PatternImageMaskDrawingResult TryCreateInheritedPatternImageMaskDrawing(
@@ -529,8 +562,11 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         out PdfPageVisualPrimitive paintedPrimitive) {
         paintedPrimitive = primitive;
-        PdfPagePatternSelection? applicableFillPattern = primitive.HasFillPaint ? fillPattern : null;
-        PdfPagePatternSelection? applicableStrokePattern = primitive.HasStrokePaint ? strokePattern : null;
+        PdfType3PaintChannels visibleChannels = ResolveVisibleType3PrimitivePaintChannels(primitive);
+        PdfPagePatternSelection? applicableFillPattern =
+            (visibleChannels & PdfType3PaintChannels.Fill) != 0 ? fillPattern : null;
+        PdfPagePatternSelection? applicableStrokePattern =
+            (visibleChannels & PdfType3PaintChannels.Stroke) != 0 ? strokePattern : null;
         if (!IsUsableInheritedPattern(applicableFillPattern) ||
             !IsUsableInheritedPattern(applicableStrokePattern) ||
             !TryCreateInheritedTilingPatternPaint(
@@ -714,6 +750,7 @@ public sealed partial class PdfReadPage {
         string name,
         Matrix2D invocationTransform,
         PdfPageClipPath? invocationClipPath,
+        double? fillOpacity,
         double pageWidth,
         double pageHeight,
         Type3PaintChannelCache cache,
@@ -721,7 +758,21 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         int depth = 0) {
         EnsureContentNestingBudget(depth);
-        if (TryGetImageXObject(resources, name, out _, out _)) return PdfType3PaintChannels.Fill;
+        if (TryGetImageXObject(resources, name, out int objectNumber, out int directStreamIdentity)) {
+            PdfImagePlacement placement = BuildImagePlacement(
+                0,
+                name,
+                objectNumber,
+                directStreamIdentity,
+                invocationTransform,
+                invocationClipPath,
+                OfficeColor.Black,
+                fillOpacity,
+                paintOrder: 0D);
+            return IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight)
+                ? PdfType3PaintChannels.None
+                : PdfType3PaintChannels.Fill;
+        }
         if (resources == null || !TryGetFormStream(resources, name, out PdfStream form)) {
             return PdfType3PaintChannels.Both;
         }
@@ -749,6 +800,27 @@ public sealed partial class PdfReadPage {
             activeStreams,
             pageContentBudget,
             depth);
+    }
+
+    private static bool IsInvisibleInlineImageInvocation(
+        PdfPageXObjectInvocation invocation,
+        PdfDictionary resources,
+        double pageWidth,
+        double pageHeight) {
+        if (invocation.InlineImage == null) return false;
+        PdfImagePlacement placement = BuildImagePlacement(
+            0,
+            invocation.InlineImage.ResourceName,
+            0,
+            invocation.InlineImage.DirectStreamIdentity,
+            invocation.Transform,
+            invocation.ClipPath,
+            invocation.FillColor,
+            invocation.FillOpacity,
+            invocation.InlineImage.Stream,
+            resources,
+            invocation.PaintOrder);
+        return IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight);
     }
 
     private PdfType3PaintChannels ResolveType3PaintChannels(
@@ -818,9 +890,27 @@ public sealed partial class PdfReadPage {
                              }
                              return true;
                          },
-                         unsupportedTextVisitor: () => channels = PdfType3PaintChannels.Both)) {
-                if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
-                    channels |= PdfType3PaintChannels.Fill;
+                         unsupportedTextVisitor: () => channels = PdfType3PaintChannels.Both,
+                         xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity) => ResolveXObjectPaintChannels(
+                             resources,
+                             name,
+                             transform,
+                             clipPath,
+                             fillOpacity,
+                             GetPageSize().Width,
+                             GetPageSize().Height,
+                             cache,
+                             activeStreams,
+                             pageContentBudget,
+                             depth + 1))) {
+                if (invocation.InlineImage != null) {
+                    if (!IsInvisibleInlineImageInvocation(
+                            invocation,
+                            resources,
+                            GetPageSize().Width,
+                            GetPageSize().Height)) {
+                        channels |= PdfType3PaintChannels.Fill;
+                    }
                     continue;
                 }
                 (double Width, double Height) visualPageSize = GetVisualPageSize();
@@ -829,6 +919,7 @@ public sealed partial class PdfReadPage {
                     invocation.Name,
                     invocation.Transform,
                     invocation.ClipPath,
+                    invocation.FillOpacity,
                     visualPageSize.Width,
                     visualPageSize.Height,
                     cache,
