@@ -9,7 +9,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public class PdfPageImageRendererTests {
+public partial class PdfPageImageRendererTests {
     [Fact]
     public void RenderPage_PreservesAxisAlignedFallbackForShearedOrdinaryImage() {
         string image = BuildStreamObject(5, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8", "x");
