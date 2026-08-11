@@ -90,6 +90,39 @@ public class OfficeColorSpaceConverterTests {
     }
 
     [Fact]
+    public void IccMatrixProfile_RejectsUndefinedOrNonfiniteParametricCurves() {
+        for (int functionType = 1; functionType <= 4; functionType++) {
+            byte[] undefinedProfile = PdfIccProfiles.SrgbIec6196621;
+            int curveOffset = FindTagOffset(undefinedProfile, "rTRC");
+            WriteSignature(undefinedProfile, curveOffset, "para");
+            Array.Clear(undefinedProfile, curveOffset + 4, 8);
+            undefinedProfile[curveOffset + 9] = (byte)functionType;
+            double[] parameters = functionType switch {
+                1 => new[] { 0.5D, -1D, 0.5D },
+                2 => new[] { 0.5D, -1D, 0.5D, 0D },
+                3 => new[] { 0.5D, -1D, 0.5D, 1D, 0.5D },
+                _ => new[] { 0.5D, -1D, 0.5D, 1D, 0.5D, 0D, 0D }
+            };
+            for (int index = 0; index < parameters.Length; index++) {
+                WriteS15Fixed16(undefinedProfile, curveOffset + 12 + index * 4, parameters[index]);
+            }
+
+            Assert.False(OfficeIccColorProfile.TryCreate(undefinedProfile, out _));
+        }
+
+        byte[] overflowingProfile = PdfIccProfiles.SrgbIec6196621;
+        int overflowingCurveOffset = FindTagOffset(overflowingProfile, "rTRC");
+        WriteSignature(overflowingProfile, overflowingCurveOffset, "para");
+        Array.Clear(overflowingProfile, overflowingCurveOffset + 4, 8);
+        overflowingProfile[overflowingCurveOffset + 9] = 1;
+        WriteS15Fixed16(overflowingProfile, overflowingCurveOffset + 12, 32767D);
+        WriteS15Fixed16(overflowingProfile, overflowingCurveOffset + 16, 32767D);
+        WriteS15Fixed16(overflowingProfile, overflowingCurveOffset + 20, 0D);
+
+        Assert.False(OfficeIccColorProfile.TryCreate(overflowingProfile, out _));
+    }
+
+    [Fact]
     public void IccGrayProfile_UsesGrayTrcAndMediaWhitePoint() {
         byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;
         WriteSignature(profileBytes, 16, "GRAY");

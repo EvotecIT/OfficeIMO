@@ -172,6 +172,26 @@ public class PdfIccColorRenderingTests {
         Assert.InRange(Assert.Single(drawing.Shapes).Shape.FillColor!.Value.R, 126, 129);
     }
 
+    [Theory]
+    [InlineData("null", "")]
+    [InlineData("7 0 R", "7 0 obj\n8 0 R\nendobj\n8 0 obj\nnull\nendobj\n")]
+    public void RenderPage_TreatsNullIccRangeAsAbsent(string rangeValue, string extraObjects) {
+        byte[] unsupportedProfile = PdfIccProfiles.SrgbIec6196621;
+        unsupportedProfile[16] = (byte)'G';
+        unsupportedProfile[17] = (byte)'R';
+        unsupportedProfile[18] = (byte)'A';
+        unsupportedProfile[19] = (byte)'Y';
+        byte[] pdf = BuildIccContentPdf(
+            unsupportedProfile,
+            "/N 1 /Range " + rangeValue,
+            "0.5 scn",
+            extraObjects);
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.InRange(Assert.Single(drawing.Shapes).Shape.FillColor!.Value.R, 126, 129);
+    }
+
     [Fact]
     public void SeparationImageConversionReusesTintOutputBuffers() {
         var function = new PdfDictionary();
@@ -316,6 +336,69 @@ public class PdfIccColorRenderingTests {
             1.089D,
             new[] { 2D, 2D, 2D });
         Assert.Equal(expected, raster!.GetPixel(0, 0));
+    }
+
+    [Theory]
+    [InlineData("null", "")]
+    [InlineData("7 0 R", "7 0 obj\n8 0 R\nendobj\n8 0 obj\nnull\nendobj\n")]
+    public void ExtractImages_TreatsNullIccAlternateAsAbsent(string alternateValue, string extraObjects) {
+        byte[] unsupportedProfile = PdfIccProfiles.SrgbIec6196621;
+        unsupportedProfile[16] = (byte)'G';
+        unsupportedProfile[17] = (byte)'R';
+        unsupportedProfile[18] = (byte)'A';
+        unsupportedProfile[19] = (byte)'Y';
+        byte[] pdf = BuildIccImagePdf(
+            unsupportedProfile,
+            new byte[] { 128 },
+            "/N 1 /Alternate " + alternateValue,
+            extraObjects: extraObjects);
+
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        Assert.InRange(raster!.GetPixel(0, 0).R, 126, 129);
+    }
+
+    [Theory]
+    [InlineData("null", "")]
+    [InlineData("7 0 R", "7 0 obj\n8 0 R\nendobj\n8 0 obj\nnull\nendobj\n")]
+    public void ExtractImages_TreatsNullIccRangeAsAbsent(string rangeValue, string extraObjects) {
+        byte[] unsupportedProfile = PdfIccProfiles.SrgbIec6196621;
+        unsupportedProfile[16] = (byte)'G';
+        unsupportedProfile[17] = (byte)'R';
+        unsupportedProfile[18] = (byte)'A';
+        unsupportedProfile[19] = (byte)'Y';
+        byte[] pdf = BuildIccImagePdf(
+            unsupportedProfile,
+            new byte[] { 128 },
+            "/N 1 /Range " + rangeValue,
+            extraObjects: extraObjects);
+
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        Assert.InRange(raster!.GetPixel(0, 0).R, 126, 129);
+    }
+
+    [Theory]
+    [InlineData("/Alternate 7 0 R")]
+    [InlineData("/Range 7 0 R")]
+    public void RenderPage_FailsClosedForCyclicOptionalIccImageDeclarations(string declaration) {
+        byte[] unsupportedProfile = PdfIccProfiles.SrgbIec6196621;
+        unsupportedProfile[16] = (byte)'G';
+        unsupportedProfile[17] = (byte)'R';
+        unsupportedProfile[18] = (byte)'A';
+        unsupportedProfile[19] = (byte)'Y';
+        byte[] pdf = BuildIccImagePdf(
+            unsupportedProfile,
+            new byte[] { 128 },
+            "/N 1 " + declaration,
+            extraObjects: "7 0 obj\n8 0 R\nendobj\n8 0 obj\n7 0 R\nendobj\n");
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        Assert.False(Assert.Single(PdfImageExtractor.ExtractImages(pdf)).IsImageFile);
+        Assert.Contains(page.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
     }
 
     [Fact]

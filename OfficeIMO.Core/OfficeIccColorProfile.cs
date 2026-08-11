@@ -235,9 +235,39 @@ public sealed class OfficeIccColorProfile {
             parameters[index] = ReadS15Fixed16(bytes, range.Offset + 12 + index * 4);
             if (!IsFinite(parameters[index])) return false;
         }
-        if (parameters[0] <= 0D || (functionType > 0 && parameters[1] == 0D)) return false;
+        if (parameters[0] <= 0D ||
+            (functionType > 0 && parameters[1] == 0D) ||
+            !IsParametricCurveDefinedOnUnitInterval(functionType, parameters)) return false;
         curve = ToneCurve.FromParameters(functionType, parameters);
         return true;
+    }
+
+    private static bool IsParametricCurveDefinedOnUnitInterval(int functionType, double[] parameters) {
+        if (functionType == 0) return true;
+
+        double gamma = parameters[0];
+        double a = parameters[1];
+        double b = parameters[2];
+        double branchStart = functionType <= 2
+            ? Math.Max(0D, -b / a)
+            : Math.Max(0D, parameters[4]);
+        if (branchStart > 1D) return true;
+
+        double startBase = functionType <= 2 && a > 0D && branchStart > 0D
+            ? 0D
+            : a * branchStart + b;
+        double endBase = a + b;
+        double minimumBase = Math.Min(startBase, endBase);
+        if (minimumBase < 0D && gamma != Math.Truncate(gamma)) return false;
+
+        double offset = functionType switch {
+            2 => parameters[3],
+            4 => parameters[5],
+            _ => 0D
+        };
+        double start = Math.Pow(startBase, gamma) + offset;
+        double end = Math.Pow(endBase, gamma) + offset;
+        return IsFinite(start) && IsFinite(end);
     }
 
     private static ushort ReadUInt16(byte[] bytes, int offset) =>
