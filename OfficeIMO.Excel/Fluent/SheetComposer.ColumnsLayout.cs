@@ -200,10 +200,6 @@ namespace OfficeIMO.Excel.Fluent {
                 }
 
                 _sheet.CellValues(cells);
-                for (int i = 0; i < headersT.Count; i++) {
-                    _sheet.CellBold(headerRow, _baseCol + i, true);
-                    _sheet.CellBackground(headerRow, _baseCol + i, _theme.KeyFillHex);
-                }
 
                 int lastRow = _row - 1;
                 string start = SheetComposer.ColumnLetter(_baseCol) + headerRow.ToString();

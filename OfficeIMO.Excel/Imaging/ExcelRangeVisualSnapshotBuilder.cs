@@ -115,6 +115,13 @@ namespace OfficeIMO.Excel {
 
             Dictionary<int, ExcelVisualColumn> columnsByIndex = columns.ToDictionary(column => column.Index);
             Dictionary<int, ExcelVisualRow> rowsByIndex = rows.ToDictionary(row => row.Index);
+            IReadOnlyDictionary<string, ExcelTableHeaderVisualStyle> tableHeaderStyles =
+                ExcelTableHeaderVisualStyleResolver.Build(
+                    sheet,
+                    firstRow,
+                    firstColumn,
+                    lastRow,
+                    lastColumn);
             var coveredByMerge = new HashSet<string>(StringComparer.Ordinal);
             var mergeOrigins = new Dictionary<string, (double Width, double Height)>(StringComparer.Ordinal);
             var fullMergeGeometry = new HashSet<string>(StringComparer.Ordinal);
@@ -197,6 +204,9 @@ namespace OfficeIMO.Excel {
                     }
 
                     ExcelCellStyleSnapshot style = sheet.GetCellStyle(row.Index, column.Index);
+                    if (tableHeaderStyles.TryGetValue(A1.CellReference(row.Index, column.Index), out ExcelTableHeaderVisualStyle tableHeaderStyle)) {
+                        style = ExcelTableHeaderVisualStyleResolver.Apply(style, tableHeaderStyle);
+                    }
                     ExcelCellData valueData = covered
                         ? new ExcelCellData(ExcelCellDataKind.Blank, null)
                         : sheet.GetCellValueSnapshot(row.Index, column.Index);
