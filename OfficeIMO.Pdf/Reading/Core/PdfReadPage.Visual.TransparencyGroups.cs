@@ -56,24 +56,16 @@ public sealed partial class PdfReadPage {
 
         double localPageWidth = fittedBounds.Width;
         double localPageHeight = fittedBounds.Height;
-        Matrix2D localTransform = Matrix2D.Multiply(
-            Matrix2D.Translation(
-                -fittedBounds.X,
-                localPageHeight - pageHeight + fittedBounds.Y),
-            transform);
-        PdfPageClipPath? localClipPath = fittedBounds.IsRectangle
-            ? null
-            : fittedBounds.Translate(fittedBounds.X, fittedBounds.Y);
-        PdfPagePatternSelection? localFillPattern = invocation.FillPattern?.Translate(
-            fittedBounds.X,
-            fittedBounds.Y,
+        LocalizeType3TransparencyGroupProjection(
+            transform,
+            fittedBounds,
             pageHeight,
-            localPageHeight);
-        PdfPagePatternSelection? localStrokePattern = invocation.StrokePattern?.Translate(
-            fittedBounds.X,
-            fittedBounds.Y,
-            pageHeight,
-            localPageHeight);
+            invocation.FillPattern,
+            invocation.StrokePattern,
+            out Matrix2D localTransform,
+            out PdfPageClipPath? localClipPath,
+            out PdfPagePatternSelection? localFillPattern,
+            out PdfPagePatternSelection? localStrokePattern);
         groupTransform = OfficeTransform.Translate(fittedBounds.X, fittedBounds.Y);
 
         int failureVersion = type3GlyphBudget.FailureVersion;
@@ -259,6 +251,37 @@ public sealed partial class PdfReadPage {
             groupDrawing = contentDrawing;
         }
         return Type3TransparencyGroupDrawingResult.Success;
+    }
+
+    private static void LocalizeType3TransparencyGroupProjection(
+        Matrix2D transform,
+        PdfPageClipPath fittedBounds,
+        double pageHeight,
+        PdfPagePatternSelection? fillPattern,
+        PdfPagePatternSelection? strokePattern,
+        out Matrix2D localTransform,
+        out PdfPageClipPath? localClipPath,
+        out PdfPagePatternSelection? localFillPattern,
+        out PdfPagePatternSelection? localStrokePattern) {
+        double localPageHeight = fittedBounds.Height;
+        localTransform = Matrix2D.Multiply(
+            Matrix2D.Translation(
+                -fittedBounds.X,
+                localPageHeight - pageHeight + fittedBounds.Y),
+            transform);
+        localClipPath = fittedBounds.IsRectangle
+            ? null
+            : fittedBounds.Translate(fittedBounds.X, fittedBounds.Y);
+        localFillPattern = fillPattern?.Translate(
+            fittedBounds.X,
+            fittedBounds.Y,
+            pageHeight,
+            localPageHeight);
+        localStrokePattern = strokePattern?.Translate(
+            fittedBounds.X,
+            fittedBounds.Y,
+            pageHeight,
+            localPageHeight);
     }
 
     private Type3TransparencyGroupDrawingResult TryGetVisibleType3TransparencyGroupBounds(

@@ -298,7 +298,9 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream> activeStreams,
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
-        int depth) {
+        int depth,
+        double? projectionPageWidth = null,
+        double? projectionPageHeight = null) {
         EnsureContentNestingBudget(depth);
         if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).Count != 0 ||
             !activeStreams.Add(stream)) return false;
@@ -310,6 +312,9 @@ public sealed partial class PdfReadPage {
                 return false;
             }
 
+            (double Width, double Height) visualPageSize = GetVisualPageSize();
+            double surfaceWidth = projectionPageWidth ?? visualPageSize.Width;
+            double surfaceHeight = projectionPageHeight ?? visualPageSize.Height;
             bool supported = true;
             var validatedSoftMaskGroups = new HashSet<PdfStream>();
             var softMaskValidationBudget = new PageContentBudget(this);
@@ -321,7 +326,7 @@ public sealed partial class PdfReadPage {
             _ = PdfPageXObjectInvocationParser.Parse(
                 content,
                 programTransform,
-                GetVisualPageSize().Height,
+                surfaceHeight,
                 GetGraphicsStateResources(resources),
                 colorSpaces,
                 GetOptionalContentVisibility(resources),
@@ -350,9 +355,9 @@ public sealed partial class PdfReadPage {
             bool usesUnsupportedInheritedShadingStroke = false;
             bool usesUnsupportedInheritedShadingPlacement = false;
             _ = PdfPageContentVisualParser.Parse(
-                content,
-                GetVisualPageSize().Width,
-                GetVisualPageSize().Height,
+                WrapContentWithTransform(content, programTransform),
+                surfaceWidth,
+                surfaceHeight,
                 GetGraphicsStateResources(resources),
                 colorSpaces,
                 GetShadingResources(resources),
@@ -381,7 +386,7 @@ public sealed partial class PdfReadPage {
                                 primitive.Y,
                                 primitive.Width,
                                 primitive.Height,
-                                GetPageSize().Height);
+                                surfaceHeight);
                     }
                 },
                 retainPrimitiveData: false,
@@ -431,7 +436,7 @@ public sealed partial class PdfReadPage {
             foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                          content,
                          programTransform,
-                         GetVisualPageSize().Height,
+                         surfaceHeight,
                          GetGraphicsStateResources(resources),
                          colorSpaces,
                          GetOptionalContentVisibility(resources),
@@ -463,7 +468,9 @@ public sealed partial class PdfReadPage {
                                          activeStreams,
                                          diagnostics,
                                          seen,
-                                         depth + 1)) {
+                                         depth + 1,
+                                         surfaceWidth,
+                                         surfaceHeight)) {
                                      supported = false;
                                  }
                              }
@@ -526,7 +533,9 @@ public sealed partial class PdfReadPage {
                         requireImageMask,
                         initialFillPattern,
                         diagnostics,
-                        seen);
+                        seen,
+                        surfaceWidth,
+                        surfaceHeight);
                     if ((!requireImageMask && initialFillPattern.HasValue && !HasUsableInheritedPattern(initialFillPattern)) ||
                         !canProjectImage) supported = false;
                     continue;
@@ -537,25 +546,40 @@ public sealed partial class PdfReadPage {
                 }
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, form.Dictionary);
                 PdfPageClipPath? formClipPath = invocation.ClipPath;
+                PdfPagePatternSelection? formFillPattern = invocation.FillPattern;
+                PdfPagePatternSelection? formStrokePattern = invocation.StrokePattern;
+                double formSurfaceWidth = surfaceWidth;
+                double formSurfaceHeight = surfaceHeight;
                 if (form.Dictionary.Items.ContainsKey("Group")) {
+                    if ((invocation.FillOpacity ?? 1D) <= 0D) continue;
                     if (!IsSupportedType3TransparencyGroup(form.Dictionary)) {
                         supported = false;
                         continue;
                     }
-                    (double Width, double Height) visualPageSize = GetVisualPageSize();
                     Type3TransparencyGroupDrawingResult boundsResult = TryGetVisibleType3TransparencyGroupBounds(
                         form.Dictionary,
                         formTransform,
                         invocation.ClipPath,
-                        visualPageSize.Width,
-                        visualPageSize.Height,
+                        surfaceWidth,
+                        surfaceHeight,
                         out PdfPageClipPath groupBounds);
                     if (boundsResult == Type3TransparencyGroupDrawingResult.Invisible) continue;
                     if (boundsResult == Type3TransparencyGroupDrawingResult.Unsupported) {
                         supported = false;
                         continue;
                     }
-                    formClipPath = groupBounds;
+                    LocalizeType3TransparencyGroupProjection(
+                        formTransform,
+                        groupBounds,
+                        surfaceHeight,
+                        invocation.FillPattern,
+                        invocation.StrokePattern,
+                        out formTransform,
+                        out formClipPath,
+                        out formFillPattern,
+                        out formStrokePattern);
+                    formSurfaceWidth = groupBounds.Width;
+                    formSurfaceHeight = groupBounds.Height;
                 }
                 PdfDictionary formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? value) ? value : null) ?? resources;
                 if (!CanProjectType3GlyphProgram(
@@ -564,16 +588,18 @@ public sealed partial class PdfReadPage {
                         formTransform,
                         formClipPath,
                         requireImageMask,
-                        invocation.FillPattern,
+                        formFillPattern,
                         invocation.FillPatternBaseColorSpace,
-                        invocation.StrokePattern,
+                        formStrokePattern,
                         invocation.StrokePatternBaseColorSpace,
                         pageContentBudget,
                         type3GlyphBudget,
                         activeStreams,
                         diagnostics,
                         seen,
-                        depth + 1)) supported = false;
+                        depth + 1,
+                        formSurfaceWidth,
+                        formSurfaceHeight)) supported = false;
             }
             return supported;
         } catch (Exception exception) when (IsRecoverableType3ProjectionFailure(exception)) {
@@ -596,7 +622,9 @@ public sealed partial class PdfReadPage {
         bool requireImageMask,
         PdfPagePatternSelection? inheritedFillPattern,
         List<PdfRenderCapabilityDiagnostic> diagnostics,
-        HashSet<string> seen) {
+        HashSet<string> seen,
+        double projectionPageWidth,
+        double projectionPageHeight) {
         PdfImagePlacement placement;
         PdfDictionary imageDictionary;
         if (invocation.InlineImage != null) {
@@ -632,8 +660,7 @@ public sealed partial class PdfReadPage {
         }
 
         if (requireImageMask) {
-            (double Width, double Height) visualPageSize = GetVisualPageSize();
-            if (IsInvisibleImagePlacement(placement, visualPageSize.Height, visualPageSize.Width, visualPageSize.Height)) {
+            if (IsInvisibleImagePlacement(placement, projectionPageHeight, projectionPageWidth, projectionPageHeight)) {
                 return true;
             }
         }
@@ -654,13 +681,12 @@ public sealed partial class PdfReadPage {
         CollectImageColorSpaceCapabilityDiagnostic(imageDictionary, resources, diagnostics, seen, invocation.Name);
         if (image == null || !image.IsImageFile || (requireImageMask && !image.IsImageMask)) return false;
         if (requireImageMask && inheritedFillPattern.HasValue) {
-            (double Width, double Height) pageSize = GetVisualPageSize();
             Type3PatternImageMaskDrawingResult result = TryPrepareInheritedPatternImageMaskDrawing(
                 inheritedFillPattern,
                 placement,
                 image,
-                pageSize.Width,
-                pageSize.Height,
+                projectionPageWidth,
+                projectionPageHeight,
                 out _,
                 out _,
                 out _,

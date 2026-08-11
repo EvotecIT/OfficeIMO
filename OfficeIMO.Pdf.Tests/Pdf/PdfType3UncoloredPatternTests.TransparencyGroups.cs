@@ -163,6 +163,28 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void RenderPage_SkipsFullyTransparentUnsupportedTransparencyGroupContent() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Zero gs /Group Do /Normal gs 0 0 250 700 re f",
+            glyphResources: "<< /ExtGState << /Zero << /ca 0 >> /Normal << /ca 1 >> >> /XObject << /Group 8 0 R >> >>",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << /Shading << /S 9 0 R >> >>", "/S sh"),
+                "9 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [0 0 500 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [0 1 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>\nendobj"
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(22, 96));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(27, 96));
+    }
+
+    [Fact]
     public void RenderPage_UsesVisibleLocalSurfaceForSmallTransparencyGroupOnLargePage() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
@@ -288,6 +310,49 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(22, 96));
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(27, 96));
+    }
+
+    [Fact]
+    public void RenderPage_SkipsColorImageWhollyInsideEvenOddClipHole() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Group Do",
+            glyphResources: "<< /XObject << /Group 9 0 R >> >>",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8", "\0\u00ff\0"),
+                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << /XObject << /Im1 8 0 R >> >>", "q 0 0 500 700 re 150 150 200 400 re W* n q 100 0 0 100 200 250 cm /Im1 Do Q Q 0 0 150 700 re f")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(21, 96));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(27, 96));
+    }
+
+    [Fact]
+    public void RenderPage_LocalizesOuterAxialShadingPatternForOffsetTransparencyGroupDiagnostics() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [22.5 107 27 107] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>",
+            patternContent: string.Empty,
+            patternIsStream: false,
+            glyphContent: "500 0 d0 /Group Do",
+            glyphResources: "<< /XObject << /Group 8 0 R >> >>",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [100 100 400 600] /Matrix [1 0 0 1 25 50] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "100 100 300 500 re f")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Contains(drawing.Elements, element => element is OfficeDrawingEffectGroup);
     }
 
     [Fact]
