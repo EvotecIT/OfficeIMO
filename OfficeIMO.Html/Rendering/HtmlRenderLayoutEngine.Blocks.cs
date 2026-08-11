@@ -689,6 +689,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             marker = ordered ? ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) : "•";
         }
         if (marker.Length == 0) return null;
-        return marker + (ordered ? ". " : " ");
+        return marker + HtmlCounterStyleFormatter.MarkerSuffix(listStyle, ordered);
     }
 }

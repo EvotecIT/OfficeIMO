@@ -50,6 +50,34 @@ internal static class HtmlCounterStyleFormatter {
             case "full-width":
                 formatted = FormatDecimalDigits(value, "０１２３４５６７８９");
                 return true;
+            case "japanese-informal":
+                formatted = FormatEastAsianAdditive(value, "〇一二三四五六七八九", "十百千", omitOneBeforeUnits: true, "マイナス");
+                return true;
+            case "japanese-formal":
+                formatted = FormatEastAsianAdditive(value, "零壱弐参四伍六七八九", "拾百阡", omitOneBeforeUnits: false, "マイナス");
+                return true;
+            case "korean-hangul-formal":
+                formatted = FormatEastAsianAdditive(value, "영일이삼사오육칠팔구", "십백천", omitOneBeforeUnits: false, "마이너스 ");
+                return true;
+            case "korean-hanja-informal":
+                formatted = FormatEastAsianAdditive(value, "零一二三四五六七八九", "十百千", omitOneBeforeUnits: true, "마이너스 ");
+                return true;
+            case "korean-hanja-formal":
+                formatted = FormatEastAsianAdditive(value, "零壹貳參四五六七八九", "拾百仟", omitOneBeforeUnits: false, "마이너스 ");
+                return true;
+            case "simp-chinese-informal":
+                formatted = FormatChineseLonghand(value, "零一二三四五六七八九", "十百千", informal: true, "负");
+                return true;
+            case "simp-chinese-formal":
+                formatted = FormatChineseLonghand(value, "零壹贰叁肆伍陆柒捌玖", "拾佰仟", informal: false, "负");
+                return true;
+            case "trad-chinese-informal":
+            case "cjk-ideographic":
+                formatted = FormatChineseLonghand(value, "零一二三四五六七八九", "十百千", informal: true, "負");
+                return true;
+            case "trad-chinese-formal":
+                formatted = FormatChineseLonghand(value, "零壹貳參肆伍陸柒捌玖", "拾佰仟", informal: false, "負");
+                return true;
             case "lower-roman":
                 formatted = value > 0 && value <= 3999 ? FormatRoman(value).ToLowerInvariant() : value.ToString(CultureInfo.InvariantCulture);
                 return true;
@@ -76,6 +104,15 @@ internal static class HtmlCounterStyleFormatter {
                 formatted = string.Empty;
                 return false;
         }
+    }
+
+    internal static string MarkerSuffix(string style, bool ordered) {
+        string normalized = HtmlCssEscapeDecoder.Decode(style.Trim()).ToLowerInvariant();
+        if (normalized is "japanese-informal" or "japanese-formal"
+            or "simp-chinese-informal" or "simp-chinese-formal"
+            or "trad-chinese-informal" or "trad-chinese-formal" or "cjk-ideographic") return "、";
+        if (normalized is "korean-hangul-formal" or "korean-hanja-informal" or "korean-hanja-formal") return ", ";
+        return ordered ? ". " : " ";
     }
 
     private static bool TryFormatSymbolsFunction(int value, string style, out string formatted) {
@@ -182,6 +219,62 @@ internal static class HtmlCounterStyleFormatter {
         if (value < 0) result.Append('-');
         foreach (char digit in source) result.Append(digits[digit - '0']);
         return result.ToString();
+    }
+
+    private static string FormatEastAsianAdditive(
+        int value,
+        string digits,
+        string units,
+        bool omitOneBeforeUnits,
+        string negativePrefix) {
+        if (value < -9999 || value > 9999) return FormatDecimalDigits(value, "〇一二三四五六七八九");
+        if (value == 0) return digits[0].ToString();
+        bool negative = value < 0;
+        int magnitude = Math.Abs(value);
+        var result = new StringBuilder();
+        int[] divisors = { 1000, 100, 10 };
+        for (int index = 0; index < divisors.Length; index++) {
+            int digit = magnitude / divisors[index];
+            magnitude %= divisors[index];
+            if (digit == 0) continue;
+            if (!omitOneBeforeUnits || digit != 1) result.Append(digits[digit]);
+            result.Append(units[2 - index]);
+        }
+        if (magnitude > 0) result.Append(digits[magnitude]);
+        return (negative ? negativePrefix : string.Empty) + result;
+    }
+
+    private static string FormatChineseLonghand(
+        int value,
+        string digits,
+        string units,
+        bool informal,
+        string negativePrefix) {
+        if (value < -9999 || value > 9999) return FormatDecimalDigits(value, "〇一二三四五六七八九");
+        if (value == 0) return digits[0].ToString();
+        bool negative = value < 0;
+        int magnitude = Math.Abs(value);
+        var result = new StringBuilder();
+        bool emitted = false;
+        bool zeroPending = false;
+        int[] divisors = { 1000, 100, 10, 1 };
+        for (int index = 0; index < divisors.Length; index++) {
+            int digit = magnitude / divisors[index];
+            magnitude %= divisors[index];
+            if (digit == 0) {
+                if (emitted && magnitude > 0) zeroPending = true;
+                continue;
+            }
+            if (zeroPending) {
+                result.Append(digits[0]);
+                zeroPending = false;
+            }
+            bool omitLeadingOne = informal && index == 2 && digit == 1 && !emitted;
+            if (!omitLeadingOne) result.Append(digits[digit]);
+            if (index < 3) result.Append(units[2 - index]);
+            emitted = true;
+        }
+        return (negative ? negativePrefix : string.Empty) + result;
     }
 
     internal static bool TryUnquote(string value, out string result) {

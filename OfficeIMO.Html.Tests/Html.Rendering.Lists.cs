@@ -44,6 +44,36 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData("japanese-informal", 10, "十、")]
+    [InlineData("japanese-formal", 101, "壱百壱、")]
+    [InlineData("korean-hangul-formal", 6001, "육천일, ")]
+    [InlineData("korean-hanja-informal", 101, "百一, ")]
+    [InlineData("korean-hanja-formal", 11, "壹拾壹, ")]
+    [InlineData("simp-chinese-informal", 101, "一百零一、")]
+    [InlineData("simp-chinese-formal", 6001, "陆仟零壹、")]
+    [InlineData("trad-chinese-informal", 10, "十、")]
+    [InlineData("trad-chinese-formal", 99, "玖拾玖、")]
+    [InlineData("cjk-ideographic", 6001, "六千零一、")]
+    public void HtmlRendering_FormatsLonghandEastAsianCounterStyles(string style, int start, string marker) {
+        string html = "<ol start='" + start + "' style='list-style-type:" + style + "'><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Equal(new[] { marker, "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Theory]
+    [InlineData("japanese-informal", -11, "マイナス十一")]
+    [InlineData("korean-hangul-formal", -11, "마이너스 일십일")]
+    [InlineData("simp-chinese-formal", -101, "负壹佰零壹")]
+    [InlineData("trad-chinese-formal", -101, "負壹佰零壹")]
+    [InlineData("japanese-formal", 10000, "一〇〇〇〇")]
+    public void HtmlRendering_FormatsLonghandEastAsianRepresentations(string style, int value, string expected) {
+        Assert.True(HtmlCounterStyleFormatter.TryFormat(value, style, out string formatted));
+        Assert.Equal(expected, formatted);
+    }
+
+    [Theory]
     [InlineData("circle", "◦ ")]
     [InlineData("square", "▪ ")]
     [InlineData("'→'", "→ ")]
