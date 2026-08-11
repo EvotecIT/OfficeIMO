@@ -22,12 +22,11 @@ public sealed partial class PdfReadPage {
         internal int FailureVersion => _failureVersion;
 
         internal Type3SoftMaskValidationContext GetOrCreateSoftMaskValidationContext(
-            PdfReadPage owner,
-            TextContentParser.TextOutputBudget? textOutputBudget) =>
+            PdfReadPage owner) =>
             _softMaskValidationContext ??= new Type3SoftMaskValidationContext(
                 owner,
                 _maximum,
-                textOutputBudget ?? owner.CreateTextOutputBudget());
+                owner.CreateTextOutputBudget());
 
         internal void AttachSoftMaskValidationContext(Type3SoftMaskValidationContext context) =>
             _softMaskValidationContext = context;
