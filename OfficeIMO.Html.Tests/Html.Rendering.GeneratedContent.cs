@@ -198,7 +198,7 @@ public sealed partial class HtmlRenderingTests {
             <style>
               .declaration { --bad-counter:chapter 1 2; counter-reset:var(--bad-counter); }
               .declaration::before { content:counter(chapter) " "; }
-              .style { --bad-content:counter(chapter, symbols("*")); }
+              .style { --bad-content:counter(chapter, symbols(additive "*")); }
               .style::before { content:var(--bad-content); }
             </style>
             <p class="declaration">DeclarationFallback</p><p class="style">StyleFallback</p>
@@ -211,6 +211,33 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Source == "p.declaration::before" && text.Text == "0 ");
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Source == "p.style::before");
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.GeneratedCounterUnsupported, out _));
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_FormatsSymbolsFunctionsThroughTheSharedCounterOwner() {
+        const string html = """
+            <style>
+              body { counter-reset:item 4; }
+              .cyclic { --marker:counter(item, symbols(cyclic "①" "②" "③")) " "; }
+              .numeric { --marker:counter(item, symbols(numeric "0" "1")) " "; }
+              .alphabetic { --marker:counter(item, symbols(alphabetic "A" "B")) " "; }
+              .symbolic { --marker:counter(item, symbols("*" "†")) " "; }
+              p::before { counter-increment:item; content:var(--marker); }
+            </style>
+            <p class="cyclic">Cyclic</p><p class="numeric">Numeric</p>
+            <p class="alphabetic">Alphabetic</p><p class="symbolic">Symbolic</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        string text = rendered.Text;
+
+        Assert.Contains("② ", text, StringComparison.Ordinal);
+        Assert.Contains("110 ", text, StringComparison.Ordinal);
+        Assert.Contains("AAA ", text, StringComparison.Ordinal);
+        Assert.Contains("†††† ", text, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedCounterUnsupported);
     }
 
     [Fact]
