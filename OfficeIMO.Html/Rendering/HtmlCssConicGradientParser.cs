@@ -23,13 +23,15 @@ internal static class HtmlCssConicGradientParser {
         } else return false;
         int open = functionName.Length;
         if (open >= text.Length || text[open] != '(' || text[text.Length - 1] != ')') return false;
+        int maximumArguments = maximumStops == int.MaxValue ? int.MaxValue : maximumStops + 2;
         if (!HtmlRenderCssValues.TrySplitTopLevelCommas(
                 text.Substring(open + 1, text.Length - open - 2),
-                maximumStops == int.MaxValue ? int.MaxValue : maximumStops + 1,
+                maximumArguments,
                 out IReadOnlyList<string> arguments)) {
             stopLimitExceeded = true;
             return false;
         }
+        arguments = NormalizeSerializedDescriptor(arguments);
         if (arguments.Count < 2) return false;
         int stopStart = HtmlCssGradientStops.IsConicColorStop(arguments[0]) ? 0 : 1;
         if (!HtmlCssGradientStops.TryParseConic(arguments, stopStart, maximumStops, out HtmlCssGradientStops? stops, out stopLimitExceeded)
@@ -37,6 +39,17 @@ internal static class HtmlCssConicGradientParser {
             || !TryParseDescriptor(stopStart == 0 ? string.Empty : arguments[0], out double angle, out string centerX, out string centerY)) return false;
         definition = new HtmlCssConicGradientDefinition(angle, centerX, centerY, stops, repeating);
         return true;
+    }
+
+    private static IReadOnlyList<string> NormalizeSerializedDescriptor(IReadOnlyList<string> arguments) {
+        if (arguments.Count < 3
+            || !arguments[0].TrimStart().StartsWith("from ", StringComparison.OrdinalIgnoreCase)
+            || !arguments[1].TrimStart().StartsWith("at ", StringComparison.OrdinalIgnoreCase)) return arguments;
+        var normalized = new List<string>(arguments.Count - 1) {
+            arguments[0].Trim() + " " + arguments[1].Trim()
+        };
+        for (int index = 2; index < arguments.Count; index++) normalized.Add(arguments[index]);
+        return normalized;
     }
 
     private static bool TryParseDescriptor(string descriptor, out double angle, out string centerX, out string centerY) {

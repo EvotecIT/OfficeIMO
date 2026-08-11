@@ -304,49 +304,46 @@ public static partial class OfficeDrawingSvgExporter {
                  (shape.StrokeColor.HasValue && shape.StrokeColor.Value.A > 0)));
         bool hasFill = shape.Kind != OfficeShapeKind.Line &&
             (shape.FillRadialGradient != null || shape.FillGradient != null || (shape.FillColor.HasValue && shape.FillColor.Value.A > 0));
-        OfficeDrawingShape coreShadow = CreateShadowShape(drawingShape, shadow, hasStroke, hasFill, Math.Max(0D, shape.StrokeWidth), shadow.Opacity);
-        if (shadow.BlurRadius <= 0D) {
-            return new[] { coreShadow };
-        }
-
-        const int layers = 4;
-        var shadowShapes = new List<OfficeDrawingShape>(layers + 1);
         double baseStrokeWidth = Math.Max(0D, shape.StrokeWidth);
-        for (int i = layers; i >= 1; i--) {
-            double factor = i / (double)layers;
-            double opacity = shadow.Opacity * (0.04D + (layers - i + 1) * 0.05D);
-            shadowShapes.Add(CreateShadowShape(
-                drawingShape,
-                shadow,
-                hasStroke: true,
-                hasFill: hasFill,
-                strokeWidth: Math.Max(1D, baseStrokeWidth + shadow.BlurRadius * 2D * factor),
-                opacity: opacity));
+        IReadOnlyList<OfficeShadowLayer> layers = OfficeShadowLayerPlanner.Create(
+            shadow.Opacity,
+            shadow.BlurRadius,
+            baseStrokeWidth,
+            hasFill,
+            hasStroke,
+            OfficeShadowLayerPlanner.CanExpand(shape));
+        var shadowShapes = new List<OfficeDrawingShape>(layers.Count);
+        for (int index = 0; index < layers.Count; index++) {
+            OfficeShadowLayer layer = layers[index];
+            shadowShapes.Add(CreateShadowShape(drawingShape, shadow, layer));
         }
-
-        shadowShapes.Add(coreShadow);
         return shadowShapes;
     }
 
-    private static OfficeDrawingShape CreateShadowShape(OfficeDrawingShape drawingShape, OfficeShadow shadow, bool hasStroke, bool hasFill, double strokeWidth, double opacity) {
+    private static OfficeDrawingShape CreateShadowShape(OfficeDrawingShape drawingShape, OfficeShadow shadow, OfficeShadowLayer layer) {
         OfficeShape shape = drawingShape.Shape;
-        var shadowShape = shape.Clone();
+        OfficeShape shadowShape = layer.Expansion > 0D
+            ? OfficeShadowLayerPlanner.CreateExpandedShape(shape, layer.Expansion)
+            : shape.Clone();
         shadowShape.Shadow = null;
         shadowShape.Glow = null;
         shadowShape.FillGradient = null;
         shadowShape.FillRadialGradient = null;
-        shadowShape.FillColor = hasFill || !hasStroke ? shadow.Color : null;
-        shadowShape.FillOpacity = opacity;
-        shadowShape.StrokeColor = hasStroke ? shadow.Color : null;
+        shadowShape.FillColor = layer.HasFill || !layer.HasStroke ? shadow.Color : null;
+        shadowShape.FillOpacity = layer.Opacity;
+        shadowShape.StrokeColor = layer.HasStroke ? shadow.Color : null;
         shadowShape.StrokeGradient = null;
         shadowShape.StrokeRadialGradient = null;
-        shadowShape.StrokeWidth = strokeWidth;
+        shadowShape.StrokeWidth = layer.StrokeWidth;
         shadowShape.StrokeDashStyle = OfficeStrokeDashStyle.Solid;
         shadowShape.StrokeStartMarker = null;
         shadowShape.StrokeEndMarker = null;
-        shadowShape.StrokeOpacity = opacity;
+        shadowShape.StrokeOpacity = layer.Opacity;
 
-        return CreateOffsetEffectShape(shadowShape, drawingShape.X + shadow.OffsetX, drawingShape.Y + shadow.OffsetY);
+        return CreateOffsetEffectShape(
+            shadowShape,
+            drawingShape.X + shadow.OffsetX - layer.Expansion,
+            drawingShape.Y + shadow.OffsetY - layer.Expansion);
     }
 
     private static OfficeDrawingShape CreateOffsetEffectShape(OfficeShape shape, double x, double y) {

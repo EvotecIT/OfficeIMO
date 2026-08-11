@@ -494,6 +494,42 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlConicGradient_AcceptsCssColor4Stops() {
+        const string gradient = "conic-gradient(from 210deg at 80% 20%,oklch(72% .18 155),oklch(62% .2 245),oklch(68% .2 320),oklch(72% .18 155))";
+        string html = "<style>.hero{width:80px;height:60px;background:" + gradient + "}</style><div class='hero'></div>";
+
+        Assert.True(HtmlCssConicGradientParser.TryParse(gradient, 32, out HtmlCssConicGradientDefinition? definition, out bool stopLimitExceeded));
+        Assert.NotNull(definition);
+        Assert.False(stopLimitExceeded);
+        Assert.True(HtmlCssConicGradientParser.TryParse(
+            "conic-gradient(from 210deg, at 80% 20%, rgba(0, 196, 112, 1), rgba(0, 139, 245, 1))",
+            32,
+            out _,
+            out _));
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(8D),
+            ConicGradientQualitySegments = 72
+        });
+        HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 80D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(8D)
+        });
+        OfficeDrawing pdfDrawing = PdfCore.PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.NotEmpty(visual.Drawing.Elements);
+        Assert.NotEqual(raster.GetPixel(20, 20), raster.GetPixel(70, 50));
+        Assert.Contains(pdfDrawing.Shapes, shape => shape.Shape.FillColor.HasValue && shape.Shape.FillColor.Value.G > shape.Shape.FillColor.Value.R);
+        Assert.Contains(pdfDrawing.Shapes, shape => shape.Shape.FillColor.HasValue && shape.Shape.FillColor.Value.B > shape.Shape.FillColor.Value.G);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlRepeatingConicGradient_ExpandsAngularStopsAndHonorsTheStopBudget() {
         const string background = "repeating-conic-gradient(from .25turn at center,red 0 30deg,blue 30deg 60deg)";
         string html = "<div style='width:40px;height:40px;background:" + background + "'></div>";

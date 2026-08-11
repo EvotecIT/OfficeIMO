@@ -489,10 +489,8 @@ public partial class PdfDocumentVisualQualityTests {
 
         string content = Encoding.ASCII.GetString(bytes);
 
-        Assert.True(content.Split(new[] { "/Type /ExtGState" }, StringSplitOptions.None).Length - 1 >= 5);
-        Assert.Contains("/ca 0.251 /CA 0.251", content, StringComparison.Ordinal);
-        Assert.Contains("1 0 0 rg", content, StringComparison.Ordinal);
-        Assert.Contains("8 w", content, StringComparison.Ordinal);
+        Assert.Contains("/Type /ExtGState /ca 0.047 /CA 0.047", content, StringComparison.Ordinal);
+        Assert.True(content.Split(new[] { "1 0 0 rg" }, StringSplitOptions.None).Length - 1 >= 6);
     }
 
     [Fact]

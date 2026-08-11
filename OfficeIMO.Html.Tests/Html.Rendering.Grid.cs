@@ -103,6 +103,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_ExplicitZeroFractionMinimumAllowsIntentionalContentOverflowWithoutFallback() {
+        const string html = """
+            <div style="display:grid;width:120px;grid-template-columns:repeat(2,minmax(0,1fr))">
+              <span id="first" style="white-space:nowrap;background:#ff0000">This intrinsic label intentionally overflows</span>
+              <span id="second" style="background:#0000ff">Cell</span>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 140D);
+        HtmlRenderShape first = FindGridShape(rendered, "span#first");
+        HtmlRenderShape second = FindGridShape(rendered, "span#second");
+
+        Assert.Equal(60D, first.Width, 3);
+        Assert.Equal(60D, second.Width, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported &&
+            diagnostic.Detail != null && diagnostic.Detail.Contains("fractional automatic minimum", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void HtmlGrid_ResolvesFixedFractionAndImplicitTracks() {
         const string html = """
             <div style="display:grid;width:300px;grid-template-columns:100px 1fr 2fr;grid-auto-rows:40px;gap:5px 10px">

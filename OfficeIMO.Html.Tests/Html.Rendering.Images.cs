@@ -141,11 +141,21 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
         byte[] png = HtmlConversionDocument.Parse(html).ToPng(options);
+        var pdfOptions = new HtmlPdfSaveOptions(options);
+        PdfCore.PdfDocumentConversionResult pdfResult = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions);
+        byte[] pdf = pdfResult.ToBytes();
+        OfficeRasterImage pdfRaster = OfficeDrawingRasterRenderer.Render(
+            PdfCore.PdfPageImageRenderer.RenderPage(pdf),
+            background: OfficeColor.White);
 
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
         Assert.Contains("mix-blend-mode:multiply", exportedSvg, StringComparison.Ordinal);
         Assert.Contains("<mask id=", exportedSvg, StringComparison.Ordinal);
         Assert.Equal(new byte[] { 137, 80, 78, 71 }, png.Take(4));
+        Assert.True(pdfRaster.GetPixel(20, 15).B < 40);
+        Assert.True(pdfRaster.GetPixel(60, 15).B > 180);
+        Assert.Contains(pdfResult.Report.Warnings, warning => warning.Code == "HtmlPdfDrawingEffectRasterized");
+        Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
     }
 
     [Fact]

@@ -110,6 +110,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 GridTrack maximumTrack = ParseGridTrackToken(arguments[1], reference, percentageReferenceIsDefinite, style, source, axis);
                 maximumTrack.Minimum = minimumTrack.Kind == GridTrackKind.Fixed ? minimumTrack.Value : minimumTrack.Minimum;
                 maximumTrack.MinimumSizing = minimumTrack.MaximumSizing;
+                maximumTrack.HasExplicitMinimum = true;
                 AddGridTrack(tracks, maximumTrack);
                 return;
             }
@@ -266,7 +267,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableSize) {
         foreach (GridItem item in items) {
             bool spansFraction = Enumerable.Range(item.Column, item.ColumnSpan)
-                .Any(index => tracks[index].Kind == GridTrackKind.Fraction);
+                .Any(index => tracks[index].Kind == GridTrackKind.Fraction && !tracks[index].HasExplicitMinimum);
             if (!spansFraction) continue;
             double required = ResolveGridMinContentContribution(item.Item, availableSize);
             double allocated = sizes.Skip(item.Column).Take(item.ColumnSpan).Sum() + gap * Math.Max(0, item.ColumnSpan - 1);
@@ -456,12 +457,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Value { get; }
         internal double Minimum { get; set; }
         internal GridIntrinsicSizing MinimumSizing { get; set; }
+        internal bool HasExplicitMinimum { get; set; }
         internal GridIntrinsicSizing MaximumSizing { get; private set; }
         internal double? GrowthLimit { get; private set; }
         internal string Source { get; }
         internal GridTrack Clone() => new GridTrack(Kind, Value, Source) {
             Minimum = Minimum,
             MinimumSizing = MinimumSizing,
+            HasExplicitMinimum = HasExplicitMinimum,
             MaximumSizing = MaximumSizing,
             GrowthLimit = GrowthLimit
         };

@@ -338,6 +338,33 @@ public class DrawingMathTests {
     }
 
     [Fact]
+    public void MathRendererRasterizesTightlyMeasuredNarrowGlyphs() {
+        OfficeDrawing drawing = OfficeMathRenderer.Render(
+            OfficeMath.Row(OfficeMath.Identifier("a"), OfficeMath.Identifier("b")),
+            new OfficeMathRenderOptions {
+                Font = new OfficeFontInfo("Arial", 20),
+                Padding = 2,
+                BackgroundColor = OfficeColor.White
+            });
+
+        Assert.All(drawing.Elements.OfType<OfficeDrawingText>(), text => {
+            Assert.Equal(OfficeTextOverflowBehavior.Clip, text.OverflowBehavior);
+            Assert.Equal(text.Width, text.TextAdvanceWidth);
+        });
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, scale: 2);
+        int paintedPixels = 0;
+        for (int y = 0; y < raster.Height; y++) {
+            for (int x = 0; x < raster.Width; x++) {
+                OfficeColor pixel = raster.GetPixel(x, y);
+                if (pixel.R < 245 || pixel.G < 245 || pixel.B < 245) paintedPixels++;
+            }
+        }
+
+        Assert.True(paintedPixels > 20, $"Expected narrow math glyphs to paint, but found only {paintedPixels} non-white pixels.");
+    }
+
+    [Fact]
     public void MathRendererRetainsPhantomSpaceWithoutPaintingItsContent() {
         OfficeMathExpression visible = OfficeMath.Identifier("wide");
         OfficeMathExpression phantom = OfficeMath.Phantom(visible);
