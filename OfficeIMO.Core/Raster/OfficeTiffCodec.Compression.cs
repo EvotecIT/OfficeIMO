@@ -45,7 +45,9 @@ public static partial class OfficeTiffCodec {
                 expectedCount);
             Buffer.BlockCopy(inflated, 0, output, outputOffset, expectedCount);
             return true;
-        } catch (InvalidDataException) {
+        } catch (Exception exception) when (
+            exception is InvalidDataException ||
+            exception is OfficeDecompressionSizeLimitException) {
             // Older TIFF writers used raw Deflate under compression tag 32946.
         } catch (NotSupportedException) {
             return false;

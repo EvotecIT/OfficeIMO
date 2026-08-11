@@ -5915,6 +5915,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_SharedStringIndexesAbove65535RemainValid() {
+            using var memory = new MemoryStream();
+            var history = new DataTable("History");
+            history.Columns.Add("Date", typeof(string));
+            history.Columns.Add("ITCrew", typeof(string));
+            history.Columns.Add("Value", typeof(int));
+            history.Rows.Add("6/3/2026 8:56:31 PM", "ITISC01", 10);
+            history.Rows.Add("6/4/2026 9:21:01 PM", "ITISC02", 20);
+
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
+                for (int index = 0; index < 65_536; index++) {
+                    document.GetSharedStringIndex("Existing " + index.ToString(CultureInfo.InvariantCulture));
+                }
+
+                var historySheet = document.AddWorksheet("History 01");
+                historySheet.InsertDataTableAsTable(
+                    history,
+                    startRow: 3,
+                    tableName: "HistoryData01",
+                    style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium6);
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var historyPart = spreadsheet.WorkbookPart!.Workbook.Sheets!
+                .Elements<Sheet>()
+                .Where(sheet => string.Equals(sheet.Name?.Value, "History 01", StringComparison.Ordinal))
+                .Select(sheet => (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(sheet.Id!))
+                .Single();
+            var cells = historyPart.Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Equal("Date", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
+            Assert.Equal("ITCrew", GetSpreadsheetCellText(spreadsheet, cells["B3"]));
+            Assert.Equal("6/3/2026 8:56:31 PM", GetSpreadsheetCellText(spreadsheet, cells["A4"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_InsertObjectsThenAddTable_ExternalMutationPreservesDirectPackageCandidate() {
             using var memory = new MemoryStream();
             var rows = new[] {

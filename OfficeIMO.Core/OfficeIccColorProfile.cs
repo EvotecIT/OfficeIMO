@@ -10,6 +10,8 @@ namespace OfficeIMO.Drawing;
 /// connection space. Other transform types are rejected for explicit fallback.
 /// </remarks>
 public sealed class OfficeIccColorProfile {
+    private const uint InputDeviceClassSignature = 0x73636E72U;
+    private const uint DisplayDeviceClassSignature = 0x6D6E7472U;
     private const uint GraySignature = 0x47524159U;
     private const uint RgbSignature = 0x52474220U;
     private const uint XyzSignature = 0x58595A20U;
@@ -85,6 +87,7 @@ public sealed class OfficeIccColorProfile {
             ? 0U
             : ReadUInt32(profileBytes, 20);
         if (profileBytes == null || !OfficeIccProfileValidator.TryValidate(profileBytes, 0, profileBytes.Length) ||
+            !IsSupportedProfileClass(ReadUInt32(profileBytes, 12)) ||
             (profileConnectionSpace != XyzSignature && profileConnectionSpace != LabSignature) ||
             !TryReadXyz(profileBytes, 68, profileBytes.Length - 68, requireTypeHeader: false, out XyzValue whitePoint) ||
             !whitePoint.IsPositive || !IsD50Illuminant(whitePoint)) {
@@ -96,10 +99,10 @@ public sealed class OfficeIccColorProfile {
         uint deviceColorSpace = ReadUInt32(profileBytes, 16);
         if (!hasAuthoredDeviceToPcsTransform &&
             deviceColorSpace == GraySignature && profileConnectionSpace == XyzSignature) {
-            if (!TryReadToneCurve(profileBytes, tags, 0x6B545243U, out ToneCurve grayCurve)) return false; // kTRC
-            if (TryReadXyzTag(profileBytes, tags, 0x77747074U, out XyzValue mediaWhite) && mediaWhite.IsPositive) {
-                whitePoint = mediaWhite;
-            }
+            if (!TryReadToneCurve(profileBytes, tags, 0x6B545243U, out ToneCurve grayCurve) || // kTRC
+                !TryReadXyzTag(profileBytes, tags, 0x77747074U, out XyzValue mediaWhite) || // wtpt
+                !mediaWhite.IsPositive) return false;
+            whitePoint = mediaWhite;
             profile = new OfficeIccColorProfile(
                 1,
                 grayCurve,
@@ -146,6 +149,9 @@ public sealed class OfficeIccColorProfile {
 
         return false;
     }
+
+    private static bool IsSupportedProfileClass(uint signature) =>
+        signature == InputDeviceClassSignature || signature == DisplayDeviceClassSignature;
 
     /// <summary>Attempts to convert device components through the ICC profile to sRGB.</summary>
     public bool TryConvert(IReadOnlyList<double> components, out OfficeColor color) {

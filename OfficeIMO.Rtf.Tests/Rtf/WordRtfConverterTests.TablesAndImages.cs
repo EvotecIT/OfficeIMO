@@ -539,6 +539,31 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_Rtf_Image_Diagnostics_Do_Not_Throw_For_Dangling_Deleted_Image_Relationships() {
+        byte[] png = CreateOnePixelPng();
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        using (var stream = new MemoryStream(png, writable: false)) {
+            paragraph.AddImage(stream, "deleted.png", 16, 16);
+        }
+        Run imageRun = paragraph._run!;
+        string relationshipId = imageRun.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().Single().Embed!.Value!;
+        DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart = word.OpenXmlDocument.MainDocumentPart!;
+        mainPart.DeletePart(mainPart.GetPartById(relationshipId));
+        imageRun.Remove();
+        paragraph._paragraph.Append(new DeletedRun(imageRun) { Author = "Reviewer" });
+
+        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+
+        Assert.NotNull(conversion.Value);
+        RtfConversionDiagnostic diagnostic = Assert.Single(
+            conversion.Report.Diagnostics,
+            item => item.Code == "WordRtfImagesOmitted");
+        Assert.Equal(1, diagnostic.Count);
+        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+    }
+
+    [Fact]
     public void Word_Rtf_Image_Diagnostics_Report_Revisions_Skipped_Inside_Inline_Containers() {
         byte[] png = CreateOnePixelPng();
         using WordDocument word = WordDocument.Create();

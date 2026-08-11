@@ -21,6 +21,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
+                _ = _document.Settings;
                 var mainPart = _document._wordprocessingDocument.MainDocumentPart;
                 var settings = mainPart?.DocumentSettingsPart?.Settings;
                 if (settings != null) {
@@ -100,13 +101,17 @@ namespace OfficeIMO.Word {
             if (imageStream == null) throw new ArgumentNullException(nameof(imageStream));
             if (string.IsNullOrEmpty(fileName)) throw new ArgumentNullException(nameof(fileName));
 
+            _ = _document.Settings;
+            Settings settings = _document._wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart?.Settings
+                ?? throw new InvalidOperationException("Document settings are unavailable.");
+
             var paragraph = new DocumentFormat.OpenXml.Wordprocessing.Paragraph();
             _document._document.Body!.Append(paragraph);
             var wordParagraph = new WordParagraph(_document, paragraph);
             var wordImage = new WordImage(_document, wordParagraph, imageStream, fileName, width, height, WordImageTextWrapping.BehindText);
             paragraph.Remove();
 
-            _document._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!.DisplayBackgroundShape = new DisplayBackgroundShape();
+            settings.DisplayBackgroundShape = new DisplayBackgroundShape();
             if (_document._wordprocessingDocument.MainDocumentPart!.Document!.DocumentBackground == null) {
                 _document._wordprocessingDocument.MainDocumentPart!.Document!.DocumentBackground = new DocumentBackground();
             }

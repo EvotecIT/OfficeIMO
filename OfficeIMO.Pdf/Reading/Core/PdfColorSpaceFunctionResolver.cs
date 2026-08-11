@@ -35,7 +35,8 @@ internal static class PdfColorSpaceFunctionResolver {
                 c0.Any(value => !IsFinite(value)) || c1.Any(value => !IsFinite(value)) ||
                 !IsFinite(exponent) || exponent <= 0D ||
                 !HasUnitFunctionBounds(dictionary, inputCount, outputCount, requireRange: false, objects)) return false;
-            transform = components => EvaluateType2(components, c0, c1, exponent);
+            bool clipOutputsToUnitRange = dictionary.Items.ContainsKey("Range");
+            transform = components => EvaluateType2(components, c0, c1, exponent, clipOutputsToUnitRange);
             return true;
         }
 
@@ -95,11 +96,15 @@ internal static class PdfColorSpaceFunctionResolver {
         IReadOnlyList<double> components,
         double[] c0,
         double[] c1,
-        double exponent) {
+        double exponent,
+        bool clipOutputsToUnitRange) {
         if (components.Count < 1 || !IsFinite(components[0])) return null;
         double factor = Math.Pow(Clamp01(components[0]), exponent);
         var result = new double[c0.Length];
-        for (int index = 0; index < result.Length; index++) result[index] = c0[index] + factor * (c1[index] - c0[index]);
+        for (int index = 0; index < result.Length; index++) {
+            double value = c0[index] + factor * (c1[index] - c0[index]);
+            result[index] = clipOutputsToUnitRange ? Clamp01(value) : value;
+        }
         return result;
     }
 

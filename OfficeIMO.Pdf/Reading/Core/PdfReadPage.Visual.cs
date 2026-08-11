@@ -693,14 +693,29 @@ public sealed partial class PdfReadPage {
         IReadOnlyList<double> c1 = function.Items.TryGetValue("C1", out PdfObject? c1Object)
             ? ReadNumberArray(c1Object)
             : new[] { 1D };
+        bool hasOutputRange = function.Items.TryGetValue("Range", out PdfObject? rangeObject);
+        IReadOnlyList<double> outputRange = hasOutputRange
+            ? ReadNumberArray(rangeObject)
+            : Array.Empty<double>();
         if (c0.Count != colorSpace.ComponentCount || c1.Count != colorSpace.ComponentCount ||
-            !colorSpace.TryConvertColor(c0, out OfficeColor c0Color) ||
+            (hasOutputRange && !HasValidFunctionIntervals(outputRange, colorSpace.ComponentCount))) return false;
+        if (hasOutputRange) {
+            c0 = ClipFunctionOutputs(c0, outputRange);
+            c1 = ClipFunctionOutputs(c1, outputRange);
+        }
+        if (!colorSpace.TryConvertColor(c0, out OfficeColor c0Color) ||
             !colorSpace.TryConvertColor(c1, out OfficeColor c1Color)) return false;
-        if (function.Items.TryGetValue("Range", out PdfObject? rangeObject) &&
-            !HasValidFunctionIntervals(ReadNumberArray(rangeObject), colorSpace.ComponentCount)) return false;
         start = reversed ? c1Color : c0Color;
         end = reversed ? c0Color : c1Color;
         return true;
+    }
+
+    private static double[] ClipFunctionOutputs(IReadOnlyList<double> values, IReadOnlyList<double> range) {
+        var clipped = new double[values.Count];
+        for (int index = 0; index < clipped.Length; index++) {
+            clipped[index] = Math.Max(range[index * 2], Math.Min(range[index * 2 + 1], values[index]));
+        }
+        return clipped;
     }
 
     private static bool HasValidFunctionIntervals(IReadOnlyList<double> values, int count) {
