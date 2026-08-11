@@ -1423,10 +1423,14 @@ internal static class PdfPageXObjectInvocationParser {
             return count;
         }
 
-        private PdfPageShadingPatternResource? ResolveShadingPattern(string name) {
+        private PdfPageShadingPatternResource? ResolveShadingPattern(
+            string name,
+            Matrix2D? paintTransform = null) {
             if (_shadingPatterns == null ||
                 !_shadingPatterns.TryGetValue(name, out PdfPageShadingPatternResource pattern)) return null;
-            return PdfPageContentVisualParser.IsSupportedShadingTransform(pattern, _state.Transform)
+            return PdfPageContentVisualParser.IsSupportedShadingTransform(
+                    pattern,
+                    paintTransform ?? _state.Transform)
                 ? pattern
                 : PdfPageShadingPatternResource.Unsupported;
         }
@@ -1682,7 +1686,7 @@ internal static class PdfPageXObjectInvocationParser {
         private void ValidateDeferredPatternSelection(PdfPagePatternSelection selection) {
             if (!IsValidPatternSelection(
                     ResolveTilingPattern(selection.Name),
-                    ResolveShadingPattern(selection.Name),
+                    ResolveShadingPattern(selection.Name, selection.PaintTransform),
                     selection.BaseColorSpace,
                     selection.Tint,
                     selection.ComponentCount)) {
