@@ -35,9 +35,13 @@ internal readonly struct PdfPageClipPath {
                     : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
             }
 
-            return IntersectClipBounds(active, clipPath, out PdfPageClipPath pathIntersection)
+            if (!IntersectClipBounds(active, clipPath, out PdfPageClipPath pathIntersection)) {
+                return Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
+            }
+
+            return CanServeAsExactPathClip(clipPath) || !CanServeAsExactPathClip(active)
                 ? IntersectPathWithPath(active, clipPath, pathIntersection)
-                : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
+                : IntersectPathWithPath(clipPath, active, pathIntersection);
         }
 
         return IntersectClipBounds(active, clipPath, out PdfPageClipPath rectangleIntersection)
@@ -125,6 +129,12 @@ internal readonly struct PdfPageClipPath {
         return commands.Count > 0 && TryCreatePath(commands, active.FillRule, out PdfPageClipPath path)
             ? path
             : Rectangle(intersection.X, intersection.Y, 0D, 0D);
+    }
+
+    private static bool CanServeAsExactPathClip(PdfPageClipPath path) {
+        if (path.IsRectangle) return true;
+        List<List<OfficePoint>> contours = FlattenPathContours(path.Commands);
+        return contours.Count > 0 && contours.All(IsConvexContour) && !HasOverlappingContourBounds(contours);
     }
 
     private static bool IsConvexContour(List<OfficePoint> contour) {

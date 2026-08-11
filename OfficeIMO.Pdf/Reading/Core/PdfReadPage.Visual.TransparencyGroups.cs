@@ -169,12 +169,18 @@ public sealed partial class PdfReadPage {
             contentOrderPrefix: contentOrderPrefix,
             skipTransparencyGroupForms: true);
         if (placements.Count > 0) {
-            IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(resources, 0, placements, colorizeImageMasks: true);
+            var visiblePlacements = new List<PdfImagePlacement>(placements.Count);
             for (int i = 0; i < placements.Count; i++) {
-                if (IsInvisibleImagePlacement(placements[i], localPageHeight, localPageWidth, localPageHeight)) {
-                    continue;
+                if (!IsInvisibleImagePlacement(placements[i], localPageHeight, localPageWidth, localPageHeight)) {
+                    visiblePlacements.Add(placements[i]);
                 }
-                PdfExtractedImage? image = FindImage(images, placements[i]);
+            }
+            IReadOnlyList<PdfExtractedImage> images = visiblePlacements.Count == 0
+                ? Array.Empty<PdfExtractedImage>()
+                : GetImagesForResources(resources, 0, visiblePlacements, colorizeImageMasks: true);
+            for (int i = 0; i < visiblePlacements.Count; i++) {
+                PdfImagePlacement placement = visiblePlacements[i];
+                PdfExtractedImage? image = FindImage(images, placement);
                 if (image == null || !image.IsImageFile) {
                     groupDrawing = null!;
                     return Type3TransparencyGroupDrawingResult.Unsupported;
@@ -186,7 +192,7 @@ public sealed partial class PdfReadPage {
                 if (requireNestedType3Uncolored && localFillPattern.HasValue) {
                     Type3PatternImageMaskDrawingResult result = TryCreateInheritedPatternImageMaskDrawing(
                             localFillPattern,
-                            placements[i],
+                            placement,
                             image,
                             localPageWidth,
                             localPageHeight,
@@ -200,11 +206,11 @@ public sealed partial class PdfReadPage {
                     elements.Add(PdfPageDrawingElement.FromGroup(
                         maskedPattern,
                         maskedPatternTransform,
-                        placements[i].PaintOrder,
-                        placements[i].ContentOrderKey,
+                        placement.PaintOrder,
+                        placement.ContentOrderKey,
                         elements.Count));
                 } else {
-                    elements.Add(PdfPageDrawingElement.FromImage(placements[i], image, elements.Count));
+                    elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count));
                 }
             }
         }
