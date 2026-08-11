@@ -235,9 +235,15 @@ internal static class PdfColorSpaceFunctionResolver {
             } catch (InvalidDataException) {
                 return false;
             }
-            if (decoded.LongLength != expectedBytes) return false;
-            retainedSampleBytes = totalRetainedBytes;
-            byte[] samples = decoded;
+            if (decoded.LongLength < expectedBytes) return false;
+            retainedSampleBytes = checked(retainedSampleBytes + decoded.LongLength);
+            byte[] samples;
+            if (decoded.LongLength == expectedBytes) {
+                samples = decoded;
+            } else {
+                samples = new byte[(int)expectedBytes];
+                Buffer.BlockCopy(decoded, 0, samples, 0, samples.Length);
+            }
             ulong maximumSample = bitsPerSample == 32 ? uint.MaxValue : (1UL << bitsPerSample) - 1UL;
             double[] breakpoints = CreateSampleBreakpoints(domain, encode, sizes);
 
@@ -560,7 +566,7 @@ internal static class PdfColorSpaceFunctionResolver {
             double sourceEnd = index == bounds.Length ? domain[1] : bounds[index];
             foreach (double childDiscontinuity in children[index].Discontinuities) {
                 double input = PdfColorFunction.Interpolate(childDiscontinuity, encodedStart, encodedEnd, sourceStart, sourceEnd);
-                if (IsFinite(input) && input > sourceStart && input <= sourceEnd) result.Add(input);
+                if (IsFinite(input) && input >= sourceStart && input <= sourceEnd) result.Add(input);
             }
         }
         int reservedDomainBoundaries = domain.Count(boundary => !result.Contains(boundary));
