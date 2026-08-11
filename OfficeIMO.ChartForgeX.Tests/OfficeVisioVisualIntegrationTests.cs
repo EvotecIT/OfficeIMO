@@ -65,7 +65,12 @@ public sealed class OfficeVisioVisualIntegrationTests {
         apiParticipant.Details.Add(new VisualArtifactInterchangeDetail { Label = "Region", Value = "EU" });
         envelope.Nodes.Add(apiParticipant);
         envelope.Nodes.Add(Participant("activation-1", "Reserved activation id", "Participant", 2));
-        envelope.Edges.Add(Message("request", "customer", "api", "Create order", 0, activates: true));
+        VisualArtifactInterchangeEdge request = Message("request", "customer", "api", "Create order", 0, activates: true);
+        request.Status = "Healthy";
+        request.Href = "https://example.test/create-order";
+        request.Tooltip = "Create order contract";
+        request.Metadata["Owner"] = "Commerce";
+        envelope.Edges.Add(request);
         envelope.Edges.Add(Message("response", "api", "customer", "Created", 1, deactivates: true, dashed: true));
         var note = new VisualArtifactInterchangeAnnotation {
             Id = "retry-note",
@@ -99,10 +104,15 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Equal(2, result.Report.AnnotationCount);
         VisioShape api = result.Page.Shapes.Single(shape => shape.Id == "api");
         VisioShape retryNote = result.Page.Shapes.Single(shape => shape.Id == "retry-note");
+        VisioConnector requestConnector = result.Page.Connectors.Single(connector => connector.Id == "request");
         Assert.Equal("Healthy", api.GetShapeDataValue("CFX.Status"));
         Assert.Equal("Commerce", api.GetShapeDataValue("Metadata.Owner"));
         Assert.Equal("EU", api.GetShapeDataValue("Detail.1.Region"));
         Assert.Contains(api.Hyperlinks, link => link.Address == "https://example.test/orders" && link.Description == "Orders runbook");
+        Assert.Equal("request", requestConnector.GetShapeDataValue("CFX.Id"));
+        Assert.Equal("Healthy", requestConnector.GetShapeDataValue("CFX.Status"));
+        Assert.Equal("Commerce", requestConnector.GetShapeDataValue("Metadata.Owner"));
+        Assert.Contains(requestConnector.Hyperlinks, link => link.Address == "https://example.test/create-order" && link.Description == "Create order contract");
         Assert.True(retryNote.PinX - retryNote.Width / 2D > api.PinX + api.Width / 2D);
     }
 
@@ -135,7 +145,40 @@ public sealed class OfficeVisioVisualIntegrationTests {
         OfficeVisioVisualConversionResult natural = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { UseNaturalPageSize = true, PixelsPerInch = 100D });
 
         Assert.True(fitted.Page.Width < natural.Page.Width);
+        Assert.True(fitted.Page.Width < 9D);
         Assert.True(natural.Page.Width >= 24D);
+    }
+
+    [Fact]
+    public void SequenceSemanticIdsAreMappedAwayFromGeneratedVisioHelpers() {
+        var envelope = new VisualArtifactInterchangeEnvelope { Id = "collisions", Kind = VisualArtifactKind.Sequence, Title = "Collisions" };
+        envelope.Nodes.Add(Participant("api", "API", "Control", 0));
+        envelope.Nodes.Add(Participant("api-lifeline", "Worker", "Participant", 1));
+        envelope.Edges.Add(Message("api-lifeline-end", "api", "api-lifeline", "Dispatch", 0, activates: true));
+        var fragment = new VisualArtifactInterchangeAnnotation {
+            Id = "message-api-lifeline-end-from",
+            Kind = "SequenceBlock:Opt",
+            Text = "mapped",
+            StartIndex = 0,
+            EndIndex = 0
+        };
+        fragment.TargetIds.Add("api-lifeline");
+        envelope.Annotations.Add(fragment);
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
+
+        VisioShape api = result.Page.Shapes.Single(shape => shape.Id == "api");
+        VisioShape worker = result.Page.Shapes.Single(shape => shape.GetShapeDataValue("CFX.Id") == "api-lifeline");
+        VisioConnector message = result.Page.Connectors.Single(connector => connector.GetShapeDataValue("CFX.Id") == "api-lifeline-end");
+        VisioShape nativeFragment = result.Page.Shapes.Single(shape => shape.GetShapeDataValue("CFX.Id") == "message-api-lifeline-end-from");
+        Assert.NotEqual("api-lifeline", worker.Id);
+        Assert.NotEqual("api-lifeline-end", message.Id);
+        Assert.NotEqual("message-api-lifeline-end-from", nativeFragment.Id);
+        Assert.Equal(message.Id + "-from", message.From.Id);
+        Assert.Equal(message.Id + "-to", message.To.Id);
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("native Visio helper shapes"));
+        Assert.Equal("api", api.GetShapeDataValue("CFX.Id"));
+        Assert.Equal("api-lifeline", result.Envelope.Nodes.Single(node => node.Label == "Worker").Id);
     }
 
     [Fact]
@@ -195,6 +238,7 @@ public sealed class OfficeVisioVisualIntegrationTests {
     [Fact]
     public void FidelityCountsOnlyNativeObjectsAndWarnsForUnmappedGraphAnnotations() {
         VisualArtifactInterchangeEnvelope envelope = CreateTopologyEnvelope();
+        envelope.Metadata["Owner"] = "Platform";
         envelope.Annotations.Add(new VisualArtifactInterchangeAnnotation {
             Id = "graph-note",
             Kind = "Note",
@@ -206,6 +250,7 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Equal(0, result.Report.GroupCount);
         Assert.Equal(0, result.Report.AnnotationCount);
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("graph-note"));
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("Artifact-level metadata"));
     }
 
     private static VisualArtifactInterchangeEnvelope CreateTopologyEnvelope() {
