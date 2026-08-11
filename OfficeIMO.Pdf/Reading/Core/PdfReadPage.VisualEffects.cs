@@ -500,12 +500,13 @@ public sealed partial class PdfReadPage {
 
     private static bool IsSupportedSoftMaskTextFont(PdfFontResource font) {
         if (font.EmbeddedTrueTypeFont != null) return true;
-        string name = font.BaseFont;
-        return name.StartsWith("Courier", StringComparison.Ordinal) ||
-               name.StartsWith("Helvetica", StringComparison.Ordinal) ||
-               name.StartsWith("Times-", StringComparison.Ordinal) ||
-               string.Equals(name, "Symbol", StringComparison.Ordinal) ||
-               string.Equals(name, "ZapfDingbats", StringComparison.Ordinal);
+        return font.BaseFont switch {
+            "Courier" or "Courier-Bold" or "Courier-Oblique" or "Courier-BoldOblique" or
+            "Helvetica" or "Helvetica-Bold" or "Helvetica-Oblique" or "Helvetica-BoldOblique" or
+            "Times-Roman" or "Times-Bold" or "Times-Italic" or "Times-BoldItalic" or
+            "Symbol" or "ZapfDingbats" => true,
+            _ => false
+        };
     }
 
     private static bool IsResolvedInheritedSoftMaskPattern(PdfPagePatternSelection? selection, string name) =>
