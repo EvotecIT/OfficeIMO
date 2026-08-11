@@ -202,24 +202,22 @@ public sealed partial class PdfReadPage {
                                 out PdfPageTilingPatternPaint? strokePatternPaint)) {
                             return false;
                         }
-                        CreateInheritedShadingGradients(
+                        if (!CreateInheritedShadingGradients(
                             item.Primitive.HasFillPaint ? glyph.FillPattern : null,
                             item.Primitive,
                             pageHeight,
                             out OfficeLinearGradient? fillGradient,
-                            out OfficeRadialGradient? fillRadialGradient);
-                        CreateInheritedShadingGradients(
+                            out OfficeRadialGradient? fillRadialGradient) ||
+                            !CreateInheritedShadingGradients(
                             item.Primitive.HasStrokePaint ? glyph.StrokePattern : null,
                             item.Primitive,
                             pageHeight,
                             out OfficeLinearGradient? strokeGradient,
-                            out OfficeRadialGradient? strokeRadialGradient);
+                            out OfficeRadialGradient? strokeRadialGradient)) {
+                            return false;
+                        }
                         if (item.Primitive.HasStrokePaint &&
-                            glyph.StrokePattern?.ShadingPattern.HasValue == true &&
-                            (item.Primitive.StrokeDashStyle != OfficeStrokeDashStyle.Solid ||
-                             !PdfPageContentVisualParser.IsSupportedShadingStrokeTransform(
-                                 glyph.StrokePattern.Value.ShadingPattern.Value,
-                                 glyph.StrokePattern.Value.PaintTransform))) {
+                            glyph.StrokePattern?.ShadingPattern.HasValue == true) {
                             return false;
                         }
                         localPrimitives[primitiveIndex] = (
@@ -334,7 +332,7 @@ public sealed partial class PdfReadPage {
         return pattern != null && (!pattern.Uncolored || selection.Value.Tint.HasValue);
     }
 
-    private static void CreateInheritedShadingGradients(
+    private static bool CreateInheritedShadingGradients(
         PdfPagePatternSelection? selection,
         PdfPageVisualPrimitive primitive,
         double pageHeight,
@@ -342,10 +340,21 @@ public sealed partial class PdfReadPage {
         out OfficeRadialGradient? radialGradient) {
         linearGradient = null;
         radialGradient = null;
-        if (!selection.HasValue || !selection.Value.ShadingPattern.HasValue) return;
+        if (!selection.HasValue || !selection.Value.ShadingPattern.HasValue) return true;
         if (!PdfPageContentVisualParser.IsSupportedShadingTransform(
                 selection.Value.ShadingPattern.Value,
-                selection.Value.PaintTransform)) return;
+                selection.Value.PaintTransform)) return false;
+        Matrix2D combined = Matrix2D.Multiply(
+            selection.Value.PaintTransform,
+            selection.Value.ShadingPattern.Value.Matrix);
+        if (!PdfPageContentVisualParser.IsSupportedExactShadingPlacement(
+                selection.Value.ShadingPattern.Value.Shading,
+                combined,
+                primitive.X,
+                primitive.Y,
+                primitive.Width,
+                primitive.Height,
+                pageHeight)) return false;
         PdfPageContentVisualParser.CreateShadingGradients(
             selection.Value.ShadingPattern.Value,
             primitive.X,
@@ -356,6 +365,7 @@ public sealed partial class PdfReadPage {
             pageHeight,
             out linearGradient,
             out radialGradient);
+        return linearGradient != null || radialGradient != null;
     }
 
     private static bool IsRecoverableType3ProjectionFailure(Exception exception) =>

@@ -113,6 +113,46 @@ internal static class PdfPageContentVisualParser {
                Math.Abs(dot) <= orthogonalityTolerance;
     }
 
+    internal static bool IsSupportedExactShadingPlacement(
+        PdfPageShadingResource shading,
+        Matrix2D transform,
+        double x,
+        double y,
+        double width,
+        double height,
+        double pageHeight) {
+        if (shading.IsRadial) return true;
+        if (width <= 0D || height <= 0D) return false;
+        (double X, double Y) start = transform.Transform(shading.X0, shading.Y0);
+        (double X, double Y) end = transform.Transform(shading.X1, shading.Y1);
+        double x0 = (start.X - x) / width;
+        double y0 = ((pageHeight - start.Y) - y) / height;
+        double x1 = (end.X - x) / width;
+        double y1 = ((pageHeight - end.Y) - y) / height;
+        double dx = x1 - x0;
+        double dy = y1 - y0;
+        double t0 = 0D;
+        double t1 = 1D;
+        return ClipExactLineParameter(-dx, x0, ref t0, ref t1) &&
+               ClipExactLineParameter(dx, 1D - x0, ref t0, ref t1) &&
+               ClipExactLineParameter(-dy, y0, ref t0, ref t1) &&
+               ClipExactLineParameter(dy, 1D - y0, ref t0, ref t1) &&
+               t1 > t0;
+    }
+
+    private static bool ClipExactLineParameter(double p, double q, ref double t0, ref double t1) {
+        if (Math.Abs(p) <= 0.000000001D) return q >= 0D;
+        double ratio = q / p;
+        if (p < 0D) {
+            if (ratio > t1) return false;
+            if (ratio > t0) t0 = ratio;
+        } else {
+            if (ratio < t0) return false;
+            if (ratio < t1) t1 = ratio;
+        }
+        return true;
+    }
+
     private static bool IsRepresentableRadialShadingTransform(Matrix2D transform) {
         double firstLengthSquared = (transform.A * transform.A) + (transform.B * transform.B);
         double secondLengthSquared = (transform.C * transform.C) + (transform.D * transform.D);
@@ -818,6 +858,13 @@ internal static class PdfPageContentVisualParser {
         private void CreateShadingGradients(PdfPageShadingResource shading, double x, double y, double width, double height, Matrix2D shadingTransform, out OfficeLinearGradient? linearGradient, out OfficeRadialGradient? radialGradient) {
             Matrix2D combined = Matrix2D.Multiply(_state.Transform, shadingTransform);
             if (shading.IsRadial && !IsRepresentableRadialShadingTransform(combined)) {
+                linearGradient = null;
+                radialGradient = null;
+                _unsupportedShadingTransformVisitor?.Invoke();
+                return;
+            }
+            if (_requireExactType3ShadingProjection &&
+                !IsSupportedExactShadingPlacement(shading, combined, x, y, width, height, _pageHeight)) {
                 linearGradient = null;
                 radialGradient = null;
                 _unsupportedShadingTransformVisitor?.Invoke();

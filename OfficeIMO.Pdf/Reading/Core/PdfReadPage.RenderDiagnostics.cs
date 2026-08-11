@@ -331,6 +331,7 @@ public sealed partial class PdfReadPage {
             bool usesFillPaint = false;
             bool usesStrokePaint = false;
             bool usesUnsupportedInheritedShadingStroke = false;
+            bool usesUnsupportedInheritedShadingPlacement = false;
             _ = PdfPageContentVisualParser.Parse(
                 content,
                 GetPageSize().Width,
@@ -350,11 +351,20 @@ public sealed partial class PdfReadPage {
                     usesStrokePaint |= primitive.HasStrokePaint;
                     usesUnsupportedInheritedShadingStroke |=
                         primitive.HasStrokePaint &&
-                        initialStrokePattern?.ShadingPattern.HasValue == true &&
-                        (primitive.StrokeDashStyle != OfficeStrokeDashStyle.Solid ||
-                         !PdfPageContentVisualParser.IsSupportedShadingStrokeTransform(
-                             initialStrokePattern.Value.ShadingPattern.Value,
-                             initialStrokePattern.Value.PaintTransform));
+                        initialStrokePattern?.ShadingPattern.HasValue == true;
+                    if (primitive.HasFillPaint && initialFillPattern?.ShadingPattern.HasValue == true) {
+                        PdfPageShadingPatternResource pattern = initialFillPattern.Value.ShadingPattern.Value;
+                        Matrix2D combined = Matrix2D.Multiply(initialFillPattern.Value.PaintTransform, pattern.Matrix);
+                        usesUnsupportedInheritedShadingPlacement |=
+                            !PdfPageContentVisualParser.IsSupportedExactShadingPlacement(
+                                pattern.Shading,
+                                combined,
+                                primitive.X,
+                                primitive.Y,
+                                primitive.Width,
+                                primitive.Height,
+                                GetPageSize().Height);
+                    }
                 },
                 retainPrimitiveData: false,
                 unsupportedShadingTransformVisitor: () => {
@@ -372,6 +382,14 @@ public sealed partial class PdfReadPage {
                     seen,
                     PdfRenderCapabilities.UnsupportedShadingId,
                     initialStrokePattern?.Name ?? "type3-shading-stroke");
+                return false;
+            }
+            if (usesUnsupportedInheritedShadingPlacement) {
+                AddRenderDiagnostic(
+                    diagnostics,
+                    seen,
+                    PdfRenderCapabilities.UnsupportedShadingId,
+                    initialFillPattern?.Name ?? "type3-shading-placement");
                 return false;
             }
             if ((usesFillPaint && initialFillPattern.HasValue && !HasUsableInheritedPattern(initialFillPattern)) ||
