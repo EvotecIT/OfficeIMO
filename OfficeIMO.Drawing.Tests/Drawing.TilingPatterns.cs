@@ -129,6 +129,28 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingSvgExporter_HonorsExplicitTileCountAboveDefaultAggregateLimit() {
+        var tile = new OfficeDrawing(1D, 1D);
+        OfficeShape square = OfficeShape.Rectangle(1D, 1D);
+        square.FillColor = OfficeColor.Red;
+        square.StrokeWidth = 0D;
+        tile.AddShape(square, 0D, 0D);
+        var drawing = new OfficeDrawing(16385D, 1D);
+        drawing.AddTilingPattern(
+            tile,
+            new OfficeImagePlacement(0D, 0D, 16385D, 1D),
+            1D,
+            1D,
+            repeatX: true,
+            repeatY: false,
+            maximumTileCount: 20000);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("matrix(1 0 0 1 16384 0)", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeDrawingSvgExporter_SkipsTransparentNestedTilingBeforeExpansionBudget() {
         var leaf = new OfficeDrawing(1D, 1D);
         OfficeShape square = OfficeShape.Rectangle(1D, 1D);

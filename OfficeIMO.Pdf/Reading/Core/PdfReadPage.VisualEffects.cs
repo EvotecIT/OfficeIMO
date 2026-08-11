@@ -389,6 +389,13 @@ public sealed partial class PdfReadPage {
             },
             unsupportedGraphicsEffectVisitor: () => supported = false,
             unsupportedColorVisitor: () => supported = false,
+            invalidPatternSelectionVisitor: () => supported = false,
+            ordinaryTextPaintVisitor: (channels, fillPattern, strokePattern) => {
+                if (((channels & PdfType3PaintChannels.Fill) != 0 && fillPattern.HasValue) ||
+                    ((channels & PdfType3PaintChannels.Stroke) != 0 && strokePattern.HasValue)) {
+                    supported = false;
+                }
+            },
             graphicsStateVisitor: (state, stateTransform) => {
                 if (!CanDecodeType3SoftMask(
                         state.SoftMask,
