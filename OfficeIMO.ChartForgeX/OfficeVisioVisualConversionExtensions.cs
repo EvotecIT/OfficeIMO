@@ -218,6 +218,9 @@ public static partial class OfficeVisioVisualConversionExtensions {
         List<VisualArtifactInterchangeNode> participants = envelope.Nodes
             .OrderBy(node => ReadInt(node.Metadata, "sequence.order", int.MaxValue))
             .ToList();
+        if (participants.Any(participant => participant.X.HasValue || participant.Y.HasValue || participant.Width.HasValue || participant.Height.HasValue)) {
+            report.Warn("Native Visio sequence layout was recomputed; prepared CFX participant coordinates and dimensions remain available in the semantic envelope.");
+        }
         List<VisualArtifactInterchangeEdge> messages = envelope.Edges.OrderBy(edge => edge.Order).ToList();
         (double width, double height) = ResolveSequenceLayoutPageSize(envelope, options);
         bool includeTitle = options.IncludeTitle && HasTitle(envelope);
@@ -266,7 +269,9 @@ public static partial class OfficeVisioVisualConversionExtensions {
             report.Warn("Sequence groups remain in the CFX envelope because native Visio sequence diagrams do not project graph containers.");
         }
         if (participants.Any(participant => participant.Ports.Count > 0)) {
-            report.Warn("Sequence participant ports remain in CFX Shape Data and the semantic envelope because native messages attach to participant lifelines.");
+            report.Warn(options.IncludeShapeData
+                ? "Sequence participant ports remain in CFX Shape Data and the semantic envelope because native messages attach to participant lifelines."
+                : "Sequence participant ports remain only in the CFX envelope because Shape Data projection was disabled and native messages attach to participant lifelines.");
         }
         ReportArtifactAccessibilityFidelity(envelope, report);
     }
@@ -535,7 +540,11 @@ public static partial class OfficeVisioVisualConversionExtensions {
             if (string.Equals(direction, "BottomToTop", StringComparison.OrdinalIgnoreCase)) report.Warn("Bottom-to-top direction was normalized to Visio's native top-to-bottom graph layout.");
             return VisioGraphDirection.TopToBottom;
         }
-        if (string.Equals(direction, "RightToLeft", StringComparison.OrdinalIgnoreCase)) report.Warn("Right-to-left direction was normalized to Visio's native left-to-right graph layout.");
+        if (string.Equals(direction, "RightToLeft", StringComparison.OrdinalIgnoreCase)) {
+            report.Warn("Right-to-left direction was normalized to Visio's native left-to-right graph layout.");
+        } else if (!string.IsNullOrWhiteSpace(direction) && !string.Equals(direction, "LeftToRight", StringComparison.OrdinalIgnoreCase)) {
+            report.Warn($"CFX graph direction '{direction}' was normalized to Visio's native left-to-right graph layout.");
+        }
         return VisioGraphDirection.LeftToRight;
     }
 
