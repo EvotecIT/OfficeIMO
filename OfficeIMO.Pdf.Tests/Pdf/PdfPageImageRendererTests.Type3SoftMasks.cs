@@ -48,6 +48,24 @@ public partial class PdfPageImageRendererTests {
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
+    [Theory]
+    [InlineData("q /GSZero gs /Bad Do Q 0 0 500 700 re f", "/ExtGState << /GSZero 10 0 R >>", "10 0 obj\n<< /Type /ExtGState /ca 0 >>\nendobj")]
+    [InlineData("q 600 600 10 10 re W n /Bad Do Q 0 0 500 700 re f", "", null)]
+    public void RenderPage_IgnoresInvisibleImageInsideType3SoftMask(string maskContent, string extraResources, string? extraObject) {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
+        string outerState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
+        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency >> /Resources << /XObject << /Bad 9 0 R >> " + extraResources + " >>", maskContent);
+        string unsupportedImage = BuildStreamObject(9, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /Bogus", "x");
+        var objects = new List<string> { type3Font, glyphA, outerState, outerMask, unsupportedImage };
+        if (extraObject != null) objects.Add(extraObject);
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", objects.ToArray());
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     [Fact]
     public void RenderPage_IgnoresRestoredUnsupportedSoftMaskBeforeVisiblePaint() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
@@ -160,6 +178,38 @@ public partial class PdfPageImageRendererTests {
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
 
         Assert.Equal(PdfReadLimitKind.Type3GlyphInvocations, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void RenderPage_ReusesSoftMaskTextBudgetAcrossPatternGlyphs() {
+        string outerFont = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
+        string outerGlyph = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
+        string outerState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
+        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency >> /Resources << /Font << /Nested 9 0 R >> >>", "BT /Nested 500 Tf (BB) Tj ET /Missing Do");
+        string nestedFont = "9 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 10 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << /Pattern << /P1 11 0 R >> >> >>\nendobj";
+        string nestedGlyph = BuildStreamObject(10, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");
+        string pattern = BuildStreamObject(11, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /Font << /F1 12 0 R >> >>", "BT /F1 10 Tf (X) Tj ET");
+        string helvetica = "12 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            "<< /Font << /FType3 5 0 R >> >>",
+            outerFont,
+            outerGlyph,
+            outerState,
+            outerMask,
+            nestedFont,
+            nestedGlyph,
+            pattern,
+            helvetica);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxDecodedTextCharacters = 1 }
+        });
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.DecodedTextCharacters, exception.Kind);
         Assert.Equal(1, exception.Limit);
         Assert.Equal(2, exception.Actual);
     }
