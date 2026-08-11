@@ -26,10 +26,26 @@ namespace OfficeIMO.Tests {
             Assert.Equal(200, table.Rows.Count);
             Assert.Equal(201, table.TotalRowCount);
             Assert.True(table.Truncated);
-            Assert.DoesNotContain("Key200=", model.Markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("Key99=", model.Markdown, StringComparison.Ordinal);
             Assert.DoesNotContain(model.Blocks, block =>
-                block.Text?.Contains("Key200=", StringComparison.Ordinal) == true);
+                block.Text?.Contains("Key99=", StringComparison.Ordinal) == true);
             Assert.Empty(Assert.Single(boundedSnapshot.Pages).Shapes.Single().Data);
+        }
+
+        [Fact]
+        public void BoundedInspectionOrdersShapeDataBeforeTruncation() {
+            VisioDocument document = VisioDocument.Create();
+            VisioShape shape = document.AddPage("Ordered", 8.5, 6)
+                .AddRectangle(2.5, 4, 2.2, 1, "Server");
+            shape.SetShapeData("Zulu", "last");
+            shape.SetShapeData("Alpha", "first");
+
+            VisioInspectionShapeSnapshot snapshot = Assert.Single(
+                Assert.Single(document.CreateInspectionSnapshot(1).Pages).Shapes);
+
+            VisioInspectionShapeDataSnapshot row = Assert.Single(snapshot.ShapeData);
+            Assert.Equal("Alpha", row.Name);
+            Assert.Equal("first", row.Value);
         }
 
         [Fact]

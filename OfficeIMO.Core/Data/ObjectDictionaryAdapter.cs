@@ -17,7 +17,8 @@ namespace OfficeIMO.Data {
         private static readonly ConcurrentDictionary<Type, DictionaryEntryAccessor> EntryAccessorCache = new();
 
         internal static bool TryGetEntries(object? value, int maximumItems, out List<ObjectDictionaryEntry> entries) {
-            return TryGetEntries(value, maximumItems, includeKey: null, maximumItems, out entries);
+            return TryGetEntries(value, maximumItems, includeKey: null, maximumItems,
+                deduplicateResolvedKeys: false, out entries);
         }
 
         internal static bool TryGetEntries(
@@ -25,17 +26,21 @@ namespace OfficeIMO.Data {
             int maximumItems,
             Func<object?, bool>? includeKey,
             int maximumEntries,
+            bool deduplicateResolvedKeys,
             out List<ObjectDictionaryEntry> entries) {
             entries = new List<ObjectDictionaryEntry>();
             if (value == null) return false;
             if (maximumItems <= 0) throw new ArgumentOutOfRangeException(nameof(maximumItems));
             if (maximumEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maximumEntries));
             int itemCount = 0;
+            Dictionary<string, int>? retainedIndexes = deduplicateResolvedKeys
+                ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+                : null;
 
             if (value is IDictionary dictionary) {
                 foreach (DictionaryEntry entry in dictionary) {
                     AddBounded(entries, new ObjectDictionaryEntry(entry.Key, entry.Value), maximumItems,
-                        includeKey, maximumEntries, ref itemCount);
+                        includeKey, maximumEntries, retainedIndexes, ref itemCount);
                 }
                 return true;
             }
@@ -43,7 +48,7 @@ namespace OfficeIMO.Data {
             if (value is IDictionary<string, object?> genericObjectDictionary) {
                 foreach (KeyValuePair<string, object?> entry in genericObjectDictionary) {
                     AddBounded(entries, new ObjectDictionaryEntry(entry.Key, entry.Value), maximumItems,
-                        includeKey, maximumEntries, ref itemCount);
+                        includeKey, maximumEntries, retainedIndexes, ref itemCount);
                 }
                 return true;
             }
@@ -51,7 +56,7 @@ namespace OfficeIMO.Data {
             if (value is IReadOnlyDictionary<string, object?> readOnlyObjectDictionary) {
                 foreach (KeyValuePair<string, object?> entry in readOnlyObjectDictionary) {
                     AddBounded(entries, new ObjectDictionaryEntry(entry.Key, entry.Value), maximumItems,
-                        includeKey, maximumEntries, ref itemCount);
+                        includeKey, maximumEntries, retainedIndexes, ref itemCount);
                 }
                 return true;
             }
@@ -71,7 +76,7 @@ namespace OfficeIMO.Data {
 
                 AddBounded(entries,
                     new ObjectDictionaryEntry(accessor.Key!.GetValue(item), accessor.Value!.GetValue(item)),
-                    maximumItems, includeKey, maximumEntries, ref itemCount);
+                    maximumItems, includeKey, maximumEntries, retainedIndexes, ref itemCount);
             }
 
             return true;
@@ -89,14 +94,25 @@ namespace OfficeIMO.Data {
             int maximumItems,
             Func<object?, bool>? includeKey,
             int maximumEntries,
+            Dictionary<string, int>? retainedIndexes,
             ref int itemCount) {
             if (itemCount++ >= maximumItems) {
                 throw new InvalidDataException($"The dictionary exceeds the {maximumItems}-item flattening limit.");
             }
             if (includeKey != null && !includeKey(entry.Key)) return;
+            string? resolvedKey = null;
+            if (retainedIndexes != null) {
+                resolvedKey = entry.Key?.ToString();
+                if (string.IsNullOrWhiteSpace(resolvedKey)) return;
+                if (retainedIndexes.TryGetValue(resolvedKey!, out int retainedIndex)) {
+                    entries[retainedIndex] = entry;
+                    return;
+                }
+            }
             if (entries.Count >= maximumEntries) {
                 throw new InvalidDataException($"The dictionary exceeds the {maximumEntries}-column flattening limit.");
             }
+            if (retainedIndexes != null) retainedIndexes.Add(resolvedKey!, entries.Count);
             entries.Add(entry);
         }
 

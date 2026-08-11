@@ -16,6 +16,7 @@ namespace OfficeIMO.Data {
             bool enforceEmptyProjectionLimits = true) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (options == null) throw new ArgumentNullException(nameof(options));
+            options = options.CreateProjectionSnapshot();
             if (headerRowCount < 0) throw new ArgumentOutOfRangeException(nameof(headerRowCount));
             ValidateLimits(options);
             if (options.MaxRows <= 0) {
@@ -50,7 +51,7 @@ namespace OfficeIMO.Data {
                     explicitColumns = ResolveExplicitColumns(options, consumerName);
                 }
 
-                Dictionary<string, object?> row = Flatten(item, options);
+                Dictionary<string, object?> row = FlattenPrepared(item, options);
                 rows.Add(row);
                 foreach (string path in row.Keys) {
                     if (!string.IsNullOrWhiteSpace(path) && discoveredColumnSet.Add(path)) {
@@ -84,11 +85,11 @@ namespace OfficeIMO.Data {
                 if (hasExplicitColumns) {
                     explicitColumns = ResolveExplicitColumns(options, consumerName);
                 } else if (!ObjectDictionaryAdapter.IsDictionaryType(typeof(T))) {
-                    discoveredColumns.AddRange(GetPaths(typeof(T), options));
+                    discoveredColumns.AddRange(GetPathsPrepared(typeof(T), options));
                 }
             }
 
-            List<string> columns = explicitColumns ?? ResolvePaths(discoveredColumns, options);
+            List<string> columns = explicitColumns ?? ResolvePathsPrepared(discoveredColumns, options);
             if (columns.Count > options.MaxColumns) {
                 throw new InvalidDataException(
                     $"{consumerName} exceeds the {options.MaxColumns}-column materialization limit.");
@@ -102,7 +103,7 @@ namespace OfficeIMO.Data {
             string consumerName) {
             var explicitColumnCandidates = new List<string>(Math.Min(options.Columns!.Length, options.MaxColumns));
             AddExplicitColumnsBounded(explicitColumnCandidates, options, consumerName);
-            return ResolvePaths(explicitColumnCandidates, options);
+            return ResolvePathsPrepared(explicitColumnCandidates, options);
         }
 
         private static void AddExplicitColumnsBounded(

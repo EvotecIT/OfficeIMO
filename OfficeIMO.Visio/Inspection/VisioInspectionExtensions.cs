@@ -278,14 +278,74 @@ namespace OfficeIMO.Visio {
             ref int remainingRows) {
             if (remainingRows == 0) return Array.Empty<VisioInspectionShapeDataSnapshot>();
             List<VisioShapeDataRow> retained = remainingRows == int.MaxValue
-                ? rows.ToList()
-                : rows.Take(remainingRows).ToList();
+                ? rows.OrderBy(row => row.Name, StringComparer.OrdinalIgnoreCase).ToList()
+                : TakeOrderedShapeDataRows(rows, remainingRows);
             if (remainingRows != int.MaxValue) remainingRows -= retained.Count;
             return retained
-                .OrderBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(row => new VisioInspectionShapeDataSnapshot(row.Name, row.Label, row.Value, row.Type?.ToString(), row.Format, row.Prompt))
                 .ToList()
                 .AsReadOnly();
+        }
+
+        private static List<VisioShapeDataRow> TakeOrderedShapeDataRows(
+            IEnumerable<VisioShapeDataRow> rows,
+            int maximumRows) {
+            var retained = new List<IndexedShapeDataRow>(Math.Min(maximumRows, 4096));
+            long sequence = 0;
+            foreach (VisioShapeDataRow row in rows) {
+                var candidate = new IndexedShapeDataRow(row, sequence++);
+                if (retained.Count < maximumRows) {
+                    retained.Add(candidate);
+                    SiftShapeDataRowUp(retained, retained.Count - 1);
+                } else if (CompareShapeDataRows(candidate, retained[0]) < 0) {
+                    retained[0] = candidate;
+                    SiftShapeDataRowDown(retained, 0);
+                }
+            }
+
+            return retained
+                .OrderBy(item => item.Row.Name, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(item => item.Sequence)
+                .Select(item => item.Row)
+                .ToList();
+        }
+
+        private static void SiftShapeDataRowUp(List<IndexedShapeDataRow> rows, int index) {
+            while (index > 0) {
+                int parent = (index - 1) / 2;
+                if (CompareShapeDataRows(rows[parent], rows[index]) >= 0) return;
+                (rows[parent], rows[index]) = (rows[index], rows[parent]);
+                index = parent;
+            }
+        }
+
+        private static void SiftShapeDataRowDown(List<IndexedShapeDataRow> rows, int index) {
+            while (true) {
+                int left = index * 2 + 1;
+                if (left >= rows.Count) return;
+                int right = left + 1;
+                int larger = right < rows.Count && CompareShapeDataRows(rows[right], rows[left]) > 0
+                    ? right
+                    : left;
+                if (CompareShapeDataRows(rows[index], rows[larger]) >= 0) return;
+                (rows[index], rows[larger]) = (rows[larger], rows[index]);
+                index = larger;
+            }
+        }
+
+        private static int CompareShapeDataRows(IndexedShapeDataRow left, IndexedShapeDataRow right) {
+            int nameComparison = StringComparer.OrdinalIgnoreCase.Compare(left.Row.Name, right.Row.Name);
+            return nameComparison != 0 ? nameComparison : left.Sequence.CompareTo(right.Sequence);
+        }
+
+        private readonly struct IndexedShapeDataRow {
+            internal IndexedShapeDataRow(VisioShapeDataRow row, long sequence) {
+                Row = row;
+                Sequence = sequence;
+            }
+
+            internal VisioShapeDataRow Row { get; }
+            internal long Sequence { get; }
         }
 
         private static int AddSaturating(int left, int right) =>

@@ -12,7 +12,7 @@ namespace OfficeIMO.Data {
     /// <summary>
     /// Configuration for flattening objects into key/value pairs where keys represent dotted paths.
     /// </summary>
-    public class ObjectFlattenerOptions {
+    public partial class ObjectFlattenerOptions {
         /// <summary>Default maximum number of projected table columns.</summary>
         public const int DefaultMaxColumns = 16_384;
         /// <summary>Default maximum number of projected table cells, including the header row.</summary>
@@ -151,6 +151,7 @@ namespace OfficeIMO.Data {
             if (pinLast != null && pinLast.Length > 0) PinLast(pinLast);
             return this;
         }
+
     }
 
     /// <summary>
@@ -166,6 +167,10 @@ namespace OfficeIMO.Data {
         /// </summary>
         public Dictionary<string, object?> Flatten<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(T item, ObjectFlattenerOptions opts) {
             if (opts == null) throw new ArgumentNullException(nameof(opts));
+            return FlattenPrepared(item, opts.CreateProjectionSnapshot());
+        }
+
+        private Dictionary<string, object?> FlattenPrepared<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(T item, ObjectFlattenerOptions opts) {
             ValidateLimits(opts);
             if (item == null) {
                 return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
@@ -183,7 +188,7 @@ namespace OfficeIMO.Data {
                     $"Object flattening exceeds the {opts.MaxColumns}-column limit.");
             }
 
-            List<string> selectedPaths = ResolvePaths(result.Keys, opts);
+            List<string> selectedPaths = ResolvePathsPrepared(result.Keys, opts);
             var selected = new Dictionary<string, object?>(selectedPaths.Count, StringComparer.OrdinalIgnoreCase);
             foreach (string path in selectedPaths) {
                 selected[path] = result[path];
@@ -198,10 +203,14 @@ namespace OfficeIMO.Data {
         public List<string> GetPaths([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] Type type, ObjectFlattenerOptions opts) {
             if (type == null) throw new ArgumentNullException(nameof(type));
             if (opts == null) throw new ArgumentNullException(nameof(opts));
+            return GetPathsPrepared(type, opts.CreateProjectionSnapshot());
+        }
+
+        private List<string> GetPathsPrepared([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] Type type, ObjectFlattenerOptions opts) {
             ValidateLimits(opts);
             var paths = new List<string>(Math.Min(GetInitialFlattenCapacity(type, opts), opts.MaxColumns));
             BuildPaths(type, string.Empty, 0, opts, paths);
-            return ResolvePaths(paths, opts);
+            return ResolvePathsPrepared(paths, opts);
         }
 
         /// <summary>
@@ -210,6 +219,10 @@ namespace OfficeIMO.Data {
         public List<string> ResolvePaths(IEnumerable<string> paths, ObjectFlattenerOptions opts) {
             if (paths == null) throw new ArgumentNullException(nameof(paths));
             if (opts == null) throw new ArgumentNullException(nameof(opts));
+            return ResolvePathsPrepared(paths, opts.CreateProjectionSnapshot());
+        }
+
+        private List<string> ResolvePathsPrepared(IEnumerable<string> paths, ObjectFlattenerOptions opts) {
             ValidateLimits(opts);
             var filtered = new List<string>();
             var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -270,9 +283,7 @@ namespace OfficeIMO.Data {
                 || opts.IncludeProperties.Length > 0
                 || opts.ExcludeProperties.Length > 0
                 || opts.Ignore.Length > 0;
-            int dictionaryItemLimit = hasSelectionRules
-                ? opts.MaxCollectionItems
-                : Math.Min(opts.MaxCollectionItems, opts.MaxColumns);
+            int dictionaryItemLimit = opts.MaxCollectionItems;
             Func<object?, bool>? includeDictionaryKey = hasSelectionRules
                 ? key => IsDictionaryEntryRelevant(key, prefix, opts)
                 : null;
@@ -281,6 +292,7 @@ namespace OfficeIMO.Data {
                     dictionaryItemLimit,
                     includeDictionaryKey,
                     opts.MaxColumns,
+                    deduplicateResolvedKeys: true,
                     out var dictionaryEntries)) {
                 FlattenDictionary(dictionaryEntries, dict, prefix, depth, opts, activeObjects);
                 return;
@@ -666,7 +678,7 @@ namespace OfficeIMO.Data {
         private static bool IsPathSelectedForMaterialization(string path, ObjectFlattenerOptions options) {
             if (ShouldIgnorePath(path, options.Ignore)) return false;
             if (options.Columns != null && options.Columns.Length > 0
-                && !ContainsPath(options.Columns, path)) return false;
+                && options.ExplicitColumnLookup?.Contains(path) != true) return false;
             if (ContainsPathOrLastSegment(options.ExcludeProperties, path)) return false;
             if (options.IncludeProperties.Length > 0
                 && !ContainsPathOrLastSegment(options.IncludeProperties, path)) return false;
@@ -675,7 +687,7 @@ namespace OfficeIMO.Data {
 
         private static bool CanContainSelectedDescendant(string path, ObjectFlattenerOptions options) {
             if (options.Columns != null && options.Columns.Length > 0
-                && !ContainsDescendantPath(options.Columns, path)) return false;
+                && options.ExplicitColumnAncestorLookup?.Contains(path) != true) return false;
 
             if (options.IncludeProperties.Length == 0) return true;
             foreach (string include in options.IncludeProperties) {
@@ -697,29 +709,12 @@ namespace OfficeIMO.Data {
             return expand && CanContainSelectedDescendant(path, options);
         }
 
-        private static bool ContainsPath(string[] values, string path) {
-            foreach (string value in values) {
-                if (string.Equals(value, path, StringComparison.OrdinalIgnoreCase)) return true;
-            }
-            return false;
-        }
-
         private static bool ContainsPathOrLastSegment(string[] values, string path) {
             if (values.Length == 0) return false;
             string segment = LastSegment(path);
             foreach (string value in values) {
                 if (string.Equals(value, path, StringComparison.OrdinalIgnoreCase)
                     || string.Equals(value, segment, StringComparison.OrdinalIgnoreCase)) return true;
-            }
-            return false;
-        }
-
-        private static bool ContainsDescendantPath(string[] values, string path) {
-            foreach (string value in values) {
-                if (string.IsNullOrWhiteSpace(value)) continue;
-                if (value.Length > path.Length
-                    && value.StartsWith(path, StringComparison.OrdinalIgnoreCase)
-                    && value[path.Length] == '.') return true;
             }
             return false;
         }

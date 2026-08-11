@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OfficeIMO.Excel;
 using OfficeIMO.Data;
 using Xunit;
@@ -229,6 +230,62 @@ namespace OfficeIMO.Tests {
 
             Assert.Single(values);
             Assert.Equal("Alice", values["Name"]);
+        }
+
+        [Fact]
+        public void ObjectFlattenerCountsDistinctResolvedDictionaryPathsAtColumnLimit() {
+            var row = new Dictionary<string, object?>(StringComparer.Ordinal) {
+                ["Name"] = "first",
+                ["name"] = "last"
+            };
+
+            Dictionary<string, object?> values = new ObjectFlattener().Flatten(
+                row,
+                new ObjectFlattenerOptions {
+                    MaxColumns = 1,
+                    MaxCollectionItems = 2
+                });
+
+            Assert.Single(values);
+            Assert.Equal("last", values["Name"]);
+
+            var heterogeneousKeys = new Dictionary<object, object?> {
+                [1] = "number",
+                ["1"] = "text"
+            };
+            Dictionary<string, object?> heterogeneousValues = new ObjectFlattener().Flatten(
+                heterogeneousKeys,
+                new ObjectFlattenerOptions {
+                    MaxColumns = 1,
+                    MaxCollectionItems = 2
+                });
+
+            Assert.Single(heterogeneousValues);
+            Assert.True(heterogeneousValues.ContainsKey("1"));
+        }
+
+        [Fact]
+        public void ObjectFlattenerIndexesMaximumWidthExplicitColumnSelection() {
+            const int columnCount = ObjectFlattenerOptions.DefaultMaxColumns;
+            string[] columns = Enumerable.Range(0, columnCount)
+                .Select(index => "Column" + index)
+                .ToArray();
+            var row = columns.ToDictionary(
+                column => column,
+                column => (object?)column,
+                StringComparer.Ordinal);
+
+            Dictionary<string, object?> values = new ObjectFlattener().Flatten(
+                row,
+                new ObjectFlattenerOptions {
+                    Columns = columns,
+                    MaxColumns = columnCount,
+                    MaxCollectionItems = columnCount
+                });
+
+            Assert.Equal(columnCount, values.Count);
+            Assert.Equal("Column0", values["Column0"]);
+            Assert.Equal("Column16383", values["Column16383"]);
         }
 
         [Fact]
