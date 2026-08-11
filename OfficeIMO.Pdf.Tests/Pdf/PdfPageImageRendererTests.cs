@@ -2721,6 +2721,22 @@ public class PdfPageImageRendererTests {
         Assert.True(rightPixel.B > rightPixel.R);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("/Extend [false false]")]
+    public void RenderPage_PreservesNonExtendingOrdinaryAxialShading(string extendEntry) {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Sh1 sh",
+            "<< /Shading << /Sh1 5 0 R >> >>",
+            "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 80 140 80] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> " + extendEntry + " >>\nendobj");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
+        Assert.Single(drawing.Shapes);
+    }
+
     [Fact]
     public void RenderPage_DiagnosesInvokedIccShadingAndFailsNoLossPolicy() {
         byte[] pdf = BuildSingleStreamPdf(
