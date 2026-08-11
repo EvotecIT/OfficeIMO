@@ -73,7 +73,7 @@ public static partial class HtmlComputedStyleEngine {
             return IsKnownKeyword(normalized, "separate", "collapse");
         }
         if (string.Equals(propertyName, "border-spacing", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssTableParser.TryParseBorderSpacing(normalized, 16D, 16D, out _, out _);
+            return HtmlCssTableParser.TryParseBorderSpacing(normalized, 16D, 16D, 100D, 100D, out _, out _);
         }
         if (string.Equals(propertyName, "overflow", StringComparison.OrdinalIgnoreCase)) {
             string[] values = normalized.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries);
@@ -85,7 +85,7 @@ public static partial class HtmlComputedStyleEngine {
             return IsKnownKeyword(normalized, "visible", "hidden", "clip", "auto", "scroll");
         }
         if (string.Equals(propertyName, "overflow-clip-margin", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssOverflowClipMarginParser.TryParse(normalized, 16D, 16D, out _, out _);
+            return HtmlCssOverflowClipMarginParser.TryParse(normalized, 16D, 16D, 100D, 100D, out _, out _);
         }
         if (string.Equals(propertyName, "column-count", StringComparison.OrdinalIgnoreCase)) {
             return normalized == "auto" || int.TryParse(normalized, out int count) && count > 0;

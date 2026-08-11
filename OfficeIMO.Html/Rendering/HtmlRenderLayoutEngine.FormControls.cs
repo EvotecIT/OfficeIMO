@@ -567,6 +567,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             optionValues,
             radioOption,
             selected,
+            disabled,
             readOnly,
             required,
             tag == "textarea",
@@ -597,7 +598,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _diagnostics.Add(
             ComponentName,
             HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback,
-            "A transformed HTML form control was rendered as transformed static content because PDF widget annotations cannot preserve the authored appearance.",
+            "An HTML form control inside a transformed or translucent paint group was rendered as static content because PDF widget annotations cannot preserve the authored appearance.",
             HtmlDiagnosticSeverity.Warning,
             source,
             detail,

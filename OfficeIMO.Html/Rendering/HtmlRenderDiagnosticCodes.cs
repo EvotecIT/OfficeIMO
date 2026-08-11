@@ -88,7 +88,7 @@ public static class HtmlRenderDiagnosticCodes {
     public const string OverflowClipMarginValueUnsupported = "HtmlRenderOverflowClipMarginValueUnsupported";
     /// <summary>A CSS transform or transform-origin value used the identity fallback.</summary>
     public const string TransformValueUnsupported = "HtmlRenderTransformValueUnsupported";
-    /// <summary>A transformed HTML form control used static rendering because an interactive PDF widget cannot preserve the authored transform.</summary>
+    /// <summary>A form control inside a transformed or translucent paint group used static rendering because an interactive PDF widget cannot preserve the authored appearance.</summary>
     public const string FormFieldTransformStaticFallback = "HtmlRenderFormFieldTransformStaticFallback";
     /// <summary>A CSS opacity value used the opaque fallback.</summary>
     public const string OpacityValueUnsupported = "HtmlRenderOpacityValueUnsupported";

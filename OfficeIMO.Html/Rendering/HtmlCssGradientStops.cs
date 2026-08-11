@@ -68,14 +68,16 @@ internal sealed class HtmlCssGradientStops {
 
     internal static bool IsConicColorStop(string value) => TryParseConicColorStop(value, out _, out _, out _);
 
-    internal bool TryResolve(double referenceLength, double fontSize, double rootFontSize, out IReadOnlyList<OfficeGradientStop>? stops) {
-        return TryResolve(referenceLength, fontSize, rootFontSize, repeating: false, out stops, out _);
+    internal bool TryResolve(double referenceLength, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out IReadOnlyList<OfficeGradientStop>? stops) {
+        return TryResolve(referenceLength, fontSize, rootFontSize, viewportWidth, viewportHeight, repeating: false, out stops, out _);
     }
 
     internal bool TryResolve(
         double referenceLength,
         double fontSize,
         double rootFontSize,
+        double viewportWidth,
+        double viewportHeight,
         bool repeating,
         out IReadOnlyList<OfficeGradientStop>? stops,
         out bool stopLimitExceeded) {
@@ -88,7 +90,7 @@ internal sealed class HtmlCssGradientStops {
             HtmlCssGradientStop stop = _stops[index];
             colors[index] = stop.Color;
             if (stop.Position == null) continue;
-            if (!HtmlRenderCssValues.TryLength(stop.Position, referenceLength, fontSize, rootFontSize, out double pixels)) return false;
+            if (!HtmlRenderCssValues.TryLength(stop.Position, referenceLength, fontSize, rootFontSize, viewportWidth, viewportHeight, out double pixels)) return false;
             double offset = pixels / referenceLength;
             if (double.IsNaN(offset) || double.IsInfinity(offset)) return false;
             offsets[index] = offset;
@@ -214,7 +216,7 @@ internal sealed class HtmlCssGradientStops {
 
     private static bool IsStopPosition(string value) {
         if (value == "0") return true;
-        return HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, out double result)
+        return HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, out double result)
             && !double.IsNaN(result)
             && !double.IsInfinity(result);
     }

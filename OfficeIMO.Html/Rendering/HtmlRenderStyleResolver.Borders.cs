@@ -10,6 +10,8 @@ internal sealed partial class HtmlRenderStyleResolver {
                 reference,
                 fontSize,
                 _options.DefaultFontSize,
+                _viewportWidth,
+                _viewportHeight,
                 style.Color,
                 out HtmlRenderBorderEdges borders,
                 out string borderDetail)) {
@@ -30,6 +32,8 @@ internal sealed partial class HtmlRenderStyleResolver {
                 reference,
                 fontSize,
                 _options.DefaultFontSize,
+                _viewportWidth,
+                _viewportHeight,
                 style.Color,
                 out double outlineWidth,
                 out string outlineStyle,

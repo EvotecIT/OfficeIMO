@@ -162,6 +162,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_AncestorOpacityConvertsDescendantControlsToStaticPaint() {
+        const string html = "<div id='faded-parent' style='opacity:.4'><input id='child' name='child' value='Faded descendant'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+        HtmlRenderVisual[] scene = EnumerateRenderVisuals(rendered.Pages[0].Visuals).ToArray();
+
+        Assert.DoesNotContain(scene, visual => visual is HtmlRenderFormField);
+        HtmlRenderEffectGroup effect = Assert.Single(scene.OfType<HtmlRenderEffectGroup>(), group => group.Source == "div#faded-parent");
+        Assert.Equal(0.4D, effect.Opacity, 6);
+        Assert.Contains(scene.OfType<HtmlRenderText>(), text => text.Text == "Faded descendant");
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback
+            && diagnostic.Source == "input#child"
+            && diagnostic.Detail!.StartsWith("ancestor-opacity=", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void HtmlRendering_SingleSelectDefaultsToFirstEnabledOption() {
         const string html = "<select><option disabled>Disabled</option><optgroup disabled><option>Group disabled</option></optgroup><option label='Enabled label'>Fallback text</option></select>";
 

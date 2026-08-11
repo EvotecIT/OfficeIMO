@@ -176,6 +176,8 @@ namespace OfficeIMO.Tests {
             byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions {
                 Quality = 100,
                 Subsampling = OfficeJpegSubsampling.Y444,
+                DpiX = 72D,
+                DpiY = 144D,
                 Metadata = new OfficeJpegMetadata(exif: CreateExifOrientation(6))
             });
 
@@ -185,6 +187,10 @@ namespace OfficeIMO.Tests {
             Assert.True(OfficeImageOrientationNormalizer.TryNormalizeToPng(jpeg, false, out byte[] rawPng, out OfficeImageInfo? rawInfo));
             Assert.Equal((1, 2), (orientedInfo!.Width, orientedInfo.Height));
             Assert.Equal((2, 1), (rawInfo!.Width, rawInfo.Height));
+            Assert.InRange(orientedInfo.DpiX, 143.9D, 144.1D);
+            Assert.InRange(orientedInfo.DpiY, 71.9D, 72.1D);
+            Assert.InRange(rawInfo.DpiX, 71.9D, 72.1D);
+            Assert.InRange(rawInfo.DpiY, 143.9D, 144.1D);
             Assert.True(OfficePngReader.TryDecode(orientedPng, out OfficeRasterImage? oriented));
             Assert.True(OfficePngReader.TryDecode(rawPng, out OfficeRasterImage? raw));
             AssertColorNear(oriented!.GetPixel(0, 0), OfficeColor.Red, 12);

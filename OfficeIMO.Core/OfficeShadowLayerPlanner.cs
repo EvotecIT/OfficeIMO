@@ -39,9 +39,16 @@ internal static class OfficeShadowLayerPlanner {
 
         int layerCount = Math.Max(MinimumBlurLayers, Math.Min(MaximumBlurLayers, (int)Math.Ceiling(blurRadius / 2D)));
         if (canExpand && paintsFill) {
-            double expandedLayerOpacity = 1D - Math.Pow(1D - clampedOpacity, 1D / layerCount);
-            var expandedLayers = new List<OfficeShadowLayer>(layerCount);
+            // Reserve part of the opacity for the unexpanded core. This keeps a fully opaque
+            // source opaque at its center without turning every expanded blur layer opaque.
+            double blurCompositeOpacity = clampedOpacity * 0.5D;
+            double totalWeight = layerCount * (layerCount + 1D) / 2D;
+            var expandedLayers = new List<OfficeShadowLayer>(layerCount + 1);
             for (int index = layerCount; index >= 1; index--) {
+                double weight = layerCount - index + 1D;
+                double expandedLayerOpacity = blurCompositeOpacity <= 0D
+                    ? 0D
+                    : 1D - Math.Pow(1D - blurCompositeOpacity, weight / totalWeight);
                 expandedLayers.Add(new OfficeShadowLayer(
                     0D,
                     blurRadius * index / layerCount,
@@ -49,6 +56,10 @@ internal static class OfficeShadowLayerPlanner {
                     hasFill: true,
                     hasStroke: false));
             }
+            double coreOpacity = clampedOpacity >= 1D
+                ? 1D
+                : 1D - (1D - clampedOpacity) / Math.Max(0.000001D, 1D - blurCompositeOpacity);
+            expandedLayers.Add(new OfficeShadowLayer(0D, 0D, Math.Max(0D, Math.Min(1D, coreOpacity)), hasFill: true, hasStroke: false));
             return expandedLayers;
         }
 

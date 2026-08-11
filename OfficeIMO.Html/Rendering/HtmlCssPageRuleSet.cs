@@ -8,9 +8,17 @@ internal sealed class HtmlCssPageRuleSet {
     internal void Add(HtmlCssPageRule rule) => _rules.Add(rule);
 
     internal HtmlCssPageGeometry ResolveGeometry(int pageNumber, string? pageName, HtmlRenderOptions options) {
-        var resolved = new HtmlCssPageGeometry(options.PageWidth, options.PageHeight, options.Margins);
-        foreach (HtmlCssPageRule rule in MatchingRules(pageNumber, pageName)) {
-            resolved = rule.Geometry.Apply(resolved, options);
+        IReadOnlyList<HtmlCssPageRule> matching = MatchingRules(pageNumber, pageName).ToList();
+        double width = options.PageWidth;
+        double height = options.PageHeight;
+        string size = matching.Select(rule => rule.Geometry.Size).LastOrDefault(value => value.Length > 0) ?? string.Empty;
+        if (size.Length > 0) {
+            HtmlCssPageSettingsResolver.TryResolvePageSize(size, options.PageWidth, options.PageHeight, options.DefaultFontSize, out width, out height);
+        }
+
+        var resolved = new HtmlCssPageGeometry(width, height, options.Margins);
+        foreach (HtmlCssPageRule rule in matching) {
+            resolved = rule.Geometry.ApplyMargins(resolved, options);
         }
         return resolved;
     }
@@ -107,10 +115,9 @@ internal readonly struct HtmlCssPageGeometryDeclaration {
         && MarginBottom.Length == 0
         && MarginLeft.Length == 0;
 
-    internal HtmlCssPageGeometry Apply(HtmlCssPageGeometry current, HtmlRenderOptions options) {
+    internal HtmlCssPageGeometry ApplyMargins(HtmlCssPageGeometry current, HtmlRenderOptions options) {
         double width = current.Width;
         double height = current.Height;
-        if (Size.Length > 0) HtmlCssPageSettingsResolver.TryResolvePageSize(Size, current.Width, current.Height, options.DefaultFontSize, out width, out height);
         double top = current.Margins.Top;
         double right = current.Margins.Right;
         double bottom = current.Margins.Bottom;

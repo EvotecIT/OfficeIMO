@@ -37,6 +37,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     boxHeight,
                     style.Font.Size,
                     _options.DefaultFontSize,
+                    _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
+                    _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
                     out transform,
                     out string detail)) {
                 _diagnostics.Add(
@@ -54,8 +56,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool hasOpacity = style.OpacityWasSpecified && style.UnsupportedOpacity.Length == 0 && style.Opacity < 1D;
         createsStackingContext = hasTransform || hasOpacity;
         if (!createsStackingContext || block.Visuals.Count == 0) return block;
-        IReadOnlyList<HtmlRenderVisual> effectVisuals = hasTransform
-            ? ReplaceDescendantFormFieldsForTransform(block.Visuals, source)
+        IReadOnlyList<HtmlRenderVisual> effectVisuals = hasTransform || hasOpacity
+            ? ReplaceDescendantFormFieldsForPaintEffect(
+                block.Visuals,
+                hasTransform ? "ancestor-transform=" + source : "ancestor-opacity=" + style.Opacity.ToString(System.Globalization.CultureInfo.InvariantCulture))
             : block.Visuals;
         var group = new HtmlRenderEffectGroup(
             0D,
@@ -70,13 +74,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return block.WithVisuals(new[] { group });
     }
 
-    private IReadOnlyList<HtmlRenderVisual> ReplaceDescendantFormFieldsForTransform(
+    private IReadOnlyList<HtmlRenderVisual> ReplaceDescendantFormFieldsForPaintEffect(
         IReadOnlyList<HtmlRenderVisual> visuals,
-        string transformSource) {
+        string detail) {
         var replaced = new List<HtmlRenderVisual>(visuals.Count);
         foreach (HtmlRenderVisual visual in visuals) {
             if (visual is HtmlRenderFormField field) {
-                ReportTransformedFormFieldFallback(field.Source ?? "form-control", "ancestor-transform=" + transformSource);
+                ReportTransformedFormFieldFallback(field.Source ?? "form-control", detail);
                 replaced.AddRange(field.Visuals);
                 continue;
             }
@@ -87,7 +91,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
-            IReadOnlyList<HtmlRenderVisual> transformedChildren = ReplaceDescendantFormFieldsForTransform(children, transformSource);
+            IReadOnlyList<HtmlRenderVisual> transformedChildren = ReplaceDescendantFormFieldsForPaintEffect(children, detail);
             replaced.Add(CloneGroupWithChildren(visual, transformedChildren));
         }
         return replaced;

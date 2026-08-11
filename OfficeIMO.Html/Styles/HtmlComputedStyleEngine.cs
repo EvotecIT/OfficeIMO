@@ -360,7 +360,7 @@ public static partial class HtmlComputedStyleEngine {
         if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements, budget, containerContexts, environment);
 
         double elementWidth = ResolveContainerElementWidth(style, containingWidth, environment);
-        double? elementHeight = ResolveContainerElementHeight(style, containingHeight, environment);
+        double? elementHeight = ResolveContainerElementHeight(style, containingWidth, containingHeight, environment);
         IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, elementHeight, containerContexts);
 
         foreach (IElement child in element.Children) {

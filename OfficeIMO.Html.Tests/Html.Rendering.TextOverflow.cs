@@ -70,6 +70,33 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("A B", pdfText, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HtmlRender_LetterSpacingPositionsEveryGraphemeWithoutScalingWholeWords() {
+        const string html = "<p style='margin:0;font-family:Consolas;font-size:14px;letter-spacing:3px'>AB</p>";
+
+        IReadOnlyList<HtmlRenderText> glyphs = EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .ToList();
+
+        Assert.Equal(new[] { "A", "B" }, glyphs.Select(glyph => glyph.Text).ToArray());
+        Assert.True(glyphs[1].X > glyphs[0].X + 3D);
+        Assert.All(glyphs, glyph => Assert.True((glyph.TextAdvanceWidth ?? glyph.Width) < 30D));
+    }
+
+    [Fact]
+    public void HtmlRender_LetterSpacingRetainsPerGraphemePaintForRightToLeftText() {
+        const string html = "<p dir='rtl' style='margin:0;font-family:Arial;font-size:14px;letter-spacing:3px'>אב</p>";
+
+        IReadOnlyList<HtmlRenderText> glyphs = EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .ToList();
+
+        Assert.Equal(2, glyphs.Count);
+        Assert.Equal(new[] { "א", "ב" }, glyphs.Select(glyph => glyph.Text).OrderBy(text => text, StringComparer.Ordinal).ToArray());
+        Assert.NotEqual(glyphs[0].X, glyphs[1].X);
+        Assert.All(glyphs, glyph => Assert.True((glyph.TextAdvanceWidth ?? glyph.Width) < 30D));
+    }
+
     private static IEnumerable<HtmlRenderVisual> EnumerateTextOverflowVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals) {
             yield return visual;

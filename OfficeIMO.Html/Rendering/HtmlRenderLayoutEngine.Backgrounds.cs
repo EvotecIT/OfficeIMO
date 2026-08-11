@@ -305,7 +305,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
 
         if (layer.ConicGradient != null) {
-            if (!layer.ConicGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, out OfficeConicGradient? conicGradient, out bool conicStopLimitExceeded)
+            if (!layer.ConicGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, out OfficeConicGradient? conicGradient, out bool conicStopLimitExceeded)
                 || conicGradient == null) {
                 if (conicStopLimitExceeded) {
                     _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
@@ -332,7 +332,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool stopLimitExceeded = false;
         OfficeLinearGradient? linearGradient = null;
         if (layer.LinearGradient != null
-            && !layer.LinearGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, out linearGradient, out stopLimitExceeded)) {
+            && !layer.LinearGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, out linearGradient, out stopLimitExceeded)) {
             if (stopLimitExceeded) {
                 _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
                     "A repeating CSS linear gradient exceeded the configured materialized color-stop limit and was omitted.",
@@ -350,7 +350,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         fill.FillGradient = linearGradient;
         OfficeRadialGradient? radialGradient = null;
         if (layer.RadialGradient != null
-            && !layer.RadialGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, out radialGradient, out stopLimitExceeded)) {
+            && !layer.RadialGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, out radialGradient, out stopLimitExceeded)) {
             if (stopLimitExceeded) {
                 _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
                     "A repeating CSS radial gradient exceeded the configured materialized color-stop limit and was omitted.",
@@ -377,7 +377,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IElement source,
         string sourceDescription) {
-        if (HtmlCssBorderRadiusParser.TryResolve(style, width, height, _options.DefaultFontSize, out HtmlResolvedBorderRadii radii, out string detail)) {
+        if (HtmlCssBorderRadiusParser.TryResolve(style, width, height, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, out HtmlResolvedBorderRadii radii, out string detail)) {
             return radii;
         }
         if (_reportedBorderRadiusFallbacks.Add(sourceDescription)) {

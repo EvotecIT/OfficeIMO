@@ -105,7 +105,7 @@ internal static class HtmlCssConicGradientParser {
         if (value == "right") { result = "100%"; return true; }
         if (value == "top" || value == "bottom") { result = string.Empty; return false; }
         result = value;
-        return HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, out _);
+        return HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, out _);
     }
 
     private static bool TryVertical(string value, out string result) {
@@ -114,6 +114,6 @@ internal static class HtmlCssConicGradientParser {
         if (value == "bottom") { result = "100%"; return true; }
         if (value == "left" || value == "right") { result = string.Empty; return false; }
         result = value;
-        return HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, out _);
+        return HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, out _);
     }
 }

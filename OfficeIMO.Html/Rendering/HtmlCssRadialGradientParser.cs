@@ -180,8 +180,8 @@ internal static class HtmlCssRadialGradientParser {
     }
 
     private static bool IsLength(string value) =>
-        HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, out _);
+        HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, out _);
 
     private static bool IsNonNegativeLength(string value) =>
-        HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, out double length) && length >= 0D;
+        HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, out double length) && length >= 0D;
 }

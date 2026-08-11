@@ -43,6 +43,7 @@ public sealed class HtmlPdfTests {
         PdfCore.PdfFormField accept = Assert.Single(info.FormFields, field => field.Name == "accept");
         Assert.True(accept.IsCheckBox);
         Assert.True(accept.IsReadOnly);
+        Assert.True(accept.IsNoExport);
         Assert.Equal("Accepted", accept.Value);
 
         PdfCore.PdfFormField country = Assert.Single(info.FormFields, field => field.Name == "country");
@@ -53,6 +54,7 @@ public sealed class HtmlPdfTests {
         PdfCore.PdfFormField notes = Assert.Single(info.FormFields, field => field.Name == "notes");
         Assert.True(notes.IsMultiline);
         Assert.True(notes.IsReadOnly);
+        Assert.False(notes.IsNoExport);
         Assert.Equal("Line one\nLine two", notes.Value);
 
         PdfCore.PdfFormField method = Assert.Single(info.FormFields, field => field.Name == "method");

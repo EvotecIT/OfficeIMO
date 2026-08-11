@@ -230,6 +230,7 @@ internal static partial class HtmlPdfRenderedConverter {
             TextColor = PdfCore.PdfColor.FromOfficeColorOrNull(field.TextColor) ?? PdfCore.PdfColor.Black,
             MarkColor = PdfCore.PdfColor.FromOfficeColorOrNull(field.TextColor) ?? PdfCore.PdfColor.Black,
             IsReadOnly = field.IsReadOnly,
+            IsNoExport = field.IsDisabled,
             IsRequired = field.IsRequired,
             IsMultiline = field.IsMultiline,
             IsPassword = field.IsPassword,

@@ -396,6 +396,8 @@ internal static class HtmlCssPageSettingsResolver {
         int start = 0;
         int depth = 0;
         char quote = '\0';
+        string resolved = string.Empty;
+        bool resolvedImportant = false;
         for (int index = 0; index <= body.Length; index++) {
             char current = index < body.Length ? body[index] : ';';
             if (quote != '\0') {
@@ -410,14 +412,32 @@ internal static class HtmlCssPageSettingsResolver {
                 string declaration = body.Substring(start, index - start).Trim();
                 int separator = declaration.IndexOf(':');
                 if (separator > 0 && string.Equals(declaration.Substring(0, separator).Trim(), propertyName, StringComparison.OrdinalIgnoreCase)) {
-                    return declaration.Substring(separator + 1).Trim();
+                    string value = declaration.Substring(separator + 1).Trim();
+                    bool important = TryStripImportant(ref value);
+                    if (important || !resolvedImportant) {
+                        resolved = value;
+                        resolvedImportant = important;
+                    }
                 }
 
                 start = index + 1;
             }
         }
 
-        return string.Empty;
+        return resolved;
+    }
+
+    private static bool TryStripImportant(ref string value) {
+        int end = value.Length;
+        while (end > 0 && char.IsWhiteSpace(value[end - 1])) end--;
+        const string Important = "important";
+        int wordStart = end - Important.Length;
+        if (wordStart < 0 || !string.Equals(value.Substring(wordStart, Important.Length), Important, StringComparison.OrdinalIgnoreCase)) return false;
+        int bang = wordStart - 1;
+        while (bang >= 0 && char.IsWhiteSpace(value[bang])) bang--;
+        if (bang < 0 || value[bang] != '!') return false;
+        value = value.Substring(0, bang).TrimEnd();
+        return true;
     }
 
     private static int FindMatchingBrace(string css, int open) {

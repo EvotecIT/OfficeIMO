@@ -104,20 +104,85 @@ public static partial class HtmlComputedStyleEngine {
     private static double ResolveContainerElementWidth(HtmlComputedStyle style, double containingWidth, MediaEnvironment environment) {
         string width = style.GetValue("width");
         double fontSize = ResolveContainerFontSize(style, environment);
+        ResolveContainerInsets(style, containingWidth, fontSize, environment, out double horizontalInsets, out _);
         if (HtmlRenderCssValues.TryLength(width, containingWidth, fontSize, 16D, environment.Width, environment.Height, out double resolved)
             && resolved >= 0D) {
-            return resolved;
+            return Math.Max(0D, resolved - (IsBorderBox(style) ? horizontalInsets : 0D));
         }
-        return Math.Max(0D, containingWidth);
+        return Math.Max(0D, containingWidth - horizontalInsets);
     }
 
-    private static double? ResolveContainerElementHeight(HtmlComputedStyle style, double? containingHeight, MediaEnvironment environment) {
+    private static double? ResolveContainerElementHeight(HtmlComputedStyle style, double containingWidth, double? containingHeight, MediaEnvironment environment) {
         string height = style.GetValue("height");
         double fontSize = ResolveContainerFontSize(style, environment);
-        return HtmlRenderCssValues.TryLength(height, containingHeight ?? double.NaN, fontSize, 16D, environment.Width, environment.Height, out double resolved)
-            && resolved >= 0D
-            ? resolved
-            : (double?)null;
+        if (!HtmlRenderCssValues.TryLength(height, containingHeight ?? double.NaN, fontSize, 16D, environment.Width, environment.Height, out double resolved)
+            || resolved < 0D) return null;
+        ResolveContainerInsets(style, containingWidth, fontSize, environment, out _, out double verticalInsets);
+        return Math.Max(0D, resolved - (IsBorderBox(style) ? verticalInsets : 0D));
+    }
+
+    private static bool IsBorderBox(HtmlComputedStyle style) =>
+        string.Equals(style.GetValue("box-sizing").Trim(), "border-box", StringComparison.OrdinalIgnoreCase);
+
+    private static void ResolveContainerInsets(
+        HtmlComputedStyle style,
+        double containingWidth,
+        double fontSize,
+        MediaEnvironment environment,
+        out double horizontal,
+        out double vertical) {
+        double top = 0D;
+        double right = 0D;
+        double bottom = 0D;
+        double left = 0D;
+        string padding = style.GetValue("padding");
+        if (padding.Length > 0) {
+            HtmlRenderCssValues.ApplyBoxShorthand(
+                padding,
+                containingWidth,
+                fontSize,
+                16D,
+                environment.Width,
+                environment.Height,
+                ref top,
+                ref right,
+                ref bottom,
+                ref left);
+        }
+        ApplyContainerInset(style.GetValue("padding-top"), containingWidth, fontSize, environment, ref top);
+        ApplyContainerInset(style.GetValue("padding-right"), containingWidth, fontSize, environment, ref right);
+        ApplyContainerInset(style.GetValue("padding-bottom"), containingWidth, fontSize, environment, ref bottom);
+        ApplyContainerInset(style.GetValue("padding-left"), containingWidth, fontSize, environment, ref left);
+
+        double borderHorizontal = 0D;
+        double borderVertical = 0D;
+        if (HtmlCssBoxStrokeParser.TryParseBorder(
+                style,
+                containingWidth,
+                fontSize,
+                16D,
+                environment.Width,
+                environment.Height,
+                OfficeIMO.Drawing.OfficeColor.Black,
+                out HtmlRenderBorderEdges borders,
+                out _)) {
+            borderHorizontal = borders.Left.LayoutWidth + borders.Right.LayoutWidth;
+            borderVertical = borders.Top.LayoutWidth + borders.Bottom.LayoutWidth;
+        }
+        horizontal = Math.Max(0D, left) + Math.Max(0D, right) + borderHorizontal;
+        vertical = Math.Max(0D, top) + Math.Max(0D, bottom) + borderVertical;
+    }
+
+    private static void ApplyContainerInset(
+        string value,
+        double reference,
+        double fontSize,
+        MediaEnvironment environment,
+        ref double target) {
+        if (value.Length > 0
+            && HtmlRenderCssValues.TryLength(value, reference, fontSize, 16D, environment.Width, environment.Height, out double parsed)) {
+            target = Math.Max(0D, parsed);
+        }
     }
 
     private static double ResolveContainerFontSize(HtmlComputedStyle style, MediaEnvironment environment) =>

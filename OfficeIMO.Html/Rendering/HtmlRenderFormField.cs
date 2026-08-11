@@ -35,6 +35,7 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         IEnumerable<string>? optionValues,
         string? radioOption,
         bool isSelected,
+        bool isDisabled,
         bool isReadOnly,
         bool isRequired,
         bool isMultiline,
@@ -65,6 +66,7 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         Value = value ?? string.Empty;
         RadioOption = radioOption;
         IsSelected = isSelected;
+        IsDisabled = isDisabled;
         IsReadOnly = isReadOnly;
         IsRequired = isRequired;
         IsMultiline = isMultiline;
@@ -107,6 +109,8 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
     public string? RadioOption { get; }
     /// <summary>Whether a check box or radio widget is selected.</summary>
     public bool IsSelected { get; }
+    /// <summary>Whether the HTML control is disabled and must not participate in form export.</summary>
+    public bool IsDisabled { get; }
     /// <summary>Whether user editing is disabled by disabled or readonly HTML semantics.</summary>
     public bool IsReadOnly { get; }
     /// <summary>Whether HTML requires a value.</summary>
@@ -147,5 +151,5 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         Clone(X + offsetX, Y + offsetY, _visuals.Select((visual, index) => visual.TranslatePaint(offsetX, offsetY, index)), paintOrder, LayoutY);
 
     private HtmlRenderFormField Clone(double x, double y, IEnumerable<HtmlRenderVisual> visuals, int paintOrder, double layoutY) =>
-        new(FieldKind, Name, MappingName, Value, _values, _options, _optionValues, RadioOption, IsSelected, IsReadOnly, IsRequired, IsMultiline, IsPassword, IsFileSelect, IsComboBox, AllowsMultipleSelection, MaximumLength, AlternateName, Font, TextColor, TextAlignment, BackgroundColor, BorderColor, BorderWidth, x, y, Width, Height, visuals, paintOrder, Source, layoutY);
+        new(FieldKind, Name, MappingName, Value, _values, _options, _optionValues, RadioOption, IsSelected, IsDisabled, IsReadOnly, IsRequired, IsMultiline, IsPassword, IsFileSelect, IsComboBox, AllowsMultipleSelection, MaximumLength, AlternateName, Font, TextColor, TextAlignment, BackgroundColor, BorderColor, BorderWidth, x, y, Width, Height, visuals, paintOrder, Source, layoutY);
 }

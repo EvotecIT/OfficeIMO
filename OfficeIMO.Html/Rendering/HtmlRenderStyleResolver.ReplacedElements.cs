@@ -10,6 +10,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             computed.GetValue("object-position"),
             fontSize,
             _options.DefaultFontSize,
+            _viewportWidth,
+            _viewportHeight,
             out string unsupportedPosition);
         if (unsupportedPosition.Length > 0) unsupported.Add(unsupportedPosition);
 

@@ -21,6 +21,36 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPagedMedia_UsesLastDeclarationAndImportantPrecedenceWithinPageRules() {
+        const string html = """
+            <style>@page { size:300px 200px; size:200px 100px !important; size:400px 400px; margin:1px; margin:10px !important; margin:20px; }</style>
+            <p>Body</p>
+            """;
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal((200D, 100D), (page.Width, page.Height));
+        Assert.Equal((10D, 10D, 10D, 10D), (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_ResolvesGenericPercentageMarginsAgainstFinalNamedPageSize() {
+        const string html = """
+            <style>
+              @page { margin:10%; }
+              @page report { size:200px 100px; }
+            </style>
+            <section style="page:report">Named page</section>
+            """;
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal("report", page.PageName);
+        Assert.Equal((200D, 100D), (page.Width, page.Height));
+        Assert.Equal((20D, 20D, 20D, 20D), (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
+    [Fact]
     public void HtmlRender_Paged_ResolvesRunningStringsFromPageLocalAssignments() {
         const string html = """
             <style>

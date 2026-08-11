@@ -80,8 +80,12 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(png.Length > 100);
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Take(8).ToArray());
         Assert.Contains("<svg", svg, StringComparison.Ordinal);
+        string svgText = System.Net.WebUtility.HtmlDecode(
+            System.Text.RegularExpressions.Regex.Replace(svg, "<[^>]+>", string.Empty));
         foreach (string word in NormalizeCorpusWhitespace(scenario.TextMarkers[0]).Split(' ')) {
-            Assert.Contains(word, svg, StringComparison.Ordinal);
+            Assert.True(
+                svg.Contains(word, StringComparison.Ordinal) || svgText.Contains(word, StringComparison.Ordinal),
+                $"Expected SVG paint text to retain '{word}' either in one text node or across positioned grapheme nodes.");
         }
 
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();

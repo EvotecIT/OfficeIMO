@@ -94,6 +94,35 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_ViewportUnitsReachTransformsAndGradientGeometry() {
+        Assert.True(HtmlCssTransformParser.TryParse(
+            "translate(10vw, 10vh)",
+            "0 0",
+            0D,
+            0D,
+            40D,
+            20D,
+            16D,
+            16D,
+            200D,
+            100D,
+            out OfficeTransform transform,
+            out _));
+        Assert.Equal(20D, transform.OffsetX, 6);
+        Assert.Equal(10D, transform.OffsetY, 6);
+
+        Assert.True(HtmlCssRadialGradientParser.TryParse(
+            "radial-gradient(circle 10vw at 25vw 20vh, red, blue)",
+            8,
+            out HtmlCssRadialGradientDefinition? radial,
+            out _));
+        Assert.True(radial!.TryResolve(100D, 100D, 16D, 16D, 200D, 100D, out OfficeRadialGradient? gradient));
+        Assert.Equal(0.5D, gradient!.EndX, 6);
+        Assert.Equal(0.2D, gradient.EndY, 6);
+        Assert.Equal(0.2D, gradient.EndRadiusX, 6);
+    }
+
+    [Fact]
     public void HtmlRendering_StyleQueriesDoNotTreatCustomPropertyNamesAsSizeFeatures() {
         const string html = """
             <style>@container theme style(--width: compact) { #item { background:red; } }</style>
@@ -103,6 +132,20 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
+    }
+
+    [Fact]
+    public void HtmlRendering_ContainerQueriesMeasureTheContentBox() {
+        const string html = """
+            <style>@container (width:140px) { #item { background:red; } }</style>
+            <section style="box-sizing:border-box;width:200px;padding:20px;border:10px solid black;container-type:inline-size">
+              <div id="item" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 300D });
 
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
     }

@@ -65,14 +65,34 @@ public static class OfficeImageOrientationNormalizer {
             source = (byte[])imageBytes!.Clone();
             if (!TryNeutralizeOrientation(source)) return false;
         }
-        if (!OfficeImagePngConverter.TryConvertToPng(source, out normalizedPng)
-            || !OfficeImageReader.TryIdentify(normalizedPng, null, out OfficeImageInfo identified)) {
+        if (!OfficeImageReader.TryIdentify(source, null, out OfficeImageInfo sourceInfo)
+            || !OfficeImagePngConverter.TryConvertToPng(source, out normalizedPng)) {
+            normalizedPng = Array.Empty<byte>();
+            return false;
+        }
+        if (applyEmbeddedOrientation && SwapsPhysicalAxes(orientation)) {
+            if (!OfficePngReader.TryDecode(normalizedPng, out OfficeRasterImage? normalizedRaster) || normalizedRaster == null) {
+                normalizedPng = Array.Empty<byte>();
+                return false;
+            }
+            normalizedPng = OfficePngWriter.Encode(normalizedRaster, new OfficePngEncodeOptions {
+                DpiX = sourceInfo.DpiY,
+                DpiY = sourceInfo.DpiX
+            });
+        }
+        if (!OfficeImageReader.TryIdentify(normalizedPng, null, out OfficeImageInfo identified)) {
             normalizedPng = Array.Empty<byte>();
             return false;
         }
         normalizedInfo = identified;
         return true;
     }
+
+    private static bool SwapsPhysicalAxes(OfficeImageOrientation orientation) =>
+        orientation == OfficeImageOrientation.Transpose
+        || orientation == OfficeImageOrientation.Rotate90Clockwise
+        || orientation == OfficeImageOrientation.Transverse
+        || orientation == OfficeImageOrientation.Rotate90CounterClockwise;
 
     private static bool TryNeutralizeOrientation(byte[] data) {
         if (data.Length < 8) return false;
