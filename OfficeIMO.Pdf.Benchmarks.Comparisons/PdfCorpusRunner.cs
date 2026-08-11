@@ -399,23 +399,71 @@ internal static partial class PdfCorpusRunner {
                 return Path.GetFullPath(entry.SourcePath ?? throw new InvalidDataException($"{entry.Id} has no sourcePath."));
             case "generated":
                 return GenerateArtifact(entry, repositoryRoot, filesDirectory);
-            case "download": {
-                string target = Path.Combine(filesDirectory, entry.Id + ".pdf");
-                if (!File.Exists(target)) {
-                    if (!download) {
-                        throw new FileNotFoundException(
-                            $"{entry.Id} is not prepared. Re-run with --download.", target);
-                    }
-                    byte[] payload = await client.GetByteArrayAsync(
-                        entry.Url ?? throw new InvalidDataException($"{entry.Id} has no URL."))
-                        .ConfigureAwait(false);
-                    await File.WriteAllBytesAsync(target, payload).ConfigureAwait(false);
-                }
-                return target;
-            }
+            case "download":
+                return await ResolveDownloadedArtifactAsync(entry, filesDirectory, download, client)
+                    .ConfigureAwait(false);
             default:
                 throw new InvalidDataException($"Unknown PDF corpus source kind '{entry.SourceKind}'.");
         }
+    }
+
+    private static async Task<string> ResolveDownloadedArtifactAsync(
+        PdfCorpusEntry entry,
+        string filesDirectory,
+        bool download,
+        HttpClient client) {
+        string target = Path.Combine(filesDirectory, entry.Id + ".pdf");
+        if (File.Exists(target)) {
+            byte[] cachedPayload = await File.ReadAllBytesAsync(target).ConfigureAwait(false);
+            string? cacheError = GetDownloadValidationError(entry, cachedPayload);
+            if (cacheError is null) {
+                return target;
+            }
+
+            if (!download) {
+                throw new InvalidDataException(
+                    $"Cached corpus artifact {entry.Id} is invalid: {cacheError} Re-run with --download to replace it.");
+            }
+        } else if (!download) {
+            throw new FileNotFoundException(
+                $"{entry.Id} is not prepared. Re-run with --download.", target);
+        }
+
+        byte[] payload = await client.GetByteArrayAsync(
+            entry.Url ?? throw new InvalidDataException($"{entry.Id} has no URL."))
+            .ConfigureAwait(false);
+        string? validationError = GetDownloadValidationError(entry, payload);
+        if (validationError is not null) {
+            throw new InvalidDataException(
+                $"Downloaded corpus artifact {entry.Id} is invalid: {validationError}");
+        }
+
+        string temporaryPath = target + "." + Guid.NewGuid().ToString("N") + ".download";
+        try {
+            await File.WriteAllBytesAsync(temporaryPath, payload).ConfigureAwait(false);
+            File.Move(temporaryPath, target, overwrite: true);
+        } finally {
+            if (File.Exists(temporaryPath)) {
+                File.Delete(temporaryPath);
+            }
+        }
+
+        return target;
+    }
+
+    private static string? GetDownloadValidationError(PdfCorpusEntry entry, byte[] payload) {
+        if (payload.Length < 5 || !payload.AsSpan(0, 4).SequenceEqual("%PDF"u8)) {
+            return "the payload does not start with a PDF header.";
+        }
+
+        if (string.IsNullOrWhiteSpace(entry.Sha256)) {
+            return "the download manifest does not declare a SHA-256 digest.";
+        }
+
+        string observedSha256 = Convert.ToHexString(SHA256.HashData(payload)).ToLowerInvariant();
+        return string.Equals(entry.Sha256, observedSha256, StringComparison.OrdinalIgnoreCase)
+            ? null
+            : $"SHA-256 mismatch. Expected {entry.Sha256}, observed {observedSha256}.";
     }
 
     private static string GenerateArtifact(PdfCorpusEntry entry, string repositoryRoot, string filesDirectory) =>

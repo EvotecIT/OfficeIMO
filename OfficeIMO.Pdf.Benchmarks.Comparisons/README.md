@@ -17,12 +17,12 @@ The benchmark families intentionally answer different questions:
 - `PdfGenerationBenchmarks`: OfficeIMO, QuestPDF, MigraDoc/PDFsharp, and iText generate the same structured report from the same logical model. The measured operation includes document construction, layout, font embedding, compression, and in-memory serialization.
 - `PdfHtmlBenchmarks`: OfficeIMO.Html.Pdf and PeachPDF parse and render the exact same HTML string. The measured operation includes HTML/CSS parsing, paged layout, and in-memory PDF serialization.
 - `PdfReadBenchmarks`: OfficeIMO.Pdf, PdfPig, and iText open identical bytes, enumerate every page, and extract the complete text payload. The corpus is repeated for OfficeIMO-, QuestPDF-, PeachPDF-, MigraDoc-, and iText-produced PDFs to avoid a single-producer result.
-- `PdfSplitBenchmarks`: OfficeIMO, iText, and PDFsharp split the same OfficeIMO- and iText-produced documents into single pages and fixed-size bundles.
-- `PdfMergeBenchmarks`: all three engines merge the same ordered source set and preserve the exact page-marker sequence.
-- `PdfPageSelectionBenchmarks`: all three engines extract the same reversed, non-contiguous page selection and preserve that order.
+- `PdfSplitBenchmarks`: OfficeIMO, iText, and PDFsharp split the same OfficeIMO- and iText-produced documents into single pages and fixed-size bundles, then reopen every output with the producing engine and verify its page count inside the timed operation.
+- `PdfMergeBenchmarks`: all three engines merge the same ordered source set, reopen the serialized output with the producing engine inside the timed operation, and preserve the exact page-marker sequence.
+- `PdfPageSelectionBenchmarks`: all three engines extract the same reversed, non-contiguous page selection, reopen the serialized output with the producing engine inside the timed operation, and preserve that order.
 - `PdfCorpusReadBenchmarks`: OfficeIMO, PdfPig, and iText extract four prepared large documents: a 500-page OfficeIMO PDF, the 492-page NIST SP 800-53 Rev. 5, an 85-page Type3-font fixture, and a 258-page 12.9 MB PDF/A fixture.
 
-Every timed producer/read combination must first pass page-count and complete deterministic-content validation. Split, merge, and selection outputs are opened with PdfPig and checked for output count, page count, order, and every required narrative and table row. A failed or mutation-blocked workflow is reported as compatibility evidence and is not published as a performance result.
+Every timed producer/read combination must first pass page-count and complete deterministic-content validation. Split, merge, and selection include one producer-native post-save reopen and expected-page-count check in every measured lane. Their setup additionally opens outputs with PdfPig and checks output count, page count, order, and every required narrative and table row. A failed or mutation-blocked workflow is reported as compatibility evidence and is not published as a performance result.
 
 ## Interoperability corpus
 
@@ -47,7 +47,7 @@ BenchmarkDotNet reports mean/median timing, statistical error, rank, GC collecti
 
 The existing `OfficeIMO.Pdf.Benchmarks` budget runner remains the OfficeIMO-only source for sampled peak managed heap and retained writer-buffer evidence. A future process-isolated lane is required before comparing total peak resident memory across managed and native engines; do not relabel BenchmarkDotNet managed allocations as total memory.
 
-Setup and validation are outside measured operations. Output byte length is observed but is not treated as a correctness substitute: compression and font subsetting legitimately produce different file sizes.
+Deep deterministic-content validation remains outside measured operations. The manipulation benchmarks deliberately include the equivalent producer-native post-save reopen described above. Output byte length is observed but is not treated as a correctness substitute: compression and font subsetting legitimately produce different file sizes.
 
 ## Run
 
