@@ -6,6 +6,8 @@ public sealed partial class PdfReadPage {
         PdfDictionary resources,
         Matrix2D invocationTransform,
         PdfPageClipPath? invocationClipPath,
+        double? fillOpacity,
+        double? strokeOpacity,
         double pageWidth,
         double pageHeight,
         Type3PaintChannelCache cache,
@@ -18,6 +20,8 @@ public sealed partial class PdfReadPage {
             Resources: resources,
             InvocationTransform: invocationTransform,
             InvocationClipPath: invocationClipPath,
+            FillOpacity: fillOpacity,
+            StrokeOpacity: strokeOpacity,
             PageWidth: pageWidth,
             PageHeight: pageHeight);
         if (cache.VisibleForms.TryGetValue(cacheKey, out PdfType3PaintChannels cached)) return cached;
@@ -29,8 +33,6 @@ public sealed partial class PdfReadPage {
             Matrix2D formTransform = ApplyFormMatrix(invocationTransform, form.Dictionary);
             PdfType3PaintChannels channels = PdfType3PaintChannels.None;
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
-            var geometryBudget = new VisualGeometryBudget();
-            var patternPaintCache = new Dictionary<PdfPageTilingPatternResource, bool>();
             _ = PdfPageContentVisualParser.Parse(
                 WrapContentWithTransform(content, formTransform),
                 pageWidth,
@@ -42,14 +44,14 @@ public sealed partial class PdfReadPage {
                 null,
                 GetOptionalContentVisibility(resources),
                 initialClipPath: invocationClipPath,
+                initialFillOpacity: fillOpacity,
+                initialStrokeOpacity: strokeOpacity,
                 maxOperations: _limits.MaxContentOperations,
                 patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
                 primitiveVisitor: primitive => {
-                    if (!IsVisibleVisualPrimitive(primitive, pageWidth, pageHeight, geometryBudget, patternPaintCache)) return;
-                    if (primitive.HasFillPaint) channels |= PdfType3PaintChannels.Fill;
-                    if (primitive.HasStrokePaint) channels |= PdfType3PaintChannels.Stroke;
+                    channels |= ResolveVisibleType3PrimitivePaintChannels(primitive, pageWidth, pageHeight);
                 },
                 retainPrimitiveData: false);
 
@@ -63,6 +65,8 @@ public sealed partial class PdfReadPage {
                          colorSpaces,
                          GetOptionalContentVisibility(resources),
                          initialClipPath: invocationClipPath,
+                         initialFillOpacity: fillOpacity,
+                         initialStrokeOpacity: strokeOpacity,
                          maxOperations: _limits.MaxContentOperations,
                          maxNestingDepth: _limits.MaxContentNestingDepth,
                          maxOperands: _limits.MaxContentOperands,
@@ -82,18 +86,20 @@ public sealed partial class PdfReadPage {
                          },
                          unsupportedTextVisitor: () => channels = PdfType3PaintChannels.Both,
                          type3PaintChannelResolver: glyph => ResolveType3PaintChannels(glyph, cache, activeStreams, pageContentBudget, depth + 1),
-                         xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity) => ResolveXObjectPaintChannels(
+                         xObjectPaintChannelResolver: (name, transform, clipPath, resolvedFillOpacity, resolvedStrokeOpacity) => ResolveXObjectPaintChannels(
                              resources,
                              name,
                              transform,
                              clipPath,
-                             fillOpacity,
+                             resolvedFillOpacity,
+                             resolvedStrokeOpacity,
                              pageWidth,
                              pageHeight,
                              cache,
                              activeStreams,
                              pageContentBudget,
-                             depth + 1))) {
+                             depth + 1),
+                         pageWidth: pageWidth)) {
                 if (invocation.InlineImage != null &&
                     !IsInvisibleInlineImageInvocation(invocation, resources, pageWidth, pageHeight)) {
                     channels |= PdfType3PaintChannels.Fill;
@@ -105,6 +111,7 @@ public sealed partial class PdfReadPage {
                     invocation.Transform,
                     invocation.ClipPath,
                     invocation.FillOpacity,
+                    invocation.StrokeOpacity,
                     pageWidth,
                     pageHeight,
                     cache,
@@ -146,6 +153,8 @@ public sealed partial class PdfReadPage {
             PdfDictionary Resources,
             Matrix2D InvocationTransform,
             PdfPageClipPath? InvocationClipPath,
+            double? FillOpacity,
+            double? StrokeOpacity,
             double PageWidth,
             double PageHeight), PdfType3PaintChannels> VisibleForms { get; } =
             new Dictionary<(
@@ -153,6 +162,8 @@ public sealed partial class PdfReadPage {
                 PdfDictionary Resources,
                 Matrix2D InvocationTransform,
                 PdfPageClipPath? InvocationClipPath,
+                double? FillOpacity,
+                double? StrokeOpacity,
                 double PageWidth,
                 double PageHeight), PdfType3PaintChannels>();
     }

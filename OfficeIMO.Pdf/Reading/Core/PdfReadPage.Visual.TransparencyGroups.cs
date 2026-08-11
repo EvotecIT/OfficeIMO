@@ -130,6 +130,7 @@ public sealed partial class PdfReadPage {
                         localFillPattern,
                         invocation.StrokeColor,
                         localStrokePattern,
+                        localPageWidth,
                         localPageHeight,
                         out PdfPageVisualPrimitive paintedPrimitive)) {
                     groupDrawing = null!;

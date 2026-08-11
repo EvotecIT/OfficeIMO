@@ -183,6 +183,7 @@ public sealed partial class PdfReadPage {
                                 glyph.FillPattern,
                                 glyph.StrokeColor,
                                 glyph.StrokePattern,
+                                pageWidth,
                                 pageHeight,
                                 out PdfPageVisualPrimitive paintedPrimitive)) return false;
                         localPrimitives[primitiveIndex] = (paintedPrimitive, item.Effect);
@@ -272,13 +273,30 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static PdfType3PaintChannels ResolveVisibleType3PrimitivePaintChannels(
-        PdfPageVisualPrimitive primitive) {
+    internal static PdfType3PaintChannels ResolveVisibleType3PrimitivePaintChannels(
+        PdfPageVisualPrimitive primitive,
+        double? pageWidth = null,
+        double? pageHeight = null) {
         var budget = new VisualGeometryBudget();
         if (!HasFinitePrimitiveGeometry(primitive, budget)) return PdfType3PaintChannels.None;
         if (budget.Exceeded) return PdfType3PaintChannels.Both;
 
         IReadOnlyList<VisualPath>? visibleClips = null;
+        if (pageWidth.HasValue && pageHeight.HasValue) {
+            if (!IsFinite(pageWidth.Value) || !IsFinite(pageHeight.Value) ||
+                pageWidth.Value <= 0D || pageHeight.Value <= 0D) {
+                return PdfType3PaintChannels.None;
+            }
+            VisualPath? surface = VisualPath.Rectangle(
+                0D,
+                0D,
+                pageWidth.Value,
+                pageHeight.Value,
+                OfficeTransform.Identity,
+                budget);
+            if (surface == null) return budget.Exceeded ? PdfType3PaintChannels.Both : PdfType3PaintChannels.None;
+            visibleClips = new[] { surface };
+        }
         if (primitive.ClipPath.HasValue) {
             PdfPageClipPath authoredClip = primitive.ClipPath.Value;
             if (!HasFiniteClipGeometry(authoredClip, budget) || authoredClip.Width <= 0D || authoredClip.Height <= 0D) {
@@ -286,7 +304,7 @@ public sealed partial class PdfReadPage {
             }
             VisualPath? clipPath = VisualPath.FromClip(authoredClip, budget);
             if (clipPath == null) return budget.Exceeded ? PdfType3PaintChannels.Both : PdfType3PaintChannels.None;
-            visibleClips = new[] { clipPath };
+            visibleClips = visibleClips == null ? new[] { clipPath } : AppendClip(visibleClips, clipPath);
             if (!VisualPath.HasPositiveAreaIntersection(visibleClips, budget)) {
                 return budget.Exceeded ? PdfType3PaintChannels.Both : PdfType3PaintChannels.None;
             }
@@ -559,10 +577,14 @@ public sealed partial class PdfReadPage {
         PdfPagePatternSelection? fillPattern,
         OfficeColor strokeColor,
         PdfPagePatternSelection? strokePattern,
+        double pageWidth,
         double pageHeight,
         out PdfPageVisualPrimitive paintedPrimitive) {
         paintedPrimitive = primitive;
-        PdfType3PaintChannels visibleChannels = ResolveVisibleType3PrimitivePaintChannels(primitive);
+        PdfType3PaintChannels visibleChannels = ResolveVisibleType3PrimitivePaintChannels(
+            primitive,
+            pageWidth,
+            pageHeight);
         PdfPagePatternSelection? applicableFillPattern =
             (visibleChannels & PdfType3PaintChannels.Fill) != 0 ? fillPattern : null;
         PdfPagePatternSelection? applicableStrokePattern =
@@ -759,6 +781,7 @@ public sealed partial class PdfReadPage {
         Matrix2D invocationTransform,
         PdfPageClipPath? invocationClipPath,
         double? fillOpacity,
+        double? strokeOpacity,
         double pageWidth,
         double pageHeight,
         Type3PaintChannelCache cache,
@@ -802,6 +825,8 @@ public sealed partial class PdfReadPage {
             formResources,
             invocationTransform,
             invocationClipPath,
+            fillOpacity,
+            strokeOpacity,
             pageWidth,
             pageHeight,
             cache,
@@ -862,8 +887,6 @@ public sealed partial class PdfReadPage {
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
-            var geometryBudget = new VisualGeometryBudget();
-            var patternPaintCache = new Dictionary<PdfPageTilingPatternResource, bool>();
             _ = PdfPageContentVisualParser.Parse(
                 WrapContentWithTransform(content, programTransform),
                 pageWidth,
@@ -882,9 +905,7 @@ public sealed partial class PdfReadPage {
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
                 primitiveVisitor: primitive => {
-                    if (!IsVisibleVisualPrimitive(primitive, pageWidth, pageHeight, geometryBudget, patternPaintCache)) return;
-                    if (primitive.HasFillPaint) channels |= PdfType3PaintChannels.Fill;
-                    if (primitive.HasStrokePaint) channels |= PdfType3PaintChannels.Stroke;
+                    channels |= ResolveVisibleType3PrimitivePaintChannels(primitive, pageWidth, pageHeight);
                 },
                 retainPrimitiveData: false);
 
@@ -916,18 +937,20 @@ public sealed partial class PdfReadPage {
                              return true;
                          },
                          unsupportedTextVisitor: () => channels = PdfType3PaintChannels.Both,
-                         xObjectPaintChannelResolver: (name, transform, clipPath, fillOpacity) => ResolveXObjectPaintChannels(
+                         xObjectPaintChannelResolver: (name, transform, clipPath, resolvedFillOpacity, resolvedStrokeOpacity) => ResolveXObjectPaintChannels(
                              resources,
                              name,
                              transform,
                              clipPath,
-                             fillOpacity,
+                             resolvedFillOpacity,
+                             resolvedStrokeOpacity,
                              pageWidth,
                              pageHeight,
                              cache,
                              activeStreams,
                              pageContentBudget,
-                             depth + 1))) {
+                             depth + 1),
+                         pageWidth: pageWidth)) {
                 if (invocation.InlineImage != null) {
                     if (!IsInvisibleInlineImageInvocation(
                             invocation,
@@ -944,6 +967,7 @@ public sealed partial class PdfReadPage {
                     invocation.Transform,
                     invocation.ClipPath,
                     invocation.FillOpacity,
+                    invocation.StrokeOpacity,
                     pageWidth,
                     pageHeight,
                     cache,

@@ -68,18 +68,20 @@ internal static class PdfPageXObjectInvocationParser {
         IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns = null,
         IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns = null,
         Func<PdfPageType3GlyphInvocation, PdfType3PaintChannels>? type3PaintChannelResolver = null,
-        Func<string, Matrix2D, PdfPageClipPath?, double?, PdfType3PaintChannels>? xObjectPaintChannelResolver = null) {
+        Func<string, Matrix2D, PdfPageClipPath?, double?, double?, PdfType3PaintChannels>? xObjectPaintChannelResolver = null,
+        double? pageWidth = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver);
+        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver);
         return parser.Parse();
     }
 
     private sealed class Parser {
         private readonly string _content;
         private readonly double _pageHeight;
+        private readonly double? _pageWidth;
         private readonly Matrix2D _baseTransform;
         private readonly IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? _graphicsStates;
         private readonly IReadOnlyDictionary<string, PdfPageColorSpace>? _colorSpaces;
@@ -132,7 +134,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Action<string>? _patternInvocationVisitor;
         private readonly Action<string>? _authoredPatternInvocationVisitor;
         private readonly Func<PdfPageType3GlyphInvocation, PdfType3PaintChannels>? _type3PaintChannelResolver;
-        private readonly Func<string, Matrix2D, PdfPageClipPath?, double?, PdfType3PaintChannels>? _xObjectPaintChannelResolver;
+        private readonly Func<string, Matrix2D, PdfPageClipPath?, double?, double?, PdfType3PaintChannels>? _xObjectPaintChannelResolver;
         private readonly Action<PdfPageGraphicsStateResource>? _graphicsStateVisitor;
         private readonly bool _allowSupportedGraphicsEffects;
         private string _textFont = string.Empty;
@@ -143,6 +145,7 @@ internal static class PdfPageXObjectInvocationParser {
             string content,
             Matrix2D baseTransform,
             double pageHeight,
+            double? pageWidth,
             IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates,
             IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces,
             PdfPageOptionalContentVisibility? optionalContentVisibility,
@@ -185,7 +188,7 @@ internal static class PdfPageXObjectInvocationParser {
             IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns,
             IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns,
             Func<PdfPageType3GlyphInvocation, PdfType3PaintChannels>? type3PaintChannelResolver,
-            Func<string, Matrix2D, PdfPageClipPath?, double?, PdfType3PaintChannels>? xObjectPaintChannelResolver) {
+            Func<string, Matrix2D, PdfPageClipPath?, double?, double?, PdfType3PaintChannels>? xObjectPaintChannelResolver) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -203,6 +206,7 @@ internal static class PdfPageXObjectInvocationParser {
             _state = _initialState;
             _patternState = _initialPatternState;
             _pageHeight = pageHeight;
+            _pageWidth = pageWidth;
             _paintOrderBase = paintOrderBase;
             _paintOrderScale = paintOrderScale;
             _paintOrderOffset = paintOrderOffset;
@@ -618,7 +622,13 @@ internal static class PdfPageXObjectInvocationParser {
                 case "b":
                 case "b*":
                     if (!HasHiddenContent() && _pathCommands.Count > 0) {
-                        PublishDeferredPatternUse(OperatorFillsPath(op), OperatorStrokesPath(op));
+                        PdfType3PaintChannels channels = ResolveVisiblePathPaintChannels(
+                            OperatorFillsPath(op),
+                            OperatorStrokesPath(op),
+                            op == "f*" || op == "B*" || op == "b*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero);
+                        PublishDeferredPatternUse(
+                            (channels & PdfType3PaintChannels.Fill) != 0,
+                            (channels & PdfType3PaintChannels.Stroke) != 0);
                     }
                     if (!HasHiddenContent() &&
                         OperatorStrokesPath(op) &&
@@ -885,21 +895,26 @@ internal static class PdfPageXObjectInvocationParser {
                         _args.Count >= 1 &&
                         _args[_args.Count - 1] is string name &&
                         !string.IsNullOrEmpty(name)) {
-                        PdfType3PaintChannels channels = _xObjectPaintChannelResolver?.Invoke(
-                            name,
-                            _state.Transform,
-                            _state.ClipPath,
-                            _state.FillOpacity) ?? PdfType3PaintChannels.Both;
-                        PublishDeferredPatternUse(
-                            (channels & PdfType3PaintChannels.Fill) != 0,
-                            (channels & PdfType3PaintChannels.Stroke) != 0);
+                        if (_patternState.FillDeferredVisibleUse || _patternState.StrokeDeferredVisibleUse) {
+                            PdfType3PaintChannels channels = _xObjectPaintChannelResolver?.Invoke(
+                                name,
+                                _state.Transform,
+                                _state.ClipPath,
+                                _state.FillOpacity,
+                                _state.StrokeOpacity) ?? PdfType3PaintChannels.Both;
+                            PublishDeferredPatternUse(
+                                (channels & PdfType3PaintChannels.Fill) != 0,
+                                (channels & PdfType3PaintChannels.Stroke) != 0);
+                        }
                         _invocations.Add(new PdfPageXObjectInvocation(name, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _patternState.Fill, _patternState.FillBaseColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _patternState.Stroke, _patternState.StrokeBaseColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder, _currentOperatorIndex));
                     }
 
                     break;
                 case "BI":
                     if (_currentInlineImage is not null && !HasHiddenContent()) {
-                        PublishDeferredPatternUse(fill: true, stroke: false);
+                        PublishDeferredPatternUse(
+                            fill: ResolveVisibleInlineImagePaintChannels() != PdfType3PaintChannels.None,
+                            stroke: false);
                         var stream = new PdfStream(_currentInlineImage.Dictionary, _currentInlineImage.Data);
                         var inlineImage = new PdfPageInlineImage(
                             "__inline" + (++_inlineImageIndex).ToString(CultureInfo.InvariantCulture),
@@ -1300,6 +1315,119 @@ internal static class PdfPageXObjectInvocationParser {
 
         private static bool OperatorFillsPath(string op) =>
             op == "f" || op == "F" || op == "f*" || op == "B" || op == "B*" || op == "b" || op == "b*";
+
+        private PdfType3PaintChannels ResolveVisiblePathPaintChannels(
+            bool fill,
+            bool stroke,
+            OfficeFillRule fillRule) {
+            if (!fill && !stroke) return PdfType3PaintChannels.None;
+            double visibilityStrokeWidth = double.IsPositiveInfinity(_state.StrokeWidth) ? 1D : _state.StrokeWidth;
+            if (!PdfPageVisualPrimitive.TryCreatePath(
+                    _pathCommands,
+                    fill ? OfficeColor.Black : (OfficeColor?)null,
+                    null,
+                    null,
+                    stroke ? OfficeColor.Black : (OfficeColor?)null,
+                    null,
+                    null,
+                    visibilityStrokeWidth,
+                    _state.StrokeDashStyle ?? OfficeStrokeDashStyle.Solid,
+                    _state.StrokeLineCap,
+                    _state.StrokeLineJoin,
+                    _state.FillOpacity,
+                    _state.StrokeOpacity,
+                    fillRule,
+                    _state.ClipPath,
+                    0D,
+                    null,
+                    null,
+                    retainPathCommands: true,
+                    out PdfPageVisualPrimitive primitive)) {
+                if (!stroke || !TryCreateDegenerateStrokePrimitive(visibilityStrokeWidth, out primitive)) {
+                    return PdfType3PaintChannels.None;
+                }
+            }
+
+            return PdfReadPage.ResolveVisibleType3PrimitivePaintChannels(
+                primitive,
+                _pageWidth,
+                _pageHeight);
+        }
+
+        private bool TryCreateDegenerateStrokePrimitive(
+            double strokeWidth,
+            out PdfPageVisualPrimitive primitive) {
+            primitive = default;
+            OfficePoint? first = null;
+            OfficePoint? last = null;
+            for (int i = 0; i < _pathCommands.Count; i++) {
+                OfficePathCommand command = _pathCommands[i];
+                if (command.Kind == OfficePathCommandKind.Close) continue;
+                if (!first.HasValue) first = command.Point;
+                if (command.Kind != OfficePathCommandKind.MoveTo) last = command.Point;
+            }
+            if (!first.HasValue || !last.HasValue ||
+                (NearlyEqual(first.Value.X, last.Value.X) && NearlyEqual(first.Value.Y, last.Value.Y))) {
+                return false;
+            }
+            primitive = PdfPageVisualPrimitive.Line(
+                first.Value.X,
+                first.Value.Y,
+                last.Value.X,
+                last.Value.Y,
+                OfficeColor.Black,
+                null,
+                null,
+                strokeWidth,
+                _state.StrokeDashStyle ?? OfficeStrokeDashStyle.Solid,
+                _state.StrokeLineCap,
+                _state.StrokeLineJoin,
+                _state.StrokeOpacity,
+                _state.ClipPath);
+            return true;
+        }
+
+        private PdfType3PaintChannels ResolveVisibleInlineImagePaintChannels() {
+            (double X, double Y) p0 = _state.Transform.Transform(0D, 0D);
+            (double X, double Y) p1 = _state.Transform.Transform(1D, 0D);
+            (double X, double Y) p2 = _state.Transform.Transform(1D, 1D);
+            (double X, double Y) p3 = _state.Transform.Transform(0D, 1D);
+            var commands = new[] {
+                OfficePathCommand.MoveTo(p0.X, ToTop(p0.Y)),
+                OfficePathCommand.LineTo(p1.X, ToTop(p1.Y)),
+                OfficePathCommand.LineTo(p2.X, ToTop(p2.Y)),
+                OfficePathCommand.LineTo(p3.X, ToTop(p3.Y)),
+                OfficePathCommand.Close()
+            };
+            if (!PdfPageVisualPrimitive.TryCreatePath(
+                    commands,
+                    OfficeColor.Black,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    0D,
+                    OfficeStrokeDashStyle.Solid,
+                    null,
+                    null,
+                    _state.FillOpacity,
+                    null,
+                    OfficeFillRule.NonZero,
+                    _state.ClipPath,
+                    0D,
+                    null,
+                    null,
+                    retainPathCommands: true,
+                    out PdfPageVisualPrimitive primitive)) {
+                return PdfType3PaintChannels.None;
+            }
+
+            return PdfReadPage.ResolveVisibleType3PrimitivePaintChannels(
+                primitive,
+                _pageWidth,
+                _pageHeight);
+        }
 
         private void PublishDeferredPatternUse(bool fill, bool stroke) {
             if (fill && _patternState.FillDeferredVisibleUse && _patternState.Fill.HasValue) {

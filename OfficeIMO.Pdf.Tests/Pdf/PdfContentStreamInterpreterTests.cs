@@ -94,6 +94,26 @@ public sealed class PdfContentStreamInterpreterTests {
     }
 
     [Fact]
+    public void XObjectParser_SkipsPaintChannelAnalysisWithoutDeferredPatterns() {
+        int resolverCalls = 0;
+
+        IReadOnlyList<PdfPageXObjectInvocation> invocations = PdfPageXObjectInvocationParser.Parse(
+            "/F1 Do /F2 Do",
+            Matrix2D.Identity,
+            200D,
+            graphicsStates: null,
+            colorSpaces: null,
+            xObjectPaintChannelResolver: (_, _, _, _, _) => {
+                resolverCalls++;
+                return PdfType3PaintChannels.Both;
+            },
+            pageWidth: 200D);
+
+        Assert.Equal(2, invocations.Count);
+        Assert.Equal(0, resolverCalls);
+    }
+
+    [Fact]
     public void InterpreterUntil_VisitsOperandlessRecoveryOperatorAfterInvalidOperand() {
         var operations = new List<PdfContentOperation>();
 
