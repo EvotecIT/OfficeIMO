@@ -402,7 +402,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
                     continue;
                 }
                 builder.Note(ids.Participant(annotation.TargetIds[0]), annotation.Text, start, MapNoteSide(annotation.Sequence!.NotePlacement!.Value, annotation.Id, report), ids.Annotation(annotation.Id));
-                if (annotation.TargetIds.Count > 1 || annotation.Sequence.NotePlacement == SequenceArtifactNotePlacement.Over) {
+                if (annotation.TargetIds.Count > 1) {
                     report.Warn(OfficeVisioVisualDiagnosticCode.NoteNormalized, OfficeVisioVisualEntityKind.Annotation, annotation.Id, "notePlacement",
                         $"Sequence note '{annotation.Id}' was attached to its first participant because native side notes do not span multiple participants.");
                 }
