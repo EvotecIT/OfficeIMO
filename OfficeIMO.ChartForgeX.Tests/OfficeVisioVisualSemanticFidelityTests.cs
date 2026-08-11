@@ -40,6 +40,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             Label = "Approve",
             Flow = new VisualArtifactInterchangeFlowNode { Kind = FlowArtifactStepKind.Process }
         };
+        flowNode.IconId = "approval";
         flowNode.Details.Add(new VisualArtifactInterchangeDetail { Label = "Owner", Value = "Finance" });
         flow.Nodes.Add(flowNode);
 
@@ -50,7 +51,76 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Node &&
             diagnostic.EntityId == "approve" &&
             diagnostic.Feature == "details");
+        Assert.Contains(flowResult.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == OfficeVisioVisualDiagnosticCode.ArtworkNotProjected &&
+            diagnostic.EntityKind == OfficeVisioVisualEntityKind.Node &&
+            diagnostic.EntityId == "approve" &&
+            diagnostic.Feature == "nodeAdornment");
         Assert.Equal("Finance", flowResult.Page.Shapes.Single(shape => shape.Id == "approve").GetShapeDataValue("Detail.1.Owner"));
+    }
+
+    [Fact]
+    public void GraphNodeKindNormalizationsReportTypedSemanticLoss() {
+        VisualArtifactInterchangeEnvelope topology = TopologyEnvelope("topology-kind");
+        topology.Nodes.Add(TopologyNode("service", "Service", TopologyNodeKind.Service));
+
+        OfficeVisioVisualConversionResult topologyResult = topology.ToOfficeVisio();
+
+        Assert.Contains(topologyResult.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == OfficeVisioVisualDiagnosticCode.NodeKindNormalized &&
+            diagnostic.EntityKind == OfficeVisioVisualEntityKind.Node &&
+            diagnostic.EntityId == "service" &&
+            diagnostic.Feature == "nodeKind");
+
+        var flow = new VisualArtifactInterchangeEnvelope {
+            Id = "flow-kind",
+            Kind = VisualArtifactKind.Flow,
+            Family = VisualArtifactInterchangeFamily.Flow,
+            Flow = new VisualArtifactInterchangeFlowArtifact()
+        };
+        flow.Nodes.Add(new VisualArtifactInterchangeNode {
+            Id = "input",
+            Role = VisualArtifactInterchangeNodeRole.FlowStep,
+            Kind = FlowArtifactStepKind.Input.ToString(),
+            Label = "Input",
+            Flow = new VisualArtifactInterchangeFlowNode { Kind = FlowArtifactStepKind.Input }
+        });
+
+        OfficeVisioVisualConversionResult flowResult = flow.ToOfficeVisio();
+
+        Assert.Contains(flowResult.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == OfficeVisioVisualDiagnosticCode.NodeKindNormalized &&
+            diagnostic.EntityKind == OfficeVisioVisualEntityKind.Node &&
+            diagnostic.EntityId == "input" &&
+            diagnostic.Feature == "nodeKind");
+    }
+
+    [Fact]
+    public void DisabledTitlesReportTypedSemanticLossAcrossGraphAndSequenceFamilies() {
+        VisualArtifactInterchangeEnvelope topology = TopologyEnvelope("untitled-graph");
+        topology.Title = "Visible graph title";
+        topology.Nodes.Add(TopologyNode("service", "Service"));
+
+        OfficeVisioVisualConversionResult topologyResult = topology.ToOfficeVisio(new OfficeVisioVisualOptions { IncludeTitle = false });
+
+        Assert.Contains(topologyResult.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected &&
+            diagnostic.EntityKind == OfficeVisioVisualEntityKind.Artifact &&
+            diagnostic.EntityId == "untitled-graph" &&
+            diagnostic.Feature == "title");
+
+        VisualArtifactInterchangeEnvelope sequence = SequenceEnvelope("untitled-sequence", "Visible sequence title");
+        sequence.Nodes.Add(Participant("client", "Client", SequenceArtifactParticipantKind.Actor, 0));
+        sequence.Nodes.Add(Participant("service", "Service", SequenceArtifactParticipantKind.Control, 1));
+        sequence.Edges.Add(Message("request", "client", "service", "Request", 0));
+
+        OfficeVisioVisualConversionResult sequenceResult = sequence.ToOfficeVisio(new OfficeVisioVisualOptions { IncludeTitle = false });
+
+        Assert.Contains(sequenceResult.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected &&
+            diagnostic.EntityKind == OfficeVisioVisualEntityKind.Artifact &&
+            diagnostic.EntityId == "untitled-sequence" &&
+            diagnostic.Feature == "title");
     }
 
     [Fact]

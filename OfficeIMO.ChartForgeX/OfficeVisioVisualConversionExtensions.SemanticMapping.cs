@@ -61,22 +61,61 @@ public static partial class OfficeVisioVisualConversionExtensions {
         return vertical ? VisioGraphDirection.TopToBottom : VisioGraphDirection.LeftToRight;
     }
 
-    private static VisioGraphNodeKind MapNodeKind(VisualArtifactInterchangeNode node, bool flow) {
+    private static VisioGraphNodeKind MapNodeKind(
+        VisualArtifactInterchangeNode node,
+        bool flow,
+        OfficeVisioVisualConversionReport report) {
         if (flow) {
-            return node.Flow!.Kind switch {
-                FlowArtifactStepKind.Decision => VisioGraphNodeKind.Decision,
-                FlowArtifactStepKind.Input or FlowArtifactStepKind.Output or FlowArtifactStepKind.Data or FlowArtifactStepKind.Document => VisioGraphNodeKind.Data,
-                FlowArtifactStepKind.External or FlowArtifactStepKind.Manual => VisioGraphNodeKind.External,
-                FlowArtifactStepKind.Start or FlowArtifactStepKind.End or FlowArtifactStepKind.Event => VisioGraphNodeKind.Emphasis,
-                _ => VisioGraphNodeKind.Process
-            };
+            FlowArtifactStepKind kind = node.Flow!.Kind;
+            switch (kind) {
+                case FlowArtifactStepKind.Process: return VisioGraphNodeKind.Process;
+                case FlowArtifactStepKind.Decision: return VisioGraphNodeKind.Decision;
+                case FlowArtifactStepKind.Data: return VisioGraphNodeKind.Data;
+                case FlowArtifactStepKind.External: return VisioGraphNodeKind.External;
+                case FlowArtifactStepKind.Input:
+                case FlowArtifactStepKind.Output:
+                case FlowArtifactStepKind.Document:
+                    return ReportNodeKindNormalization(node.Id, kind.ToString(), VisioGraphNodeKind.Data, report);
+                case FlowArtifactStepKind.Manual:
+                    return ReportNodeKindNormalization(node.Id, kind.ToString(), VisioGraphNodeKind.External, report);
+                case FlowArtifactStepKind.Start:
+                case FlowArtifactStepKind.End:
+                case FlowArtifactStepKind.Event:
+                    return ReportNodeKindNormalization(node.Id, kind.ToString(), VisioGraphNodeKind.Emphasis, report);
+                default:
+                    return ReportNodeKindNormalization(node.Id, kind.ToString(), VisioGraphNodeKind.Process, report);
+            }
         }
-        return node.Topology!.Kind switch {
-            TopologyNodeKind.Database or TopologyNodeKind.Storage or TopologyNodeKind.Queue => VisioGraphNodeKind.Data,
-            TopologyNodeKind.Person or TopologyNodeKind.Team => VisioGraphNodeKind.External,
-            TopologyNodeKind.Hub or TopologyNodeKind.Gateway => VisioGraphNodeKind.Emphasis,
-            _ => VisioGraphNodeKind.Process
-        };
+        TopologyNodeKind topologyKind = node.Topology!.Kind;
+        switch (topologyKind) {
+            case TopologyNodeKind.Generic:
+            case TopologyNodeKind.Process:
+                return VisioGraphNodeKind.Process;
+            case TopologyNodeKind.Database:
+                return VisioGraphNodeKind.Data;
+            case TopologyNodeKind.Storage:
+            case TopologyNodeKind.Queue:
+                return ReportNodeKindNormalization(node.Id, topologyKind.ToString(), VisioGraphNodeKind.Data, report);
+            case TopologyNodeKind.Person:
+                return VisioGraphNodeKind.External;
+            case TopologyNodeKind.Team:
+                return ReportNodeKindNormalization(node.Id, topologyKind.ToString(), VisioGraphNodeKind.External, report);
+            case TopologyNodeKind.Hub:
+            case TopologyNodeKind.Gateway:
+                return VisioGraphNodeKind.Emphasis;
+            default:
+                return ReportNodeKindNormalization(node.Id, topologyKind.ToString(), VisioGraphNodeKind.Process, report);
+        }
+    }
+
+    private static VisioGraphNodeKind ReportNodeKindNormalization(
+        string nodeId,
+        string sourceKind,
+        VisioGraphNodeKind nativeKind,
+        OfficeVisioVisualConversionReport report) {
+        report.Warn(OfficeVisioVisualDiagnosticCode.NodeKindNormalized, OfficeVisioVisualEntityKind.Node, nodeId, "nodeKind",
+            $"Node '{nodeId}' kind '{sourceKind}' was normalized to Visio's native '{nativeKind}' graph shape; the exact kind remains in the CFX envelope and, when enabled, Shape Data.");
+        return nativeKind;
     }
 
     private static VisioGraphConnectorKind MapEdgeKind(VisualArtifactInterchangeEdge edge, bool flow) {

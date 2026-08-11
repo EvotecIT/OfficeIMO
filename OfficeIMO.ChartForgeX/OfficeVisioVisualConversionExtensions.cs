@@ -47,6 +47,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
             AllProjectedObjectsEditable = true
         };
         ReportDisabledShapeDataFidelity(validated, options, report);
+        ReportTitleFidelity(validated, options, report);
 
         switch (validated.Family) {
             case VisualArtifactInterchangeFamily.Topology:
@@ -144,7 +145,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
         OfficeVisioVisualConversionReport report,
         bool flow) {
         var record = new VisioGraphNodeRecord(node.Id, CombineLabel(node.Label, node.Subtitle)) {
-            Kind = MapNodeKind(node, flow),
+            Kind = MapNodeKind(node, flow, report),
             HyperlinkAddress = options.IncludeHyperlinks ? node.Href : null,
             HyperlinkDescription = options.IncludeHyperlinks ? node.Tooltip : null,
             LineColor = MapNativeColor(node.Color, "Node", node.Id, report),

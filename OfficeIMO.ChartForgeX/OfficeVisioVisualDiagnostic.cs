@@ -73,7 +73,11 @@ public enum OfficeVisioVisualDiagnosticCode {
     /// <summary>A semantic has no more specific diagnostic category.</summary>
     SemanticLoss,
     /// <summary>Typed detail rows were retained but not rendered.</summary>
-    DetailsNotRendered
+    DetailsNotRendered,
+    /// <summary>A semantic node kind was normalized to a coarser native shape kind.</summary>
+    NodeKindNormalized,
+    /// <summary>A visible artifact title was retained only as document metadata.</summary>
+    TitleNotProjected
 }
 
 /// <summary>Identifies the source entity associated with a projection diagnostic.</summary>
