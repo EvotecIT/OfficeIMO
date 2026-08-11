@@ -557,4 +557,42 @@ public partial class PdfPageImageRendererTests {
 
         AssertType3FallsBackWithoutNativeShapes(pdf);
     }
+
+    [Fact]
+    public void RenderPage_ProjectsRecursivelyNestedPatternsInsideType3SoftMaskText() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 1 0 0 rg 0 0 500 700 re f");
+        string outerState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
+        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency >> /Resources << /Font << /Nested 9 0 R >> >>", "BT /Nested 500 Tf (B) Tj ET");
+        string nestedFont = "9 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 10 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << /Pattern << /P1 11 0 R >> >> >>\nendobj";
+        string nestedGlyph = BuildStreamObject(10, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");
+        string outerPattern = BuildStreamObject(11, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /Pattern << /P2 12 0 R >> >>", "/Pattern cs /P2 scn 0 0 10 10 re f");
+        string innerPattern = BuildStreamObject(12, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>", "1 g 0 0 5 5 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, outerState, outerMask, nestedFont, nestedGlyph, outerPattern, innerPattern);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeDrawingSoftMask softMask = Assert.Single(
+            drawing.Elements.OfType<OfficeDrawingEffectGroup>(),
+            group => group.SoftMask != null).SoftMask!;
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        int patternCount = CountTilingPatterns(softMask.Drawing);
+        Assert.True(patternCount >= 2, "Expected two nested pattern drawings, found " + patternCount + ".");
+    }
+
+    private static int CountTilingPatterns(OfficeDrawing drawing) {
+        int count = 0;
+        foreach (OfficeDrawingElement element in drawing.Elements) {
+            if (element is OfficeDrawingTilingPattern pattern) {
+                count += 1 + CountTilingPatterns(pattern.Tile);
+            } else if (element is OfficeDrawingEffectGroup group) {
+                count += CountTilingPatterns(group.Drawing);
+                if (group.SoftMask != null) count += CountTilingPatterns(group.SoftMask.Drawing);
+            } else if (element is OfficeDrawingGroup clippedGroup) {
+                count += CountTilingPatterns(clippedGroup.Drawing);
+            }
+        }
+        return count;
+    }
 }
