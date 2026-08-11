@@ -100,6 +100,17 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_AncestorTransformedControlUsesSearchableStaticAppearance() {
+        const string html = "<div style='transform:rotate(12deg)'><input name='child' value='Descendant value'></div>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        string searchableText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        Assert.Contains("Descendantvalue", searchableText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_RepeatedNamesRemainDistinctExceptWithinOneRadioGroup() {
         const string html = """
             <form><input type="checkbox" name="tag" value="One"><input type="checkbox" name="tag" value="Two"></form>

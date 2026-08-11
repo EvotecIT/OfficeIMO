@@ -55,6 +55,22 @@ public sealed class DrawingConicGradientTests {
         Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(39, 19));
     }
 
+    [Fact]
+    public void OfficeConicGradient_MinimumSegmentCountCoversCornersBetweenRays() {
+        var gradient = new OfficeConicGradient(
+            0.5D,
+            0.5D,
+            0D,
+            new[] { new OfficeGradientStop(0D, OfficeColor.Red), new OfficeGradientStop(1D, OfficeColor.Blue) });
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(gradient.CreateDrawing(40D, 40D, qualitySegments: 12));
+
+        Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(0, 0));
+        Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(39, 0));
+        Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(0, 39));
+        Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(39, 39));
+    }
+
     private static int Count(string value, string token) {
         int count = 0;
         int index = 0;

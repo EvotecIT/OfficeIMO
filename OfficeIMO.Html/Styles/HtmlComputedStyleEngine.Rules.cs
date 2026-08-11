@@ -35,7 +35,8 @@ public static partial class HtmlComputedStyleEngine {
 
             IReadOnlyDictionary<int, int> rawRuleClosures = HtmlCssRuleBlockScanner.Scan(css, budget);
             string parseCss = ExpandNestedConditionalRules(css);
-            var stylesheet = parser.ParseStyleSheet(PreserveRevertLayerDeclarations(parseCss));
+            parseCss = PreserveManagedGradientFunctions(PreserveRevertLayerDeclarations(parseCss));
+            var stylesheet = parser.ParseStyleSheet(parseCss);
             foreach (var rule in stylesheet.Rules) {
                 AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, layers, 1, null, null, null);
             }
@@ -160,7 +161,7 @@ public static partial class HtmlComputedStyleEngine {
             if (!string.IsNullOrWhiteSpace(propertyName)
                 && (SupportedProperties.Contains(propertyName) || propertyName.StartsWith("--", StringComparison.Ordinal))) {
                 declarations[propertyName] = new StyleDeclaration(
-                    RestoreRevertLayerKeyword(styleRule.Style.GetPropertyValue(propertyName)),
+                    RestoreProtectedDeclarationValue(styleRule.Style.GetPropertyValue(propertyName)),
                     string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
             }
         }
@@ -173,7 +174,7 @@ public static partial class HtmlComputedStyleEngine {
             string propertyValue = styleRule.Style.GetPropertyValue(propertyName);
             if (string.IsNullOrWhiteSpace(propertyValue)) continue;
             declarations[propertyName] = new StyleDeclaration(
-                RestoreRevertLayerKeyword(propertyValue),
+                RestoreProtectedDeclarationValue(propertyValue),
                 string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
         }
         AddRetainedUnknownDeclarations(styleRule.CssText, declarations);
@@ -273,6 +274,9 @@ public static partial class HtmlComputedStyleEngine {
         string.Equals(value.Trim(), RevertLayerSentinel, StringComparison.OrdinalIgnoreCase)
             ? "revert-layer"
             : value;
+
+    private static string RestoreProtectedDeclarationValue(string value) =>
+        RestoreManagedGradientFunctions(RestoreRevertLayerKeyword(value));
 
     private static string PreserveRevertLayerDeclarations(string css) {
         const string keyword = "revert-layer";

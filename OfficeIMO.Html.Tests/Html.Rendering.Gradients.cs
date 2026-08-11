@@ -494,6 +494,38 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlConicGradient_StylesheetShorthandFlowsThroughLayeredCascadeAndExports() {
+        const string html = """
+            <style>
+              @layer base, theme;
+              @layer base { .card { background:red; } }
+              @layer theme { .card { background:conic-gradient(from 0deg at 25% 50%,red 0 25%,blue 25% 75%,lime 75% 100%); } }
+            </style>
+            <div class="card" style="width:80px;height:60px">StylesheetConic</div>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 120D,
+            Margins = HtmlRenderMargins.All(8D),
+            BackgroundColor = OfficeColor.Transparent,
+            ConicGradientQualitySegments = 12
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+
+        Assert.NotEmpty(visual.Drawing.Elements);
+        Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(8, 8));
+        Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(87, 67));
+        Assert.True(CountBackgroundOccurrences(svg, "<path") >= 12);
+        Assert.Contains("StylesheetConic", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlConicGradient_AcceptsCssColor4Stops() {
         const string gradient = "conic-gradient(from 210deg at 80% 20%,oklch(72% .18 155),oklch(62% .2 245),oklch(68% .2 320),oklch(72% .18 155))";
         string html = "<style>.hero{width:80px;height:60px;background:" + gradient + "}</style><div class='hero'></div>";

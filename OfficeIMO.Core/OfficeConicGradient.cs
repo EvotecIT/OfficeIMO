@@ -53,11 +53,12 @@ public sealed class OfficeConicGradient {
         var ordered = new List<double>(boundaries);
         double centerX = CenterX * width;
         double centerY = CenterY * height;
-        double radius = Math.Max(
-            Math.Max(Distance(centerX, centerY, 0D, 0D), Distance(centerX, centerY, width, 0D)),
-            Math.Max(Distance(centerX, centerY, 0D, height), Distance(centerX, centerY, width, height))) * 1.000001D;
-        var content = new OfficeDrawing(width, height);
         const double overlap = 0.000001D;
+        double cornerRadius = Math.Max(
+            Math.Max(Distance(centerX, centerY, 0D, 0D), Distance(centerX, centerY, width, 0D)),
+            Math.Max(Distance(centerX, centerY, 0D, height), Distance(centerX, centerY, width, height)));
+        double radius = cornerRadius / Math.Cos((Math.PI / qualitySegments) + overlap) * 1.000001D;
+        var content = new OfficeDrawing(width, height);
         for (int index = 1; index < ordered.Count; index++) {
             double start = ordered[index - 1];
             double end = ordered[index];

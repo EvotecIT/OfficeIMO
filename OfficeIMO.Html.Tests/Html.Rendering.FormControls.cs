@@ -117,6 +117,22 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_AncestorTransformsConvertDescendantControlsToStaticPaint() {
+        const string html = "<div id='rotated-parent' style='transform:rotate(12deg)'><input id='child' name='child' value='Descendant'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+        HtmlRenderVisual[] scene = EnumerateRenderVisuals(rendered.Pages[0].Visuals).ToArray();
+
+        Assert.DoesNotContain(scene, visual => visual is HtmlRenderFormField);
+        HtmlRenderEffectGroup effect = Assert.Single(scene.OfType<HtmlRenderEffectGroup>(), group => group.Source == "div#rotated-parent");
+        Assert.True(Math.Abs(effect.Transform.M12) > 0.0001D || Math.Abs(effect.Transform.M21) > 0.0001D);
+        Assert.Contains(scene.OfType<HtmlRenderText>(), text => text.Text == "Descendant");
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback
+            && diagnostic.Source == "input#child");
+    }
+
+    [Fact]
     public void HtmlRendering_SingleSelectDefaultsToFirstEnabledOption() {
         const string html = "<select><option disabled>Disabled</option><optgroup disabled><option>Group disabled</option></optgroup><option label='Enabled label'>Fallback text</option></select>";
 

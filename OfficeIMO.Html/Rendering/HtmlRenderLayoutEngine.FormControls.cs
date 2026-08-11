@@ -504,12 +504,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         out HtmlRenderFormField? formField) {
         formField = null;
         if (!string.Equals(style.Transform, "none", StringComparison.OrdinalIgnoreCase)) {
-            AddUnsupported(
-                HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback,
-                "A transformed HTML form control was rendered as transformed static content because PDF widget annotations cannot preserve the authored appearance.",
-                element,
-                "transform=" + style.Transform,
-                OfficeConversionLossKind.Approximation);
+            ReportTransformedFormFieldFallback(source, "transform=" + style.Transform);
             return false;
         }
         string tag = element.LocalName.ToLowerInvariant();
@@ -593,6 +588,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             paintOrder: 0,
             source);
         return true;
+    }
+
+    private void ReportTransformedFormFieldFallback(string source, string detail) {
+        if (!_reportedTransformedFormFieldFallbacks.Add(source)) return;
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback,
+            "A transformed HTML form control was rendered as transformed static content because PDF widget annotations cannot preserve the authored appearance.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            detail,
+            OfficeConversionLossKind.Approximation);
     }
 
     private static bool IsInteractiveTextInputType(string type) {

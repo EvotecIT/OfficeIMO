@@ -54,6 +54,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool hasOpacity = style.OpacityWasSpecified && style.UnsupportedOpacity.Length == 0 && style.Opacity < 1D;
         createsStackingContext = hasTransform || hasOpacity;
         if (!createsStackingContext || block.Visuals.Count == 0) return block;
+        IReadOnlyList<HtmlRenderVisual> effectVisuals = hasTransform
+            ? ReplaceDescendantFormFieldsForTransform(block.Visuals, source)
+            : block.Visuals;
         var group = new HtmlRenderEffectGroup(
             0D,
             0D,
@@ -61,10 +64,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Math.Max(0.01D, block.Height),
             transform,
             hasOpacity ? style.Opacity : 1D,
-            block.Visuals,
+            effectVisuals,
             0,
             source);
         return block.WithVisuals(new[] { group });
+    }
+
+    private IReadOnlyList<HtmlRenderVisual> ReplaceDescendantFormFieldsForTransform(
+        IReadOnlyList<HtmlRenderVisual> visuals,
+        string transformSource) {
+        var replaced = new List<HtmlRenderVisual>(visuals.Count);
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderFormField field) {
+                ReportTransformedFormFieldFallback(field.Source ?? "form-control", "ancestor-transform=" + transformSource);
+                replaced.AddRange(field.Visuals);
+                continue;
+            }
+
+            IReadOnlyList<HtmlRenderVisual>? children = GetGroupChildren(visual);
+            if (children == null) {
+                replaced.Add(visual);
+                continue;
+            }
+
+            IReadOnlyList<HtmlRenderVisual> transformedChildren = ReplaceDescendantFormFieldsForTransform(children, transformSource);
+            replaced.Add(CloneGroupWithChildren(visual, transformedChildren));
+        }
+        return replaced;
     }
 
     private void ReportUnsupportedInlinePaintEffects(IElement element, HtmlRenderBoxStyle style) {
