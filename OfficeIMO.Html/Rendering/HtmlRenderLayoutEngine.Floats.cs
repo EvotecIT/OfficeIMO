@@ -388,7 +388,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (lineHeight > 0D) {
                 double breakOffset = lineY + lineHeight;
                 breakOffsets.Add(breakOffset);
-                breakProgress.Add(new HtmlInlineBreakProgress(breakOffset, logicalCharacters));
+                breakProgress.Add(new HtmlInlineBreakProgress(breakOffset, logicalCharacters, formattingContainer));
             }
         }
 

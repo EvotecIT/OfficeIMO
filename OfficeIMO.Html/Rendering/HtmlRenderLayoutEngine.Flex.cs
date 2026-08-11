@@ -8,6 +8,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double containingWidth,
         HtmlRenderBoxStyle style,
         int depth,
+        IElement? continuationTarget,
         out HtmlRenderFlowBlock block) {
         block = null!;
         if (style.FlexWrap != "nowrap" && style.FlexWrap != "wrap" && style.FlexWrap != "wrap-reverse") {
@@ -20,7 +21,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!TryCollectFlexItems(element, containingWidth, style, depth, out List<FlexItem> items)) return false;
         if (column) return TryLayoutColumnFlexContainer(element, containingWidth, style, depth, items, out block);
 
-        return TryLayoutRowFlexContainer(element, containingWidth, style, depth, items, out block);
+        return TryLayoutRowFlexContainer(element, containingWidth, style, depth, items, continuationTarget, out block);
     }
 
     private bool TryCollectFlexItems(
@@ -46,6 +47,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         int depth,
         List<FlexItem> items,
+        IElement? continuationTarget,
         out HtmlRenderFlowBlock block) {
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
@@ -57,6 +59,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ReportUnsupportedFlexValue(element, "row-gap=" + style.UnsupportedRowGap);
         }
         List<FlexItem> orderedItems = items.OrderBy(item => item.Style.Order).ThenBy(item => item.SourceIndex).ToList();
+        if (continuationTarget != null) {
+            int continuationIndex = orderedItems.FindIndex(item =>
+                item.Element != null && ContainsElementOrSelf(item.Element, continuationTarget));
+            if (continuationIndex >= 0) orderedItems = orderedItems.Skip(continuationIndex).ToList();
+        }
         double gap = orderedItems.Count > 1 ? style.ColumnGap : 0D;
         foreach (FlexItem item in orderedItems) item.Basis = ResolveFlexBasis(item, contentWidth);
         List<FlexLine> lines = CreateFlexLines(orderedItems, style.FlexWrap, contentWidth, gap);
@@ -129,6 +136,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Distinct()
                 .OrderBy(offset => offset)
                 .Skip(1);
+        IReadOnlyList<HtmlInlineBreakProgress> continuationBreakProgress = style.FlexWrap == "wrap"
+            ? lines.Skip(1)
+                .Where(line => line.Items.Count > 0 && line.Items[0].Element != null)
+                .Select(line => new HtmlInlineBreakProgress(contentY + line.CrossOffset, 0, line.Items[0].Element))
+                .ToList()
+            : Array.Empty<HtmlInlineBreakProgress>();
 
         block = new HtmlRenderFlowBlock(
             containingWidth,
@@ -143,7 +156,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             runningStringAssignments: itemPaintLayers.SelectMany(layer =>
                     layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y)))
                 .Concat(positionedRunningStringAssignments)
-                .OrderBy(assignment => assignment.OrderOffset));
+                .OrderBy(assignment => assignment.OrderOffset),
+            inlineBreakProgress: continuationBreakProgress,
+            supportsInlineContinuationReflow: continuationBreakProgress.Count > 0);
         return true;
     }
 

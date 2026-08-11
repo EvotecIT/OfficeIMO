@@ -4,7 +4,12 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private HtmlRenderFlowBlock LayoutTable(IElement table, double containingWidth, HtmlRenderBoxStyle style, int depth) {
+    private HtmlRenderFlowBlock LayoutTable(
+        IElement table,
+        double containingWidth,
+        HtmlRenderBoxStyle style,
+        int depth,
+        IElement? continuationTarget = null) {
         string source = HtmlRenderStyleResolver.DescribeSource(table);
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double tableWidth = ResolveBoxWidth(availableWidth, style);
@@ -46,8 +51,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (rowStyle.Display != "none") renderableRows.Add(row);
         }
 
+        IElement? continuationRow = FindOwningTableRow(table, continuationTarget);
+        IReadOnlyList<IElement> bodyRows = renderableRows
+            .Where(row => !IsHeaderRow(row, table) && !IsFooterRow(row, table))
+            .ToList();
+        if (continuationRow != null) {
+            int continuationIndex = bodyRows.ToList().FindIndex(row => ReferenceEquals(row, continuationRow));
+            if (continuationIndex >= 0) bodyRows = bodyRows.Skip(continuationIndex).ToList();
+        }
         IReadOnlyList<IElement> rows = renderableRows.Where(row => IsHeaderRow(row, table))
-            .Concat(renderableRows.Where(row => !IsHeaderRow(row, table) && !IsFooterRow(row, table)))
+            .Concat(bodyRows)
             .Concat(renderableRows.Where(row => IsFooterRow(row, table)))
             .ToList();
         int rowColumnCount = DetermineColumnCount(rows, table);
@@ -152,6 +165,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var continuationVisuals = new List<HtmlRenderVisual>();
         var trailingVisuals = new List<HtmlRenderVisual>();
         var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
+        var continuationBreakProgress = new List<HtmlInlineBreakProgress>();
         double continuationHeight = 0D;
         double trailingStart = 0D;
         double trailingHeight = 0D;
@@ -262,7 +276,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             rowY += row.Height + verticalSpacing;
             bool headerHasBodyAfter = row.IsHeader && hasBodyAfter[rowIndex];
-            if (!headerHasBodyAfter && canBreakAfterRows[rowIndex]) breakOffsets.Add(rowY);
+            if (!headerHasBodyAfter && canBreakAfterRows[rowIndex]) {
+                breakOffsets.Add(rowY);
+                TableRowLayout? nextBodyRow = rowLayouts
+                    .Skip(rowIndex + 1)
+                    .FirstOrDefault(candidate => !candidate.IsHeader && !candidate.IsFooter);
+                if (nextBodyRow != null) {
+                    continuationBreakProgress.Add(new HtmlInlineBreakProgress(rowY, 0, nextBodyRow.Element));
+                }
+            }
         }
         if (style.BorderCollapse == "collapse") {
             AddCollapsedTableBorders(visuals, table, style, rowLayouts, columnWidths, columnOffsets, contentX, tableY + style.BorderTopWidth + style.PaddingTop);
@@ -329,7 +351,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
             continuationHeight: continuationHeight,
             continuationStartsAfter: headerStart + continuationHeight,
             pageName: style.PageName,
-            runningStringAssignments: runningStringAssignments);
+            runningStringAssignments: runningStringAssignments,
+            inlineBreakProgress: continuationBreakProgress,
+            supportsInlineContinuationReflow: continuationBreakProgress.Count > 0);
+    }
+
+    private static IElement? FindOwningTableRow(IElement table, IElement? target) {
+        IElement? current = target;
+        while (current != null && !ReferenceEquals(current, table)) {
+            if (string.Equals(current.TagName, "tr", StringComparison.OrdinalIgnoreCase)
+                && BelongsToTable(current, table)) {
+                return current;
+            }
+            current = current.ParentElement;
+        }
+        return null;
     }
 
     private static bool BelongsToTable(IElement row, IElement table) {

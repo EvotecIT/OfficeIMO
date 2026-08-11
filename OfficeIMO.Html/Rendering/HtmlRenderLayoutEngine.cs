@@ -414,7 +414,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
 
                     if (blockOffset < block.Height - 0.0001D) {
-                        int? continuationProgress = ResolveInlineContinuationProgress(block, blockOffset);
+                        HtmlInlineBreakProgress? continuationProgress = ResolveInlineContinuationProgress(block, blockOffset);
                         CommitPage(pages, visuals, pageGeometry, currentPageName);
                         BeginPage(currentPageName);
                         if (Math.Abs(block.Width - pageGeometry.ContentWidth) > 0.0001D) {
@@ -467,43 +467,42 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _diagnostics.Add(
             ComponentName,
             HtmlRenderDiagnosticCodes.PagePseudoGeometryPending,
-            "A fragment crossing into a page with different geometry retained its source-page line breaking.",
+            "A fragment crossing into a page with different geometry retained its source-page layout.",
             HtmlDiagnosticSeverity.Warning,
             block.Source,
             "target-content-width=" + geometry.ContentWidth.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));
     }
 
-    private static int? ResolveInlineContinuationProgress(HtmlRenderFlowBlock block, double fragmentEnd) {
+    private static HtmlInlineBreakProgress? ResolveInlineContinuationProgress(HtmlRenderFlowBlock block, double fragmentEnd) {
         if (!block.SupportsInlineContinuationReflow) return null;
         List<HtmlInlineBreakProgress> progress = block.InlineBreakProgress
-            .Where(item => item.Offset <= fragmentEnd + 0.0001D)
+            .Where(item => item.OwnerElement != null && Math.Abs(item.Offset - fragmentEnd) <= 0.0001D)
             .OrderBy(item => item.Offset)
             .ToList();
-        return progress.Count == 0 ? null : progress[progress.Count - 1].LogicalCharacters;
+        return progress.Count == 0 ? null : progress[progress.Count - 1];
     }
 
     private bool TryRelayoutInlineContinuation(
         HtmlRenderFlowBlock source,
         HtmlCssPageGeometry geometry,
-        int logicalCharacters,
+        HtmlInlineBreakProgress continuation,
         out HtmlRenderFlowBlock reflowed) {
         reflowed = source;
-        if (source.OwnerElement == null) return false;
+        if (source.OwnerElement == null || continuation.OwnerElement == null) return false;
         IElement root = _document.Body ?? _document.DocumentElement ?? source.OwnerElement;
         if (!ReferenceEquals(source.OwnerElement.ParentElement, root)) return false;
+        if (!ContainsElementOrSelf(source.OwnerElement, continuation.OwnerElement)) return false;
         HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
         HtmlRenderBoxStyle style = _styleResolver.Resolve(source.OwnerElement, geometry.ContentWidth, rootStyle);
-        style.MarginTop = 0D;
-        style.PaddingTop = 0D;
-        style.Borders = new HtmlRenderBorderEdges(
-            style.Borders.Top.WithWidth(0D),
-            style.Borders.Right,
-            style.Borders.Bottom,
-            style.Borders.Left);
-        style.BreakBefore = HtmlPageBreakTarget.None;
-        style.StringSet = string.Empty;
-        reflowed = LayoutElement(source.OwnerElement, geometry.ContentWidth, style, rootStyle, 1, logicalCharacters);
-        return reflowed.SupportsInlineContinuationReflow;
+        reflowed = LayoutElement(
+            source.OwnerElement,
+            geometry.ContentWidth,
+            style,
+            rootStyle,
+            1,
+            continuation.OwnerElement,
+            continuation.LogicalCharacters);
+        return true;
     }
 
     private List<HtmlRenderVisual> CreatePageVisuals(double width, double height) {

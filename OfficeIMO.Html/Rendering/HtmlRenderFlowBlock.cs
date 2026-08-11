@@ -222,7 +222,7 @@ internal sealed class HtmlRenderFlowBlock {
             collapsesThrough: CollapsesThrough,
             unclampedHeight: adjustedUnclampedHeight,
             runningStringAssignments: RunningStringAssignments.Select(assignment => assignment.Translate(-adjustment)),
-            inlineBreakProgress: InlineBreakProgress.Select(progress => new HtmlInlineBreakProgress(progress.Offset - adjustment, progress.LogicalCharacters)),
+            inlineBreakProgress: InlineBreakProgress.Select(progress => new HtmlInlineBreakProgress(progress.Offset - adjustment, progress.LogicalCharacters, progress.OwnerElement)),
             inlineContinuationStart: InlineContinuationStart,
             supportsInlineContinuationReflow: SupportsInlineContinuationReflow);
     }
@@ -524,11 +524,13 @@ internal sealed class HtmlInlineLayout {
 }
 
 internal readonly struct HtmlInlineBreakProgress {
-    internal HtmlInlineBreakProgress(double offset, int logicalCharacters) {
+    internal HtmlInlineBreakProgress(double offset, int logicalCharacters, IElement? ownerElement = null) {
         Offset = offset;
         LogicalCharacters = logicalCharacters;
+        OwnerElement = ownerElement;
     }
 
     internal double Offset { get; }
     internal int LogicalCharacters { get; }
+    internal IElement? OwnerElement { get; }
 }

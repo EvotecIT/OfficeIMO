@@ -1305,6 +1305,131 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_ReflowsNestedBlockContinuationsAcrossAlternatingPageMasters() {
+        string words = string.Join(" ", Enumerable.Range(0, 50).Select(index => "nested" + index.ToString("D2")));
+        string expected = "Intro " + words + " Outro";
+        string html = """
+            <style>
+              @page { size:3in 1.5in; margin:0.25in; }
+              @page :left { size:2in 1.5in; }
+              @page :right { size:3in 1.5in; }
+              section, div, p { margin:0; padding:0; }
+              p { font-size:16px; line-height:20px; orphans:2; widows:2; }
+            </style>
+            <section id="wrapper">
+              <div id="intro">Intro</div>
+              <div id="nested"><p><span>WORDS</span></p></div>
+              <div id="outro">Outro</div>
+            </section>
+            """.Replace("WORDS", words);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(10D)
+        });
+
+        Assert.True(rendered.Pages.Count >= 3);
+        string actual = string.Join(" ", rendered.Pages
+            .SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderText>()
+            .Select(text => text.Text))
+            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Aggregate(string.Empty, (current, word) => current.Length == 0 ? word : current + " " + word);
+        Assert.Equal(expected, actual);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_ReflowsAtNestedChildBoundaryWhenFinalChildNeedsNoFurtherBreak() {
+        string html = """
+            <style>
+              @page { size:3in 1in; margin:0; }
+              @page :left { size:2in 1in; }
+              section, div { margin:0; padding:0; }
+              #first { height:96px; }
+              #last { font-size:16px; line-height:20px; }
+            </style>
+            <section><div id="first">First</div><div id="last">Last</div></section>
+            """;
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(10D)
+        });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Equal(288D, rendered.Pages[0].Width, 3);
+        Assert.Equal(192D, rendered.Pages[1].Width, 3);
+        Assert.Equal(
+            new[] { "First", "Last" },
+            rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Select(text => text.Text).ToArray());
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_ReflowsTableRowsAcrossAlternatingPageMasters() {
+        string rows = string.Join(string.Empty, Enumerable.Range(0, 18).Select(index =>
+            "<tr><td>Row" + index.ToString("D2") + "</td><td>Value" + index.ToString("D2") + "</td></tr>"));
+        string html = """
+            <style>
+              @page { size:3in 1.75in; margin:0.2in; }
+              @page :left { size:2in 1.75in; }
+              table { width:100%; border-spacing:0; }
+              th, td { padding:2px; font-size:12px; line-height:14px; }
+            </style>
+            <table><thead><tr><th>Header</th><th>Value</th></tr></thead><tbody>ROWS</tbody></table>
+            """.Replace("ROWS", rows);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(10D)
+        });
+
+        Assert.True(rendered.Pages.Count >= 3);
+        Assert.All(rendered.Pages.Where(page => page.PageNumber % 2 == 0), page => Assert.Equal(192D, page.Width, 3));
+        Assert.All(rendered.Pages.Where(page => page.PageNumber % 2 != 0), page => Assert.Equal(288D, page.Width, 3));
+        Assert.All(rendered.Pages, page => Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "Header"));
+        string renderedText = string.Join(" ", rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Select(text => text.Text));
+        foreach (int index in Enumerable.Range(0, 18)) {
+            string marker = "Row" + index.ToString("D2");
+            Assert.Equal(1, renderedText.Split(new[] { marker }, StringSplitOptions.None).Length - 1);
+        }
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_ReflowsWrappedFlexLinesAcrossAlternatingPageMasters() {
+        string items = string.Join(string.Empty, Enumerable.Range(0, 18).Select(index =>
+            "<div class='item'>Flex" + index.ToString("D2") + "</div>"));
+        string html = """
+            <style>
+              @page { size:3in 1.5in; margin:0.2in; }
+              @page :left { size:2in 1.5in; }
+              .flex { display:flex; flex-wrap:wrap; gap:0; width:100%; }
+              .item { box-sizing:border-box; width:80px; height:30px; margin:0; padding:2px; font-size:12px; line-height:14px; }
+            </style>
+            <div class="flex">ITEMS</div>
+            """.Replace("ITEMS", items);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(10D)
+        });
+
+        Assert.True(rendered.Pages.Count >= 3);
+        Assert.All(rendered.Pages.Where(page => page.PageNumber % 2 == 0), page => Assert.Equal(192D, page.Width, 3));
+        Assert.All(rendered.Pages.Where(page => page.PageNumber % 2 != 0), page => Assert.Equal(288D, page.Width, 3));
+        string renderedText = string.Join(" ", rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Select(text => text.Text));
+        foreach (int index in Enumerable.Range(0, 18)) {
+            string marker = "Flex" + index.ToString("D2");
+            Assert.Equal(1, renderedText.Split(new[] { marker }, StringSplitOptions.None).Length - 1);
+        }
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+    }
+
+    [Fact]
     public void HtmlRender_Paged_DiagnosesComplexPageSelectorsUnknownMarginPositionsAndGeneratedContent() {
         string html = "<style>@page invoice:first:right { @top-left { content:\"Complex\"; } } @page { @left-middle { content:\"Side\"; } @unknown-zone { content:\"Unknown\"; } @top-left { content:attr(title); } }</style><p>Body</p>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {

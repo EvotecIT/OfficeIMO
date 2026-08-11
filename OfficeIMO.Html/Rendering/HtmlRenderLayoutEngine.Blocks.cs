@@ -4,8 +4,23 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private IReadOnlyList<HtmlRenderFlowBlock> BuildChildBlocks(IElement container, double width, HtmlRenderBoxStyle parentStyle, int depth) =>
-        BuildChildBlocks(container, container.ChildNodes, width, parentStyle, depth, includeGeneratedBefore: true, includeGeneratedAfter: true);
+    private IReadOnlyList<HtmlRenderFlowBlock> BuildChildBlocks(
+        IElement container,
+        double width,
+        HtmlRenderBoxStyle parentStyle,
+        int depth,
+        IElement? continuationTarget = null,
+        int continuationLogicalCharacters = 0) =>
+        BuildChildBlocks(
+            container,
+            container.ChildNodes,
+            width,
+            parentStyle,
+            depth,
+            includeGeneratedBefore: true,
+            includeGeneratedAfter: true,
+            continuationTarget,
+            continuationLogicalCharacters);
 
     private IReadOnlyList<HtmlRenderFlowBlock> BuildChildBlocks(
         IElement container,
@@ -14,15 +29,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle parentStyle,
         int depth,
         bool includeGeneratedBefore,
-        bool includeGeneratedAfter) {
+        bool includeGeneratedAfter,
+        IElement? continuationTarget = null,
+        int continuationLogicalCharacters = 0) {
         EnsureDepth(depth, container);
         var blocks = new List<HtmlRenderFlowBlock>();
-        if (includeGeneratedBefore) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.Before, width, parentStyle);
+        IElement? continuationChild = FindDirectChildContaining(container, continuationTarget);
+        bool seekingContinuation = continuationChild != null;
+        if (includeGeneratedBefore && !seekingContinuation) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.Before, width, parentStyle);
         double flowHeight = blocks.Sum(block => block.Height);
         var adjoiningMargins = new AdjoiningMarginState();
         var inlineNodes = new List<INode>();
         foreach (INode node in nodes) {
             CheckCancellation();
+            if (seekingContinuation) {
+                if (node is not IElement candidate || !ReferenceEquals(candidate, continuationChild)) continue;
+                seekingContinuation = false;
+            }
             if (node is IElement element) {
                 if (ShouldSkipElement(element)) {
                     continue;
@@ -35,9 +58,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (childStyle.Display == "contents" && HasBlockChildren(element, width, childStyle, depth + 1)) {
                     double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
                     flowHeight += inlineHeight;
-                    foreach (HtmlRenderFlowBlock flattenedBlock in BuildChildBlocks(element, width, childStyle, depth + 1)) {
+                    bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
+                    foreach (HtmlRenderFlowBlock flattenedBlock in BuildChildBlocks(
+                        element,
+                        width,
+                        childStyle,
+                        depth + 1,
+                        carriesContinuation ? continuationTarget : null,
+                        carriesContinuation ? continuationLogicalCharacters : 0)) {
                         blocks.Add(flattenedBlock);
                         flowHeight += flattenedBlock.Height;
+                    }
+                    if (carriesContinuation) {
+                        continuationTarget = null;
+                        continuationLogicalCharacters = 0;
                     }
 
                     adjoiningMargins.Clear();
@@ -71,7 +105,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (inlineHeight > 0D) {
                         adjoiningMargins.Clear();
                     }
-                    HtmlRenderFlowBlock childBlock = LayoutElement(element, width, childStyle, parentStyle, depth + 1);
+                    bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
+                    HtmlRenderFlowBlock childBlock = LayoutElement(
+                        element,
+                        width,
+                        childStyle,
+                        parentStyle,
+                        depth + 1,
+                        carriesContinuation ? continuationTarget : null,
+                        carriesContinuation ? continuationLogicalCharacters : 0);
+                    if (carriesContinuation) {
+                        continuationTarget = null;
+                        continuationLogicalCharacters = 0;
+                    }
                     double marginAdjustment = 0D;
                     if (childBlock.HasCollapsibleMargins && adjoiningMargins.Count > 0) {
                         adjoiningMargins.Add(childBlock.CollapsibleMarginTop);
@@ -118,6 +164,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (trailingInlineHeight > 0D) adjoiningMargins.Clear();
         if (includeGeneratedAfter) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.After, width, parentStyle);
         return blocks;
+    }
+
+    private static IElement? FindDirectChildContaining(IElement container, IElement? target) {
+        if (target == null || ReferenceEquals(container, target)) return null;
+        IElement? current = target;
+        while (current?.ParentElement != null && !ReferenceEquals(current.ParentElement, container)) {
+            current = current.ParentElement;
+        }
+        return current?.ParentElement != null && ReferenceEquals(current.ParentElement, container) ? current : null;
+    }
+
+    private static bool ContainsElementOrSelf(IElement candidate, IElement? target) {
+        for (IElement? current = target; current != null; current = current.ParentElement) {
+            if (ReferenceEquals(candidate, current)) return true;
+        }
+        return false;
     }
 
     private static double CollapseVerticalMargins(double first, double second) {
@@ -181,9 +243,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         HtmlRenderBoxStyle parentStyle,
         int depth,
-        int inlineSkipLogicalCharacters = 0) {
+        IElement? continuationTarget = null,
+        int continuationLogicalCharacters = 0) {
         EnsureDepth(depth, element);
         ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(element));
+        bool continuesThisBox = continuationTarget != null
+            && ContainsElementOrSelf(element, continuationTarget)
+            && (!ReferenceEquals(element, continuationTarget) || continuationLogicalCharacters > 0);
+        if (continuesThisBox) style = SuppressContinuationStartDecorations(style);
         ReportUnsupportedFloatValues(element, style);
         ReportUnsupportedOverflowValues(element, style);
         ReportUnsupportedMultiColumnValues(element, style);
@@ -192,9 +259,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
         if (tag == "img") return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutImage(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
         if (IsFormControlElement(tag)) return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutFormControl(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
-        if (tag == "table") return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutTable(element, containingWidth, style, depth), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
+        if (tag == "table") return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutTable(element, containingWidth, style, depth, continuationTarget), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
         if (tag == "hr") return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutHorizontalRule(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
-        if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock flexBlock)) {
+        if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, continuationTarget, out HtmlRenderFlowBlock flexBlock)) {
             flexBlock = ApplyElementSemantics(flexBlock, element);
             return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(flexBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
         }
@@ -218,11 +285,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var continuationGroups = new List<HtmlRenderContinuationGroup>();
         var trailingGroups = new List<HtmlRenderTrailingGroup>();
         var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
+        var continuationBreakProgress = new List<HtmlInlineBreakProgress>();
         HtmlInlineLayout? inlineLayout = null;
         double contentHeight = 0D;
         bool usesBlockFormatting = HasBlockChildren(element, contentWidth, style, depth);
+        IElement? descendantContinuationTarget = continuationTarget != null && !ReferenceEquals(element, continuationTarget)
+            ? continuationTarget
+            : null;
         List<HtmlRenderFlowBlock> children = usesBlockFormatting
-            ? BuildChildBlocks(element, contentWidth, style, depth).ToList()
+            ? BuildChildBlocks(
+                element,
+                contentWidth,
+                style,
+                depth,
+                descendantContinuationTarget,
+                descendantContinuationTarget == null ? 0 : continuationLogicalCharacters).ToList()
             : new List<HtmlRenderFlowBlock>();
 
         if (children.Count > 0 && CanCollapseParentMargin(style, top: true) && children[0].HasCollapsibleMargins) {
@@ -248,8 +325,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _layoutStyles[element] = style.Clone();
 
         if (usesBlockFormatting) {
-            foreach (HtmlRenderFlowBlock child in children) {
+            for (int childIndex = 0; childIndex < children.Count; childIndex++) {
+                HtmlRenderFlowBlock child = children[childIndex];
                 double childStart = contentHeight;
+                if (childIndex > 0 && child.OwnerElement != null) {
+                    continuationBreakProgress.Add(new HtmlInlineBreakProgress(childStart, 0, child.OwnerElement));
+                }
                 childPaintLayers.Add(new FlowPaintLayer(child, 0D, childStart, childPaintLayers.Count));
 
                 contentHeight += child.Height;
@@ -271,12 +352,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 foreach (HtmlCssRunningStringAssignment assignment in child.RunningStringAssignments) {
                     runningStringAssignments.Add(assignment.Translate(childStart));
                 }
+                foreach (HtmlInlineBreakProgress progress in child.InlineBreakProgress) {
+                    continuationBreakProgress.Add(new HtmlInlineBreakProgress(
+                        childStart + progress.Offset,
+                        progress.LogicalCharacters,
+                        progress.OwnerElement));
+                }
 
                 contentBreakOffsets.Add(contentHeight);
             }
             AppendFlowPaintLayers(contentVisuals, childPaintLayers);
         } else {
             string? prefix = tag == "li" ? ResolveListPrefix(element, style) : null;
+            int inlineSkipLogicalCharacters = ReferenceEquals(element, continuationTarget)
+                ? continuationLogicalCharacters
+                : 0;
             HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth, prefix, element, inlineSkipLogicalCharacters);
             inlineLayout = inline;
             contentVisuals.AddRange(inline.Visuals);
@@ -373,13 +463,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Select(assignment => assignment.Translate(contentYForBreaks))
                 .Concat(positionedRunningStringAssignments)
                 .OrderBy(assignment => assignment.OrderOffset),
-            inlineBreakProgress: inlineLayout?.BreakProgress.Select(progress =>
-                new HtmlInlineBreakProgress(contentYForBreaks + progress.Offset, progress.LogicalCharacters)),
-            inlineContinuationStart: inlineSkipLogicalCharacters,
-            supportsInlineContinuationReflow: inlineLayout?.SupportsContinuationReflow == true);
+            inlineBreakProgress: (inlineLayout?.BreakProgress ?? continuationBreakProgress).Select(progress =>
+                new HtmlInlineBreakProgress(contentYForBreaks + progress.Offset, progress.LogicalCharacters, progress.OwnerElement)),
+            inlineContinuationStart: ReferenceEquals(element, continuationTarget) ? continuationLogicalCharacters : 0,
+            supportsInlineContinuationReflow: inlineLayout?.SupportsContinuationReflow == true
+                || continuationBreakProgress.Any(progress => progress.OwnerElement != null));
         block = ApplyElementSemantics(block, element);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
         return AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element), style, element, collapsesThrough);
+    }
+
+    private static HtmlRenderBoxStyle SuppressContinuationStartDecorations(HtmlRenderBoxStyle style) {
+        HtmlRenderBoxStyle continuation = style.Clone();
+        continuation.MarginTop = 0D;
+        continuation.PaddingTop = 0D;
+        continuation.Borders = new HtmlRenderBorderEdges(
+            continuation.Borders.Top.WithWidth(0D),
+            continuation.Borders.Right,
+            continuation.Borders.Bottom,
+            continuation.Borders.Left);
+        continuation.BreakBefore = HtmlPageBreakTarget.None;
+        continuation.StringSet = string.Empty;
+        return continuation;
     }
 
     private HtmlRenderFlowBlock AttachElementMargins(HtmlRenderFlowBlock block, HtmlRenderBoxStyle style, IElement element, bool collapsesThrough = false) {
