@@ -54,6 +54,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
         function = null!;
         if (inputCount < 1 || outputCount < 1 || maxDecodedStreamBytes <= 0) return false;
         long retainedFunctionBytes = 0L;
+        long remainingCalculatorValidationWork = PdfCalculatorProgram.MaxValidationWork;
         int parsedFunctionNodes = 0;
         return TryCreateFunction(
             value,
@@ -66,6 +67,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
             new Dictionary<PdfObject, Dictionary<long, PdfColorFunction>>(PdfObjectReferenceComparer.Instance),
             ref parsedFunctionNodes,
             ref retainedFunctionBytes,
+            ref remainingCalculatorValidationWork,
             out function);
     }
 
@@ -86,6 +88,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
         var activeFunctions = new HashSet<PdfObject>();
         var functionCache = new Dictionary<PdfObject, Dictionary<long, PdfColorFunction>>(PdfObjectReferenceComparer.Instance);
         long retainedFunctionBytes = 0L;
+        long remainingCalculatorValidationWork = PdfCalculatorProgram.MaxValidationWork;
         int parsedFunctionNodes = 0;
         for (int index = 0; index < components.Length; index++) {
             if (!TryCreateFunction(
@@ -99,6 +102,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
                     functionCache,
                     ref parsedFunctionNodes,
                     ref retainedFunctionBytes,
+                    ref remainingCalculatorValidationWork,
                     out components[index])) return false;
         }
 
@@ -153,6 +157,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
         Dictionary<PdfObject, Dictionary<long, PdfColorFunction>> functionCache,
         ref int parsedFunctionNodes,
         ref long retainedFunctionBytes,
+        ref long remainingCalculatorValidationWork,
         out PdfColorFunction function) {
         function = null!;
         if (depth > MaxFunctionDepth ||
@@ -179,8 +184,8 @@ internal static partial class PdfColorSpaceFunctionResolver {
             bool created = functionType switch {
                 0 => TryCreateSampledFunction(resolved as PdfStream, dictionary, inputCount, outputCount, objects, maxDecodedStreamBytes, ref retainedFunctionBytes, out function),
                 2 => TryCreateExponentialFunction(dictionary, inputCount, outputCount, objects, out function),
-                3 => TryCreateStitchingFunction(dictionary, inputCount, outputCount, objects, maxDecodedStreamBytes, depth, activeFunctions, functionCache, ref parsedFunctionNodes, ref retainedFunctionBytes, out function),
-                4 => TryCreateCalculatorFunction(resolved as PdfStream, dictionary, inputCount, outputCount, objects, maxDecodedStreamBytes, ref retainedFunctionBytes, out function),
+                3 => TryCreateStitchingFunction(dictionary, inputCount, outputCount, objects, maxDecodedStreamBytes, depth, activeFunctions, functionCache, ref parsedFunctionNodes, ref retainedFunctionBytes, ref remainingCalculatorValidationWork, out function),
+                4 => TryCreateCalculatorFunction(resolved as PdfStream, dictionary, inputCount, outputCount, objects, maxDecodedStreamBytes, ref retainedFunctionBytes, ref remainingCalculatorValidationWork, out function),
                 _ => false
             };
             if (!created || function == null) return false;
@@ -354,6 +359,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
         Dictionary<PdfObject, Dictionary<long, PdfColorFunction>> functionCache,
         ref int parsedFunctionNodes,
         ref long retainedFunctionBytes,
+        ref long remainingCalculatorValidationWork,
         out PdfColorFunction function) {
         function = null!;
         if (inputCount != 1 ||
@@ -395,6 +401,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
                     functionCache,
                     ref parsedFunctionNodes,
                     ref retainedFunctionBytes,
+                    ref remainingCalculatorValidationWork,
                     out children[index])) return false;
         }
 

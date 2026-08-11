@@ -75,7 +75,7 @@ public sealed partial class PdfColorFunctionTests {
             1024,
             out PdfColorFunction function));
 
-        Assert.Equal(6, function.CubicEvaluationCost);
+        Assert.Equal(6, function.EvaluationCost);
     }
 
     [Fact]

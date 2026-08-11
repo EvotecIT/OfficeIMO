@@ -11,6 +11,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
         ref long retainedFunctionBytes,
+        ref long remainingCalculatorValidationWork,
         out PdfColorFunction function) {
         function = null!;
         if (stream == null ||
@@ -35,7 +36,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
         }
         if (bytes.Length > PdfCalculatorProgram.MaxProgramBytes ||
             !PdfCalculatorProgram.TryParse(bytes, out PdfCalculatorProgram program) ||
-            !program.CanEvaluateDomain(domain, inputCount, outputCount)) return false;
+            !program.CanEvaluateDomain(domain, inputCount, outputCount, ref remainingCalculatorValidationWork)) return false;
 
         long totalRetainedBytes;
         try {
@@ -50,11 +51,16 @@ internal static partial class PdfColorSpaceFunctionResolver {
 
         IReadOnlyList<double>? breakpoints = null;
         if (inputCount == 1) {
-            IEnumerable<double> authoredPoints = program.NumericConstants
-                .Where(value => value >= domain[0] && value <= domain[1]);
+            double[] requiredPoints = program.NumericConstants
+                .Where(value => value >= domain[0] && value <= domain[1])
+                .Concat(domain)
+                .Distinct()
+                .OrderBy(static value => value)
+                .ToArray();
+            if (requiredPoints.Length > MaxSuggestedSampleBreakpoints) return false;
             breakpoints = LimitSuggestedPoints(
-                CreateUniformBreakpoints(domain, MaxSuggestedSampleBreakpoints).Concat(authoredPoints).Concat(domain),
-                domain);
+                CreateUniformBreakpoints(domain, MaxSuggestedSampleBreakpoints).Concat(requiredPoints),
+                requiredPoints);
         }
 
         function = new PdfColorFunction(

@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Parsed, bounded evaluator for the calculator language defined by PDF Type 4 functions.</summary>
 internal sealed partial class PdfCalculatorProgram {
     internal const int MaxProgramBytes = 64 * 1024;
+    internal const long MaxValidationWork = 4L * 1024L * 1024L;
     private const int MaxInstructions = 4096;
     private const int MaxProcedureDepth = 16;
     private const int MaxStackValues = 256;
@@ -38,10 +39,6 @@ internal sealed partial class PdfCalculatorProgram {
     internal static bool TryParse(byte[] source, out PdfCalculatorProgram program) {
         program = null!;
         if (source == null || source.Length > MaxProgramBytes) return false;
-        for (int index = 0; index < source.Length; index++) {
-            if (source[index] > 0x7F) return false;
-        }
-
         var parser = new Parser(source);
         return parser.TryParse(out program);
     }
@@ -69,7 +66,11 @@ internal sealed partial class PdfCalculatorProgram {
         }
     }
 
-    internal bool CanEvaluateDomain(double[] domain, int inputCount, int outputCount) {
+    internal bool CanEvaluateDomain(
+        double[] domain,
+        int inputCount,
+        int outputCount,
+        ref long remainingValidationWork) {
         if (domain == null || domain.Length != inputCount * 2 || inputCount < 1) return false;
         var midpoint = new double[inputCount];
         var minimum = new double[inputCount];
@@ -79,9 +80,9 @@ internal sealed partial class PdfCalculatorProgram {
             maximum[index] = domain[index * 2 + 1];
             midpoint[index] = minimum[index] * 0.5D + maximum[index] * 0.5D;
         }
-        if (Evaluate(midpoint, outputCount) == null ||
-            Evaluate(minimum, outputCount) == null ||
-            Evaluate(maximum, outputCount) == null) return false;
+        if (!TryEvaluateForValidation(midpoint, outputCount, ref remainingValidationWork) ||
+            !TryEvaluateForValidation(minimum, outputCount, ref remainingValidationWork) ||
+            !TryEvaluateForValidation(maximum, outputCount, ref remainingValidationWork)) return false;
 
         if (inputCount == 1) {
             double domainStart = minimum[0];
@@ -95,7 +96,7 @@ internal sealed partial class PdfCalculatorProgram {
                     Math.Min(domainEnd, authoredValue + delta)
                 };
                 for (int index = 0; index < candidates.Length; index++) {
-                    if (Evaluate(candidates[index], outputCount) == null) return false;
+                    if (!TryEvaluateForValidation(candidates[index], outputCount, ref remainingValidationWork)) return false;
                 }
             }
             return true;
@@ -104,14 +105,21 @@ internal sealed partial class PdfCalculatorProgram {
         for (int input = 0; input < inputCount; input++) {
             double[] candidate = (double[])midpoint.Clone();
             candidate[input] = minimum[input];
-            if (Evaluate(candidate, outputCount) == null) return false;
+            if (!TryEvaluateForValidation(candidate, outputCount, ref remainingValidationWork)) return false;
             candidate[input] = maximum[input];
-            if (Evaluate(candidate, outputCount) == null) return false;
+            if (!TryEvaluateForValidation(candidate, outputCount, ref remainingValidationWork)) return false;
         }
         return true;
     }
 
-    private double[]? Evaluate(double input, int outputCount) => Evaluate(new[] { input }, outputCount);
+    private bool TryEvaluateForValidation(double input, int outputCount, ref long remainingValidationWork) =>
+        TryEvaluateForValidation(new[] { input }, outputCount, ref remainingValidationWork);
+
+    private bool TryEvaluateForValidation(double[] inputs, int outputCount, ref long remainingValidationWork) {
+        if (MaximumEvaluationWork > remainingValidationWork) return false;
+        remainingValidationWork -= MaximumEvaluationWork;
+        return Evaluate(inputs, outputCount) != null;
+    }
 
     private static bool TryExecute(
         Instruction[] instructions,
@@ -293,6 +301,12 @@ internal sealed partial class PdfCalculatorProgram {
             if (_position == start) {
                 token = default;
                 return false;
+            }
+            for (int index = start; index < _position; index++) {
+                if (_source[index] > 0x7F) {
+                    token = default;
+                    return false;
+                }
             }
             token = new Token(TokenKind.Word, System.Text.Encoding.ASCII.GetString(_source, start, _position - start));
             return true;
