@@ -306,6 +306,33 @@ public class PdfTableStreamExportContracts {
     }
 
     [Fact]
+    public void PdfClipIntersection_UsesConvexActiveClipForConcavePaintGeometry() {
+        OfficePathCommand[] activeCommands = {
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(100D, 0D),
+            OfficePathCommand.LineTo(0D, 100D),
+            OfficePathCommand.Close()
+        };
+        OfficePathCommand[] concaveCommands = {
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(100D, 0D),
+            OfficePathCommand.LineTo(100D, 40D),
+            OfficePathCommand.LineTo(40D, 40D),
+            OfficePathCommand.LineTo(40D, 100D),
+            OfficePathCommand.LineTo(0D, 100D),
+            OfficePathCommand.Close()
+        };
+
+        Assert.True(PdfPageClipPath.TryCreatePath(activeCommands, OfficeFillRule.NonZero, out PdfPageClipPath active));
+        Assert.True(PdfPageClipPath.TryCreatePath(concaveCommands, OfficeFillRule.NonZero, out PdfPageClipPath concave));
+
+        PdfPageClipPath resolved = PdfPageClipPath.ResolveActiveClip(active, concave);
+
+        Assert.False(resolved.IsRectangle);
+        Assert.NotEmpty(resolved.Commands);
+    }
+
+    [Fact]
     public void VectorVisibility_PreservesCloseContinuationAcrossNestedPathClips() {
         byte[] source = BuildSingleStreamPdf("""
             0 0 m
