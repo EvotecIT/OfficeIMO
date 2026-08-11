@@ -33,6 +33,12 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Equal("Secondary", api.GetShapeDataValue("Metadata.owner [2]"));
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("case-insensitive"));
         Assert.Equal("443", api.GetShapeDataValue("Detail.1.Port"));
+        Assert.Equal("health", api.GetShapeDataValue("Detail.1.Icon"));
+        Assert.Equal("Healthy", api.GetShapeDataValue("Detail.1.Status"));
+        Assert.Equal("#22AA66", api.GetShapeDataValue("Detail.1.Color"));
+        Assert.Equal("TCP", api.GetShapeDataValue("Detail.1.Metadata.Protocol"));
+        Assert.Equal("egress", api.GetShapeDataValue("Port.1.Label"));
+        Assert.Equal("primary", api.GetShapeDataValue("Port.1.Metadata.Role"));
         Assert.Contains(api.Hyperlinks, link => link.Address == "https://example.test/api");
 
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
@@ -58,6 +64,7 @@ public sealed class OfficeVisioVisualIntegrationTests {
         };
         envelope.Nodes.Add(Participant("customer", "Customer", "Actor", 0));
         VisualArtifactInterchangeNode apiParticipant = Participant("api", "Orders API", "Control", 1);
+        apiParticipant.Subtitle = "v2";
         apiParticipant.Status = "Healthy";
         apiParticipant.Href = "https://example.test/orders";
         apiParticipant.Tooltip = "Orders runbook";
@@ -66,6 +73,10 @@ public sealed class OfficeVisioVisualIntegrationTests {
         envelope.Nodes.Add(apiParticipant);
         envelope.Nodes.Add(Participant("activation-1", "Reserved activation id", "Participant", 2));
         VisualArtifactInterchangeEdge request = Message("request", "customer", "api", "Create order", 0, activates: true);
+        request.SecondaryLabel = "async";
+        request.TertiaryLabel = "audited";
+        request.SourceLabel = "client";
+        request.TargetLabel = "service";
         request.Status = "Healthy";
         request.Href = "https://example.test/create-order";
         request.Tooltip = "Create order contract";
@@ -108,12 +119,67 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Equal("Healthy", api.GetShapeDataValue("CFX.Status"));
         Assert.Equal("Commerce", api.GetShapeDataValue("Metadata.Owner"));
         Assert.Equal("EU", api.GetShapeDataValue("Detail.1.Region"));
+        Assert.Equal("Orders API" + Environment.NewLine + "v2", api.Text);
         Assert.Contains(api.Hyperlinks, link => link.Address == "https://example.test/orders" && link.Description == "Orders runbook");
         Assert.Equal("request", requestConnector.GetShapeDataValue("CFX.Id"));
         Assert.Equal("Healthy", requestConnector.GetShapeDataValue("CFX.Status"));
         Assert.Equal("Commerce", requestConnector.GetShapeDataValue("Metadata.Owner"));
+        Assert.Equal("Create order | async | audited", requestConnector.Label);
+        Assert.Equal("client", requestConnector.GetShapeDataValue("CFX.SourceLabel"));
+        Assert.Equal("service", requestConnector.GetShapeDataValue("CFX.TargetLabel"));
+        Assert.Equal("0", requestConnector.GetShapeDataValue("CFX.Order"));
         Assert.Contains(requestConnector.Hyperlinks, link => link.Address == "https://example.test/create-order" && link.Description == "Create order contract");
         Assert.True(retryNote.PinX - retryNote.Width / 2D > api.PinX + api.Width / 2D);
+    }
+
+    [Fact]
+    public void SequenceEqualOrdersPreserveEnvelopeCollectionOrder() {
+        var envelope = new VisualArtifactInterchangeEnvelope { Id = "stable-order", Kind = VisualArtifactKind.Sequence };
+        envelope.Nodes.Add(new VisualArtifactInterchangeNode { Id = "z-first", Label = "First" });
+        envelope.Nodes.Add(new VisualArtifactInterchangeNode { Id = "a-second", Label = "Second" });
+        envelope.Edges.Add(Message("z-first-message", "z-first", "a-second", "First message", 0));
+        envelope.Edges.Add(Message("a-second-message", "a-second", "z-first", "Second message", 0));
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
+
+        Assert.True(result.Page.Shapes.Single(shape => shape.Id == "z-first").PinX < result.Page.Shapes.Single(shape => shape.Id == "a-second").PinX);
+        Assert.Equal(new[] { "z-first-message", "a-second-message" }, result.Page.Connectors
+            .Where(connector => connector.Id == "z-first-message" || connector.Id == "a-second-message")
+            .Select(connector => connector.Id)
+            .ToArray());
+    }
+
+    [Fact]
+    public void SequencePreservesLateAnnotationRowsAndDeterministicOpenActivations() {
+        var envelope = new VisualArtifactInterchangeEnvelope { Id = "late-rows", Kind = VisualArtifactKind.Sequence };
+        envelope.Nodes.Add(Participant("caller", "Caller", "Actor", 0));
+        envelope.Nodes.Add(Participant("z-worker", "Z worker", "Control", 1));
+        envelope.Nodes.Add(Participant("a-worker", "A worker", "Control", 2));
+        envelope.Edges.Add(Message("activate-z", "caller", "z-worker", "Z", 0, activates: true));
+        envelope.Edges.Add(Message("activate-a", "caller", "a-worker", "A", 1, activates: true));
+        var note = new VisualArtifactInterchangeAnnotation { Id = "late-note", Kind = "SequenceNote", Text = "Later", StartIndex = 5, EndIndex = 5 };
+        note.TargetIds.Add("caller");
+        envelope.Annotations.Add(note);
+        envelope.Annotations.Add(new VisualArtifactInterchangeAnnotation { Id = "late-block", Kind = "SequenceBlock:Opt", Text = "Later block", StartIndex = 4, EndIndex = 6 });
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
+
+        Assert.Equal("5", result.Page.Shapes.Single(shape => shape.Id == "late-note").GetUserCellValue("OfficeIMO.SequenceRowIndex"));
+        Assert.Equal("4", result.Page.Shapes.Single(shape => shape.Id == "late-block").GetUserCellValue("OfficeIMO.SequenceStartRowIndex"));
+        Assert.Equal("6", result.Page.Shapes.Single(shape => shape.Id == "late-block").GetUserCellValue("OfficeIMO.SequenceEndRowIndex"));
+        Assert.Equal("a-worker", result.Page.Shapes.Single(shape => shape.Id == "activation-1").GetUserCellValue("OfficeIMO.SequenceParticipantId"));
+        Assert.Equal("z-worker", result.Page.Shapes.Single(shape => shape.Id == "activation-2").GetUserCellValue("OfficeIMO.SequenceParticipantId"));
+    }
+
+    [Fact]
+    public void SequenceUnknownNumericParticipantKindFallsBackAndReportsFidelity() {
+        var envelope = new VisualArtifactInterchangeEnvelope { Id = "unknown-kind", Kind = VisualArtifactKind.Sequence };
+        envelope.Nodes.Add(new VisualArtifactInterchangeNode { Id = "participant", Label = "Participant", Kind = "999" });
+
+        OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
+
+        Assert.Contains(result.Page.Shapes, shape => shape.Id == "participant");
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("kind '999'") && warning.Contains("generic participant"));
     }
 
     [Fact]
@@ -179,6 +245,21 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("native Visio helper shapes"));
         Assert.Equal("api", api.GetShapeDataValue("CFX.Id"));
         Assert.Equal("api-lifeline", result.Envelope.Nodes.Single(node => node.Label == "Worker").Id);
+
+        OfficeVisioVisualConversionResult withoutShapeData = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { IncludeShapeData = false });
+        Assert.Equal("api-lifeline", withoutShapeData.Page.Shapes.Single(shape => shape.Id != "api" && shape.Data.ContainsKey("CFX.Id") && shape.Data["CFX.Id"] == "api-lifeline").Data["CFX.Id"]);
+        Assert.Equal("api-lifeline-end", withoutShapeData.Page.Connectors.Single(connector => connector.Data.TryGetValue("CFX.Id", out string? id) && id == "api-lifeline-end").Data["CFX.Id"]);
+        Assert.Equal("message-api-lifeline-end-from", withoutShapeData.Page.Shapes.Single(shape => shape.Data.TryGetValue("CFX.Id", out string? id) && id == "message-api-lifeline-end-from").Data["CFX.Id"]);
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+        try {
+            withoutShapeData.Document.Save(path);
+            VisioDocument loaded = VisioDocument.Load(path);
+            Assert.Contains(loaded.Pages[0].Shapes, shape => shape.Data.TryGetValue("CFX.Id", out string? id) && id == "api-lifeline");
+            Assert.Contains(loaded.Pages[0].Connectors, connector => connector.Data.TryGetValue("CFX.Id", out string? id) && id == "api-lifeline-end");
+            Assert.Contains(loaded.Pages[0].Shapes, shape => shape.Data.TryGetValue("CFX.Id", out string? id) && id == "message-api-lifeline-end-from");
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
     }
 
     [Fact]
@@ -200,6 +281,20 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Equal(EndArrow.None, backward.EndArrow);
         Assert.Equal(EndArrow.Triangle, both.BeginArrow);
         Assert.Equal(EndArrow.Triangle, both.EndArrow);
+    }
+
+    [Fact]
+    public void TopologyLayoutTokensMapToNativeStrategiesAndReportUnsupportedLayouts() {
+        var matrix = new VisualArtifactInterchangeEnvelope { Id = "matrix", Kind = VisualArtifactKind.Topology, Layout = "Matrix" };
+        for (int index = 0; index < 4; index++) matrix.Nodes.Add(new VisualArtifactInterchangeNode { Id = "node-" + index, Label = "Node " + index });
+
+        OfficeVisioVisualConversionResult matrixResult = matrix.ToOfficeVisio();
+        Assert.True(matrixResult.Page.Shapes.Where(shape => shape.Id.StartsWith("node-", StringComparison.Ordinal)).Select(shape => shape.PinX).Distinct().Count() > 1);
+        Assert.True(matrixResult.Page.Shapes.Where(shape => shape.Id.StartsWith("node-", StringComparison.Ordinal)).Select(shape => shape.PinY).Distinct().Count() > 1);
+
+        matrix.Layout = "Geographic";
+        OfficeVisioVisualConversionResult geographicResult = matrix.ToOfficeVisio();
+        Assert.Contains(geographicResult.Report.Warnings, warning => warning.Contains("Geographic") && warning.Contains("layered layout"));
     }
 
     [Fact]
@@ -251,6 +346,10 @@ public sealed class OfficeVisioVisualIntegrationTests {
         Assert.Equal(0, result.Report.AnnotationCount);
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("graph-note"));
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("Artifact-level metadata"));
+        Assert.Contains(result.Report.Warnings, warning => warning.Contains("native Visio graph layout selected connector sides"));
+        VisioConnector edge = result.Page.Connectors.Single(connector => connector.Id == "api-db");
+        Assert.Equal("out", edge.GetShapeDataValue("CFX.SourcePortId"));
+        Assert.Equal("0", edge.GetShapeDataValue("CFX.Order"));
     }
 
     private static VisualArtifactInterchangeEnvelope CreateTopologyEnvelope() {
@@ -274,8 +373,12 @@ public sealed class OfficeVisioVisualIntegrationTests {
         };
         api.Metadata["Owner"] = "Platform";
         api.Metadata["owner"] = "Secondary";
-        api.Details.Add(new VisualArtifactInterchangeDetail { Label = "Port", Value = "443" });
-        api.Ports.Add(new VisualArtifactInterchangePort { Id = "out", Side = "Right", Offset = 0.5D });
+        var detail = new VisualArtifactInterchangeDetail { Label = "Port", Value = "443", IconId = "health", Status = "Healthy", Color = "#22AA66" };
+        detail.Metadata["Protocol"] = "TCP";
+        api.Details.Add(detail);
+        var port = new VisualArtifactInterchangePort { Id = "out", Side = "Right", Offset = 0.5D, Label = "egress" };
+        port.Metadata["Role"] = "primary";
+        api.Ports.Add(port);
         envelope.Nodes.Add(api);
         envelope.Nodes.Add(new VisualArtifactInterchangeNode {
             Id = "database",
