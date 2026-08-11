@@ -182,6 +182,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObjectFlattenerStopsRecursiveProjectionAtColumnLimit() {
+            var options = new ObjectFlattenerOptions { MaxColumns = 1 };
+            options.ExpandProperties.Add(nameof(ObjectFlattenerBranch.Left));
+            options.ExpandProperties.Add(nameof(ObjectFlattenerBranch.Right));
+            var row = new ObjectFlattenerBranch {
+                Value = 1,
+                Left = new ObjectFlattenerBranch { Value = 2 },
+                Right = new ObjectFlattenerBranch { Value = 3 }
+            };
+
+            Assert.Throws<System.IO.InvalidDataException>(() =>
+                new ObjectFlattener().Flatten(row, options));
+            Assert.False(row.WasRightRead());
+        }
+
+        [Fact]
         public void ObjectFlattenerExplicitColumnsRejectsResolvedDistinctPathsBeyondLimit() {
             var options = new ObjectFlattenerOptions {
                 Columns = new[] { "Name", "Status" },
@@ -219,6 +235,25 @@ namespace OfficeIMO.Tests {
             public string Name { get; set; } = string.Empty;
 
             public string Status { get; set; } = string.Empty;
+        }
+
+        private sealed class ObjectFlattenerBranch {
+            private ObjectFlattenerBranch? _right;
+            private bool _rightWasRead;
+
+            public int Value { get; set; }
+
+            public ObjectFlattenerBranch? Left { get; set; }
+
+            public ObjectFlattenerBranch? Right {
+                get {
+                    _rightWasRead = true;
+                    return _right;
+                }
+                set => _right = value;
+            }
+
+            public bool WasRightRead() => _rightWasRead;
         }
 
         private sealed class ObjectFlattenerSelectionPathRow {

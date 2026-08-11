@@ -126,6 +126,22 @@ public sealed class ExcelAllSeverityBatch15SecurityTests {
     }
 
     [Fact]
+    public void EmptyObjectTablesUseSingleCellFallbackWithoutChargingInferredHeaders() {
+        using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+        var rootComposer = new SheetComposer(document, "Root", new SheetTheme());
+        ExcelSheet columnSheet = document.AddWorksheet("Column");
+        var columnComposer = new SheetComposer.ColumnComposer(columnSheet, new SheetTheme(), 2, 2);
+
+        string rootRange = rootComposer.TableFrom(
+            Array.Empty<WideRow>(), configure: options => options.MaxCells = 1);
+        string columnRange = columnComposer.TableFrom(
+            Array.Empty<WideRow>(), configure: options => options.MaxCells = 1);
+
+        Assert.Equal("A1:A1", rootRange);
+        Assert.Equal("B2:B2", columnRange);
+    }
+
+    [Fact]
     public void ParallelRowAutoFitAndRowMutationsSerializeOpenXmlTraversal() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddWorksheet("Data");

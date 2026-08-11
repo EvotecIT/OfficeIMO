@@ -334,7 +334,7 @@ namespace OfficeIMO.Data {
                 bool isCollection = value is IEnumerable && value is not string;
 
                 if (value == null) {
-                    dict[path] = ApplyNullPolicy(path, null, opts);
+                    SetColumnValue(dict, path, ApplyNullPolicy(path, null, opts), opts);
                     continue;
                 }
 
@@ -342,18 +342,19 @@ namespace OfficeIMO.Data {
                     if (opts.CollectionMapColumns.TryGetValue(path, out var map)) {
                         MapCollectionToColumns(path, (IEnumerable)value, map, dict, opts);
                     } else {
-                        dict[path] = HandleCollection(path, (IEnumerable)value, opts);
+                        EnsureColumnCapacity(dict, path, opts);
+                        SetColumnValue(dict, path, HandleCollection(path, (IEnumerable)value, opts), opts);
                     }
                     continue;
                 }
 
                 if (!expand || IsSimple(prop.PropertyType)) {
-                    dict[path] = ApplyFormatting(path, value, opts);
+                    SetColumnValue(dict, path, ApplyFormatting(path, value, opts), opts);
                     continue;
                 }
 
                 if (opts.IncludeFullObjects) {
-                    dict[path] = value;
+                    SetColumnValue(dict, path, value, opts);
                 }
 
                 if (depth + 1 < opts.MaxDepth) {
@@ -386,9 +387,9 @@ namespace OfficeIMO.Data {
                     if (!IsExplicitPathRelevant(path, opts.Columns)) continue;
                     var val = tuple[i];
                     if (val == null) {
-                        dict[path] = ApplyNullPolicy(path, null, opts);
+                        SetColumnValue(dict, path, ApplyNullPolicy(path, null, opts), opts);
                     } else if (IsSimple(val.GetType())) {
-                        dict[path] = ApplyFormatting(path, val, opts);
+                        SetColumnValue(dict, path, ApplyFormatting(path, val, opts), opts);
                     } else {
                         FlattenInternal(val, dict, path, depth + 1, opts, activeObjects);
                     }
@@ -417,9 +418,9 @@ namespace OfficeIMO.Data {
                     }
                     object? value = field.GetValue(current);
                     if (value == null) {
-                        dict[path] = ApplyNullPolicy(path, null, opts);
+                        SetColumnValue(dict, path, ApplyNullPolicy(path, null, opts), opts);
                     } else if (IsSimple(value.GetType())) {
-                        dict[path] = ApplyFormatting(path, value, opts);
+                        SetColumnValue(dict, path, ApplyFormatting(path, value, opts), opts);
                     } else {
                         FlattenInternal(value, dict, path, depth + tupleDepth + 1, opts, activeObjects);
                     }
@@ -457,12 +458,9 @@ namespace OfficeIMO.Data {
                 var colPath = basePath + "." + key;
                 if (ShouldIgnorePath(colPath, opts.Ignore)) continue;
                 if (!IsExplicitPathRelevant(colPath, opts.Columns)) continue;
-                if (dict.Count >= opts.MaxColumns && !dict.ContainsKey(colPath)) {
-                    throw new InvalidDataException(
-                        $"Object flattening exceeds the {opts.MaxColumns}-column limit.");
-                }
+                EnsureColumnCapacity(dict, colPath, opts);
                 var value = accessors.GetValue(item);
-                dict[colPath] = ApplyFormatting(colPath, value, opts);
+                SetColumnValue(dict, colPath, ApplyFormatting(colPath, value, opts), opts);
             }
         }
 
@@ -475,7 +473,7 @@ namespace OfficeIMO.Data {
                 var value = prop.GetValue(obj);
 
                 if (value == null) {
-                    dict[path] = ApplyNullPolicy(path, null, opts);
+                    SetColumnValue(dict, path, ApplyNullPolicy(path, null, opts), opts);
                     continue;
                 }
 
@@ -483,12 +481,13 @@ namespace OfficeIMO.Data {
                     if (opts.CollectionMapColumns.TryGetValue(path, out var map)) {
                         MapCollectionToColumns(path, enumerable, map, dict, opts);
                     } else {
-                        dict[path] = HandleCollection(path, enumerable, opts);
+                        EnsureColumnCapacity(dict, path, opts);
+                        SetColumnValue(dict, path, HandleCollection(path, enumerable, opts), opts);
                     }
                     continue;
                 }
 
-                dict[path] = ApplyFormatting(path, value, opts);
+                SetColumnValue(dict, path, ApplyFormatting(path, value, opts), opts);
             }
         }
 
@@ -666,6 +665,25 @@ namespace OfficeIMO.Data {
             }
 
             return false;
+        }
+
+        private static void SetColumnValue(
+            Dictionary<string, object?> columns,
+            string path,
+            object? value,
+            ObjectFlattenerOptions options) {
+            EnsureColumnCapacity(columns, path, options);
+            columns[path] = value;
+        }
+
+        private static void EnsureColumnCapacity(
+            Dictionary<string, object?> columns,
+            string path,
+            ObjectFlattenerOptions options) {
+            if (columns.Count >= options.MaxColumns && !columns.ContainsKey(path)) {
+                throw new InvalidDataException(
+                    $"Object flattening exceeds the {options.MaxColumns}-column limit.");
+            }
         }
 
         private sealed class ObjectReferenceComparer : IEqualityComparer<object> {

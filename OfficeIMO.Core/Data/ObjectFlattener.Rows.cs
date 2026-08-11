@@ -12,22 +12,33 @@ namespace OfficeIMO.Data {
             IEnumerable<T> source,
             ObjectFlattenerOptions options,
             string consumerName,
-            int headerRowCount) {
+            int headerRowCount,
+            bool enforceEmptyProjectionLimits = true) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (headerRowCount < 0) throw new ArgumentOutOfRangeException(nameof(headerRowCount));
             ValidateLimits(options);
 
             List<T> items = MaterializeRowsBounded(source, options, consumerName);
+            if (items.Count == 0 && !enforceEmptyProjectionLimits) {
+                return new ObjectTableProjection(
+                    new List<Dictionary<string, object?>>(),
+                    new List<string>());
+            }
+
             var rows = new List<Dictionary<string, object?>>(items.Count);
             var discoveredColumns = new List<string>();
             var discoveredColumnSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            List<string>? explicitColumns = null;
+            if (options.Columns != null && options.Columns.Length > 0) {
+                var explicitColumnCandidates = new List<string>(Math.Min(options.Columns.Length, options.MaxColumns));
+                AddExplicitColumnsBounded(explicitColumnCandidates, options, consumerName);
+                explicitColumns = ResolvePaths(explicitColumnCandidates, options);
+            }
 
             if (items.Count == 0) {
-                if (!ObjectDictionaryAdapter.IsDictionaryType(typeof(T))) {
+                if (explicitColumns == null && !ObjectDictionaryAdapter.IsDictionaryType(typeof(T))) {
                     discoveredColumns.AddRange(GetPaths(typeof(T), options));
-                } else if (options.Columns != null && options.Columns.Length > 0) {
-                    AddExplicitColumnsBounded(discoveredColumns, options, consumerName);
                 }
             }
 
@@ -43,10 +54,15 @@ namespace OfficeIMO.Data {
                         discoveredColumns.Add(path);
                     }
                 }
-                EnsureTableCellLimit(rows.Count, discoveredColumns.Count, headerRowCount, options, consumerName);
+                EnsureTableCellLimit(
+                    rows.Count,
+                    explicitColumns?.Count ?? discoveredColumns.Count,
+                    headerRowCount,
+                    options,
+                    consumerName);
             }
 
-            List<string> columns = ResolvePaths(discoveredColumns, options);
+            List<string> columns = explicitColumns ?? ResolvePaths(discoveredColumns, options);
             if (columns.Count > options.MaxColumns) {
                 throw new InvalidDataException(
                     $"{consumerName} exceeds the {options.MaxColumns}-column materialization limit.");

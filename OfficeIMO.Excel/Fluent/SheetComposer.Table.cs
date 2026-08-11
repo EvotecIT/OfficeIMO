@@ -23,7 +23,8 @@ namespace OfficeIMO.Excel.Fluent {
             opts.MaxColumns = System.Math.Min(opts.MaxColumns, A1.MaxColumns);
             var flattener = new ObjectFlattener();
 
-            ObjectTableProjection projection = flattener.FlattenRows(items, opts, "TableFrom", headerRowCount: 1);
+            ObjectTableProjection projection = flattener.FlattenRows(
+                items, opts, "TableFrom", headerRowCount: 1, enforceEmptyProjectionLimits: false);
             IReadOnlyList<System.Collections.Generic.Dictionary<string, object?>> rows = projection.Rows;
             if (rows.Count == 0) {
                 Sheet.Cell(_row, 1, "(no data)");

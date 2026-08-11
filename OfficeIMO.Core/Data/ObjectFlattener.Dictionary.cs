@@ -19,30 +19,27 @@ namespace OfficeIMO.Data {
                 string path = string.IsNullOrEmpty(prefix) ? name! : prefix + "." + name;
                 if (ShouldIgnorePath(path, opts.Ignore)) continue;
                 if (!IsExplicitPathRelevant(path, opts.Columns)) continue;
-                if (dict.Count >= opts.MaxColumns && !dict.ContainsKey(path)) {
-                    throw new InvalidDataException(
-                        $"Object flattening exceeds the {opts.MaxColumns}-column limit.");
-                }
 
                 object? value = entry.Value;
                 if (value == null) {
-                    dict[path] = ApplyNullPolicy(path, null, opts);
+                    SetColumnValue(dict, path, ApplyNullPolicy(path, null, opts), opts);
                     continue;
                 }
 
                 bool expand = opts.ExpandProperties.Contains(name!) || opts.ExpandProperties.Contains(path);
                 if (expand && !IsSimple(value.GetType()) && depth + 1 < opts.MaxDepth) {
-                    if (opts.IncludeFullObjects) dict[path] = value;
+                    if (opts.IncludeFullObjects) SetColumnValue(dict, path, value, opts);
                     FlattenInternal(value, dict, path, depth + 1, opts, activeObjects);
                     continue;
                 }
 
                 if (value is IEnumerable enumerable && value is not string) {
-                    dict[path] = HandleCollection(path, enumerable, opts);
+                    EnsureColumnCapacity(dict, path, opts);
+                    SetColumnValue(dict, path, HandleCollection(path, enumerable, opts), opts);
                     continue;
                 }
 
-                dict[path] = ApplyFormatting(path, value, opts);
+                SetColumnValue(dict, path, ApplyFormatting(path, value, opts), opts);
             }
         }
     }

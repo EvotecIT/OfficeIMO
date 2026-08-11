@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
 
-        public void ObjectTableExplicitColumnsCountsOnlyResolvedDistinctPaths() {
+        public void ObjectTableExplicitColumnsPreservesDistinctRequestedSchema() {
 
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -100,12 +100,14 @@ namespace OfficeIMO.Tests {
 
             PowerPointTable table = slide.AddTable(rows, options => {
                 options.Columns = new[] { "Name", "Name", "Missing" };
-                options.MaxColumns = 1;
+                options.MaxColumns = 2;
             });
 
-            Assert.Equal(1, table.Columns);
+            Assert.Equal(2, table.Columns);
             Assert.Equal("Name", table.GetCell(0, 0).Text);
+            Assert.Equal("Missing", table.GetCell(0, 1).Text);
             Assert.Equal("Alice", table.GetCell(1, 0).Text);
+            Assert.Equal(string.Empty, table.GetCell(1, 1).Text);
         }
 
         [Fact]

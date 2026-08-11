@@ -95,7 +95,8 @@ namespace OfficeIMO.Excel.Fluent {
                 opts.MaxColumns = System.Math.Min(opts.MaxColumns, A1.MaxColumns);
                 var flattener = new ObjectFlattener();
 
-                ObjectTableProjection projection = flattener.FlattenRows(items, opts, "ColumnComposer TableFrom", headerRowCount: 1);
+                ObjectTableProjection projection = flattener.FlattenRows(
+                    items, opts, "ColumnComposer TableFrom", headerRowCount: 1, enforceEmptyProjectionLimits: false);
                 IReadOnlyList<Dictionary<string, object?>> rows = projection.Rows;
                 if (rows.Count == 0) {
                     _sheet.Cell(_row, _baseCol, "(no data)");
