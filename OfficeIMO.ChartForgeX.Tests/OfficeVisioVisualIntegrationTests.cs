@@ -11,7 +11,7 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.ChartForgeX.Tests;
 
-public sealed class OfficeVisioVisualIntegrationTests {
+public sealed partial class OfficeVisioVisualIntegrationTests {
     [Fact]
     public void TopologyEnvelopeCreatesEditableValidatedVsdxWithShapeDataAndLinks() {
         VisualArtifactInterchangeEnvelope envelope = CreateTopologyEnvelope();
@@ -854,6 +854,8 @@ public sealed class OfficeVisioVisualIntegrationTests {
         envelope.Edges.Add(Message("response", "service", "client", "Response", 1));
         VisualArtifactInterchangeAnnotation start = SequenceActivation("activation-start", "service", true, 0);
         start.Extensions["Source"] = "Mermaid";
+        start.Extensions["Owner"] = "Primary";
+        start.Extensions["owner"] = "Secondary";
         VisualArtifactInterchangeAnnotation stop = SequenceActivation("activation-stop", "service", false, 1);
         stop.Extensions["Reason"] = "Complete";
         envelope.Annotations.Add(start);
@@ -864,8 +866,14 @@ public sealed class OfficeVisioVisualIntegrationTests {
         VisioShape activation = Assert.Single(result.Page.Shapes, shape => shape.Id == "activation-start");
         Assert.Equal("activation-start,activation-stop", activation.GetShapeDataValue("CFX.ActivationEventIds"));
         Assert.Equal("Mermaid", activation.GetShapeDataValue("CFX.ActivationEvent.1.Extension.Source"));
+        Assert.Equal("Primary", activation.GetShapeDataValue("CFX.ActivationEvent.1.Extension.Owner"));
+        Assert.Equal("Secondary", activation.GetShapeDataValue("CFX.ActivationEvent.1.Extension.owner [2]"));
         Assert.Equal("Complete", activation.GetShapeDataValue("CFX.ActivationEvent.2.Extension.Reason"));
         Assert.Equal("False", activation.GetShapeDataValue("CFX.ActivationEvent.2.State"));
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == OfficeVisioVisualDiagnosticCode.ExtensionKeyRenamed &&
+            diagnostic.EntityKind == OfficeVisioVisualEntityKind.Artifact &&
+            diagnostic.Severity == OfficeVisioVisualDiagnosticSeverity.Information);
     }
 
     [Fact]

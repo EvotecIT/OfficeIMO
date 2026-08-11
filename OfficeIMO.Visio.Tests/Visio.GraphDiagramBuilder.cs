@@ -439,6 +439,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GraphDiagramBuilderNormalizesImportedNodeIdBeforeApplyingRecordState() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            var record = new VisioGraphNodeRecord("  service  ", "Service") {
+                FillColor = Color.FromRgb(230, 240, 250),
+                LineColor = Color.FromRgb(25, 50, 75),
+                HyperlinkAddress = "https://example.org/service",
+                HyperlinkDescription = "Service runbook",
+                IsRoot = true
+            };
+            record.ShapeData.Add("Owner", "Platform");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .GraphDiagram("Normalized imported ids", graph => graph.Import(new[] { record }, Array.Empty<VisioGraphEdgeRecord>()));
+
+            VisioShape service = Assert.Single(document.Pages[0].Shapes, shape => shape.Id == "service");
+            Assert.Equal(Color.FromRgb(230, 240, 250), service.FillColor);
+            Assert.Equal(Color.FromRgb(25, 50, 75), service.LineColor);
+            Assert.Equal("Platform", service.GetShapeDataValue("Owner"));
+            Assert.Contains(service.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/service" && hyperlink.Description == "Service runbook");
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioShape loadedService = Assert.Single(loaded.Pages[0].Shapes, shape => shape.Id == "service");
+            Assert.Equal("Platform", loadedService.GetShapeDataValue("Owner"));
+            Assert.Contains(loadedService.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/service");
+        }
+
+        [Fact]
         public void GraphDiagramBuilderImportsClustersWithMetadataAndHyperlinks() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioGraphNodeRecord idp = new("idp", "Entra ID") {

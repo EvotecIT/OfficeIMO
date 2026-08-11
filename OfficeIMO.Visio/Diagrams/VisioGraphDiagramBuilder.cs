@@ -522,28 +522,29 @@ namespace OfficeIMO.Visio.Diagrams {
 
         private void AddNodeRecord(VisioGraphNodeRecord record) {
             if (record == null) throw new ArgumentNullException(nameof(record));
+            string nodeId = RequireId(record.Id, nameof(record.Id), "Node id");
             if (record.Stencil != null) {
-                StencilNode(record.Id, record.Text, record.Stencil);
+                StencilNode(nodeId, record.Text, record.Stencil);
             } else if (record.StencilCatalog != null && record.StencilQueries.Count > 0) {
-                StencilNode(record.Id, record.Text, record.StencilCatalog, record.StencilQueries.ToArray());
+                StencilNode(nodeId, record.Text, record.StencilCatalog, record.StencilQueries.ToArray());
             } else {
-                Node(record.Id, record.Text, record.Kind);
+                Node(nodeId, record.Text, record.Kind);
             }
 
-            NodeItem node = GetKnownNode(record.Id, nameof(record.Id));
+            NodeItem node = GetKnownNode(nodeId, nameof(record.Id));
             node.FillColor = record.FillColor;
             node.LineColor = record.LineColor;
 
             foreach (KeyValuePair<string, string?> item in record.ShapeData) {
-                NodeShapeData(record.Id, item.Key, item.Value);
+                NodeShapeData(nodeId, item.Key, item.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(record.HyperlinkAddress)) {
-                NodeHyperlink(record.Id, record.HyperlinkAddress!, record.HyperlinkDescription, record.HyperlinkSubAddress);
+                NodeHyperlink(nodeId, record.HyperlinkAddress!, record.HyperlinkDescription, record.HyperlinkSubAddress);
             }
 
             if (record.IsRoot) {
-                Root(record.Id);
+                Root(nodeId);
             }
         }
 

@@ -71,7 +71,9 @@ public enum OfficeVisioVisualDiagnosticCode {
     /// <summary>A source hyperlink was not projected as an active native hyperlink.</summary>
     HyperlinkNotProjected,
     /// <summary>A semantic has no more specific diagnostic category.</summary>
-    SemanticLoss
+    SemanticLoss,
+    /// <summary>Typed detail rows were retained but not rendered.</summary>
+    DetailsNotRendered
 }
 
 /// <summary>Identifies the source entity associated with a projection diagnostic.</summary>

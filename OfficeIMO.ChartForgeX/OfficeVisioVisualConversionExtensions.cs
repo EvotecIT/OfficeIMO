@@ -319,6 +319,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
         ReportArtifactAccessibilityFidelity(envelope, report);
         ReportArtifactPresentationFidelity(envelope, report);
         ReportScenarioFidelity(envelope, report);
+        ReportSequenceSemanticFidelity(envelope, report);
     }
 
     private static IReadOnlyList<SequenceActivationProjection> AddSequenceActivations(
