@@ -612,10 +612,12 @@ namespace OfficeIMO.Word {
         /// <param name="paragraphs"></param>
         /// <returns></returns>
         internal static List<WordParagraph> ConvertParagraphsToWordParagraphs(WordDocument document, IEnumerable<Paragraph> paragraphs) {
-            var list = new List<WordParagraph>();
+            var list = paragraphs is ICollection<Paragraph> collection
+                ? new List<WordParagraph>(collection.Count)
+                : new List<WordParagraph>();
 
             foreach (Paragraph paragraph in paragraphs) {
-                list.AddRange(ConvertParagraphToWordParagraphs(document, paragraph));
+                AppendParagraphToWordParagraphs(document, paragraph, list);
             }
 
             return list;
@@ -634,9 +636,45 @@ namespace OfficeIMO.Word {
             Paragraph paragraph,
             bool splitPaginationMarkers = false,
             CancellationToken cancellationToken = default) {
-            cancellationToken.ThrowIfCancellationRequested();
             var list = new List<WordParagraph>();
+            AppendParagraphToWordParagraphs(document, paragraph, list, splitPaginationMarkers, cancellationToken);
+            return list;
+        }
+
+        private static void AppendParagraphToWordParagraphs(
+            WordDocument document,
+            Paragraph paragraph,
+            List<WordParagraph> list,
+            bool splitPaginationMarkers = false,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             var childElements = paragraph.ChildElements;
+            if (!splitPaginationMarkers) {
+                if (childElements.Count == 0) {
+                    list.Add(new WordParagraph(document, paragraph));
+                    return;
+                }
+
+                if (childElements.Count == 1) {
+                    if (childElements[0] is Run onlyRun) {
+                        list.Add(new WordParagraph(document, paragraph, onlyRun));
+                        return;
+                    }
+
+                    if (childElements[0] is ParagraphProperties) {
+                        list.Add(new WordParagraph(document, paragraph));
+                        return;
+                    }
+                }
+
+                if (childElements.Count == 2 &&
+                    childElements[0] is ParagraphProperties &&
+                    childElements[1] is Run contentRun) {
+                    list.Add(new WordParagraph(document, paragraph, contentRun));
+                    return;
+                }
+            }
+
             if (childElements.Count == 1 && childElements[0] is ParagraphProperties) {
                 // basically empty, we still want to track it, but that's about it
                 list.Add(new WordParagraph(document, paragraph));
@@ -789,7 +827,6 @@ namespace OfficeIMO.Word {
                 // add empty word paragraph
                 list.Add(new WordParagraph(document, paragraph));
             }
-            return list;
         }
 
         private static List<Run> ExtractComplexFieldResultRuns(IReadOnlyList<Run> fieldRuns) {

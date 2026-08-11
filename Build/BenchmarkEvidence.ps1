@@ -30,7 +30,8 @@ function Get-BenchmarkEvidenceCaseIdentity {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        [object] $Row
+        [object] $Row,
+        [string[]] $VariableName
     )
 
     $scenario = [string] $Row.Scenario
@@ -39,11 +40,14 @@ function Get-BenchmarkEvidenceCaseIdentity {
     }
 
     $ignoredVariables = @('namespace', 'type', 'fullname')
+    $restrictVariables = $PSBoundParameters.ContainsKey('VariableName')
     $variableParts = @(
         if ($null -ne $Row.Variables) {
             $Row.Variables.GetEnumerator() |
                 Where-Object {
-                    ([string] $_.Key).ToLowerInvariant() -notin $ignoredVariables
+                    $key = ([string] $_.Key).ToLowerInvariant()
+                    $key -notin $ignoredVariables -and
+                    (-not $restrictVariables -or $key -in $VariableName)
                 } |
                 Sort-Object { [string] $_.Key } |
                 ForEach-Object {
