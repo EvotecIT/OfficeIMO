@@ -129,6 +129,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal string UnsupportedReplacedElementLayout = string.Empty;
     internal bool BorderBox;
     internal bool PreserveWhitespace;
+    internal bool PreventTextWrapping;
     internal string ListStyleType = string.Empty;
     internal string TextTransform = "none";
     internal string Direction = "ltr";

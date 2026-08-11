@@ -88,6 +88,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
             PreserveWhitespace = IsPreformatted(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
+            PreventTextWrapping = PreventsTextWrapping(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
             ListStyleType = ResolveListStyleType(computed),
             TextTransform = string.IsNullOrWhiteSpace(computed.GetValue("text-transform")) ? parent?.TextTransform ?? "none" : computed.GetValue("text-transform").Trim().ToLowerInvariant(),
             Direction = direction,
@@ -403,6 +404,9 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     private static bool IsPreformatted(string tag, string whiteSpace) => tag == "pre" || whiteSpace == "pre" || whiteSpace == "pre-wrap" || whiteSpace == "break-spaces";
+
+    private static bool PreventsTextWrapping(string tag, string whiteSpace) =>
+        tag == "pre" || whiteSpace == "pre" || whiteSpace == "nowrap";
 
     private static void ApplyDefaultMargins(string tag, double fontSize, HtmlRenderBoxStyle style) {
         if (tag == "p" || tag == "pre" || tag == "blockquote" || tag == "table" || tag == "figure" || tag == "ul" || tag == "ol") {

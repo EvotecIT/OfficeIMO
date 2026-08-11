@@ -54,17 +54,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         List<GridItem> items = PlaceGridItems(formattingItems, explicitColumns, explicitRows, style, source, areas, columnLineNames, rowLineNames, out int columnCount, out _);
         CollapseTrailingAutoFitColumns(style, items, tracks, ref columnCount);
         EnsureGridTrackCount(tracks, columnCount, style.GridAutoColumns, availableBoxWidth, percentageReferenceIsDefinite: true, style, source, "grid-auto-columns");
-        var sizes = tracks.Select(track => track.Kind == GridTrackKind.Fixed ? Math.Max(track.Value, track.Minimum) : track.Minimum).ToList();
-        foreach (GridItem item in items.OrderBy(item => item.ColumnSpan)) {
-            double required = ResolveColumnFlexCrossBasis(item.Item, availableBoxWidth);
-            double current = sizes.Skip(item.Column).Take(item.ColumnSpan).Sum() + style.ColumnGap * Math.Max(0, item.ColumnSpan - 1);
-            double deficit = Math.Max(0D, required - current);
-            if (deficit <= 0D) continue;
-            List<int> flexible = Enumerable.Range(item.Column, item.ColumnSpan).Where(index => tracks[index].Kind != GridTrackKind.Fixed).ToList();
-            if (flexible.Count == 0) flexible.AddRange(Enumerable.Range(item.Column, item.ColumnSpan));
-            double addition = deficit / flexible.Count;
-            foreach (int index in flexible) sizes[index] += addition;
-        }
+        List<double> sizes = ResolveGridIntrinsicTrackBases(
+            tracks,
+            items,
+            availableBoxWidth,
+            style.ColumnGap,
+            includeFractionTracks: true);
 
         double intrinsicContentWidth = sizes.Sum() + style.ColumnGap * Math.Max(0, columnCount - 1);
         double intrinsicBoxWidth = intrinsicContentWidth + style.HorizontalInsets;

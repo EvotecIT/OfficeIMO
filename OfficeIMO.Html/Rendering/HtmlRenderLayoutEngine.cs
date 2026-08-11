@@ -57,6 +57,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<string, string> _runningStringValues = new Dictionary<string, string>(StringComparer.Ordinal);
     private readonly List<HtmlCssRunningStringAssignment> _currentPageRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
     private HtmlCssRunningStringPageContext? _currentRunningStringPage;
+    private IReadOnlyList<double>? _activeSubgridColumnSizes;
+    private double _activeSubgridColumnGap;
 
     internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlResourceSession? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null, CancellationToken cancellationToken = default) {
         _cancellationToken = cancellationToken;

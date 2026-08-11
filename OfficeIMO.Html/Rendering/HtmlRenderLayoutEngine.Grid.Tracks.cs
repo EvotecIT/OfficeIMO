@@ -109,6 +109,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 GridTrack minimumTrack = ParseGridTrackToken(arguments[0], reference, percentageReferenceIsDefinite, style, source, axis);
                 GridTrack maximumTrack = ParseGridTrackToken(arguments[1], reference, percentageReferenceIsDefinite, style, source, axis);
                 maximumTrack.Minimum = minimumTrack.Kind == GridTrackKind.Fixed ? minimumTrack.Value : minimumTrack.Minimum;
+                maximumTrack.MinimumSizing = minimumTrack.MaximumSizing;
                 AddGridTrack(tracks, maximumTrack);
                 return;
             }
@@ -126,8 +127,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string axis) {
         string normalized = token.Trim().ToLowerInvariant();
         if (normalized == "auto") return GridTrack.Auto(normalized);
-        if (normalized == "min-content" || normalized == "max-content") {
-            ReportUnsupportedGridValue(source, axis + "=" + normalized + " (intrinsic keyword)");
+        if (normalized == "min-content") return GridTrack.Intrinsic(GridIntrinsicSizing.MinContent, normalized);
+        if (normalized == "max-content") return GridTrack.Intrinsic(GridIntrinsicSizing.MaxContent, normalized);
+        if (normalized.StartsWith("fit-content(", StringComparison.Ordinal) && normalized.EndsWith(")", StringComparison.Ordinal)) {
+            string argument = normalized.Substring(12, normalized.Length - 13).Trim();
+            if (TryResolveLength(argument, reference, style.Font.Size, out double limit) && limit >= 0D) {
+                return GridTrack.FitContent(limit, normalized);
+            }
+            ReportUnsupportedGridValue(source, axis + "=" + normalized);
             return GridTrack.Auto(normalized);
         }
         if (normalized.EndsWith("fr", StringComparison.Ordinal)
@@ -195,19 +202,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<GridItem> items,
         double availableSize,
         double gap) {
-        var sizes = tracks.Select(track => Math.Max(0D, track.Kind == GridTrackKind.Fixed ? Math.Max(track.Value, track.Minimum) : track.Minimum)).ToList();
-        foreach (GridItem item in items.OrderBy(item => item.ColumnSpan)) {
-            double required = ResolveColumnFlexCrossBasis(item.Item, availableSize);
-            double current = sizes.Skip(item.Column).Take(item.ColumnSpan).Sum() + gap * Math.Max(0, item.ColumnSpan - 1);
-            double deficit = Math.Max(0D, required - current);
-            if (deficit <= 0D) continue;
-            List<int> intrinsicTracks = Enumerable.Range(item.Column, item.ColumnSpan)
-                .Where(index => tracks[index].Kind == GridTrackKind.Auto)
-                .ToList();
-            if (intrinsicTracks.Count == 0) continue;
-            double addition = deficit / intrinsicTracks.Count;
-            foreach (int index in intrinsicTracks) sizes[index] += addition;
-        }
+        List<double> sizes = ResolveGridIntrinsicTrackBases(tracks, items, availableSize, gap, includeFractionTracks: false);
         double trackSpace = Math.Max(0D, availableSize - gap * Math.Max(0, tracks.Count - 1));
         double used = sizes.Sum();
         double remaining = Math.Max(0D, trackSpace - used);
@@ -226,6 +221,43 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return sizes;
     }
 
+    private List<double> ResolveGridIntrinsicTrackBases(
+        IReadOnlyList<GridTrack> tracks,
+        IReadOnlyList<GridItem> items,
+        double availableSize,
+        double gap,
+        bool includeFractionTracks) {
+        var sizes = tracks.Select(track => Math.Max(0D, track.Kind == GridTrackKind.Fixed ? Math.Max(track.Value, track.Minimum) : track.Minimum)).ToList();
+        foreach (GridItem item in items.OrderBy(item => item.ColumnSpan)) {
+            IReadOnlyList<GridTrack> spannedTracks = tracks.Skip(item.Column).Take(item.ColumnSpan).ToList();
+            double required = includeFractionTracks && spannedTracks.Any(track => track.Kind == GridTrackKind.Fraction)
+                ? ResolveGridMaxContentContribution(item.Item, availableSize)
+                : ResolveGridIntrinsicContribution(item.Item, spannedTracks, availableSize);
+            double current = sizes.Skip(item.Column).Take(item.ColumnSpan).Sum() + gap * Math.Max(0, item.ColumnSpan - 1);
+            double deficit = Math.Max(0D, required - current);
+            if (deficit <= 0D) continue;
+            List<int> intrinsicTracks = Enumerable.Range(item.Column, item.ColumnSpan)
+                .Where(index => tracks[index].Kind == GridTrackKind.Auto
+                    || tracks[index].Kind == GridTrackKind.Intrinsic
+                    || includeFractionTracks && tracks[index].Kind == GridTrackKind.Fraction)
+                .ToList();
+            if (intrinsicTracks.Count == 0) {
+                intrinsicTracks.AddRange(Enumerable.Range(item.Column, item.ColumnSpan)
+                    .Where(index => tracks[index].MinimumSizing != GridIntrinsicSizing.None));
+            }
+            if (intrinsicTracks.Count == 0) continue;
+            double addition = deficit / intrinsicTracks.Count;
+            foreach (int index in intrinsicTracks) {
+                double candidate = sizes[index] + addition;
+                double? growthLimit = tracks[index].GrowthLimit;
+                sizes[index] = growthLimit.HasValue
+                    ? Math.Min(candidate, growthLimit.Value)
+                    : candidate;
+            }
+        }
+        return sizes;
+    }
+
     private void ReportFractionalMinimumFallbacks(
         IReadOnlyList<GridTrack> tracks,
         IReadOnlyList<GridItem> items,
@@ -236,7 +268,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bool spansFraction = Enumerable.Range(item.Column, item.ColumnSpan)
                 .Any(index => tracks[index].Kind == GridTrackKind.Fraction);
             if (!spansFraction) continue;
-            double required = ResolveColumnFlexCrossBasis(item.Item, availableSize);
+            double required = ResolveGridMinContentContribution(item.Item, availableSize);
             double allocated = sizes.Skip(item.Column).Take(item.ColumnSpan).Sum() + gap * Math.Max(0, item.ColumnSpan - 1);
             if (required <= allocated + 0.0001D) continue;
             string source = item.Item.Element == null
@@ -244,6 +276,81 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : HtmlRenderStyleResolver.DescribeSource(item.Item.Element);
             ReportUnsupportedGridValue(source, "fractional automatic minimum exceeds allocated track share");
         }
+    }
+
+    private double ResolveGridIntrinsicContribution(
+        FlexItem item,
+        IReadOnlyList<GridTrack> tracks,
+        double availableSize) {
+        bool needsMaxContent = tracks.Any(track =>
+            track.MaximumSizing == GridIntrinsicSizing.MaxContent
+            || track.MinimumSizing == GridIntrinsicSizing.MaxContent
+            || track.Kind == GridTrackKind.Auto);
+        return needsMaxContent
+            ? ResolveGridMaxContentContribution(item, availableSize)
+            : ResolveGridMinContentContribution(item, availableSize);
+    }
+
+    private double ResolveGridMinContentContribution(FlexItem item, double availableSize) {
+        HtmlRenderBoxStyle style = item.Style;
+        if (TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return definite;
+
+        string content = CollapseFlexText(item.TextContent);
+        double measured;
+        if (content.Length == 0) {
+            measured = 1D;
+        } else if (style.PreventTextWrapping) {
+            measured = MeasureText(ApplyTextTransform(content, style.TextTransform), style.Font);
+        } else {
+            measured = content
+                .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+                .Select(token => MeasureText(ApplyTextTransform(token, style.TextTransform), style.Font))
+                .DefaultIfEmpty(1D)
+                .Max();
+        }
+
+        return ResolveGridMeasuredContribution(style, measured);
+    }
+
+    private double ResolveGridMaxContentContribution(FlexItem item, double availableSize) {
+        HtmlRenderBoxStyle style = item.Style;
+        if (TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return definite;
+
+        string content = CollapseFlexText(item.TextContent);
+        double measured = content.Length == 0
+            ? 1D
+            : MeasureText(ApplyTextTransform(content, style.TextTransform), style.Font);
+        return ResolveGridMeasuredContribution(style, measured);
+    }
+
+    private bool TryResolveDefiniteGridContribution(FlexItem item, double availableSize, out double contribution) {
+        HtmlRenderBoxStyle style = item.Style;
+        if (style.ExplicitWidth.HasValue) {
+            double boxWidth = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
+            if (style.MinWidth.HasValue) boxWidth = Math.Max(boxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+            if (style.MaxWidth.HasValue) boxWidth = Math.Min(boxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+            contribution = Math.Max(1D, boxWidth + style.MarginLeft + style.MarginRight);
+            return true;
+        }
+        if (item.TagName == "img" && item.Element != null) {
+            contribution = Math.Max(1D, ResolveReplacedImageBoxWidth(item.Element, style) + style.MarginLeft + style.MarginRight);
+            return true;
+        }
+        if (item.TagName == "table") {
+            contribution = ResolveColumnFlexCrossBasis(item, availableSize);
+            return true;
+        }
+
+        contribution = 0D;
+        return false;
+    }
+
+    private static double ResolveGridMeasuredContribution(HtmlRenderBoxStyle style, double measured) {
+        double boxBasis = measured + style.HorizontalInsets;
+        if (style.MinWidth.HasValue) boxBasis = Math.Max(boxBasis, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+        if (style.MaxWidth.HasValue) boxBasis = Math.Min(boxBasis, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+        double outer = boxBasis + style.MarginLeft + style.MarginRight;
+        return Math.Max(1D, outer);
     }
 
     private static void DistributeGridFractions(IReadOnlyList<GridTrack> tracks, IList<double> sizes, double trackSpace) {
@@ -328,7 +435,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private enum GridTrackKind {
         Fixed,
         Fraction,
-        Auto
+        Auto,
+        Intrinsic
+    }
+
+    private enum GridIntrinsicSizing {
+        None,
+        MinContent,
+        MaxContent
     }
 
     private sealed class GridTrack {
@@ -341,11 +455,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal GridTrackKind Kind { get; }
         internal double Value { get; }
         internal double Minimum { get; set; }
+        internal GridIntrinsicSizing MinimumSizing { get; set; }
+        internal GridIntrinsicSizing MaximumSizing { get; private set; }
+        internal double? GrowthLimit { get; private set; }
         internal string Source { get; }
-        internal GridTrack Clone() => new GridTrack(Kind, Value, Source) { Minimum = Minimum };
+        internal GridTrack Clone() => new GridTrack(Kind, Value, Source) {
+            Minimum = Minimum,
+            MinimumSizing = MinimumSizing,
+            MaximumSizing = MaximumSizing,
+            GrowthLimit = GrowthLimit
+        };
         internal static GridTrack Fixed(double value, string source) => new GridTrack(GridTrackKind.Fixed, value, source);
         internal static GridTrack Fraction(double value, string source) => new GridTrack(GridTrackKind.Fraction, value, source);
         internal static GridTrack Auto(string source) => new GridTrack(GridTrackKind.Auto, 1D, source);
+        internal static GridTrack Intrinsic(GridIntrinsicSizing sizing, string source) => new GridTrack(GridTrackKind.Intrinsic, 0D, source) {
+            MinimumSizing = sizing,
+            MaximumSizing = sizing
+        };
+        internal static GridTrack FitContent(double limit, string source) => new GridTrack(GridTrackKind.Intrinsic, 0D, source) {
+            MinimumSizing = GridIntrinsicSizing.MinContent,
+            MaximumSizing = GridIntrinsicSizing.MaxContent,
+            GrowthLimit = limit
+        };
     }
 
     private sealed class GridAxisLayout {
