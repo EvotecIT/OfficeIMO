@@ -453,6 +453,49 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void ExtractImages_ResolvesReferenceChainedDecodeArrayAndComponentsForLabImage() {
+        byte[] pdf = BuildIccImagePdf(
+            PdfIccProfiles.SrgbIec6196621,
+            new byte[] { 128, 128, 64 },
+            "/N 3",
+            imageEntries: "/Decode 7 0 R",
+            imageColorSpace: "[/Lab << /WhitePoint [0.9505 1 1.089] /Range [-100 100 -100 100] >>]",
+            extraObjects:
+                "7 0 obj\n8 0 R\nendobj\n" +
+                "8 0 obj\n[9 0 R 10 0 R 9 0 R 10 0 R 9 0 R 10 0 R]\nendobj\n" +
+                "9 0 obj\n11 0 R\nendobj\n" +
+                "10 0 obj\n12 0 R\nendobj\n" +
+                "11 0 obj\n0\nendobj\n" +
+                "12 0 obj\n1\nendobj\n");
+
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        OfficeColor expected = OfficeColorSpaceConverter.FromLab(
+            128D / 255D,
+            128D / 255D,
+            64D / 255D,
+            0.9505D,
+            1D,
+            1.089D);
+        Assert.Equal(expected, raster!.GetPixel(0, 0));
+    }
+
+    [Fact]
+    public void ImageDecodeTransformRejectsReferenceCyclesInsteadOfApplyingDefaults() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Decode"] = new PdfReference(7, 0);
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [7] = new PdfIndirectObject(7, 0, new PdfReference(8, 0)),
+            [8] = new PdfIndirectObject(8, 0, new PdfReference(7, 0))
+        };
+
+        Assert.False(PdfImageDecodeTransform.TryCreateColor(dictionary, 1, objects, out _));
+        Assert.False(PdfImageDecodeTransform.TryCreateIndexed(dictionary, objects, out _));
+        Assert.False(PdfImageDecodeTransform.IsIdentityColorDecodeOrAbsent(dictionary, 1, objects));
+    }
+
+    [Fact]
     public void ExtractImages_PreservesExplicitIdentityDecodeForIccRange() {
         byte[] profile = PdfIccProfiles.SrgbIec6196621;
         byte[] pdf = BuildIccImagePdf(
@@ -1094,6 +1137,83 @@ public class PdfIccColorRenderingTests {
                 stream,
                 objects,
                 maxDecodedStreamBytes: 7));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(7, exception.Limit);
+    }
+
+    [Fact]
+    public void IndexedImageDecodeHonorsCallerLimitBeforeNormalizingPixels() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Type"] = new PdfName("XObject");
+        dictionary.Items["Subtype"] = new PdfName("Image");
+        dictionary.Items["Width"] = new PdfNumber(8);
+        dictionary.Items["Height"] = new PdfNumber(1);
+        dictionary.Items["BitsPerComponent"] = new PdfNumber(8);
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var colorSpace = new PdfArray();
+        colorSpace.Items.Add(new PdfName("Indexed"));
+        colorSpace.Items.Add(new PdfName("DeviceRGB"));
+        colorSpace.Items.Add(new PdfNumber(1));
+        colorSpace.Items.Add(new PdfStringObj(new byte[] { 255, 0, 0, 0, 255, 0 }));
+        dictionary.Items["ColorSpace"] = colorSpace;
+        var stream = new PdfStream(dictionary, Compress(new byte[8]));
+        var objects = new Dictionary<int, PdfIndirectObject>();
+
+        Assert.False(ResourceResolver.CanProjectImageColorSpace(dictionary, null, objects, maxDecodedStreamBytes: 7));
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfIndexedImageNormalizer.TryBuildPngFile(
+                colorSpace,
+                width: 8,
+                height: 1,
+                bitsPerComponent: 8,
+                stream,
+                objects,
+                maxDecodedStreamBytes: 7,
+                out _));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(7, exception.Limit);
+    }
+
+    [Fact]
+    public void IndexedSoftMaskDecodeHonorsCallerLimitBeforeNormalizingPixels() {
+        var softMaskDictionary = new PdfDictionary();
+        softMaskDictionary.Items["Type"] = new PdfName("XObject");
+        softMaskDictionary.Items["Subtype"] = new PdfName("Image");
+        softMaskDictionary.Items["Width"] = new PdfNumber(8);
+        softMaskDictionary.Items["Height"] = new PdfNumber(1);
+        softMaskDictionary.Items["BitsPerComponent"] = new PdfNumber(8);
+        softMaskDictionary.Items["ColorSpace"] = new PdfName("DeviceGray");
+        softMaskDictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [7] = new PdfIndirectObject(7, 0, new PdfStream(softMaskDictionary, Compress(new byte[8])))
+        };
+
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Width"] = new PdfNumber(8);
+        dictionary.Items["Height"] = new PdfNumber(1);
+        dictionary.Items["BitsPerComponent"] = new PdfNumber(1);
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        dictionary.Items["SMask"] = new PdfReference(7, 0);
+        var colorSpace = new PdfArray();
+        colorSpace.Items.Add(new PdfName("Indexed"));
+        colorSpace.Items.Add(new PdfName("DeviceRGB"));
+        colorSpace.Items.Add(new PdfNumber(1));
+        colorSpace.Items.Add(new PdfStringObj(new byte[] { 255, 0, 0, 0, 255, 0 }));
+        dictionary.Items["ColorSpace"] = colorSpace;
+        var stream = new PdfStream(dictionary, Compress(new byte[] { 0 }));
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfIndexedImageNormalizer.TryBuildPngFile(
+                colorSpace,
+                width: 8,
+                height: 1,
+                bitsPerComponent: 1,
+                stream,
+                objects,
+                maxDecodedStreamBytes: 7,
+                out _));
 
         Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
         Assert.Equal(7, exception.Limit);
