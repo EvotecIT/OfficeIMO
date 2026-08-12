@@ -503,7 +503,8 @@ public sealed partial class PdfReadPage {
             maxOperands: _limits.MaxContentOperands,
             primitiveVisitor: currentPrimitiveVisitor,
             retainPrimitiveData: retainPrimitiveData,
-            scaleStrokeWidthWithTransform: requireSupportedType3Content);
+            scaleStrokeWidthWithTransform: requireSupportedType3Content,
+            unrenderedShadingVisitor: requireSupportedType3Content ? _ => type3GlyphBudget.RecordFailure() : null);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -738,13 +739,31 @@ public sealed partial class PdfReadPage {
         if (resolved is not PdfDictionary function) return false;
         int? type = TryReadInteger(function.Items.TryGetValue("FunctionType", out PdfObject? typeObject) ? typeObject : null);
         if (type == 2) {
-            return function.Items.TryGetValue("N", out PdfObject? exponentObject) &&
+            IReadOnlyList<double> domain = function.Items.TryGetValue("Domain", out PdfObject? domainObject)
+                ? ReadNumberArray(domainObject)
+                : Array.Empty<double>();
+            bool hasRepresentableRange = !function.Items.TryGetValue("Range", out PdfObject? rangeObject) ||
+                ResolveObject(rangeObject) is PdfNull;
+            return domain.Count == 2 && domain[0] == 0D && domain[1] == 1D &&
+                hasRepresentableRange &&
+                function.Items.TryGetValue("N", out PdfObject? exponentObject) &&
                 ResolveObject(exponentObject) is PdfNumber { Value: 1D };
         }
         if (type != 3 ||
             !function.Items.TryGetValue("Functions", out PdfObject? functionsObject) ||
             ResolveArray(functionsObject) is not PdfArray functions ||
             functions.Items.Count < 2 || functions.Items.Count > 32) return false;
+        if (function.Items.TryGetValue("Range", out PdfObject? stitchedRangeObject) &&
+            ResolveObject(stitchedRangeObject) is not PdfNull) return false;
+        IReadOnlyList<double> encode = function.Items.TryGetValue("Encode", out PdfObject? encodeObject)
+            ? ReadNumberArray(encodeObject)
+            : Array.Empty<double>();
+        if (encode.Count != functions.Items.Count * 2) return false;
+        for (int index = 0; index < functions.Items.Count; index++) {
+            double start = encode[index * 2];
+            double end = encode[index * 2 + 1];
+            if (!((start == 0D && end == 1D) || (start == 1D && end == 0D))) return false;
+        }
         for (int index = 0; index < functions.Items.Count; index++) {
             if (!IsSupportedType3ShadingFunction(functions.Items[index])) return false;
         }

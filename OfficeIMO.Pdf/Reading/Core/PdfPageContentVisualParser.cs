@@ -53,12 +53,13 @@ internal static class PdfPageContentVisualParser {
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
         Action<PdfPageVisualPrimitive>? primitiveVisitor = null,
         bool retainPrimitiveData = true,
-        bool scaleStrokeWidthWithTransform = false) {
+        bool scaleStrokeWidthWithTransform = false,
+        Action<string>? unrenderedShadingVisitor = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, unrenderedShadingVisitor);
         return parser.Parse();
     }
 
@@ -88,6 +89,7 @@ internal static class PdfPageContentVisualParser {
         private readonly Action<PdfPageVisualPrimitive>? _primitiveVisitor;
         private readonly bool _retainPrimitiveData;
         private readonly bool _scaleStrokeWidthWithTransform;
+        private readonly Action<string>? _unrenderedShadingVisitor;
         private readonly List<object> _args = new List<object>(8);
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
         private readonly Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase)> _tilingStack = new Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase)>();
@@ -139,7 +141,8 @@ internal static class PdfPageContentVisualParser {
             int maxOperands,
             Action<PdfPageVisualPrimitive>? primitiveVisitor,
             bool retainPrimitiveData,
-            bool scaleStrokeWidthWithTransform) {
+            bool scaleStrokeWidthWithTransform,
+            Action<string>? unrenderedShadingVisitor) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -159,6 +162,7 @@ internal static class PdfPageContentVisualParser {
             _primitiveVisitor = primitiveVisitor;
             _retainPrimitiveData = primitiveVisitor == null || retainPrimitiveData;
             _scaleStrokeWidthWithTransform = scaleStrokeWidthWithTransform;
+            _unrenderedShadingVisitor = unrenderedShadingVisitor;
             _primitives = primitiveVisitor == null ? new List<PdfPageVisualPrimitive>() : null;
             GraphicsState initialState = initialFillColor.HasValue
                 ? GraphicsState.Default.WithFillColor(initialFillColor.Value, initialFillColorSpace)
@@ -701,10 +705,11 @@ internal static class PdfPageContentVisualParser {
         }
 
         private void PaintShading(string shadingName, double paintOrder) {
-            if (HasHiddenContent() ||
-                _shadings == null ||
+            if (HasHiddenContent()) return;
+            if (_shadings == null ||
                 !_shadings.TryGetValue(shadingName, out PdfPageShadingResource shading) ||
                 !TryGetShadingPaintBounds(out double x, out double y, out double width, out double height)) {
+                _unrenderedShadingVisitor?.Invoke(shadingName);
                 return;
             }
 
