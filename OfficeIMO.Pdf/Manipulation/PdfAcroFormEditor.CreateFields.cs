@@ -13,6 +13,7 @@ internal static partial class PdfAcroFormEditor {
     private const int FieldFlagEdit = 262144;
     private const int FieldFlagSort = 524288;
     private const int FieldFlagFileSelect = 1048576;
+    private const int FieldFlagMultiSelect = 2097152;
     private const int FieldFlagDoNotSpellCheck = 4194304;
     private const int FieldFlagDoNotScroll = 8388608;
     private const int FieldFlagComb = 16777216;
@@ -111,7 +112,7 @@ internal static partial class PdfAcroFormEditor {
         PdfDictionary widget,
         PdfFormFieldCreateOptions options,
         ref int nextObjectNumber) {
-        PdfFormFieldStyle style = options.Style?.Clone() ?? new PdfFormFieldStyle();
+        PdfFormFieldStyle style = CreateButtonCaptionStyle(options.Style);
         style.TextAlignment = PdfFormFieldTextAlignment.Center;
         PdfStream appearance = PdfFormFiller.CreateAuthoredTextWidgetAppearance(
             objects,
@@ -210,12 +211,20 @@ internal static partial class PdfAcroFormEditor {
     }
 
     private static string ResolveInitialValue(PdfFormFieldCreateOptions options) {
-        if ((options.Kind == PdfFormFieldCreationKind.RadioButtonGroup ||
-             options.Kind == PdfFormFieldCreationKind.Choice && options.ChoiceOptions.Count > 0) &&
-            string.IsNullOrEmpty(options.Value)) {
+        if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup && string.IsNullOrEmpty(options.Value)) {
             return options.ChoiceOptions[0];
         }
         return options.Value;
+    }
+
+    internal static PdfFormFieldStyle CreateButtonCaptionStyle(PdfFormFieldStyle? source) {
+        PdfFormFieldStyle style = source?.Clone() ?? new PdfFormFieldStyle();
+        style.IsMultiline = false;
+        style.IsPassword = false;
+        style.IsFileSelect = false;
+        style.IsComb = false;
+        style.MaxLength = null;
+        return style;
     }
 
     private static bool IsChoiceComboBox(PdfFormFieldCreateOptions options) =>

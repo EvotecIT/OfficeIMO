@@ -29,6 +29,7 @@ public class PdfSanitizerTests {
         Assert.Empty(info.CatalogActions);
         Assert.Empty(info.Pages[0].PageActions);
         Assert.Single(info.GetLinkAnnotationsByUri("https://example.com/safe"));
+        Assert.Contains(info.Annotations, annotation => annotation.Subtype == "Text" && annotation.Contents == "keep me");
         Assert.Empty(PdfSanitizer.Analyze(sanitized));
         string raw = PdfEncoding.Latin1GetString(sanitized);
         Assert.DoesNotContain("app.alert", raw, StringComparison.Ordinal);
@@ -74,9 +75,78 @@ public class PdfSanitizerTests {
 
         Assert.True(result.IsSanitized);
         Assert.Contains(info.CatalogActions, action => action.ActionType == "JavaScript");
+        Assert.True(result.PreservationReport.IsPreserved);
+        Assert.Contains(result.PreservationReport.Original.CatalogActions, action => action.ActionType == "JavaScript");
+        Assert.Contains(result.PreservationReport.Rewritten.CatalogActions, action => action.ActionType == "JavaScript");
         Assert.DoesNotContain(result.RemovedFindings, finding => finding.Detail == "JavaScript");
         Assert.Contains(result.RemovedFindings, finding => finding.Detail == "Launch");
         Assert.Contains(result.RemovedFindings, finding => finding.Detail == "SubmitForm");
+    }
+
+    [Fact]
+    public void Sanitize_PreservationIncludesSafeUriActionsAndOpeningDestinations() {
+        byte[] source = BuildSafeViewerActionPdf();
+
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(source);
+        PdfDocumentInfo info = result.ToDocument().Inspect();
+
+        Assert.True(result.PreservationReport.IsPreserved);
+        Assert.NotNull(info.OpenAction);
+        Assert.Equal("Destination", info.OpenAction!.ActionType);
+        Assert.Contains(info.Pages[0].PageActions, action => action.ActionType == "URI");
+    }
+
+    [Fact]
+    public void Sanitize_ReusesCustomReadLimitsForItsRewrittenArtifact() {
+        byte[] source = BuildActiveContentPdf();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = source.LongLength }
+        };
+
+        PdfSanitizationResult result = PdfDocument.Open(source, readOptions).Sanitize();
+
+        Assert.True(result.IsSanitized);
+        Assert.True(result.PreservationReport.IsPreserved);
+        Assert.Empty(result.RemainingFindings);
+    }
+
+    [Theory]
+    [InlineData("RichMedia")]
+    [InlineData("Movie")]
+    [InlineData("Sound")]
+    [InlineData("Screen")]
+    [InlineData("3D")]
+    [InlineData("FileAttachment")]
+    public void Sanitize_ExcludesEveryPolicyRemovedRichAnnotationFromPreservation(string subtype) {
+        byte[] source = BuildSingleAnnotationPdf(subtype);
+
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(source);
+
+        Assert.True(result.PreservationReport.IsPreserved);
+        Assert.Empty(PdfInspector.Inspect(result.ToBytes()).Annotations);
+        Assert.Contains(result.RemovedFindings, finding => finding.Kind == PdfSanitizationFindingKind.RichMedia && finding.Detail == subtype);
+    }
+
+    [Fact]
+    public void RewritePreservation_CanCompareOnlyAllowlistedActionTypes() {
+        byte[] source = BuildActiveContentPdf();
+        var policy = new PdfSanitizationOptions();
+        policy.AllowedActionTypes.Add("JavaScript");
+        byte[] sanitized = PdfSanitizer.Sanitize(source, policy).ToBytes();
+        var options = new PdfRewritePreservationOptions {
+            PreserveCatalogActions = true,
+            PreservePageActions = true,
+            PreserveOpenAction = true,
+            PreserveLinkAnnotations = false,
+            PreserveAnnotations = false,
+            PreserveEmbeddedFiles = false,
+            PreserveRevisionStructure = false
+        };
+        options.PreservedActionTypes.Add("JavaScript");
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.Assess(source, sanitized, options);
+
+        Assert.True(report.IsPreserved, string.Join(Environment.NewLine, report.Issues.Select(static issue => issue.ToString())));
     }
 
     [Fact]
@@ -103,7 +173,7 @@ public class PdfSanitizerTests {
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "endobj",
             "3 0 obj",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /Annots [5 0 R 9 0 R 10 0 R 11 0 R] /AA << /O 7 0 R >> >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /Annots [5 0 R 9 0 R 10 0 R 11 0 R 15 0 R] /AA << /O 7 0 R >> >>",
             "endobj",
             "4 0 obj",
             "<< /Length 0 >>",
@@ -141,11 +211,36 @@ public class PdfSanitizerTests {
             "14 0 obj",
             "<< /S /GoToE /F << /F (embedded.pdf) >> /D [0 /Fit] >>",
             "endobj",
+            "15 0 obj",
+            "<< /Type /Annot /Subtype /Text /Rect [200 20 220 40] /Contents (keep me) >>",
+            "endobj",
             "trailer",
-            "<< /Root 1 0 R /Size 15 >>",
+            "<< /Root 1 0 R /Size 16 >>",
             "%%EOF"
         }) + "\n";
 
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildSingleAnnotationPdf(string subtype) {
+        string annotation = "<< /Type /Annot /Subtype /" + subtype + " /Rect [20 20 180 60] >>";
+        string pdf = "%PDF-1.7\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /Annots [5 0 R] >>\nendobj\n" +
+            "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+            "5 0 obj\n" + annotation + "\nendobj\n" +
+            "trailer\n<< /Root 1 0 R /Size 6 >>\n%%EOF\n";
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildSafeViewerActionPdf() {
+        string pdf = "%PDF-1.7\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /Fit] >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /AA << /O << /S /URI /URI (https://example.com/safe) >> >> >>\nendobj\n" +
+            "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+            "trailer\n<< /Root 1 0 R /Size 5 >>\n%%EOF\n";
         return Encoding.ASCII.GetBytes(pdf);
     }
 }

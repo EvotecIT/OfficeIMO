@@ -178,6 +178,9 @@ internal static partial class PdfAcroFormEditor {
         if (!IsFinite(options.FontSize) || options.FontSize <= 0D) throw new ArgumentOutOfRangeException(nameof(options), "Field font size must be a positive finite number.");
         if (options.JavaScript is not null && options.Kind == PdfFormFieldCreationKind.Signature) throw new ArgumentException("Signature fields do not support widget JavaScript authoring.", nameof(options));
         if (options.Kind == PdfFormFieldCreationKind.PushButton && string.IsNullOrWhiteSpace(options.Caption)) throw new ArgumentException("Push-button caption cannot be empty.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.CheckBox && (options.FieldFlags & (FieldFlagRadio | FieldFlagPushButton)) != 0) throw new ArgumentException("Check-box fields cannot declare radio or push-button flags.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup && (options.FieldFlags & FieldFlagPushButton) != 0) throw new ArgumentException("Radio-button fields cannot declare the push-button flag.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.PushButton && (options.FieldFlags & FieldFlagRadio) != 0) throw new ArgumentException("Push-button fields cannot declare the radio-button flag.", nameof(options));
         if (options.Kind == PdfFormFieldCreationKind.CheckBox) ValidateButtonStateName(options.CheckedValueName, "Check-box selected value");
         if (options.Kind == PdfFormFieldCreationKind.Choice || options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
             ValidateCreateOptionsList(options);
@@ -196,10 +199,18 @@ internal static partial class PdfAcroFormEditor {
             bool isComboBox = IsChoiceComboBox(options);
             bool isEditableChoice = IsEditableChoice(options);
             if (isEditableChoice && !isComboBox) throw new ArgumentException("Editable choice fields must be combo boxes.", nameof(options));
+            if (isComboBox && (options.FieldFlags & FieldFlagMultiSelect) != 0) throw new ArgumentException("Combo-box choice fields cannot also be multi-select fields.", nameof(options));
             if (!string.IsNullOrEmpty(options.Value) && !isEditableChoice && !options.ChoiceOptions.Contains(options.Value, StringComparer.Ordinal)) throw new ArgumentException("Choice value must match one of the provided options.", nameof(options));
             if (options.DefaultValue is not null && !isEditableChoice && !options.ChoiceOptions.Contains(options.DefaultValue, StringComparer.Ordinal)) throw new ArgumentException("Choice default value must match one of the provided options.", nameof(options));
         }
-        if (options.Style?.IsComb == true && !options.Style.MaxLength.HasValue) throw new ArgumentException("Comb text fields require a maximum length.", nameof(options));
+        int fieldFlags = GetCreateFieldFlags(options);
+        bool requestsComb = options.Style?.IsComb == true || (options.FieldFlags & FieldFlagComb) != 0;
+        if (requestsComb &&
+            (options.Kind != PdfFormFieldCreationKind.Text ||
+             options.Style?.MaxLength is null ||
+             (fieldFlags & (FieldFlagMultiline | FieldFlagPassword | FieldFlagFileSelect)) != 0)) {
+            throw new ArgumentException("PDF comb text fields require MaxLength and cannot also be multiline, password, or file-select fields.", nameof(options));
+        }
     }
 
     private static void ValidateCreateOptionsList(PdfFormFieldCreateOptions options) {
@@ -216,7 +227,7 @@ internal static partial class PdfAcroFormEditor {
     private static void ValidateButtonStateName(string value, string description) {
         Guard.NotNullOrWhiteSpace(value, nameof(value));
         if (string.Equals(value, "Off", StringComparison.Ordinal)) throw new ArgumentException(description + " cannot be Off.", nameof(value));
-        for (int i = 0; i < value.Length; i++) if (value[i] < 0x21 || value[i] > 0x7E) throw new ArgumentException(description + " must contain only printable ASCII PDF name characters.", nameof(value));
+        for (int i = 0; i < value.Length; i++) if (value[i] < 0x20 || value[i] > 0x7E) throw new ArgumentException(description + " must contain only printable ASCII PDF name characters.", nameof(value));
     }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);

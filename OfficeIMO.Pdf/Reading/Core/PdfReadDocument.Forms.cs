@@ -354,8 +354,12 @@ public sealed partial class PdfReadDocument {
 
     private bool TryReadFormWidget(PdfDictionary dictionary, string? fieldName, int? objectNumber, IReadOnlyDictionary<int, int> widgetPageNumbers, PdfFormWidgetActionReadBudget actionBudget, out PdfFormWidget? widget) {
         widget = null;
-        if (!IsWidget(dictionary) ||
-            !TryReadRectangle(dictionary.Items.TryGetValue("Rect", out var rectObject) ? rectObject : null, out var rect)) {
+        if (!IsWidget(dictionary)) {
+            return false;
+        }
+
+        IReadOnlyList<PdfFormWidgetAction> actions = ReadWidgetActions(dictionary, actionBudget);
+        if (!TryReadRectangle(dictionary.Items.TryGetValue("Rect", out var rectObject) ? rectObject : null, out var rect)) {
             return false;
         }
 
@@ -375,7 +379,7 @@ public sealed partial class PdfReadDocument {
             TryReadName(dictionary, "AS"),
             TryReadInteger(dictionary, "F"),
             ReadWidgetNormalAppearanceStates(dictionary),
-            ReadWidgetActions(dictionary, actionBudget));
+            actions);
         return true;
     }
 
@@ -458,7 +462,9 @@ public sealed partial class PdfReadDocument {
                     depth + 1);
             }
         } else if (resolved is PdfDictionary) {
-            AddWidgetAction(actionPath, actionObject, actions, budget, pathReferences, depth + 1);
+            // The /Next reference is already present in this path's cycle guard. Pass the
+            // resolved dictionary so AddWidgetAction does not reject the same reference twice.
+            AddWidgetAction(actionPath, resolved, actions, budget, pathReferences, depth + 1);
         }
     }
 

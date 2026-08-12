@@ -140,6 +140,87 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void Fill_RejectsAuthoredPushButtonsWithoutReplacingTheirCaptionAppearance() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Push button fill guard")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "calculate",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "Calculate"
+        })).ToBytes();
+
+        PdfDocument opened = PdfDocument.Open(authored);
+        Assert.Throws<ArgumentException>(() => opened.Forms.Fill(new Dictionary<string, string> {
+            ["calculate"] = "On"
+        }));
+
+        PdfFormField button = PdfInspector.Inspect(authored).FormFieldsByName["calculate"];
+        Assert.True(button.IsPushButton);
+        Assert.Equal(authored, opened.ToBytes());
+    }
+
+    [Fact]
+    public void Preflight_DoesNotAdvertisePushButtonsAsFillableValueFields() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Push button preflight")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "calculate",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "Calculate"
+        })).ToBytes();
+
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(authored);
+
+        Assert.False(preflight.CanFillSimpleFormFields);
+        Assert.False(preflight.Can(PdfPreflightCapability.FillSimpleFormFields));
+    }
+
+    [Fact]
+    public void Create_AllowsEscapableSpacesInRadioOptionNames() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Radio names")).ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "size",
+            Kind = PdfFormFieldCreationKind.RadioButtonGroup,
+            ChoiceOptions = new[] { "Extra Large" },
+            Value = "Extra Large",
+            Width = 150,
+            Height = 24
+        }));
+
+        Assert.Equal("Extra Large", result.ToDocument().Inspect().FormFieldsByName["size"].Value);
+    }
+
+    [Fact]
+    public void Create_RejectsMultiSelectComboChoiceFlags() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Choice flags")).ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "choice",
+            Kind = PdfFormFieldCreationKind.Choice,
+            ChoiceOptions = new[] { "One", "Two" },
+            IsComboBox = true,
+            FieldFlags = 2097152
+        })));
+    }
+
+    [Fact]
+    public void Edit_AllowsSubsequentEditsWhenActiveContentBelongsOnlyToFormWidgets() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Repeated scripted edits")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "calculate",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "Calculate",
+            JavaScript = "app.alert('kept');"
+        })).ToBytes();
+
+        PdfAcroFormEditResult renamed = PdfDocument.Open(authored).Forms.Edit(edit => edit.Rename("calculate", "recalculate"));
+
+        PdfFormField field = Assert.Single(renamed.Fields);
+        Assert.Equal("recalculate", field.Name);
+        Assert.Equal("app.alert('kept');", field.JavaScript);
+        Assert.True(renamed.PreservationReport.IsPreserved);
+    }
+
+    [Fact]
     public void Sanitize_RemovesAuthoredWidgetJavaScriptWithoutRemovingFields() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Sanitize widget script")).ToBytes();
         byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
@@ -230,6 +311,17 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void Reader_TraversesSingleIndirectNextWidgetAction() {
+        byte[] source = BuildWidgetActionGraphPdf(includeOpenAction: false, useSingleIndirectNext: true);
+
+        PdfFormWidget widget = Assert.Single(Assert.Single(PdfDocument.Open(source).Inspect().FormFields).Widgets);
+
+        Assert.Equal(new[] { "A", "A.Next" }, widget.Actions.Select(static action => action.TriggerName));
+        Assert.Equal(new[] { "GoTo", "JavaScript" }, widget.Actions.Select(static action => action.ActionType));
+        Assert.Equal("app.alert('one');", widget.JavaScript);
+    }
+
+    [Fact]
     public void Flatten_PrunesIndirectWidgetActionGraphButKeepsPublicRedactionAnalysisClean() {
         byte[] source = BuildWidgetActionGraphPdf(includeOpenAction: false);
 
@@ -251,6 +343,11 @@ public class PdfAcroFormAuthoringTests {
         Assert.False(preflight.CanFlattenSimpleFormFields);
         Assert.Contains(preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields), message => message.Contains("open action", StringComparison.OrdinalIgnoreCase));
         Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(source).Forms.Fill(new Dictionary<string, string> { ["run"] = "updated" }));
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Rename("run", "renamed")));
+
+        byte[] nonWidgetAction = Encoding.ASCII.GetBytes(Encoding.ASCII.GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
+            .Replace("/Subtype /Widget /FT /Tx", "/Subtype /Text /FT /Tx"));
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(nonWidgetAction).Forms.Edit(edit => edit.Rename("run", "renamed")));
     }
 
     [Fact]
@@ -365,6 +462,135 @@ public class PdfAcroFormAuthoringTests {
         Assert.Equal("Custom", editable.Value);
     }
 
+    [Fact]
+    public void ChoiceCreation_PreservesAnExplicitlyUnselectedValueWhenOptionsExist() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Unselected choice")).ToBytes();
+
+        PdfFormField field = Assert.Single(PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "country",
+            Kind = PdfFormFieldCreationKind.Choice,
+            ChoiceOptions = new[] { "Poland", "Germany" },
+            Value = string.Empty
+        })).Fields);
+
+        Assert.Equal(string.Empty, field.Value);
+        Assert.Equal(new[] { "Poland", "Germany" }, field.Options.Select(static option => option.ExportValue));
+    }
+
+    [Fact]
+    public void Create_RejectsCombOutsideItsCompatibleTextFieldContract() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Comb validation")).ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "multiline",
+            Kind = PdfFormFieldCreationKind.Text,
+            Style = new PdfFormFieldStyle { IsComb = true, IsMultiline = true, MaxLength = 4 }
+        })));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "password",
+            Kind = PdfFormFieldCreationKind.Text,
+            Style = new PdfFormFieldStyle { IsComb = true, IsPassword = true, MaxLength = 4 }
+        })));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "file",
+            Kind = PdfFormFieldCreationKind.Text,
+            Style = new PdfFormFieldStyle { IsComb = true, IsFileSelect = true, MaxLength = 4 }
+        })));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "button",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Style = new PdfFormFieldStyle { IsComb = true, MaxLength = 4 }
+        })));
+    }
+
+    [Theory]
+    [InlineData(PdfFormFieldCreationKind.CheckBox, 32768)]
+    [InlineData(PdfFormFieldCreationKind.CheckBox, 65536)]
+    [InlineData(PdfFormFieldCreationKind.RadioButtonGroup, 65536)]
+    [InlineData(PdfFormFieldCreationKind.PushButton, 32768)]
+    public void Create_RejectsConflictingRawButtonKindFlags(PdfFormFieldCreationKind kind, int fieldFlags) {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Button flag validation")).ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "button",
+            Kind = kind,
+            Caption = kind == PdfFormFieldCreationKind.PushButton ? "Run" : null,
+            FieldFlags = fieldFlags,
+            ChoiceOptions = kind == PdfFormFieldCreationKind.RadioButtonGroup ? new[] { "One" } : Array.Empty<string>(),
+            Value = kind == PdfFormFieldCreationKind.RadioButtonGroup ? "One" : string.Empty,
+            Width = kind == PdfFormFieldCreationKind.RadioButtonGroup ? 120D : 100D,
+            Height = 24D
+        })));
+    }
+
+    [Fact]
+    public void Reader_AccountsWidgetActionsEvenWhenWidgetGeometryIsUnreadable() {
+        byte[] source = Encoding.ASCII.GetBytes(Encoding.ASCII.GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
+            .Replace(" /Rect [20 20 160 48]", string.Empty));
+        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScripts = 1 } };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Open(source, options).Inspect());
+
+        Assert.Equal(PdfReadLimitKind.JavaScripts, exception.Kind);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void CreateReadback_HonorsLaterFlagEditsInsteadOfRequiringTheInitialPresentation() {
+        const int comboFlag = 131072;
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Final flags")).ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "country",
+                Kind = PdfFormFieldCreationKind.Choice,
+                ChoiceOptions = new[] { "Poland", "Germany" },
+                IsComboBox = true
+            })
+            .SetFlags("country", 0));
+
+        PdfFormField field = Assert.Single(result.Fields);
+        Assert.False(field.IsCombo);
+        Assert.Equal(0, field.Flags);
+
+        PdfAcroFormEditResult promoted = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "country",
+                Kind = PdfFormFieldCreationKind.Choice,
+                ChoiceOptions = new[] { "Poland", "Germany" }
+            })
+            .SetFlags("country", comboFlag));
+        Assert.True(Assert.Single(promoted.Fields).IsCombo);
+    }
+
+    [Fact]
+    public void ButtonCaptionsIgnoreTextOnlyPasswordAndMultilineStyleFlags() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Button captions")).ToBytes();
+
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "calculate",
+                Kind = PdfFormFieldCreationKind.PushButton,
+                Caption = "Calculate",
+                Style = new PdfFormFieldStyle { IsPassword = true, IsMultiline = true }
+            })
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "size",
+                Kind = PdfFormFieldCreationKind.RadioButtonGroup,
+                Y = 100,
+                Width = 180,
+                Height = 60,
+                ChoiceOptions = new[] { "Small", "Large" },
+                Style = new PdfFormFieldStyle { IsPassword = true, IsMultiline = true }
+            })).ToBytes();
+
+        string raw = PdfEncoding.Latin1GetString(authored);
+        Assert.Contains("<43616C63756C617465> Tj", raw, StringComparison.Ordinal);
+        Assert.Contains("<536D616C6C> Tj", raw, StringComparison.Ordinal);
+        Assert.Contains("<4C61726765> Tj", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("••", raw, StringComparison.Ordinal);
+    }
+
     private static byte[] BuildWidgetJavaScriptStreamPdf(string source) {
         byte[] script = PdfJavaScriptStringEncoding.EncodeUnicode(source, nameof(source));
         using var output = new MemoryStream();
@@ -380,16 +606,17 @@ public class PdfAcroFormAuthoringTests {
         return output.ToArray();
     }
 
-    private static byte[] BuildWidgetActionGraphPdf(bool includeOpenAction) {
+    private static byte[] BuildWidgetActionGraphPdf(bool includeOpenAction, bool useSingleIndirectNext = false) {
         using var output = new MemoryStream();
         string openAction = includeOpenAction ? " /OpenAction 11 0 R" : string.Empty;
+        string nextAction = useSingleIndirectNext ? "9 0 R" : "[9 0 R 10 0 R]";
         WriteAscii(output, "%PDF-1.7\n");
         WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R" + openAction + " >>\nendobj\n");
         WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
         WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /Helv 12 0 R >> >> /Annots [6 0 R] >>\nendobj\n");
         WriteAscii(output, "5 0 obj\n<< /Fields [6 0 R] /DA (/Helv 10 Tf 0 g) /DR << /Font << /Helv 12 0 R >> >> >>\nendobj\n");
         WriteAscii(output, "6 0 obj\n<< /Type /Annot /Subtype /Widget /FT /Tx /T (run) /V (before) /DA (/Helv 10 Tf 0 g) /Rect [20 20 160 48] /P 3 0 R /A 8 0 R >>\nendobj\n");
-        WriteAscii(output, "8 0 obj\n<< /S /GoTo /D [3 0 R /Fit] /Next [9 0 R 10 0 R] >>\nendobj\n");
+        WriteAscii(output, "8 0 obj\n<< /S /GoTo /D [3 0 R /Fit] /Next " + nextAction + " >>\nendobj\n");
         WriteAscii(output, "9 0 obj\n<< /S /JavaScript /JS (app.alert\\('one'\\);) >>\nendobj\n");
         WriteAscii(output, "10 0 obj\n<< /S /JavaScript /JS (app.alert\\('two'\\);) /Next 8 0 R >>\nendobj\n");
         WriteAscii(output, "11 0 obj\n<< /S /JavaScript /JS (app.alert\\('open'\\);) >>\nendobj\n");

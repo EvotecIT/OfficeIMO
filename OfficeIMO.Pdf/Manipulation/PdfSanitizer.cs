@@ -40,7 +40,8 @@ internal static partial class PdfSanitizer {
                     ? security.InfoObjectNumber
                     : null;
             });
-        IReadOnlyList<PdfSanitizationFinding> remaining = Analyze(sanitized, policy, readOptions: null);
+        PdfReadOptions rewrittenReadOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, sanitized.LongLength);
+        IReadOnlyList<PdfSanitizationFinding> remaining = Analyze(sanitized, policy, rewrittenReadOptions);
         if (remaining.Count > 0) {
             throw new InvalidOperationException(
                 "PDF sanitization post-save validation found " + remaining.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) +
@@ -49,15 +50,29 @@ internal static partial class PdfSanitizer {
 
         var preservationOptions = new PdfRewritePreservationOptions {
             OriginalReadOptions = readOptions,
-            PreserveLinkAnnotations = false,
-            PreserveAnnotations = !policy.RemoveRichMedia,
+            RewrittenReadOptions = rewrittenReadOptions,
+            PreserveLinkAnnotations = true,
+            PreserveAnnotations = true,
             PreserveEmbeddedFiles = false,
-            PreserveCatalogActions = false,
-            PreservePageActions = false,
-            PreserveOpenAction = false,
+            PreserveCatalogActions = true,
+            PreservePageActions = true,
+            PreserveOpenAction = true,
+            FilterActionsByPreservedTypes = true,
             PreserveRevisionStructure = false,
             PreserveSecurityState = !PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions).HasEncryption
         };
+        if (policy.RemoveRichMedia) {
+            foreach (string subtype in RichAnnotationSubtypes) preservationOptions.ExcludedAnnotationSubtypes.Add(subtype);
+        }
+        PdfDocumentInfo originalInfo = PdfInspector.Inspect(pdf, readOptions);
+        for (int i = 0; i < originalInfo.LinkAnnotations.Count; i++) {
+            string? uri = originalInfo.LinkAnnotations[i].Uri;
+            if (uri is not null && !policy.IsUriAllowed(uri)) preservationOptions.ExcludedLinkAnnotationUris.Add(uri);
+        }
+        foreach (string actionType in policy.AllowedActionTypes) preservationOptions.PreservedActionTypes.Add(actionType);
+        if (!before.Any(finding => finding.Kind == PdfSanitizationFindingKind.UnsafeUri)) {
+            preservationOptions.PreservedActionTypes.Add("URI");
+        }
         PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, sanitized, preservationOptions);
 
         return new PdfSanitizationResult(sanitized, plan, preservation, before, remaining, quarantined);

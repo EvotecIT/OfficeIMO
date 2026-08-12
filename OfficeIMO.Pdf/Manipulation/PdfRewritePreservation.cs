@@ -42,13 +42,11 @@ public static partial class PdfRewritePreservation {
         CompareCounts(issues, "Outlines", original.Outlines.Count, rewritten.Outlines.Count, options.PreserveOutlines);
         CompareCounts(issues, "NamedDestinations", original.NamedDestinations.Count, rewritten.NamedDestinations.Count, options.PreserveNamedDestinations);
         CompareCounts(issues, "PageLabels", original.PageLabels.Count, rewritten.PageLabels.Count, options.PreservePageLabels);
-        CompareCounts(issues, "LinkAnnotations", original.LinkAnnotationCount, rewritten.LinkAnnotationCount, options.PreserveLinkAnnotations);
-        CompareCounts(issues, "Annotations", original.AnnotationCount, rewritten.AnnotationCount, options.PreserveAnnotations);
+        CompareCounts(issues, "LinkAnnotations", CountPreservedLinkAnnotations(original, options), CountPreservedLinkAnnotations(rewritten, options), options.PreserveLinkAnnotations);
+        CompareCounts(issues, "Annotations", CountPreservedAnnotations(original, options), CountPreservedAnnotations(rewritten, options), options.PreserveAnnotations);
         CompareCounts(issues, "FormFields", original.FormFields.Count, rewritten.FormFields.Count, options.PreserveForms);
         CompareCounts(issues, "EmbeddedFiles", original.Attachments.Count, rewritten.Attachments.Count, options.PreserveEmbeddedFiles);
         CompareCounts(issues, "OutputIntents", original.OutputIntents.Count, rewritten.OutputIntents.Count, options.PreserveOutputIntents);
-        CompareCounts(issues, "CatalogActions", original.CatalogActions.Count, rewritten.CatalogActions.Count, options.PreserveCatalogActions);
-        CompareCounts(issues, "PageActions", original.Pages.Sum(static page => page.PageActions.Count), rewritten.Pages.Sum(static page => page.PageActions.Count), options.PreservePageActions);
         CompareNavigationMetadata(issues, original, rewritten, options);
         CompareViewerActionState(issues, original, rewritten, options);
         CompareBooleanMarker(issues, "Forms", original.HasForms, rewritten.HasForms, options.PreserveForms);
@@ -116,6 +114,16 @@ public static partial class PdfRewritePreservation {
 
         issues.Add(CreateIssue(feature, "present", "missing"));
     }
+
+    private static int CountPreservedAnnotations(PdfDocumentInfo document, PdfRewritePreservationOptions options) =>
+        options.ExcludedAnnotationSubtypes.Count == 0
+            ? document.AnnotationCount
+            : document.Annotations.Count(annotation => !options.ExcludedAnnotationSubtypes.Contains(annotation.Subtype));
+
+    private static int CountPreservedLinkAnnotations(PdfDocumentInfo document, PdfRewritePreservationOptions options) =>
+        options.ExcludedLinkAnnotationUris.Count == 0
+            ? document.LinkAnnotationCount
+            : document.LinkAnnotations.Count(link => link.Uri is null || !options.ExcludedLinkAnnotationUris.Contains(link.Uri));
 
     private static void ComparePageGeometry(List<PdfRewritePreservationIssue> issues, PdfDocumentInfo original, PdfDocumentInfo rewritten, PdfRewritePreservationOptions options) {
         if (!options.PreservePageGeometry || original.PageCount != rewritten.PageCount) {
